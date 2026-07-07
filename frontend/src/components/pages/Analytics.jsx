@@ -54,11 +54,11 @@ import { MobileAnalyticsSkeleton } from '../mobile/MobileSkeleton';
 import { SEOHead } from '../common/SEOHead';
 
 const CHART_COLORS = {
-  primary: 'hsl(var(--primary))',
-  success: 'hsl(var(--success))',
-  warning: 'hsl(var(--warning))',
-  info: 'hsl(var(--info))',
-  secondary: 'hsl(var(--secondary))',
+  primary: 'hsl(var(--foreground))',
+  success: 'hsl(var(--foreground))',
+  warning: 'hsl(var(--foreground))',
+  info: 'hsl(var(--foreground))',
+  secondary: 'hsl(var(--foreground))',
   destructive: 'hsl(var(--destructive))',
   muted: 'hsl(var(--muted))',
   mutedForeground: 'hsl(var(--muted-foreground))'
@@ -326,19 +326,19 @@ export const Analytics = () => {
       label: 'Today',
       value: formatFinanceValue(financeSummary.today),
       progress: hasFinanceData ? Math.min(100, Math.round(((Number(financeSummary.today) || 0) / financeScale) * 100)) : 0,
-      color: 'success'
+      color: 'muted'
     },
     {
       label: 'Avg/Week',
       value: formatFinanceValue((Number(financeSummary.weeklyAvg) || 0) * 7),
       progress: hasFinanceData ? Math.min(100, Math.round((((Number(financeSummary.weeklyAvg) || 0) * 7) / financeScale) * 100)) : 0,
-      color: 'primary'
+      color: 'muted'
     },
     {
       label: 'Total',
       value: formatFinanceValue(financeSummary.total),
       progress: hasFinanceData ? Math.min(100, Math.round(((Number(financeSummary.total) || 0) / financeScale) * 100)) : 0,
-      color: 'info'
+      color: 'muted'
     }
   ];
   const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0
@@ -351,10 +351,10 @@ export const Analytics = () => {
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
       <Select value={timeRange} onValueChange={setTimeRange}>
-        <SelectTrigger className="w-[140px] h-9 squircle-lg glass shadow-sm text-xs font-semibold uppercase tracking-wider">
+        <SelectTrigger className="w-[140px] h-9 rounded-card bg-card shadow-sm text-xs font-semibold">
           <SelectValue placeholder="Range" />
         </SelectTrigger>
-        <SelectContent className="squircle shadow-xl glass">
+        <SelectContent className="squircle shadow-sm bg-card">
           <SelectItem value="7d">Last 7 days</SelectItem>
           <SelectItem value="30d">Last 30 days</SelectItem>
           <SelectItem value="90d">Last 90 days</SelectItem>
@@ -364,7 +364,7 @@ export const Analytics = () => {
       <Button
         variant="outline"
         size="sm"
-        className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        className="bg-card h-9 px-4 text-[10px] font-bold"
         onClick={handleExport}
         aria-describedby={commandNotice ? 'analytics-export-feedback' : undefined}
       >
@@ -617,7 +617,7 @@ export const Analytics = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-lg glass">
+        <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-sm">
           <p className="font-semibold text-sm mb-1">{label}</p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
@@ -705,7 +705,7 @@ export const Analytics = () => {
           onRetry={fetchAnalytics}
         />
         {isDataSparse && (
-          <div className="mb-4 mx-4 md:mx-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
+          <div className="mb-4 mx-4 md:mx-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
             <span>Analytics source is pending. Verify report scope before using these charts.</span>
             <button onClick={() => setSparseBannerDismissed(true)} className="ml-4 shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">Close</button>
           </div>
@@ -732,9 +732,9 @@ export const Analytics = () => {
           {/* Stat Cards - Row 1 - Role-based visibility */}
           {/* Admin see system-wide stats */}
           {isAdmin() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -744,9 +744,7 @@ export const Analytics = () => {
               transition={{ delay: idx * 0.1 }}
               className={`${stat.colSpan}`}
             >
-              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                {/* Apple hover glow effect */}
-                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
+              <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
@@ -754,15 +752,15 @@ export const Analytics = () => {
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
+                      <Badge className={`rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
                       </Badge>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold">{stat.value}</h3>
                   </div>
                 </div>
               </Card>
@@ -771,9 +769,9 @@ export const Analytics = () => {
 
           {/* Org Admin see organization-level stats */}
           {isOrgAdmin() && [
-            { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-sharp" },
+            { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -783,8 +781,7 @@ export const Analytics = () => {
               transition={{ delay: idx * 0.1 }}
               className={`${stat.colSpan}`}
             >
-              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.warning ? 'warning' : stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
+              <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
@@ -792,15 +789,15 @@ export const Analytics = () => {
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.warning ? 'bg-warning/20 text-warning' : stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
+                      <Badge className={`rounded-card ${stat.color === CHART_COLORS.warning ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
                       </Badge>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold">{stat.value}</h3>
                   </div>
                 </div>
               </Card>
@@ -809,9 +806,9 @@ export const Analytics = () => {
 
           {/* Sponsor see system-wide stats */}
           {isSponsor() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -821,8 +818,7 @@ export const Analytics = () => {
               transition={{ delay: idx * 0.1 }}
               className={`${stat.colSpan}`}
             >
-              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
+              <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
@@ -830,15 +826,15 @@ export const Analytics = () => {
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
+                      <Badge className={`rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
                       </Badge>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold">{stat.value}</h3>
                   </div>
                 </div>
               </Card>
@@ -847,8 +843,8 @@ export const Analytics = () => {
 
           {/* Provider-specific limited stats */}
           {isProvider() && [
-            { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -858,8 +854,7 @@ export const Analytics = () => {
               transition={{ delay: idx * 0.1 }}
               className={`${stat.colSpan}`}
             >
-              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
+              <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
@@ -867,15 +862,15 @@ export const Analytics = () => {
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
+                      <Badge className={`rounded-card ${stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
                       </Badge>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold">{stat.value}</h3>
                   </div>
                 </div>
               </Card>
@@ -892,19 +887,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                {/* Subtle Grid for Context */}
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
-                </div>
-
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col justify-between group relative overflow-hidden">
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
                     <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
                     <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
+                    <Badge className="squircle bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
                     </Badge>
@@ -962,18 +952,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--warning))' }}>
-                </div>
-
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col justify-between group relative overflow-hidden">
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
                     <h3 className="font-bold text-2xl tracking-tight">Organization Response Time Trend</h3>
                     <p className="text-muted-foreground font-medium">Your organization's response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-warning/10 text-warning border-0 font-semibold px-3 py-1">
+                    <Badge className="squircle bg-amber-500/15 text-amber-700 dark:text-amber-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
                     </Badge>
@@ -1031,18 +1017,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
-                </div>
-
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col justify-between group relative overflow-hidden">
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
                     <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
                     <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
+                    <Badge className="squircle bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
                     </Badge>
@@ -1100,18 +1082,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--info))' }}>
-                </div>
-
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col justify-between group relative overflow-hidden">
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
                     <h3 className="font-bold text-2xl tracking-tight">Your Response Times</h3>
                     <p className="text-muted-foreground font-medium">Your personal response time performance</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-info/10 text-info border-0 font-semibold px-3 py-1">
+                    <Badge className="squircle bg-muted text-muted-foreground font-semibold px-3 py-1">
                       <Activity className="h-4 w-4 mr-1" />
                       {providerResponseScopeBadge}
                     </Badge>
@@ -1170,15 +1148,12 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-primary" />
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-primary" />
+                      <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1210,8 +1185,8 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
+                      <p className="text-4xl font-bold text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold">SYSTEM SUCCESS</p>
                     </div>
                   </div>
                 </div>
@@ -1237,13 +1212,11 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                <div className="hover-glow hover-glow-warning" />
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-warning" />
+                      <Activity className="h-6 w-6 text-amber-700 dark:text-amber-200" />
                     </div>
                   </div>
                 </div>
@@ -1274,8 +1247,8 @@ export const Analytics = () => {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">ORG SUCCESS</p>
+                      <p className="text-4xl font-bold text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold">ORG SUCCESS</p>
                     </div>
                   </div>
                 </div>
@@ -1301,13 +1274,11 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                <div className="hover-glow hover-glow-primary" />
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-primary" />
+                      <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1338,8 +1309,8 @@ export const Analytics = () => {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
+                      <p className="text-4xl font-bold text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold">SYSTEM SUCCESS</p>
                     </div>
                   </div>
                 </div>
@@ -1365,15 +1336,12 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
+              <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-info" />
+                      <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1405,15 +1373,15 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">YOUR SUCCESS</p>
+                      <p className="text-4xl font-bold text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold">YOUR SUCCESS</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-info/20 text-xs font-medium">
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/30 text-xs font-medium">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color === CHART_COLORS.primary ? CHART_COLORS.info : status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
@@ -1432,15 +1400,12 @@ export const Analytics = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.45 }}
             >
-              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
+              <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Mail className="h-6 w-6 text-info" />
+                      <Mail className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1476,16 +1441,16 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{resolvedSubscriptionStats.total}</p>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">TOTAL</p>
+                      <p className="text-4xl font-bold text-foreground">{resolvedSubscriptionStats.total}</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold">TOTAL</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Type Pills Below */}
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-medium">
-                    <div className="w-2 h-2 rounded-full bg-warning" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-amber-500/15 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
                     <span>Premium {resolvedSubscriptionStats.paid}</span>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
@@ -1512,9 +1477,7 @@ export const Analytics = () => {
               transition={{ delay: 0.5 + (idx * 0.1) }}
               className="col-span-1 lg:col-span-2"
             >
-              <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
-                {/* Apple hover glow effect */}
-                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.secondary ? 'secondary' : stat.color === CHART_COLORS.info ? 'info' : 'success'}`} />
+              <Card className="h-full min-h-[140px] rounded-card bg-card p-6 relative overflow-hidden group flex items-center justify-between">
                 {/* Top Right Icon Style Applied Here Too */}
                 <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
                   <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
@@ -1525,9 +1488,9 @@ export const Analytics = () => {
                     <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
                       <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                     </div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{stat.title}</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
+                  <h3 className="text-3xl font-bold">{stat.value}</h3>
                 </div>
               </Card>
             </motion.div>
@@ -1545,8 +1508,7 @@ export const Analytics = () => {
               transition={{ delay: 0.5 + (idx * 0.1) }}
               className="col-span-1 lg:col-span-2"
             >
-              <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
-                <div className="hover-glow hover-glow-info" />
+              <Card className="h-full min-h-[140px] rounded-card bg-card p-6 relative overflow-hidden group flex items-center justify-between">
                 <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
                   <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
                 </div>
@@ -1556,9 +1518,9 @@ export const Analytics = () => {
                     <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
                       <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                     </div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{stat.title}</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
+                  <h3 className="text-3xl font-bold">{stat.value}</h3>
                 </div>
               </Card>
             </motion.div>
@@ -1573,34 +1535,33 @@ export const Analytics = () => {
               transition={{ delay: 0.55 }}
               className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2"
             >
-              <Card className="h-full min-h-[140px] squircle-xl glass-card shadow-2xl p-6 flex flex-col justify-between group relative overflow-hidden">
-                <div className="hover-glow hover-glow-success" />
+              <Card className="h-full min-h-[140px] rounded-card bg-card shadow-sm p-6 flex flex-col justify-between group relative overflow-hidden">
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Fleet Readiness</p>
+                    <p className="text-[10px] font-black text-muted-foreground mb-1">Fleet Readiness</p>
                     <div className="flex items-baseline gap-2">
-                      <h3 className="text-3xl font-bold tracking-tighter">
+                      <h3 className="text-3xl font-bold">
                         {stats.totalAmbulances}
                         <span className="text-sm text-muted-foreground font-medium ml-1">units</span>
                       </h3>
-                      <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 text-[10px] font-bold">{SOURCE_PENDING_LABEL}</Badge>
+                      <Badge className="rounded-card bg-muted/30 text-muted-foreground text-[10px] font-bold">{SOURCE_PENDING_LABEL}</Badge>
                     </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-success" />
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-2">
                   <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
                     <motion.div
-                      className="h-full bg-success shadow-[0_0_10px_rgba(var(--success),0.5)]"
+                      className="h-full bg-muted"
                       initial={{ width: 0 }}
                       animate={{ width: 0 }}
                       transition={{ duration: 1.5, delay: 0.7 }}
                     />
                   </div>
-                  <p className="text-[9px] text-muted-foreground font-medium flex justify-between uppercase tracking-wider">
+                  <p className="text-[9px] text-muted-foreground font-medium flex justify-between">
                     <span>Readiness Source</span>
                     <span>{SOURCE_PENDING_LABEL}</span>
                   </p>
@@ -1613,35 +1574,34 @@ export const Analytics = () => {
           {
             (isAdmin() || isOrgAdmin() || isSponsor()) && (
               <motion.div layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.58 }} className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2">
-                <Card className="h-full min-h-[140px] squircle-xl glass-card shadow-2xl p-6 flex flex-col justify-between group relative overflow-hidden">
-                  <div className="hover-glow hover-glow-info" />
+                <Card className="h-full min-h-[140px] rounded-card bg-card shadow-sm p-6 flex flex-col justify-between group relative overflow-hidden">
                   <div className="relative z-10 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Hospital Resources</p>
+                      <p className="text-[10px] font-black text-muted-foreground mb-1">Hospital Resources</p>
                       <div className="flex items-baseline gap-2">
-                        <h3 className="text-3xl font-bold tracking-tighter">
+                        <h3 className="text-3xl font-bold">
                           {resolvedHospitalCapacity.occupied || 0}
                           <span className="text-sm text-muted-foreground font-medium ml-1">/ {resolvedHospitalCapacity.total || 0} BEDS</span>
                         </h3>
-                        <Badge className="squircle-sm bg-info/10 text-info border-0 text-[10px] font-bold">{resolvedHospitalCapacity.total > 0 ? 'Current' : SOURCE_PENDING_LABEL}</Badge>
+                        <Badge className="rounded-card bg-muted text-muted-foreground text-[10px] font-bold">{resolvedHospitalCapacity.total > 0 ? 'Current' : SOURCE_PENDING_LABEL}</Badge>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center">
-                      <Hospital className="h-6 w-6 text-info" />
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <Hospital className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center gap-4 relative z-10">
                     <div className="flex-1 space-y-2">
                       <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-info shadow-[0_0_10px_rgba(var(--info),0.5)]" initial={{ width: 0 }} animate={{ width: `${hospitalCapacityPercent}%` }} transition={{ duration: 1.5, delay: 0.8 }} />
+                        <motion.div className="h-full bg-muted" initial={{ width: 0 }} animate={{ width: `${hospitalCapacityPercent}%` }} transition={{ duration: 1.5, delay: 0.8 }} />
                       </div>
-                      <p className="text-[9px] text-muted-foreground font-medium flex justify-between uppercase tracking-wider">
+                      <p className="text-[9px] text-muted-foreground font-medium flex justify-between">
                         <span>Occ. Rate</span>
                         <span>{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}% Capacity` : SOURCE_PENDING_LABEL}</span>
                       </p>
                     </div>
-                    <div className="px-3 py-1 bg-white/5 rounded-lg ">
-                      <p className="text-[8px] font-bold text-muted-foreground uppercase">ICU Free</p>
+                    <div className="px-3 py-1 bg-muted/30 rounded-lg ">
+                      <p className="text-[8px] font-bold text-muted-foreground">ICU Free</p>
                       <p className="text-sm font-black text-foreground">{resolvedHospitalCapacity.icu || 0}</p>
                     </div>
                   </div>
@@ -1659,15 +1619,12 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-primary" />
+              <Card className="h-full min-h-[350px] rounded-card bg-card shadow-sm p-8 flex flex-col relative group">
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Calendar className="h-6 w-6 text-primary" />
+                      <Calendar className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1716,38 +1673,37 @@ export const Analytics = () => {
           {
             (isAdmin() || isOrgAdmin() || isSponsor()) && (
               <motion.div layout className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-3 row-span-2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.65 }}>
-                <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                  <div className="hover-glow hover-glow-destructive" />
+                <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
                   <div className="relative z-10 flex items-center justify-between mb-8">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-1">System Load</p>
+                      <p className="text-[10px] font-black text-destructive mb-1">System Load</p>
                       <h3 className="font-bold text-xl tracking-tight leading-tight">Demand Velocity Heatmap</h3>
                     </div>
                     <div className="flex flex-col items-end">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-muted" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest">{SOURCE_PENDING_LABEL}</p>
+                        <p className="text-[10px] font-bold">{SOURCE_PENDING_LABEL}</p>
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 grid grid-cols-6 grid-rows-4 gap-2 relative z-10">
                     {demandHeatmap.map((item, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 + (idx * 0.02) }} className="relative group/cell">
-                        <div className={`w-full h-full rounded-md border-white/5 transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-warning/40' : item.value > 30 ? 'bg-info/20' : 'bg-white/5'}`} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-xl pointer-events-none">
+                        <div className={`w-full h-full rounded-md transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-amber-500/15' : item.value > 30 ? 'bg-muted/40' : 'bg-muted/30'}`} />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-sm pointer-events-none">
                           {item.hour} - {item.value > 0 ? `${item.value}% load` : SOURCE_PENDING_LABEL}
                         </div>
                       </motion.div>
                     ))}
                   </div>
-                  <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-6">
+                  <div className="mt-8 flex items-center justify-between pt-6">
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-destructive/60" />
-                        <span className="text-[8px] font-bold text-muted-foreground uppercase">Critical</span>
+                        <span className="text-[8px] font-bold text-muted-foreground">Critical</span>
                       </div>
                     </div>
-                    <p className="text-[10px] font-black text-muted-foreground/50 italic tracking-widest uppercase">{SOURCE_PENDING_LABEL}</p>
+                    <p className="text-[10px] font-black text-muted-foreground/50 italic">{SOURCE_PENDING_LABEL}</p>
                   </div>
                 </Card>
               </motion.div>
@@ -1763,13 +1719,11 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
-                <div className="hover-glow hover-glow-info" />
+              <Card className="h-full min-h-[350px] rounded-card bg-card shadow-sm p-8 flex flex-col relative group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Calendar className="h-6 w-6 text-info" />
+                      <Calendar className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1823,13 +1777,10 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65 }}
             >
-              <Card className="h-full min-h-[350px] squircle-2xl glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-destructive" />
+              <Card className="h-full min-h-[350px] rounded-card bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-destructive/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <AlertTriangle className="h-6 w-6 text-destructive" />
                     </div>
@@ -1840,8 +1791,8 @@ export const Analytics = () => {
                   <h3 className="font-bold text-xl tracking-tight">Dominant System Case</h3>
                   {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-3xl font-bold text-destructive tracking-tighter">{dominantType.name}</span>
-                      <Badge className="squircle bg-destructive/10 text-destructive border-0 font-semibold">
+                      <span className="text-3xl font-bold text-destructive">{dominantType.name}</span>
+                      <Badge className="squircle bg-destructive/10 text-destructive font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
                       </Badge>
                     </div>
@@ -1891,13 +1842,11 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65 }}
             >
-              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                <div className="hover-glow hover-glow-info" />
+              <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <AlertTriangle className="h-6 w-6 text-info" />
+                      <AlertTriangle className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -1906,8 +1855,8 @@ export const Analytics = () => {
                   <h3 className="font-bold text-xl tracking-tight">Your Case Types</h3>
                   {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-3xl font-bold text-info tracking-tighter">{dominantType.name}</span>
-                      <Badge className="squircle bg-info/10 text-info border-0 font-semibold">
+                      <span className="text-3xl font-bold text-muted-foreground">{dominantType.name}</span>
+                      <Badge className="squircle bg-muted text-muted-foreground font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of your cases
                       </Badge>
                     </div>
@@ -1958,20 +1907,12 @@ export const Analytics = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              {/* Search Pattern */}
-              <div className="absolute inset-0 opacity-5"
-                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
-              </div>
-
+            <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
               {/* Top Right Icon */}
               <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                   <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                    <TrendingUp className="h-6 w-6 text-info" />
+                    <TrendingUp className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
               </div>
@@ -1988,14 +1929,14 @@ export const Analytics = () => {
                   { label: 'Avg Time', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true },
                   { label: 'No Results', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true }
                 ].map((metric, idx) => (
-                  <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div key={idx} className="p-4 rounded-inner bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
-                      <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 font-bold text-xs">
+                      <Badge className="rounded-card bg-muted/30 text-muted-foreground font-bold text-xs">
                         {metric.change}
                       </Badge>
                     </div>
-                    <p className="text-2xl font-bold tracking-tighter">{metric.value}</p>
+                    <p className="text-2xl font-bold">{metric.value}</p>
                   </div>
                 ))}
               </div>
@@ -2010,20 +1951,12 @@ export const Analytics = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.75 }}
           >
-            <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-success" />
-              {/* Performance Pattern */}
-              <div className="absolute inset-0 opacity-5"
-                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px', color: 'hsl(var(--success))' }}>
-              </div>
-
+            <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
               {/* Top Right Icon */}
               <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
                   <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                    <Activity className="h-6 w-6 text-success" />
+                    <Activity className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
               </div>
@@ -2041,12 +1974,12 @@ export const Analytics = () => {
                   { label: 'Error Rate', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' },
                   { label: 'Uptime', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' }
                 ].map((metric, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-inner bg-muted/20 hover:bg-muted/30 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-semibold">{metric.label}</span>
-                        <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : metric.status === 'good' ? 'bg-warning/10 text-warning' : 'bg-muted/30 text-muted-foreground'
-                          } border-0 font-bold text-xs`}>
+                        <Badge className={`rounded-card ${metric.status === 'excellent' ? 'bg-muted text-emerald-700 dark:text-emerald-200' : metric.status === 'good' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : 'bg-muted/30 text-muted-foreground'
+                          } font-bold text-xs`}>
                           {metric.status}
                         </Badge>
                       </div>
@@ -2055,10 +1988,10 @@ export const Analytics = () => {
                         <span className="text-xs text-muted-foreground">Target: {metric.target}</span>
                       </div>
                     </div>
-                    <div className="w-16 h-2 bg-muted/30 squircle-sm overflow-hidden">
+                    <div className="w-16 h-2 bg-muted/30 rounded-card overflow-hidden">
                       <motion.div
-                        className={`h-full ${metric.status === 'excellent' ? 'bg-success' : metric.status === 'pending' ? 'bg-muted' : 'bg-warning'
-                          } squircle-sm`}
+                        className={`h-full ${metric.status === 'excellent' ? 'bg-muted' : metric.status === 'pending' ? 'bg-muted' : 'bg-amber-500'
+                          } rounded-card`}
                         initial={{ width: 0 }}
                         animate={{
                           width: metric.status === 'pending'
@@ -2087,19 +2020,16 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
             >
-              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                <div className="hover-glow hover-glow-success" />
-
+              <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
                 {/* Header */}
                 <div className="relative z-10 flex items-center justify-between mb-6">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-success mb-1">Financial</p>
+                    <p className="text-[10px] font-black text-muted-foreground mb-1">Financial</p>
                     <h3 className="font-bold text-xl tracking-tight">Revenue Performance</h3>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
                     <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Wallet className="h-5 w-5 text-success" />
+                      <Wallet className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
                 </div>
@@ -2110,14 +2040,14 @@ export const Analytics = () => {
                   {/* LEFT: Revenue Metrics */}
                   <div className="flex flex-col justify-between gap-3">
                     {financeMetricRows.map((m, idx) => (
-                      <div key={idx} className="space-y-1.5 p-3 rounded-xl bg-white/5 border-white/5">
+                      <div key={idx} className="space-y-1.5 p-3 rounded-xl bg-muted/30">
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
+                          <span className="text-[9px] font-bold text-muted-foreground">{m.label}</span>
                           <span className="text-base font-black tracking-tight">{m.value}</span>
                         </div>
-                        <div className="h-1 bg-muted/30 squircle-sm overflow-hidden">
+                        <div className="h-1 bg-muted/30 rounded-card overflow-hidden">
                           <motion.div
-                            className={`h-full bg-${m.color} squircle-sm`}
+                            className={`h-full bg-${m.color} rounded-card`}
                             initial={{ width: 0 }}
                             animate={{ width: `${m.progress}%` }}
                             transition={{ duration: 1, delay: 0.9 + (idx * 0.1) }}
@@ -2127,7 +2057,7 @@ export const Analytics = () => {
                     ))}
 
                     {/* Health Score Row */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-success/5 border-success/10">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
                       <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90">
                           <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-muted/10" />
@@ -2135,13 +2065,13 @@ export const Analytics = () => {
                             cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent"
                             strokeDasharray={100}
                             strokeDashoffset={100 - financeSummary.health}
-                            className="text-success transition-all duration-1000"
+                            className="text-muted-foreground transition-all duration-1000"
                           />
                         </svg>
                         <span className="absolute text-[9px] font-black">{Math.round(financeSummary.health)}%</span>
                       </div>
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-success">Health</p>
+                        <p className="text-[9px] font-black text-muted-foreground">Health</p>
                         <p className="text-[8px] text-muted-foreground leading-tight">{SOURCE_PENDING_LABEL}</p>
                       </div>
                     </div>
@@ -2175,12 +2105,12 @@ export const Analytics = () => {
                     </div>
                     {/* Quick Stat Tiles */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Paid Conv.</p>
+                      <div className="p-2 rounded-lg bg-muted/30 text-center">
+                        <p className="text-[8px] font-bold text-muted-foreground">Paid Conv.</p>
                         <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
                       </div>
-                      <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Avg/Req</p>
+                      <div className="p-2 rounded-lg bg-muted/30 text-center">
+                        <p className="text-[8px] font-bold text-muted-foreground">Avg/Req</p>
                         <p className="text-sm font-black text-foreground">{avgPerRequestLabel}</p>
                       </div>
                     </div>
