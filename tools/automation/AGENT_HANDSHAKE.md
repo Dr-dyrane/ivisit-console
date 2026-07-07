@@ -13,6 +13,41 @@ that.
 
 ---
 
+## Design System Canon (non-negotiable)
+
+The gold-standard reference is **`frontend/src/components/pages/EmergencyRequestsPage.jsx`** (the
+Requests canon). It has **zero borders and zero non-canonical radius** — that is the bar. Every
+revamped surface must match its vocabulary:
+
+- **No borders. No rings. No hairlines. Ever.** Zero `border` / `border-*` / `ring-*` / `outline-*`
+  / `divide-*` / `*-px` / `0.5px` / `1px`. Depth comes from **tone** (`bg-card/NN`, `bg-muted/NN`),
+  **soft arbitrary shadows** (`shadow-[0_24px_70px_rgb(0_0_0/0.16)]`), **`backdrop-blur*`**, and
+  **spacing** — never a drawn line.
+- **Canonical squircle radius only.** Use `rounded-{sheet,card,inner,icon,button,pill,modal,squircle}`
+  (and directional `rounded-{t,b,l,r,tl,…}-<token>`). NEVER `rounded-2xl` / `xl` / `lg` / `3xl` /
+  `full` / `rounded-[Npx]`. Conversions: `rounded-full`→`rounded-pill`, `rounded-[24px]`→
+  `rounded-inner`, `rounded-2xl`→`rounded-button`. Every revamped page MUST pass
+  `node scripts/check-ui-surface-hardgate.js --strict-radius <file>`, not just the default hardgate.
+- **No red except danger.** In this theme `--primary` / `--secondary` / `--info` / `--success` /
+  `--warning` ALL resolve to red — use none of them for ordinary state. Positive/neutral/informational
+  chrome uses the **literal palette** (sky / emerald / amber / rose / violet / cyan) or neutral
+  (`foreground` / `muted`). Only `--destructive` (the bright danger red) is allowed, and only for
+  genuine danger/destructive/error.
+- **No legacy chrome utilities:** no `glass-card` / `glass-card-premium`, `geo-*`, `squircle-{size}`,
+  `hover-glow*`, `hover-lift`, `bg-orb`, `pulse-dot`, decorative `shadow-2xl` / `shadow-premium` /
+  `shadow-glow`, `uppercase`, `tracking-{tighter,wide,widest}`. (Manual glass is the canonical way:
+  `bg-card/68 backdrop-blur-2xl`, not the `glass-card` class.)
+- **Data-page shape** (match `EmergencyRequestsPage` `RequestSignalPanel` / `RequestKpiStrip` and its
+  sheet): signal panel (`rounded-pill` label + big `text-6xl` headline + subhead) → state-chip strip
+  (`rounded-inner` chips, `rounded-button` icon tiles) → the list inside a **handled sheet**
+  (`rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl md:rounded-sheet`
+  with a `mx-auto h-1.5 w-[42px] rounded-pill bg-foreground/20` drag handle) → optional detail rail.
+  Copy those components from the gold-standard page; don't invent a new shape.
+
+If a page's older contract test bans a token this canon requires (e.g. `backdrop-blur` on the sheet),
+the **canon wins** — the controller updates that test. If a contract requires a *stricter* radius
+than a non-canonical page uses, satisfy the canon (canonical tokens), never the loose one.
+
 ## Golden rules (all agents)
 
 1. **Commit fast; never sit on uncommitted work.** Edit → verify → `git commit <your files>` →

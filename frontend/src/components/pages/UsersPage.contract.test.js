@@ -275,9 +275,9 @@ describe('Users Page 14 intake contract', () => {
     expect(usersPageSource).toContain('rounded-icon');
     expect(usersPageSource).toContain('rounded-button');
     expect(usersPageSource).toContain('rounded-pill');
-    // Page 14 is admitted with the codex signal-panel vocabulary (rounded-full/[Npx]/2xl pass the
-    // authoritative default hardgate); legacy geometry and surface borders stay banned.
-    expect(usersPageSource).not.toMatch(/rounded-(?:3xl|lg)/);
+    // Page 14 uses the canonical squircle vocabulary (matches the gold-standard EmergencyRequestsPage);
+    // non-canonical radius and surface borders are banned.
+    expect(usersPageSource).not.toMatch(/rounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])/);
     expect(usersPageSource).not.toMatch(/\bborder(?:-0|-b|-white| )/);
     expect(usersPageSource).not.toContain('ring-2');
     expect(usersPageSource).not.toContain('h-[1px]');
