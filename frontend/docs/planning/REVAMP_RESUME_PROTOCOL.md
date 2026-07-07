@@ -84,10 +84,14 @@ Branch / commit: codex/ivisit-console-revamp-checkpoint-20260707 @ <sha>, pushed
 ## 6. Current pointer
 
 - Page 24 Catch-All Not Found: ADMITTED (commit `3dbbff7`).
-- Page 23 Unauthorized: visual pass in progress / admitted this cycle (see gate Page 23 section).
-- Next after Page 23: Page 22 Onboarding Success, then Page 21/20/19 public-auth surfaces
-  (visual pass only; their receiver/redirect/flow blockers stay intake-only). Authenticated
-  intake pages (12-18) remain backend-authority blocked (not source-closable here).
+- Page 23 Unauthorized: ADMITTED (commit `c6b1330`).
+- NEXT: Page 22 Onboarding Success (`src/components/pages/OnboardingSuccessPage.jsx`).
+  Do its visual pass only (canonical squircle tokens, calm non-danger color, no glow/orb/blur,
+  no tracking chrome), preserve success/redirect/support behavior, render `/onboarding-success`
+  proof, then admit via the gate Page 22 section + `OnboardingSuccessPage.contract.test.js`.
+- After Page 22: Page 21/20/19 public-auth surfaces (visual pass only; their
+  receiver/redirect/flow blockers stay intake-only). Authenticated intake pages (12-18)
+  remain backend-authority blocked (not source-closable here).
 
 ## 7. How resumption actually works (and why not cloud cron)
 
