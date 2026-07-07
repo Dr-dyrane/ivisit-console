@@ -78,10 +78,10 @@ export const MobileSubscriptions = ({
   const showTopSectionLoading = loading && displaySubscribers.length === 0;
 
   const kpis = [
-    { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--primary))', delta: 'Shown', direction: 'flat' },
-    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: 'Shown', direction: 'flat' },
-    { id: 'paid', label: 'Paid', value: counts.paid, color: 'hsl(var(--warning))', delta: 'Shown', direction: 'flat' },
-    { id: 'free', label: 'Free', value: counts.free, color: 'hsl(var(--info))', delta: 'Shown', direction: 'flat' }
+    { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--foreground))', delta: 'Shown', direction: 'flat' },
+    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(160 60% 40%)', delta: 'Shown', direction: 'flat' },
+    { id: 'paid', label: 'Paid', value: counts.paid, color: 'hsl(38 92% 45%)', delta: 'Shown', direction: 'flat' },
+    { id: 'free', label: 'Free', value: counts.free, color: 'hsl(var(--muted-foreground))', delta: 'Shown', direction: 'flat' }
   ];
 
   const periodTrends = useMemo(() => {
@@ -129,7 +129,7 @@ export const MobileSubscriptions = ({
               value: `${counts.total ? Math.round((counts.paid / counts.total) * 100) : 0}%`,
               trend: periodTrends.paidMix.deltaText,
               icon: Crown,
-              color: 'hsl(var(--warning))',
+              color: 'hsl(38 92% 45%)',
               chartData: [{ value: 24 }, { value: 30 }, { value: 36 }, { value: 44 }, { value: 46 }, { value: 53 }]
             },
             {
@@ -137,7 +137,7 @@ export const MobileSubscriptions = ({
               value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
               trend: periodTrends.activeMix.deltaText,
               icon: Users,
-              color: 'hsl(var(--info))',
+              color: 'hsl(199 89% 48%)',
               chartData: [{ value: 22 }, { value: 27 }, { value: 33 }, { value: 39 }, { value: 43 }, { value: 48 }]
             },
             {
@@ -145,7 +145,7 @@ export const MobileSubscriptions = ({
               value: counts.total,
               trend: 'Loaded',
               icon: Mail,
-              color: 'hsl(var(--primary))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: 14 }, { value: 18 }, { value: 22 }, { value: 26 }, { value: 30 }, { value: 34 }]
             },
             {
@@ -153,7 +153,7 @@ export const MobileSubscriptions = ({
               value: counts.paid,
               trend: 'Loaded',
               icon: BadgeCheck,
-              color: 'hsl(var(--success))',
+              color: 'hsl(160 60% 40%)',
               chartData: [{ value: 12 }, { value: 16 }, { value: 19 }, { value: 23 }, { value: 27 }, { value: 31 }]
             }
           ]}
@@ -163,7 +163,7 @@ export const MobileSubscriptions = ({
           <MobileSectionHeader
             label="Subscriber mix"
             count={counts.total}
-            color="hsl(var(--warning))"
+            color="hsl(38 92% 45%)"
             labelTone="plain"
           />
           <MobileSecondaryMetricRail
@@ -174,7 +174,7 @@ export const MobileSubscriptions = ({
                 title: 'Paid Mix',
                 subtitle: 'Type share',
                 value: `${Math.round(((counts.paid || 0) / (counts.total || 1)) * 100)}%`,
-                color: 'hsl(var(--warning))',
+                color: 'hsl(38 92% 45%)',
                 trendDirection: periodTrends.paidMix.direction,
                 trendText: periodTrends.paidMix.deltaText
               },
@@ -183,7 +183,7 @@ export const MobileSubscriptions = ({
                 title: 'Active Mix',
                 subtitle: 'Status share',
                 value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
-                color: 'hsl(var(--info))',
+                color: 'hsl(199 89% 48%)',
                 trendDirection: periodTrends.activeMix.direction,
                 trendText: periodTrends.activeMix.deltaText
               },
@@ -192,7 +192,7 @@ export const MobileSubscriptions = ({
                 title: 'Shown',
                 subtitle: 'Loaded rows',
                 value: counts.total,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: 'Loaded'
               },
@@ -201,7 +201,7 @@ export const MobileSubscriptions = ({
                 title: 'Paid',
                 subtitle: 'Type label',
                 value: counts.paid,
-                color: 'hsl(var(--success))',
+                color: 'hsl(160 60% 40%)',
                 trendDirection: 'flat',
                 trendText: 'Loaded'
               }
@@ -245,7 +245,7 @@ export const MobileSubscriptions = ({
         <MobileSectionHeader
           label="Subscriber Registry"
           count={displaySubscribers.length}
-          color="hsl(var(--primary))"
+          color="hsl(var(--foreground))"
           onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displaySubscribers.length) : null}
           isAllSelected={displaySubscribers.length > 0 && selectedIds.length === displaySubscribers.length}
         />
@@ -259,7 +259,7 @@ export const MobileSubscriptions = ({
                 <MobileMetricRow
                   key={sub.id}
                   icon={Users}
-                  color={active ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground))'}
+                  color={active ? 'hsl(160 60% 40%)' : 'hsl(var(--muted-foreground))'}
                   label={formatLabel(sub.status)}
                   value={sub.email || 'No email'}
                   rightBlade={{
@@ -267,7 +267,7 @@ export const MobileSubscriptions = ({
                     direction: paid ? 'up' : 'flat',
                     label: 'Type',
                     value: formatLabel(sub.type, 'Free'),
-                    color: paid ? 'hsl(var(--warning))' : 'hsl(var(--info))'
+                    color: paid ? 'hsl(38 92% 45%)' : 'hsl(var(--muted-foreground))'
                   }}
                   isExpanded={expandedId === sub.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
@@ -289,13 +289,13 @@ export const MobileSubscriptions = ({
                       </div>
                       <div className="flex gap-2 pt-1">
                         <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(sub)}>
-                          <Eye size={16} className="text-primary/60" />
+                          <Eye size={16} className="text-muted-foreground" />
                           <span className="text-[11px] font-semibold">Details</span>
                         </Button>
                         {canManage && (
                           <>
                             <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(sub)}>
-                              <Edit size={16} className="text-warning/60" />
+                              <Edit size={16} className="text-muted-foreground" />
                             </Button>
                             <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(sub)}>
                               <Trash2 size={16} className="text-destructive/60" />

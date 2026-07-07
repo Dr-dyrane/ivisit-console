@@ -36,11 +36,11 @@ export const SubscriptionTableView = ({
     if (!subscribers || subscribers.length === 0) return null;
 
     return (
-        <div className="bg-background/35 backdrop-blur-xs squircle-lg border-0 shadow-premium overflow-hidden">
+        <div className="bg-background/35 rounded-card overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b border-border/20">
+                        <tr className=" ">
                             <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 <Checkbox
                                     checked={selectedIds.length === subscribers.length && subscribers.length > 0}
@@ -72,7 +72,7 @@ export const SubscriptionTableView = ({
                         {subscribers.map((subscriber, index) => (
                             <tr
                                 key={subscriber.id}
-                                className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
+                                className={`  hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
                                     }`}
                             >
                                 <td className="p-4">
@@ -84,11 +84,11 @@ export const SubscriptionTableView = ({
                                 </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 geo-round bg-primary/10 flex items-center justify-center shrink-0">
+                                        <div className="w-8 h-8 rounded-card bg-muted flex items-center justify-center shrink-0">
                                             {subscriber.type === 'paid' ? (
-                                                <Crown className="h-4 w-4 text-primary" />
+                                                <Crown className="h-4 w-4 text-muted-foreground" />
                                             ) : (
-                                                <Users className="h-4 w-4 text-primary" />
+                                                <Users className="h-4 w-4 text-muted-foreground" />
                                             )}
                                         </div>
                                         <div>
@@ -98,7 +98,7 @@ export const SubscriptionTableView = ({
                                                 </span>
                                                 {subscriber.new_user && (
                                                     <Badge variant="ghost" className="p-0 h-auto">
-                                                        <Clock className="h-3 w-3 text-warning fill-warning/20" />
+                                                        <Clock className="h-3 w-3 text-amber-700 dark:text-amber-200 fill-amber-500/20" />
                                                     </Badge>
                                                 )}
                                             </div>
@@ -106,12 +106,12 @@ export const SubscriptionTableView = ({
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-bold editorial-subtitle px-2 py-1`}>
+                                    <Badge className={`rounded-inner ${getTypeBadge(subscriber.type)} font-bold editorial-subtitle px-2 py-1`}>
                                         {subscriber.type}
                                     </Badge>
                                 </td>
                                 <td className="p-4">
-                                    <Badge className={`geo-sharp border-0 px-2 py-1 ${getStatusBadge(subscriber.status)}`}>
+                                    <Badge className={`rounded-inner px-2 py-1 ${getStatusBadge(subscriber.status)}`}>
                                         {subscriber.status}
                                     </Badge>
                                 </td>
@@ -127,9 +127,9 @@ export const SubscriptionTableView = ({
                                     <div className="flex items-center gap-2">
                                         <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                                         {subscriber.welcome_email_sent ? (
-                                            <CheckCircle className="h-3.5 w-3.5 text-success" />
+                                            <CheckCircle className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-200" />
                                         ) : (
-                                            <Clock className="h-3.5 w-3.5 text-warning" />
+                                            <Clock className="h-3.5 w-3.5 text-amber-700 dark:text-amber-200" />
                                         )}
                                         <span className="text-sm">
                                             {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
@@ -140,12 +140,12 @@ export const SubscriptionTableView = ({
                                     <div className="flex justify-end">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
                                                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                     <span className="sr-only">Open menu</span>
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                            <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 ">
                                                 <DropdownMenuItem onClick={() => onView(subscriber)} className="cursor-pointer font-medium text-xs py-2">
                                                     <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                                                     View Details

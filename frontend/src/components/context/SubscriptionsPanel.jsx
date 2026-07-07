@@ -48,31 +48,31 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
       >
         <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Subscriber context</h3>
 
-        <div className="bg-success/5 p-4 rounded-card flex items-center justify-between group transition-all shadow-sm">
+        <div className="bg-emerald-500/10 p-4 rounded-card flex items-center justify-between group transition-all shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success/20 rounded-icon flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users2 className="h-5 w-5 text-success" />
+            <div className="w-10 h-10 bg-emerald-500/15 rounded-icon flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Users2 className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold">Active</p>
               <p className="text-[11px] text-muted-foreground">From this page</p>
             </div>
           </div>
-          <Badge className="bg-success/20 text-success rounded-pill">{countLabel(activeSubscribers)}</Badge>
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 rounded-pill">{countLabel(activeSubscribers)}</Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-warning/5 p-4 rounded-card group transition-all shadow-sm">
+          <div className="bg-amber-500/10 p-4 rounded-card group transition-all shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-warning group-hover:scale-110 transition-transform" />
+              <Clock className="h-4 w-4 text-amber-700 dark:text-amber-200 group-hover:scale-110 transition-transform" />
               <span className="text-[11px] font-semibold text-muted-foreground">Pending</span>
             </div>
             <p className="font-bold text-sm">{countLabel(pendingSubscribers)}</p>
           </div>
 
-          <div className="bg-primary/5 p-4 rounded-card group transition-all shadow-sm">
+          <div className="bg-muted p-4 rounded-card group transition-all shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <Mail className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+              <Mail className="h-4 w-4 text-muted-foreground group-hover:scale-110 transition-transform" />
               <span className="text-[11px] font-semibold text-muted-foreground">Total</span>
             </div>
             <p className="font-bold text-sm">
@@ -83,19 +83,19 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
       </motion.div>
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-info/5 p-4 rounded-card group shadow-sm">
+        <div className="bg-sky-500/10 p-4 rounded-card group shadow-sm">
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-4 w-4 text-info group-hover:scale-110 transition-transform" />
+            <Shield className="h-4 w-4 text-sky-600 dark:text-sky-200 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] font-semibold text-muted-foreground">Free type</span>
           </div>
           <p className="font-bold text-sm">{countLabel(freeSubscribers)}</p>
         </div>
-        <div className="bg-primary/5 p-4 rounded-card group shadow-sm">
+        <div className="bg-violet-500/10 p-4 rounded-card group shadow-sm">
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+            <Shield className="h-4 w-4 text-violet-700 dark:text-violet-200 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] font-semibold text-muted-foreground">Paid type</span>
           </div>
-          <p className="font-bold text-sm text-primary">{countLabel(paidSubscribers)}</p>
+          <p className="font-bold text-sm text-violet-700 dark:text-violet-200">{countLabel(paidSubscribers)}</p>
         </div>
       </div>
 
@@ -104,26 +104,26 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
           type="button"
           whileTap={{ scale: 0.96 }}
           onClick={handleOpenCreateSubscriber}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-primary/10 hover:bg-primary/20 transition-all group"
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-muted hover:bg-muted/70 transition-all group"
         >
-          <Plus className="h-5 w-5 text-primary group-hover:rotate-90 transition-transform" />
-          <span className="text-[11px] font-semibold text-primary">Join</span>
+          <Plus className="h-5 w-5 text-muted-foreground group-hover:rotate-90 transition-transform" />
+          <span className="text-[11px] font-semibold text-muted-foreground">Join</span>
         </motion.button>
         <motion.button
           type="button"
           whileTap={{ scale: 0.96 }}
           onClick={handleOpenAnalytics}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-info/10 hover:bg-info/20 transition-all group"
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-sky-500/10 hover:bg-sky-500/15 transition-all group"
         >
-          <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-semibold text-info">Data</span>
+          <BarChart3 className="h-5 w-5 text-sky-600 dark:text-sky-200 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-sky-600 dark:text-sky-200">Data</span>
         </motion.button>
         <button
           type="button"
           disabled
           aria-label="Broadcast unavailable"
           title="Email send needs receiver proof"
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-secondary/30 dark:bg-white/5 opacity-55 cursor-not-allowed"
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-muted dark:bg-white/5 opacity-55 cursor-not-allowed"
         >
           <Send className="h-5 w-5 text-muted-foreground" />
           <span className="text-[11px] font-semibold text-muted-foreground">Email off</span>
@@ -143,9 +143,9 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
             <div key={subscriber.id || idx} className="bg-white/5 p-3 rounded-inner flex items-center justify-between transition-colors hover:bg-white/10 group">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-icon flex items-center justify-center flex-shrink-0 ${
-                  subscriber.status === 'active' ? 'bg-success/20' : 'bg-warning/20'
+                  subscriber.status === 'active' ? 'bg-emerald-500/15' : 'bg-amber-500/15'
                 } group-hover:scale-105 transition-transform`}>
-                  <Users2 className={`h-4 w-4 ${subscriber.status === 'active' ? 'text-success' : 'text-warning'}`} />
+                  <Users2 className={`h-4 w-4 ${subscriber.status === 'active' ? 'text-emerald-700 dark:text-emerald-200' : 'text-amber-700 dark:text-amber-200'}`} />
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-xs truncate max-w-[140px]">
