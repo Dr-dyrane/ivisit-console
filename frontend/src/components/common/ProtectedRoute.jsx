@@ -144,28 +144,28 @@ export const UnauthorizedPage = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-background flex items-center justify-center p-4">
+		<div className="min-h-screen bg-background flex items-center justify-center px-5 py-10">
 			<motion.div
-				initial={{ opacity: 0, scale: 0.95 }}
-				animate={{ opacity: 1, scale: 1 }}
-				transition={{ duration: 0.4 }}
-				className="relative z-10 w-full max-w-lg"
+				initial={{ opacity: 0, y: 16 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+				className="w-full max-w-md"
 			>
-				<div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 text-center overflow-hidden relative">
-					<div className="w-24 h-24 squircle-xl bg-destructive/10 flex items-center justify-center mx-auto mb-6 shadow-inner">
+				<div className="rounded-card bg-card shadow-sm p-8 text-center">
+					<div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center mx-auto mb-6">
 						<motion.div
 							initial={{ rotate: -10, scale: 0.8 }}
 							animate={{ rotate: 0, scale: 1 }}
 							transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
 						>
-							<LockKeyhole className="h-10 w-10 text-destructive" />
+							<LockKeyhole className="h-7 w-7 text-muted-foreground" />
 						</motion.div>
 					</div>
 
-					<h1 className="text-3xl font-bold tracking-tighter mb-2">
+					<h1 className="text-2xl font-bold mb-2">
 						{missingProfile ? 'Account not ready' : 'You do not have access'}
 					</h1>
-					<p className="text-muted-foreground font-normal mb-8">
+					<p className="text-sm text-muted-foreground font-normal mb-8">
 						{missingProfile
 							? 'Your console profile is not ready yet.'
 							: `Your current role (${profile?.role || "Guest"}) cannot open this page.`}
@@ -173,9 +173,9 @@ export const UnauthorizedPage = () => {
 
 					{/* User Badge */}
 					{profile && (
-						<div className="squircle-lg bg-muted/30 p-4 mb-8 flex items-center justify-between">
+						<div className="rounded-inner bg-muted/40 p-4 mb-8 flex items-center justify-between gap-3">
 							<div className="text-left">
-								<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+								<p className="text-[11px] font-semibold text-muted-foreground mb-0.5">
 									Current role
 								</p>
 								<p className="font-semibold text-sm truncate max-w-[150px]">
@@ -183,8 +183,8 @@ export const UnauthorizedPage = () => {
 								</p>
 							</div>
 							<div
-								className={`px-3 py-1 squircle-sm text-xs font-bold uppercase tracking-wide ${profile.role === "admin"
-									? "bg-primary/20 text-primary"
+								className={`px-3 py-1 rounded-pill text-xs font-semibold ${profile.role === "admin"
+									? "bg-foreground/10 text-foreground"
 									: profile.role === "provider"
 										? "bg-info/20 text-info"
 										: "bg-muted text-muted-foreground"
@@ -200,7 +200,7 @@ export const UnauthorizedPage = () => {
 						<button
 							onClick={handleBack}
 							disabled={Boolean(pendingAction)}
-							className="w-full h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors"
+							className="w-full h-12 rounded-button bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors"
 						>
 							{pendingAction === 'back' ? 'Opening previous page...' : 'Go back'}
 						</button>
@@ -208,7 +208,7 @@ export const UnauthorizedPage = () => {
 							<button
 								onClick={handleToday}
 								disabled={Boolean(pendingAction)}
-								className="w-full h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
+								className="flex-1 h-12 rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold transition-colors active:scale-[0.98]"
 							>
 								{pendingAction === 'today' ? 'Opening Today...' : 'Go to Today'}
 							</button>
@@ -218,7 +218,7 @@ export const UnauthorizedPage = () => {
 								disabled={Boolean(pendingAction)}
 								onClick={handleSignOut}
 								variant="ghost"
-								className="flex rounded-full bg-primary/50 h-12"
+								className="h-12 w-12 rounded-button bg-muted hover:bg-muted/80 text-muted-foreground"
 							>
 								{pendingAction === 'signout' ? <Loader2 className="animate-spin" /> : <LogOut />}
 							</Button>
