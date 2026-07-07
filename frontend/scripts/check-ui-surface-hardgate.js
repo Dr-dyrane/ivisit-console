@@ -84,6 +84,7 @@ const defaultFiles = [
   'src/components/modals/HealthNewsModal.jsx',
   'src/components/modals/AnalyticsModal.jsx',
   'src/components/pages/NotFoundPage.jsx',
+  'src/components/pages/OnboardingSuccessPage.jsx',
 ];
 
 const rawArgs = process.argv.slice(2);

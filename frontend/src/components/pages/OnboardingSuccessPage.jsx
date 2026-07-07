@@ -24,39 +24,34 @@ export const OnboardingSuccessPage = () => {
                 <title>Registration Submitted | iVisit Console</title>
             </Helmet>
 
-            <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <div className="min-h-screen bg-background flex items-center justify-center px-5 py-10">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     className="w-full max-w-md text-center"
                 >
                     {!hasSubmissionResult ? (
                         <>
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                className="w-20 h-20 rounded-icon bg-primary/10 flex items-center justify-center mx-auto mb-6"
-                            >
-                                <AlertCircle className="w-10 h-10 text-primary" />
-                            </motion.div>
+                            <div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center mx-auto mb-6">
+                                <AlertCircle className="w-8 h-8 text-muted-foreground" />
+                            </div>
 
                             <h1 className="text-2xl font-bold text-foreground mb-2">
                                 Registration status unavailable
                             </h1>
-                            <p className="text-muted-foreground mb-8">
+                            <p className="text-sm text-muted-foreground mb-8">
                                 Open this page from the registration flow so we can show your submission details.
                             </p>
 
                             <div className="space-y-3">
-                                <Button asChild className="w-full gap-2">
+                                <Button asChild variant="ghost" className="w-full gap-2 h-12 rounded-button bg-foreground text-background hover:bg-foreground/90 hover:text-background">
                                     <Link to="/onboarding">
                                         Continue registration
                                         <ArrowRight className="w-4 h-4" />
                                     </Link>
                                 </Button>
-                                <Button variant="ghost" asChild className="w-full">
+                                <Button variant="ghost" asChild className="w-full h-12 rounded-button text-muted-foreground">
                                     <a href="mailto:support@ivisit.ng">
                                         Contact Support
                                     </a>
@@ -66,57 +61,50 @@ export const OnboardingSuccessPage = () => {
                     ) : (
                         <>
                             {/* Success Icon */}
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                className="w-20 h-20 rounded-icon bg-primary/10 flex items-center justify-center mx-auto mb-6"
-                            >
-                                <CheckCircle className="w-10 h-10 text-primary" />
-                            </motion.div>
+                            <div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center mx-auto mb-6">
+                                <CheckCircle className="w-8 h-8 text-foreground" />
+                            </div>
 
                             {/* Title */}
                             <h1 className="text-2xl font-bold text-foreground mb-2">
                                 Registration submitted
                             </h1>
-                            <p className="text-muted-foreground mb-4">
+                            <p className="text-sm text-muted-foreground mb-6">
                                 We received your registration details.
                             </p>
 
                             {/* Display IDs - Proof of Registration */}
                             {(organization?.display_id || user?.display_id) && (
-                                <div className="grid grid-cols-1 gap-3 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+                                <div className="grid grid-cols-1 gap-3 mb-8">
                                     {organization?.display_id && (
-                                        <div className="group relative overflow-hidden p-4 rounded-inner bg-white/5 backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-                                            <div className="relative flex items-center justify-between">
+                                        <div className="p-4 rounded-inner bg-muted/40">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/20 rounded-icon">
-                                                        <Building2 className="w-4 h-4 text-primary" />
+                                                    <div className="p-2 bg-muted rounded-icon">
+                                                        <Building2 className="w-4 h-4 text-muted-foreground" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <span className="text-[11px] font-semibold text-muted-foreground/70 block">Organization ID</span>
+                                                        <span className="text-[11px] font-semibold text-muted-foreground block">Organization ID</span>
                                                         <span className="font-mono text-lg font-semibold text-foreground">{organization.display_id}</span>
                                                     </div>
                                                 </div>
-                                                <div className="w-2 h-2 rounded-pill bg-primary pulse-dot" />
+                                                <div className="w-2 h-2 rounded-pill bg-muted-foreground/30" />
                                             </div>
                                         </div>
                                     )}
                                     {user?.display_id && (
-                                        <div className="group relative overflow-hidden p-4 rounded-inner bg-white/5 backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-                                            <div className="relative flex items-center justify-between">
+                                        <div className="p-4 rounded-inner bg-muted/40">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/20 rounded-icon">
-                                                        <User className="w-4 h-4 text-primary" />
+                                                    <div className="p-2 bg-muted rounded-icon">
+                                                        <User className="w-4 h-4 text-muted-foreground" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <span className="text-[11px] font-semibold text-muted-foreground/70 block">Administrator ID</span>
+                                                        <span className="text-[11px] font-semibold text-muted-foreground block">Administrator ID</span>
                                                         <span className="font-mono text-lg font-semibold text-foreground">{user.display_id}</span>
                                                     </div>
                                                 </div>
-                                                <div className="w-2 h-2 rounded-pill bg-primary pulse-dot" />
+                                                <div className="w-2 h-2 rounded-pill bg-muted-foreground/30" />
                                             </div>
                                         </div>
                                     )}
@@ -128,7 +116,7 @@ export const OnboardingSuccessPage = () => {
                                 <h2 className="font-semibold text-foreground">What happens next?</h2>
 
                                 <div className="flex gap-3">
-                                    <Clock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                    <Clock className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="font-medium text-sm">Review follows the admin queue</p>
                                         <p className="text-xs text-muted-foreground">
@@ -138,7 +126,7 @@ export const OnboardingSuccessPage = () => {
                                 </div>
 
                                 <div className="flex gap-3">
-                                    <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                    <Shield className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="font-medium text-sm">Console access depends on your account state</p>
                                         <p className="text-xs text-muted-foreground">
@@ -150,13 +138,13 @@ export const OnboardingSuccessPage = () => {
 
                             {/* Actions */}
                             <div className="space-y-3">
-                                <Button asChild className="w-full gap-2">
+                                <Button asChild variant="ghost" className="w-full gap-2 h-12 rounded-button bg-foreground text-background hover:bg-foreground/90 hover:text-background">
                                     <Link to="/">
                                         Open console
                                         <ArrowRight className="w-4 h-4" />
                                     </Link>
                                 </Button>
-                                <Button variant="ghost" asChild className="w-full">
+                                <Button variant="ghost" asChild className="w-full h-12 rounded-button text-muted-foreground">
                                     <a href="mailto:support@ivisit.ng">
                                         Contact Support
                                     </a>
