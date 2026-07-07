@@ -531,6 +531,8 @@ export const OrganizationsPage = () => {
                 setKpiFilter={setKpiFilter}
             />
 
+            <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+              <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
             {/* Controls */}
             <div className="flex items-center justify-between gap-4 mb-8">
                 <div className="relative w-full max-w-md">
@@ -610,6 +612,7 @@ export const OrganizationsPage = () => {
                 hasNextPage={pagination.hasNextPage}
                 loading={loading}
             />
+            </div>
 
             {/* Org Modal */}
             <Dialog
