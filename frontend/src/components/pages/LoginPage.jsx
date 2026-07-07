@@ -267,15 +267,15 @@ export const LoginPage = () => {
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.8, ease: "easeOut" }}
 					>
-						<div className="w-16 h-16 bg-primary/10 rounded-icon flex items-center justify-center mb-8 shadow-sm">
-							<ShieldCheck className="text-primary w-8 h-8" />
+						<div className="w-16 h-16 bg-muted rounded-icon flex items-center justify-center mb-8 shadow-sm">
+							<ShieldCheck className="text-muted-foreground w-8 h-8" />
 						</div>
 						<div className="space-y-2 mb-6">
 							<p className="text-2xl font-medium text-muted-foreground">
 								{greeting},
 							</p>
 							<h1 className="text-7xl font-bold leading-none text-foreground">
-								iVisit<span className="text-primary">.</span>
+								iVisit<span className="text-muted-foreground">.</span>
 							</h1>
 						</div>
 						<p className="text-xl text-muted-foreground font-light leading-relaxed max-w-sm">
@@ -290,14 +290,14 @@ export const LoginPage = () => {
 						transition={{ delay: 0.4 }}
 						className="flex gap-3"
 					>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-pill shadow-sm">
-							<div className="w-2 h-2 rounded-pill bg-emerald-500 animate-pulse" />
+						<div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-pill shadow-sm">
+							<div className="w-2 h-2 rounded-pill bg-emerald-500" />
 							<span className="text-[11px] font-semibold text-muted-foreground">
 								Email first
 							</span>
 						</div>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-pill shadow-sm">
-							<Server size={12} className="text-primary" />
+						<div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-pill shadow-sm">
+							<Server size={12} className="text-muted-foreground" />
 							<span className="text-[11px] font-semibold text-muted-foreground">
 								Step by step
 							</span>
@@ -310,11 +310,11 @@ export const LoginPage = () => {
 
 					{/* MOBILE LOGO */}
 					<div className="lg:hidden mb-12 flex flex-col items-center">
-						<div className="w-12 h-12 bg-primary/10 rounded-icon flex items-center justify-center mb-6 shadow-sm">
-							<ShieldCheck className="text-primary w-6 h-6" />
+						<div className="w-12 h-12 bg-muted rounded-icon flex items-center justify-center mb-6 shadow-sm">
+							<ShieldCheck className="text-muted-foreground w-6 h-6" />
 						</div>
 						<h1 className="text-4xl font-bold">
-							iVisit<span className="text-primary">.</span>
+							iVisit<span className="text-muted-foreground">.</span>
 						</h1>
 					</div>
 
@@ -342,11 +342,11 @@ export const LoginPage = () => {
 										<div className="space-y-2">
 											<div className={`
 												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
+												focus-within:bg-background focus-within:shadow-sm
 												transition-all duration-300
 												${error ? "bg-destructive/5" : ""}
 											`}>
-												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
 													<Mail size={20} />
 												</div>
 												<input
@@ -373,7 +373,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
+											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -417,7 +417,7 @@ export const LoginPage = () => {
 											</p>
 											<a
 												href="/onboarding"
-												className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+												className="inline-flex items-center gap-2 text-sm font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground"
 											>
 												Register your organization
 												<ArrowRight size={14} />
@@ -467,11 +467,11 @@ export const LoginPage = () => {
 										<div className="space-y-2">
 											<div className={`
 												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
+												focus-within:bg-background focus-within:shadow-sm
 												transition-all duration-300
 												${error ? "bg-destructive/5" : ""}
 											`}>
-												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
 													<Lock size={20} />
 												</div>
 												<input
@@ -505,7 +505,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -536,7 +536,7 @@ export const LoginPage = () => {
 												}
 											}}
 											disabled={isLoading}
-											className="text-sm font-medium text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+											className="text-sm font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											Forgot your password?
 										</button>
@@ -557,8 +557,8 @@ export const LoginPage = () => {
 									className="w-full"
 								>
 									<div className="text-center mb-8">
-										<div className="w-16 h-16 mx-auto bg-primary/10 rounded-icon flex items-center justify-center mb-6 shadow-lg">
-											<ShieldCheck className="text-primary w-8 h-8" />
+										<div className="w-16 h-16 mx-auto bg-muted rounded-icon flex items-center justify-center mb-6 shadow-lg">
+											<ShieldCheck className="text-muted-foreground w-8 h-8" />
 										</div>
 										<h2 className="text-2xl font-semibold">Security Check</h2>
 										<p className="text-muted-foreground mt-2">Enter the code from your app</p>
@@ -568,7 +568,7 @@ export const LoginPage = () => {
 										<div className="space-y-2">
 											<div className={`
 												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
+												focus-within:bg-background focus-within:shadow-sm
 												transition-all duration-300
 												${error ? "bg-destructive/5" : ""}
 											`}>
@@ -597,7 +597,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading || mfaCode.length !== 6}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -641,7 +641,7 @@ export const LoginPage = () => {
 				</div>
 			</div>
 
-			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-button glass-card shadow-lg">
+			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-button bg-card shadow-lg">
 				<ThemeToggle />
 			</div>
 		</div>
