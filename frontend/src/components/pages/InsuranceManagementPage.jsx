@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -389,7 +390,6 @@ export const InsuranceManagementPage = () => {
   const [error, setError] = useState(null);
 
   const [selectedPolicy, setSelectedPolicy] = useState(null);
-  const [focusedPolicyId, setFocusedPolicyId] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [commandNotice, setCommandNotice] = useState(null);
@@ -645,10 +645,9 @@ export const InsuranceManagementPage = () => {
     return filteredPolicies || [];
   }, [filteredPolicies]);
 
-  const focusedPolicy = useMemo(
-    () => paginatedPolicies.find((p) => p.id === focusedPolicyId) || paginatedPolicies[0] || null,
-    [paginatedPolicies, focusedPolicyId],
-  );
+  // Shared focused-record store: explicit selection OR the most-urgent policy at rest.
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('insurance', paginatedPolicies);
+  const focusedPolicy = focusedRecord;
 
   const hasDesktopRows = paginatedPolicies.length > 0;
   const hasMobileRows = mobileVisiblePolicies.length > 0;
@@ -754,12 +753,12 @@ export const InsuranceManagementPage = () => {
   }, [handlePolicyToolsUnavailable]);
 
   const handleView = useCallback((policy) => {
-    setFocusedPolicyId(policy?.id || null);
+    if (policy?.id != null && !isFocused(policy.id)) setFocused(policy.id);
     setSelectedPolicy(policy);
     setModalMode('view');
-  }, []);
+  }, [isFocused, setFocused]);
 
-  const handleFocusPolicy = useCallback((policy) => setFocusedPolicyId(policy?.id || null), []);
+  const handleFocusPolicy = useCallback((policy) => setFocused(policy?.id ?? null), [setFocused]);
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
@@ -1076,8 +1075,8 @@ export const InsuranceManagementPage = () => {
                   >
                     <Card
                       onClick={() => handleFocusPolicy(policy)}
-                      data-state={focusedPolicy?.id === policy.id ? 'selected' : 'idle'}
-                      className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${focusedPolicy?.id === policy.id ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card'}`}
+                      data-state={isFocused(policy.id) ? 'selected' : 'idle'}
+                      className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${isFocused(policy.id) ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card'}`}
                     >
                       {/* Apple hover glow effect */}
                       {/* Decorative Elements */}
@@ -1156,6 +1155,7 @@ export const InsuranceManagementPage = () => {
             <InsuranceListView
               policies={paginatedPolicies}
               onView={handleView}
+              onFocus={setFocused}
               onDelete={null}
               onVerify={null}
               canDelete={false}
@@ -1170,6 +1170,7 @@ export const InsuranceManagementPage = () => {
             <InsuranceTableView
               policies={paginatedPolicies}
               onView={handleView}
+              onFocus={setFocused}
               onDelete={null}
               onVerify={null}
               canDelete={false}

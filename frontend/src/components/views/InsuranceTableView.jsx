@@ -23,6 +23,7 @@ const GRID_TEMPLATE_NO_SELECT = 'grid-cols-[minmax(220px,2fr)_minmax(150px,1.3fr
 export const InsuranceTableView = ({
     policies,
     onView,
+    onFocus,
     onDelete,
     onVerify,
     getStatusBadge,
@@ -74,10 +75,11 @@ export const InsuranceTableView = ({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                            onClick={() => onFocus?.(policy.id)}
+                            className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors cursor-pointer ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
                         >
                             {canSelect && (
-                                <div className="flex items-center">
+                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                                     <Checkbox
                                         checked={selectedIds.includes(policy.id)}
                                         onCheckedChange={(checked) => onSelect(policy.id, checked)}
@@ -120,7 +122,7 @@ export const InsuranceTableView = ({
                                 )}
                             </div>
                             {/* Actions */}
-                            <div className="justify-self-end">
+                            <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/30">

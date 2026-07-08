@@ -14,6 +14,7 @@ import { formatCurrency } from '../../lib/utils'; // Assuming this utility exist
 export const InsuranceListView = ({
     policies,
     onView,
+    onFocus,
     onDelete,
     onVerify,
     canDelete = false,
@@ -37,7 +38,10 @@ export const InsuranceListView = ({
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <div className="bg-background/30 rounded-card p-0 transition-colors hover:bg-muted/30 group overflow-hidden">
+                        <div
+                            className="bg-background/30 rounded-card p-0 transition-colors hover:bg-muted/30 group overflow-hidden cursor-pointer"
+                            onClick={() => onFocus?.(policy.id)}
+                        >
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                                 {/* Status Strip Gradient */}
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-pill ${policy.status === 'active' ? 'bg-emerald-500/60' : policy.status === 'expired' ? 'bg-destructive' : 'bg-amber-500/60'}`} />
@@ -106,7 +110,10 @@ export const InsuranceListView = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}>
+                                <div
+                                    className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
                                     {showVerifyAction && !policy.verified && (
                                         <Button
                                             variant="ghost"
