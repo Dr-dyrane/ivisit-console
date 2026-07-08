@@ -6,7 +6,6 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Badge } from '../ui/badge';
 import { ModalShell } from '../ui/ModalShell';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
@@ -92,19 +91,19 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
       ? 'Edit source details.'
       : 'Review source details.';
   const icon = isCreate ? (
-    <Plus className="h-5 w-5 text-primary" />
+    <Plus className="h-5 w-5 text-sky-500" />
   ) : isEdit ? (
-    <Edit className="h-5 w-5 text-primary" />
+    <Edit className="h-5 w-5 text-sky-500" />
   ) : (
-    <Newspaper className="h-5 w-5 text-primary" />
+    <Newspaper className="h-5 w-5 text-sky-500" />
   );
   const statusBadge = (isEdit || isView) ? (
-    <Badge className={`rounded-full px-3 py-1.5 text-xs font-semibold ${formData.published
-      ? 'bg-green-500/10 text-green-500'
-      : 'bg-orange-500/10 text-orange-500'
+    <span className={`inline-flex items-center rounded-pill px-3 py-1.5 text-xs font-semibold ${formData.published
+      ? 'bg-emerald-500/10 text-emerald-500'
+      : 'bg-amber-500/10 text-amber-500'
       }`}>
       {formData.published ? 'Published' : 'Draft'}
-    </Badge>
+    </span>
   ) : null;
 
   return (
@@ -133,7 +132,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   value={formData.title}
                   onChange={handleChange}
                   disabled={isView}
-                  className="rounded-2xl bg-white/5 shadow-none h-12 font-semibold focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  className="rounded-inner bg-white/5 shadow-none h-12 font-semibold focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]"
                   placeholder="Enter news title"
                   required
                 />
@@ -146,10 +145,10 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
                   disabled={isView}
                 >
-                  <SelectTrigger className="rounded-2xl bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]">
+                  <SelectTrigger className="rounded-inner bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]">
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                  <SelectContent className="rounded-inner shadow-xl bg-background/95 backdrop-blur-xl">
                     {SOURCE_OPTIONS.map(source => (
                       <SelectItem key={source} value={source} className="font-normal">
                         {source}
@@ -170,10 +169,10 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                   disabled={isView}
                 >
-                  <SelectTrigger className="rounded-2xl bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]">
+                  <SelectTrigger className="rounded-inner bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                  <SelectContent className="rounded-inner shadow-xl bg-background/95 backdrop-blur-xl">
                     {CATEGORY_OPTIONS.map(category => (
                       <SelectItem key={category} value={category} className="font-normal capitalize">
                         {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -193,7 +192,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     value={formData.url}
                     onChange={handleChange}
                     disabled={isView}
-                    className="rounded-2xl bg-white/5 shadow-none h-12 pl-10 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                    className="rounded-inner bg-white/5 shadow-none h-12 pl-10 font-normal focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]"
                     placeholder="https://example.com"
                     type="url"
                   />
@@ -212,7 +211,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   value={formData.description}
                   onChange={handleChange}
                   disabled={isView}
-                  className="rounded-2xl bg-white/5 shadow-none min-h-[80px] font-normal resize-none p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  className="rounded-inner bg-white/5 shadow-none min-h-[80px] font-normal resize-none p-4 focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]"
                   placeholder="Brief summary..."
                 />
               </div>
@@ -225,7 +224,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   value={formData.content}
                   onChange={handleChange}
                   disabled={isView}
-                  className="rounded-2xl bg-white/5 shadow-none min-h-[150px] font-normal p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  className="rounded-inner bg-white/5 shadow-none min-h-[150px] font-normal p-4 focus-visible:shadow-[0_0_0_3px_rgb(14_165_233/0.14)]"
                   placeholder="Write the full article here..."
                 />
               </div>
@@ -235,18 +234,18 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
           {!isView && (
             <button
               type="button"
-              className="w-full p-4 sm:p-5 rounded-[24px] bg-white/5 flex items-center hover:bg-white/10 transition-colors text-left"
+              className="w-full p-4 sm:p-5 rounded-card bg-white/5 flex items-center hover:bg-white/10 transition-colors text-left"
               onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
             >
-              <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
+              <div className={`p-2 rounded-icon mr-4 transition-colors ${formData.published ? 'bg-emerald-500/20 text-emerald-500' : 'bg-white/10 text-muted-foreground'}`}>
                 {formData.published ? <FileCheck className="h-5 w-5" /> : <File className="h-5 w-5" />}
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm">Publish now</div>
                 <div className="text-xs text-muted-foreground">Make this article visible after saving</div>
               </div>
-              <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-white/20'}`}>
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
+              <div className={`w-12 h-6 rounded-pill relative transition-colors duration-300 ${formData.published ? 'bg-emerald-500' : 'bg-white/20'}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-pill bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
               </div>
             </button>
           )}
@@ -258,7 +257,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
             variant="ghost"
             onClick={() => onClose()}
             disabled={loading}
-            className="rounded-2xl font-semibold hover:bg-white/10"
+            className="rounded-button font-semibold hover:bg-white/10"
           >
             Cancel
           </Button>
@@ -267,7 +266,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
             <Button
               type="submit"
               disabled={loading}
-              className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 shadow-lg shadow-primary/20"
+              className="rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold px-8 shadow-lg shadow-black/10"
             >
               {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
             </Button>
@@ -278,7 +277,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
               type="button"
               variant="ghost"
               onClick={() => window.open(formData.url, '_blank', 'noopener,noreferrer')}
-              className="rounded-2xl font-semibold bg-transparent"
+              className="rounded-button font-semibold bg-transparent"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Visit Source
@@ -301,14 +300,14 @@ const HealthNewsReadView = ({ formData, onClose }) => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 md:px-6 pb-4 md:pb-6 space-y-4 md:space-y-5">
-        <section className="rounded-[28px] bg-background/70 p-5 shadow-[0_18px_58px_rgba(15,23,42,0.08)]">
+        <section className="rounded-card bg-background/70 p-5 shadow-[0_18px_58px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <span className="inline-flex items-center rounded-pill bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-500">
               {category}
-            </Badge>
-            <Badge className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+            </span>
+            <span className="inline-flex items-center rounded-pill bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
               {source}
-            </Badge>
+            </span>
           </div>
           <h3 className="mt-4 text-2xl font-semibold leading-tight tracking-normal text-foreground">
             {formData.title || 'Untitled health news'}
@@ -318,9 +317,9 @@ const HealthNewsReadView = ({ formData, onClose }) => {
           </p>
         </section>
 
-        <section className="rounded-[28px] bg-background/55 p-5">
+        <section className="rounded-card bg-background/55 p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-500">
               <FileText className="h-5 w-5" />
             </div>
             <div>
@@ -339,7 +338,7 @@ const HealthNewsReadView = ({ formData, onClose }) => {
           type="button"
           variant="ghost"
           onClick={() => onClose()}
-          className="rounded-2xl font-semibold hover:bg-white/10"
+          className="rounded-button font-semibold hover:bg-white/10"
         >
           Close
         </Button>
@@ -349,7 +348,7 @@ const HealthNewsReadView = ({ formData, onClose }) => {
             type="button"
             variant="ghost"
             onClick={() => window.open(formData.url, '_blank', 'noopener,noreferrer')}
-            className="rounded-2xl font-semibold bg-transparent"
+            className="rounded-button font-semibold bg-transparent"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Visit Source
@@ -361,10 +360,10 @@ const HealthNewsReadView = ({ formData, onClose }) => {
 };
 
 const GlassCard = ({ children, title, icon }) => (
-  <section className="p-4 sm:p-5 rounded-[24px] bg-white/5">
+  <section className="p-4 sm:p-5 rounded-card bg-white/5">
     <div className="flex items-center gap-3 mb-4 sm:mb-5">
-      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-icon">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-sky-500' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>

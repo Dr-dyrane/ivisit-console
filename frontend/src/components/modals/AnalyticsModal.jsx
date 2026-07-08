@@ -148,72 +148,72 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
     const genericTotal = getCount(analytics.total);
     const data = {
       news: [
-        { label: 'Articles', value: getCount(analytics.total), icon: Newspaper, color: 'hsl(var(--info))' },
-        { label: 'Published', value: getCount(analytics.published), trend: getTrendPercentage(analytics.published, analytics.total), icon: Eye, color: 'hsl(var(--success))' },
-        { label: 'Recent', value: getCount(analytics.recent), icon: Calendar, color: 'hsl(var(--info))' },
-        { label: 'Groups', value: Object.keys(analytics.byCategory || {}).length, icon: Tag, color: 'hsl(var(--warning))' }
+        { label: 'Articles', value: getCount(analytics.total), icon: Newspaper, color: 'hsl(199 89% 48%)' },
+        { label: 'Published', value: getCount(analytics.published), trend: getTrendPercentage(analytics.published, analytics.total), icon: Eye, color: 'hsl(160 84% 39%)' },
+        { label: 'Recent', value: getCount(analytics.recent), icon: Calendar, color: 'hsl(199 89% 48%)' },
+        { label: 'Groups', value: Object.keys(analytics.byCategory || {}).length, icon: Tag, color: 'hsl(38 92% 50%)' }
       ],
       emergency: [
-        { label: 'Requests', value: requestTotal, icon: AlertTriangle, color: 'hsl(var(--info))' },
+        { label: 'Requests', value: requestTotal, icon: AlertTriangle, color: 'hsl(199 89% 48%)' },
         { label: 'Needs review', value: getCount(analytics.pending ?? analytics.critical), icon: TrendingUp, color: getCount(analytics.pending ?? analytics.critical) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' },
-        { label: 'Avg response', value: formatMinutes(analytics.avgResponseTime, requestTotal), icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(var(--success))' }
+        { label: 'Avg response', value: formatMinutes(analytics.avgResponseTime, requestTotal), icon: Clock, color: 'hsl(199 89% 48%)' },
+        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(160 84% 39%)' }
       ],
       support: [
-        { label: 'Tickets', value: getCount(analytics.total), icon: Headphones, color: 'hsl(var(--info))' },
-        { label: 'Resolved', value: getCount(analytics.resolved), trend: getTrendPercentage(analytics.resolved, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Avg time', value: analytics.total > 0 ? `${Math.round(Number(analytics.averageResolutionTime) || 0)}h` : 'No data', icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'High priority', value: getCount(analytics.byPriority?.high), icon: AlertTriangle, color: getCount(analytics.byPriority?.high) > 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted-foreground))' }
+        { label: 'Tickets', value: getCount(analytics.total), icon: Headphones, color: 'hsl(199 89% 48%)' },
+        { label: 'Resolved', value: getCount(analytics.resolved), trend: getTrendPercentage(analytics.resolved, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Avg time', value: analytics.total > 0 ? `${Math.round(Number(analytics.averageResolutionTime) || 0)}h` : 'No data', icon: Clock, color: 'hsl(199 89% 48%)' },
+        { label: 'High priority', value: getCount(analytics.byPriority?.high), icon: AlertTriangle, color: getCount(analytics.byPriority?.high) > 0 ? 'hsl(38 92% 50%)' : 'hsl(var(--muted-foreground))' }
       ],
       user: [
-        { label: 'Users', value: userTotal, icon: Users, color: 'hsl(var(--info))' },
-        { label: 'Verified', value: getCount(analytics.verifiedUsers), trend: getTrendPercentage(analytics.verifiedUsers, analytics.totalUsers), icon: Shield, color: 'hsl(var(--success))' },
-        { label: 'New users', value: getCount(analytics.recentSignups), icon: TrendingUp, color: 'hsl(var(--info))' },
-        { label: 'Profiles', value: getCount(analytics.totalProfiles), icon: Activity, color: 'hsl(var(--warning))' }
+        { label: 'Users', value: userTotal, icon: Users, color: 'hsl(199 89% 48%)' },
+        { label: 'Verified', value: getCount(analytics.verifiedUsers), trend: getTrendPercentage(analytics.verifiedUsers, analytics.totalUsers), icon: Shield, color: 'hsl(160 84% 39%)' },
+        { label: 'New users', value: getCount(analytics.recentSignups), icon: TrendingUp, color: 'hsl(199 89% 48%)' },
+        { label: 'Profiles', value: getCount(analytics.totalProfiles), icon: Activity, color: 'hsl(38 92% 50%)' }
       ],
       visit: [
-        { label: 'Visits', value: genericTotal, icon: Calendar, color: 'hsl(var(--info))' },
-        { label: 'Completed', value: getCount(analytics.completed), trend: getTrendPercentage(analytics.completed, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Scheduled', value: getCount(analytics.scheduled), icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'In progress', value: getCount(analytics.inProgress), icon: Activity, color: 'hsl(var(--warning))' }
+        { label: 'Visits', value: genericTotal, icon: Calendar, color: 'hsl(199 89% 48%)' },
+        { label: 'Completed', value: getCount(analytics.completed), trend: getTrendPercentage(analytics.completed, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Scheduled', value: getCount(analytics.scheduled), icon: Clock, color: 'hsl(199 89% 48%)' },
+        { label: 'In progress', value: getCount(analytics.inProgress), icon: Activity, color: 'hsl(38 92% 50%)' }
       ],
       ambulance: [
-        { label: 'Units', value: genericTotal, icon: Activity, color: 'hsl(var(--info))' },
-        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: TrendingUp, color: 'hsl(var(--success))' },
-        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(var(--info))' },
+        { label: 'Units', value: genericTotal, icon: Activity, color: 'hsl(199 89% 48%)' },
+        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: TrendingUp, color: 'hsl(160 84% 39%)' },
+        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(199 89% 48%)' },
         { label: 'Emergency', value: getCount(analytics.emergency), icon: AlertTriangle, color: getCount(analytics.emergency) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ],
       hospital: [
-        { label: 'Facilities', value: genericTotal, icon: Activity, color: 'hsl(var(--info))' },
-        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(var(--success))' },
+        { label: 'Facilities', value: genericTotal, icon: Activity, color: 'hsl(199 89% 48%)' },
+        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(160 84% 39%)' },
         { label: 'Emergency', value: getCount(analytics.emergency), icon: AlertTriangle, color: getCount(analytics.emergency) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' },
-        { label: 'Active', value: getCount(analytics.active), icon: TrendingUp, color: 'hsl(var(--info))' }
+        { label: 'Active', value: getCount(analytics.active), icon: TrendingUp, color: 'hsl(199 89% 48%)' }
       ],
       doctor: [
-        { label: 'Doctors', value: genericTotal, icon: Users, color: 'hsl(var(--info))' },
-        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(var(--success))' },
-        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(var(--info))' },
-        { label: 'Specialists', value: getCount(analytics.specialized), icon: Star, color: 'hsl(var(--warning))' }
+        { label: 'Doctors', value: genericTotal, icon: Users, color: 'hsl(199 89% 48%)' },
+        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(160 84% 39%)' },
+        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(199 89% 48%)' },
+        { label: 'Specialists', value: getCount(analytics.specialized), icon: Star, color: 'hsl(38 92% 50%)' }
       ],
       insurance: [
-        { label: 'Policies', value: genericTotal, icon: Shield, color: 'hsl(var(--info))' },
-        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(var(--info))' },
+        { label: 'Policies', value: genericTotal, icon: Shield, color: 'hsl(199 89% 48%)' },
+        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(199 89% 48%)' },
         { label: 'Expired', value: getCount(analytics.expired), icon: AlertTriangle, color: getCount(analytics.expired) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ],
       verification: [
-        { label: 'Applications', value: genericTotal, icon: FileText, color: 'hsl(var(--info))' },
-        { label: 'Approved', value: getCount(analytics.approved || analytics.verified), trend: getTrendPercentage(analytics.approved || analytics.verified, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Pending', value: getCount(analytics.pending), icon: Clock, color: 'hsl(var(--warning))' },
+        { label: 'Applications', value: genericTotal, icon: FileText, color: 'hsl(199 89% 48%)' },
+        { label: 'Approved', value: getCount(analytics.approved || analytics.verified), trend: getTrendPercentage(analytics.approved || analytics.verified, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Pending', value: getCount(analytics.pending), icon: Clock, color: 'hsl(38 92% 50%)' },
         { label: 'Rejected', value: getCount(analytics.rejected), icon: Ban, color: getCount(analytics.rejected) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ]
     };
 
     const currentItems = data[type] || [
-      { label: 'Items', value: getCount(analytics.total), icon: BarChart3, color: 'hsl(var(--info))' },
-      { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: Activity, color: 'hsl(var(--success))' },
-      { label: 'Recent', value: getCount(analytics.recent), icon: TrendingUp, color: 'hsl(var(--info))' },
-      { label: 'Diversity', value: Object.keys(analytics.byCategory || analytics.roleDistribution || {}).length, icon: Tag, color: 'hsl(var(--warning))' }
+      { label: 'Items', value: getCount(analytics.total), icon: BarChart3, color: 'hsl(199 89% 48%)' },
+      { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: Activity, color: 'hsl(160 84% 39%)' },
+      { label: 'Recent', value: getCount(analytics.recent), icon: TrendingUp, color: 'hsl(199 89% 48%)' },
+      { label: 'Diversity', value: Object.keys(analytics.byCategory || analytics.roleDistribution || {}).length, icon: Tag, color: 'hsl(38 92% 50%)' }
     ];
 
     return (
@@ -237,7 +237,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           ))}
         </div>
 
-        <div className="p-4 apple-glass-heavy rounded-[24px] flex items-center justify-around text-center mt-2 group">
+        <div className="p-4 bg-muted/15 backdrop-blur-md rounded-card flex items-center justify-around text-center mt-2 group">
           <div className="flex flex-col items-center">
             <span className="text-[14px] font-normal tracking-normal">
               {getSafePercentage(
@@ -247,12 +247,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             </span>
             <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">{SHARE_LABELS[type] || 'Share'}</span>
           </div>
-          <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
+          <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
             <span className="text-[14px] font-normal tracking-normal">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
             <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Recent</span>
           </div>
-          <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
+          <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
             <span className="text-[14px] font-normal tracking-normal">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
             <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Groups</span>
@@ -277,13 +277,13 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         exit={{ opacity: 0, x: -10 }}
         className="space-y-2"
       >
-        <div className="apple-glass-heavy rounded-[28px] p-4">
+        <div className="bg-muted/15 backdrop-blur-md rounded-card p-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-1.5 w-1.5 rounded-full bg-sky-500/55" />
+            <div className="h-1.5 w-1.5 rounded-pill bg-sky-500/55" />
             <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
           </div>
           {isVisibleScopedDistribution && (
-            <p className="mb-4 rounded-2xl bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <p className="mb-4 rounded-inner bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
               {analytics.distributionLabel || 'Visible page only'}
             </p>
           )}
@@ -297,12 +297,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
                     <span className="text-[11px] font-normal tracking-normal capitalize opacity-80">{key.replace('_', ' ')}</span>
                     <span className="text-[10px] font-medium tabular-nums opacity-40">{getPercentage(count, scopedTotal)}%</span>
                   </div>
-                  <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-muted/20 rounded-pill overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${getPercentage(count, scopedTotal)}%` }}
                       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                      className="h-full rounded-full bg-sky-500/65 shadow-[0_0_8px_rgba(14,165,233,0.18)]"
+                      className="h-full rounded-pill bg-sky-500/65 shadow-[0_0_8px_rgba(14,165,233,0.18)]"
                     />
                   </div>
                 </div>
@@ -329,13 +329,13 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -10 }}
       >
-        <div className="apple-glass-heavy rounded-[28px] p-4">
+        <div className="bg-muted/15 backdrop-blur-md rounded-card p-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500/55" />
+            <div className="h-1.5 w-1.5 rounded-pill bg-emerald-500/55" />
             <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
           </div>
           {isVisibleScopedDistribution && (
-            <p className="mb-4 rounded-2xl bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <p className="mb-4 rounded-inner bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
               {analytics.distributionLabel || 'Visible page only'}
             </p>
           )}
@@ -343,7 +343,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             {Object.entries(dataSet)
               .sort(([, a], [, b]) => b - a)
               .map(([key, count]) => (
-                <div key={key} className="p-3 rounded-2xl bg-foreground/[0.03] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
+                <div key={key} className="p-3 rounded-inner bg-foreground/[0.03] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
                   <span className="mb-1 w-full truncate px-1 text-xs font-semibold capitalize text-muted-foreground/65">{key.replace('_', ' ')}</span>
                   <span className="text-[16px] font-normal tracking-normal tabular-nums">{count}</span>
                   <span className="mt-0.5 text-[10px] font-semibold text-sky-600/70 dark:text-sky-300/80">
@@ -367,7 +367,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
       <Button
         variant="ghost"
         onClick={isFirst ? handleClose : prevPhase}
-        className="h-12 rounded-[18px] px-5 text-xs font-semibold text-muted-foreground/70 transition-all hover:bg-foreground/5 active:scale-95 sm:px-6"
+        className="h-12 rounded-button px-5 text-xs font-semibold text-muted-foreground/70 transition-all hover:bg-foreground/5 active:scale-95 sm:px-6"
       >
         {isFirst ? 'Close' : 'Previous'}
       </Button>
@@ -376,7 +376,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         {phases.map((_, i) => (
           <div
             key={i}
-            className={`h-1 rounded-full transition-all duration-500 ${i === phase ? 'w-2.5 bg-sky-500' : 'w-1 bg-foreground/10'}`}
+            className={`h-1 rounded-pill transition-all duration-500 ${i === phase ? 'w-2.5 bg-sky-500' : 'w-1 bg-foreground/10'}`}
           />
         ))}
       </div>
@@ -384,14 +384,14 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
       {!isLast ? (
         <Button
           onClick={nextPhase}
-          className="h-12 rounded-[18px] bg-foreground px-7 text-xs font-semibold text-background shadow-none transition-all hover:bg-foreground/90 active:scale-[0.97] sm:px-8"
+          className="h-12 rounded-button bg-foreground px-7 text-xs font-semibold text-background shadow-none transition-all hover:bg-foreground/90 active:scale-[0.97] sm:px-8"
         >
           Next
         </Button>
       ) : (
         <Button
           onClick={handleClose}
-          className="h-12 rounded-[18px] px-7 text-xs font-semibold text-foreground transition-all active:scale-[0.97] apple-glass sm:px-8"
+          className="h-12 rounded-button px-7 text-xs font-semibold text-foreground transition-all active:scale-[0.97] bg-background/80 backdrop-blur-xl sm:px-8"
         >
           Done
         </Button>
@@ -408,7 +408,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
       icon={<BarChart3 className="h-5 w-5 text-sky-600 opacity-90 dark:text-sky-300" />}
       footer={footer}
       size="md"
-      className="rounded-[32px] bg-background/95 apple-glass-heavy dark:bg-background/90"
+      className="bg-background/95 backdrop-blur-md dark:bg-background/90"
     >
       <div className="px-5 pb-6 sm:px-6">
         <div className="pb-4">
@@ -419,7 +419,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           {phases.map((p, i) => (
             <div
               key={p.id}
-              className={`h-0.5 flex-1 rounded-full transition-all duration-700 ${i === phase
+              className={`h-0.5 flex-1 rounded-pill transition-all duration-700 ${i === phase
                 ? 'bg-sky-500'
                 : i < phase
                   ? 'bg-sky-500/25'
@@ -443,18 +443,18 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
 const StatNode = ({ label, value, trend, icon: Icon, color }) => (
   <motion.div
     whileTap={{ scale: 0.98 }}
-    className="p-3.5 rounded-[22px] bg-foreground/[0.04] dark:bg-transparent apple-glass-heavy relative overflow-hidden group active:bg-muted/40 transition-colors"
+    className="p-3.5 rounded-card bg-foreground/[0.04] dark:bg-transparent backdrop-blur-md relative overflow-hidden group active:bg-muted/40 transition-colors"
   >
     {/* Raised Action Node (Canon #369) */}
     <div className="flex justify-between items-start mb-2.5">
       <div
-        className="w-8 h-8 rounded-[11px] flex items-center justify-center relative z-10 shadow-sm"
+        className="w-8 h-8 rounded-icon flex items-center justify-center relative z-10 shadow-sm"
         style={{ background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.15)')}, ${color.replace(/\)$/, ' / 0.05)')})` }}
       >
         <Icon size={14} className="opacity-80" style={{ color }} />
       </div>
       {trend && (
-        <span className="text-[10px] font-bold tabular-nums text-success px-1.5 py-0.5 rounded-full bg-success/5 self-center">
+        <span className="text-[10px] font-bold tabular-nums text-emerald-500 px-1.5 py-0.5 rounded-pill bg-emerald-500/5 self-center">
           {trend}
         </span>
       )}

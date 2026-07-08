@@ -6,7 +6,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { X, Shield, User, Phone, Mail, Calendar, CheckCircle, FileText, AlertTriangle, Ban, Clock } from 'lucide-react';
 import { toast } from 'sonner';
@@ -125,12 +124,12 @@ export const VerificationModal = ({
 
             aria-modal="true"
 
-            className="relative z-10 w-full max-w-3xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-[24px] md:rounded-[32px] shadow-2xl"
+            className="relative z-10 w-full max-w-3xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-modal bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]"
           >
             {/* Header Area */}
             <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-amber-400/15 rounded-2xl">
+                <div className="p-2.5 bg-amber-400/15 rounded-icon">
                   <Shield className="h-6 w-6 text-amber-700 dark:text-amber-200" />
                 </div>
                 <div>
@@ -139,13 +138,13 @@ export const VerificationModal = ({
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     {provider.display_id && (
-                      <Badge className="rounded-full bg-muted/30 text-foreground/70 font-mono text-[10px] px-2 py-0.5">
+                      <span className="inline-flex items-center rounded-pill bg-muted/30 text-foreground/70 font-mono text-[10px] px-2 py-0.5">
                         {provider.display_id}
-                      </Badge>
+                      </span>
                     )}
-                    <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
+                    <span className={`inline-flex items-center rounded-pill font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                       {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
-                    </Badge>
+                    </span>
                     <span className="text-sm text-muted-foreground">
                       {formData.username || 'Unknown Provider'}
                     </span>
@@ -156,7 +155,7 @@ export const VerificationModal = ({
                 variant="ghost"
                 onClick={() => onClose(false)}
                 aria-label="Close provider details"
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+                className="h-10 w-10 rounded-pill bg-muted/50 hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -168,7 +167,7 @@ export const VerificationModal = ({
                 {/* Profile Overview */}
                 <GlassCard icon={<User className="text-amber-700 dark:text-amber-200" />} title="Profile Information">
                   <div className="flex items-center gap-6 mb-6">
-                    <Avatar className="h-20 w-20 rounded-2xl shadow-lg">
+                    <Avatar className="h-20 w-20 rounded-icon shadow-lg">
                       <AvatarImage src={provider?.avatar_url || provider?.image_uri || undefined} />
                       <AvatarFallback className="text-xl font-bold bg-amber-400/10 text-amber-700 dark:text-amber-200">
                         {getAvatarFallback(provider)}
@@ -178,9 +177,9 @@ export const VerificationModal = ({
                       <h3 className="text-xl font-bold tracking-tight">{formData.username}</h3>
                       <p className="text-muted-foreground font-normal">{formData.email}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
+                        <span className={`inline-flex items-center rounded-pill font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                           {formData.bvn_verified ? 'BVN VERIFIED' : 'BVN PENDING'}
-                        </Badge>
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           Joined {new Date(formData.created_at).toLocaleDateString()}
                         </span>
@@ -196,7 +195,7 @@ export const VerificationModal = ({
                         onChange={(e) => handleChange('email', e.target.value)}
                         disabled={isView}
                         placeholder="email@example.com"
-                        className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
+                        className="rounded-inner bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
                       />
                     </div>
 
@@ -207,7 +206,7 @@ export const VerificationModal = ({
                         onChange={(e) => handleChange('phone', e.target.value)}
                         disabled={isView}
                         placeholder="+1 (555) 123-4567"
-                        className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
+                        className="rounded-inner bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
                       />
                     </div>
 
@@ -218,10 +217,10 @@ export const VerificationModal = ({
                         onValueChange={(val) => handleChange('role', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
+                        <SelectTrigger className="rounded-inner bg-muted/30 h-12 font-normal">
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-inner shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="provider">Provider</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="staff">Staff</SelectItem>
@@ -237,7 +236,7 @@ export const VerificationModal = ({
                         disabled={isView}
                         placeholder="Add notes about this verification..."
                         rows={4}
-                        className="w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
+                        className="w-full rounded-inner bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
                       />
                     </div>
                   </div>
@@ -246,9 +245,9 @@ export const VerificationModal = ({
                 {/* Verification Details */}
                 <GlassCard icon={<Shield className="text-amber-700 dark:text-amber-200" />} title="Verification Details">
                   <div className="space-y-4">
-                    <div className="p-4 rounded-[24px] bg-muted/30 flex items-center justify-between">
+                    <div className="p-4 rounded-card bg-muted/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${pendingTone}`}>
+                        <div className={`w-10 h-10 rounded-pill flex items-center justify-center ${pendingTone}`}>
                           {formData.bvn_verified ? <CheckCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                         </div>
                         <div>
@@ -256,9 +255,9 @@ export const VerificationModal = ({
                           <p className="text-xs text-muted-foreground">Bank Verification Number status</p>
                         </div>
                       </div>
-                      <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
+                      <span className={`inline-flex items-center rounded-pill font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                         {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
-                      </Badge>
+                      </span>
                     </div>
 
                     <div className="space-y-2">
@@ -269,14 +268,14 @@ export const VerificationModal = ({
                         disabled={isView}
                         placeholder="Add notes about this verification..."
                         rows={4}
-                        className="w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
+                        className="w-full rounded-inner bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
                       />
                     </div>
                   </div>
                 </GlassCard>
 
                 {/* Review note */}
-                <div className="p-4 rounded-[24px] bg-muted/30 shadow-[inset_0_0_36px_rgba(255,255,255,0.02)]">
+                <div className="p-4 rounded-card bg-muted/30 shadow-[inset_0_0_36px_rgba(255,255,255,0.02)]">
                   <div className="flex gap-3">
                     <FileText className="h-5 w-5 text-amber-200 shrink-0" />
                     <div className="text-sm text-foreground/80">
@@ -289,13 +288,13 @@ export const VerificationModal = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30 flex gap-3 justify-end">
+                <div className="p-4 sm:p-6 rounded-card bg-muted/30 flex gap-3 justify-end">
                   {mode === 'view' ? (
                     <>
                       <Button
                         type="button"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
+                        className="rounded-button bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                       >
                         Close
                       </Button>
@@ -306,7 +305,7 @@ export const VerificationModal = ({
                             variant="destructive"
                             onClick={() => handleVerifyAction(false)}
                             disabled={loading}
-                            className="rounded-2xl font-semibold px-8"
+                            className="rounded-button font-semibold px-8"
                           >
                             {loading ? 'Processing...' : 'Reject'}
                           </Button>
@@ -314,7 +313,7 @@ export const VerificationModal = ({
                             type="button"
                             onClick={() => handleVerifyAction(true)}
                             disabled={loading}
-                            className="rounded-2xl bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
+                            className="rounded-button bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
                           >
                             {loading ? 'Processing...' : 'Approve'}
                           </Button>
@@ -327,14 +326,14 @@ export const VerificationModal = ({
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
+                        className="rounded-button font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-amber-400/90 hover:bg-amber-300 font-semibold px-8 text-black"
+                        className="rounded-button bg-amber-400/90 hover:bg-amber-300 font-semibold px-8 text-black"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : 'Save Changes'}
@@ -353,12 +352,12 @@ export const VerificationModal = ({
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30">
+  <div className="p-4 sm:p-6 rounded-card bg-muted/30">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-icon">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>
