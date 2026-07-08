@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { mobileMotion } from './mobileMotion';
 
 /**
  * MobileActivityRow
@@ -13,6 +14,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
     return (
         <motion.div
             layout
+            transition={mobileMotion.spring}
             onClick={() => setIsExpanded(!isExpanded)}
             className={`flex flex-col apple-glass relative overflow-hidden mb-0.5 last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
                 }`}
@@ -27,10 +29,10 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                     {Icon && <Icon size={14} className="opacity-70" style={{ color }} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium tracking-tight text-foreground/80 line-clamp-1 leading-tight mb-1">
+                    <p className="text-meta font-medium tracking-tight text-foreground/80 line-clamp-1 leading-tight mb-1">
                         {msg}
                     </p>
-                    <p className="text-[9px] text-muted-foreground font-normal tracking-widest uppercase opacity-30">
+                    <p className="text-[10px] text-muted-foreground font-normal tracking-widest uppercase opacity-30">
                         {time}
                     </p>
                 </div>
@@ -52,7 +54,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{
-                            height: { type: 'spring', stiffness: 300, damping: 30 },
+                            height: mobileMotion.spring,
                             opacity: { duration: 0.2 }
                         }}
                         className="px-4 pb-4"

@@ -32,7 +32,7 @@ export class MobileErrorBoundary extends React.Component {
                 <div className="apple-glass-heavy rounded-card p-6 max-w-sm w-full">
                     <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground/60">Mobile Recovery</p>
                     <h2 className="text-xl font-semibold tracking-tight mt-2">Something slipped.</h2>
-                    <p className="text-[12px] text-muted-foreground mt-2">
+                    <p className="text-meta text-muted-foreground mt-2">
                         This view hit a temporary issue. Tap below to reload the page.
                     </p>
                     <button

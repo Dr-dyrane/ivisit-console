@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { mobileMotion } from './mobileMotion';
 import { useScrollCooldown } from './useScrollCooldown';
 
 /**
@@ -23,7 +24,7 @@ export const MobileQuickNavPill = ({ items }) => {
                 className={`block h-full ${isScrolling ? 'pointer-events-none' : ''}`}
             >
                 <motion.div
-                    whileTap={{ scale: 0.96 }}
+                    whileTap={mobileMotion.press.card}
                     className="flex items-center gap-4 p-4 rounded-button apple-glass-heavy active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
                 >
                 {/* Background Analytical Glow */}

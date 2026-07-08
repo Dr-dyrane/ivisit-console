@@ -50,7 +50,7 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
                                     sound: true
                                 });
                             }}
-                            className={`h-9 rounded-pill text-[9px] uppercase tracking-[0.14em] whitespace-nowrap px-3 inline-flex items-center justify-center gap-1.5 transition-[color,background,transform] duration-200 ${active ? 'bg-[hsl(var(--spark)/0.10)]' : 'bg-transparent'} ${toneClasses[tone] || toneClasses.neutral}`}
+                            className={`h-9 rounded-pill text-[10px] uppercase tracking-[0.14em] whitespace-nowrap px-3 inline-flex items-center justify-center gap-1.5 transition-[color,background,transform] duration-200 ${active ? 'bg-[hsl(var(--spark)/0.10)]' : 'bg-transparent'} ${toneClasses[tone] || toneClasses.neutral}`}
                         >
                             {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
                             <span>{action.label}</span>
