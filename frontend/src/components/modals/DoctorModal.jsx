@@ -61,7 +61,7 @@ const normalizeStaffDirectoryStatus = (status) => {
   return editableStaffStatuses.has(value) ? value : 'off_duty';
 };
 
-const fieldClassName = 'h-11 w-full rounded-[22px] bg-background/[0.72] px-4 text-sm font-medium text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04),0_12px_28px_rgb(0_0_0/0.06)] transition-[background,box-shadow,transform] placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-60 focus:bg-background/[0.84] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.07] dark:focus:bg-white/[0.09]';
+const fieldClassName = 'h-11 w-full rounded-inner bg-background/[0.72] px-4 text-sm font-medium text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04),0_12px_28px_rgb(0_0_0/0.06)] transition-[background,box-shadow,transform] placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-60 focus:bg-background/[0.84] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.07] dark:focus:bg-white/[0.09]';
 
 const normalizeForm = (doctor) => ({
   ...EMPTY_FORM,
@@ -236,7 +236,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       subtitle={subtitle}
       icon={<Stethoscope className="h-5 w-5 text-sky-600 dark:text-sky-200" />}
       badge={(
-        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${status.className}`}>
+        <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>
           {status.label}
         </span>
       )}
@@ -247,9 +247,9 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 pt-1 md:p-6 md:pt-2">
           <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
-            <section className="rounded-[30px] bg-muted/22 p-4 shadow-[0_18px_54px_rgb(0_0_0/0.10)] md:p-5">
+            <section className="rounded-card bg-muted/22 p-4 shadow-[0_18px_54px_rgb(0_0_0/0.10)] md:p-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-sky-500/14 text-lg font-semibold text-sky-700 dark:bg-sky-300/18 dark:text-sky-100">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-sky-500/14 text-lg font-semibold text-sky-700 dark:bg-sky-300/18 dark:text-sky-100">
                   {getInitials(formData.name)}
                 </span>
                 <span className="min-w-0">
@@ -269,13 +269,13 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
               </div>
 
               {!canManageStaff && !isView && (
-                <div className="mt-4 rounded-[24px] bg-muted/30 p-3 text-xs font-medium text-muted-foreground">
+                <div className="mt-4 rounded-inner bg-muted/30 p-3 text-xs font-medium text-muted-foreground">
                   This role can view staff but cannot change records.
                 </div>
               )}
             </section>
 
-            <section className="rounded-[30px] bg-background/58 p-4 shadow-[0_18px_54px_rgb(0_0_0/0.10)] dark:bg-white/[0.045] md:p-5">
+            <section className="rounded-card bg-background/58 p-4 shadow-[0_18px_54px_rgb(0_0_0/0.10)] dark:bg-white/[0.045] md:p-5">
               {isView ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ReadOnlyItem icon={UserRound} label="Name" value={formData.name} />
@@ -404,7 +404,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
             variant="ghost"
             onClick={() => closeModal(false)}
             disabled={saving}
-            className="h-11 rounded-full px-6 font-semibold transition-transform active:scale-[0.98]"
+            className="h-11 rounded-button px-6 font-semibold transition-transform active:scale-[0.98]"
           >
             {isView ? 'Close' : 'Cancel'}
           </Button>
@@ -413,7 +413,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
             <Button
               type="submit"
               disabled={saving || !canManageStaff}
-              className="h-11 rounded-full bg-sky-600 px-7 font-semibold text-white shadow-[0_16px_36px_rgb(14_165_233/0.28)] transition-transform hover:bg-sky-500 active:scale-[0.98] disabled:opacity-60"
+              className="h-11 rounded-button bg-sky-600 px-7 font-semibold text-white shadow-[0_16px_36px_rgb(14_165_233/0.28)] transition-transform hover:bg-sky-500 active:scale-[0.98] disabled:opacity-60"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {saving ? 'Saving' : isCreate ? 'Add staff' : 'Save changes'}
@@ -435,8 +435,8 @@ const Field = ({ label, children, wide = false }) => (
 );
 
 const SummaryItem = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-[22px] bg-background/48 p-3 dark:bg-white/[0.045]">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-muted/28 text-muted-foreground">
+  <div className="flex items-center gap-3 rounded-inner bg-background/48 p-3 dark:bg-white/[0.045]">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
       <Icon className="h-4 w-4" />
     </span>
     <span className="min-w-0">
@@ -451,7 +451,7 @@ const SummaryItem = ({ icon: Icon, label, value }) => (
 );
 
 const ReadOnlyItem = ({ icon: Icon, label, value, wide = false }) => (
-  <div className={`rounded-[24px] bg-muted/22 p-4 shadow-[0_12px_34px_rgb(0_0_0/0.07)] ${wide ? 'sm:col-span-2' : ''}`}>
+  <div className={`rounded-inner bg-muted/22 p-4 shadow-[0_12px_34px_rgb(0_0_0/0.07)] ${wide ? 'sm:col-span-2' : ''}`}>
     <div className="flex items-center gap-2 text-muted-foreground">
       <Icon className="h-4 w-4" />
       <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
