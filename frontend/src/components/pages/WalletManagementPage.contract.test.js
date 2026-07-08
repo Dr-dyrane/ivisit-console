@@ -181,6 +181,21 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('hover:bg-destructive/10');
   });
 
+  it('keeps cash processing service-only until a pass proves the cash approval workflow', () => {
+    const service = serviceSource();
+    const activePaymentsUi = [pageSource(), mobileSource(), walletPanelSource(), modalsSource()].join('\n');
+
+    expect(service).toContain('export const processCashPayment = async');
+    expect(service).toContain("supabase.rpc('process_cash_payment'");
+    expect(service).toContain('export const checkCashEligibility = async');
+    expect(service).toContain("supabase.rpc('check_cash_eligibility'");
+
+    expect(activePaymentsUi).not.toContain('processCashPayment');
+    expect(activePaymentsUi).not.toContain('checkCashEligibility');
+    expect(activePaymentsUi).not.toContain('process_cash_payment');
+    expect(activePaymentsUi).not.toContain('check_cash_eligibility');
+  });
+
   it('does not present payout-method setup as shipped Payments UI', () => {
     const page = pageSource();
     const mobile = mobileSource();
@@ -250,5 +265,40 @@ describe('WalletManagementPage Payments contract', () => {
     ].forEach((blockedTerm) => {
       expect(activeSurface).not.toContain(blockedTerm);
     });
+  });
+
+  it('keeps Payments inside the shared shell without private shell chrome', () => {
+    const page = pageSource();
+
+    const forbiddenShellOwners = [
+      'SmartHeader',
+      'SmartTopNav',
+      'ResponsiveSidebar',
+      'IslandNavigation',
+      'DynamicBottomBar',
+      'ContextAwareFAB',
+      'NotificationCenter',
+      'MobileNavMenu',
+      'ContextPanelShell',
+      'SmartFooter',
+    ];
+
+    forbiddenShellOwners.forEach((owner) => {
+      expect(page).not.toContain(owner);
+    });
+
+    expect(page).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';");
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
+  });
+
+  it('keeps transaction export scoped to visible ledger rows without completeness claims', () => {
+    const page = pageSource();
+
+    expect(page).toContain('ivisit_transactions_');
+    expect(page).toContain("toast.success('Transactions exported.');");
+    expect(page).toContain("window.addEventListener('exportLedger', handleExportEvent);");
+    expect(page).toContain("window.removeEventListener('exportLedger', handleExportEvent);");
+    expect(page).not.toContain('All transactions exported');
+    expect(page).not.toContain('Full ledger');
   });
 });
