@@ -233,7 +233,7 @@ export const MobileVisits = ({
                             </div>
                             <motion.button
                                 type="button"
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={(event) => {
                                     onOpenFilters?.();
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--primary))', haptic: true, sound: true });
@@ -249,7 +249,7 @@ export const MobileVisits = ({
                             {(isAdmin || isOrgAdmin) && (
                                 <motion.button
                                     type="button"
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.96 }}
                                     onClick={(event) => {
                                         onViewAnalytics?.();
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--primary))', haptic: true, sound: true });

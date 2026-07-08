@@ -365,7 +365,7 @@ describe('VisitsPage admission contract', () => {
     // Row tap opens the detail bottom sheet (approved design + desktop rail behaviour),
     // replacing the old inline dropdown expand.
     expect(mobile).toContain('onClick={() => onOpen(visit)}');
-    expect(mobile).toContain('whileTap={{ scale: 0.95 }}');
+    expect(mobile).toContain('whileTap={{ scale: 0.96 }}');
 
     expect(gate).toContain('Interaction feedback proof, 2026-06-30');
     expect(gate).toContain('Visits route actions now expose immediate opening, selected, and reveal states');
