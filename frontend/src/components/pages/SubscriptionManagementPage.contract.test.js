@@ -157,32 +157,44 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain("subtitle: 'Type share'");
     expect(mobile).toContain("trendText: 'Loaded'");
 
-    // NEW ENERGY (Mobile Energy Rollout, VISUAL-ONLY): the row now carries the grounded
-    // status pill (S3) + subscription VitalTrack (S4) + identity islands (S6) + date
-    // groups (S5) + secondary plan/type meta, mirroring the MobileSupportTickets reference.
-    expect(mobile).toContain("import { VitalTrack } from '../common/VitalTrack';");
+    // NEW ENERGY (Mobile Energy Rollout, VISUAL-ONLY): the row carries the grounded status
+    // pill (S3) + secondary plan/type meta (S2) + date groups (S5). Tapping a row opens the
+    // canonical detail bottom sheet (MobileDetailSheet) that composes the subscription
+    // VitalTrack (S4) + identity islands (S6), mirroring the MobileVisits reference - not an
+    // inline dropdown. Command/backend authority stays unauthorized and fail-closed.
+    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
     expect(mobile).toContain("import { resolveVital } from '../../constants/vitalTracks';");
     expect(mobile).toContain("import { groupByMonth } from '../../utils/groupByMonth';");
-    expect(mobile).toContain("import { MobileDetailIslands } from './MobileDetailIslands';");
-    expect(mobile).toContain("import { MobileSheetActions } from './MobileSheetActions';");
     expect(mobile).toContain("const vital = resolveVital('subscription', sub.status);");
     expect(mobile).toContain('statusPill={vital?.pill}');
-    expect(mobile).toContain('<VitalTrack');
-    expect(mobile).toContain('<MobileDetailIslands');
     expect(mobile).toContain('groupByMonth(displaySubscribers, (sub) => sub.subscription_date || sub.created_at)');
     expect(mobile).toContain('color={vital?.accent');
     expect(mobile).toContain('label="Subscriber"');
     expect(mobile).toContain("secondary={`${formatLabel(sub.type, 'Free')} plan`}");
-    expect(mobile).toContain("value: formatLabel(sub.type, 'Free')");
+
+    // Tap-opens-detail-sheet (swapped from inline expandedContent): a single MobileDetailSheet
+    // driven by activeSubscriber carries the vital track + identity islands.
+    expect(mobile).toContain('const [activeSubscriber, setActiveSubscriber] = useState(null);');
+    expect(mobile).toContain('onClick={() => setActiveSubscriber(sub)}');
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('isOpen={!!activeSubscriber}');
+    expect(mobile).toContain('onClose={() => setActiveSubscriber(null)}');
+    expect(mobile).toContain("vital={vital ? { ...vital, label: 'Subscription status' } : null}");
+    expect(mobile).toContain('islands={[');
+    expect(mobile).toContain("value: formatLabel(activeSubscriber.type, 'Free')");
+
+    // The inline-expand mechanism is fully removed (no dropdown state or reveal props).
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('expandedId');
+    expect(mobile).not.toContain('onExpand');
 
     // NEW ENERGY removed the status-only rightBlade and the old status label/badge.
     expect(mobile).not.toContain('rightBlade');
     expect(mobile).not.toContain("badge: paid ? 'Paid' : 'Free'");
     expect(mobile).not.toContain('label={formatLabel(sub.status)}');
 
-    // Read-only lock (S7): a single Details CTA, no live edit/delete handler in the row.
-    expect(mobile).toContain('<MobileSheetActions');
-    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => onView(sub) }}");
+    // Read-only lock (S7): a single Details CTA on the sheet, no live edit/delete handler.
+    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveSubscriber(null); onView(activeSubscriber); } }}");
     expect(mobile).not.toContain('onClick={() => onEdit(sub)}');
     expect(mobile).not.toContain('onClick={() => onDelete(sub)}');
 

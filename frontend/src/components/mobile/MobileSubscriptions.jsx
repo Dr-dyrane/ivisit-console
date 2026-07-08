@@ -11,9 +11,7 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
-import { VitalTrack } from '../common/VitalTrack';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
 
@@ -37,7 +35,7 @@ export const MobileSubscriptions = ({
   hasMore = false,
   onLoadMore
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeSubscriber, setActiveSubscriber] = useState(null);
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
@@ -254,7 +252,7 @@ export const MobileSubscriptions = ({
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
             {/* Date-grouped feed (rollout S5): newest-first, a month header at each
-                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
+                boundary. Grouping is render-only; the active-record state is id-agnostic. */}
             {groupByMonth(displaySubscribers, (sub) => sub.subscription_date || sub.created_at).map(({ item: sub, header }) => {
               const vital = resolveVital('subscription', sub.status);
               const paid = sub.type === 'paid';
@@ -265,6 +263,8 @@ export const MobileSubscriptions = ({
                       {header}
                     </div>
                   )}
+                  {/* Tap opens the detail bottom sheet (MobileDetailSheet) - the approved
+                      design + desktop rail behaviour - not an inline dropdown. */}
                   <MobileMetricRow
                     icon={paid ? Crown : Users}
                     color={vital?.accent || 'hsl(var(--muted-foreground))'}
@@ -272,39 +272,10 @@ export const MobileSubscriptions = ({
                     value={sub.email || 'No email'}
                     secondary={`${formatLabel(sub.type, 'Free')} plan`}
                     statusPill={vital?.pill}
-                    isExpanded={expandedId === sub.id}
-                    onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                    itemId={sub.id}
+                    onClick={() => setActiveSubscriber(sub)}
                     isSelected={selectedIds.includes(sub.id)}
                     onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
                     selectionMode={selectionMode}
-                    expandedContent={(
-                      <div className="space-y-3 py-3">
-                        {vital && (
-                          <VitalTrack
-                            steps={vital.steps}
-                            currentKey={vital.currentKey}
-                            tone={vital.tone}
-                            cancelled={vital.cancelled}
-                            label="Subscription status"
-                          />
-                        )}
-                        <MobileDetailIslands
-                          items={[
-                            { icon: Mail, label: 'Email', value: sub.email || 'No email' },
-                            { icon: Crown, label: 'Plan', value: formatLabel(sub.type, 'Free') },
-                            { icon: BadgeCheck, label: 'Status', value: formatLabel(sub.status) },
-                            { icon: Clock, label: 'Subscribed', value: sub.subscription_date ? new Date(sub.subscription_date).toLocaleDateString() : 'Date unknown' },
-                            { icon: Mail, label: 'Welcome email', value: sub.welcome_email_sent ? 'Sent' : 'Pending' },
-                          ]}
-                        />
-                        {/* Read-only: a single Details CTA. No edit/delete secondary -
-                            command authority stays fail-closed and unauthorized here. */}
-                        <MobileSheetActions
-                          primary={{ label: 'Details', icon: Eye, onClick: () => onView(sub) }}
-                        />
-                      </div>
-                    )}
                   />
                 </React.Fragment>
               );
@@ -319,6 +290,33 @@ export const MobileSubscriptions = ({
             {!loading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
           </div>
         </div>
+
+        {activeSubscriber && (() => {
+          const vital = resolveVital('subscription', activeSubscriber.status);
+          const paid = activeSubscriber.type === 'paid';
+          // Read-only: a single Details CTA. No edit/delete/status/email - subscriber
+          // command authority stays fail-closed and unauthorized here.
+          return (
+            <MobileDetailSheet
+              isOpen={!!activeSubscriber}
+              onClose={() => setActiveSubscriber(null)}
+              icon={paid ? Crown : Users}
+              iconTone={vital?.tone}
+              eyebrow="Subscriber"
+              title={activeSubscriber.email || 'No email'}
+              statusPill={vital?.pill}
+              vital={vital ? { ...vital, label: 'Subscription status' } : null}
+              islands={[
+                { icon: Mail, label: 'Email', value: activeSubscriber.email || 'No email' },
+                { icon: Crown, label: 'Plan', value: formatLabel(activeSubscriber.type, 'Free') },
+                { icon: BadgeCheck, label: 'Status', value: formatLabel(activeSubscriber.status) },
+                { icon: Clock, label: 'Subscribed', value: activeSubscriber.subscription_date ? new Date(activeSubscriber.subscription_date).toLocaleDateString() : 'Date unknown' },
+                { icon: Mail, label: 'Welcome email', value: activeSubscriber.welcome_email_sent ? 'Sent' : 'Pending' },
+              ]}
+              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveSubscriber(null); onView(activeSubscriber); } }}
+            />
+          );
+        })()}
       </MobilePageShell>
     </PullToRefresh>
   );
