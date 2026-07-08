@@ -141,25 +141,37 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
             .from(TABLE_NAME)
             .select('name, address, type')
             .eq('id', hospitalId)
-            .single();
+            .maybeSingle();
 
         if (fetchError) throw fetchError;
         if (!org) throw new Error('Facility not found');
 
-        // Update verification status
+        // Update verification status via SECURITY DEFINER RPC (hospitals has no
+        // direct write RLS policy; a raw .update() is silently denied). Reuses
+        // the same update_hospital_by_admin RPC hospitalsService.updateHospital uses.
         const newStatus = approved ? 'verified' : 'rejected';
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .update({
+        const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+            target_hospital_id: hospitalId,
+            payload: {
                 verification_status: newStatus,
-                verified: approved, // Keep boolean in sync
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', hospitalId)
-            .select()
-            .single();
+                verified: approved // Keep boolean in sync
+            }
+        });
 
         if (error) throw error;
+        if (rpcResult && rpcResult.success === false) {
+            throw new Error(rpcResult.error || 'Facility verification failed');
+        }
+
+        // Re-read the updated row so callers keep receiving the facility object
+        // (the RPC returns { success, id }, not the full row).
+        const { data, error: readError } = await supabase
+            .from(TABLE_NAME)
+            .select()
+            .eq('id', hospitalId)
+            .maybeSingle();
+
+        if (readError) throw readError;
 
         logAuthorizationEvent(
             'org_verification',

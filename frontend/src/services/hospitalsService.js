@@ -497,17 +497,26 @@ export async function getHospitalsBySpecialty(specialty) {
  */
 export async function updateHospitalBedCount(hospitalId, availableBeds) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        available_beds: availableBeds,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', hospitalId)
-      .select()
-      .single();
+    // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
+    // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
+    const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+      target_hospital_id: hospitalId,
+      payload: { available_beds: availableBeds },
+    });
 
     if (error) throw error;
+    if (rpcResult && rpcResult.success === false) {
+      throw new Error(rpcResult.error || 'Hospital bed count update failed');
+    }
+
+    // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
+    const { data, error: readError } = await supabase
+      .from(TABLE_NAME)
+      .select()
+      .eq('id', hospitalId)
+      .maybeSingle();
+
+    if (readError) throw readError;
 
     return data;
   } catch (error) {
@@ -521,17 +530,26 @@ export async function updateHospitalBedCount(hospitalId, availableBeds) {
  */
 export async function updateHospitalStatus(hospitalId, status) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', hospitalId)
-      .select()
-      .single();
+    // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
+    // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
+    const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+      target_hospital_id: hospitalId,
+      payload: { status: status },
+    });
 
     if (error) throw error;
+    if (rpcResult && rpcResult.success === false) {
+      throw new Error(rpcResult.error || 'Hospital status update failed');
+    }
+
+    // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
+    const { data, error: readError } = await supabase
+      .from(TABLE_NAME)
+      .select()
+      .eq('id', hospitalId)
+      .maybeSingle();
+
+    if (readError) throw readError;
 
     return data;
   } catch (error) {

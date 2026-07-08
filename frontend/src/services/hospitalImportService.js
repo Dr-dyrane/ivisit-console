@@ -9,6 +9,42 @@ class HospitalImportService {
     return message.includes(String(relationName || '').toLowerCase()) && message.includes('does not exist');
   }
 
+  // Whitelist of writable hospital columns. Mirrors ambulancesService.updateAmbulance
+  // (VALID_COLUMNS) so callers cannot write arbitrary/forged columns through the RPC.
+  static VALID_HOSPITAL_COLUMNS = [
+    'name', 'address', 'phone', 'rating', 'type',
+    'latitude', 'longitude', 'verified', 'verification_status',
+    'status', 'place_id', 'wait_time', 'price_range',
+    'available_beds', 'icu_beds_available', 'total_beds',
+    'bed_availability', 'ambulances_count', 'emergency_level',
+    'image', 'specialties', 'service_types', 'features', 'org_admin_id',
+  ];
+
+  // Write hospital fields through the SECURITY DEFINER RPC (hospitals has no direct
+  // write RLS policy, so raw .update() is silently denied). Reuses the same
+  // update_hospital_by_admin RPC hospitalsService.updateHospital uses. Re-reads the
+  // row afterward so callers keep receiving the hospital object (RPC returns {success,id}).
+  async _writeHospitalViaRpc(hospitalId, payload, failureMessage) {
+    const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+      target_hospital_id: hospitalId,
+      payload,
+    });
+
+    if (error) throw error;
+    if (rpcResult && rpcResult.success === false) {
+      throw new Error(rpcResult.error || failureMessage);
+    }
+
+    const { data, error: readError } = await supabase
+      .from('hospitals')
+      .select('*')
+      .eq('id', hospitalId)
+      .maybeSingle();
+
+    if (readError) throw readError;
+    return data;
+  }
+
   // Import hospitals from Google Places using unified Edge Function
   async importHospitalsFromGoogle(lat, lng, radius = 10, adminId = null) {
     try {
@@ -145,19 +181,11 @@ class HospitalImportService {
   // Approve hospital import
   async approveHospital(hospitalId) {
     try {
-      const { data, error } = await supabase
-        .from('hospitals')
-        .update({
-          verification_status: 'verified',
-          verified: true,
-          status: 'available'
-        })
-        .eq('id', hospitalId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await this._writeHospitalViaRpc(
+        hospitalId,
+        { verification_status: 'verified', verified: true, status: 'available' },
+        'Hospital approval failed'
+      );
     } catch (error) {
       console.error('HospitalImportService.approveHospital error:', error);
       throw error;
@@ -167,19 +195,11 @@ class HospitalImportService {
   // Reject hospital import
   async rejectHospital(hospitalId, reason = '') {
     try {
-      const { data, error } = await supabase
-        .from('hospitals')
-        .update({
-          verification_status: 'rejected',
-          verified: false,
-          status: 'closed'
-        })
-        .eq('id', hospitalId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await this._writeHospitalViaRpc(
+        hospitalId,
+        { verification_status: 'rejected', verified: false, status: 'closed' },
+        'Hospital rejection failed'
+      );
     } catch (error) {
       console.error('HospitalImportService.rejectHospital error:', error);
       throw error;
@@ -187,6 +207,10 @@ class HospitalImportService {
   }
 
   // Assign hospital to org admin
+  // NOTE: cannot route through update_hospital_by_admin — that RPC's SET clause
+  // does not include org_admin_id, so a routed write would be a silent no-op.
+  // Kept as a direct write (read-back hardened to .maybeSingle()); a dedicated
+  // assign RPC is tracked separately (see DATA_SYNC_REMEDIATION_AUDIT §B).
   async assignHospitalToAdmin(hospitalId, orgAdminId) {
     try {
       const { data, error } = await supabase
@@ -196,7 +220,7 @@ class HospitalImportService {
         })
         .eq('id', hospitalId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -245,15 +269,21 @@ class HospitalImportService {
   // Update hospital details
   async updateHospital(hospitalId, updates) {
     try {
-      const { data, error } = await supabase
-        .from('hospitals')
-        .update(updates)
-        .eq('id', hospitalId)
-        .select()
-        .single();
+      // Allowlist writable columns (mirrors ambulancesService.updateAmbulance
+      // VALID_COLUMNS) so arbitrary/forged fields can't be pushed to the RPC.
+      const input = updates || {};
+      const payload = {};
+      for (const key of HospitalImportService.VALID_HOSPITAL_COLUMNS) {
+        if (key in input) {
+          payload[key] = input[key];
+        }
+      }
 
-      if (error) throw error;
-      return data;
+      return await this._writeHospitalViaRpc(
+        hospitalId,
+        payload,
+        'Hospital update failed'
+      );
     } catch (error) {
       console.error('HospitalImportService.updateHospital error:', error);
       throw error;
@@ -322,7 +352,7 @@ class HospitalImportService {
         .from('hospitals')
         .select('*')
         .eq('id', hospitalId)
-        .single();
+        .maybeSingle();
 
       if (fetchError || !hospital) {
         throw new Error('Hospital not found');

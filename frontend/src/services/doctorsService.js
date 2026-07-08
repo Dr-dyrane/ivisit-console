@@ -252,17 +252,36 @@ export async function createDoctor(input) {
  */
 export async function updateDoctor(doctorId, input) {
   try {
-    const payload = sanitizeInput({
-      ...input,
-      updated_at: new Date().toISOString(),
-    });
+    // Whitelist of writable doctor columns (mirrors ambulancesService.updateAmbulance
+    // VALID_COLUMNS) so arbitrary/forged fields (including the `hospitals` join)
+    // can't be written. Write target is unchanged — doctors write RLS is fine.
+    const VALID_COLUMNS = [
+      'profile_id', 'name', 'specialization', 'hospital_id',
+      'image', 'rating', 'reviews_count', 'experience',
+      'about', 'consultation_fee', 'license_number',
+      'status', 'phone', 'email',
+    ];
 
-    // Remove join fields if present to avoid error
-    delete payload.hospitals;
+    const source = input || {};
+    const payload = {};
+    for (const key of VALID_COLUMNS) {
+      if (key in source) {
+        // Sanitize empty strings to null for UUID/FK fields
+        if (['profile_id', 'hospital_id'].includes(key)) {
+          payload[key] = source[key] === '' ? null : source[key];
+        } else {
+          payload[key] = source[key];
+        }
+      }
+    }
+
+    // Preserve existing empty-string → null normalization for the remaining columns
+    const sanitized = sanitizeInput(payload);
+    sanitized.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update(payload)
+      .update(sanitized)
       .eq('id', doctorId)
       .select()
       .single();
