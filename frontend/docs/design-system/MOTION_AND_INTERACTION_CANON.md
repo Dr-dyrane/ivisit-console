@@ -8,7 +8,8 @@
 
 ## 0. The rule set (non-negotiable)
 
-- **Every pressable presses.** All buttons, cards-as-buttons, list rows, chips, nav items: `whileTap={{ scale: 0.98 }}` (framer) or `active:scale-[0.98]`, with `style={{ WebkitTapHighlightColor: 'transparent' }}`. No exceptions — a control that doesn't depress feels dead.
+- **Every pressable presses.** All buttons, cards-as-buttons, list rows, chips, nav items: `whileTap={{ scale: 0.98 }}` (framer) or `active:scale-[0.98]`. No exceptions — a control that doesn't depress feels dead.
+- **Tap-flash is killed globally.** The grey/blue box the browser paints on touch is removed for every pressable (including `onClick` divs) by a single `* { -webkit-tap-highlight-color: transparent; }` rule in `index.css` — settled 2026-07-08. Components should NOT re-add the inline `WebkitTapHighlightColor` style; it's handled once, app-wide. Touch feedback is our own press + haptic, not the browser's.
 - **One easing family.** Apple ease: framer `transition={{ ease: [0.16, 1, 0.3, 1] }}` for enters/reveals; native scroll/drag momentum uses `cubic-bezier(0.22, 1, 0.36, 1)`. Springs (sheets, layout) use `{ type: 'spring', stiffness: 380, damping: 34 }` (snappy, minimal overshoot). **Never** linear/ease-in-out for UI motion.
 - **Purposeful, reversible, short.** 180–320ms for transitions; a motion must explain a state change (opened, focused, arrived). **No looping/ambient/decorative animation.** No pulsing dots, no infinite shimmer beyond skeleton load.
 - **Respect `prefers-reduced-motion`.** Gate every non-essential transform behind `useReducedMotion()`; reduced = cross-fade only, no slide/scale. (Global CSS rule already exists in `index.css`.)

@@ -1019,6 +1019,16 @@ code {
 }
 
 /*
+ * Native-feel: kill the default mobile tap-flash (the grey/blue box iOS and
+ * Android paint on tap) on every pressable so touch feedback is our own press +
+ * haptic, not the browser's. Applies to onClick divs too, not just <button>.
+ * See docs/design-system/MOTION_AND_INTERACTION_CANON.md §0.
+ */
+* {
+	-webkit-tap-highlight-color: transparent;
+}
+
+/*
  * A11y: honor the user's reduced-motion preference.
  * Neutralizes CSS transitions/animations and smooth scrolling globally
  * so vestibular-sensitive users get a still, snappy UI.
