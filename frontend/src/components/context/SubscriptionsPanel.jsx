@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Badge } from '../ui/badge';
 import {
   Users2,
   Clock,
@@ -58,7 +57,7 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
               <p className="text-[11px] text-muted-foreground">From this page</p>
             </div>
           </div>
-          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 rounded-pill">{countLabel(activeSubscribers)}</Badge>
+          <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">{countLabel(activeSubscribers)}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -156,9 +155,9 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
                   </p>
                 </div>
               </div>
-              <Badge variant="ghost" className="text-[10px] font-semibold p-0 h-auto opacity-60">
+              <span className="inline-flex items-center text-[10px] font-semibold opacity-60">
                 {subscriber.status || 'unknown'}
-              </Badge>
+              </span>
             </div>
           ))}
           {rows.length === 0 && (
