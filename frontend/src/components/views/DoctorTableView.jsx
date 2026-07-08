@@ -17,6 +17,7 @@ export const DoctorTableView = ({
   doctors,
   onView,
   onEdit,
+  onFocus,
   getStatusBadge,
   sortConfig,
   onSort,
@@ -47,7 +48,7 @@ export const DoctorTableView = ({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="overflow-hidden rounded-[32px] bg-background/45 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-white/[0.035]"
+      className="overflow-hidden rounded-sheet bg-background/45 p-3 shadow-[0_24px_80px_rgb(0_0_0/0.16)] backdrop-blur-xl dark:bg-white/[0.035]"
     >
       <div className={`${gridClass} px-4 pb-3 pt-2`}>
         <SortableHead label="ID" columnKey="display_id" />
@@ -70,7 +71,8 @@ export const DoctorTableView = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: index * 0.02 }}
-              className={`${gridClass} rounded-[24px] px-4 py-3 transition-colors hover:bg-muted/28`}
+              onClick={() => onFocus?.(doctor)}
+              className={`${gridClass} cursor-pointer rounded-inner px-4 py-3 transition-colors hover:bg-muted/28`}
             >
               <span className="truncate font-mono text-[11px] font-semibold text-sky-300/80">
                 {doctor.display_id || '-'}
@@ -79,18 +81,21 @@ export const DoctorTableView = ({
               <span className="truncate text-muted-foreground">{doctor.specialization || 'General'}</span>
               <span className="truncate text-muted-foreground">{doctor.hospitals?.name || '-'}</span>
               <span className="font-medium">{doctor.experience || '0'}y</span>
-              <span className={`w-fit rounded-full px-3 py-1 text-[11px] font-semibold capitalize ${getStatusBadge(doctor.status)}`}>
+              <span className={`inline-flex w-fit items-center rounded-pill px-3 py-1 text-[11px] font-semibold capitalize ${getStatusBadge(doctor.status)}`}>
                 {normalizeStatusLabel(doctor.status)}
               </span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : '-'}
               </span>
-              <span className={`flex justify-end gap-2 ${isMobile ? 'opacity-100' : 'opacity-100'} transition-opacity`}>
+              <span
+                className="flex justify-end gap-2 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onView(doctor)}
-                  className="h-8 w-8 rounded-full bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                  className="h-8 w-8 rounded-pill bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
                   aria-label={`View details for ${name}`}
                 >
                   <Eye className="h-4 w-4" />
@@ -101,7 +106,7 @@ export const DoctorTableView = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => onEdit(doctor)}
-                      className="h-8 w-8 rounded-full bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                      className="h-8 w-8 rounded-pill bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
                       aria-label={`Edit ${name}`}
                     >
                       <Edit className="h-4 w-4" />
@@ -114,7 +119,7 @@ export const DoctorTableView = ({
         })}
 
         {doctors.length === 0 && (
-          <div className="flex h-28 items-center justify-center rounded-[24px] bg-muted/22 text-sm font-medium text-muted-foreground">
+          <div className="flex h-28 items-center justify-center rounded-inner bg-muted/22 text-sm font-medium text-muted-foreground">
             No staff found.
           </div>
         )}
