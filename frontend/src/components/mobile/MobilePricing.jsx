@@ -13,7 +13,6 @@ import {
   BarChart3
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
@@ -369,9 +368,9 @@ export const MobilePricing = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Badge className={`rounded-pill ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'} text-[11px]`}>
+                        <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
                           {sourceLabel}
-                        </Badge>
+                        </span>
                       </div>
 
                       <div className="flex gap-2 pt-1">

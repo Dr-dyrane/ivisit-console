@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, LayoutGroup } from 'framer-motion';
-import { Badge } from '../ui/badge';
 
 const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber changes are not ready until subscriber authority is verified.';
 
@@ -834,16 +833,16 @@ export const SubscriptionManagementPage = () => {
 
                       {/* Content */}
                       <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`rounded-inner ${getStatusBadge(subscriber.status)} font-bold editorial-subtitle px-3 py-1`}>
+                        <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getStatusBadge(subscriber.status)}`}>
                           {subscriber.status}
-                        </Badge>
-                        <Badge className={`rounded-inner ${getTypeBadge(subscriber.type)} font-bold editorial-subtitle px-3 py-1`}>
+                        </span>
+                        <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getTypeBadge(subscriber.type)}`}>
                           {subscriber.type}
-                        </Badge>
+                        </span>
                         {subscriber.new_user && (
-                          <Badge variant="outline" className="rounded-inner  text-amber-700 dark:text-amber-200 px-2 py-1 font-semibold gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-200">
                             <Clock className="w-3 h-3" /> NEW
-                          </Badge>
+                          </span>
                         )}
                       </div>
                       <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10 truncate">
