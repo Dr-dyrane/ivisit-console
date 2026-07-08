@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
+import { useHospitalsQuery } from '../../hooks/useHospitalsQuery';
+import { useHospitalsMutations, applyOptimisticUpsert } from '../../hooks/useHospitalsMutations';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { updateHospital, getHospital, getHospitalsPageData } from '../../services/hospitalsService';
+import { updateHospital, getHospital } from '../../services/hospitalsService';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -17,7 +20,6 @@ import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { HospitalListView } from '../views/HospitalListView';
@@ -144,23 +146,54 @@ const getHospitalSignal = ({ stats, hospitals, kpiFilter }) => {
 export const HospitalsPage = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { isMobile } = useNavigation();
-  const [hospitals, setHospitals] = useState([]);
-  const [hospitalPageStats, setHospitalPageStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [hospitalPageError, setHospitalPageError] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
   const canEditHospitals = isAdmin() || isOrgAdmin();
+
+  // --- Read path: React Query (S3 reference migration; mirrors DoctorsPage) ------
+  // The route-owned page projection (getHospitalsPageData) now flows through
+  // useHospitalsQuery, so the ['hospitals', queryFilter] cache is the single store:
+  // this page reads it, the modal write settles it, and realtime invalidates it.
+  // The KPI status pill and sheet filters compose into one server filter; stats are
+  // requested on the status-agnostic set (getHospitalStatsFilters) so the KPI counts
+  // stay stable while the list narrows.
+  const queryFilter = useMemo(() => ({
+    filters: {
+      ...filters,
+      ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
+    },
+    statsFilters: getHospitalStatsFilters(filters),
+    limit: pagination.itemsPerPage,
+    offset: pagination.paginationRange.start,
+    quiet: true,
+  }), [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
+
+  const {
+    hospitals,
+    count,
+    stats: hospitalPageStats,
+    loading,
+    error: queryError,
+    refetch,
+  } = useHospitalsQuery(queryFilter);
+
+  // RQ error object -> the page's existing degraded-state copy (kept verbatim).
+  const hospitalPageError = queryError ? 'Hospitals could not load. Try again.' : null;
+
+  // fetchHospitals is now the RQ refetch (pull-to-refresh on mobile, Retry on desktop).
+  const fetchHospitals = refetch;
+
   // Shared focused-record store: rail shows the most-urgent hospital at rest and
   // toggles consistently on row focus. Replaces the old private focusedHospitalId
   // state + `list.find(id) || list[0]` memo + first-item re-pin effect.
@@ -169,7 +202,6 @@ export const HospitalsPage = () => {
   // Row-level focus wiring: toggles the detail rail from list/table rows, mirroring the grid cards.
   const handleFocus = useCallback((hospital) => setFocused(hospital?.id || null), [setFocused]);
   const isMountedRef = useRef(false);
-  const fetchRequestRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
 
   useEffect(() => {
@@ -177,12 +209,16 @@ export const HospitalsPage = () => {
 
     return () => {
       isMountedRef.current = false;
-      fetchRequestRef.current += 1;
       if (actionFeedbackTimerRef.current) {
         window.clearTimeout(actionFeedbackTimerRef.current);
       }
     };
   }, []);
+
+  // Keep the shared pagination store's total in sync with the RQ count.
+  useEffect(() => {
+    pagination.setTotalCount(count);
+  }, [count, pagination.setTotalCount]);
 
   const markActionFeedback = useCallback((actionId) => {
     if (!actionId) return;
@@ -209,97 +245,19 @@ export const HospitalsPage = () => {
     setKpiFilter(nextFilter);
   }, [pagination.resetPagination]);
 
-  const fetchHospitals = useCallback(async () => {
-    const requestId = fetchRequestRef.current + 1;
-    fetchRequestRef.current = requestId;
-
-    try {
-      if (isMountedRef.current) {
-        setLoading(true);
-        setHospitalPageError(null);
-      }
-
-      // Check if we have a specific hospital ID in URL
-      const params = new URLSearchParams(location.search);
-      const hospitalId = params.get('id');
-
-      if (hospitalId) {
-        const [specificHospital, pageData] = await Promise.all([
-          getHospital(hospitalId),
-          getHospitalsPageData({
-            statsFilters: getHospitalStatsFilters(filters),
-            limit: pagination.itemsPerPage,
-            offset: 0,
-            quiet: true
-          })
-        ]);
-
-        if (!isMountedRef.current || fetchRequestRef.current !== requestId) {
-          return;
-        }
-
-        setHospitals(specificHospital ? [specificHospital] : []);
-        setHospitalPageStats(pageData.stats);
-        pagination.setTotalCount(specificHospital ? 1 : 0);
-        setHospitalPageError(null);
-
-        // Auto-open the modal for this hospital
-        if (specificHospital) {
-          setFocused(specificHospital.id);
-          setSelectedHospital(specificHospital);
-          setModalMode('view');
-        }
-        return;
-      }
-
-      const routeFilters = {
-        ...filters,
-        ...(kpiFilter !== 'all' ? { status: kpiFilter } : {})
-      };
-      const statsFilters = getHospitalStatsFilters(filters);
-
-      const { data, count, stats } = await getHospitalsPageData({
-        filters: routeFilters,
-        statsFilters,
-        limit: pagination.itemsPerPage,
-        offset: pagination.paginationRange.start,
-        quiet: true
-      });
-
-      if (!isMountedRef.current || fetchRequestRef.current !== requestId) {
-        return;
-      }
-
-      pagination.setTotalCount(count);
-      setHospitalPageStats(stats);
-      setHospitals(data || []);
-      setHospitalPageError(null);
-    } catch (error) {
-      if (!isMountedRef.current || fetchRequestRef.current !== requestId) {
-        return;
-      }
-
-      console.error('Error fetching hospitals:', error);
-      setHospitalPageError('Hospitals could not load. Try again.');
-      handleApiError(error, 'fetch');
-    } finally {
-      if (isMountedRef.current && fetchRequestRef.current === requestId) {
-        setLoading(false);
-      }
-    }
-  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, location.search]);
-
+  // Real-time updates: a hospitals row change now invalidates the ['hospitals']
+  // cache (the single store) instead of a manual refetch. Any mounted
+  // useHospitalsQuery observer converges on the next fetch. This page-level channel
+  // is the only hospitals realtime on /hospitals (PageDataContext excludes hospitals
+  // from the route's startup domains), so it stays here rather than in the context.
   useEffect(() => {
     let active = true;
 
-    fetchHospitals();
-
-    // Real-time updates
     const channel = supabase
       .channel('hospitals_page_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hospitals' }, () => {
         if (active && isMountedRef.current) {
-          fetchHospitals();
+          queryClient.invalidateQueries({ queryKey: ['hospitals'] });
         }
       })
       .subscribe();
@@ -308,7 +266,32 @@ export const HospitalsPage = () => {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [fetchHospitals]);
+  }, [queryClient]);
+
+  // Deep link: ?id=<hospital> opens that facility's record. It loads the single row
+  // directly (getHospital) and auto-opens the read-only modal; the list itself stays
+  // on the RQ projection above, so there is no second list store.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const hospitalId = params.get('id');
+    if (!hospitalId) return undefined;
+
+    let active = true;
+    getHospital(hospitalId)
+      .then((specificHospital) => {
+        if (!active || !isMountedRef.current || !specificHospital) return;
+        setFocused(specificHospital.id);
+        setSelectedHospital(specificHospital);
+        setModalMode('view');
+      })
+      .catch((error) => {
+        handleApiError(error, 'fetch');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [location.search, setFocused]);
 
   const handleCreateUnavailable = useCallback(() => {
     markActionFeedback('create-unavailable');
@@ -373,7 +356,7 @@ export const HospitalsPage = () => {
     if (params.get('add') === 'true') {
       handleCreateUnavailable();
     }
-    // Note: id parameter is now handled in fetchHospitals function
+    // Note: the id parameter is handled by the dedicated ?id deep-link effect above.
   }, [handleCreateUnavailable, location.search]);
 
   // Handle custom events from context panel
@@ -410,13 +393,26 @@ export const HospitalsPage = () => {
     handleApplyFilters({});
   }, [handleApplyFilters, handleKpiFilterChange]);
 
+  // --- Write path: React Query optimistic mutation (mirrors DoctorModal S3-3) -----
+  // The facility edit still calls updateHospital(selectedHospital.id, formData) - the
+  // update_hospital_by_admin RPC is never bypassed - but it is now the mutationFn of
+  // useHospitalsMutations, which snapshots the ['hospitals', queryFilter] cache,
+  // applies an optimistic upsert, rolls back on error, and invalidates on settle.
+  // That onSettled invalidation is the single post-write refresh (handleModalClose no
+  // longer refetches). formData carries the row id, so the upsert merges the cached row.
+  const updateHospitalMutation = useHospitalsMutations({
+    mutationFn: (formData) => updateHospital(selectedHospital.id, formData),
+    applyOptimistic: applyOptimisticUpsert,
+    filter: queryFilter,
+  });
+
   const handleSave = useCallback(async (formData) => {
     try {
       if (modalMode !== 'edit' || !selectedHospital?.id) {
         throw new Error('Facility edit requires a selected facility');
       }
 
-      const updatedHospital = await updateHospital(selectedHospital.id, formData);
+      const updatedHospital = await updateHospitalMutation.mutateAsync(formData);
       const updatedHospitalName = formData.name || selectedHospital.name || 'Facility';
 
       await createNotification(
@@ -432,15 +428,15 @@ export const HospitalsPage = () => {
       handleApiError(error, 'update');
       throw error;
     }
-  }, [modalMode, selectedHospital]);
+  }, [modalMode, selectedHospital, updateHospitalMutation]);
 
-  const handleModalClose = useCallback((shouldRefresh) => {
+  // Modal writes flow through useHospitalsMutations, whose onSettled invalidates
+  // ['hospitals'] and refetches this page's live useHospitalsQuery. Closing the modal
+  // must therefore NOT trigger its own refetch - doing so would double-fetch.
+  const handleModalClose = useCallback(() => {
     setModalMode(null);
     setSelectedHospital(null);
-    if (shouldRefresh) {
-      fetchHospitals();
-    }
-  }, [fetchHospitals]);
+  }, []);
 
   const getStatusBadge = (status) => {
     const badges = {

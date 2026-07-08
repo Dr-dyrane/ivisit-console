@@ -11,6 +11,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
   const listSource = () => fs.readFileSync('src/components/views/AmbulanceListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/AmbulanceTableView.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/ambulancesService.js', 'utf8');
+  const queryHookSource = () => fs.readFileSync('src/hooks/useAmbulancesQuery.js', 'utf8');
   const panelSource = () => fs.readFileSync('src/components/context/AmbulancesPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
@@ -140,8 +141,15 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(routeOwnsStartupDomains('/ambulances')).toBe(true);
     expect(getPageDataStartupDomainsForRole('org_admin', '/ambulances')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('admin', '/ambulances')).toEqual([]);
-    expect(page).toContain('getAmbulancesPageData');
-    expect(page).toContain('setAmbulancePageStats(pageData.stats || null)');
+    // Read path migrated onto React Query (S3 doctors template): the page reads the
+    // fleet list from useAmbulancesQuery, and the getAmbulancesPageData projection
+    // now lives inside that hook instead of a hand-rolled page fetch. The service
+    // read fn is reused (not bypassed) - it is still the single route-data owner.
+    expect(page).toContain('useAmbulancesQuery');
+    expect(page).toContain('stats: ambulancePageStats');
+    expect(page).not.toContain('setAmbulancePageStats');
+    expect(queryHookSource()).toContain('getAmbulancesPageData(filter)');
+    expect(queryHookSource()).toContain("queryKey: ['ambulances', filter]");
     expect(page).toContain('"Ambulances"');
     expect(page).not.toContain('Fleet Management');
     expect(page).not.toContain('usePageData');

@@ -14,6 +14,11 @@ describe('HospitalsPage admission audit contract', () => {
   const modalSource = () => fs.readFileSync('src/components/modals/HospitalModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/hospitalsService.js', 'utf8');
   const viewModeSource = () => fs.readFileSync('src/hooks/useViewMode.js', 'utf8');
+  // S3 React Query migration (mirrors DoctorsPage): the page reads via
+  // useHospitalsQuery and writes via useHospitalsMutations. These readers let the
+  // conversion assertions point at the relocated data layer.
+  const queryHookSource = () => fs.readFileSync('src/hooks/useHospitalsQuery.js', 'utf8');
+  const mutationsHookSource = () => fs.readFileSync('src/hooks/useHospitalsMutations.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const coreRpcSource = () => fs.readFileSync('supabase/migrations/20260219010000_core_rpcs.sql', 'utf8');
@@ -115,10 +120,12 @@ describe('HospitalsPage admission audit contract', () => {
     expect(getPageDataStartupDomainsForRole('org_admin', '/hospitals')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('admin', '/hospitals')).toEqual([]);
 
-    expect(page).toContain('getHospitalsPageData({');
+    // S3 migration: the route projection now flows through useHospitalsQuery; the
+    // page destructures its stats as hospitalPageStats and writes via the mutation.
+    expect(page).toContain('useHospitalsQuery(queryFilter)');
     expect(page).toContain('statsFilters: getHospitalStatsFilters(filters)');
-    expect(page).toContain('const [hospitalPageStats, setHospitalPageStats] = useState(null)');
-    expect(page).toContain('setHospitalPageStats(stats)');
+    expect(page).toContain('stats: hospitalPageStats');
+    expect(page).toContain('updateHospitalMutation.mutateAsync(formData)');
     expect(page).toContain('statistics={hospitalPageStats}');
     expect(page).toContain('analytics={hospitalPageStats}');
     expect(page).toContain('const hospitalPanelContext = React.useMemo(() => ({');
@@ -145,14 +152,18 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('onDelete={handleDelete}');
     expect(page).toContain('canDelete={false}');
     expect(page).toContain('selectionEnabled={false}');
+    // Realtime cleanup pins survive the migration: the page keeps its own
+    // hospitals_page_changes channel + mount guard + removeChannel teardown, but the
+    // change handler now feeds the ['hospitals'] cache instead of a manual refetch,
+    // and the imperative fetch-dedup loop (fetchRequestRef/requestId) is gone.
     expect(page).toContain(".channel('hospitals_page_changes')");
     expect(page).toContain('const isMountedRef = useRef(false)');
-    expect(page).toContain('const fetchRequestRef = useRef(0)');
+    expect(page).toContain("queryClient.invalidateQueries({ queryKey: ['hospitals'] })");
     expect(page).toContain('isMountedRef.current = false');
-    expect(page).toContain('fetchRequestRef.current += 1');
-    expect(page).toContain('const requestId = fetchRequestRef.current + 1');
-    expect(page).toContain('if (!isMountedRef.current || fetchRequestRef.current !== requestId)');
-    expect(page).toContain('if (isMountedRef.current && fetchRequestRef.current === requestId)');
+    expect(page).toContain('const fetchHospitals = refetch');
+    expect(page).toContain('pagination.setTotalCount(count)');
+    expect(page).not.toContain('fetchRequestRef');
+    expect(page).not.toContain('setHospitalPageStats');
     expect(page).toContain('let active = true');
     expect(page).toContain('if (active && isMountedRef.current)');
     expect(page).toContain('supabase.removeChannel(channel)');
@@ -201,9 +212,11 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('const HospitalSheetToolbar =');
     expect(page).toContain('const HospitalErrorBanner =');
     expect(page).toContain('const HospitalEmptyState =');
-    expect(page).toContain('const [hospitalPageError, setHospitalPageError] = useState(null)');
-    expect(page).toContain('setHospitalPageError(null)');
-    expect(page).toContain("setHospitalPageError('Hospitals could not load. Try again.')");
+    // Degraded-state copy is preserved, now derived from the RQ error instead of a
+    // dedicated error useState + setter.
+    expect(page).toContain('const hospitalPageError = queryError');
+    expect(page).not.toContain('setHospitalPageError');
+    expect(page).toContain("'Hospitals could not load. Try again.'");
     expect(page).toContain('data-testid="hospitals-activity-sheet"');
     expect(page).toContain('data-testid="hospitals-sheet-search"');
     expect(page).toContain('data-testid="hospitals-error-state"');
@@ -391,7 +404,12 @@ describe('HospitalsPage admission audit contract', () => {
     const service = serviceSource();
     const viewMode = viewModeSource();
 
-    expect(page).toContain('getHospitalsPageData({');
+    // The route projection call relocated into the query hook; the page keeps the
+    // ?id deep-link read (getHospital) and the guarded edit write (updateHospital),
+    // and create stays absent.
+    expect(queryHookSource()).toContain('getHospitalsPageData(filter)');
+    expect(queryHookSource()).toContain("queryKey: ['hospitals', filter]");
+    expect(mutationsHookSource()).toContain('applyOptimisticUpsert');
     expect(page).toContain('getHospital(hospitalId)');
     expect(page).not.toContain('createHospital(formData)');
     expect(page).toContain('updateHospital(selectedHospital.id, formData)');

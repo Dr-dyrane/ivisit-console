@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getHospitals } from '../../services/hospitalsService';
-import { getAmbulancesPageData } from '../../services/ambulancesService';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useAmbulancesQuery } from '../../hooks/useAmbulancesQuery';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { Badge } from '../ui/badge';
@@ -12,7 +12,6 @@ import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Ambulance, Plus, Edit, Eye, MapPin, Activity, Filter, Search, AlertCircle, RefreshCw, Wrench } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from "sonner";
 import { useAuth } from '../../contexts/AuthContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
@@ -173,9 +172,6 @@ export const AmbulancesPage = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
-  const [ambulances, setAmbulances] = useState([]);
-  const [ambulancePageStats, setAmbulancePageStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedAmbulance, setSelectedAmbulance] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -185,13 +181,42 @@ export const AmbulancesPage = () => {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
-  const [ambulancePageError, setAmbulancePageError] = useState(null);
   const actionFeedbackTimeoutRef = useRef(null);
 
   const { viewMode, setViewMode } = useViewMode('ambulances-page', 'grid');
   const pagination = usePagination(20);
   const { currentPage, itemsPerPage, paginationRange, setTotalCount, resetPagination } = pagination;
   const canManageFleet = isAdmin() || isOrgAdmin();
+
+  // Read path: the fleet list now flows through React Query (useAmbulancesQuery),
+  // which wraps the same getAmbulancesPageData projection the page used to fetch by
+  // hand. queryFilter is the exact params object passed to the service; React Query
+  // caches under ['ambulances', queryFilter] (deep-hashed key), de-dupes requests,
+  // and keeps the previous page visible while a new one loads (placeholderData).
+  const queryFilter = useMemo(() => ({
+    filters,
+    statsFilters: getAmbulanceStatsFilters(filters),
+    kpiFilter,
+    sortConfig,
+    limit: isMobile ? currentPage * itemsPerPage : itemsPerPage,
+    offset: isMobile ? 0 : paginationRange.start,
+  }), [filters, kpiFilter, sortConfig, isMobile, currentPage, itemsPerPage, paginationRange.start]);
+
+  const {
+    ambulances,
+    count: ambulanceCount,
+    stats: ambulancePageStats,
+    loading,
+    error: ambulanceQueryError,
+    refetch,
+  } = useAmbulancesQuery(queryFilter);
+
+  // Mobile pull-to-refresh and the error-banner retry reuse the query's refetch.
+  const fetchAmbulances = refetch;
+  // Components render this as a message string, so normalize the RQ Error object.
+  const ambulancePageError = ambulanceQueryError
+    ? (ambulanceQueryError.message || 'Fleet could not load.')
+    : null;
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('ambulances', ambulances);
   const focusedAmbulance = focusedRecord;
   const handleFocus = useCallback((ambulance) => setFocused(ambulance?.id || null), [setFocused]);
@@ -224,53 +249,16 @@ export const AmbulancesPage = () => {
     }
   }, [isAdmin]);
 
-  const fetchAmbulances = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const pageLimit = isMobile
-        ? currentPage * itemsPerPage
-        : itemsPerPage;
-      const pageOffset = isMobile ? 0 : paginationRange.start;
-
-      const pageData = await getAmbulancesPageData({
-        filters,
-        statsFilters: getAmbulanceStatsFilters(filters),
-        kpiFilter,
-        sortConfig,
-        limit: pageLimit,
-        offset: pageOffset,
-      });
-
-      setAmbulances(pageData.data || []);
-      setAmbulancePageStats(pageData.stats || null);
-      setAmbulancePageError(null);
-      setTotalCount(pageData.count || 0);
-    } catch (error) {
-      console.error('Error fetching ambulances:', error);
-      setAmbulancePageError(error.message || 'Fleet could not load.');
-      toast.error(error.message || 'Failed to load ambulances');
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    filters,
-    kpiFilter,
-    sortConfig,
-    isMobile,
-    currentPage,
-    itemsPerPage,
-    paginationRange.start,
-    setTotalCount,
-  ]);
+  // Feed the exact server count into the shared pagination controller. The old
+  // hand-fetch called setTotalCount inline; with React Query the count arrives via
+  // the cached query result, so mirror it into pagination whenever it changes.
+  useEffect(() => {
+    setTotalCount(ambulanceCount || 0);
+  }, [ambulanceCount, setTotalCount]);
 
   useEffect(() => {
     resetPagination();
   }, [filters, kpiFilter, sortConfig.key, sortConfig.direction, resetPagination]);
-
-  useEffect(() => {
-    fetchAmbulances();
-  }, [fetchAmbulances]);
 
   const displayStats = ambulancePageStats;
 
@@ -418,13 +406,15 @@ export const AmbulancesPage = () => {
     setModalMode('edit');
   }, [markActionFeedback]);
 
-  const handleModalClose = useCallback((shouldRefresh) => {
+  // Modal writes now flow through useAmbulancesMutations, whose onSettled invalidates
+  // ['ambulances'] and refetches this page's live useAmbulancesQuery. Closing the
+  // modal must therefore NOT trigger its own refetch here - doing so would
+  // double-fetch. (fetchAmbulances/refetch is still used for the error-banner retry
+  // and mobile pull-to-refresh.)
+  const handleModalClose = useCallback(() => {
     setModalMode(null);
     setSelectedAmbulance(null);
-    if (shouldRefresh) {
-      fetchAmbulances();
-    }
-  }, [fetchAmbulances]);
+  }, []);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -574,6 +564,7 @@ export const AmbulancesPage = () => {
             onClose={handleModalClose}
             ambulance={selectedAmbulance}
             mode={modalMode}
+            listFilter={queryFilter}
           />
         )}
 
@@ -797,6 +788,7 @@ export const AmbulancesPage = () => {
           onClose={handleModalClose}
           ambulance={selectedAmbulance}
           mode={modalMode}
+          listFilter={queryFilter}
         />
       )}
 

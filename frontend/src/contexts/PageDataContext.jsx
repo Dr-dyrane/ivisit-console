@@ -851,21 +851,21 @@ export const PageDataProvider = ({ children }) => {
       .channel('hospital_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'hospitals' },
-        fetchHospitalsData
+        () => queryClient.invalidateQueries({ queryKey: ['hospitals'] })
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchHospitalsData]);
+  }, [user, useMockData, startupDomains, queryClient]);
 
   // Real-time subscription for ambulances data (reuses the service channel helper)
   useEffect(() => {
     if (!user || useMockData || !startupDomains.includes('ambulances')) return;
 
-    const unsubscribe = subscribeToAllAmbulances(() => fetchAmbulancesData());
+    const unsubscribe = subscribeToAllAmbulances(() => queryClient.invalidateQueries({ queryKey: ['ambulances'] }));
 
     return () => unsubscribe();
-  }, [user, useMockData, startupDomains, fetchAmbulancesData]);
+  }, [user, useMockData, startupDomains, queryClient]);
 
   // Real-time subscription for wallet/payments data
   useEffect(() => {

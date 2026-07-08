@@ -12,6 +12,7 @@ import { handleApiError } from '../../utils/errorHandler';
 import { createNotification, NotificationActions, NotificationTypes } from '../../services/notificationService';
 import { createAmbulance, updateAmbulance } from '../../services/ambulancesService';
 import { getHospitals } from '../../services/hospitalsService';
+import { useAmbulancesMutations, applyOptimisticUpsert } from '../../hooks/useAmbulancesMutations';
 
 const DEFAULT_AMBULANCE_FORM = {
   call_sign: '',
@@ -114,7 +115,7 @@ const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
   return payload;
 };
 
-export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
+export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
@@ -124,6 +125,31 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const [hospitals, setHospitals] = useState([]);
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // --- Write path: React Query optimistic mutations (mirrors DoctorModal S3-3) ----
+  // createAmbulance / updateAmbulance stay imported from ambulancesService and are
+  // handed in as the mutationFn; useAmbulancesMutations wraps them with the onMutate
+  // snapshot -> optimistic setQueryData -> onError rollback -> onSettled
+  // invalidateQueries(['ambulances']) lifecycle. No direct service call and no second
+  // store: the ['ambulances'] cache is the single source.
+  //
+  // `listFilter` is the exact filter AmbulancesPage passed to useAmbulancesQuery, so
+  // the optimistic patch lands on that page's live ['ambulances', filter] cache
+  // entry. Other AmbulanceModal hosts (FAB / context panel) omit it - their writes
+  // still converge via the onSettled root invalidation, just without visible optimism.
+  const createAmbulanceMutation = useAmbulancesMutations({
+    mutationFn: createAmbulance,
+    filter: listFilter,
+    // No optimistic reducer for create: the server owns the new id and the station
+    // enrichment, so an optimistic row would render keyless / half-joined. onSettled
+    // invalidation refetches the real row within one round-trip.
+  });
+  const updateAmbulanceMutation = useAmbulancesMutations({
+    // Strip the id back off for the updateAmbulance(id, changes) service signature.
+    mutationFn: ({ id, ...changes }) => updateAmbulance(id, changes),
+    applyOptimistic: applyOptimisticUpsert,
+    filter: listFilter,
+  });
 
   useEffect(() => {
     setFormData(normalizeFormData(ambulance, orgId, isCreate, isOrgAdmin()));
@@ -184,9 +210,13 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
     try {
       const payload = buildAmbulancePayload(formData, { isCreate, isOrgAdmin: isOrgAdmin(), orgId });
+      // mutateAsync routes through the same createAmbulance / updateAmbulance RPCs,
+      // adding optimistic upsert + rollback and the single onSettled refresh. Carry
+      // the id in the update variables so applyOptimisticUpsert matches the cached
+      // row; the mutationFn strips it back off for updateAmbulance(id, changes).
       const savedAmbulance = isCreate
-        ? await createAmbulance(payload)
-        : await updateAmbulance(ambulance.id, payload);
+        ? await createAmbulanceMutation.mutateAsync(payload)
+        : await updateAmbulanceMutation.mutateAsync({ id: ambulance.id, ...payload });
 
       try {
         await createNotification(
