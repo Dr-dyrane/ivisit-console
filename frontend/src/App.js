@@ -21,6 +21,7 @@ import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
 import { FeedbackProvider } from "./contexts/FeedbackContext";
 import { PageActionsProvider } from "./contexts/PageActionsContext";
+import { FocusedRecordProvider } from "./contexts/FocusedRecordContext";
 import { Loader2 } from "lucide-react";
 // PULLBACK NOTE: Pass A1 - TanStack Query foundation
 // OLD: no QueryClientProvider, no server data caching
@@ -281,6 +282,7 @@ function App() {
 					<PageActionsProvider>
 					<PWAProvider>
 						<FeedbackProvider>
+							<FocusedRecordProvider>
 							<Router>
 								<AppRoutes />
 								<Toaster position="top-right" richColors />
@@ -288,6 +290,7 @@ function App() {
 								{/* PWA Debug Tracker */}
 								<PWADebugTracker />
 							</Router>
+							</FocusedRecordProvider>
 						</FeedbackProvider>
 					</PWAProvider>
 					</PageActionsProvider>
