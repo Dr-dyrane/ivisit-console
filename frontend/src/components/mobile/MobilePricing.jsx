@@ -15,11 +15,14 @@ import {
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
+import { statusPill } from '../../constants/vitalTracks';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
@@ -99,7 +102,6 @@ export const MobilePricing = ({
   const getItemFamily = (item) => item.family || item._pricingType || (item.price_per_night !== undefined ? 'room' : 'service');
   const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
   const getSourceLabel = (item, globalRule) => item.sourceLabel || item.source_label || (globalRule ? 'platform fallback' : 'facility price');
-  const getCompactSourceLabel = (item, globalRule) => (globalRule ? 'Platform' : 'Facility');
   const getSectionLabel = () => {
     if (activeTab === 'services') return 'Service Pricing';
     if (activeTab === 'rooms') return 'Room Pricing';
@@ -313,23 +315,25 @@ export const MobilePricing = ({
               const editable = canEdit?.(item);
               const price = getItemPrice(item);
               const sourceLabel = getSourceLabel(item, globalRule);
-              const compactSourceLabel = getCompactSourceLabel(item, globalRule);
               const itemFamily = getItemFamily(item);
               const updatedAt = getUpdatedAt(item);
+              const facilityLabel = item.facilityName || item.facility_name;
+              const noteText = item.description || item.metadata?.description;
+              // Price is the defining number of a config row: carry it (with its
+              // per-unit basis) on the readable secondary line, not in a decorative blade.
+              const rate = {
+                label: itemFamily === 'room' ? 'Night' : 'Unit',
+                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(price)
+              };
               return (
                 <MobileMetricRow
                   key={item.id}
                   icon={BadgeDollarSign}
-                  color={globalRule ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))'}
+                  color="hsl(var(--primary))"
                   label={formatLabel(getItemType(item))}
                   value={getItemName(item)}
-                  rightBlade={{
-                    badge: compactSourceLabel,
-                    direction: globalRule ? 'flat' : 'up',
-                    label: itemFamily === 'room' ? 'Night' : 'Unit',
-                    value: `$${price.toFixed(2)}`,
-                    color: globalRule ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))'
-                  }}
+                  secondary={`${rate.value} / ${rate.label} · ${formatLabel(sourceLabel)}`}
+                  statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
                   isExpanded={expandedId === item.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
                   itemId={item.id}
@@ -337,58 +341,55 @@ export const MobilePricing = ({
                   onSelect={selectionEnabled && onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
                   selectionMode={selectionMode}
                   expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Layers size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal opacity-80">Unit: {item.unit || (itemFamily === 'room' ? 'Night' : 'Unit')}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          {globalRule ? <Globe size={14} className="text-muted-foreground/40" /> : <Building2 size={14} className="text-muted-foreground/40" />}
-                          <span className="text-xs font-normal opacity-80">{sourceLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <CalendarDays size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal opacity-80">
-                            Updated: {updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown'}
-                          </span>
-                        </div>
-                        {item.facilityName || item.facility_name ? (
-                          <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                            <Building2 size={14} className="text-muted-foreground/40" />
-                            <span className="text-xs font-normal opacity-80">{item.facilityName || item.facility_name}</span>
-                          </div>
-                        ) : null}
-                        {item.description || item.metadata?.description ? (
-                          <div className="p-3 bg-white/[0.02] rounded-inner">
-                            <p className="mb-1 text-[11px] font-semibold text-muted-foreground/60">Notes</p>
-                            <p className="text-xs opacity-80">{item.description || item.metadata?.description}</p>
-                          </div>
-                        ) : null}
-                      </div>
-
+                    <div className="space-y-3 py-3">
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
-                          {sourceLabel}
+                        <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
+                          {globalRule ? <Globe size={12} /> : <Building2 size={12} />}
+                          {formatLabel(sourceLabel)}
                         </span>
                       </div>
 
-                      <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(item)}>
-                          <Eye size={16} className="text-muted-foreground" />
-                          <span className="text-[11px] font-semibold">Details</span>
-                        </Button>
-                        {editable && (
-                          <>
-                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(item)}>
-                              <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                            </Button>
-                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(item)}>
-                              <Trash2 size={16} className="text-destructive/60" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      <MobileDetailIslands
+                        items={[
+                          { icon: BadgeDollarSign, label: 'Price', value: `${rate.value} / ${rate.label}` },
+                          item.unit ? { icon: Layers, label: 'Unit', value: item.unit } : null,
+                          facilityLabel ? { icon: Building2, label: 'Facility', value: facilityLabel } : null,
+                          { icon: CalendarDays, label: 'Updated', value: updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown' }
+                        ]}
+                      />
+
+                      {noteText ? (
+                        <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                          {noteText}
+                        </div>
+                      ) : null}
+
+                      <MobileSheetActions
+                        primary={{ label: 'Details', icon: Eye, onClick: () => onView(item) }}
+                      />
+
+                      {editable && (
+                        <div className="flex gap-2">
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => onEdit(item)}
+                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-muted/40 text-xs font-semibold text-foreground transition-colors hover:bg-muted/60"
+                          >
+                            <Edit size={15} />
+                            Edit
+                          </motion.button>
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => onDelete(item)}
+                            aria-label="Delete pricing rule"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+                          >
+                            <Trash2 size={15} />
+                          </motion.button>
+                        </div>
+                      )}
                     </div>
                   )}
                 />
