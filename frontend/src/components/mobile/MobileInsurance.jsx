@@ -7,9 +7,7 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
-import { VitalTrack } from '../common/VitalTrack';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
@@ -39,7 +37,7 @@ export const MobileInsurance = ({
   hasMore = false,
   onLoadMore
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activePolicy, setActivePolicy] = useState(null);
   const observerTarget = useRef(null);
 
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -252,12 +250,6 @@ export const MobileInsurance = ({
               const v = resolveVital('insurance', policy.status);
               const planType = formatPlanType(policy);
               const providerLabel = policy.provider_name || 'Unknown provider';
-              const coverageValue = policy.coverage_amount != null
-                ? `$${Number(policy.coverage_amount).toLocaleString()}`
-                : null;
-              const expiresValue = policy.end_date
-                ? new Date(policy.end_date).toLocaleDateString()
-                : null;
               return (
                 <MobileMetricRow
                   key={policy.id}
@@ -268,36 +260,7 @@ export const MobileInsurance = ({
                   secondary={planType ? `${providerLabel} · ${planType}` : providerLabel}
                   statusPill={v?.pill}
                   statusIndicators={policy.verified ? [{ icon: ShieldCheck, color: 'hsl(162 94% 24%)', label: 'Verified' }] : []}
-                  isExpanded={expandedId === policy.id}
-                  onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                  itemId={policy.id}
-                  expandedContent={(
-                    <div className="space-y-3 py-3">
-                      {v && (
-                        <VitalTrack
-                          steps={v.steps}
-                          currentKey={v.currentKey}
-                          tone={v.tone}
-                          cancelled={v.cancelled}
-                          label="Policy status"
-                        />
-                      )}
-                      <MobileDetailIslands
-                        items={[
-                          { icon: User, label: 'Holder', value: policy.policy_holder_name },
-                          { icon: Building2, label: 'Provider', value: policy.provider_name },
-                          { icon: Hash, label: 'Policy number', value: policy.policy_number },
-                          { icon: Tag, label: 'Plan type', value: planType },
-                          { icon: DollarSign, label: 'Coverage', value: coverageValue },
-                          { icon: Calendar, label: 'Expires', value: expiresValue },
-                          { icon: ShieldCheck, label: 'Verification', value: policy.verified ? 'Verified' : 'Not verified' },
-                        ]}
-                      />
-                      <MobileSheetActions
-                        primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(policy), tone: v?.accent }}
-                      />
-                    </div>
-                  )}
+                  onClick={() => setActivePolicy(policy)}
                 />
               );
             })}
@@ -311,6 +274,39 @@ export const MobileInsurance = ({
             {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
           </div>
         </div>
+
+        {activePolicy && (() => {
+          const v = resolveVital('insurance', activePolicy.status);
+          const planType = formatPlanType(activePolicy);
+          const coverageValue = activePolicy.coverage_amount != null
+            ? `$${Number(activePolicy.coverage_amount).toLocaleString()}`
+            : null;
+          const expiresValue = activePolicy.end_date
+            ? new Date(activePolicy.end_date).toLocaleDateString()
+            : null;
+          return (
+            <MobileDetailSheet
+              isOpen={!!activePolicy}
+              onClose={() => setActivePolicy(null)}
+              icon={Shield}
+              iconTone={v?.tone}
+              eyebrow="Insurance policy"
+              title={activePolicy.policy_holder_name || activePolicy.policy_number || 'Unnamed policy'}
+              statusPill={v?.pill}
+              vital={v ? { ...v, label: 'Policy status' } : null}
+              islands={[
+                { icon: User, label: 'Holder', value: activePolicy.policy_holder_name },
+                { icon: Building2, label: 'Provider', value: activePolicy.provider_name },
+                { icon: Hash, label: 'Policy number', value: activePolicy.policy_number },
+                { icon: Tag, label: 'Plan type', value: planType },
+                { icon: DollarSign, label: 'Coverage', value: coverageValue },
+                { icon: Calendar, label: 'Expires', value: expiresValue },
+                { icon: ShieldCheck, label: 'Verification', value: activePolicy.verified ? 'Verified' : 'Not verified' },
+              ]}
+              primary={{ label: 'Details', icon: Eye, onClick: () => { setActivePolicy(null); onView?.(activePolicy); }, tone: v?.accent }}
+            />
+          );
+        })()}
       </MobilePageShell>
     </PullToRefresh>
   );

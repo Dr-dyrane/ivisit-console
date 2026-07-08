@@ -71,6 +71,20 @@ describe('Insurance Page 12 intake contract', () => {
     expect(mobile).toContain('MobileKPIStrip');
     expect(mobile).toContain('MobileFeaturedMetric');
     expect(mobile).toContain('MobileSecondaryMetricRail');
+    // Tap opens the canonical detail bottom sheet (MobileDetailSheet), not an inline dropdown.
+    expect(mobile).toContain('MobileDetailSheet');
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('const [activePolicy, setActivePolicy] = useState(null);');
+    expect(mobile).toContain('onClick={() => setActivePolicy(policy)}');
+    expect(mobile).toContain('isOpen={!!activePolicy}');
+    expect(mobile).toContain("vital={v ? { ...v, label: 'Policy status' } : null}");
+    // The old inline-expand composition must be fully removed.
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('expandedId');
+    expect(mobile).not.toContain('onExpand');
+    expect(mobile).not.toContain('isExpanded');
+    // Read-only boundary: the mobile sheet never wires an insurance mutation hook.
+    expect(mobile).not.toContain('useInsurance');
     expect(gate).toContain('create/edit/view/delete/verify/bulk delete handlers');
   });
 
