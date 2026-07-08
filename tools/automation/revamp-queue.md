@@ -241,3 +241,12 @@ Notes:
   binary-corrupted in the working tree (numstat `- -`), controller lane - not restored to avoid clobbering.
 - **Action:** no src changes, no commits, queue append only. Real unblock unchanged: codex committing/fixing the
   shared hardgate script (frees Support first, token map pre-verified), or controller finishing Pages 12-18.
+
+### 2026-07-07 — modal-canon agent — top un-revamped modals to borderless canon — in_progress
+- **Lane:** chrome-only canon pass on detail/form modals. Files: `modals/VerificationModal.jsx`,
+  `modals/HealthNewsModal.jsx`, `modals/AnalyticsModal.jsx`.
+- **SKIPPED (another lane):** `modals/VisitModal.jsx` — has a REAL working-tree content diff at start
+  (codex WIP stripping inset/backdrop shadows). Left untouched per handshake rule #6.
+- **Note:** working-tree hardgate script parses clean in this checkout (`node --check` OK); the three
+  target files are codex-clean (no diff at start). CHROME-ONLY: preserving ModalShell, all fields,
+  effects, validation, handlers.
