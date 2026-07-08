@@ -13,6 +13,34 @@
 
 ---
 
+## UPDATE 2026-07-08 (post-login) — capability now PROVEN
+
+Section (b)'s live-probe ran **before** the human authenticated. As of this
+session the one-time hand-off in (c)/(d) is **done**, verified live:
+
+- `npx supabase login` completed → `~/.supabase/access-token` now present.
+- `npx supabase projects list` → `dlwtcmhdzoklveihuhjf` (ivisit) is
+  `ACTIVE_HEALTHY` and **`linked: true`**.
+- `npx supabase migration list --linked` → **connected to the remote DB and
+  returned the migration history (exit 0, no password prompt)**: the DB password
+  is **already cached from the prior `supabase link`**. So the `SUPABASE_DB_URL`
+  export in (c) is **not** required for the temp-migration `db push` path.
+
+**Net effect:** the full **non-destructive** DB-change flow is assistant-drivable
+end-to-end from the `ivisit-app` repo root with **no further human keystrokes**.
+The only remaining gate is the deliberate **diff-review-before-push** (a safety
+choice) plus the standing **never `db reset`** / never-a-fix-migration rules. The
+assistant never handles the secret — it lives in `~/.supabase/`, read by the CLI.
+(Proven so far: read connectivity to the remote DB. The apply step uses that same
+cached linked connection, so `db push` inherits it — not yet exercised by design.)
+
+The assistant-drivable apply path is the **temp dated migration → `npx supabase
+db push` → `npx supabase migration repair --status reverted <ts>`** trick (uses
+the cached linked connection; avoids needing `psql` / `SUPABASE_DB_URL`), not the
+direct-`psql` delta path in (c) step 4.
+
+---
+
 ## (a) The exact CLI command sequence codex used
 
 Proven by the checked-in SOP (`frontend/docs/database/backend-research/04_EDGE_FUNCTIONS_AND_CHANGE_SOP.md`),
@@ -179,9 +207,10 @@ with no further keystrokes — with a mandatory review gate before any write:**
 
 ## (d) What still genuinely requires the human
 
-1. **The one-time secret hand-off.** Neither the Management API token nor the DB
-   password/`SUPABASE_DB_URL` exists in any dotfile a tool can read, and the CLI
-   is not currently logged in. A human must either run `supabase login` once or
+1. **The one-time secret hand-off — DONE this session (see UPDATE block).**
+   Historically neither the Management API token nor the DB
+   password/`SUPABASE_DB_URL` lived in any dotfile a tool can read, and the CLI
+   was not logged in. A human must either run `supabase login` once or
    export `SUPABASE_ACCESS_TOKEN` (and, for the Docker-free psql path, the pooler
    `SUPABASE_DB_URL` with the DB password from the dashboard). After that hand-off
    within a session, the assistant needs no further keystrokes.
@@ -197,12 +226,14 @@ with no further keystrokes — with a mandatory review gate before any write:**
 
 ## Verdict
 
-With a **one-time human secret hand-off** (export `SUPABASE_ACCESS_TOKEN`, plus
-`SUPABASE_DB_URL` for the Docker-free path), **all non-destructive DB changes CAN
-be assistant-driven behind a mandatory `migration list` + delta + `--dry-run`
-review gate, with no further human keystrokes.** In the current environment
-(no token, no DB URL, CLI not logged in), the apply/push step genuinely blocks on
-the human — the assistant can still do everything up to the gate.
+**As of 2026-07-08 the hand-off is done and verified (see the UPDATE block up
+top).** `supabase login` is complete and the DB password is cached from the prior
+`link`, so **all non-destructive DB changes are assistant-driven end-to-end behind
+a mandatory `migration list` + delta + diff-review gate, with no further human
+keystrokes** — via the temp-migration `db push` path from the `ivisit-app` repo.
+The assistant never handles the secret (the CLI reads it from `~/.supabase/`). The
+standing prohibitions hold: never `db reset`, never a permanent fix-migration,
+never push on cleanup-preview rows or contract drift.
 
 ---
 
