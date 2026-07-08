@@ -282,11 +282,14 @@ export const DoctorsPage = () => {
     });
   }, []);
 
-  const handleModalClose = useCallback((shouldRefresh) => {
+  // Modal writes now flow through useDoctorsMutations, whose onSettled invalidates
+  // ['doctors'] and refetches this page's live useDoctorsQuery. Closing the modal
+  // must therefore NOT trigger its own refetch here - doing so would double-fetch.
+  // (fetchDoctors/refetch is still used for pull-to-refresh on mobile.)
+  const handleModalClose = useCallback(() => {
     setModalMode(null);
     setSelectedDoctor(null);
-    if (shouldRefresh) fetchDoctors();
-  }, [fetchDoctors]);
+  }, []);
 
   const getStatusBadge = (status) => getStaffStatusMeta(status).className;
 
@@ -434,6 +437,7 @@ export const DoctorsPage = () => {
             onClose={handleModalClose}
             doctor={selectedDoctor}
             mode={modalMode}
+            listFilter={queryFilter}
           />
         )}
 
@@ -562,6 +566,7 @@ export const DoctorsPage = () => {
           onClose={handleModalClose}
           doctor={selectedDoctor}
           mode={modalMode}
+          listFilter={queryFilter}
         />
       )}
 

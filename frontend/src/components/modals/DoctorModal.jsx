@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { createDoctor, updateDoctor } from '../../services/doctorsService';
 import { getHospitals } from '../../services/hospitalsService';
 import { handleApiError } from '../../utils/errorHandler';
+import { useDoctorsMutations, applyOptimisticUpsert } from '../../hooks/useDoctorsMutations';
 
 const EMPTY_FORM = {
   name: '',
@@ -113,7 +114,7 @@ const getInitials = (name = 'Staff') => name
   .join('')
   .toUpperCase() || 'ST';
 
-export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
+export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
   const resolvedMode = mode || (doctor ? 'view' : 'create');
   const isView = resolvedMode === 'view';
   const isEdit = resolvedMode === 'edit';
@@ -126,6 +127,32 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const [loadingFacilities, setLoadingFacilities] = useState(false);
   const [facilityError, setFacilityError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // --- Write path: React Query optimistic mutations (the reference S3-3 wiring) --
+  // createDoctor / updateDoctor stay imported from doctorsService and are handed
+  // in as the mutationFn; useDoctorsMutations (CONSOLE_LAYER_MODEL_PLAN.md:195)
+  // wraps them with the onMutate snapshot -> optimistic setQueryData -> onError
+  // rollback -> onSettled invalidateQueries(['doctors']) lifecycle. No direct
+  // service call and no second store: the ['doctors'] cache is the single source.
+  //
+  // `listFilter` is the exact filter DoctorsPage passed to useDoctorsQuery, so the
+  // optimistic patch lands on that page's live ['doctors', filter] cache entry.
+  // Other DoctorModal hosts (Settings / FAB / BottomBar) omit it - their writes
+  // still converge via the onSettled root invalidation, just without visible
+  // optimism (no active list to patch).
+  const createDoctorMutation = useDoctorsMutations({
+    mutationFn: createDoctor,
+    filter: listFilter,
+    // No optimistic reducer for create: the server owns the new id and the
+    // hospital join, so an optimistic row would render keyless / half-joined.
+    // onSettled invalidation refetches the real row within one round-trip.
+  });
+  const updateDoctorMutation = useDoctorsMutations({
+    // Strip the id back off for the updateDoctor(id, changes) service signature.
+    mutationFn: ({ id, ...changes }) => updateDoctor(id, changes),
+    applyOptimistic: applyOptimisticUpsert,
+    filter: listFilter,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -213,10 +240,12 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
 
     try {
       if (isCreate) {
-        await createDoctor(payload);
+        await createDoctorMutation.mutateAsync(payload);
         toast.success('Staff member added.');
       } else if (isEdit && doctor?.id) {
-        await updateDoctor(doctor.id, payload);
+        // Carry the id in the variables so applyOptimisticUpsert matches and
+        // merges the existing cached row; the mutationFn strips it back off.
+        await updateDoctorMutation.mutateAsync({ id: doctor.id, ...payload });
         toast.success('Staff changes saved.');
       }
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getSupportTickets } from '../services/supportTicketsService';
@@ -146,6 +147,10 @@ export const usePageData = () => {
 
 export const PageDataProvider = ({ children }) => {
   const location = useLocation();
+  // React Query client - used to feed realtime changes into the ['doctors'] cache
+  // (the single doctors store) instead of a full slice refetch. See the doctors
+  // realtime subscription below (CONSOLE_LAYER_MODEL_PLAN.md:203, S3-1).
+  const queryClient = useQueryClient();
   const { user, profile, isAdmin } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
   const [useMockData, setUseMockData] = useState(false);
@@ -727,7 +732,17 @@ export const PageDataProvider = ({ children }) => {
     return () => supabase.removeChannel(channel);
   }, [user, useMockData, startupDomains, fetchEmergencyData]);
 
-  // Real-time subscription for doctors data
+  // Real-time subscription for doctors data.
+  // S3-1 (CONSOLE_LAYER_MODEL_PLAN.md:203): a postgres_changes event now feeds
+  // queryClient.invalidateQueries(['doctors']) - the React Query cache is the
+  // single doctors store - instead of a full fetchDoctorsData() slice refetch.
+  // Any mounted useDoctorsQuery observer (DoctorsPage) converges on the next fetch.
+  // The subscription + removeChannel cleanup are unchanged. NOTE: this sub only
+  // mounts on dashboard routes (doctors is excluded from the /doctors startup
+  // domains), where the PageDataContext doctorsData slice - read by BentoHome /
+  // OrgAdminHome, owned by a parallel lane - still hydrates via fetchDoctorsData
+  // on mount; its in-place live refresh is deferred until those consumers move
+  // onto useDoctorsQuery.
   useEffect(() => {
     if (!user || useMockData || !startupDomains.includes('doctors')) return;
 
@@ -735,12 +750,12 @@ export const PageDataProvider = ({ children }) => {
       .channel('doctor_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'doctors' },
-        fetchDoctorsData
+        () => queryClient.invalidateQueries({ queryKey: ['doctors'] })
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchDoctorsData]);
+  }, [user, useMockData, startupDomains, queryClient]);
 
   // Real-time subscription for visits data
   useEffect(() => {
