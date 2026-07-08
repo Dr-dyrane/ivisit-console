@@ -2,6 +2,15 @@
 
 set -e
 
-if git diff --cached --name-only --diff-filter=ACMR | grep -Eq '(^frontend/src/types/database\.ts$|^frontend/supabase_types\.ts$|^frontend/supabase/|database)'; then
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+# Database type-file encoding guard (narrow: only when those files change).
+if printf '%s\n' "$STAGED" | grep -Eq '(^frontend/src/types/database\.ts$|^frontend/supabase_types\.ts$|^frontend/supabase/|database)'; then
   (cd frontend && npm run check:database-types-encoding)
+fi
+
+# Mojibake / encoding guard on staged docs + source text files.
+MOJI_FILES="$(printf '%s\n' "$STAGED" | grep -Ei '\.(md|mdx|js|jsx|ts|tsx|css|json|txt|html|sql|ya?ml)$' || true)"
+if [ -n "$MOJI_FILES" ]; then
+  (cd frontend && node scripts/check-mojibake.js $MOJI_FILES)
 fi

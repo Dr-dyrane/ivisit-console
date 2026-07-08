@@ -20,7 +20,7 @@ Deep audit of `App.js`, `LayoutContext`, `NavigationContext`, and `AppShell`. Do
 #### **🔍 [PROVIDERS_AUDIT.md](./PROVIDERS_AUDIT.md)**
 Full audit of all 7 React context providers. Identifies `PageDataContext` (1,039 lines, 14 domains) and `MapProvider` as critical L2 violations, hardcoded admin email as security issue, duplicate `NavigationProvider`, and target provider tree (8 → 5 nesting levels).
 
-#### **�️ [PROTECTED_ROUTES_SYSTEM.md](./PROTECTED_ROUTES_SYSTEM.md)**
+#### **🛡️ [PROTECTED_ROUTES_SYSTEM.md](./PROTECTED_ROUTES_SYSTEM.md)**
 Comprehensive route protection system preventing manual URL bypassing with navigation-based access control.
 
 #### **🔐 [RBAC_IMPLEMENTATION_STATUS.md](./RBAC_IMPLEMENTATION_STATUS.md)**
