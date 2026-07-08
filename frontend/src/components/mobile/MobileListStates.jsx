@@ -2,12 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { mobileMotion } from './mobileMotion';
 
 export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
     <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={mobileMotion.linger}
         className="flex flex-col items-center gap-2"
     >
         <div className="flex gap-1.5">
@@ -27,7 +28,7 @@ export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
                 />
             ))}
         </div>
-        <span className="text-[8px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">
+        <span className="eyebrow opacity-40">
             {label}
         </span>
     </motion.div>
@@ -36,7 +37,7 @@ export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
 export const MobileListSkeletonRows = ({ count = 3 }) => (
     <div className="w-full flex flex-col gap-2 px-2">
         {Array.from({ length: count }).map((_, idx) => (
-            <div key={idx} className="apple-glass-heavy rounded-button p-4 flex items-center justify-between">
+            <div key={idx} className="bg-muted/40 rounded-button p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-pill bg-muted/20 shimmer" />
                     <div className="space-y-2">
@@ -54,7 +55,7 @@ export const MobileListLoadMore = ({ armed = false, onRequest, labelTone = 'caps
     const { triggerFromEvent } = useFeedback();
     const copy = armed ? 'Scroll to load' : 'Load more';
     const labelClassName = labelTone === 'plain'
-        ? 'text-[12px] normal-case tracking-tight'
+        ? 'text-meta normal-case tracking-tight'
         : 'text-[10px] uppercase tracking-[0.2em]';
 
     return (
@@ -69,7 +70,7 @@ export const MobileListLoadMore = ({ armed = false, onRequest, labelTone = 'caps
                     sound: true
                 });
             }}
-            className={`h-11 px-4 rounded-button apple-glass-heavy font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-95 transition-[transform,color,background] duration-200 ${labelClassName}`}
+            className={`h-11 px-4 rounded-button bg-muted/40 font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-[0.96] transition-[transform,color,background] duration-200 ${labelClassName}`}
         >
             {copy}
         </button>
@@ -77,7 +78,7 @@ export const MobileListLoadMore = ({ armed = false, onRequest, labelTone = 'caps
 };
 
 export const MobileListEnd = ({ label = 'End of list' }) => (
-    <p className="text-[8px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-20 py-8">
+    <p className="eyebrow opacity-20 py-8">
         {label}
     </p>
 );
@@ -103,9 +104,9 @@ export const MobileListEmpty = ({
     const helperText = hint || reasonCopy[reason] || reasonCopy.empty;
     const labelClassName = labelTone === 'plain'
         ? 'text-sm font-medium normal-case tracking-normal text-muted-foreground/65 opacity-90'
-        : 'text-[10px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-30';
+        : 'eyebrow opacity-30';
     const helperClassName = labelTone === 'plain'
-        ? 'mt-2 text-[12px] leading-5 text-muted-foreground/55 tracking-normal'
+        ? 'mt-2 text-meta leading-5 text-muted-foreground/55 tracking-normal'
         : 'mt-2 text-[11px] text-muted-foreground/55 tracking-tight';
 
     return (
@@ -123,7 +124,7 @@ export const MobileListEmpty = ({
             </p>
             {typeof onRecover === 'function' && (
                 <motion.button
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={mobileMotion.press.control}
                     onClick={(event) => {
                         onRecover();
                         triggerFromEvent(event, {
@@ -133,7 +134,7 @@ export const MobileListEmpty = ({
                             sound: true
                         });
                     }}
-                    className="mt-3 h-8 px-3 rounded-button text-[9px] uppercase tracking-[0.14em] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
+                    className="mt-3 h-8 px-3 rounded-button text-[10px] uppercase tracking-[0.14em] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
                 >
                     {recoverLabel || fallbackRecoverLabel}
                 </motion.button>

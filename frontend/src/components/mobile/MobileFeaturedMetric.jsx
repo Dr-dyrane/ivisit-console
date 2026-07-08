@@ -33,7 +33,7 @@ export const MobileFeaturedMetric = ({
     if (loading) {
         return (
             <div className="mb-4 px-1">
-                <div className="rounded-card apple-glass-heavy p-4 sm:p-5 space-y-4 min-h-[160px]">
+                <div className="rounded-card bg-muted/40 p-4 sm:p-5 space-y-4 min-h-[160px]">
                     <div className="flex justify-between items-start gap-3">
                         <div className="space-y-2 min-w-0 flex-1">
                             <div className="h-3 w-24 rounded-inner bg-muted/20" />
@@ -72,7 +72,7 @@ export const MobileFeaturedMetric = ({
                 key={idx}
                 type={item.onClick ? 'button' : undefined}
                 onClick={item.onClick ? handleClick : undefined}
-                className={`p-6 apple-glass-heavy flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-card ${item.onClick ? 'text-left active:scale-[0.985] transition-transform duration-150 transform-gpu' : ''}`}
+                className={`p-6 bg-muted/40 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-card ${item.onClick ? 'text-left active:scale-[0.988] transition-transform duration-150 transform-gpu' : ''}`}
                 style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
             >
                 {/* Enhanced Neon primary glow background - Slightly more presence */}
@@ -98,7 +98,7 @@ export const MobileFeaturedMetric = ({
 
                 <div className="flex justify-between items-start relative z-10">
                     <div className="space-y-1">
-                        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
+                        <p className="eyebrow opacity-70">
                             {item.label}
                         </p>
                         <div className="flex items-baseline gap-2">
