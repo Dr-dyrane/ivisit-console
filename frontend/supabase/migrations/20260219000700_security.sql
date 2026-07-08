@@ -286,6 +286,22 @@ CREATE POLICY "Users manage own medical profiles"
 ON public.medical_profiles FOR ALL
 USING (auth.uid() = user_id);
 
+-- Console operators: admins + org operators for patients with a visit at their org
+-- (org-scoped via the visits join; medical_profiles has no direct org column).
+DROP POLICY IF EXISTS "Org operators read medical profiles via visits" ON public.medical_profiles;
+CREATE POLICY "Org operators read medical profiles via visits"
+ON public.medical_profiles FOR SELECT TO authenticated
+USING (
+    public.p_is_admin()
+    OR user_id IN (
+        SELECT v.user_id FROM public.visits v
+        WHERE v.hospital_id IN (
+            SELECT id FROM public.hospitals
+            WHERE organization_id = public.p_get_current_org_id()
+        )
+    )
+);
+
 DROP POLICY IF EXISTS "Users manage own emergency contacts" ON public.emergency_contacts;
 CREATE POLICY "Users manage own emergency contacts"
 ON public.emergency_contacts FOR ALL
@@ -323,6 +339,18 @@ CREATE POLICY "Users insert/update own visits"
 ON public.visits FOR ALL
 TO authenticated
 USING (auth.uid() = user_id);
+
+-- Console operators: admins + any org member (mirror emergency_requests via hospital_id).
+DROP POLICY IF EXISTS "Console operators see org visits" ON public.visits;
+CREATE POLICY "Console operators see org visits"
+ON public.visits FOR SELECT TO authenticated
+USING (
+    public.p_is_admin()
+    OR hospital_id IN (
+        SELECT id FROM public.hospitals
+        WHERE organization_id = public.p_get_current_org_id()
+    )
+);
 
 -- 8. OPS CONTENT
 CREATE POLICY "Public read for health news" ON public.health_news FOR SELECT USING (published = true);
