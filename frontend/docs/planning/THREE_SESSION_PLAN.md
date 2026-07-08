@@ -13,6 +13,9 @@
 - **Session 2 (API & Data Sync)** — establishes the plumbing + patterns + guardrail + DB changes. **Run before Session 3.**
 - **Session 3 (Services)** — applies the patterns per-domain against the okay DB. **After Session 2.**
 
+## Determinism overlay (`../architecture/CONSOLE_LAYER_MODEL_PLAN.md`)
+The five-layer determinism model runs *across* Sessions 2–3, no new libraries (React Query + Supabase only — the 2026-05 refactor plans' Zustand/Jotai/XState choices are superseded). **The de-facto store today is `PageDataContext` + per-page `useState`, not React Query** — RQ is a single dormant pilot (`useDoctorsQuery`), `useMutation`/`setQueryData` = 0 uses, and the god context's 11 realtime subs each fire a full domain refetch instead of `invalidateQueries`. That dual data path is the non-determinism to close. Session 2 builds the pure, unit-testable foundations (the L1.5 `recordIdentity` normalizer, the L4 transition table consolidating `getEmergencyActionState` + the scattered inline gates, one RQ optimistic-mutation slice on the doctors pilot); Session 3 does the mechanical per-domain migration off `PageDataContext` onto RQ (realtime → `invalidateQueries`, L4 wiring, retiring the god context + the still-live module-level mock data).
+
 ---
 
 ## Session 1 — UI/UX

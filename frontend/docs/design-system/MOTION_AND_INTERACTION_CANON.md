@@ -35,7 +35,7 @@ The row's **primary identity must be readable**, not truncated to a stub. From t
 - **Primary line** (facility / record identity): give it the width — `min-w-0 flex-1 truncate` on a line that actually spans the card, or a **2-line clamp** (`line-clamp-2`) when the name is long. It must not lose to a fixed-width status/date column.
 - **Order & weight:** tiny eyebrow caption (type) → **primary (facility), full-size, readable** → secondary (patient · service, muted, truncatable) → status chip (fixed) → meta (when · ref, muted). The chip/date/chevron take *fixed* space; the identity takes the *rest*.
 - **No hard 1-line truncate on the primary** below `sm`. Prefer 2-line clamp + `break-words`.
-- This rule applies to **every** mobile list row (Visits, Users, Hospitals, Ambulances, Doctors, Support, …) — the same `recordIdentity` projection + the same layout discipline.
+- This rule applies to **every** mobile list row (Visits, Users, Hospitals, Ambulances, Doctors, Support, …) — the same per-entity row projection (the `visitRowProjection` pattern today; a shared `recordIdentity` normalizer is the L1.5 target in `../architecture/CONSOLE_LAYER_MODEL_PLAN.md`) + the same layout discipline.
 
 ### 2.1 Canonical mobile row structure (settled 2026-07-08, from the live Visits repro)
 
