@@ -141,6 +141,13 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain("onClick={() => setActiveTab('all')}");
     expect(mobile).toContain("label={getSectionLabel()}");
     expect(mobile).toContain("label: itemFamily === 'room' ? 'Night' : 'Unit'");
+    // Tap-opens-detail-sheet: the row now opens MobileDetailSheet on tap instead of
+    // expanding an inline dropdown (no MobileDetailIslands/expandedContent composition).
+    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('onClick={() => setActiveItem(item)}');
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('MobileDetailIslands');
     expect(mobile).toContain('Pricing basis');
     expect(mobile).toContain("title: 'Average'");
     expect(mobile).toContain('rounded-inner');

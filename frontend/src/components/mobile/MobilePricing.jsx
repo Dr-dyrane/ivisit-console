@@ -15,8 +15,7 @@ import {
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
@@ -54,7 +53,7 @@ export const MobilePricing = ({
   onSelect,
   onSelectAll
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeItem, setActiveItem] = useState(null);
   const selectionMode = selectionEnabled && selectedIds.length > 0;
   const { triggerFromEvent } = useFeedback();
   const projectionSummary = pricingProjection?.summary || null;
@@ -300,6 +299,8 @@ export const MobilePricing = ({
           color="hsl(var(--foreground))"
           onSelectAll={selectionEnabled && onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
           isAllSelected={selectionEnabled && pricing.length > 0 && selectedIds.length === pricing.length}
+          selectionMode={selectionMode}
+          selectedCount={selectedIds.length}
         />
 
         {actionNotice && (
@@ -312,19 +313,17 @@ export const MobilePricing = ({
           <AnimatePresence mode="popLayout">
             {pricing.map((item) => {
               const globalRule = isGlobal(item);
-              const editable = canEdit?.(item);
               const price = getItemPrice(item);
               const sourceLabel = getSourceLabel(item, globalRule);
               const itemFamily = getItemFamily(item);
-              const updatedAt = getUpdatedAt(item);
-              const facilityLabel = item.facilityName || item.facility_name;
-              const noteText = item.description || item.metadata?.description;
               // Price is the defining number of a config row: carry it (with its
               // per-unit basis) on the readable secondary line, not in a decorative blade.
               const rate = {
                 label: itemFamily === 'room' ? 'Night' : 'Unit',
                 value: new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(price)
               };
+              // Tap opens the detail bottom sheet (MobileDetailSheet) - the approved mobile
+              // design + desktop rail behaviour - not an inline dropdown.
               return (
                 <MobileMetricRow
                   key={item.id}
@@ -334,64 +333,7 @@ export const MobilePricing = ({
                   value={getItemName(item)}
                   secondary={`${rate.value} / ${rate.label} · ${formatLabel(sourceLabel)}`}
                   statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
-                  isExpanded={expandedId === item.id}
-                  onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                  itemId={item.id}
-                  isSelected={selectionEnabled && selectedIds.includes(item.id)}
-                  onSelect={selectionEnabled && onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
-                  selectionMode={selectionMode}
-                  expandedContent={(
-                    <div className="space-y-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
-                          {globalRule ? <Globe size={12} /> : <Building2 size={12} />}
-                          {formatLabel(sourceLabel)}
-                        </span>
-                      </div>
-
-                      <MobileDetailIslands
-                        items={[
-                          { icon: BadgeDollarSign, label: 'Price', value: `${rate.value} / ${rate.label}` },
-                          item.unit ? { icon: Layers, label: 'Unit', value: item.unit } : null,
-                          facilityLabel ? { icon: Building2, label: 'Facility', value: facilityLabel } : null,
-                          { icon: CalendarDays, label: 'Updated', value: updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown' }
-                        ]}
-                      />
-
-                      {noteText ? (
-                        <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
-                          {noteText}
-                        </div>
-                      ) : null}
-
-                      <MobileSheetActions
-                        primary={{ label: 'Details', icon: Eye, onClick: () => onView(item) }}
-                      />
-
-                      {editable && (
-                        <div className="flex gap-2">
-                          <motion.button
-                            type="button"
-                            whileTap={{ scale: 0.96 }}
-                            onClick={() => onEdit(item)}
-                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-muted/40 text-xs font-semibold text-foreground transition-colors hover:bg-muted/60"
-                          >
-                            <Edit size={15} />
-                            Edit
-                          </motion.button>
-                          <motion.button
-                            type="button"
-                            whileTap={{ scale: 0.96 }}
-                            onClick={() => onDelete(item)}
-                            aria-label="Delete pricing rule"
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
-                          >
-                            <Trash2 size={15} />
-                          </motion.button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  onClick={() => setActiveItem(item)}
                 />
               );
             })}
@@ -415,6 +357,78 @@ export const MobilePricing = ({
             />
           )}
         </div>
+
+        {activeItem && (() => {
+          const item = activeItem;
+          const globalRule = isGlobal(item);
+          const editable = canEdit?.(item);
+          const price = getItemPrice(item);
+          const sourceLabel = getSourceLabel(item, globalRule);
+          const itemFamily = getItemFamily(item);
+          const updatedAt = getUpdatedAt(item);
+          const facilityLabel = item.facilityName || item.facility_name;
+          const noteText = item.description || item.metadata?.description;
+          // Price is the defining number of a config record: carry it (with its
+          // per-unit basis) as the lead detail island, not in a decorative blade.
+          const rate = {
+            label: itemFamily === 'room' ? 'Night' : 'Unit',
+            value: new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(price)
+          };
+          return (
+            <MobileDetailSheet
+              isOpen
+              onClose={() => setActiveItem(null)}
+              icon={BadgeDollarSign}
+              iconTone="hsl(var(--primary))"
+              eyebrow={formatLabel(getItemType(item))}
+              title={getItemName(item)}
+              statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
+              islands={[
+                { icon: BadgeDollarSign, label: 'Price', value: `${rate.value} / ${rate.label}` },
+                item.unit ? { icon: Layers, label: 'Unit', value: item.unit } : null,
+                facilityLabel ? { icon: Building2, label: 'Facility', value: facilityLabel } : null,
+                { icon: CalendarDays, label: 'Updated', value: updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown' }
+              ]}
+              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveItem(null); onView(item); } }}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
+                  {globalRule ? <Globe size={12} /> : <Building2 size={12} />}
+                  {formatLabel(sourceLabel)}
+                </span>
+              </div>
+
+              {noteText ? (
+                <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                  {noteText}
+                </div>
+              ) : null}
+
+              {editable && (
+                <div className="flex gap-2">
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => onEdit(item)}
+                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-muted/40 text-xs font-semibold text-foreground transition-colors hover:bg-muted/60"
+                  >
+                    <Edit size={15} />
+                    Edit
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => onDelete(item)}
+                    aria-label="Delete pricing rule"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+                  >
+                    <Trash2 size={15} />
+                  </motion.button>
+                </div>
+              )}
+            </MobileDetailSheet>
+          );
+        })()}
       </MobilePageShell>
     </PullToRefresh>
   );
