@@ -4,6 +4,7 @@ import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { Button } from '../ui/button';
 import { PaginationControls } from '../ui/PaginationControls';
 import {
@@ -163,7 +164,6 @@ export const DoctorsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
-  const [focusedStaffId, setFocusedStaffId] = useState(null);
 
   const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
@@ -219,12 +219,10 @@ export const DoctorsPage = () => {
 
   const staffRows = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
 
-  const focusedStaff = useMemo(
-    () => staffRows.find((d) => d.id === focusedStaffId) || staffRows[0] || null,
-    [staffRows, focusedStaffId],
-  );
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('doctors', staffRows);
+  const focusedStaff = focusedRecord;
 
-  const handleFocusStaff = useCallback((d) => setFocusedStaffId(d?.id || null), []);
+  const handleFocusStaff = useCallback((d) => setFocused(d?.id || null), [setFocused]);
 
   useEffect(() => {
     pagination.setTotalCount(count);
@@ -262,10 +260,11 @@ export const DoctorsPage = () => {
   }, [handleCreate]);
 
   const handleView = useCallback((doctor) => {
-    setFocusedStaffId(doctor?.id || null);
+    const id = doctor?.id || null;
+    if (id && !isFocused(id)) setFocused(id);
     setSelectedDoctor(doctor);
     setModalMode('view');
-  }, []);
+  }, [isFocused, setFocused]);
 
   const handleEdit = useCallback((doctor) => {
     if (!canManageStaff) return;
@@ -499,7 +498,7 @@ export const DoctorsPage = () => {
                             doctor={doctor}
                             index={index}
                             canManage={canManageStaff}
-                            selected={focusedStaff?.id === doctor.id}
+                            selected={isFocused(doctor.id)}
                             onFocus={handleFocusStaff}
                             onView={handleView}
                             onEdit={handleEdit}
