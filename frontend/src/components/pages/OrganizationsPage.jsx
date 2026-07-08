@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { BulkActionBar } from '../common/BulkActionBar';
@@ -293,7 +294,6 @@ export const OrganizationsPage = () => {
     });
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [focusedOrgId, setFocusedOrgId] = useState(null);
     const [organizationCommandNotice, setOrganizationCommandNotice] = useState(null);
 
     const fetchOrganizations = useCallback(async () => {
@@ -316,43 +316,6 @@ export const OrganizationsPage = () => {
         setOrganizationCommandNotice(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
         toast.info(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
         return false;
-    }, []);
-
-    // Read-only view path: focus the record, then surface the unavailable notice.
-    // (OrganizationTableView/ListView do not expose an onFocus/row-click prop, so
-    //  row focus is driven through this shared view handler rather than per-row wiring.)
-    const handleView = useCallback((org) => {
-        setFocusedOrgId(org?.id || null);
-        handleOrganizationCommandUnavailable();
-    }, [handleOrganizationCommandUnavailable]);
-
-    const handleCreate = useCallback(() => {
-        handleOrganizationCommandUnavailable();
-    }, [handleOrganizationCommandUnavailable]);
-
-    const handleEdit = useCallback(() => {
-        handleOrganizationCommandUnavailable();
-    }, [handleOrganizationCommandUnavailable]);
-
-    const handleDelete = useCallback(() => {
-        handleOrganizationCommandUnavailable();
-    }, [handleOrganizationCommandUnavailable]);
-
-    const handleBulkDelete = useCallback(() => {
-        handleOrganizationCommandUnavailable();
-    }, [handleOrganizationCommandUnavailable]);
-
-    const handleSave = async (e) => {
-        e.preventDefault();
-        handleOrganizationCommandUnavailable();
-    };
-
-    const handleSelect = useCallback((id, checked) => {
-        if (checked) {
-            setSelectedIds(prev => [...prev, id]);
-        } else {
-            setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-        }
     }, []);
 
     // Filters & Pagination
@@ -397,10 +360,49 @@ export const OrganizationsPage = () => {
         return filteredOrgs.slice(0, visibleCount);
     }, [filteredOrgs, pagination.currentPage, pagination.itemsPerPage]);
 
-    const focusedOrg = useMemo(
-        () => paginatedOrgs.find((o) => o.id === focusedOrgId) || paginatedOrgs[0] || null,
-        [paginatedOrgs, focusedOrgId],
-    );
+    // Shared focused-record store: rail shows the most-urgent org at rest and
+    // toggles on repeat selection. Uses the same paginated list the rail renders.
+    const { focusedRecord, setFocused } = useFocusedRecord('organizations', paginatedOrgs);
+    const focusOrg = setFocused;
+    const focusedOrg = focusedRecord;
+
+    // Read-only view path: ensure the record is focused (never toggle it off, so
+    // viewing the rail's current record keeps it pinned), then surface the notice.
+    // Row clicks use setFocused directly for toggle-on-repeat behavior.
+    const handleView = useCallback((org) => {
+        const id = org?.id || null;
+        if (id && focusedOrg?.id !== id) focusOrg(id);
+        handleOrganizationCommandUnavailable();
+    }, [focusOrg, focusedOrg, handleOrganizationCommandUnavailable]);
+
+    const handleCreate = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleEdit = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleDelete = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleBulkDelete = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        handleOrganizationCommandUnavailable();
+    };
+
+    const handleSelect = useCallback((id, checked) => {
+        if (checked) {
+            setSelectedIds(prev => [...prev, id]);
+        } else {
+            setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+        }
+    }, []);
 
     const organizationSummary = useMemo(() => ({
         total: organizations.length,
@@ -738,6 +740,8 @@ export const OrganizationsPage = () => {
                         onView={handleView}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onFocus={(org) => setFocused(org?.id)}
+                        focusedId={focusedOrg?.id}
                         selectedIds={selectedIds}
                         onSelect={handleSelect}
                         onSelectAll={(checked) => handleSelectAll(checked, paginatedOrgs)}
@@ -748,6 +752,8 @@ export const OrganizationsPage = () => {
                         onView={handleView}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onFocus={(org) => setFocused(org?.id)}
+                        focusedId={focusedOrg?.id}
                     />
                 )}
             </div>

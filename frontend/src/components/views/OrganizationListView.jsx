@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }) => {
+export const OrganizationListView = ({ organizations, onView, onEdit, onDelete, onFocus, focusedId }) => {
     if (!organizations || organizations.length === 0) return null;
 
     return (
@@ -21,7 +21,19 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
                 >
-                    <div className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
+                    <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onFocus?.(org)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onFocus?.(org);
+                            }
+                        }}
+                        aria-pressed={focusedId === org.id}
+                        className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-colors ${focusedId === org.id ? 'bg-card/90' : 'bg-card/70'}`}
+                    >
                         <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
                             <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-bold text-[9px] ${org.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-destructive/20 text-destructive'}`}>
                                 {org.is_active ? 'Active' : 'Inactive'}
@@ -64,7 +76,7 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
                                     {org.stripe_account_id ? 'STRIPE_LIVE' : 'WAITING_INTEGRATION'}
                                 </span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                     variant="ghost"
                                     size="icon"

@@ -27,6 +27,8 @@ export const OrganizationTableView = ({
     onView,
     onDelete,
     onEdit,
+    onFocus,
+    focusedId,
     selectedIds = [],
     onSelect,
     onSelectAll
@@ -56,15 +58,26 @@ export const OrganizationTableView = ({
                 {/* Data rows */}
                 {organizations.map((org, index) => {
                     const selected = selectedIds.includes(org.id);
+                    const focused = focusedId === org.id;
                     return (
                         <motion.div
                             key={org.id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: index * 0.02 }}
-                            className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onFocus?.(org)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onFocus?.(org);
+                                }
+                            }}
+                            aria-pressed={focused}
+                            className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 cursor-pointer transition-colors ${selected ? 'bg-muted/50' : focused ? 'bg-muted/40' : 'hover:bg-muted/30'}`}
                         >
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                                 <Checkbox
                                     checked={selected}
                                     onCheckedChange={(checked) => onSelect(org.id, checked)}
@@ -125,7 +138,7 @@ export const OrganizationTableView = ({
                                 </span>
                             </div>
                             {/* Actions */}
-                            <div className="justify-self-end">
+                            <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-icon hover:bg-muted/30">
