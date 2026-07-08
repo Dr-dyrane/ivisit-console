@@ -23,7 +23,7 @@ import { Button } from '../ui/button';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { formatDate } from '../../lib/utils';
+import { visitRowProjection } from '../../utils/visitRowProjection';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -318,7 +318,7 @@ export const MobileVisits = ({
                     </motion.section>
 
                     <section
-                        className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55"
+                        className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] dark:bg-card/55"
                         data-testid="mobile-visits-activity-sheet"
                     >
                         <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
@@ -421,7 +421,7 @@ export const MobileVisits = ({
 
 const MobileVisitErrorBanner = ({ message, onRetry }) => (
     <div
-        className="rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.14)] dark:text-amber-200"
+        className="rounded-[24px] bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200"
         data-testid="mobile-visits-error-state"
     >
         <div className="flex items-start gap-3">
@@ -443,18 +443,6 @@ const MobileVisitErrorBanner = ({ message, onRetry }) => (
     </div>
 );
 
-const formatVisitType = (visit) => {
-    const raw = String(visit?.visit_type || visit?.type || 'Visit').replace(/_/g, ' ');
-    return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
-};
-
-const getPatientName = (visit) => (
-    visit?.patient?.username ||
-    visit?.patient?.full_name ||
-    visit?.patient_name ||
-    (visit?.user_id ? 'Linked patient' : 'No patient')
-);
-
 const getDoctorName = (visit) => (
     visit?.doctor?.name ||
     visit?.doctor ||
@@ -468,13 +456,6 @@ const getFacilityName = (visit) => (
     visit?.hospital ||
     (visit?.hospital_id ? 'Linked facility' : 'No facility')
 );
-
-const getStatusLabel = (status) => {
-    if (status === 'completed') return 'Done';
-    if (status === 'in_progress') return 'Active';
-    if (status === 'cancelled') return 'Cancelled';
-    return 'Scheduled';
-};
 
 const MobileVisitRow = ({
     visit,
@@ -492,13 +473,10 @@ const MobileVisitRow = ({
     getStatusIcon,
     getStatusColor,
 }) => {
+    const row = visitRowProjection(visit);
     const StatusIcon = getStatusIcon(visit.status);
     const isEmergency = String(visit.visit_type || visit.type || '').includes('emergency');
     const ServiceIcon = isEmergency ? Siren : Stethoscope;
-    const statusLabel = getStatusLabel(visit.status);
-    const patientName = getPatientName(visit);
-    const serviceName = formatVisitType(visit);
-    const dateLabel = formatDate(visit.date || visit.created_at);
     const rowColor = getStatusColor(visit.status);
 
     return (
@@ -510,7 +488,7 @@ const MobileVisitRow = ({
                 type="button"
                 onClick={() => setExpandedVisitId(expanded ? null : visit.id)}
                 className="flex w-full items-center gap-3 p-4 text-left"
-                aria-label={`${expanded ? 'Close' : 'Open'} ${serviceName}`}
+                aria-label={`${expanded ? 'Close' : 'Open'} ${row.primary}`}
                 aria-expanded={expanded}
                 data-state={expanded ? 'open' : 'closed'}
             >
@@ -518,12 +496,13 @@ const MobileVisitRow = ({
                     <StatusIcon size={17} />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold text-foreground">{serviceName}</span>
-                    <span className="mt-1 block truncate text-sm text-muted-foreground">{patientName}</span>
+                    <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{row.caption}</span>
+                    <span className="mt-0.5 block truncate text-[15px] font-semibold text-foreground">{row.primary}</span>
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">{row.secondary}</span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2">
-                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`}>{statusLabel}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{dateLabel}</span>
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`} data-status={row.statusKey}>{row.statusLabel}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{row.meta}</span>
                 </span>
                 {expanded ? (
                     <ChevronDown size={18} className="text-muted-foreground" />
@@ -534,7 +513,7 @@ const MobileVisitRow = ({
 
             {expanded && (
                 <div className="space-y-3 px-4 pb-4">
-                    <MobileVisitDetailLine icon={ServiceIcon} label="Visit type" value={serviceName} />
+                    <MobileVisitDetailLine icon={ServiceIcon} label="Visit type" value={row.caption} />
                     <MobileVisitDetailLine icon={Stethoscope} label="Practitioner" value={getDoctorName(visit)} />
                     <MobileVisitDetailLine icon={Hospital} label="Facility" value={getFacilityName(visit)} />
                     <MobileVisitDetailLine icon={MapPin} label="Location" value={visit.room_number ? `Room ${visit.room_number}` : 'No room'} />
