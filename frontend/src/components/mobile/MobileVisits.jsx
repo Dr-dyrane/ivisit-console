@@ -487,7 +487,8 @@ const MobileVisitRow = ({
             <button
                 type="button"
                 onClick={() => setExpandedVisitId(expanded ? null : visit.id)}
-                className="flex w-full items-center gap-3 p-4 text-left"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
                 aria-label={`${expanded ? 'Close' : 'Open'} ${row.primary}`}
                 aria-expanded={expanded}
                 data-state={expanded ? 'open' : 'closed'}
@@ -495,20 +496,23 @@ const MobileVisitRow = ({
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${getStatusTone(visit.status)}`}>
                     <StatusIcon size={17} />
                 </span>
+                {/* Identity column owns the width: facility is the primary identity and must stay
+                    readable (2-line clamp, never a stub). when·ref drops to its own line so it can
+                    never steal width from the facility. See MOTION_AND_INTERACTION_CANON.md §2.1. */}
                 <span className="min-w-0 flex-1">
                     <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{row.caption}</span>
-                    <span className="mt-0.5 block truncate text-[15px] font-semibold text-foreground">{row.primary}</span>
+                    <span className="mt-0.5 text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{row.primary}</span>
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{row.secondary}</span>
+                    <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{row.meta}</span>
                 </span>
-                <span className="flex shrink-0 flex-col items-end gap-2">
+                <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
                     <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`} data-status={row.statusKey}>{row.statusLabel}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{row.meta}</span>
+                    {expanded ? (
+                        <ChevronDown size={18} className="text-muted-foreground" />
+                    ) : (
+                        <ChevronRight size={18} className="text-muted-foreground" />
+                    )}
                 </span>
-                {expanded ? (
-                    <ChevronDown size={18} className="text-muted-foreground" />
-                ) : (
-                    <ChevronRight size={18} className="text-muted-foreground" />
-                )}
             </button>
 
             {expanded && (

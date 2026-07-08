@@ -36,6 +36,23 @@ The row's **primary identity must be readable**, not truncated to a stub. From t
 - **No hard 1-line truncate on the primary** below `sm`. Prefer 2-line clamp + `break-words`.
 - This rule applies to **every** mobile list row (Visits, Users, Hospitals, Ambulances, Doctors, Support, …) — the same `recordIdentity` projection + the same layout discipline.
 
+### 2.1 Canonical mobile row structure (settled 2026-07-08, from the live Visits repro)
+
+The live Visits mobile row cut the facility to "LifeS…" and the caption to "EMER…" because the **trailing column carried the long `meta`** ("Mar 5, 04:00 PM · VIST-B17843") *and* the status chip, starving the identity column. The fix that every mobile row must follow:
+
+```
+[ leading icon ]  [ identity column — min-w-0 flex-1 ]              [ trailing — shrink-0 ]
+                    caption   (eyebrow, tiny, truncate ok)            status chip (fixed, short)
+                    PRIMARY   (facility — line-clamp-2 break-words)   chevron
+                    secondary (patient · service — truncate, muted)
+                    meta      (when · ref — truncate, muted)          ← own full-width line, NOT the trailing column
+```
+
+- The identity column is `min-w-0 flex-1`; the trailing column is `shrink-0` and holds **only** the fixed status chip + chevron. Nothing width-variable (dates, ids) lives in the trailing column.
+- `meta` (when · ref) drops to its own line beneath `secondary` so it can never steal width from the primary.
+- Primary line: `line-clamp-2 break-words leading-tight` — never `truncate`.
+- Verified on the running app at 390px (Visits): facility now reads in full / wraps to 2 lines; caption reads "Emergency".
+
 ---
 
 ## 3. How we verify (process — from now on)
