@@ -233,6 +233,13 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(mobile).toContain('onViewAnalytics');
     expect(mobile).toContain('Details');
     expect(mobile).toContain('Edit');
+    // Tap opens the canonical detail bottom sheet (MobileDetailSheet), not an inline
+    // dropdown accordion — mirrors the proven MobileVisits pattern.
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('onClick={() => setActiveTicket');
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('isExpanded');
+    expect(mobile).not.toContain('onExpand');
     expect(mobile).not.toContain('chartData');
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('LIVE');

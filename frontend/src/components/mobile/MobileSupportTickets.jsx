@@ -4,9 +4,7 @@ import { AlertTriangle, BarChart3, CheckCircle, Clock, Edit, Eye, Headphones, Se
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
-import { VitalTrack } from '../common/VitalTrack';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListSkeletonRows } from './MobileListStates';
@@ -53,7 +51,7 @@ export const MobileSupportTickets = ({
   hasMore = false,
   onLoadMore,
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeTicket, setActiveTicket] = useState(null);
   const observerTarget = useRef(null);
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
   const { displayItems, isBuffering } = useStableList(tickets, loading);
@@ -185,6 +183,8 @@ export const MobileSupportTickets = ({
                       {header}
                     </div>
                   )}
+                  {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved
+                      mobile design + desktop detail-rail behaviour — not an inline dropdown. */}
                   <MobileMetricRow
                     icon={resolved ? CheckCircle : Headphones}
                     color={vital?.accent || 'hsl(var(--primary))'}
@@ -192,39 +192,7 @@ export const MobileSupportTickets = ({
                     value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
                     secondary={`${priorityLabel(ticket.priority)} priority · ${categoryLabel(ticket.category)}`}
                     statusPill={vital?.pill}
-                    isExpanded={expandedId === ticket.id}
-                    onExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
-                    itemId={ticket.id}
-                    expandedContent={(
-                      <div className="space-y-3 py-3">
-                        {vital && (
-                          <VitalTrack
-                            steps={vital.steps}
-                            currentKey={vital.currentKey}
-                            tone={vital.tone}
-                            cancelled={vital.cancelled}
-                            label="Ticket status"
-                          />
-                        )}
-                        <MobileDetailIslands
-                          items={[
-                            { icon: User, label: 'Requester', value: requesterName(ticket) },
-                            { icon: AlertTriangle, label: 'Priority', value: `${priorityLabel(ticket.priority)}` },
-                            { icon: Tag, label: 'Category', value: categoryLabel(ticket.category) },
-                            { icon: Clock, label: 'Opened', value: createdLabel(ticket) },
-                          ]}
-                        />
-                        {ticket.message && (
-                          <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
-                            {ticket.message}
-                          </div>
-                        )}
-                        <MobileSheetActions
-                          primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(ticket) }}
-                          secondary={canManage ? { icon: Edit, onClick: () => onEdit?.(ticket), 'aria-label': `Edit ${ticket.subject || 'support request'}` } : undefined}
-                        />
-                      </div>
-                    )}
+                    onClick={() => setActiveTicket(ticket)}
                   />
                 </React.Fragment>
               );
@@ -246,6 +214,38 @@ export const MobileSupportTickets = ({
             {!loading && !hasMore && displayItems.length > 0 && <MobileListEnd label="End of support queue" />}
           </div>
         </div>
+
+        {activeTicket && (() => {
+          const status = activeTicket.status;
+          const vital = resolveVital('support', status);
+          const resolved = status === 'resolved' || status === 'closed';
+          return (
+            <MobileDetailSheet
+              isOpen={!!activeTicket}
+              onClose={() => setActiveTicket(null)}
+              icon={resolved ? CheckCircle : Headphones}
+              iconTone={vital?.tone}
+              eyebrow="Support request"
+              title={activeTicket.subject || `Ticket ${String(activeTicket.id || '').slice(0, 8)}`}
+              statusPill={vital?.pill}
+              vital={vital ? { ...vital, label: 'Ticket status' } : null}
+              islands={[
+                { icon: User, label: 'Requester', value: requesterName(activeTicket) },
+                { icon: AlertTriangle, label: 'Priority', value: `${priorityLabel(activeTicket.priority)}` },
+                { icon: Tag, label: 'Category', value: categoryLabel(activeTicket.category) },
+                { icon: Clock, label: 'Opened', value: createdLabel(activeTicket) },
+              ]}
+              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveTicket(null); onView?.(activeTicket); } }}
+              secondary={canManage ? { icon: Edit, onClick: () => { setActiveTicket(null); onEdit?.(activeTicket); }, 'aria-label': `Edit ${activeTicket.subject || 'support request'}` } : undefined}
+            >
+              {activeTicket.message && (
+                <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                  {activeTicket.message}
+                </div>
+              )}
+            </MobileDetailSheet>
+          );
+        })()}
       </MobilePageShell>
     </PullToRefresh>
   );
