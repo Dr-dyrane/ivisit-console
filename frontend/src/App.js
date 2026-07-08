@@ -152,6 +152,14 @@ const AppShell = ({ children }) => {
 	return (
 		<div className="relative h-screen w-full text-foreground overflow-hidden flex flex-col">
 
+			{/* A11y: skip link — first focusable element, visually hidden until focused */}
+			<a
+				href="#main-content"
+				className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-button focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-[0_20px_64px_rgb(0_0_0/0.14)] focus:backdrop-blur-xl"
+			>
+				Skip to content
+			</a>
+
 			{!hideNav && <SmartHeader />}
 
 			<div className="flex-1 flex relative overflow-hidden">

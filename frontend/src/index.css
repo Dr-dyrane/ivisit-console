@@ -1013,3 +1013,23 @@ code {
 		border-bottom-color: inherit;
 	}
 }
+
+/*
+ * A11y: honor the user's reduced-motion preference.
+ * Neutralizes CSS transitions/animations and smooth scrolling globally
+ * so vestibular-sensitive users get a still, snappy UI.
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	html {
+		scroll-behavior: auto !important;
+	}
+}
