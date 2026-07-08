@@ -14,7 +14,12 @@ import {
     TrendingUp,
     Globe,
     BadgeDollarSign,
-    Activity
+    Activity,
+    Info,
+    ChevronRight,
+    Eye,
+    Clock,
+    Building2
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -197,6 +202,120 @@ const PricingSignalPanel = ({ summary, totalCount, loading, kpiFilter, setKpiFil
     );
 };
 
+const PriceDetailLine = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+            <Icon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+            <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+        </div>
+    </div>
+);
+
+const PriceRailButton = ({ icon: Icon, label, onClick }) => (
+    <Button
+        variant="ghost"
+        className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+        onClick={onClick}
+    >
+        <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+        {label}
+    </Button>
+);
+
+const PricingDetailRail = ({ price, onView }) => {
+    if (!price) {
+        return (
+            <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+                <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+                <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+                    <BadgeDollarSign className="mb-4 h-10 w-10 text-muted-foreground/60" />
+                    <h2 className="text-xl font-semibold">No price point selected</h2>
+                    <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+                        Price points that match your filters will appear here.
+                    </p>
+                </div>
+            </aside>
+        );
+    }
+
+    const serviceName = price.service_name || price.item_name || price.name || price.room_name || 'Unnamed price';
+    const isFacility = !!price.facility_id || !!price.hospital_id || !!price.organization_id;
+    const scopeLabel = price.facility_id ? 'Facility price' : 'Global fallback';
+    const priceValue = price.price != null ? `$${Number(price.price).toLocaleString()}` : 'N/A';
+    const unitValue = price.unit || price.billing_unit || 'N/A';
+    const updatedValue = price.updated_at ? new Date(price.updated_at).toLocaleDateString() : 'N/A';
+
+    return (
+        <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+            <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+            <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-semibold tracking-tight">Price details</h2>
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                        {isFacility ? <Building2 className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
+                        {scopeLabel}
+                    </div>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+                    onClick={() => onView(price)}
+                    aria-label="Open full price details"
+                >
+                    <Info className="h-4 w-4" />
+                </Button>
+            </div>
+
+            <div className="mb-5 flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/30 text-foreground">
+                    <DollarSign className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                    <h3 className="truncate text-lg font-semibold">{serviceName}</h3>
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                        {priceValue}{unitValue !== 'N/A' ? ` / ${unitValue}` : ''}
+                    </p>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <PriceDetailLine icon={BadgeDollarSign} label="Service / Item" value={serviceName} />
+                <PriceDetailLine icon={DollarSign} label="Price" value={priceValue} />
+                <PriceDetailLine icon={Activity} label="Unit" value={unitValue} />
+                <PriceDetailLine icon={isFacility ? Building2 : Globe} label="Scope" value={scopeLabel} />
+                <PriceDetailLine icon={Clock} label="Updated" value={updatedValue} />
+            </div>
+
+            <div className="mt-5 space-y-2.5">
+                <Button
+                    className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+                    onClick={() => onView(price)}
+                >
+                    <Eye className="mr-2 h-5 w-5" />
+                    View details
+                    <ChevronRight className="ml-auto h-5 w-5" />
+                </Button>
+
+                <div className="grid grid-cols-1 gap-3">
+                    <PriceRailButton icon={Info} label="Open record" onClick={() => onView(price)} />
+                </div>
+
+                <div
+                    role="note"
+                    className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+                >
+                    <DollarSign className="h-4 w-4 shrink-0" />
+                    Price changes are read-only until a facility scope is selected.
+                </div>
+            </div>
+        </aside>
+    );
+};
+
 export const PricingManagementPage = () => {
     const { profile, isAdmin, isOrgAdmin } = useAuth();
     const { isMobile } = useNavigation();
@@ -209,6 +328,7 @@ export const PricingManagementPage = () => {
     const pagination = usePagination(12);
 
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+    const [focusedPriceId, setFocusedPriceId] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [actionNotice, setActionNotice] = useState('');
     const [pricingProjection, setPricingProjection] = useState(EMPTY_PRICING_PROJECTION);
@@ -310,9 +430,12 @@ export const PricingManagementPage = () => {
         showPricingCommandUnavailable();
     }, [showPricingCommandUnavailable]);
 
-    const openModal = useCallback(() => {
+    const openModal = useCallback((item) => {
+        if (item?.id) setFocusedPriceId(item.id);
         showPricingCommandUnavailable();
     }, [showPricingCommandUnavailable]);
+
+    const handleFocusPrice = useCallback((item) => setFocusedPriceId(item?.id || null), []);
 
     const filteredPricing = pricing;
 
@@ -333,6 +456,11 @@ export const PricingManagementPage = () => {
     }, [filteredPricing]);
 
     const paginatedPricing = pricing;
+
+    const focusedPrice = useMemo(
+        () => pricing.find((p) => p.id === focusedPriceId) || pricing[0] || null,
+        [pricing, focusedPriceId]
+    );
 
     // Header & Footer
     const headerActions = useMemo(() => (
@@ -454,15 +582,17 @@ export const PricingManagementPage = () => {
 
     return (
         <div className="min-h-screen py-8">
-            <PricingSignalPanel
-                summary={pricingSummary}
-                totalCount={pricingTotalCount}
-                loading={loading}
-                kpiFilter={kpiFilter}
-                setKpiFilter={setKpiFilter}
-            />
+            <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+                <section className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:self-stretch">
+                    <PricingSignalPanel
+                        summary={pricingSummary}
+                        totalCount={pricingTotalCount}
+                        loading={loading}
+                        kpiFilter={kpiFilter}
+                        setKpiFilter={setKpiFilter}
+                    />
 
-            <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+                    <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
                 <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -540,6 +670,7 @@ export const PricingManagementPage = () => {
                 ) : viewMode === 'table' ? (
                     <PricingTableView
                         pricing={paginatedPricing}
+                        onFocus={handleFocusPrice}
                         onView={openModal}
                         onEdit={openModal}
                         onDelete={handleDelete}
@@ -552,6 +683,7 @@ export const PricingManagementPage = () => {
                 ) : (
                     <PricingListView
                         pricing={paginatedPricing}
+                        onFocus={handleFocusPrice}
                         onView={openModal}
                         onEdit={openModal}
                         onDelete={handleDelete}
@@ -572,8 +704,10 @@ export const PricingManagementPage = () => {
             />
             </div>
 
-            {/* Pagination Placeholder */}
-            {/* pass pagination to smart footer like other pages do */}
+            </section>
+
+            <PricingDetailRail price={focusedPrice} onView={openModal} />
+            </div>
 
             <AnalyticsModal
                 open={analyticsModalOpen}
@@ -583,7 +717,6 @@ export const PricingManagementPage = () => {
                     ...pricingAnalytics
                 }}
             />
-
-        </div >
+        </div>
     );
 };
