@@ -8,7 +8,7 @@ import { getEmergencyRequests } from '../services/emergencyService';
 import { getDoctors } from '../services/doctorsService';
 import { getVisitsPageData } from '../services/visitsService';
 import { getHospitals } from '../services/hospitalsService';
-import { getAmbulances } from '../services/ambulancesService';
+import { getAmbulances, subscribeToAllAmbulances } from '../services/ambulancesService';
 import { getAnalyticsData } from '../services/analyticsService';
 import { getVerificationStats } from '../services/verificationService';
 import { getRecentActivity } from '../services/activityService';
@@ -423,9 +423,15 @@ export const PageDataProvider = ({ children }) => {
 
       const data = await getAmbulances({ quiet: true }); // RBAC enabled
 
+      // Canonical ambulance statuses (see ambulancesService VALID_AMBULANCE_STATUSES).
+      // "on_route"/"busy" are NOT raw DB statuses; count the real ones instead so
+      // these KPIs stop rendering a permanent zero.
+      const ACTIVE_FLEET_STATUSES = ['dispatched', 'on_trip', 'en_route', 'on_scene'];
       const available = data?.filter(a => a.status === 'available').length || 0;
-      const onRoute = data?.filter(a => a.status === 'on_route').length || 0;
-      const busy = data?.filter(a => a.status === 'busy').length || 0;
+      const onRoute = data?.filter(a => a.status === 'en_route').length || 0;
+      const dispatched = data?.filter(a => a.status === 'dispatched').length || 0;
+      // "busy" fleet = every non-available, in-service unit (matches AmbulancesPage ACTIVE_FLEET_STATUSES).
+      const busy = data?.filter(a => ACTIVE_FLEET_STATUSES.includes(a.status)).length || 0;
       const maintenance = data?.filter(a => a.status === 'maintenance').length || 0;
 
       setAmbulancesData({
@@ -433,6 +439,7 @@ export const PageDataProvider = ({ children }) => {
           total: data?.length || 0,
           available,
           onRoute,
+          dispatched,
           busy,
           maintenance
         },
@@ -820,6 +827,62 @@ export const PageDataProvider = ({ children }) => {
 
     return () => supabase.removeChannel(channel);
   }, [user, useMockData, startupDomains, fetchPricingData]);
+
+  // Real-time subscription for hospitals data
+  useEffect(() => {
+    if (!user || useMockData || !startupDomains.includes('hospitals')) return;
+
+    const channel = supabase
+      .channel('hospital_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'hospitals' },
+        fetchHospitalsData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, startupDomains, fetchHospitalsData]);
+
+  // Real-time subscription for ambulances data (reuses the service channel helper)
+  useEffect(() => {
+    if (!user || useMockData || !startupDomains.includes('ambulances')) return;
+
+    const unsubscribe = subscribeToAllAmbulances(() => fetchAmbulancesData());
+
+    return () => unsubscribe();
+  }, [user, useMockData, startupDomains, fetchAmbulancesData]);
+
+  // Real-time subscription for wallet/payments data
+  useEffect(() => {
+    if (!user || useMockData || !startupDomains.includes('wallet')) return;
+
+    const channel = supabase
+      .channel('payment_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        fetchWalletData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, startupDomains, fetchWalletData]);
+
+  // Real-time subscription for activity data.
+  // Activity is a cross-cutting feed with no startup domain (see contract), so it
+  // is gated on an authenticated, non-mock session rather than a startup domain.
+  useEffect(() => {
+    if (!user || useMockData) return;
+
+    const channel = supabase
+      .channel('user_activity_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_activity' },
+        fetchActivityData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchActivityData]);
 
   // Debounced fetch functions for real-time updates
   const debouncedFetchSupportTickets = useCallback(() => {
