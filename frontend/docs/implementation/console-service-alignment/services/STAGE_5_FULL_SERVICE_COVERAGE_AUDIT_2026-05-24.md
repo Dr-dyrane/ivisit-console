@@ -597,6 +597,7 @@ Subscription management is not just content. It spans:
 Required plan adjustment:
 
 - Pass 7 retains `subscriptionService.js` as the active subscriber/email workflow facade and keeps `subscribersService.js` compatibility-only until removal proof exists.
+- Removal proof (2026-07-07): a repo-wide import scan found zero source imports of `subscribersService.js` (only docs/tests referenced it); its only unique exports (`getSubscriberCount`, `isSubscribed`, `deleteSubscriberByEmail`) had no consumers. `subscribersService.js` is now deleted and `subscriptionService.js` is the single subscriber/email owner.
 - Email actions must distinguish queued/sent/failed state; UI must not claim delivery from a request that only started an action.
 - Welcome email state must be receiver-confirmed before `welcome_email_sent` style fields are shown as truth.
 - Bulk/custom email must have row-level pending, failure, and retry semantics.

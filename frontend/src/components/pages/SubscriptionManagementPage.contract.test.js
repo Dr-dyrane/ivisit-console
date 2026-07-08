@@ -42,7 +42,6 @@ describe('Subscriptions Page 17 intake contract', () => {
       'src/components/views/SubscriptionTableView.jsx',
       'src/hooks/useSubscription.js',
       'src/services/subscriptionService.js',
-      'src/services/subscribersService.js',
     ].forEach((file) => {
       expect(hardgate).not.toContain(file);
     });
@@ -68,7 +67,10 @@ describe('Subscriptions Page 17 intake contract', () => {
     const table = read('src/components/views/SubscriptionTableView.jsx');
     const hook = read('src/hooks/useSubscription.js');
     const service = read('src/services/subscriptionService.js');
-    const duplicateService = read('src/services/subscribersService.js');
+    // subscribersService.js was deleted 2026-07-07 after removal proof (zero source imports);
+    // its old shape is preserved as baseline evidence via oldDuplicateService, and the working
+    // tree must no longer carry the duplicate owner.
+    const duplicateServiceExists = fs.existsSync('src/services/subscribersService.js');
 
     expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/pages/SubscriptionManagementPage.jsx`');
     expect(gate).toContain("`usePageHeader('Subscription Management')`, `useViewMode('subscription', 'grid')`, `usePagination(20)`, `useSubscription()`");
@@ -264,15 +266,19 @@ describe('Subscriptions Page 17 intake contract', () => {
       expect(source).toContain("channel('new_subscribers')");
     }
 
-    for (const source of [oldDuplicateService, duplicateService]) {
-      expect(source).toContain("const TABLE_NAME = 'subscribers';");
-      expect(source).toContain('export async function getSubscribers()');
-      expect(source).toContain('export async function createSubscriber(input)');
-      expect(source).toContain('export async function deleteSubscriber(subscriberId)');
-      expect(source).toContain('export async function getSubscriberCount()');
-      expect(source).toContain('export function subscribeToSubscribers(callback)');
-      expect(source).toContain("channel('subscribers_all')");
-    }
+    // Baseline evidence: the duplicate owner existed at f31f29f with its own table CRUD/count/realtime.
+    expect(oldDuplicateService).toContain("const TABLE_NAME = 'subscribers';");
+    expect(oldDuplicateService).toContain('export async function getSubscribers()');
+    expect(oldDuplicateService).toContain('export async function createSubscriber(input)');
+    expect(oldDuplicateService).toContain('export async function deleteSubscriber(subscriberId)');
+    expect(oldDuplicateService).toContain('export async function getSubscriberCount()');
+    expect(oldDuplicateService).toContain('export function subscribeToSubscribers(callback)');
+    expect(oldDuplicateService).toContain("channel('subscribers_all')");
+
+    // Removal proof: the duplicate owner is gone and subscriptionService is the single facade.
+    expect(duplicateServiceExists).toBe(false);
+    expect(service).toContain('export function subscribeToSubscribers(callback)');
+    expect(service).toContain('export async function deleteSubscriber(subscriberId)');
   });
 
   it('blocks Subscriptions canon reuse until subscriber, email, shell, and billing semantics close', () => {
@@ -345,6 +351,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(stage5).toContain('| Subscription Broadcast action | `SubscriptionsPanel` dispatches `openEmailActionsModal`; `SubscriptionManagementPage` listens for create and analytics events only');
     expect(stage5).toContain('| `openEmailActionsModal` | The subscription panel emits this event; no listener was found.');
     expect(stage5).toContain('Pass 7 retains `subscriptionService.js` as the active subscriber/email workflow facade and keeps `subscribersService.js` compatibility-only until removal proof exists.');
+    expect(stage5).toContain('Removal proof (2026-07-07): a repo-wide import scan found zero source imports of `subscribersService.js`');
     expect(stage5).toContain('Welcome email state must be receiver-confirmed before `welcome_email_sent` style fields are shown as truth.');
     expect(stage5).toContain('Bulk/custom email must have row-level pending, failure, and retry semantics.');
 
