@@ -26,16 +26,27 @@ function clearProviderVerificationStatsCache() {
 }
 
 async function getProviderCount(applyFilters = query => query) {
+  // `estimated` uses the Postgres planner estimate above a threshold instead of a
+  // full COUNT(*) scan, so these three parallel HEAD counts stop timing out into
+  // 503s on a large profiles table. It still returns the exact count for small tables.
   const query = applyFilters(
     supabase
       .from(TABLE_NAME)
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'estimated', head: true })
       .eq('role', 'provider')
   );
 
-  const { count, error } = await query;
-  if (error) throw error;
-  return count || 0;
+  // Fail-soft: a single count that errors (timeout / transient 503) must not reject
+  // the whole stats Promise.all and blank the verification header. Degrade to 0 and
+  // warn — the queue itself owns the authoritative rows.
+  try {
+    const { count, error } = await query;
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.warn('[verificationService] provider count degraded to 0:', error?.message || error);
+    return 0;
+  }
 }
 
 async function getProviderVerificationStats() {

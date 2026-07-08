@@ -177,7 +177,9 @@ describe('VerificationQueue Approvals contract', () => {
     expect(providerService).toContain('async function getProviderVerificationStats()');
     expect(providerService).toContain('const PROVIDER_STATS_CACHE_MS = 30000');
     expect(providerService).toContain('clearProviderVerificationStatsCache();');
-    expect(providerService).toContain("select('id', { count: 'exact', head: true })");
+    // Estimated (planner) count, not exact: three parallel HEAD counts on a large
+    // profiles table were timing out into 503s. Still a HEAD count, never a full-row read.
+    expect(providerService).toContain("select('id', { count: 'estimated', head: true })");
     expect(providerService).not.toContain(".select('role, bvn_verified')");
     expect(providerService).not.toContain("'sponsor'].includes(role)");
     expect(facilityService).toContain("const normalizedStatus = status === 'approved' ? 'verified' : status;");
