@@ -16,7 +16,6 @@ import {
     BarChart3,
     Siren,
     RefreshCw,
-    ChevronDown,
     ChevronRight,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -24,16 +23,8 @@ import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { visitRowProjection } from '../../utils/visitRowProjection';
-import { VitalTrack } from '../common/VitalTrack';
-
-// Visit lifecycle for the shared VitalTrack (Scheduled -> Active -> Done). Tones are
-// the semantic status hues (cyan/amber/emerald); cancelled renders a muted track.
-const VISIT_STEPS = [
-  { key: 'scheduled', label: 'Scheduled' },
-  { key: 'in_progress', label: 'Active' },
-  { key: 'completed', label: 'Done' },
-];
-const VISIT_TONE = { scheduled: '#0891B2', in_progress: '#B45309', completed: '#047857' };
+import { MobileDetailSheet } from './MobileDetailSheet';
+import { resolveVital } from '../../constants/vitalTracks';
 
 // Month-year label for date-grouped list sections (e.g. "May 2026"). Null if undated.
 const visitMonthLabel = (visit) => {
@@ -219,7 +210,7 @@ export const MobileVisits = ({
 }) => {
     // 1. Infinite scroll setup with Intersection Observer
     const observerTarget = useRef(null);
-    const [expandedVisitId, setExpandedVisitId] = useState(null);
+    const [activeVisit, setActiveVisit] = useState(null);
     const selectionMode = selectionEnabled && selectedIds.length > 0;
     const { triggerFromEvent } = useFeedback();
 
@@ -421,11 +412,7 @@ export const MobileVisits = ({
                                             <MobileVisitRow
                                                 key={visit.id}
                                                 visit={visit}
-                                                expanded={expandedVisitId === visit.id}
-                                                setExpandedVisitId={setExpandedVisitId}
-                                                onView={onView}
-                                                onEdit={onEdit}
-                                                onDelete={onDelete}
+                                                onOpen={setActiveVisit}
                                                 canEdit={canEdit}
                                                 canDelete={canDelete}
                                                 selectionEnabled={selectionEnabled}
@@ -455,6 +442,48 @@ export const MobileVisits = ({
                         </div>
                     </section>
                 </div>
+
+                {activeVisit && (() => {
+                    const row = visitRowProjection(activeVisit);
+                    const vital = resolveVital('visit', row.statusKey);
+                    const isEmergency = String(activeVisit.visit_type || activeVisit.type || '').includes('emergency');
+                    const ServiceIcon = isEmergency ? Siren : Stethoscope;
+                    return (
+                        <MobileDetailSheet
+                            isOpen
+                            onClose={() => setActiveVisit(null)}
+                            icon={ServiceIcon}
+                            iconTone={vital?.tone}
+                            eyebrow={row.caption}
+                            title={row.primary}
+                            statusPill={vital?.pill}
+                            vital={vital ? { ...vital, label: 'Visit status' } : null}
+                            islands={[
+                                { icon: Stethoscope, label: 'Practitioner', value: getDoctorName(activeVisit) },
+                                { icon: Hospital, label: 'Facility', value: getFacilityName(activeVisit) },
+                                { icon: MapPin, label: 'Location', value: activeVisit.room_number ? `Room ${activeVisit.room_number}` : 'No room' },
+                                { icon: Calendar, label: 'Record', value: `#${activeVisit.id?.slice(0, 12) || 'visit'}` },
+                            ]}
+                            primary={canEdit
+                                ? { label: 'Edit visit', icon: Edit, onClick: () => { setActiveVisit(null); onEdit?.(activeVisit); } }
+                                : { label: 'View details', icon: Eye, onClick: () => { setActiveVisit(null); onView?.(activeVisit); } }}
+                            secondary={canEdit
+                                ? { label: 'Details', icon: Eye, onClick: () => { setActiveVisit(null); onView?.(activeVisit); } }
+                                : undefined}
+                        >
+                            {canDelete && (
+                                <Button
+                                    variant="ghost"
+                                    className="h-11 w-full rounded-button bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
+                                    onClick={() => { setActiveVisit(null); onDelete?.(activeVisit); }}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete visit
+                                </Button>
+                            )}
+                        </MobileDetailSheet>
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );
@@ -500,12 +529,7 @@ const getFacilityName = (visit) => (
 
 const MobileVisitRow = ({
     visit,
-    expanded,
-    setExpandedVisitId,
-    onView,
-    onEdit,
-    onDelete,
-    canEdit,
+    onOpen,
     canDelete,
     selectionEnabled,
     selectionMode,
@@ -516,23 +540,21 @@ const MobileVisitRow = ({
 }) => {
     const row = visitRowProjection(visit);
     const StatusIcon = getStatusIcon(visit.status);
-    const isEmergency = String(visit.visit_type || visit.type || '').includes('emergency');
-    const ServiceIcon = isEmergency ? Siren : Stethoscope;
-    const rowColor = getStatusColor(visit.status);
 
     return (
         <motion.div
             layout
-            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+            className="overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all"
         >
+            {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved design +
+                desktop rail behaviour — not an inline dropdown. */}
             <button
                 type="button"
-                onClick={() => setExpandedVisitId(expanded ? null : visit.id)}
+                onClick={() => onOpen(visit)}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                 className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
-                aria-label={`${expanded ? 'Close' : 'Open'} ${row.primary}`}
-                aria-expanded={expanded}
-                data-state={expanded ? 'open' : 'closed'}
+                aria-label={`Open ${row.primary}`}
+                aria-haspopup="dialog"
             >
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${getStatusTone(visit.status)}`}>
                     <StatusIcon size={17} />
@@ -548,86 +570,22 @@ const MobileVisitRow = ({
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
                     <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`} data-status={row.statusKey}>{row.statusLabel}</span>
-                    {expanded ? (
-                        <ChevronDown size={18} className="text-muted-foreground" />
-                    ) : (
-                        <ChevronRight size={18} className="text-muted-foreground" />
-                    )}
+                    <ChevronRight size={18} className="text-muted-foreground" />
                 </span>
             </button>
 
-            {expanded && (
-                <div className="space-y-3 px-4 pb-4">
-                    <VitalTrack
-                        steps={VISIT_STEPS}
-                        currentKey={row.statusKey}
-                        tone={VISIT_TONE[row.statusKey] || 'hsl(var(--primary))'}
-                        cancelled={row.statusKey === 'cancelled'}
-                    />
-                    <MobileVisitDetailLine icon={ServiceIcon} label="Visit type" value={row.caption} />
-                    <MobileVisitDetailLine icon={Stethoscope} label="Practitioner" value={getDoctorName(visit)} />
-                    <MobileVisitDetailLine icon={Hospital} label="Facility" value={getFacilityName(visit)} />
-                    <MobileVisitDetailLine icon={MapPin} label="Location" value={visit.room_number ? `Room ${visit.room_number}` : 'No room'} />
-                    <MobileVisitDetailLine icon={Calendar} label="Record" value={`#${visit.id?.slice(0, 12) || 'visit'}`} />
-
-                    <div className={`${canEdit ? 'grid-cols-2' : 'grid-cols-1'} grid gap-2 pt-1`}>
-                        <Button
-                            variant="ghost"
-                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
-                            onClick={() => onView(visit)}
-                            data-state="idle"
-                        >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Details
-                        </Button>
-                        {canEdit && (
-                            <Button
-                                variant="ghost"
-                                className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
-                                onClick={() => onEdit(visit)}
-                                data-state="idle"
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                            </Button>
-                        )}
-                    </div>
-
-                    {canDelete && (
-                        <Button
-                            variant="ghost"
-                            className="h-12 w-full rounded-button bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
-                            onClick={() => onDelete?.(visit)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                        </Button>
-                    )}
-
-                    {selectionEnabled && (
-                        <Button
-                            variant="ghost"
-                            className="h-11 w-full rounded-button bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
-                            onClick={() => onSelect?.(visit.id, !isSelected)}
-                            style={{ color: rowColor }}
-                        >
-                            {selectionMode || isSelected ? (isSelected ? 'Selected' : 'Select') : 'Select visit'}
-                        </Button>
-                    )}
+            {selectionEnabled && (
+                <div className="px-4 pb-4">
+                    <Button
+                        variant="ghost"
+                        className="h-11 w-full rounded-button bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
+                        onClick={() => onSelect?.(visit.id, !isSelected)}
+                        style={{ color: getStatusColor(visit.status) }}
+                    >
+                        {selectionMode || isSelected ? (isSelected ? 'Selected' : 'Select') : 'Select visit'}
+                    </Button>
                 </div>
             )}
         </motion.div>
     );
 };
-
-const MobileVisitDetailLine = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 rounded-button bg-background/30 p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
-            <Icon size={15} />
-        </span>
-        <span className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-            <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value || 'Not set'}</span>
-        </span>
-    </div>
-);

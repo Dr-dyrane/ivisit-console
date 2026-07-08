@@ -361,7 +361,9 @@ describe('VisitsPage admission contract', () => {
 
     expect(mobile).toContain("data-state={active ? 'selected' : 'idle'}");
     expect(mobile).toContain("data-state={hasFilter ? 'filtered' : 'idle'}");
-    expect(mobile).toContain("data-state={expanded ? 'open' : 'closed'}");
+    // Row tap opens the detail bottom sheet (approved design + desktop rail behaviour),
+    // replacing the old inline dropdown expand.
+    expect(mobile).toContain('onClick={() => onOpen(visit)}');
     expect(mobile).toContain('whileTap={{ scale: 0.97 }}');
     expect(mobile).toContain('whileTap={{ scale: 0.95 }}');
 
@@ -590,7 +592,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('aria-label="Filter visits"');
     expect(mobile).toContain('aria-label="Open visit statistics"');
     expect(mobile).toContain('const MobileVisitRow = ({');
-    expect(mobile).toContain('setExpandedVisitId(expanded ? null : visit.id)');
+    expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} />');
     expect(mobile).toContain('<MobileListEnd label="End of visits" />');
     expect(mobile).toContain('Details');
@@ -657,5 +659,17 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('Pick one visit, then view details or edit scheduling.');
     expect(mobile).toContain('Use completed visits as read-only care history.');
     expect(mobile).toContain('Review these records without changing outcomes.');
+  });
+
+  it('keeps Visits surfaces free of decorative borders, hairlines, and glass', () => {
+    const files = { page: pageSource(), mobile: mobileSource(), list: listSource(), table: tableSource(), modal: modalSource() };
+    for (const [name, src] of Object.entries(files)) {
+      expect({ name, glass: src.includes('glass-card-premium') }).toEqual({ name, glass: false });
+      expect({ name, blur: src.includes('backdrop-blur') }).toEqual({ name, blur: false });
+      expect({ name, inset: src.includes('shadow-[inset') }).toEqual({ name, inset: false });
+      expect({ name, separator: src.includes('DropdownMenuSeparator') }).toEqual({ name, separator: false });
+    }
+    expect(listSource()).not.toContain('bg-white/');
+    expect(tableSource()).not.toContain('bg-white/');
   });
 });
