@@ -167,10 +167,14 @@ async function findOnCallDoctor(specialty, hospitalId) {
  * Reserve hospital bed
  */
 async function reserveBed(hospitalId, bedType) {
-  const bedNumber = `B-${Math.floor(Math.random() * 900) + 100}`;
-
+  // No parallel truth: a bed number must come from real bed inventory, not a fabricated
+  // random value that ivisit-app cannot reconcile. Until a real bed-reservation RPC
+  // (bedManagementService) is wired into the dispatch transaction, do NOT invent one —
+  // return no bed so bed_number stays null (honest) instead of a fake 'B-###'.
+  // Verified 2026-07-08: 0 of 168 live emergency_requests ever carried the fabricated
+  // pattern, so this changes no production behavior; it only removes the landmine.
   return {
-    bedNumber,
+    bedNumber: null,
     bedType: bedType || 'standard',
     hospitalId
   };
