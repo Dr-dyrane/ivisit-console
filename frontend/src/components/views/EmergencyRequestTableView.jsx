@@ -66,10 +66,10 @@ export const EmergencyRequestTableView = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
+      <Card className="rounded-card bg-background/35 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-white/10 hover:bg-transparent">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[50px]">
                 <Checkbox
                   checked={requests.length > 0 && selectedIds.length === requests.length}
@@ -97,7 +97,7 @@ export const EmergencyRequestTableView = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.02 }}
-                className={`border-b border-white/10 hover:bg-white/5 transition-colors group ${selectedIds.includes(req.id) ? 'bg-primary/5' : ''}`}
+                className={`hover:bg-white/5 transition-colors group ${selectedIds.includes(req.id) ? 'bg-primary/5' : ''}`}
                 onClick={() => isMobile && onView(req)}
               >
                 <TableCell className="w-[50px]">
@@ -109,17 +109,17 @@ export const EmergencyRequestTableView = ({
                 </TableCell>
                 <TableCell className="font-bold">{renderProjection.patientDisplay.name}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
+                  <Badge className={`rounded-inner ${getServiceTypeBadge(req.service_type)} font-bold`}>
                     {getServiceTypeDisplay(req.service_type)}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Badge className={`squircle-sm border-0 font-bold ${getStatusBadge(req.status)}`}>
+                    <Badge className={`rounded-inner font-bold ${getStatusBadge(req.status)}`}>
                       {getStatusDisplay(req.status)}
                     </Badge>
                     {req.ambulance_id && (
-                      <Badge className="squircle-xs bg-blue-500/20 text-blue-500 border-0">
+                      <Badge className="rounded-icon bg-blue-500/20 text-blue-500">
                         Auto
                       </Badge>
                     )}
@@ -137,7 +137,7 @@ export const EmergencyRequestTableView = ({
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-1.5">
-                      <Badge className={`squircle-xs border-0 font-bold ${isCashPaymentMethod(req.payment_method) ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
+                      <Badge className={`rounded-icon font-bold ${isCashPaymentMethod(req.payment_method) ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
                         {renderProjection.paymentDisplay.methodLabel}
                       </Badge>
                       {req.payment_status === 'completed' ? (
@@ -160,12 +160,12 @@ export const EmergencyRequestTableView = ({
                   <div className={`flex justify-end pr-2 opacity-100 transition-opacity`}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
                           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                           <span className="sr-only">Open menu</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                      <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70">
                         <DropdownMenuItem onClick={() => onView(req)} className="cursor-pointer font-medium text-xs py-2">
                           <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           View Details

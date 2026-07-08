@@ -51,7 +51,7 @@ export const EmergencyRequestListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className={`squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group flex items-center gap-4 ${selectedIds.includes(req.id) ? 'bg-primary/5 border-primary/20' : ''}`}>
+          <Card className={`rounded-card bg-background/35 shadow-sm p-4 hover:shadow-md transition-shadow group flex items-center gap-4 ${selectedIds.includes(req.id) ? 'bg-primary/5' : ''}`}>
             {/* Selection Checkbox */}
             {onSelect && (
               <Checkbox
@@ -67,14 +67,14 @@ export const EmergencyRequestListView = ({
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {renderProjection.patientDisplay.name}
                   </h3>
-                  <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
+                  <Badge className={`rounded-inner ${getServiceTypeBadge(req.service_type)} font-bold`}>
                     {getServiceTypeDisplay(req.service_type)}
                   </Badge>
-                  <Badge className={`geo-sharp border-0 px-2.5 py-1 ${getStatusBadge(req.status)}`}>
+                  <Badge className={`rounded-inner px-2.5 py-1 ${getStatusBadge(req.status)}`}>
                     {getStatusDisplay(req.status)}
                   </Badge>
                   {req.ambulance_id && (
-                    <Badge className="geo-sharp-xs bg-blue-500/20 text-blue-500 border-0">
+                    <Badge className="rounded-inner bg-blue-500/20 text-blue-500">
                       Auto
                     </Badge>
                   )}

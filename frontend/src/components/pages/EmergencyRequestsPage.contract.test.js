@@ -446,7 +446,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('className="space-y-4 px-5"');
     expect(mobileSource).toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain('rounded-card px-4 py-3');
-    expect(mobileSource).toContain('rounded-inner bg-background/30 p-3');
+    // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button
+    // tiles), replacing the old inline `rounded-inner bg-background/30 p-3` tiles.
+    expect(mobileSource).toContain('MobileDetailIslands');
     expect(mobileSource).not.toContain('rounded-t-[44px] bg-card/78');
     expect(mobileSource).not.toContain('rounded-[28px]');
     expect(mobileSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
@@ -633,5 +635,36 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(modalSource.indexOf('if (!isOpen) return;'))
       .toBeLessThan(modalSource.indexOf('fetchUsers();'));
     expect(modalSource).toContain('[fetchUsers, isOpen]');
+  });
+
+  it('keeps legacy Requests density views free of decorative chrome tokens', () => {
+    const listSource = fs.readFileSync('src/components/views/EmergencyRequestListView.jsx', 'utf8');
+    const tableSource = fs.readFileSync('src/components/views/EmergencyRequestTableView.jsx', 'utf8');
+    const chromeTokens = [
+      'glass-card',
+      'hover-glow',
+      'hover-lift',
+      'blur-xl',
+      'blur-2xl',
+      'backdrop-blur',
+      'shadow-2xl',
+      'shadow-xl',
+      'shadow-premium',
+      'rounded-2xl',
+      'rounded-3xl',
+      'rounded-full',
+      'rounded-xl',
+      'geo-sharp',
+      'squircle-lg',
+      'squircle-sm',
+      'squircle-xs',
+      'border-0',
+      'border-white',
+    ];
+
+    for (const token of chromeTokens) {
+      expect(listSource).not.toContain(token);
+      expect(tableSource).not.toContain(token);
+    }
   });
 });

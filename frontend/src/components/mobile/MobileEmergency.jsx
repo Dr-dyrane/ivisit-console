@@ -1,30 +1,37 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     AlertCircle,
     Ambulance,
     BedDouble,
+    Calendar,
     CheckCheck,
     ChevronDown,
     ChevronRight,
     ClipboardCheck,
     Clock,
+    Eye,
     Filter,
     Hospital,
     Info,
     MapPin,
     Search,
+    User,
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { VitalTrack } from '../common/VitalTrack';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
+import { resolveVital } from '../../constants/vitalTracks';
+import { groupByMonth } from '../../utils/groupByMonth';
 
 const mobileKpis = [
     {
@@ -57,37 +64,6 @@ const mobileKpis = [
     },
 ];
 
-const statusMeta = {
-    pending_approval: {
-        label: 'Needs attention',
-        className: 'bg-destructive/14 text-destructive',
-    },
-    in_progress: {
-        label: 'Active',
-        className: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-    },
-    accepted: {
-        label: 'Accepted',
-        className: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-    },
-    arrived: {
-        label: 'Arrived',
-        className: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
-    },
-    completed: {
-        label: 'Completed',
-        className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-    },
-    cancelled: {
-        label: 'Cancelled',
-        className: 'bg-muted/34 text-muted-foreground',
-    },
-    payment_declined: {
-        label: 'Payment issue',
-        className: 'bg-destructive/14 text-destructive',
-    },
-};
-
 const countNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -110,9 +86,11 @@ const serviceLabel = (request) => {
     return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
-const getStatusMeta = (request) => {
-    const key = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
-    return statusMeta[key] || { label: 'New', className: 'bg-muted/34 text-muted-foreground' };
+const createdDateLabel = (value) => {
+    if (!value) return 'Unknown date';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Unknown date';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const getMobileRequestAvatarClass = (request) => {
@@ -121,7 +99,7 @@ const getMobileRequestAvatarClass = (request) => {
         return 'bg-destructive/14 text-destructive';
     }
     if (key === 'completed') {
-        return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';
     }
     if (key === 'cancelled') {
         return 'bg-muted/34 text-muted-foreground';
@@ -423,16 +401,26 @@ export const MobileEmergency = ({
                             </div>
                         )}
 
-                        {displayItems.map((request) => (
-                            <MobileRequestRow
-                                key={request.id}
-                                request={request}
-                                expanded={expandedRequestId === request.id}
-                                setExpandedRequestId={setExpandedRequestId}
-                                onView={onView}
-                                isAdmin={isAdmin}
-                            />
-                        ))}
+                        <AnimatePresence mode="popLayout">
+                            {/* Date-grouped feed (rollout S5): newest-first, a month header at each
+                                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
+                            {groupByMonth(displayItems, (request) => request?.created_at).map(({ item: request, header }) => (
+                                <React.Fragment key={request.id}>
+                                    {header && (
+                                        <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                            {header}
+                                        </div>
+                                    )}
+                                    <MobileRequestRow
+                                        request={request}
+                                        expanded={expandedRequestId === request.id}
+                                        setExpandedRequestId={setExpandedRequestId}
+                                        onView={onView}
+                                        isAdmin={isAdmin}
+                                    />
+                                </React.Fragment>
+                            ))}
+                        </AnimatePresence>
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
                             {showSkeleton && <MobileListSkeletonRows />}
@@ -472,11 +460,12 @@ const MobileRequestRow = ({
     isAdmin,
 }) => {
     const projection = buildEmergencyRenderProjection(request);
-    const status = getStatusMeta(request);
+    const vital = resolveVital('emergency', request.status);
     const avatarClass = getMobileRequestAvatarClass(request);
     const name = projection.patientDisplay.name;
     const facility = projection.facilityDisplay.name;
     const location = projection.locationDisplay.label;
+    const responder = projection.responderDisplay.label;
     const canAct = isAdmin && canonicalizeEmergencyStatus(request.status, null) === 'pending_approval';
 
     return (
@@ -506,7 +495,7 @@ const MobileRequestRow = ({
                     <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{formatRequestTime(request.created_at)}</span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
-                    <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
+                    <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${vital?.pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{vital?.pill?.label || 'New'}</span>
                     {expanded ? (
                         <ChevronDown size={18} className="text-muted-foreground" />
                     ) : (
@@ -517,45 +506,42 @@ const MobileRequestRow = ({
 
             {expanded && (
                 <div className="space-y-3 px-4 pb-4">
-                    <MobileDetailLine icon={Hospital} label="Facility" value={facility} />
-                    <MobileDetailLine icon={MapPin} label="Location" value={location} />
-                    <MobileDetailLine icon={ClipboardCheck} label="Service" value={serviceLabel(request)} />
-
-                    <div className={`grid gap-2 pt-1 ${canAct ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                        <Button
-                            variant="ghost"
-                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
-                            onClick={() => onView(request)}
-                        >
-                            <Info className="mr-2 h-4 w-4" />
-                            Details
-                        </Button>
-                        {canAct ? (
-                            <Button
-                                variant="ghost"
-                                className="h-12 rounded-button bg-destructive text-white shadow-[0_16px_46px_rgba(239,68,68,0.25)] transition-all hover:bg-destructive/90 active:scale-95"
-                                onClick={() => onView(request)}
-                            >
-                                <ClipboardCheck className="mr-2 h-4 w-4" />
-                                Review
-                            </Button>
-                        ) : null}
-                    </div>
-
+                    {/* S4: lifecycle context from the grounded emergency track (collapses
+                        accepted -> in_progress; payment_declined/cancelled render muted). */}
+                    {vital && (
+                        <VitalTrack
+                            steps={vital.steps}
+                            currentKey={vital.currentKey}
+                            tone={vital.tone}
+                            cancelled={vital.cancelled}
+                            label="Request status"
+                        />
+                    )}
+                    {/* S6: identity islands — never a bare text block. */}
+                    <MobileDetailIslands
+                        items={[
+                            { icon: User, label: 'Patient', value: name },
+                            { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(request) },
+                            { icon: Hospital, label: 'Facility', value: facility },
+                            { icon: Ambulance, label: 'Ambulance', value: responder },
+                            { icon: MapPin, label: 'Location', value: location },
+                            { icon: Calendar, label: 'Created', value: createdDateLabel(request.created_at) },
+                        ]}
+                    />
+                    {/* S7: one authority-gated state-CTA. For an admin reviewing a request
+                        that needs attention, Review is the filled primary and Details is
+                        demoted; otherwise Details is the single action. Both route to the
+                        existing onView receiver — no new mutation is introduced here. */}
+                    <MobileSheetActions
+                        primary={canAct
+                            ? { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => onView?.(request) }
+                            : { label: 'Details', icon: Eye, onClick: () => onView?.(request) }}
+                        secondary={canAct
+                            ? { label: 'Details', icon: Eye, onClick: () => onView?.(request) }
+                            : undefined}
+                    />
                 </div>
             )}
         </motion.div>
     );
 };
-
-const MobileDetailLine = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 rounded-inner bg-background/30 p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
-            <Icon size={15} />
-        </span>
-        <span className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-            <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value || 'Not set'}</span>
-        </span>
-    </div>
-);
