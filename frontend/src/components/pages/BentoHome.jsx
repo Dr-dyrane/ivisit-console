@@ -57,7 +57,7 @@ const MapViewCard = React.memo(() => (
     transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
   >
     <Link to="/map" className="block h-full group">
-      <div className="h-full min-h-[320px] glass-card p-0 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-primary/20 hover:border-primary/40 transition-colors">
+      <div className="h-full min-h-[320px] bg-card/70 p-0 flex flex-col justify-between cursor-pointer relative overflow-hidden transition-colors">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/20 z-10" />
           <div
@@ -67,7 +67,7 @@ const MapViewCard = React.memo(() => (
         </div>
         <div className="relative z-10 p-8 flex flex-col justify-between h-full">
           <div className="flex justify-between items-start">
-            <div className="w-12 h-12 bg-primary/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-primary/30 animation-pulse-slow">
+            <div className="w-12 h-12 bg-primary/20 rounded-card flex items-center justify-center animation-pulse-slow">
               <MapPin className="h-6 w-6 text-primary" />
             </div>
           </div>
@@ -77,7 +77,7 @@ const MapViewCard = React.memo(() => (
           </div>
         </div>
         <div className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30 backdrop-blur-md">
+          <div className="w-10 h-10 bg-primary/20 rounded-pill flex items-center justify-center">
             <ChevronRight className="h-5 w-5 text-primary" />
           </div>
         </div>
@@ -95,10 +95,10 @@ const VerificationQueueCard = React.memo(({ verificationStats }) => (
     transition={{ duration: 0.4, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
   >
     <Link to="/verifications" className="block h-full group">
-      <div className="h-full min-h-[320px] glass-card p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-warning/20 hover:border-warning/40 transition-colors">
-        <div className="hover-glow hover-glow-warning" />
+      <div className="h-full min-h-[320px] bg-card/70 p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden transition-colors">
+        <div className="" />
         <div className="absolute inset-0 bg-gradient-to-br from-warning/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center border border-warning/30 group-hover:scale-110 transition-transform duration-300">
+        <div className="w-12 h-12 bg-warning/20 rounded-card flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <ShieldAlert className="h-6 w-6 text-warning" />
         </div>
         <div className="space-y-1">
@@ -114,7 +114,7 @@ const VerificationQueueCard = React.memo(({ verificationStats }) => (
             <span className="text-muted-foreground">Verification Backlog</span>
             <span className="text-warning font-bold">{verificationStats.pending} pending</span>
           </div>
-          <div className="h-1.5 w-full bg-warning/10 rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-warning/10 rounded-pill overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${(verificationStats.completed / (verificationStats.total || 1)) * 100}%` }}
@@ -138,11 +138,11 @@ const IncompleteOnboardingCard = React.memo(({ onComplete }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
   >
-    <div className="h-full min-h-[160px] glass-card-premium p-6 flex items-center justify-between cursor-pointer relative overflow-hidden group hover-lift border-primary/30">
+    <div className="h-full min-h-[160px] bg-card/70 p-6 flex items-center justify-between cursor-pointer relative overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-transparent opacity-50" />
 
       <div className="relative z-10 flex items-center gap-6">
-        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 shadow-glow-primary">
+        <div className="w-16 h-16 bg-primary/20 rounded-card flex items-center justify-center">
           <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
@@ -170,7 +170,7 @@ const IncompleteOnboardingCard = React.memo(({ onComplete }) => (
       </div>
 
       {/* Decorative pulse */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-pill -mr-16 -mt-16" />
     </div>
   </motion.div>
 ));
@@ -184,10 +184,10 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
     transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
   >
     <Link to="/analytics" className="block h-full group">
-      <div className="h-full min-h-[320px] glass-card p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-info/20 hover:border-info/40 transition-colors">
-        <div className="hover-glow hover-glow-info" />
+      <div className="h-full min-h-[320px] bg-card/70 p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden transition-colors">
+        <div className="" />
         <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 group-hover:scale-110 transition-transform duration-300">
+        <div className="w-12 h-12 bg-info/20 rounded-card flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <BarChart3 className="h-6 w-6 text-info" />
         </div>
         <div className="space-y-1">
@@ -199,7 +199,7 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
         </div>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-success/10 rounded-lg">
+            <div className="p-2 bg-success/10 rounded-inner">
               <TrendingUp className="h-4 w-4 text-success" />
             </div>
             <div>
@@ -208,7 +208,7 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-info/10 rounded-lg">
+            <div className="p-2 bg-info/10 rounded-inner">
               <Users className="h-4 w-4 text-info" />
             </div>
             <div>
@@ -235,11 +235,11 @@ const EmergencyCounterCard = React.memo(({ liveEmergencies, chartData, isPatient
     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
   >
     <Link to="/map" className="block h-full group">
-      <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
-        <div className="hover-glow hover-glow-primary" />
+      <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden">
+        <div className="" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute top-6 right-6 z-30">
-          <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+          <div className="w-12 h-12 bg-primary/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
             <Activity className="h-6 w-6 text-primary" />
           </div>
         </div>
@@ -269,7 +269,7 @@ const EmergencyCounterCard = React.memo(({ liveEmergencies, chartData, isPatient
           </div>
         )}
         <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+          <div className="w-10 h-10 bg-primary/20 rounded-pill flex items-center justify-center">
             <ChevronRight className="h-5 w-5 text-primary" />
           </div>
         </div>
@@ -286,11 +286,11 @@ const ResponseTimeCard = React.memo(({ responseTime }) => (
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
   >
-    <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-      <div className="hover-glow hover-glow-success" />
+    <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group">
+      <div className="" />
       <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <div className="absolute top-6 right-6 z-30">
-        <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+        <div className="w-12 h-12 bg-success/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
           <Clock className="h-6 w-6 text-success" />
         </div>
       </div>
@@ -303,7 +303,7 @@ const ResponseTimeCard = React.memo(({ responseTime }) => (
         </div>
       </div>
       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+        <div className="w-10 h-10 bg-success/20 rounded-pill flex items-center justify-center">
           <ChevronRight className="h-5 w-5 text-success" />
         </div>
       </div>
@@ -319,11 +319,11 @@ const RequestsCard = React.memo(({ requests, isPatient }) => (
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
   >
-    <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-      <div className="hover-glow hover-glow-info" />
+    <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group">
+      <div className="" />
       <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <div className="absolute top-6 right-6 z-30">
-        <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
+        <div className="w-12 h-12 bg-info/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
           <Activity className="h-6 w-6 text-info" />
         </div>
       </div>
@@ -338,7 +338,7 @@ const RequestsCard = React.memo(({ requests, isPatient }) => (
         </div>
       </div>
       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
+        <div className="w-10 h-10 bg-info/20 rounded-pill flex items-center justify-center">
           <ChevronRight className="h-5 w-5 text-info" />
         </div>
       </div>
@@ -353,16 +353,16 @@ const EmergencyCardSkeleton = React.memo(() => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
   >
-    <div className="h-full min-h-[320px] glass-card-premium p-8 relative overflow-hidden">
+    <div className="h-full min-h-[320px] bg-card/70 p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
       <div className="relative z-10 flex flex-col flex-1">
         <div className="space-y-2 flex-1">
-          <div className="h-16 w-32 bg-muted/50 rounded-lg shimmer" />
-          <div className="h-6 w-48 bg-muted/30 rounded-lg shimmer" />
+          <div className="h-16 w-32 bg-muted/50 rounded-inner shimmer" />
+          <div className="h-6 w-48 bg-muted/30 rounded-inner shimmer" />
         </div>
       </div>
       <div className="relative z-10 h-20">
-        <div className="h-full w-full bg-muted/20 rounded-lg shimmer" />
+        <div className="h-full w-full bg-muted/20 rounded-inner shimmer" />
       </div>
     </div>
   </motion.div>
@@ -375,16 +375,16 @@ const MetricCardSkeleton = React.memo(() => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
   >
-    <div className="h-full min-h-[320px] glass-card p-8 relative overflow-hidden">
+    <div className="h-full min-h-[320px] bg-card/70 p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-transparent" />
       <div className="relative z-10 flex flex-col h-full justify-between gap-4">
         <div className="flex justify-between items-start">
-          <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
-          <div className="w-16 h-6 bg-muted/20 rounded-lg shimmer" />
+          <div className="w-12 h-12 bg-muted/30 rounded-card shimmer" />
+          <div className="w-16 h-6 bg-muted/20 rounded-inner shimmer" />
         </div>
         <div className="space-y-2">
-          <div className="h-8 w-24 bg-muted/40 rounded-lg shimmer" />
-          <div className="h-4 w-32 bg-muted/20 rounded-lg shimmer" />
+          <div className="h-8 w-24 bg-muted/40 rounded-inner shimmer" />
+          <div className="h-4 w-32 bg-muted/20 rounded-inner shimmer" />
         </div>
       </div>
     </div>
@@ -398,16 +398,16 @@ const QuickActionCardSkeleton = React.memo(() => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
   >
-    <div className="h-full min-h-[140px] glass-card p-6 relative overflow-hidden">
+    <div className="h-full min-h-[140px] bg-card/70 p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-transparent to-transparent" />
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-4">
-          <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
-          <div className="w-8 h-8 bg-muted/20 rounded-lg shimmer" />
+          <div className="w-12 h-12 bg-muted/30 rounded-card shimmer" />
+          <div className="w-8 h-8 bg-muted/20 rounded-inner shimmer" />
         </div>
         <div className="space-y-2">
-          <div className="h-6 w-20 bg-muted/40 rounded-lg shimmer" />
-          <div className="h-4 w-16 bg-muted/20 rounded-lg shimmer" />
+          <div className="h-6 w-20 bg-muted/40 rounded-inner shimmer" />
+          <div className="h-4 w-16 bg-muted/20 rounded-inner shimmer" />
         </div>
       </div>
     </div>
@@ -534,7 +534,7 @@ export const BentoHome = () => {
 
   const todayHeaderAction = React.useMemo(() => (
     roleHomeKind ? (
-      <span className="hidden md:inline-flex items-center rounded-full bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="hidden md:inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {roleHomeLabels[roleHomeKind]}
       </span>
     ) : null
@@ -545,7 +545,7 @@ export const BentoHome = () => {
       variant="outline"
       size="sm"
       onClick={refreshAllData || fetchActivityData}
-      className="surface-raised hover-lift squircle-full h-8 px-3 text-[10px] font-semibold"
+      className="surface-raised rounded-pill h-8 px-3 text-[10px] font-semibold"
     >
       <RefreshCw className="h-3 w-3 mr-1" />
       REFRESH STATS
@@ -599,10 +599,10 @@ export const BentoHome = () => {
     if (isAdmin()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Nodes: {appStats.totalUsers ?? 0} Active</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Emergencies: {appStats.liveEmergencies}</span>
           </div>
         </div>
@@ -612,10 +612,10 @@ export const BentoHome = () => {
     if (isOrgAdmin()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Staff: {appStats.activeProviders} Active</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Response: {appStats.responseTime != null ? `${appStats.responseTime}min` : '—'}</span>
           </div>
         </div>
@@ -625,11 +625,11 @@ export const BentoHome = () => {
     if (isProvider()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-3 uppercase tracking-widest text-[10px] font-bold">
             <Activity className="w-3 h-3" />
             <span>Patients Today: {appStats.todayRequests}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Active Emergencies: {appStats.liveEmergencies}</span>
           </div>
         </div>
@@ -639,14 +639,14 @@ export const BentoHome = () => {
     if (isPatient()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
             <Activity className="w-3 h-3" />
             <span>Care: Available</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Requests: {appStats.todayRequests}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-info">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-1 uppercase tracking-widest text-[10px] font-bold text-info">
             <span>Support: Online</span>
           </div>
         </div>
@@ -656,10 +656,10 @@ export const BentoHome = () => {
     if (isSponsor()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Success: {appStats.completionRate != null ? `${appStats.completionRate}%` : '—'}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Lives: {appStats.totalUsers}</span>
           </div>
         </div>
@@ -669,11 +669,11 @@ export const BentoHome = () => {
     // Default for viewers
     return (
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
           <Activity className="w-3 h-3" />
           <span>Platform: Online</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill surface-2 uppercase tracking-widest text-[10px] font-bold">
           <span>Services: Available</span>
         </div>
       </div>
@@ -719,7 +719,7 @@ export const BentoHome = () => {
         <LayoutGroup>
           <motion.div
             layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-3xl"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-card"
           >
             {/* Emergency Counter Skeleton */}
             {!isPatient() && !isViewer() && <EmergencyCardSkeleton />}
@@ -829,7 +829,7 @@ export const BentoHome = () => {
         {/* Apple-style Grid Container */}
         <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-3xl"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-card"
         >
           {/* Finish Onboarding Reminder - Only for those who skipped */}
           {isSkippedOnboarding() && <IncompleteOnboardingCard />}
@@ -879,12 +879,12 @@ export const BentoHome = () => {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
               >
                 <Link to="/visits" className="block h-full group">
-                  <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
-                    <div className="hover-glow hover-glow-primary" />
+                  <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden">
+                    <div className="" />
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     <div className="absolute top-6 right-6 z-30">
-                      <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                      <div className="w-12 h-12 bg-primary/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
                         <Calendar className="h-6 w-6 text-primary" />
                       </div>
                     </div>
@@ -915,7 +915,7 @@ export const BentoHome = () => {
                     )}
 
                     <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+                      <div className="w-10 h-10 bg-primary/20 rounded-pill flex items-center justify-center">
                         <ChevronRight className="h-5 w-5 text-primary" />
                       </div>
                     </div>
@@ -938,12 +938,12 @@ export const BentoHome = () => {
                   transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
                 >
                   <Link to={item.path} className="block h-full group">
-                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
-                      <div className={`hover-glow hover-glow-${item.color}`} />
+                    <div className="h-full min-h-[140px] bg-card/70 p-6 cursor-pointer relative overflow-hidden">
+                      <div className={``} />
                       <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
                       <div className="flex justify-between items-start">
-                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
                           <item.icon className={`h-6 w-6 text-${item.color}`} />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -957,7 +957,7 @@ export const BentoHome = () => {
                       </div>
 
                       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-pill flex items-center justify-center`}>
                           <ChevronRight className={`h-4 w-4 text-${item.color}`} />
                         </div>
                       </div>
@@ -979,12 +979,12 @@ export const BentoHome = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
               >
-                <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
-                  <div className="hover-glow hover-glow-primary" />
+                <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden">
+                  <div className="" />
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                   <div className="absolute top-6 right-6 z-30">
-                    <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 bg-primary/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
                       <Activity className="h-6 w-6 text-primary" />
                     </div>
                   </div>
@@ -1021,12 +1021,12 @@ export const BentoHome = () => {
                   transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
                 >
                   <Link to={item.path} className="block h-full group">
-                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
-                      <div className={`hover-glow hover-glow-${item.color}`} />
+                    <div className="h-full min-h-[140px] bg-card/70 p-6 cursor-pointer relative overflow-hidden">
+                      <div className={``} />
                       <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
                       <div className="flex justify-between items-start">
-                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
                           <item.icon className={`h-6 w-6 text-${item.color}`} />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -1040,7 +1040,7 @@ export const BentoHome = () => {
                       </div>
 
                       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-pill flex items-center justify-center`}>
                           <ChevronRight className={`h-4 w-4 text-${item.color}`} />
                         </div>
                       </div>
@@ -1063,12 +1063,12 @@ export const BentoHome = () => {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
               >
                 <Link to="/analytics" className="block h-full group">
-                  <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
-                    <div className="hover-glow hover-glow-success" />
+                  <div className="h-full min-h-[320px] bg-card/70 p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden">
+                    <div className="" />
                     <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     <div className="absolute top-6 right-6 z-30">
-                      <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+                      <div className="w-12 h-12 bg-success/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
                         <TrendingUp className="h-6 w-6 text-success" />
                       </div>
                     </div>
@@ -1099,7 +1099,7 @@ export const BentoHome = () => {
                     )}
 
                     <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+                      <div className="w-10 h-10 bg-success/20 rounded-pill flex items-center justify-center">
                         <ChevronRight className="h-5 w-5 text-success" />
                       </div>
                     </div>
@@ -1121,12 +1121,12 @@ export const BentoHome = () => {
                   transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
                 >
                   <Link to={item.path} className="block h-full group">
-                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
-                      <div className={`hover-glow hover-glow-${item.color}`} />
+                    <div className="h-full min-h-[140px] bg-card/70 p-6 cursor-pointer relative overflow-hidden">
+                      <div className={``} />
                       <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
                       <div className="flex justify-between items-start">
-                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
                           <item.icon className={`h-6 w-6 text-${item.color}`} />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -1140,7 +1140,7 @@ export const BentoHome = () => {
                       </div>
 
                       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-pill flex items-center justify-center`}>
                           <ChevronRight className={`h-4 w-4 text-${item.color}`} />
                         </div>
                       </div>
@@ -1167,15 +1167,15 @@ export const BentoHome = () => {
               transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
             >
               <Link to={item.path} className="block h-full group" data-testid={`quick-${item.id}`}>
-                <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                <div className="h-full min-h-[140px] bg-card/70 p-6 cursor-pointer relative overflow-hidden">
                   {/* Shared RGB Hive Effect */}
-                  <div className={`hover-glow hover-glow-${item.color}`} />
+                  <div className={``} />
 
                   {/* Brand-aware gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
                   <div className="flex justify-between items-start">
-                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
                       <item.icon className={`h-6 w-6 text-${item.color}`} />
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -1190,7 +1190,7 @@ export const BentoHome = () => {
 
                   {/* Fixed chevron positioning no overlap */}
                   <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-pill flex items-center justify-center`}>
                       <ChevronRight className={`h-4 w-4 text-${item.color}`} />
                     </div>
                   </div>
@@ -1213,15 +1213,15 @@ export const BentoHome = () => {
               transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
             >
               <Link to={item.path} className="block h-full group" data-testid={`quick-${item.id}`}>
-                <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                <div className="h-full min-h-[140px] bg-card/70 p-6 cursor-pointer relative overflow-hidden">
                   {/* Shared RGB Hive Effect */}
-                  <div className={`hover-glow hover-glow-${item.color}`} />
+                  <div className={``} />
 
                   {/* Brand-aware gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
                   <div className="flex justify-between items-start">
-                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-card flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
                       <item.icon className={`h-6 w-6 text-${item.color}`} />
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -1236,7 +1236,7 @@ export const BentoHome = () => {
 
                   {/* Fixed chevron positioning no overlap */}
                   <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-pill flex items-center justify-center`}>
                       <ChevronRight className={`h-4 w-4 text-${item.color}`} />
                     </div>
                   </div>
@@ -1255,9 +1255,9 @@ export const BentoHome = () => {
             transition={{ duration: 0.4, delay: 0.7, ease: [0.4, 0, 0.2, 1] }}
           >
             <Link to="/community" className="block h-full group">
-              <div className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+              <div className="h-full min-h-[160px] bg-card/70 shadow-sm p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between">
                 {/* Shared RGB Hive Effect */}
-                <div className="hover-glow hover-glow-warning" />
+                <div className="" />
 
                 {/* Subscription-style Pattern */}
                 <div className="absolute inset-0 opacity-5"
@@ -1267,7 +1267,7 @@ export const BentoHome = () => {
                 {/* Top Right Icon - Appears on hover */}
                 <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <TrendingUp className="h-5 w-5 text-warning" />
                     </div>
                   </div>
@@ -1278,7 +1278,7 @@ export const BentoHome = () => {
                     <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                       <TrendingUp className="h-6 w-6 text-warning" />
                     </div>
-                    <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-bold editorial-subtitle px-2 py-0.5">TRENDING</Badge>
+                    <Badge className="rounded-inner bg-warning/20 text-warning font-bold editorial-subtitle px-2 py-0.5">TRENDING</Badge>
                   </div>
                   <div>
                     <p className="editorial-subtitle text-warning mb-1">REAL-TIME</p>
@@ -1287,7 +1287,7 @@ export const BentoHome = () => {
 
                     {/* Bottom Right Chevron - Appears on hover */}
                     <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-pill bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                         <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
                       </div>
                     </div>
@@ -1307,9 +1307,9 @@ export const BentoHome = () => {
               transition={{ duration: 0.4, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
             >
               <Link to="/wallet" className="block h-full group">
-                <div className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+                <div className="h-full min-h-[160px] bg-card/70 shadow-sm p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between">
                   {/* Shared RGB Hive Effect */}
-                  <div className="hover-glow hover-glow-success" />
+                  <div className="" />
 
                   {/* Pattern background */}
                   <div className="absolute inset-0 opacity-5"
@@ -1319,7 +1319,7 @@ export const BentoHome = () => {
                   {/* Top Right Icon - Appears on hover */}
                   <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="relative">
-                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                         <Wallet className="h-5 w-5 text-success" />
                       </div>
                     </div>
@@ -1330,7 +1330,7 @@ export const BentoHome = () => {
                       <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                         <Wallet className="h-6 w-6 text-success" />
                       </div>
-                      <Badge className="squircle-sm bg-success/10 text-success border-0 font-bold editorial-subtitle px-2 py-0.5">WALLET</Badge>
+                      <Badge className="rounded-inner bg-success/10 text-success font-bold editorial-subtitle px-2 py-0.5">WALLET</Badge>
                     </div>
                     <div>
                       <p className="editorial-subtitle text-success mb-1">FINANCE</p>
@@ -1361,7 +1361,7 @@ export const BentoHome = () => {
 
                       {/* Bottom Right Chevron - Appears on hover */}
                       <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-pill bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                           <ChevronRight className="h-5 w-5 text-success ml-0.5" />
                         </div>
                       </div>
@@ -1383,7 +1383,7 @@ export const BentoHome = () => {
             >
               <Link to="/subscriptions" className="block h-full group">
                 <Card
-                  className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
+                  className="h-full min-h-[160px] bg-card/70 shadow-sm p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between"
                 >
                   {/* Subscription Background Pattern */}
                   <div className="absolute inset-0 opacity-5"
@@ -1391,11 +1391,11 @@ export const BentoHome = () => {
                   </div>
 
                   {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-info" />
+                  <div className="" />
 
                   <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="relative">
-                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                         <Mail className="h-5 w-5 text-info" />
                       </div>
                     </div>
@@ -1406,7 +1406,7 @@ export const BentoHome = () => {
                       <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                         <Mail className="h-6 w-6 text-info" />
                       </div>
-                      <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
+                      <Badge className="rounded-inner bg-info/20 text-info font-bold editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
                     </div>
                     <div>
                       <p className="editorial-subtitle text-info mb-1">COMMUNITY</p>
@@ -1414,16 +1414,16 @@ export const BentoHome = () => {
                       <p className="text-sm text-muted-foreground font-medium">Manage subscribers & engagement</p>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-success" />
+                          <div className="w-2 h-2 rounded-pill bg-success" />
                           <span className="text-xs font-semibold text-success">{subscriptionStats?.active || 0} active</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-warning" />
+                          <div className="w-2 h-2 rounded-pill bg-warning" />
                           <span className="text-xs font-semibold text-warning">{subscriptionStats?.paid || 0} premium</span>
                         </div>
                       </div>
                       <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                        <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-pill bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                           <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
                         </div>
                       </div>
@@ -1443,10 +1443,10 @@ export const BentoHome = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.6 }}
             >
-              <Card className="h-full min-h-[300px] squircle-3xl glass shadow-2xl p-7 flex flex-col w-full relative overflow-hidden group">
+              <Card className="h-full min-h-[300px] rounded-card bg-card/70 shadow-sm p-7 flex flex-col w-full relative overflow-hidden group">
                 {/* Tech Grid Background */}
                 {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-primary" />
+                <div className="" />
                 <h4 className="font-bold text-lg mb-6 tracking-tight">System Status</h4>
                 <div className="grid grid-cols-1 gap-6 flex-1">
                   {[
@@ -1472,9 +1472,9 @@ export const BentoHome = () => {
                         <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
                         <span className={`text-xl font-bold tracking-tighter text-${stat.color}`}>{stat.value}</span>
                       </div>
-                      <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
+                      <div className="h-2 bg-muted/30 rounded-inner overflow-hidden">
                         <motion.div
-                          className={`h-full bg-${stat.color} squircle-sm`}
+                          className={`h-full bg-${stat.color} rounded-inner`}
                           initial={{ width: 0 }}
                           animate={{ width: `${stat.progress}%` }}
                           transition={{ duration: 1, delay: 0.7 + (idx * 0.1) }}
@@ -1495,20 +1495,20 @@ export const BentoHome = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.65 }}
           >
-            <Card className="h-full min-h-[300px] squircle-3xl glass shadow-2xl p-7 flex flex-col w-full relative overflow-hidden group">
+            <Card className="h-full min-h-[300px] rounded-card bg-card/70 shadow-sm p-7 flex flex-col w-full relative overflow-hidden group">
               {/* Subtle Diagonal Lines */}
               <div className="absolute inset-0 opacity-5"
-                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
+                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 2px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
               </div>
 
               {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
+              <div className="" />
 
               <h4 className="font-bold text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
               <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                 {recentActivities.length > 0 ? (
                   recentActivities.map((activity, idx) => (
-                    <div key={activity.id || idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
+                    <div key={activity.id || idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
                       <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
                         <activity.icon className={`h-5 w-5 ${activity.color}`} />
                       </div>

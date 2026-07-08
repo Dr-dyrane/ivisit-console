@@ -92,7 +92,7 @@ export const Overview = () => {
         fetchStats();
         fetchRecentRequests();
       }}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      className="bg-card/70 h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
     >
       <RefreshCw className="h-4 w-4 mr-2" />
       RELOAD
@@ -131,7 +131,7 @@ export const Overview = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 squircle-lg p-6 bg-background/35 backdrop-blur-xs">
+          <Card className="lg:col-span-2 rounded-card p-6 bg-background/35">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-medium">Emergency Requests Trend</h3>
@@ -158,7 +158,7 @@ export const Overview = () => {
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
+                      border: '2px solid hsl(var(--border))',
                       borderRadius: '1rem'
                     }}
                   />
@@ -178,7 +178,7 @@ export const Overview = () => {
             )}
           </Card>
 
-          <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
+          <Card className="rounded-card p-6 bg-background/35">
             <h3 className="text-lg font-medium mb-6 flex items-center justify-between">
               Quick Stats
               <Clock className="h-5 w-5 text-muted-foreground" />
@@ -193,9 +193,9 @@ export const Overview = () => {
                   </span>
                 </div>
                 {/* Progress bar requires real response time data */}
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-muted rounded-pill overflow-hidden">
                   <motion.div
-                    className="h-full bg-success rounded-full"
+                    className="h-full bg-success rounded-pill"
                     initial={{ width: 0 }}
                     animate={{ width: '0%' }}
                     transition={{ duration: 1, delay: 0.2 }}
@@ -209,9 +209,9 @@ export const Overview = () => {
                   <span className="text-2xl font-semibold text-primary">—</span>
                 </div>
                 {/* Progress bar requires real success rate data */}
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-muted rounded-pill overflow-hidden">
                   <motion.div
-                    className="h-full bg-primary rounded-full"
+                    className="h-full bg-primary rounded-pill"
                     initial={{ width: 0 }}
                     animate={{ width: '0%' }}
                     transition={{ duration: 1, delay: 0.4 }}
@@ -222,7 +222,7 @@ export const Overview = () => {
           </Card>
         </div>
 
-        <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
+        <Card className="rounded-card p-6 bg-background/35">
           <h3 className="text-lg font-medium mb-4">Recent Emergency Requests</h3>
           <div className="space-y-3">
             {recentRequests.length === 0 ? (
@@ -234,10 +234,10 @@ export const Overview = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-muted/50 hover:bg-muted transition-smooth"
+                  className="flex items-center justify-between p-4 rounded-card bg-muted/50 hover:bg-muted transition-smooth"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-pill bg-primary/10 flex items-center justify-center">
                       <Activity className="h-5 w-5 text-primary" />
                     </div>
                     <div>
@@ -264,14 +264,14 @@ export const Overview = () => {
 
 function getStatusColor(status) {
   const colors = {
-    pending_approval: 'bg-warning/20 text-warning border-warning/30',
-    pending: 'bg-warning/20 text-warning border-warning/30',
-    accepted: 'bg-info/20 text-info border-info/30',
-    arrived: 'bg-secondary/20 text-secondary border-secondary/30',
-    in_progress: 'bg-primary/20 text-primary border-primary/30',
-    completed: 'bg-success/20 text-success border-success/30',
+    pending_approval: 'bg-warning/20 text-warning',
+    pending: 'bg-warning/20 text-warning',
+    accepted: 'bg-info/20 text-info',
+    arrived: 'bg-secondary/20 text-secondary',
+    in_progress: 'bg-primary/20 text-primary',
+    completed: 'bg-success/20 text-success',
     cancelled: 'bg-muted text-muted-foreground',
-    payment_declined: 'bg-destructive/20 text-destructive border-destructive/30',
+    payment_declined: 'bg-destructive/20 text-destructive',
   };
   return colors[status] || colors.pending;
 }

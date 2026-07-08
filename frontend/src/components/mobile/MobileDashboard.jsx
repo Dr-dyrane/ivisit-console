@@ -201,7 +201,7 @@ export const MobileDashboard = ({
                                 expandedContent={
                                     <div className="space-y-2 py-2">
                                         <p>Critical response needed in <span className="text-destructive font-semibold">Abuja North</span>.</p>
-                                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-1 w-full bg-white/5 rounded-pill overflow-hidden">
                                             <div className="h-full bg-destructive w-4/5" />
                                         </div>
                                     </div>
@@ -343,7 +343,7 @@ export const MobileDashboard = ({
                 {(isAdmin || isOrgAdmin) && (
                     <section className="mt-2 mb-6">
                         <MobileSectionHeader label="Architecture Health" color="hsl(var(--info))" />
-                        <div className="px-6 py-8 bg-muted/40 apple-glass-heavy border-0 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
+                        <div className="px-6 py-8 bg-muted/40 rounded-card space-y-6 shadow-sm relative overflow-hidden">
                             {/* 2px Left Primary Accent */}
                             <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary/40 pointer-events-none" />
 
@@ -358,7 +358,7 @@ export const MobileDashboard = ({
                                         <span>{sys.label}</span>
                                         <span className="text-foreground/60 font-semibold">{sys.value}</span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-white/[0.08] rounded-full overflow-hidden shadow-inner">
+                                    <div className="h-1.5 w-full bg-white/[0.08] rounded-pill overflow-hidden shadow-inner">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${sys.progress}%` }}

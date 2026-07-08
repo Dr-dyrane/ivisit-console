@@ -552,6 +552,42 @@ describe('TodayHome role contract', () => {
       .toBeLessThan(source.indexOf('if (isLoading) {'));
   });
 
+  it('keeps legacy Today surfaces free of decorative chrome', () => {
+    const chromeCleanFiles = [
+      'src/components/pages/BentoHome.jsx',
+      'src/components/mobile/MobileDashboard.jsx',
+      'src/components/dashboard/StatsCard.jsx',
+      'src/components/pages/AdminHome.jsx',
+      'src/components/pages/DoctorHome.jsx',
+      'src/components/pages/OrgAdminHome.jsx',
+      'src/components/pages/SponsorHome.jsx',
+      'src/components/pages/ViewerHome.jsx',
+      'src/components/pages/Overview.jsx',
+    ];
+    const bannedChromeTokens = [
+      'glass-card',
+      'hover-glow',
+      'hover-lift',
+      'blur-xl',
+      'backdrop-blur',
+      'shadow-2xl',
+      'shadow-premium',
+      'rounded-2xl',
+      'rounded-3xl',
+      'geo-sharp',
+      'squircle-lg',
+      'squircle-sm',
+      'border-0',
+    ];
+
+    chromeCleanFiles.forEach((file) => {
+      const chromeSource = fs.readFileSync(file, 'utf8');
+      bannedChromeTokens.forEach((token) => {
+        expect(chromeSource).not.toContain(token);
+      });
+    });
+  });
+
   it('keeps Today in the shared stage and sheet visual system', () => {
     const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
     const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
