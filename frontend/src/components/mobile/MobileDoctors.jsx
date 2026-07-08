@@ -157,10 +157,10 @@ export const MobileDoctors = ({
                                             setFilters?.(prev => ({ ...prev, kpiFilter: item.id }));
                                             triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
                                         }}
-                                        className={`flex h-16 min-w-[142px] items-center gap-3 rounded-[24px] px-4 text-left transition-all ${active ? item.activeClass : item.restClass}`}
+                                        className={`flex h-16 min-w-[142px] items-center gap-3 rounded-inner px-4 text-left transition-all ${active ? item.activeClass : item.restClass}`}
                                         aria-pressed={active}
                                     >
-                                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/40">
+                                        <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-background/40">
                                             <Icon size={18} />
                                         </span>
                                         <span>
@@ -181,7 +181,7 @@ export const MobileDoctors = ({
                                 placeholder="Search staff..."
                                 value={filters?.search || ''}
                                 onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
-                                className="h-11 w-full rounded-[22px] bg-muted/28 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
+                                className="h-11 w-full rounded-inner bg-muted/28 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
                             />
                         </div>
                         <motion.button
@@ -191,7 +191,7 @@ export const MobileDoctors = ({
                                 onOpenFilters?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
                             }}
-                            className="flex h-11 w-11 items-center justify-center rounded-[22px] bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300"
+                            className="flex h-11 w-11 items-center justify-center rounded-button bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300"
                             aria-label="Filter staff"
                         >
                             <Filter size={18} />
@@ -202,7 +202,7 @@ export const MobileDoctors = ({
                         <h2 className="text-lg font-semibold tracking-normal">Staff</h2>
                         <div className="flex items-center gap-2">
                             {isBuffering && (
-                                <span className="rounded-full bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                                <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                                     Updating
                                 </span>
                             )}
@@ -255,7 +255,7 @@ const MobileStaffRow = ({
     return (
         <motion.div
             layout
-            className={`overflow-hidden rounded-[28px] bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
         >
             <button
                 type="button"
@@ -264,7 +264,7 @@ const MobileStaffRow = ({
                 aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
                 aria-expanded={expanded}
             >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-400/12 text-sm font-semibold text-sky-300">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-sky-400/12 text-sm font-semibold text-sky-300">
                     {getInitials(name)}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -272,7 +272,7 @@ const MobileStaffRow = ({
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{doctor.specialization || 'General'}</span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ${status.className}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>
                         <StatusIcon size={12} />
                         {status.label}
                     </span>
@@ -293,7 +293,7 @@ const MobileStaffRow = ({
                     <div className="grid grid-cols-2 gap-2 pt-1">
                         <Button
                             variant="ghost"
-                            className="h-12 rounded-[20px] bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
+                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
                             onClick={() => onView(doctor)}
                         >
                             <Eye className="mr-2 h-4 w-4" />
@@ -302,7 +302,7 @@ const MobileStaffRow = ({
                         {canManage ? (
                             <Button
                                 variant="ghost"
-                                className="h-12 rounded-[20px] bg-sky-400/12 font-semibold text-sky-300 transition-all hover:bg-sky-400/18 active:scale-95"
+                                className="h-12 rounded-button bg-sky-400/12 font-semibold text-sky-300 transition-all hover:bg-sky-400/18 active:scale-95"
                                 onClick={() => onEdit(doctor)}
                             >
                                 <Edit className="mr-2 h-4 w-4" />
@@ -311,7 +311,7 @@ const MobileStaffRow = ({
                         ) : (
                             <Button
                                 variant="ghost"
-                                className="h-12 rounded-[20px] bg-muted/28 font-semibold text-muted-foreground transition-all hover:bg-muted/38 active:scale-95"
+                                className="h-12 rounded-button bg-muted/28 font-semibold text-muted-foreground transition-all hover:bg-muted/38 active:scale-95"
                                 onClick={() => onView(doctor)}
                             >
                                 <UserRound className="mr-2 h-4 w-4" />
@@ -327,8 +327,8 @@ const MobileStaffRow = ({
 };
 
 const MobileStaffDetail = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 rounded-[20px] bg-background/30 p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-muted/28 text-muted-foreground">
+    <div className="flex items-center gap-3 rounded-inner bg-background/30 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
             <Icon size={15} />
         </span>
         <span className="min-w-0">
