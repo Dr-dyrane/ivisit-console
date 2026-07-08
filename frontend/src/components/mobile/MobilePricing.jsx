@@ -275,13 +275,13 @@ export const MobilePricing = ({
               placeholder="Search pricing..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-inner apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
+              className="w-full h-11 pl-10 pr-4 rounded-inner bg-muted/40 text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
             />
           </div>
           {onViewAnalytics && (
             <Button
               variant="ghost"
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
               onClick={(event) => {
                 onViewAnalytics?.();
                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });

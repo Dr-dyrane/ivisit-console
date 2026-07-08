@@ -157,7 +157,7 @@ export const MobileDoctors = ({
                         </div>
                         <motion.button
                             type="button"
-                            whileTap={{ scale: 0.95 }}
+                            whileTap={{ scale: 0.96 }}
                             onClick={(event) => {
                                 onOpenFilters?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
