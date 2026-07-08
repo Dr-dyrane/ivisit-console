@@ -485,6 +485,12 @@ code {
 		color: hsl(var(--muted-foreground));
 	}
 
+	/* Body type tokens (Mobile DS Layer 1 — size only; weight/color composed at call site).
+	   text-identity = record/row name; text-meta = secondary / meta line. Eyebrow/caption =
+	   .eyebrow. Titles use the Tailwind scale (text-xl/2xl+). Avoid sub-10px body text. */
+	.text-identity { font-size: 14px; }
+	.text-meta { font-size: 12px; }
+
 	/* Fallback: no backdrop-filter (or user prefers reduced transparency) -> near-opaque,
 	   no blur — mirrors the app's Android/web frosted fallback (~0.94). */
 	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

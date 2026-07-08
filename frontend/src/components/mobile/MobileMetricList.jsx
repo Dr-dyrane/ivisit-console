@@ -337,10 +337,10 @@ export const MobileMetricRow = ({
                         {/* Readable identity: the record name is the primary line and must never
                             stub. line-clamp-2 (not single-line truncate) lets long names wrap while
                             the width-capped blade stays fixed. See MOTION_AND_INTERACTION_CANON §2.1. */}
-                        <span className="text-[14px] font-medium tracking-tight text-foreground line-clamp-2 break-words font-dashboard-numbers">{value}</span>
+                        <span className="text-identity font-medium tracking-tight text-foreground line-clamp-2 break-words font-dashboard-numbers">{value}</span>
                     </div>
                     {secondary && (
-                        <p className="mt-1 truncate text-[12px] font-medium text-muted-foreground/85">
+                        <p className="mt-1 truncate text-meta font-medium text-muted-foreground/85">
                             {secondary}
                         </p>
                     )}
