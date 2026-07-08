@@ -13,7 +13,6 @@ describe('HealthNewsManagementPage intake audit contract', () => {
   const filterSheetSource = () => fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/healthNewsService.js', 'utf8');
-  const hookSource = () => fs.readFileSync('src/hooks/useHealthNews.js', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
@@ -229,7 +228,6 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     const contextPanel = contextPanelSource();
     const list = listSource();
     const table = tableSource();
-    const hook = hookSource();
     const gate = gateSource();
 
     expect(page).toContain('healthNewsPanelContext');
@@ -266,8 +264,8 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(page).not.toContain('onEdit={');
     expect(page).not.toContain('isAdmin={canManageContent}');
     expect(page).not.toContain('selectionEnabled');
-    expect(hook).toContain('subscribeToHealthNews(() =>');
-    expect(hook).not.toContain("console.log('Health news change:'");
+    // useHealthNews.js deleted 2026-07-08 (orphaned — 0 importers). Removal proof.
+    expect(fs.existsSync('src/hooks/useHealthNews.js')).toBe(false);
 
     expect(gate).toContain('Context panel now renders the route-owned Health News projection instead of starting a second feed request.');
     expect(gate).toContain('List and table density views are read/details-only');

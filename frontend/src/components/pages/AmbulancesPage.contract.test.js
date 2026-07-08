@@ -11,7 +11,6 @@ describe('AmbulancesPage visual-start repair contract', () => {
   const listSource = () => fs.readFileSync('src/components/views/AmbulanceListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/AmbulanceTableView.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/ambulancesService.js', 'utf8');
-  const hookSource = () => fs.readFileSync('src/hooks/useAmbulances.js', 'utf8');
   const panelSource = () => fs.readFileSync('src/components/context/AmbulancesPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
@@ -128,7 +127,6 @@ describe('AmbulancesPage visual-start repair contract', () => {
     const list = listSource();
     const table = tableSource();
     const service = serviceSource();
-    const hook = hookSource();
     const panel = panelSource();
     const contextPanel = contextPanelSource();
     const contextAction = contextActionSource();
@@ -255,8 +253,9 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(service).toContain('select(\'*\', { count: \'exact\', head: true })');
     expect(service).toContain('range(safeOffset, safeOffset + safeLimit - 1)');
     expect(service).toContain('hospitalNameById');
-    expect(hook).toContain('updateLocation');
-    expect(hook).toContain('updateStatus');
+    // useAmbulances.js deleted 2026-07-08 (orphaned — 0 importers; page consumes
+    // getAmbulancesPageData directly). Removal proof, not source assertion.
+    expect(fs.existsSync('src/hooks/useAmbulances.js')).toBe(false);
     expect(panel).toContain('ambulanceContext');
     expect(panel).toContain('Fleet context');
     expect(panel).toContain('From this page');
