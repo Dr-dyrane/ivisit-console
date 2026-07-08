@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { getPricingPageData } from '../../services/pricingService';
 import { PaginationControls } from '../ui/PaginationControls';
 import {
@@ -327,7 +328,6 @@ export const PricingManagementPage = () => {
     const pagination = usePagination(12);
 
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-    const [focusedPriceId, setFocusedPriceId] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [actionNotice, setActionNotice] = useState('');
     const [pricingProjection, setPricingProjection] = useState(EMPTY_PRICING_PROJECTION);
@@ -429,12 +429,15 @@ export const PricingManagementPage = () => {
         showPricingCommandUnavailable();
     }, [showPricingCommandUnavailable]);
 
-    const openModal = useCallback((item) => {
-        if (item?.id) setFocusedPriceId(item.id);
-        showPricingCommandUnavailable();
-    }, [showPricingCommandUnavailable]);
+    const { focusedRecord, setFocused } = useFocusedRecord('pricing', pricing);
+    const focusedPrice = focusedRecord;
 
-    const handleFocusPrice = useCallback((item) => setFocusedPriceId(item?.id || null), []);
+    const openModal = useCallback((item) => {
+        if (item?.id) setFocused(item.id);
+        showPricingCommandUnavailable();
+    }, [setFocused, showPricingCommandUnavailable]);
+
+    const handleFocusPrice = useCallback((item) => setFocused(item?.id || null), [setFocused]);
 
     const filteredPricing = pricing;
 
@@ -455,11 +458,6 @@ export const PricingManagementPage = () => {
     }, [filteredPricing]);
 
     const paginatedPricing = pricing;
-
-    const focusedPrice = useMemo(
-        () => pricing.find((p) => p.id === focusedPriceId) || pricing[0] || null,
-        [pricing, focusedPriceId]
-    );
 
     // Header & Footer
     const headerActions = useMemo(() => (
