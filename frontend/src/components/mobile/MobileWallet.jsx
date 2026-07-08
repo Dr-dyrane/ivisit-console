@@ -245,7 +245,7 @@ export const MobileWallet = ({
               <button
                 type="button"
                 onClick={() => setShowBalance((prev) => !prev)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-[0.96]"
                 aria-label={showBalance ? 'Hide balance' : 'Show balance'}
               >
                 {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -262,7 +262,7 @@ export const MobileWallet = ({
                   <motion.button
                     key={item.id}
                     type="button"
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={{ scale: 0.988 }}
                     onClick={item.onClick}
                     className={`min-h-[86px] rounded-card px-4 py-3 text-left transition-all ${active ? tone.active : tone.rest}`}
                     aria-pressed={active}
@@ -304,7 +304,7 @@ export const MobileWallet = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('ledger')}
-                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-95 ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
                 aria-pressed={activeTab === 'ledger'}
               >
                 <History size={15} />
@@ -313,7 +313,7 @@ export const MobileWallet = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('payments')}
-                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-95 ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
                 aria-pressed={activeTab === 'payments'}
               >
                 <ShieldCheck size={15} />

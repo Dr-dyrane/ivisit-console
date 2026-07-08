@@ -370,7 +370,7 @@ export const MobileAnalytics = ({
                                             />
                                             {/* Minimal hour indicator for key times */}
                                             {(idx % 6 === 0) && (
-                                                <span className="absolute -bottom-4 left-0 text-[7px] text-muted-foreground/30 font-semibold uppercase tracking-tighter">
+                                                <span className="absolute -bottom-4 left-0 text-[10px] text-muted-foreground/30 font-semibold uppercase tracking-tighter">
                                                     {item.hour}
                                                 </span>
                                             )}
@@ -509,7 +509,7 @@ export const MobileAnalytics = ({
                                             <div key={i} className="p-3 bg-muted/30 rounded-inner flex flex-col justify-between min-h-[70px]">
                                                 <div className="flex justify-between items-start">
                                                     <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{m.label}</span>
-                                                    <span className="text-[7px] font-black text-muted-foreground">{m.change}</span>
+                                                    <span className="text-[10px] font-black text-muted-foreground">{m.change}</span>
                                                 </div>
                                                 <span className="text-lg font-semibold tracking-tighter">{m.value}</span>
                                             </div>
@@ -631,7 +631,7 @@ export const MobileAnalytics = ({
                             </p>
                         )}
                         <motion.button
-                            whileTap={{ scale: 0.95 }}
+                            whileTap={{ scale: 0.96 }}
                             onClick={handleExport}
                             aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
                             className="w-full bg-card/68 backdrop-blur-2xl py-4 rounded-button flex items-center justify-center gap-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] group relative overflow-hidden"

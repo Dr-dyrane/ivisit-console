@@ -238,7 +238,7 @@ export const MobileVisits = ({
                                     onOpenFilters?.();
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--primary))', haptic: true, sound: true });
                                 }}
-                                className="relative flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                className="relative flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-[0.96] dark:bg-white/[0.06]"
                                 aria-label="Filter visits"
                                 data-state={hasFilter ? 'filtered' : 'idle'}
                             >
@@ -254,7 +254,7 @@ export const MobileVisits = ({
                                         onViewAnalytics?.();
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--primary))', haptic: true, sound: true });
                                     }}
-                                    className="flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                    className="flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-[0.96] dark:bg-white/[0.06]"
                                     aria-label="Open visit statistics"
                                     data-state="idle"
                                 >
@@ -361,7 +361,7 @@ export const MobileVisits = ({
                             {canDelete && (
                                 <Button
                                     variant="ghost"
-                                    className="h-11 w-full rounded-button bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
+                                    className="h-11 w-full rounded-button bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-[0.96]"
                                     onClick={() => { setActiveVisit(null); onDelete?.(activeVisit); }}
                                 >
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -392,7 +392,7 @@ const MobileVisitErrorBanner = ({ message, onRetry }) => (
             type="button"
             variant="ghost"
             onClick={onRetry}
-            className="mt-3 h-10 w-full rounded-button bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+            className="mt-3 h-10 w-full rounded-button bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-[0.96]"
         >
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
@@ -439,7 +439,7 @@ const MobileVisitRow = ({
                 type="button"
                 onClick={() => onOpen(visit)}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
-                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
+                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.988]"
                 aria-label={`Open ${row.primary}`}
                 aria-haspopup="dialog"
             >
@@ -465,7 +465,7 @@ const MobileVisitRow = ({
                 <div className="px-4 pb-4">
                     <Button
                         variant="ghost"
-                        className="h-11 w-full rounded-button bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
+                        className="h-11 w-full rounded-button bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-[0.96]"
                         onClick={() => onSelect?.(visit.id, !isSelected)}
                         style={{ color: getStatusColor(visit.status) }}
                     >

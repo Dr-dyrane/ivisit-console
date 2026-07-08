@@ -300,13 +300,13 @@ export const MobileEmergency = ({
                             </div>
                             <motion.button
                                 type="button"
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={(event) => {
                                     onOpenFilters?.();
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
                                 }}
                                 data-state={filterTriggerState}
-                                className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 dark:bg-white/[0.06]"
+                                className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
                                 aria-label="Filter requests"
                                 aria-haspopup="dialog"
                                 aria-expanded={filterSheetOpen}
@@ -317,13 +317,13 @@ export const MobileEmergency = ({
                             {isAdmin && (
                                 <motion.button
                                     type="button"
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.96 }}
                                     onClick={(event) => {
                                         onViewAnalytics?.();
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
                                     }}
                                     data-state={analyticsTriggerState}
-                                    className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 dark:bg-white/[0.06]"
+                                    className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
                                     aria-label="Open request statistics"
                                     aria-haspopup="dialog"
                                     aria-expanded={analyticsOpen}
@@ -350,7 +350,7 @@ export const MobileEmergency = ({
                                 <button
                                     type="button"
                                     onClick={() => onRetry?.()}
-                                    className="mt-3 h-9 rounded-pill bg-destructive/10 px-4 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-95"
+                                    className="mt-3 h-9 rounded-pill bg-destructive/10 px-4 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
                                 >
                                     Retry
                                 </button>
@@ -466,7 +466,7 @@ const MobileRequestRow = ({
                 type="button"
                 onClick={() => onOpen(request)}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
-                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
+                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.988]"
                 aria-label={`Open ${name}`}
                 aria-haspopup="dialog"
             >
