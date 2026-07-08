@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useId, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { AlertTriangle, Info, CheckCircle, X } from 'lucide-react';
+import { useFocusTrap } from '../ui/ModalShell';
 
 export const ConfirmationModal = ({
     isOpen,
@@ -14,6 +15,12 @@ export const ConfirmationModal = ({
     variant = "default", // default, destructive, warning
     isLoading = false
 }) => {
+    const titleId = useId();
+    const containerRef = useRef(null);
+
+    // Keyboard accessibility: Escape-to-close, focus trap, autofocus, focus restore.
+    useFocusTrap(containerRef, isOpen, onClose);
+
     if (!isOpen) return null;
 
     const getIcon = () => {
@@ -50,14 +57,17 @@ export const ConfirmationModal = ({
                         onClick={onClose}
                     />
                     <motion.div
+                        ref={containerRef}
+                        tabIndex={-1}
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl"
+                        style={{ outline: 'none' }}
                         role="dialog"
                         aria-modal="true"
-                        aria-labelledby="modal-title"
+                        aria-labelledby={titleId}
                     >
                         <div className="p-2 md:p-6 flex flex-col items-center text-center">
                             <div className={`p-4 rounded-full mb-4 ${variant === 'destructive' ? 'bg-destructive/10' :
@@ -66,7 +76,7 @@ export const ConfirmationModal = ({
                                 {getIcon()}
                             </div>
 
-                            <h3 id="modal-title" className="text-xl font-semibold tracking-tight text-foreground mb-2">
+                            <h3 id={titleId} className="text-xl font-semibold tracking-tight text-foreground mb-2">
                                 {title}
                             </h3>
 

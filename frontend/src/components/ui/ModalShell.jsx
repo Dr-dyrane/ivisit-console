@@ -1,10 +1,108 @@
-import React, { useEffect, useId } from 'react';
+import React, { useCallback, useEffect, useId, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from './button';
 
 const modalBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
 const modalShellTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
+
+const FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'button:not([disabled])',
+    'textarea:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+const getFocusable = (container) => {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement,
+    );
+};
+
+/**
+ * useFocusTrap — keyboard-accessibility for hand-rolled dialogs.
+ *
+ * When `active`, it:
+ *  - listens for Escape and invokes `onEscape` (the dialog's close handler),
+ *  - traps Tab / Shift+Tab focus within `containerRef` (wrapping at the ends),
+ *  - autofocuses the first focusable element (or the container itself),
+ *  - restores focus to the previously-focused element on cleanup.
+ *
+ * No visual/DOM changes: the container just needs `tabIndex={-1}` so it can
+ * receive focus when it holds no focusable children.
+ */
+export const useFocusTrap = (containerRef, active, onEscape) => {
+    const restoreRef = useRef(null);
+
+    const handleKeyDown = useCallback(
+        (event) => {
+            if (event.key === 'Escape') {
+                event.stopPropagation();
+                onEscape?.();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const container = containerRef.current;
+            if (!container) return;
+
+            const focusable = getFocusable(container);
+            if (focusable.length === 0) {
+                event.preventDefault();
+                container.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const activeEl = document.activeElement;
+
+            if (event.shiftKey) {
+                if (activeEl === first || !container.contains(activeEl)) {
+                    event.preventDefault();
+                    last.focus();
+                }
+            } else if (activeEl === last || !container.contains(activeEl)) {
+                event.preventDefault();
+                first.focus();
+            }
+        },
+        [containerRef, onEscape],
+    );
+
+    useEffect(() => {
+        if (!active || typeof document === 'undefined') return undefined;
+
+        restoreRef.current = document.activeElement;
+
+        const container = containerRef.current;
+        // Autofocus after the container has mounted/painted.
+        const raf = window.requestAnimationFrame(() => {
+            const target = containerRef.current;
+            if (!target) return;
+            const focusable = getFocusable(target);
+            (focusable[0] ?? target).focus();
+        });
+
+        document.addEventListener('keydown', handleKeyDown, true);
+
+        return () => {
+            window.cancelAnimationFrame(raf);
+            document.removeEventListener('keydown', handleKeyDown, true);
+
+            const toRestore = restoreRef.current;
+            if (toRestore && typeof toRestore.focus === 'function' && document.contains(toRestore)) {
+                toRestore.focus();
+            }
+            restoreRef.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active, handleKeyDown]);
+};
 
 /**
  * ModalShell - shared wrapper for all entity modals.
@@ -54,6 +152,10 @@ export const ModalShell = ({
     children,
 }) => {
     const labelId = useId();
+    const containerRef = useRef(null);
+
+    // Keyboard accessibility: Escape-to-close, focus trap, autofocus, focus restore.
+    useFocusTrap(containerRef, isOpen, onClose);
 
     // Keep app chrome out of the visual stack while a dialog owns focus.
     useEffect(() => {
@@ -120,6 +222,8 @@ export const ModalShell = ({
             {/* Container */}
             <motion.div
                 key="modal-shell-surface"
+                ref={containerRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={title ? labelId : undefined}
@@ -129,6 +233,7 @@ export const ModalShell = ({
                 transition={modalShellTransition}
                 className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-modal shadow-2xl flex flex-col bg-background ${className}`}
                 style={{
+                    outline: 'none',
                     maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)',
                 }}
             >
