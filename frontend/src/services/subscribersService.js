@@ -152,15 +152,16 @@ export async function deleteSubscriber(subscriberId) {
 
 /**
  * Delete subscriber by email
+ * Resolves the row by its normalized email to the internal UUID first, then
+ * deletes by id so writes stay keyed on internal identity and match the
+ * normalization used by the read path (getSubscriberByEmail).
  */
 export async function deleteSubscriberByEmail(email) {
   try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('email', email);
+    const subscriber = await getSubscriberByEmail(email);
+    if (!subscriber?.id) return;
 
-    if (error) throw error;
+    await deleteSubscriber(subscriber.id);
   } catch (error) {
     console.error(`Error deleting subscriber with email ${email}:`, error);
     throw error;

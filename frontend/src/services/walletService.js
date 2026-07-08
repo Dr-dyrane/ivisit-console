@@ -131,14 +131,14 @@ export const getWalletSummary = async (profile, isAdmin) => {
 
         // 1. Fetch Balance
         if (isAdmin) {
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('*').single();
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('*').maybeSingle();
             balance = mainWallet?.balance || 0;
             currency = mainWallet?.currency || 'USD';
         } else {
             const { data: orgWallet } = await supabase.from('organization_wallets')
                 .select('*')
                 .eq('organization_id', profile.organization_id)
-                .single();
+                .maybeSingle();
             balance = orgWallet?.balance || 0;
             currency = orgWallet?.currency || 'USD';
         }
@@ -156,12 +156,12 @@ export const getWalletSummary = async (profile, isAdmin) => {
 
         if (isAdmin) {
             // Platform Ledger: Filter by the platform's singular wallet_id
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         } else {
             // Org Ledger: Filter by the organization's specific wallet_id
             // Note: wallet_ledger does NOT contain organization_id directly.
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).single();
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle();
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
@@ -208,10 +208,10 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30, options =
             .gte('created_at', startDate.toISOString());
 
         if (isAdmin) {
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         } else {
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).single();
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle();
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
@@ -278,11 +278,11 @@ export const getProjectedRevenue = async (organizationId = null, options = {}) =
 
         if (organizationId) {
             // Multi-tenant isolation: wallet_ledger is linked via wallet_id
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', organizationId).single();
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', organizationId).maybeSingle();
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         } else {
             // Platform-wide metrics
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         }
 
@@ -416,93 +416,6 @@ export const processCashPayment = async (emergencyId, orgId, amount, currency = 
     if (!data.success) throw new Error(data.error || 'Failed to process cash payment');
 
   return data;
-};
-
-/**
- * Backfill missing platform-fee debit ledger rows for completed payments.
- * This is a deterministic repair path used by console wallet views.
- */
-export const backfillMissingFeeLedger = async (organizationId) => {
-  if (!organizationId) return { added: 0 };
-
-  let added = 0;
-
-  const { data: allPayments, error: paymentsError } = await supabase
-    .from('payments')
-    .select('*')
-    .eq('status', 'completed')
-    .eq('organization_id', organizationId)
-    .not('metadata', 'is', null);
-  if (paymentsError) throw paymentsError;
-
-  if (!allPayments || allPayments.length === 0) {
-    return { added };
-  }
-
-  const { data: walletData, error: walletError } = await supabase
-    .from('organization_wallets')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .single();
-  if (walletError) throw walletError;
-  if (!walletData?.id) return { added };
-
-  for (const payment of allPayments) {
-    let meta = payment.metadata;
-    if (typeof meta === 'string') {
-      try {
-        meta = JSON.parse(meta);
-      } catch {
-        continue;
-      }
-    }
-
-    if (!meta?.fee || meta?.ledger_debited) continue;
-
-    const { data: existingDebit, error: existingError } = await supabase
-      .from('wallet_ledger')
-      .select('id')
-      .eq('reference_id', payment.id)
-      .eq('transaction_type', 'debit')
-      .maybeSingle();
-    if (existingError) throw existingError;
-    if (existingDebit?.id) continue;
-
-    const currentMetadata =
-      meta && typeof meta === 'object' && !Array.isArray(meta) ? { ...meta } : {};
-
-    const { error: insertError } = await supabase.from('wallet_ledger').insert({
-      wallet_id: walletData.id,
-      amount: -Math.abs(Number(meta.fee)),
-      transaction_type: 'debit',
-      description: 'Platform Fee (Audit Fix)',
-      reference_id: payment.id,
-      metadata: {
-        ...currentMetadata,
-        organization_id: organizationId,
-        reference_type: 'payment_fee',
-        status: 'completed',
-      },
-      created_at: payment.created_at
-    });
-    if (insertError) throw insertError;
-
-    const { error: paymentUpdateError } = await supabase
-      .from('payments')
-      .update({
-        metadata: {
-          ...currentMetadata,
-          ledger_debited: true,
-          ledger_debited_at: new Date().toISOString(),
-        },
-      })
-      .eq('id', payment.id);
-    if (paymentUpdateError) throw paymentUpdateError;
-
-    added += 1;
-  }
-
-  return { added };
 };
 
 /**
