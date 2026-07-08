@@ -103,7 +103,7 @@ export const MapPanel = ({ emergencyStats }) => {
         </Button>
 
         {/* Selected Marker Details */}
-        <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 px-0 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+        <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 px-0 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
           <div className={`h-24 relative flex items-center justify-center mb-6 ${selectedMarker.type === "emergency" ? "bg-destructive/20" :
             selectedMarker.type === "ambulance" ? "bg-emerald-500/20" : "bg-sky-500/20"
             }`}>
@@ -198,7 +198,7 @@ export const MapPanel = ({ emergencyStats }) => {
   return (
     <div className="p-4 px-0 space-y-6 max-h-screen overflow-y-auto no-scrollbar">
       {/* Map Controls */}
-      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-bold text-sm">Map Controls</h3>
@@ -232,15 +232,15 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Quick Actions */}
-      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
         <div className="flex items-center gap-2 mb-4">
-          <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
+          <Zap className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-bold text-sm">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Card
             onClick={handleRecenterAll}
-            className="cursor-pointer transition-all hover:shadow-md bg-muted/20 hover:bg-muted/30 p-4 rounded-inner text-center"
+            className="cursor-pointer transition-all hover:shadow-md motion-safe:active:scale-[0.98] bg-muted/20 hover:bg-muted/30 p-4 rounded-inner text-center"
             title="Recenter map to show all emergency locations"
           >
             <div className="flex flex-col gap-2">
@@ -250,7 +250,7 @@ export const MapPanel = ({ emergencyStats }) => {
           </Card>
           <Card
             onClick={handleExportMapData}
-            className="cursor-pointer transition-all hover:shadow-md bg-muted/20 hover:bg-muted/30 p-4 rounded-inner text-center"
+            className="cursor-pointer transition-all hover:shadow-md motion-safe:active:scale-[0.98] bg-muted/20 hover:bg-muted/30 p-4 rounded-inner text-center"
             title="Export map data and settings to JSON file"
           >
             <div className="flex flex-col gap-2">
@@ -262,9 +262,9 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Live Statistics */}
-      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
         <div className="flex items-center gap-2 mb-4">
-          <Shield className="h-5 w-5 text-sky-600 dark:text-sky-300" />
+          <Shield className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-bold text-sm">Live Statistics</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -314,9 +314,9 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Emergency Filters */}
-      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+          <Filter className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-bold text-sm">Emergency Filters</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -324,7 +324,7 @@ export const MapPanel = ({ emergencyStats }) => {
             <Card
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`cursor-pointer transition-all hover:shadow-md relative ${activeFilter === f.key
+              className={`cursor-pointer transition-all hover:shadow-md motion-safe:active:scale-[0.98] relative ${activeFilter === f.key
                 ? 'bg-sky-500/16 text-sky-700 dark:text-sky-200'
                 : 'bg-muted/20 hover:bg-muted/30'
                 } p-4 rounded-inner text-center`}
@@ -352,7 +352,7 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Live Feed */}
-      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+      <Card className="bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_14px_38px_rgb(0_0_0/0.10)]">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-bold text-sm">Live Feed</h3>
@@ -375,7 +375,7 @@ export const MapPanel = ({ emergencyStats }) => {
                     setSelectedMarker({ type: 'emergency', data: req });
                     window.dispatchEvent(new CustomEvent('recenter-map-target', { detail: { lat: req.lat, lng: req.lng } }));
                   }}
-                  className="group cursor-pointer bg-background/60 hover:bg-background/80 transition-all shadow-sm hover:shadow-md p-3 rounded-card relative overflow-hidden"
+                  className="group cursor-pointer bg-background/60 hover:bg-background/80 transition-all motion-safe:active:scale-[0.98] shadow-sm hover:shadow-md p-3 rounded-card relative overflow-hidden"
                 >
                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${req.priority === 'critical' ? 'bg-destructive' : 'bg-foreground/20'
                     }`} />
@@ -384,7 +384,7 @@ export const MapPanel = ({ emergencyStats }) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm">#{req.id.slice(0, 4)}</span>
-                        {req.priority === 'critical' && <span className="flex h-2 w-2 rounded-pill bg-destructive animate-pulse" />}
+                        {req.priority === 'critical' && <span className="flex h-2 w-2 rounded-pill bg-destructive" />}
                         <span className="inline-flex h-4 items-center rounded-pill bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">{req.status}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
