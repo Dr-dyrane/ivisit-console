@@ -1,18 +1,43 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { Newspaper, Search, Eye, FileCheck, Tag, BookOpen, Globe, Clock, SlidersHorizontal, BarChart3 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Newspaper, Search, Eye, FileCheck, Tag, BookOpen, Globe, Clock, Link, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { VitalTrack } from '../common/VitalTrack';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { resolveVital } from '../../constants/vitalTracks';
+import { groupByMonth } from '../../utils/groupByMonth';
+
+// Health news has no modelled lifecycle: status is a single boolean. Derive the
+// draft->published track key from whichever shape the record carries.
+const isArticlePublished = (article) => {
+  if (typeof article?.published === 'boolean') return article.published;
+  if (typeof article?.is_published === 'boolean') return article.is_published;
+  const status = String(article?.status || '').toLowerCase();
+  if (status) return status === 'published';
+  return false;
+};
+
+const categoryLabel = (value) => {
+  const text = String(value || 'general').replace(/[_-]+/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+const dateLabel = (value) => {
+  if (!value) return 'Unknown date';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Unknown date';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 export const MobileHealthNews = ({
   articles = [],
@@ -204,51 +229,63 @@ export const MobileHealthNews = ({
 
         <div className="space-y-1" data-testid="mobile-health-news-activity-sheet">
           <AnimatePresence mode="popLayout">
-            {displayArticles.map((article) => {
-              const published = !!article.published;
-              return (
-                <MobileMetricRow
-                  key={article.id}
-                  icon={Newspaper}
-                  color={published ? 'hsl(var(--success))' : 'hsl(var(--warning))'}
-                  label={String(article.category || 'general').toUpperCase()}
-                  value={article.title || 'Untitled article'}
-                  rightBlade={{
-                    badge: published ? 'PUBLISHED' : 'DRAFT',
-                    direction: published ? 'up' : 'flat',
-                    label: 'Source',
-                    value: article.source || 'Unknown',
-                    color: published ? 'hsl(var(--success))' : 'hsl(var(--warning))'
-                  }}
-                  isExpanded={expandedId === article.id}
-                  onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                  itemId={article.id}
-                  expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Globe size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal truncate">{article.source || 'No source'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Clock size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">{article.created_at ? new Date(article.created_at).toLocaleString() : 'No date'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Tag size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">{article.category || 'general'}</span>
-                        </div>
-                      </div>
+            {/* Date-grouped feed (rollout S5): newest-first by published/created date,
+                a month header at each boundary. Grouping is render-only; id-keyed
+                expand state is unaffected. */}
+            {groupByMonth(displayArticles, (article) => article.published_at || article.created_at).map(({ item: article, header }) => {
+              const published = isArticlePublished(article);
+              const vital = resolveVital('healthNews', published ? 'published' : 'draft');
+              const linkValue = article.source_url_valid
+                ? (article.source_host || article.source || 'Valid link')
+                : (article.raw_url || article.url ? 'Unverified link' : null);
 
-                      <div className="flex gap-2 pt-2">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(article)}>
-                          <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
-                        </Button>
-                      </div>
+              return (
+                <React.Fragment key={article.id}>
+                  {header && (
+                    <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {header}
                     </div>
                   )}
-                />
+                  <MobileMetricRow
+                    icon={published ? FileCheck : Newspaper}
+                    color={vital?.accent || 'hsl(var(--primary))'}
+                    label="Health article"
+                    value={article.title || 'Untitled article'}
+                    secondary={`${categoryLabel(article.category)} · ${article.source || 'Unknown source'}`}
+                    statusPill={vital?.pill}
+                    isExpanded={expandedId === article.id}
+                    onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
+                    itemId={article.id}
+                    expandedContent={(
+                      <div className="space-y-3 py-3">
+                        {vital && (
+                          <VitalTrack
+                            steps={vital.steps}
+                            currentKey={vital.currentKey}
+                            tone={vital.tone}
+                            cancelled={vital.cancelled}
+                            label="Article status"
+                          />
+                        )}
+                        <MobileDetailIslands
+                          items={[
+                            { icon: Globe, label: 'Source', value: article.source || 'Unknown source' },
+                            { icon: Tag, label: 'Category', value: categoryLabel(article.category) },
+                            { icon: Clock, label: 'Published', value: dateLabel(article.published_at || article.created_at) },
+                            linkValue ? { icon: Link, label: 'Link', value: linkValue } : null,
+                          ]}
+                        />
+                        {/* S7: Health News is a contract-locked read-only published feed
+                            (HealthNewsManagementPage.contract.test.js forbids surfacing
+                            publish/edit/delete in mobile, and the page passes no mutation
+                            handler), so the single state-CTA is Details. */}
+                        <MobileSheetActions
+                          primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(article) }}
+                        />
+                      </div>
+                    )}
+                  />
+                </React.Fragment>
               );
             })}
           </AnimatePresence>
@@ -278,5 +315,3 @@ export const MobileHealthNews = ({
     </PullToRefresh>
   );
 };
-
-
