@@ -194,14 +194,14 @@ export const MobileHealthNews = ({
               placeholder="Search articles..."
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-button apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]"
+              className="w-full h-11 pl-10 pr-4 rounded-button bg-muted/40 text-[12px] placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]"
             />
           </div>
           {onOpenFilters && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
               aria-label="Open filters"
             >
               <SlidersHorizontal size={18} />
@@ -209,9 +209,9 @@ export const MobileHealthNews = ({
           )}
           {onViewAnalytics && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -262,7 +262,7 @@ export const MobileHealthNews = ({
             <div className="py-8 text-center" data-testid="mobile-health-news-error-state">
               <MobileListEmpty icon={Newspaper} label="Health news could not load" />
               {onRetry && (
-                <Button variant="ghost" className="mt-3 h-11 rounded-button apple-glass px-4 text-xs font-semibold" onClick={onRetry}>
+                <Button variant="ghost" className="mt-3 h-11 rounded-button bg-background/85 px-4 text-xs font-semibold" onClick={onRetry}>
                   Try again
                 </Button>
               )}
