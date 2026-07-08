@@ -197,7 +197,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('label="No requests found"');
     expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
     expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
-    expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain('<MobileDetailSheet');
     expect(mobileSource).toContain('onClose={() => setActiveRequest(null)}');
   });
@@ -436,16 +436,16 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).not.toContain('hover:bg-primary/10 hover:text-primary');
     expect(mobileSource).toContain('const MobileRequestsAtlasLayer = () => (');
     expect(mobileSource).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground');
-    expect(mobileSource).toContain('grid grid-cols-2 gap-2');
-    expect(mobileSource).toContain('data-request-kpi={item.id}');
-    expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
-    expect(mobileSource).toContain('aria-pressed={active}');
+    expect(mobileSource).toContain('MobileKPIStrip');
+    expect(mobileSource).toContain('kpis={kpis}');
+    expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
+    expect(mobileSource).toContain("onKpiClick={(id) => setKpiFilter?.(id)}");
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
     expect(mobileSource).toContain('onClick={() => onOpen(request)}');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('className="space-y-4 px-5"');
     expect(mobileSource).toContain('rounded-t-sheet bg-card/78');
-    expect(mobileSource).toContain('rounded-card px-4 py-3');
+    expect(mobileSource).toContain('text-2xl font-semibold leading-tight');
     // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button
     // tiles), replacing the old inline `rounded-inner bg-background/30 p-3` tiles.
     expect(mobileSource).toContain('MobileDetailIslands');

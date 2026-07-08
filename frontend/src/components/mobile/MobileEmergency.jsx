@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
+import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { useFeedback } from '../../hooks/useFeedback';
@@ -30,35 +31,15 @@ import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapp
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
 
+// State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
+// dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
+// avatars/pills and the desktop RequestKpiStrip: attention=destructive, active=amber,
+// bed=cyan, ambulance=sky. `icon` feeds the compact signal header.
 const mobileKpis = [
-    {
-        id: 'pending',
-        label: 'Needs attention',
-        icon: AlertCircle,
-        activeClass: 'bg-destructive/16 text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.18)]',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'active',
-        label: 'Active',
-        icon: Clock,
-        activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'bed',
-        label: 'Beds',
-        icon: BedDouble,
-        activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'ambulance',
-        label: 'Ambulance',
-        icon: Ambulance,
-        activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.14)] dark:text-sky-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
+    { id: 'pending', label: 'Needs attention', icon: AlertCircle, color: 'hsl(var(--destructive))' },
+    { id: 'active', label: 'Active', icon: Clock, color: '#f59e0b' },
+    { id: 'bed', label: 'Beds', icon: BedDouble, color: '#06b6d4' },
+    { id: 'ambulance', label: 'Ambulance', icon: Ambulance, color: '#0ea5e9' },
 ];
 
 const countNumber = (value, fallback = 0) => {
@@ -272,59 +253,38 @@ export const MobileEmergency = ({
             >
                 <MobileRequestsAtlasLayer />
                 <div className="relative z-10 space-y-5">
+                    {/* Compact signal header (title + subtitle). Replaces the old big 34px
+                        headline; the state filter now lives in the MobileKPIStrip chip row
+                        below, recycled from the shared mobile DS (see MobileSupportTickets). */}
                     <motion.section
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35 }}
                         className="space-y-4 px-5"
                     >
-                        <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobileSignalTone[signal.id] || mobileSignalTone.pending}`}>
-                            <SignalIcon size={15} />
-                            {signal.label}
-                        </div>
-                        <div>
-                            <h1 className="text-[34px] font-semibold leading-[1.03] tracking-normal text-foreground">
-                                {signal.headline}
-                            </h1>
-                            <p className="mt-3 max-w-[22rem] text-[15px] leading-6 text-muted-foreground">
-                                {signal.subhead}
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            {kpis.map((item) => {
-                                const Icon = item.icon;
-                                const active = (kpiFilter || 'pending') === item.id;
-                                const clearPending = item.id === 'pending' && countNumber(item.value, 0) === 0;
-                                const activeClass = clearPending
-                                    ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-200'
-                                    : item.activeClass;
-                                return (
-                                    <motion.button
-                                        key={item.id}
-                                        type="button"
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => setKpiFilter?.(item.id)}
-                                        data-request-kpi={item.id}
-                                        data-state={active ? 'selected' : 'idle'}
-                                        className={`min-h-[86px] rounded-card px-4 py-3 text-left transition-all ${active ? activeClass : item.restClass}`}
-                                        aria-pressed={active}
-                                        aria-label={`${item.label}: ${item.value}`}
-                                    >
-                                        <span className="flex items-start justify-between gap-3">
-                                            <span className="min-w-0">
-                                                <span className="block text-xs font-semibold leading-tight">{item.label}</span>
-                                                <span className="mt-2 block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
-                                            </span>
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/40">
-                                                <Icon size={16} />
-                                            </span>
-                                        </span>
-                                    </motion.button>
-                                );
-                            })}
+                        <div className="flex items-start gap-3">
+                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-button ${mobileSignalTone[signal.id] || mobileSignalTone.pending}`}>
+                                <SignalIcon size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-muted-foreground">Requests</p>
+                                <h2 className="mt-1 text-2xl font-semibold leading-tight text-foreground">
+                                    {signal.headline}
+                                </h2>
+                                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                                    {signal.subhead}
+                                </p>
+                            </div>
                         </div>
                     </motion.section>
+
+                    <MobileKPIStrip
+                        kpis={kpis}
+                        activeKpi={kpiFilter || 'pending'}
+                        onKpiClick={(id) => setKpiFilter?.(id)}
+                        loading={loading}
+                        labelTone="plain"
+                    />
 
                     <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
                         <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
