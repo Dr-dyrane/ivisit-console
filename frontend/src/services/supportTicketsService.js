@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'support_tickets';
 const SUPPORT_TICKET_CREATE_FIELDS = [
@@ -98,11 +99,19 @@ function applySupportTicketFilters(query, filter = {}) {
 async function getSupportTicketExactCount(filter = {}, quiet = false) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
-    query = applySupportTicketScope(query, user);
-    query = applySupportTicketFilters(query, filter);
 
-    const { count, error } = await query;
+    // L1 hardening: retry the idempotent count read on transient failures
+    // (network/timeout, 429, 5xx, serialization). The single-use Supabase builder
+    // is rebuilt inside the callback; non-retryable errors (auth/RLS) still throw
+    // on the first attempt, preserving prior behavior.
+    const { count, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+      query = applySupportTicketScope(query, user);
+      query = applySupportTicketFilters(query, filter);
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     return Number.isFinite(count) ? count : 0;
@@ -154,50 +163,58 @@ function pickAllowedSupportTicketFields(input, allowedFields) {
 export async function getSupportTickets(filter = {}) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply RBAC filter using centralized service
-    query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',
-      orgIdField: 'organization_id',
-      resourceType: 'support'
+    // L1 hardening: retry the primary support-ticket read on transient failures;
+    // the single-use Supabase builder is rebuilt inside the callback. Non-retryable
+    // errors (auth/RLS/constraint) still throw on the first attempt.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
+
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, user, {
+        userIdField: 'user_id',
+        orgIdField: 'organization_id',
+        resourceType: 'support'
+      });
+
+      // 2. Apply Custom Filters
+      if (filter.status) {
+        if (Array.isArray(filter.status) && filter.status.length > 0) {
+          query = query.in('status', filter.status);
+        } else if (!Array.isArray(filter.status)) {
+          query = query.eq('status', filter.status);
+        }
+      }
+      if (filter.priority) {
+        if (Array.isArray(filter.priority) && filter.priority.length > 0) {
+          query = query.in('priority', filter.priority);
+        } else if (!Array.isArray(filter.priority)) {
+          query = query.eq('priority', filter.priority);
+        }
+      }
+      if (filter.category) {
+        if (Array.isArray(filter.category) && filter.category.length > 0) {
+          query = query.in('category', filter.category);
+        } else if (!Array.isArray(filter.category)) {
+          query = query.eq('category', filter.category);
+        }
+      }
+      if (filter.assigned_to) {
+        query = query.eq('assigned_to', filter.assigned_to);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const limit = Number(filter.limit);
+      const offset = Number(filter.offset) || 0;
+      if (Number.isFinite(limit) && limit > 0) {
+        query = query.range(offset, offset + limit - 1);
+      }
+
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
     });
-
-    // 2. Apply Custom Filters
-    if (filter.status) {
-      if (Array.isArray(filter.status) && filter.status.length > 0) {
-        query = query.in('status', filter.status);
-      } else if (!Array.isArray(filter.status)) {
-        query = query.eq('status', filter.status);
-      }
-    }
-    if (filter.priority) {
-      if (Array.isArray(filter.priority) && filter.priority.length > 0) {
-        query = query.in('priority', filter.priority);
-      } else if (!Array.isArray(filter.priority)) {
-        query = query.eq('priority', filter.priority);
-      }
-    }
-    if (filter.category) {
-      if (Array.isArray(filter.category) && filter.category.length > 0) {
-        query = query.in('category', filter.category);
-      } else if (!Array.isArray(filter.category)) {
-        query = query.eq('category', filter.category);
-      }
-    }
-    if (filter.assigned_to) {
-      query = query.eq('assigned_to', filter.assigned_to);
-    }
-
-    query = query.order('created_at', { ascending: false });
-
-    const limit = Number(filter.limit);
-    const offset = Number(filter.offset) || 0;
-    if (Number.isFinite(limit) && limit > 0) {
-      query = query.range(offset, offset + limit - 1);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
 
     return data || [];
@@ -205,8 +222,11 @@ export async function getSupportTickets(filter = {}) {
     if (!filter?.quiet) {
       console.error('Error fetching support tickets:', error);
     }
-    if (filter?.quiet) throw error;
-    return [];
+    // Error model (CONSOLE_DATA_LAYER section 1, rule 11): surface real failures
+    // instead of masking them as an empty list. Both callers
+    // (useSupportTickets.fetchSupportTickets, PageDataContext.fetchSupportTicketsData)
+    // already wrap this in try/catch, so throwing is caller-safe.
+    throw error;
   }
 }
 
@@ -221,22 +241,28 @@ export async function getSupportTicketsPage(filter = {}) {
     const countPromise = getSupportTicketExactCount(filter, true);
     const statsPromise = getSupportTicketsPageStats(statsFilter, true);
 
-    let dataQuery = supabase.from(TABLE_NAME).select('*');
-    dataQuery = applySupportTicketScope(dataQuery, user);
-    dataQuery = applySupportTicketFilters(dataQuery, filter);
-
     const sortKey = SUPPORT_TICKET_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
-    dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
-
     const limit = Number(filter.limit);
     const offset = Number(filter.offset) || 0;
-    if (Number.isFinite(limit) && limit > 0) {
-      dataQuery = dataQuery.range(offset, offset + limit - 1);
-    }
+
+    // L1 hardening: retry the idempotent page read on transient failures; the
+    // single-use Supabase builder is rebuilt inside the callback each attempt.
+    const dataPromise = withRetry(async () => {
+      let dataQuery = supabase.from(TABLE_NAME).select('*');
+      dataQuery = applySupportTicketScope(dataQuery, user);
+      dataQuery = applySupportTicketFilters(dataQuery, filter);
+      dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+      if (Number.isFinite(limit) && limit > 0) {
+        dataQuery = dataQuery.range(offset, offset + limit - 1);
+      }
+      const result = await dataQuery;
+      if (result.error) throw result.error;
+      return result;
+    });
 
     const [{ count }, { data, error }, stats] = await Promise.all([
       countPromise.then((value) => ({ count: value })),
-      dataQuery,
+      dataPromise,
       statsPromise,
     ]);
 
@@ -262,13 +288,19 @@ export async function getSupportTicket(ticketId) {
   try {
     if (!isValidUUID(ticketId)) return null;
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('id', ticketId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
+    // maybeSingle: this row is RLS-scoped and can legitimately return 0 rows for a
+    // non-owner read; .single() raises PGRST116/HTTP 406 on 0 rows. withRetry covers
+    // transient failures on this idempotent id-keyed read.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('id', ticketId)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result;
+    });
+    if (error) throw error;
 
     return data || null;
   } catch (error) {
@@ -300,13 +332,23 @@ export async function createSupportTicket(input) {
       throw new Error('Support ticket message is required');
     }
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) throw error;
+    // withAudit: fire-and-forget activity log around the create write. Transparent
+    // to callers - it returns the created row and re-throws on failure. Metadata is
+    // enum/id only (no subject/message content).
+    const data = await withAudit(
+      'support_ticket.create',
+      'support_ticket',
+      async () => {
+        const result = await supabase
+          .from(TABLE_NAME)
+          .insert([payload])
+          .select()
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      },
+      { category: payload.category, priority: payload.priority }
+    );
 
     return data;
   } catch (error) {
@@ -341,14 +383,22 @@ export async function updateSupportTicket(ticketId, input) {
 
     payload.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', ticketId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    // withAudit: audit the content update. Metadata is id + changed field names only.
+    const data = await withAudit(
+      'support_ticket.update',
+      'support_ticket',
+      async () => {
+        const result = await supabase
+          .from(TABLE_NAME)
+          .update(payload)
+          .eq('id', ticketId)
+          .select()
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      },
+      { ticket_id: ticketId, fields: Object.keys(payload) }
+    );
 
     return data;
   } catch (error) {
@@ -362,12 +412,21 @@ export async function updateSupportTicket(ticketId, input) {
  */
 export async function deleteSupportTicket(ticketId) {
   try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', ticketId);
-
-    if (error) throw error;
+    // withAudit: destructive delete gets an activity-log entry. Return value stays
+    // undefined for callers (they ignore it); withAudit only observes the outcome.
+    await withAudit(
+      'support_ticket.delete',
+      'support_ticket',
+      async () => {
+        const { error } = await supabase
+          .from(TABLE_NAME)
+          .delete()
+          .eq('id', ticketId);
+        if (error) throw error;
+        return { id: ticketId };
+      },
+      { ticket_id: ticketId }
+    );
   } catch (error) {
     console.error(`Error deleting support ticket ${ticketId}:`, error);
     throw error;
@@ -379,12 +438,17 @@ export async function deleteSupportTicket(ticketId) {
  */
 export async function getUserSupportTickets(userId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    if (!isValidUUID(userId)) return [];
 
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     return data || [];
@@ -399,17 +463,25 @@ export async function getUserSupportTickets(userId) {
  */
 export async function updateTicketStatus(ticketId, status) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', ticketId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    // withAudit: operator workflow state change - log the status transition.
+    const data = await withAudit(
+      'support_ticket.status',
+      'support_ticket',
+      async () => {
+        const result = await supabase
+          .from(TABLE_NAME)
+          .update({
+            status: status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', ticketId)
+          .select()
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      },
+      { ticket_id: ticketId, status }
+    );
 
     return data;
   } catch (error) {
@@ -423,17 +495,23 @@ export async function updateTicketStatus(ticketId, status) {
  */
 export async function getOpenTicketsCount() {
   try {
-    const { count, error } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact' })
-      .eq('status', 'open');
-
+    const { count, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('id', { count: 'exact' })
+        .eq('status', 'open');
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     return count || 0;
   } catch (error) {
+    // Error model (CONSOLE_DATA_LAYER section 1, rule 11): surface a real failure
+    // rather than masking it as 0. This export currently has no callers, so the
+    // return-shape change (0 -> throw) has no caller ripple.
     console.error('Error fetching open tickets count:', error);
-    return 0;
+    throw error;
   }
 }
 
@@ -442,18 +520,26 @@ export async function getOpenTicketsCount() {
  */
 export async function assignTicket(ticketId, assignedTo) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        assigned_to: assignedTo,
-        status: 'in_progress',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', ticketId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    // withAudit: operator assignment - log who the ticket was routed to.
+    const data = await withAudit(
+      'support_ticket.assign',
+      'support_ticket',
+      async () => {
+        const result = await supabase
+          .from(TABLE_NAME)
+          .update({
+            assigned_to: assignedTo,
+            status: 'in_progress',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', ticketId)
+          .select()
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      },
+      { ticket_id: ticketId, assigned_to: assignedTo }
+    );
 
     return data;
   } catch (error) {
@@ -468,13 +554,17 @@ export async function assignTicket(ticketId, assignedTo) {
 export async function getSupportTicketsAnalytics() {
   try {
     const user = await getCurrentUser();
-    let query = supabase
-      .from(TABLE_NAME)
-      .select('status, priority, category, created_at, updated_at');
-    query = applySupportTicketScope(query, user);
 
-    const { data, error } = await query;
-
+    // L1 hardening: retry the idempotent analytics read on transient failures.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase
+        .from(TABLE_NAME)
+        .select('status, priority, category, created_at, updated_at');
+      query = applySupportTicketScope(query, user);
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     // Calculate analytics

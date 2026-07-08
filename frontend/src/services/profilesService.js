@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'profiles';
 
@@ -29,9 +30,17 @@ async function isAdmin() {
  */
 async function getProfilesWithAuthData(filter) {
   try {
-    // Get all auth users with profile data, scoped by organization if provided
-    const { data, error } = await supabase.rpc('get_all_auth_users', {
-      p_organization_id: filter?.organization_id || null
+    // Get all auth users with profile data, scoped by organization if provided.
+    // L1 hardening: retry the idempotent RPC read on transient failures
+    // (network/timeout, 429, 5xx). The RPC is re-issued inside the callback and
+    // its error is thrown so non-retryable errors (auth/RLS) still surface on the
+    // first attempt, preserving prior throw-on-error behavior for callers.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase.rpc('get_all_auth_users', {
+        p_organization_id: filter?.organization_id || null
+      });
+      if (result.error) throw result.error;
+      return result;
     });
 
     if (error) throw error;
@@ -111,7 +120,12 @@ export async function getUserStatistics(options = {}) {
       return { totalUsers: 0, totalProfiles: 0, recentSignups: 0, roleDistribution: {} };
     }
 
-    const { data, error } = await supabase.rpc('get_user_statistics');
+    // L1 hardening: retry the idempotent statistics RPC on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase.rpc('get_user_statistics');
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     // Transform the row data into a more usable format
@@ -150,7 +164,12 @@ export async function searchUsers(searchTerm) {
       return [];
     }
 
-    const { data, error } = await supabase.rpc('search_auth_users', { search_term: searchTerm });
+    // L1 hardening: retry the idempotent search RPC on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase.rpc('search_auth_users', { search_term: searchTerm });
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
     return data;
   } catch (error) {
@@ -176,47 +195,55 @@ export async function getProfiles(filter = {}) {
       return await getProfilesWithAuthData({ ...filter, organization_id: scopingId });
     }
 
-    let query = supabase.from(TABLE_NAME).select('*');
+    // L1 hardening: retry the primary profiles read on transient failures. The
+    // query is rebuilt inside the callback because Supabase builders are
+    // single-use thenables; non-retryable errors (auth/RLS/constraint) still
+    // throw on the first attempt, preserving prior throw-on-error behavior.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    // 1. Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      userIdField: 'id',
-      orgIdField: 'organization_id'
+      // 1. Apply RBAC Scoping
+      query = applyAuthFilter(query, user, {
+        userIdField: 'id',
+        orgIdField: 'organization_id'
+      });
+
+      // 2. Apply Custom Filters
+
+      // Apply additional filters
+      if (filter?.role) {
+        if (Array.isArray(filter.role)) {
+          if (filter.role.length > 0) query = query.in('role', filter.role);
+        } else {
+          query = query.eq('role', filter.role);
+        }
+      }
+      if (filter?.provider_type) {
+        if (Array.isArray(filter.provider_type)) {
+          if (filter.provider_type.length > 0) query = query.in('provider_type', filter.provider_type);
+        } else {
+          query = query.eq('provider_type', filter.provider_type);
+        }
+      }
+      if (filter?.verified !== undefined) {
+        query = query.eq('bvn_verified', filter.verified);
+      }
+
+      const sortBy = filter?.sortBy || 'created_at';
+      const ascending = filter?.ascending !== undefined ? filter.ascending : false;
+      query = query.order(sortBy, { ascending });
+
+      if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
+      if (filter?.offset) {
+        query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+      }
+
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
     });
-
-    // 2. Apply Custom Filters
-
-    // Apply additional filters
-    if (filter?.role) {
-      if (Array.isArray(filter.role)) {
-        if (filter.role.length > 0) query = query.in('role', filter.role);
-      } else {
-        query = query.eq('role', filter.role);
-      }
-    }
-    if (filter?.provider_type) {
-      if (Array.isArray(filter.provider_type)) {
-        if (filter.provider_type.length > 0) query = query.in('provider_type', filter.provider_type);
-      } else {
-        query = query.eq('provider_type', filter.provider_type);
-      }
-    }
-    if (filter?.verified !== undefined) {
-      query = query.eq('bvn_verified', filter.verified);
-    }
-
-    const sortBy = filter?.sortBy || 'created_at';
-    const ascending = filter?.ascending !== undefined ? filter.ascending : false;
-    query = query.order(sortBy, { ascending });
-
-    if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
 
     // NEW: Enrich with display IDs
@@ -246,15 +273,23 @@ export async function getProfiles(filter = {}) {
  */
 export async function getProfile(profileId) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    // NOTE: no UUID early-return here - this function intentionally falls back to
+    // a display_id lookup for non-UUID input, so a display label is a valid key.
+    // L1 hardening: .maybeSingle() (not .single()) so a 0-row RLS-scoped read
+    // returns null instead of PGRST116/406; retried on transient failures.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    if (isValidUUID(profileId)) {
-      query = query.eq('id', profileId);
-    } else {
-      query = query.eq('display_id', profileId);
-    }
+      if (isValidUUID(profileId)) {
+        query = query.eq('id', profileId);
+      } else {
+        query = query.eq('display_id', profileId);
+      }
 
-    const { data, error } = await query.single();
+      const result = await query.maybeSingle();
+      if (result.error && result.error.code !== 'PGRST116') throw result.error;
+      return result;
+    });
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -297,13 +332,20 @@ export async function createProfile(input) {
     // Remove undefined keys
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
+    // Critical mutation on the shared `profiles` table - wrap in withAudit so the
+    // insert is logged (fire-and-forget) without altering the return contract.
+    // .single() is safe here: an insert...select returns exactly the one new row.
+    const data = await withAudit('profile.create', 'profile', async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .insert([payload])
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (result.error) throw result.error;
+
+      return result.data;
+    }, { role: payload.role });
 
     return data;
   } catch (error) {
@@ -378,27 +420,32 @@ export async function updateProfile(profileId, input) {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const isSelfUpdate = currentUser?.id === profileId;
 
-    if (isSelfUpdate) {
-      // Self-update: direct table update works (own-row RLS)
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .update(payload)
-        .eq('id', profileId)
-        .select()
-        .single();
+    // Critical mutation on the shared `profiles` table - wrap in withAudit. The
+    // branch return shapes are preserved exactly (self-update returns the row;
+    // admin RPC returns whatever update_profile_by_admin returns).
+    return await withAudit('profile.update', 'profile', async () => {
+      if (isSelfUpdate) {
+        // Self-update: direct table update works (own-row RLS)
+        const { data, error } = await supabase
+          .from(TABLE_NAME)
+          .update(payload)
+          .eq('id', profileId)
+          .select()
+          .single();
 
-      if (error) throw error;
-      return data;
-    } else {
-      // Admin updating another user: use SECURITY DEFINER RPC
-      const { data, error } = await supabase.rpc('update_profile_by_admin', {
-        target_user_id: profileId,
-        profile_data: payload
-      });
+        if (error) throw error;
+        return data;
+      } else {
+        // Admin updating another user: use SECURITY DEFINER RPC
+        const { data, error } = await supabase.rpc('update_profile_by_admin', {
+          target_user_id: profileId,
+          profile_data: payload
+        });
 
-      if (error) throw error;
-      return data;
-    }
+        if (error) throw error;
+        return data;
+      }
+    }, { entityId: profileId, self: isSelfUpdate });
   } catch (error) {
     console.error(`Error updating profile ${profileId}:`, error);
     throw error;
@@ -410,11 +457,17 @@ export async function updateProfile(profileId, input) {
  */
 export async function getProfileByEmail(email) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('email', email)
-      .single();
+    // L1 hardening: .maybeSingle() so a 0-row (or RLS-scoped) email lookup
+    // returns null instead of PGRST116/406; retried on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+      if (result.error && result.error.code !== 'PGRST116') throw result.error;
+      return result;
+    });
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -430,11 +483,16 @@ export async function getProfileByEmail(email) {
  */
 export async function getProfilesByRole(role) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('role', role)
-      .order('created_at', { ascending: false });
+    // L1 hardening: retry the idempotent role-scoped read on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('role', role)
+        .order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -450,12 +508,17 @@ export async function getProfilesByRole(role) {
  */
 export async function getProvidersByType(providerType) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('provider_type', providerType)
-      .eq('role', 'provider')
-      .order('created_at', { ascending: false });
+    // L1 hardening: retry the idempotent provider-type read on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('provider_type', providerType)
+        .eq('role', 'provider')
+        .order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -476,12 +539,19 @@ export async function verifyProfileBVN(profileId) {
     // SECURITY DEFINER RPC updateProfile uses. The RPC returns jsonb
     // {success, id}, not the row, so re-read the full profile to preserve
     // the caller contract (useProfiles.verifyBVN splices the full row into state).
-    const { error } = await supabase.rpc('update_profile_by_admin', {
-      target_user_id: profileId,
-      profile_data: { bvn_verified: true },
-    });
+    // Critical identity mutation on the shared `profiles` table - wrap the RPC in
+    // withAudit. The re-read below (getProfile) preserves the caller contract:
+    // useProfiles.verifyBVN splices the full row back into state.
+    await withAudit('profile.verify_bvn', 'profile', async () => {
+      const { error } = await supabase.rpc('update_profile_by_admin', {
+        target_user_id: profileId,
+        profile_data: { bvn_verified: true },
+      });
 
-    if (error) throw error;
+      if (error) throw error;
+
+      return { id: profileId };
+    }, { entityId: profileId });
 
     return await getProfile(profileId);
   } catch (error) {
@@ -495,17 +565,23 @@ export async function verifyProfileBVN(profileId) {
  */
 export async function updateProfileAvatar(profileId, avatarUrl) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        image_uri: avatarUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profileId)
-      .select()
-      .single();
+    // Direct write to the shared `profiles` table - wrap in withAudit. .single()
+    // is safe: this updates the caller's own row (owner-scoped RLS) and returns it.
+    const data = await withAudit('profile.update_avatar', 'profile', async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .update({
+          image_uri: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profileId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (result.error) throw result.error;
+
+      return result.data;
+    }, { entityId: profileId });
 
     return data;
   } catch (error) {

@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID, withTimeout } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 import {
   canonicalizeVisitStatus,
   countVisitsByResolvedStatus,
@@ -327,7 +328,7 @@ export async function getVisitsPageData({
   try {
     const user = await getCurrentUser();
 
-    const resolvedRows = await getVisitResolutionRows({ filters, user });
+    const resolvedRows = await withRetry(() => getVisitResolutionRows({ filters, user }));
     const statsRows = applyResolvedVisitFilters(resolvedRows, filters, 'all');
     const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);
     const sortedRows = sortVisitsForPage(filteredRows, sortConfig);
@@ -356,8 +357,12 @@ export async function getVisitsPageData({
 export async function getVisits(filter = {}) {
   try {
     const user = await getCurrentUser();
-    // hospital_id is a UUID FK to the hospitals table.
-    let query = supabase.from(TABLE_NAME).select(`
+
+    // Idempotent read: rebuild the query on each retry attempt so the
+    // PostgREST builder is never awaited twice. Behavior-compatible.
+    const data = await withRetry(async () => {
+      // hospital_id is a UUID FK to the hospitals table.
+      let query = supabase.from(TABLE_NAME).select(`
       *,
       profiles!visits_user_id_fkey (
         id,
@@ -369,57 +374,59 @@ export async function getVisits(filter = {}) {
       )
     `);
 
-    // 1. Apply RBAC Scoping with improved hospital/doctor logic
-    query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',
-      orgIdField: 'hospital_id', // Org admins see visits at their hospital
-      providerIdField: 'doctor_name', // Providers may match by display name fallback
-      resourceType: 'visit' // Enables provider-specific logic
+      // 1. Apply RBAC Scoping with improved hospital/doctor logic
+      query = applyAuthFilter(query, user, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id', // Org admins see visits at their hospital
+        providerIdField: 'doctor_name', // Providers may match by display name fallback
+        resourceType: 'visit' // Enables provider-specific logic
+      });
+
+      // 2. Apply Custom Filters
+      if (filter.user_id) {
+        query = query.eq('user_id', filter.user_id);
+      }
+      if (filter?.doctor) {
+        query = query.eq('doctor_name', filter.doctor);
+      }
+      if (filter?.doctor_name) {
+        query = query.eq('doctor_name', filter.doctor_name);
+      }
+      if (filter?.hospital_id) {
+        query = query.eq('hospital_id', filter.hospital_id);
+      }
+      if (filter?.status) {
+        query = query.eq('status', filter.status);
+      }
+      if (filter?.type) {
+        query = query.eq('type', filter.type);
+      }
+      if (filter?.visit_type) {
+        query = query.eq('type', filter.visit_type);
+      }
+
+      if (filter?.date_from) {
+        query = query.gte('date', filter.date_from);
+      }
+      if (filter?.date_to) {
+        query = query.lte('date', filter.date_to);
+      }
+
+      // 3. Apply ordering and pagination
+      query = query.order('date', { ascending: false });
+
+      if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
+      if (filter?.offset) {
+        query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+      }
+
+      const { data: rows, error } = await query;
+
+      if (error) throw error;
+      return rows;
     });
-
-    // 2. Apply Custom Filters
-    if (filter.user_id) {
-      query = query.eq('user_id', filter.user_id);
-    }
-    if (filter?.doctor) {
-      query = query.eq('doctor_name', filter.doctor);
-    }
-    if (filter?.doctor_name) {
-      query = query.eq('doctor_name', filter.doctor_name);
-    }
-    if (filter?.hospital_id) {
-      query = query.eq('hospital_id', filter.hospital_id);
-    }
-    if (filter?.status) {
-      query = query.eq('status', filter.status);
-    }
-    if (filter?.type) {
-      query = query.eq('type', filter.type);
-    }
-    if (filter?.visit_type) {
-      query = query.eq('type', filter.visit_type);
-    }
-
-    if (filter?.date_from) {
-      query = query.gte('date', filter.date_from);
-    }
-    if (filter?.date_to) {
-      query = query.lte('date', filter.date_to);
-    }
-
-    // 3. Apply ordering and pagination
-    query = query.order('date', { ascending: false });
-
-    if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
 
     // Transform data to include nested patient info
     return (data || []).map(visit => normalizeVisitForUI({
@@ -440,9 +447,12 @@ export async function getVisits(filter = {}) {
  */
 export async function getVisit(visitId) {
   try {
-    let query = supabase
-      .from(TABLE_NAME)
-      .select(`
+    // Read by id OR display_id: under RLS this can return 0 rows, so use
+    // maybeSingle() (never single(), which would 406/PGRST116 on empty).
+    const data = await withRetry(async () => {
+      let query = supabase
+        .from(TABLE_NAME)
+        .select(`
         *,
         profiles!visits_user_id_fkey (
           id,
@@ -454,15 +464,16 @@ export async function getVisit(visitId) {
         )
       `);
 
-    if (isValidUUID(visitId)) {
-      query = query.eq('id', visitId);
-    } else {
-      query = query.eq('display_id', visitId);
-    }
+      if (isValidUUID(visitId)) {
+        query = query.eq('id', visitId);
+      } else {
+        query = query.eq('display_id', visitId);
+      }
 
-    const { data, error } = await query.single();
-
-    if (error && error.code !== 'PGRST116') throw error;
+      const { data: row, error } = await query.maybeSingle();
+      if (error) throw error;
+      return row;
+    });
 
     // Transform data to include nested patient info
     if (data) {
@@ -490,9 +501,10 @@ export async function getVisitByRequestId(requestId) {
   try {
     if (!requestId) return null;
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select(`
+    const data = await withRetry(async () => {
+      const { data: row, error } = await supabase
+        .from(TABLE_NAME)
+        .select(`
         *,
         profiles!visits_user_id_fkey (
           id,
@@ -503,12 +515,13 @@ export async function getVisitByRequestId(requestId) {
           avatar_url
         )
       `)
-      .eq('request_id', requestId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
+        .eq('request_id', requestId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return row;
+    });
 
     if (data) {
       return {
@@ -532,15 +545,17 @@ export async function createVisit(input) {
   try {
     const payload = buildVisitWritePayload(input, { includeCreateDefaults: true });
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
+    return await withAudit('visit.create', 'visit', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([payload])
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return normalizeVisitForUI(data);
+      return normalizeVisitForUI(data);
+    }, { user_id: input?.user_id ?? null });
   } catch (error) {
     console.error('Error creating visit:', error);
     throw error;
@@ -554,16 +569,18 @@ export async function updateVisit(visitId, input) {
   try {
     const payload = buildVisitWritePayload(input);
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', visitId)
-      .select()
-      .single();
+    return await withAudit('visit.update', 'visit', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update(payload)
+        .eq('id', visitId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return normalizeVisitForUI(data);
+      return normalizeVisitForUI(data);
+    }, { visit_id: visitId });
   } catch (error) {
     console.error(`Error updating visit ${visitId}:`, error);
     throw error;
@@ -575,12 +592,15 @@ export async function updateVisit(visitId, input) {
  */
 export async function deleteVisit(visitId) {
   try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', visitId);
+    await withAudit('visit.delete', 'visit', async () => {
+      const { error } = await supabase
+        .from(TABLE_NAME)
+        .delete()
+        .eq('id', visitId);
 
-    if (error) throw error;
+      if (error) throw error;
+      return { id: visitId };
+    }, { visit_id: visitId });
   } catch (error) {
     console.error(`Error deleting visit ${visitId}:`, error);
     throw error;
@@ -602,21 +622,23 @@ export async function completeVisit(visitId, summary, prescriptions) {
         ? String(prescriptions).split(',').map(s => s.trim()).filter(Boolean)
         : null;
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'completed',
-        ...(summaryText ? { summary: summaryText } : {}),
-        ...(prescriptionsArray?.length ? { prescriptions: prescriptionsArray } : {}),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', visitId)
-      .select()
-      .single();
+    return await withAudit('visit.complete', 'visit', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          status: 'completed',
+          ...(summaryText ? { summary: summaryText } : {}),
+          ...(prescriptionsArray?.length ? { prescriptions: prescriptionsArray } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', visitId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { visit_id: visitId });
   } catch (error) {
     console.error(`Error completing visit ${visitId}:`, error);
     throw error;
@@ -628,20 +650,22 @@ export async function completeVisit(visitId, summary, prescriptions) {
  */
 export async function cancelVisit(visitId, reason) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'cancelled',
-        notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', visitId)
-      .select()
-      .single();
+    return await withAudit('visit.cancel', 'visit', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          status: 'cancelled',
+          notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', visitId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { visit_id: visitId });
   } catch (error) {
     console.error(`Error cancelling visit ${visitId}:`, error);
     throw error;
@@ -653,19 +677,21 @@ export async function cancelVisit(visitId, reason) {
  */
 export async function markVisitAsNoShow(visitId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'no-show',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', visitId)
-      .select()
-      .single();
+    return await withAudit('visit.no_show', 'visit', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          status: 'no-show',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', visitId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { visit_id: visitId });
   } catch (error) {
     console.error(`Error marking visit as no-show ${visitId}:`, error);
     throw error;
@@ -677,13 +703,18 @@ export async function markVisitAsNoShow(visitId) {
  */
 export async function getUserVisits(userId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: false });
+    if (!isValidUUID(userId)) return [];
 
-    if (error) throw error;
+    const data = await withRetry(async () => {
+      const { data: rows, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return rows;
+    });
 
     return (data || []).map(normalizeVisitForUI);
   } catch (error) {
@@ -697,16 +728,21 @@ export async function getUserVisits(userId) {
  */
 export async function getUserUpcomingVisits(userId) {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'scheduled')
-      .gte('date', today)
-      .order('date', { ascending: true });
+    if (!isValidUUID(userId)) return [];
 
-    if (error) throw error;
+    const today = new Date().toISOString().split('T')[0];
+    const data = await withRetry(async () => {
+      const { data: rows, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'scheduled')
+        .gte('date', today)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      return rows;
+    });
 
     return (data || []).map(normalizeVisitForUI);
   } catch (error) {
@@ -720,14 +756,19 @@ export async function getUserUpcomingVisits(userId) {
  */
 export async function getUserCompletedVisits(userId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'completed')
-      .order('date', { ascending: false });
+    if (!isValidUUID(userId)) return [];
 
-    if (error) throw error;
+    const data = await withRetry(async () => {
+      const { data: rows, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return rows;
+    });
 
     return (data || []).map(normalizeVisitForUI);
   } catch (error) {
@@ -741,13 +782,17 @@ export async function getUserCompletedVisits(userId) {
  */
 export async function getDoctorVisits(doctorId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('doctor_name', doctorId)
-      .order('date', { ascending: false });
+    // NOTE: `doctor_name` is a TEXT column, not a UUID FK, so no UUID guard here.
+    const data = await withRetry(async () => {
+      const { data: rows, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('doctor_name', doctorId)
+        .order('date', { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
+      return rows;
+    });
 
     return (data || []).map(normalizeVisitForUI);
   } catch (error) {
@@ -761,13 +806,18 @@ export async function getDoctorVisits(doctorId) {
  */
 export async function getHospitalVisits(hospitalId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .order('date', { ascending: false });
+    if (!isValidUUID(hospitalId)) return [];
 
-    if (error) throw error;
+    const data = await withRetry(async () => {
+      const { data: rows, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('hospital_id', hospitalId)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return rows;
+    });
 
     return (data || []).map(normalizeVisitForUI);
   } catch (error) {

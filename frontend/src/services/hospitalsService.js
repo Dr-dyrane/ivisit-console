@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 import { mergePreservedHospitalArrays } from './hospitalImportService';
+import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'hospitals';
 const HOSPITAL_CREATE_FIELDS = [
@@ -151,10 +152,17 @@ export function getHospitalVisibleStats(rows = []) {
 
 async function getHospitalExactCount(filters = {}, quiet = false) {
   try {
-    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
-    query = applyHospitalFilters(query, filters);
+    // L1 hardening: retry this idempotent count read on transient failures. The
+    // builder is rebuilt inside the callback because Supabase builders are
+    // single-use thenables; non-retryable errors (auth/RLS) throw on attempt 1.
+    const { error, count } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+      query = applyHospitalFilters(query, filters);
 
-    const { error, count } = await query;
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     return Number.isFinite(count) ? count : 0;
@@ -274,23 +282,31 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
  */
 export async function getHospitals(filter = {}) {
   try {
-    let query = filter?.count
-      ? supabase.from(TABLE_NAME).select('*', { count: 'exact' })
-      : supabase.from(TABLE_NAME).select('*');
-    // Rely on database RLS for visibility and role scoping to avoid client-side role drift.
-    // This keeps console/admin behavior consistent with backend policy changes.
+    // L1 hardening: retry the primary hospitals read on transient failures. The
+    // query is rebuilt inside the callback because Supabase builders are single-use
+    // thenables; non-retryable errors (auth/RLS/constraint) still throw on the first
+    // attempt, preserving prior behavior.
+    const { data, error, count } = await withRetry(async () => {
+      let query = filter?.count
+        ? supabase.from(TABLE_NAME).select('*', { count: 'exact' })
+        : supabase.from(TABLE_NAME).select('*');
+      // Rely on database RLS for visibility and role scoping to avoid client-side role drift.
+      // This keeps console/admin behavior consistent with backend policy changes.
 
-    query = applyHospitalFilters(query, filter);
+      query = applyHospitalFilters(query, filter);
 
-    query = query.order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false });
 
-    if (filter?.offset !== undefined && filter?.offset !== null) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    } else if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
+      if (filter?.offset !== undefined && filter?.offset !== null) {
+        query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+      } else if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
 
-    const { data, error, count } = await query;
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
     if (error) throw error;
 
     // NEW: Enrich with display IDs (ORG-XXXXXX)
@@ -371,15 +387,27 @@ export async function getHospitalsPageData(options = {}) {
  */
 export async function getHospital(hospitalId) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    // maybeSingle(): this is a non-owner lookup (operators/admins fetch any
+    // facility), so 0 rows under RLS must resolve to null, not PGRST116/HTTP 406.
+    // NOTE: no isValidUUID early-return here - this function intentionally accepts
+    // a display_id (ORG-XXXXXX label) as well as a UUID, so a strict UUID guard
+    // would break display-ID deep-links. Retry transient failures; PGRST116 (a
+    // >1-row ambiguity that id/display_id uniqueness should prevent) is not
+    // transient, so it is returned, not retried, and the guard below preserves the
+    // prior 0/many -> null contract.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    if (isValidUUID(hospitalId)) {
-      query = query.eq('id', hospitalId);
-    } else {
-      query = query.eq('display_id', hospitalId);
-    }
+      if (isValidUUID(hospitalId)) {
+        query = query.eq('id', hospitalId);
+      } else {
+        query = query.eq('display_id', hospitalId);
+      }
 
-    const { data, error } = await query.single();
+      const result = await query.maybeSingle();
+      if (result.error && result.error.code !== 'PGRST116') throw result.error;
+      return result;
+    });
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -397,15 +425,20 @@ export async function createHospital(input) {
   try {
     const payload = buildHospitalPayload(input, { isCreate: true });
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
+    // withAudit: critical write to the shared `hospitals` table. The insert
+    // .select().single() is a write-return of exactly one just-created row (not a
+    // non-owner read), so .single() is retained. Return shape unchanged.
+    return await withAudit('hospital.create', 'hospital', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([payload])
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { fields: Object.keys(payload) });
   } catch (error) {
     console.error('Error creating hospital:', error);
     throw error;
@@ -423,14 +456,18 @@ export async function updateHospital(hospitalId, input) {
     // The RPC overwrites specialties/service_types/features unconditionally, so on
     // a partial edit that omits any of them, preserve the row's current arrays.
     const mergedPayload = await mergePreservedHospitalArrays(hospitalId, payload);
-    const { data, error } = await supabase.rpc('update_hospital_by_admin', {
-      target_hospital_id: hospitalId,
-      payload: mergedPayload
-    });
+    // withAudit: critical write to the shared `hospitals` table via SECURITY
+    // DEFINER RPC. Return shape unchanged (the RPC's data).
+    return await withAudit('hospital.update', 'hospital', async () => {
+      const { data, error } = await supabase.rpc('update_hospital_by_admin', {
+        target_hospital_id: hospitalId,
+        payload: mergedPayload
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { hospital_id: hospitalId });
   } catch (error) {
     console.error(`Error updating hospital ${hospitalId}:`, error);
     throw error;
@@ -442,14 +479,18 @@ export async function updateHospital(hospitalId, input) {
  */
 export async function deleteHospital(hospitalId) {
   try {
-    const { data, error } = await supabase.rpc('delete_hospital_by_admin', {
-      target_hospital_id: hospitalId
-    });
-    if (error) throw error;
-    if (data && data.success === false) {
-      throw new Error(data.error || 'Hospital deletion failed');
-    }
-    return data || null;
+    // withAudit: critical delete on the shared `hospitals` table via SECURITY
+    // DEFINER RPC. Return shape unchanged (data || null).
+    return await withAudit('hospital.delete', 'hospital', async () => {
+      const { data, error } = await supabase.rpc('delete_hospital_by_admin', {
+        target_hospital_id: hospitalId
+      });
+      if (error) throw error;
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Hospital deletion failed');
+      }
+      return data || null;
+    }, { hospital_id: hospitalId });
   } catch (error) {
     console.error(`Error deleting hospital ${hospitalId}:`, error);
     throw error;
@@ -461,11 +502,16 @@ export async function deleteHospital(hospitalId) {
  */
 export async function getVerifiedHospitals() {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('verified', true)
-      .order('rating', { ascending: false });
+    // L1 hardening: idempotent read, retried on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('verified', true)
+        .order('rating', { ascending: false });
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -481,11 +527,16 @@ export async function getVerifiedHospitals() {
  */
 export async function getHospitalsBySpecialty(specialty) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .contains('specialties', [specialty])
-      .order('rating', { ascending: false });
+    // L1 hardening: idempotent read, retried on transient failures.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .contains('specialties', [specialty])
+        .order('rating', { ascending: false });
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -506,26 +557,30 @@ export async function updateHospitalBedCount(hospitalId, availableBeds) {
     // The RPC overwrites specialties/service_types/features unconditionally, so
     // preserve the row's current arrays before sending this narrow payload.
     const payload = await mergePreservedHospitalArrays(hospitalId, { available_beds: availableBeds });
-    const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
-      target_hospital_id: hospitalId,
-      payload,
-    });
+    // withAudit: critical write to the shared `hospitals` table via SECURITY
+    // DEFINER RPC. Return shape unchanged (the re-read hospital row).
+    return await withAudit('hospital.bed_count.update', 'hospital', async () => {
+      const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+        target_hospital_id: hospitalId,
+        payload,
+      });
 
-    if (error) throw error;
-    if (rpcResult && rpcResult.success === false) {
-      throw new Error(rpcResult.error || 'Hospital bed count update failed');
-    }
+      if (error) throw error;
+      if (rpcResult && rpcResult.success === false) {
+        throw new Error(rpcResult.error || 'Hospital bed count update failed');
+      }
 
-    // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
-    const { data, error: readError } = await supabase
-      .from(TABLE_NAME)
-      .select()
-      .eq('id', hospitalId)
-      .maybeSingle();
+      // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
+      const { data, error: readError } = await supabase
+        .from(TABLE_NAME)
+        .select()
+        .eq('id', hospitalId)
+        .maybeSingle();
 
-    if (readError) throw readError;
+      if (readError) throw readError;
 
-    return data;
+      return data;
+    }, { hospital_id: hospitalId });
   } catch (error) {
     console.error(`Error updating hospital bed count ${hospitalId}:`, error);
     throw error;
@@ -542,26 +597,30 @@ export async function updateHospitalStatus(hospitalId, status) {
     // The RPC overwrites specialties/service_types/features unconditionally, so
     // preserve the row's current arrays before sending this narrow payload.
     const payload = await mergePreservedHospitalArrays(hospitalId, { status: status });
-    const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
-      target_hospital_id: hospitalId,
-      payload,
-    });
+    // withAudit: critical write to the shared `hospitals` table via SECURITY
+    // DEFINER RPC. Return shape unchanged (the re-read hospital row).
+    return await withAudit('hospital.status.update', 'hospital', async () => {
+      const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
+        target_hospital_id: hospitalId,
+        payload,
+      });
 
-    if (error) throw error;
-    if (rpcResult && rpcResult.success === false) {
-      throw new Error(rpcResult.error || 'Hospital status update failed');
-    }
+      if (error) throw error;
+      if (rpcResult && rpcResult.success === false) {
+        throw new Error(rpcResult.error || 'Hospital status update failed');
+      }
 
-    // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
-    const { data, error: readError } = await supabase
-      .from(TABLE_NAME)
-      .select()
-      .eq('id', hospitalId)
-      .maybeSingle();
+      // Re-read so callers keep receiving the hospital row (RPC returns {success,id}).
+      const { data, error: readError } = await supabase
+        .from(TABLE_NAME)
+        .select()
+        .eq('id', hospitalId)
+        .maybeSingle();
 
-    if (readError) throw readError;
+      if (readError) throw readError;
 
-    return data;
+      return data;
+    }, { hospital_id: hospitalId });
   } catch (error) {
     console.error(`Error updating hospital status ${hospitalId}:`, error);
     throw error;

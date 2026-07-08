@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { withRetry, withAudit } from './supabaseHelpers';
+import { isValidUUID } from '../lib/utils';
 
 /**
  * Wallet Service for iVisit Console
@@ -20,34 +22,34 @@ const normalizeWalletPayment = (payment) => {
 
 const resolveWalletForProfile = async ({ profile, isAdmin }) => {
     if (isAdmin) {
-        const { data, error } = await supabase
+        const { data, error } = await withRetry(() => supabase
             .from('ivisit_main_wallet')
             .select('*')
-            .maybeSingle();
+            .maybeSingle());
         if (error) throw error;
         return data || null;
     }
 
-    if (!profile?.organization_id) return null;
+    if (!isValidUUID(profile?.organization_id)) return null;
 
-    const { data, error } = await supabase
+    const { data, error } = await withRetry(() => supabase
         .from('organization_wallets')
         .select('*')
         .eq('organization_id', profile.organization_id)
-        .maybeSingle();
+        .maybeSingle());
     if (error) throw error;
     return data || null;
 };
 
 const getWalletLedger = async (walletId, limit = 50) => {
-    if (!walletId) return [];
+    if (!isValidUUID(walletId)) return [];
 
-    const { data, error } = await supabase
+    const { data, error } = await withRetry(() => supabase
         .from('wallet_ledger')
         .select('*')
         .eq('wallet_id', walletId)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .limit(limit));
     if (error) throw error;
     return data || [];
 };
@@ -78,9 +80,10 @@ export const getWalletPayments = async ({ organizationId = null, isOrgAdmin = fa
         query = query.eq('organization_id', organizationId);
     }
 
-    const { data, error } = await query
+    const paymentsQuery = query
         .order('created_at', { ascending: false })
         .limit(limit);
+    const { data, error } = await withRetry(() => paymentsQuery);
     if (error) throw error;
 
     return (data || []).map(normalizeWalletPayment);
@@ -131,14 +134,14 @@ export const getWalletSummary = async (profile, isAdmin) => {
 
         // 1. Fetch Balance
         if (isAdmin) {
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('*').maybeSingle();
+            const { data: mainWallet } = await withRetry(() => supabase.from('ivisit_main_wallet').select('*').maybeSingle());
             balance = mainWallet?.balance || 0;
             currency = mainWallet?.currency || 'USD';
         } else {
-            const { data: orgWallet } = await supabase.from('organization_wallets')
+            const { data: orgWallet } = await withRetry(() => supabase.from('organization_wallets')
                 .select('*')
                 .eq('organization_id', profile.organization_id)
-                .maybeSingle();
+                .maybeSingle());
             balance = orgWallet?.balance || 0;
             currency = orgWallet?.currency || 'USD';
         }
@@ -156,16 +159,17 @@ export const getWalletSummary = async (profile, isAdmin) => {
 
         if (isAdmin) {
             // Platform Ledger: Filter by the platform's singular wallet_id
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
+            const { data: mainWallet } = await withRetry(() => supabase.from('ivisit_main_wallet').select('id').maybeSingle());
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         } else {
             // Org Ledger: Filter by the organization's specific wallet_id
             // Note: wallet_ledger does NOT contain organization_id directly.
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle();
+            const { data: orgWallet } = await withRetry(() => supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle());
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
-        const { data: ledgerData } = await query.gte('created_at', yesterday.toISOString());
+        const summaryLedgerQuery = query.gte('created_at', yesterday.toISOString());
+        const { data: ledgerData } = await withRetry(() => summaryLedgerQuery);
 
         if (ledgerData) {
             todayIncome = ledgerData
@@ -208,14 +212,15 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30, options =
             .gte('created_at', startDate.toISOString());
 
         if (isAdmin) {
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
+            const { data: mainWallet } = await withRetry(() => supabase.from('ivisit_main_wallet').select('id').maybeSingle());
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         } else {
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle();
+            const { data: orgWallet } = await withRetry(() => supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle());
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: true });
+        const financeQuery = query.order('created_at', { ascending: true });
+        const { data, error } = await withRetry(() => financeQuery);
 
         if (error) throw error;
 
@@ -278,15 +283,16 @@ export const getProjectedRevenue = async (organizationId = null, options = {}) =
 
         if (organizationId) {
             // Multi-tenant isolation: wallet_ledger is linked via wallet_id
-            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', organizationId).maybeSingle();
+            const { data: orgWallet } = await withRetry(() => supabase.from('organization_wallets').select('id').eq('organization_id', organizationId).maybeSingle());
             if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         } else {
             // Platform-wide metrics
-            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').maybeSingle();
+            const { data: mainWallet } = await withRetry(() => supabase.from('ivisit_main_wallet').select('id').maybeSingle());
             if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         }
 
-        const { data, error } = await query;
+        const projectionQuery = query;
+        const { data, error } = await withRetry(() => projectionQuery);
         if (error) throw error;
 
         const totalLast7Days = data.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -306,20 +312,22 @@ export const getProjectedRevenue = async (organizationId = null, options = {}) =
  * Calls the Secure Payout Edge Function in ivisit-app
  */
 export const withdrawFunds = async (amount, description, organizationId = null) => {
-    const { data, error } = await supabase.functions.invoke('create-payout', {
-        body: {
-            amount: Number(amount),
-            organization_id: organizationId,
-            currency: 'usd',
-            description: description
-        }
-    });
+    return withAudit('wallet.withdraw', 'wallet', async () => {
+        const { data, error } = await supabase.functions.invoke('create-payout', {
+            body: {
+                amount: Number(amount),
+                organization_id: organizationId,
+                currency: 'usd',
+                description: description
+            }
+        });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    // The DB reflection is updated via webhooks when Stripe succeeds,
-    // or we might need to update a 'pending' state here.
-    return data;
+        // The DB reflection is updated via webhooks when Stripe succeeds,
+        // or we might need to update a 'pending' state here.
+        return data;
+    }, { amount: Number(amount), organization_id: organizationId });
 };
 
 /**
@@ -327,33 +335,37 @@ export const withdrawFunds = async (amount, description, organizationId = null) 
  * Triggers a Payment Intent for the organization
  */
 export const topUpWallet = async (amount, description, organizationId = null) => {
-    const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-        body: {
-            amount: Number(amount),
-            organization_id: organizationId,
-            currency: 'usd',
-            metadata: {
-                type: 'wallet_topup',
-                description: description
+    return withAudit('wallet.topup', 'wallet', async () => {
+        const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+            body: {
+                amount: Number(amount),
+                organization_id: organizationId,
+                currency: 'usd',
+                metadata: {
+                    type: 'wallet_topup',
+                    description: description
+                }
             }
-        }
-    });
+        });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    // Note: In a real flow, the frontend would now use the returned clientSecret 
-    // with Stripe.js to complete the payment. 
-    // Once completed, the stripe-webhook handles crediting the DB wallet.
-    return data;
+        // Note: In a real flow, the frontend would now use the returned clientSecret
+        // with Stripe.js to complete the payment.
+        // Once completed, the stripe-webhook handles crediting the DB wallet.
+        return data;
+    }, { amount: Number(amount), organization_id: organizationId });
 };
 
 /**
  * Get Org Stripe Status (cards, payout status)
  */
 export const getOrgStripeStatus = async (organizationId) => {
-    const { data, error } = await supabase.rpc('get_org_stripe_status', {
+    if (!isValidUUID(organizationId)) return null;
+
+    const { data, error } = await withRetry(() => supabase.rpc('get_org_stripe_status', {
         p_organization_id: organizationId
-    });
+    }));
 
     if (error) throw error;
     return data;
@@ -406,7 +418,8 @@ export const deletePaymentMethod = async (organizationId, paymentMethodId) => {
  */
 export const processCashPayment = async (emergencyId, orgId, amount, currency = 'USD') => {
   void currency;
-  const { data, error } = await supabase.rpc('process_cash_payment', {
+  return withAudit('wallet.cash_payment', 'payment', async () => {
+    const { data, error } = await supabase.rpc('process_cash_payment', {
         p_emergency_request_id: emergencyId,
         p_organization_id: orgId,
         p_amount: Number(amount)
@@ -415,7 +428,8 @@ export const processCashPayment = async (emergencyId, orgId, amount, currency = 
     if (error) throw error;
     if (!data.success) throw new Error(data.error || 'Failed to process cash payment');
 
-  return data;
+    return data;
+  }, { emergency_request_id: emergencyId, organization_id: orgId, amount: Number(amount) });
 };
 
 /**
@@ -424,9 +438,11 @@ export const processCashPayment = async (emergencyId, orgId, amount, currency = 
 */
 export const checkCashEligibility = async (orgId, estimatedAmount) => {
     void estimatedAmount;
-    const { data, error } = await supabase.rpc('check_cash_eligibility', {
+    if (!isValidUUID(orgId)) return false;
+
+    const { data, error } = await withRetry(() => supabase.rpc('check_cash_eligibility', {
         p_organization_id: orgId
-    });
+    }));
 
     if (error) {
         console.error('Error checking cash eligibility:', error);

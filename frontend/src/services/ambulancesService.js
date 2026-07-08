@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID, withTimeout } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'ambulances';
 
@@ -242,42 +243,53 @@ export async function getAmbulancesPageData({
 export async function getAmbulances(filter = {}) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply RBAC Scoping
-    if (user?.role === 'provider' && user?.provider_type === 'driver') {
-      // Drivers see only their assigned ambulance
-      query = query.eq('profile_id', user.id);
-    } else {
-      // Apply standard RBAC for other roles
-      query = applyAuthFilter(query, user, {
-        userIdField: 'profile_id',
-        orgIdField: 'hospital_id',
-        resourceType: 'ambulance'
-      });
-    }
+    // L1 hardening: retry the read with exponential backoff on transient failures
+    // (network/timeout, 429, 5xx, serialization). The query is rebuilt inside the
+    // callback because Supabase builders are single-use thenables; non-retryable
+    // errors (auth/RLS/constraint) still throw on the first attempt, preserving
+    // prior behavior.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    // 2. Apply Custom Filters
-    if (filter?.hospital_id) {
-      query = query.eq('hospital_id', filter.hospital_id);
-    }
-    if (filter?.status) {
-      query = query.eq('status', filter.status);
-    }
-    if (filter?.type) {
-      query = query.eq('type', filter.type);
-    }
+      // Apply RBAC Scoping
+      if (user?.role === 'provider' && user?.provider_type === 'driver') {
+        // Drivers see only their assigned ambulance
+        query = query.eq('profile_id', user.id);
+      } else {
+        // Apply standard RBAC for other roles
+        query = applyAuthFilter(query, user, {
+          userIdField: 'profile_id',
+          orgIdField: 'hospital_id',
+          resourceType: 'ambulance'
+        });
+      }
 
-    query = query.order('created_at', { ascending: false });
+      // 2. Apply Custom Filters
+      if (filter?.hospital_id) {
+        query = query.eq('hospital_id', filter.hospital_id);
+      }
+      if (filter?.status) {
+        query = query.eq('status', filter.status);
+      }
+      if (filter?.type) {
+        query = query.eq('type', filter.type);
+      }
 
-    if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
+      query = query.order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+      if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
+      if (filter?.offset) {
+        query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+      }
+
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
+
     if (error) throw error;
 
     return data || [];
@@ -294,15 +306,24 @@ export async function getAmbulances(filter = {}) {
  */
 export async function getAmbulance(ambulanceId) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    // Dual-key lookup: a UUID resolves by id, anything else by display_id (a label,
+    // never a write key). This is a non-owner read that can legitimately match 0 rows
+    // under RLS, so use maybeSingle (no PGRST116/406 on the empty case) and null-guard.
+    const { data, error } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    if (isValidUUID(ambulanceId)) {
-      query = query.eq('id', ambulanceId);
-    } else {
-      query = query.eq('display_id', ambulanceId);
-    }
+      if (isValidUUID(ambulanceId)) {
+        query = query.eq('id', ambulanceId);
+      } else {
+        query = query.eq('display_id', ambulanceId);
+      }
 
-    const { data, error } = await query.single();
+      const result = await query.maybeSingle();
+      // PGRST116 (multi-row) stays a soft-null like the prior .single() contract;
+      // it is not retryable, so it must not throw out of the retry callback.
+      if (result.error && result.error.code !== 'PGRST116') throw result.error;
+      return result;
+    });
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -345,15 +366,20 @@ export async function createAmbulance(input) {
     payload.created_at = new Date().toISOString();
     payload.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
+    // Critical fleet mutation: audit-wrap (fire-and-forget log, never blocks or
+    // changes the return). insert/select/single is preserved -- exactly one row is
+    // written and returned, so a 0-row RLS outcome should still surface as an error.
+    return await withAudit('ambulance.create', 'ambulance', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([payload])
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { type: payload.type || null, hospital_id: payload.hospital_id || null });
   } catch (error) {
     console.error('Error creating ambulance:', error);
     throw error;
@@ -390,16 +416,20 @@ export async function updateAmbulance(ambulanceId, input) {
 
     payload.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', ambulanceId)
-      .select()
-      .single();
+    // Critical fleet mutation: audit-wrap. update/select/single is preserved so a
+    // 0-row (bad id / RLS) outcome still throws rather than silently returning null.
+    return await withAudit('ambulance.update', 'ambulance', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update(payload)
+        .eq('id', ambulanceId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { ambulance_id: ambulanceId, fields: Object.keys(payload) });
   } catch (error) {
     console.error(`Error updating ambulance ${ambulanceId}:`, error);
     throw error;
@@ -412,18 +442,21 @@ export async function updateAmbulance(ambulanceId, input) {
  */
 export async function assignDriverToAmbulance(ambulanceId, driverId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        profile_id: driverId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', ambulanceId)
-      .select()
-      .single();
+    // Critical fleet mutation (driver <-> unit assignment): audit-wrap.
+    return await withAudit('ambulance.assign_driver', 'ambulance', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          profile_id: driverId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', ambulanceId)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    }, { ambulance_id: ambulanceId, driver_id: driverId || null });
   } catch (error) {
     console.error(`Error assigning driver to ambulance ${ambulanceId}:`, error);
     throw error;
@@ -458,11 +491,24 @@ export async function updateAmbulanceLocation(ambulanceId, location) {
  */
 export async function getDriverAmbulance(driverId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('profile_id', driverId)
-      .single();
+    // UUID guard before an id-keyed query: an invalid id can never match a row, so
+    // return the same null this function already returns for the no-row case (and
+    // avoid a 22P02 invalid-uuid round-trip). This function has no callers today, so
+    // returning null on bad input rather than throwing has no ripple.
+    if (!isValidUUID(driverId)) return null;
+
+    // maybeSingle: a driver may map to 0 rows under RLS; PGRST116 (multi-row) stays a
+    // soft-null exactly like the prior .single() contract.
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('profile_id', driverId)
+        .maybeSingle();
+
+      if (result.error && result.error.code !== 'PGRST116') throw result.error;
+      return result;
+    });
 
     if (error && error.code !== 'PGRST116') throw error;
     return data || null;
@@ -477,11 +523,16 @@ export async function getDriverAmbulance(driverId) {
  */
 export async function getDrivers() {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('provider_type', 'driver')
-      .order('created_at', { ascending: false });
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('provider_type', 'driver')
+        .order('created_at', { ascending: false });
+
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
     return data || [];
@@ -496,12 +547,17 @@ export async function getDrivers() {
  */
 export async function getAvailableDrivers() {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('provider_type', 'driver')
-      .is('assigned_ambulance_id', null)
-      .order('created_at', { ascending: false });
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('provider_type', 'driver')
+        .is('assigned_ambulance_id', null)
+        .order('created_at', { ascending: false });
+
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
     return data || [];
@@ -516,12 +572,17 @@ export async function getAvailableDrivers() {
  */
 export async function deleteAmbulance(ambulanceId) {
   try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', ambulanceId);
+    // Critical fleet mutation: audit-wrap. The function still resolves to undefined
+    // (no return value forwarded) -- only the audit log sees the entity id.
+    await withAudit('ambulance.delete', 'ambulance', async () => {
+      const { error } = await supabase
+        .from(TABLE_NAME)
+        .delete()
+        .eq('id', ambulanceId);
 
-    if (error) throw error;
+      if (error) throw error;
+      return { id: ambulanceId };
+    }, { ambulance_id: ambulanceId });
   } catch (error) {
     console.error(`Error deleting ambulance ${ambulanceId}:`, error);
     throw error;
@@ -533,11 +594,16 @@ export async function deleteAmbulance(ambulanceId) {
  */
 export async function getAvailableAmbulances() {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('status', 'available')
-      .order('created_at', { ascending: true });
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('status', 'available')
+        .order('created_at', { ascending: true });
+
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -553,11 +619,20 @@ export async function getAvailableAmbulances() {
  */
 export async function getHospitalAmbulances(hospitalId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .order('created_at', { ascending: false });
+    // UUID guard before an id-keyed query. This read's contract is an array, so the
+    // guard returns [] (not null) to keep every caller's array destructure safe.
+    if (!isValidUUID(hospitalId)) return [];
+
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('hospital_id', hospitalId)
+        .order('created_at', { ascending: false });
+
+      if (result.error) throw result.error;
+      return result;
+    });
 
     if (error) throw error;
 
@@ -573,19 +648,23 @@ export async function getHospitalAmbulances(hospitalId) {
  */
 export async function updateAmbulanceStatus(ambulanceId, status) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', ambulanceId)
-      .select()
-      .single();
+    // Critical fleet state transition: audit-wrap. update/select/single preserved so
+    // a 0-row (bad id / RLS) outcome still throws.
+    return await withAudit('ambulance.update_status', 'ambulance', async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          status: status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ambulanceId)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data;
+      return data;
+    }, { ambulance_id: ambulanceId, status: status || null });
   } catch (error) {
     console.error(`Error updating ambulance status ${ambulanceId}:`, error);
     throw error;

@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'organizations';
 const ORGANIZATION_CREATE_FIELDS = [
@@ -87,13 +88,17 @@ export async function getOrganizations(filter = {}) {
             return [];
         }
 
-        const [orgsRes, walletsRes] = await Promise.all([
-            supabase.from(TABLE_NAME).select('*').order('name', { ascending: true }),
-            supabase.from('organization_wallets').select('*')
-        ]);
+        const [orgsRes, walletsRes] = await withRetry(async () => {
+            const [orgsResult, walletsResult] = await Promise.all([
+                supabase.from(TABLE_NAME).select('*').order('name', { ascending: true }),
+                supabase.from('organization_wallets').select('*')
+            ]);
 
-        if (orgsRes.error) throw orgsRes.error;
-        if (walletsRes.error) throw walletsRes.error;
+            if (orgsResult.error) throw orgsResult.error;
+            if (walletsResult.error) throw walletsResult.error;
+
+            return [orgsResult, walletsResult];
+        });
 
         const walletsMap = (walletsRes.data || []).reduce((acc, w) => {
             acc[w.organization_id] = w.balance;
@@ -116,18 +121,28 @@ export async function getOrganizations(filter = {}) {
  * Get single organization by ID
  */
 export async function getOrganization(orgId) {
+    // Guard empty/missing identifiers before hitting the DB.
+    // NOTE: orgId may be a display_id (non-UUID), which is a valid lookup path,
+    // so we intentionally do NOT reject non-UUID values here.
+    if (orgId === undefined || orgId === null || orgId === '') return null;
+
     try {
-        let query = supabase.from(TABLE_NAME).select('*');
+        const { data } = await withRetry(async () => {
+            let query = supabase.from(TABLE_NAME).select('*');
 
-        if (isValidUUID(orgId)) {
-            query = query.eq('id', orgId);
-        } else {
-            query = query.eq('display_id', orgId);
-        }
+            if (isValidUUID(orgId)) {
+                query = query.eq('id', orgId);
+            } else {
+                query = query.eq('display_id', orgId);
+            }
 
-        const { data, error } = await query.single();
+            // .maybeSingle(): non-owner read can return 0 rows under RLS; null-guard below.
+            const result = await query.maybeSingle();
 
-        if (error && error.code !== 'PGRST116') throw error;
+            if (result.error && result.error.code !== 'PGRST116') throw result.error;
+            return result;
+        });
+
         return data || null;
     } catch (error) {
         console.error(`Error fetching organization ${orgId}:`, error);
@@ -143,13 +158,20 @@ export async function saveOrganization(org) {
         const isUpdate = !!org.id;
         const payload = buildOrganizationPayload(org, { isUpdate });
 
-        const query = isUpdate
-            ? supabase.from(TABLE_NAME).update(payload).eq('id', org.id)
-            : supabase.from(TABLE_NAME).insert([payload]);
+        return await withAudit(
+            isUpdate ? 'organization.update' : 'organization.create',
+            'organization',
+            async () => {
+                const query = isUpdate
+                    ? supabase.from(TABLE_NAME).update(payload).eq('id', org.id)
+                    : supabase.from(TABLE_NAME).insert([payload]);
 
-        const { data, error } = await query.select().single();
-        if (error) throw error;
-        return data;
+                const { data, error } = await query.select().single();
+                if (error) throw error;
+                return data;
+            },
+            { organization_id: org.id ?? null, is_update: isUpdate }
+        );
     } catch (error) {
         console.error('Error saving organization:', error);
         throw error;
@@ -161,12 +183,19 @@ export async function saveOrganization(org) {
  */
 export async function deleteOrganization(orgId) {
     try {
-        const { error } = await supabase
-            .from(TABLE_NAME)
-            .delete()
-            .eq('id', orgId);
+        return await withAudit(
+            'organization.delete',
+            'organization',
+            async () => {
+                const { error } = await supabase
+                    .from(TABLE_NAME)
+                    .delete()
+                    .eq('id', orgId);
 
-        if (error) throw error;
+                if (error) throw error;
+            },
+            { organization_id: orgId ?? null }
+        );
     } catch (error) {
         console.error(`Error deleting organization ${orgId}:`, error);
         throw error;

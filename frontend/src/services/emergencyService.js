@@ -8,6 +8,7 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 import { logEmergencyActivity } from './activityService';
 import { getVisitByRequestId } from './visitsService';
 import { isValidUUID } from '../lib/utils';
+import { withRetry, withAudit } from './supabaseHelpers';
 import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 import {
   buildLatestPaymentMap,
@@ -283,14 +284,19 @@ function applyEmergencyRequestScope(query, user) {
 }
 
 async function getEmergencyPageExactCount(filter = {}, user) {
-  let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
-  query = applyEmergencyRequestScope(query, user);
-  query = applyEmergencyListFilters(query, filter);
-  query = applyEmergencyKpiFilter(query, filter.kpiFilter);
+  // L1 hardening: retry the idempotent count read on transient failures. The
+  // query is rebuilt inside the callback because Supabase builders are single-use
+  // thenables; non-retryable errors (auth/RLS) still throw on the first attempt.
+  return withRetry(async () => {
+    let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
+    query = applyEmergencyRequestScope(query, user);
+    query = applyEmergencyListFilters(query, filter);
+    query = applyEmergencyKpiFilter(query, filter.kpiFilter);
 
-  const { count, error } = await query;
-  if (error) throw error;
-  return count || 0;
+    const { count, error } = await query;
+    if (error) throw error;
+    return count || 0;
+  });
 }
 
 export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = false) {
@@ -353,14 +359,17 @@ async function getLatestPaymentMapForRequests(rows) {
   const requestIds = (rows || []).map((row) => row.id).filter(Boolean);
   if (requestIds.length === 0) return new Map();
 
-  const { data, error } = await supabase
-    .from('payments')
-    .select('id,emergency_request_id,payment_method,status,amount,currency,created_at')
-    .in('emergency_request_id', requestIds)
-    .order('created_at', { ascending: false });
+  const data = await withRetry(async () => {
+    const result = await supabase
+      .from('payments')
+      .select('id,emergency_request_id,payment_method,status,amount,currency,created_at')
+      .in('emergency_request_id', requestIds)
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return buildLatestPaymentMap(data || []);
+    if (result.error) throw result.error;
+    return result.data || [];
+  });
+  return buildLatestPaymentMap(data);
 }
 
 /**
@@ -370,27 +379,32 @@ async function getLatestPaymentMapForRequests(rows) {
 export async function getEmergencyRequests(filter) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply RBAC Scoping with enhanced filtering
-    query = applyEmergencyRequestScope(query, user);
-    query = applyEmergencyListFilters(query, filter);
+    // L1 hardening: retry the idempotent list read on transient failures. Query
+    // rebuilt inside the callback because Supabase builders are single-use.
+    return await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    // Sorting
-    query = query.order('created_at', { ascending: false });
+      // Apply RBAC Scoping with enhanced filtering
+      query = applyEmergencyRequestScope(query, user);
+      query = applyEmergencyListFilters(query, filter);
 
-    // Pagination
-    if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
+      // Sorting
+      query = query.order('created_at', { ascending: false });
 
-    const { data, error } = await query;
-    if (error) throw error;
+      // Pagination
+      if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
+      if (filter?.offset) {
+        query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+      }
 
-    return data || [];
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return data || [];
+    });
   } catch (error) {
     if (!filter?.quiet) {
       console.error('Error fetching emergency requests:', error);
@@ -454,19 +468,23 @@ export async function getEmergencyRequestsPage(filter = {}) {
  */
 export async function getEmergencyRequest(requestId) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    // L1 hardening: retry the idempotent single-row read on transient failures.
+    // Uses .maybeSingle() so a 0-row RLS result returns null instead of a 406.
+    return await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*');
 
-    if (isValidUUID(requestId)) {
-      query = query.eq('id', requestId);
-    } else {
-      query = query.eq('display_id', requestId);
-    }
+      if (isValidUUID(requestId)) {
+        query = query.eq('id', requestId);
+      } else {
+        query = query.eq('display_id', requestId);
+      }
 
-    const { data, error } = await query.single();
+      const { data, error } = await query.maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found / multiple
 
-    return data || null;
+      return data || null;
+    });
   } catch (error) {
     console.error(`Error fetching emergency request ${requestId}:`, error);
     throw error;
@@ -746,19 +764,21 @@ export async function acceptEmergencyRequest(
 ) {
   try {
     void responderId;
-    const { data: rpcResult, error } = await supabase.rpc('console_dispatch_emergency', {
-      p_request_id: requestId,
-      p_ambulance_id: ambulanceId,
-      p_responder_name: responderName || null,
-      p_responder_phone: responderPhone || null,
-    });
+    return await withAudit('emergency.dispatch', 'emergency_requests', async () => {
+      const { data: rpcResult, error } = await supabase.rpc('console_dispatch_emergency', {
+        p_request_id: requestId,
+        p_ambulance_id: ambulanceId,
+        p_responder_name: responderName || null,
+        p_responder_phone: responderPhone || null,
+      });
 
-    if (error) throw error;
-    if (!rpcResult?.success || !rpcResult?.request) {
-      throw new Error(rpcResult?.error || 'Emergency dispatch failed');
-    }
+      if (error) throw error;
+      if (!rpcResult?.success || !rpcResult?.request) {
+        throw new Error(rpcResult?.error || 'Emergency dispatch failed');
+      }
 
-    return rpcResult.request;
+      return rpcResult.request;
+    }, { request_id: requestId, ambulance_id: ambulanceId });
   } catch (error) {
     console.error(`Error accepting emergency request ${requestId}:`, error);
     throw error;
@@ -770,14 +790,16 @@ export async function acceptEmergencyRequest(
  */
 export async function completeEmergencyRequest(requestId) {
   try {
-    const { data: rpcResult, error } = await supabase.rpc('console_complete_emergency', {
-      p_request_id: requestId,
-    });
-    if (error) throw error;
-    if (!rpcResult?.success) {
-      throw new Error(rpcResult?.error || 'Emergency completion failed');
-    }
-    return rpcResult.request || null;
+    return await withAudit('emergency.complete', 'emergency_requests', async () => {
+      const { data: rpcResult, error } = await supabase.rpc('console_complete_emergency', {
+        p_request_id: requestId,
+      });
+      if (error) throw error;
+      if (!rpcResult?.success) {
+        throw new Error(rpcResult?.error || 'Emergency completion failed');
+      }
+      return rpcResult.request || null;
+    }, { request_id: requestId });
   } catch (error) {
     console.error(`Error completing emergency request ${requestId}:`, error);
     throw error;
@@ -789,15 +811,17 @@ export async function completeEmergencyRequest(requestId) {
  */
 export async function cancelEmergencyRequest(requestId, reason) {
   try {
-    const { data: rpcResult, error } = await supabase.rpc('console_cancel_emergency', {
-      p_request_id: requestId,
-      p_reason: reason || null,
-    });
-    if (error) throw error;
-    if (!rpcResult?.success) {
-      throw new Error(rpcResult?.error || 'Emergency cancellation failed');
-    }
-    return rpcResult.request || null;
+    return await withAudit('emergency.cancel', 'emergency_requests', async () => {
+      const { data: rpcResult, error } = await supabase.rpc('console_cancel_emergency', {
+        p_request_id: requestId,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      if (!rpcResult?.success) {
+        throw new Error(rpcResult?.error || 'Emergency cancellation failed');
+      }
+      return rpcResult.request || null;
+    }, { request_id: requestId, reason: reason || null });
   } catch (error) {
     console.error(`Error cancelling emergency request ${requestId}:`, error);
     throw error;
@@ -809,15 +833,17 @@ export async function cancelEmergencyRequest(requestId, reason) {
  */
 export async function approveCashPayment(paymentId, requestId) {
   try {
-    const { data, error } = await supabase.rpc('approve_cash_payment', {
-      p_payment_id: paymentId,
-      p_request_id: requestId,
-    });
+    return await withAudit('payment.approve_cash', 'payments', async () => {
+      const { data, error } = await supabase.rpc('approve_cash_payment', {
+        p_payment_id: paymentId,
+        p_request_id: requestId,
+      });
 
-    if (error) throw error;
-    if (!data?.success) throw new Error(data?.error || 'Approval failed');
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Approval failed');
 
-    return data;
+      return data;
+    }, { payment_id: paymentId, request_id: requestId });
   } catch (error) {
     if (
       error?.code === '23505' &&
@@ -843,15 +869,17 @@ export async function approveCashPayment(paymentId, requestId) {
  */
 export async function declineCashPayment(paymentId, requestId) {
   try {
-    const { data, error } = await supabase.rpc('decline_cash_payment', {
-      p_payment_id: paymentId,
-      p_request_id: requestId,
-    });
+    return await withAudit('payment.decline_cash', 'payments', async () => {
+      const { data, error } = await supabase.rpc('decline_cash_payment', {
+        p_payment_id: paymentId,
+        p_request_id: requestId,
+      });
 
-    if (error) throw error;
-    if (!data?.success) throw new Error(data?.error || 'Decline failed');
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Decline failed');
 
-    return data;
+      return data;
+    }, { payment_id: paymentId, request_id: requestId });
   } catch (error) {
     console.error('Error declining cash payment:', error);
     throw error;
@@ -863,15 +891,17 @@ export async function declineCashPayment(paymentId, requestId) {
  */
 export async function getActiveEmergencyRequests() {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived'])
-      .order('created_at', { ascending: false });
+    return await withRetry(async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived'])
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data || [];
+      return data || [];
+    });
   } catch (error) {
     console.error('Error fetching active emergency requests:', error);
     throw error;
@@ -883,15 +913,19 @@ export async function getActiveEmergencyRequests() {
  */
 export async function getUserEmergencyRequests(userId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    if (!isValidUUID(userId)) return [];
 
-    if (error) throw error;
+    return await withRetry(async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    return data || [];
+      if (error) throw error;
+
+      return data || [];
+    });
   } catch (error) {
     console.error(`Error fetching emergency requests for user ${userId}:`, error);
     throw error;
@@ -903,15 +937,19 @@ export async function getUserEmergencyRequests(userId) {
  */
 export async function getHospitalEmergencyRequests(hospitalId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .order('created_at', { ascending: false });
+    if (!isValidUUID(hospitalId)) return [];
 
-    if (error) throw error;
+    return await withRetry(async () => {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('hospital_id', hospitalId)
+        .order('created_at', { ascending: false });
 
-    return data || [];
+      if (error) throw error;
+
+      return data || [];
+    });
   } catch (error) {
     console.error(`Error fetching emergency requests for hospital ${hospitalId}:`, error);
     throw error;
@@ -937,8 +975,11 @@ export async function updateResponderLocation(requestId, location, heading) {
       .from(TABLE_NAME)
       .select('*')
       .eq('id', requestId)
-      .single();
+      .maybeSingle();
     if (fetchError) throw fetchError;
+    if (!updatedRequest) {
+      throw new Error('Responder location updated but the request could not be reloaded');
+    }
 
     return updatedRequest;
   } catch (error) {
@@ -955,18 +996,20 @@ export async function getUserActivePaymentMethods(userId) {
   try {
     if (!isValidUUID(userId)) return [];
 
-    const { data, error } = await supabase
-      .from('payment_methods')
-      .select(
-        'id,type,provider,brand,last4,expiry_month,expiry_year,is_default,is_active,created_at'
-      )
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
+    return await withRetry(async () => {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select(
+          'id,type,provider,brand,last4,expiry_month,expiry_year,is_default,is_active,created_at'
+        )
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      return data || [];
+    });
   } catch (error) {
     console.error(`Error loading payment methods for user ${userId}:`, error);
     throw error;
@@ -982,16 +1025,18 @@ export async function retryPaymentWithDifferentMethod(requestId, paymentMethodId
       throw new Error('Missing valid request, payment method, or user identifier');
     }
 
-    const { data, error } = await supabase.rpc('retry_payment_with_different_method', {
-      p_emergency_request_id: requestId,
-      p_new_payment_method_id: paymentMethodId,
-      p_user_id: userId,
-    });
+    return await withAudit('payment.retry', 'payments', async () => {
+      const { data, error } = await supabase.rpc('retry_payment_with_different_method', {
+        p_emergency_request_id: requestId,
+        p_new_payment_method_id: paymentMethodId,
+        p_user_id: userId,
+      });
 
-    if (error) throw error;
-    if (!data?.success) throw new Error(data?.error || 'Payment retry failed');
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Payment retry failed');
 
-    return data;
+      return data;
+    }, { request_id: requestId, payment_method_id: paymentMethodId, user_id: userId });
   } catch (error) {
     console.error(`Error retrying payment for request ${requestId}:`, error);
     throw error;
