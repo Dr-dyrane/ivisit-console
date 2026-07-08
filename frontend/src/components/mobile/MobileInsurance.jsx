@@ -187,14 +187,14 @@ export const MobileInsurance = ({
               placeholder="Search policies..."
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-muted-foreground/20 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-inner apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 outline-none"
             />
           </div>
           {onOpenFilters && (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0"
+              className="w-11 h-11 rounded-inner apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
               aria-label="Open filters"
             >
               <SlidersHorizontal size={18} />
@@ -204,7 +204,7 @@ export const MobileInsurance = ({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0 shadow-sm"
+              className="w-11 h-11 rounded-inner apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -220,7 +220,7 @@ export const MobileInsurance = ({
 
         {error && displayPolicies.length > 0 && (
           <div
-            className="mb-3 rounded-3xl bg-amber-500/15 p-4 text-amber-700 dark:text-amber-200"
+            className="mb-3 rounded-card bg-amber-500/15 p-4 text-amber-700 dark:text-amber-200"
             data-testid="mobile-insurance-degraded-state"
           >
             <p className="text-sm font-semibold">Insurance did not refresh</p>
@@ -231,7 +231,7 @@ export const MobileInsurance = ({
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-3 h-9 rounded-2xl bg-amber-500/15 px-4 text-xs font-semibold text-amber-700 dark:text-amber-200 hover:bg-amber-500/20"
+                className="mt-3 h-9 rounded-inner bg-amber-500/15 px-4 text-xs font-semibold text-amber-700 dark:text-amber-200 hover:bg-amber-500/20"
                 onClick={onRetry}
               >
                 Try again
@@ -266,18 +266,18 @@ export const MobileInsurance = ({
                   expandedContent={(
                     <div className="space-y-4 py-3">
                       <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <DollarSign size={14} className="text-muted-foreground/40" />
                           <span className="text-xs font-normal">Coverage: ${Number(policy.coverage_amount || 0).toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Calendar size={14} className="text-muted-foreground/40" />
                           <span className="text-xs font-normal">Expires: {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}</span>
                         </div>
                       </div>
 
                       <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(policy)}>
+                        <Button variant="ghost" className="flex-1 h-12 rounded-inner apple-glass flex items-center justify-center gap-2" onClick={() => onView(policy)}>
                           <Eye size={16} className="text-muted-foreground/70" />
                           <span className="text-xs font-semibold">Details</span>
                         </Button>

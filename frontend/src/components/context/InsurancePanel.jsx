@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import {
   BarChart3,
   CheckCircle,
@@ -94,12 +93,12 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
     <div className="space-y-4">
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <div className="h-8 w-8 animate-pulse rounded-full bg-info/20" />
+          <div className="h-8 w-8 animate-pulse rounded-pill bg-muted/40" />
         </div>
       ) : (
         <>
           {policyError && (
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4 shadow-sm">
               <p className="text-sm font-medium text-muted-foreground">{policyError}</p>
             </Card>
           )}
@@ -111,10 +110,10 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
           >
             <h3 className="text-sm font-semibold text-muted-foreground">Policy overview</h3>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-sky-500/15">
+                  <div className="rounded-icon flex h-10 w-10 items-center justify-center bg-sky-500/15">
                     <Shield className="h-5 w-5 text-sky-600 dark:text-sky-200" />
                   </div>
                   <div>
@@ -122,7 +121,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                     <p className="text-xs text-muted-foreground">Current admin scope</p>
                   </div>
                 </div>
-                <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.total}</Badge>
+                <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.total}</span>
               </div>
             </Card>
 
@@ -131,10 +130,10 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
               <MetricCard icon={Clock} label="Pending" value={stats.pending} tone="warning" />
             </div>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-sky-500/15">
+                  <div className="rounded-icon flex h-10 w-10 items-center justify-center bg-sky-500/15">
                     <TrendingUp className="h-5 w-5 text-sky-600 dark:text-sky-200" />
                   </div>
                   <div>
@@ -142,7 +141,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                     <p className="text-xs text-muted-foreground">Verified in scope</p>
                   </div>
                 </div>
-                <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.verificationRate}%</Badge>
+                <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.verificationRate}%</span>
               </div>
             </Card>
           </motion.div>
@@ -155,10 +154,10 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
           >
             <h3 className="text-sm font-semibold text-muted-foreground">Billing outcomes</h3>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-emerald-500/15">
+                  <div className="rounded-icon flex h-10 w-10 items-center justify-center bg-emerald-500/15">
                     <ReceiptText className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
                   </div>
                   <div>
@@ -166,7 +165,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                     <p className="text-xs text-muted-foreground">Trigger-created rows</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">{billingStats.total}</Badge>
+                <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">{billingStats.total}</span>
               </div>
             </Card>
 
@@ -176,7 +175,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
             </div>
 
             {billingError && (
-              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                 <p className="text-sm text-muted-foreground">{billingError}</p>
               </Card>
             )}
@@ -222,7 +221,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
 
             <div className="space-y-2">
               {recentBilling.map((claim) => (
-                <Card key={claim.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                <Card key={claim.id} className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="max-w-[140px] truncate text-sm font-normal">
@@ -232,9 +231,9 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                         {formatMoney(claim.insurance_amount)} insurance - {formatDate(claim.billing_date || claim.created_at)}
                       </p>
                     </div>
-                    <Badge className="bg-muted/30 text-xs capitalize text-muted-foreground">
+                    <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-muted/30 capitalize text-muted-foreground">
                       {claim.status || 'pending'}
-                    </Badge>
+                    </span>
                   </div>
                 </Card>
               ))}
@@ -257,10 +256,10 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
 
             <div className="space-y-2">
               {recentPolicies.map((policy) => (
-                <Card key={policy.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                <Card key={policy.id} className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
-                      <div className={`geo-round h-2 w-2 shrink-0 ${statusDotClass(policy.status)}`} />
+                      <div className={`rounded-pill h-2 w-2 shrink-0 ${statusDotClass(policy.status)}`} />
                       <div className="min-w-0">
                         <p className="max-w-[140px] truncate text-sm font-normal">
                           {policy.policy_number || `Policy ${String(policy.id || '').slice(0, 8)}`}
@@ -270,9 +269,9 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                         </p>
                       </div>
                     </div>
-                    <Badge className="bg-muted/30 text-xs capitalize text-muted-foreground">
+                    <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-muted/30 capitalize text-muted-foreground">
                       {policy.status || 'unknown'}
-                    </Badge>
+                    </span>
                   </div>
                 </Card>
               ))}
@@ -302,9 +301,9 @@ const MetricCard = ({ icon: Icon, label, value, tone }) => {
   }[tone] || 'bg-muted/30 text-muted-foreground';
 
   return (
-    <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+    <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
       <div className="flex items-center gap-2">
-        <div className={`geo-round flex h-8 w-8 items-center justify-center ${classes}`}>
+        <div className={`rounded-icon flex h-8 w-8 items-center justify-center ${classes}`}>
           <Icon className="h-4 w-4" />
         </div>
         <div>
@@ -329,7 +328,7 @@ const PanelAction = ({ icon: Icon, label, tone, onClick, title, unavailable = fa
       onClick={onClick}
       aria-disabled={unavailable}
       data-state={unavailable ? 'unavailable' : 'available'}
-      className={`${classes} flex flex-col items-center gap-2 rounded-xl p-3 transition-colors active:scale-[0.98]`}
+      className={`${classes} flex flex-col items-center gap-2 rounded-inner p-3 transition-colors active:scale-[0.98]`}
       title={title}
     >
       <Icon className="h-4 w-4" />

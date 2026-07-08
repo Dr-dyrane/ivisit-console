@@ -422,7 +422,7 @@ describe('Insurance Page 12 intake contract', () => {
     expect(panel).toContain('Recent claims');
     expect(panel).not.toContain('bg-primary/25');
     expect(panel).not.toContain('shadow-[0_0_32px_hsl(var(--primary)/0.25)]');
-    expect(panel).toContain('h-8 w-8 animate-pulse rounded-full bg-info/20');
+    expect(panel).toContain('h-8 w-8 animate-pulse rounded-pill bg-muted/40');
     expect(panel).toContain("window.dispatchEvent(new CustomEvent('openInsuranceModal'))");
     expect(panel).toContain('Insurance export is unavailable until report scope is verified.');
     expect(panel).not.toContain('getInsuranceStats');

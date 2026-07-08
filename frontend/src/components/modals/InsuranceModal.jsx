@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 import {
@@ -69,9 +68,9 @@ export const InsuranceModal = ({
     : formatRaw(policy?.provider_name, 'Review policy record.');
   const status = formatText(policy?.status || 'unknown', 'Unknown');
   const statusBadge = policy ? (
-    <Badge className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(policy.status)}`}>
+    <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${getStatusClass(policy.status)}`}>
       {status}
-    </Badge>
+    </span>
   ) : null;
 
   useEffect(() => {
@@ -183,7 +182,7 @@ export const InsuranceModal = ({
               </Section>
             </>
           ) : (
-            <div className="rounded-3xl bg-muted/25 p-6 text-center">
+            <div className="rounded-card bg-muted/25 p-6 text-center">
               <Shield className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
               <h3 className="text-base font-semibold">No policy selected</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -193,11 +192,11 @@ export const InsuranceModal = ({
           )}
         </div>
 
-        <div className="shrink-0 border-t border-border/40 px-4 md:px-6 py-4 flex justify-end">
+        <div className="shrink-0 bg-muted/15 px-4 md:px-6 py-4 flex justify-end">
           <Button
             type="button"
             onClick={() => onClose(false)}
-            className="rounded-2xl px-6"
+            className="rounded-button px-6"
           >
             Close
           </Button>
@@ -208,9 +207,9 @@ export const InsuranceModal = ({
 };
 
 const Section = ({ icon, title, children }) => (
-  <section className="rounded-3xl bg-muted/25 p-4 md:p-5">
+  <section className="rounded-card bg-muted/25 p-4 md:p-5">
     <div className="mb-4 flex items-center gap-3">
-      <div className="rounded-2xl bg-muted p-2 text-muted-foreground">
+      <div className="rounded-icon bg-muted p-2 text-muted-foreground">
         {React.cloneElement(icon, { className: 'h-4 w-4' })}
       </div>
       <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
@@ -225,25 +224,25 @@ const BillingOutcomeSection = ({ outcomes, loading, error }) => (
   <Section icon={<ReceiptText />} title="Billing outcomes">
     <div className="md:col-span-2 space-y-3">
       {loading && (
-        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+        <div className="rounded-inner bg-background/45 p-3 text-sm text-muted-foreground">
           Loading billing outcomes
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+        <div className="rounded-inner bg-background/45 p-3 text-sm text-muted-foreground">
           {error}
         </div>
       )}
 
       {!loading && !error && outcomes.length === 0 && (
-        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+        <div className="rounded-inner bg-background/45 p-3 text-sm text-muted-foreground">
           No billing outcomes are linked to this policy yet.
         </div>
       )}
 
       {!loading && !error && outcomes.map((outcome) => (
-        <div key={outcome.id} className="rounded-2xl bg-background/45 p-3">
+        <div key={outcome.id} className="rounded-inner bg-background/45 p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-foreground">
@@ -253,9 +252,9 @@ const BillingOutcomeSection = ({ outcomes, loading, error }) => (
                 Billed {formatDate(outcome.billing_date || outcome.created_at)}
               </div>
             </div>
-            <Badge className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${getBillingStatusClass(outcome.status)}`}>
+            <span className={`inline-flex shrink-0 items-center rounded-pill px-3 py-1 text-xs font-semibold ${getBillingStatusClass(outcome.status)}`}>
               {formatText(outcome.status)}
-            </Badge>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -288,7 +287,7 @@ const getBillingStatusClass = (status) => {
 };
 
 const Field = ({ label, value, mono = false }) => (
-  <div className="rounded-2xl bg-background/45 p-3">
+  <div className="rounded-inner bg-background/45 p-3">
     <div className="text-xs font-semibold text-muted-foreground">
       {label}
     </div>
@@ -302,14 +301,14 @@ const CardImage = ({ label, src }) => {
   const hasImageReference = Boolean(String(src || '').trim());
 
   return (
-    <div className="rounded-2xl bg-background/45 p-3">
+    <div className="rounded-inner bg-background/45 p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-semibold text-muted-foreground">
           {label}
         </div>
         <CreditCard className="h-4 w-4 text-muted-foreground" />
       </div>
-      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-muted/30 px-4 text-center">
+      <div className="flex aspect-video flex-col items-center justify-center rounded-inner bg-muted/30 px-4 text-center">
         <FileImage className="mb-2 h-6 w-6 text-muted-foreground" />
         <p className="text-xs font-semibold text-foreground">
           {hasImageReference ? 'Image reference on file' : 'No card image'}
@@ -330,7 +329,7 @@ const Notice = ({ icon: Icon, tone, title, text }) => {
     : 'bg-muted/25 text-muted-foreground';
 
   return (
-    <div className={`rounded-3xl p-4 ${toneClass}`}>
+    <div className={`rounded-card p-4 ${toneClass}`}>
       <div className="flex gap-3">
         <Icon className="mt-0.5 h-5 w-5 shrink-0" />
         <div>
