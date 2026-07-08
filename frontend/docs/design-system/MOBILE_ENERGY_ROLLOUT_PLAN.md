@@ -37,6 +37,35 @@ Companions: [`CONSOLE_DESIGN_SYSTEM_FROM_APP.md`](./CONSOLE_DESIGN_SYSTEM_FROM_A
   glow, secondary ghost; separation via spacing + translucent surface + shadow, never borders.
   This is the pattern every Wave 2 sheet/detail must follow.
 
+### Wave 2 outcome (2026-07-08)
+**COMMITTED & verified (7 pages, each: contract test green + hardgate + mojibake + borderless):**
+Support (7/7) · Wallet (15/15) · Insurance (10/10, read-only) · Doctors (8/8) · Pricing (3/3) ·
+Users (4/4) · Health News (7/7, read-only). Commits `7953a3b3`, `61931da6`, `e4554f89`, `677c9352`, `91626d43`.
+Authority note: Insurance/Users/Pricing are named "not admitted" in the RETIRED page-gate frame,
+but the *active* enforcement (contract tests + hardgate + fail-closed) passes and only visuals
+changed (no command authority loosened) — user decision 2026-07-08: **keep** (canon supersedes).
+
+**APPLIED but NOT committed — blocked on a dirty test (other lane):**
+- **Emergency** — `MobileEmergency.jsx` fully on standard (spine wired into bespoke row; hardgate
+  PASS, mojibake clean, 10/11 contract assertions pass). Blocked by
+  `EmergencyRequestsPage.contract.test.js:449` which pins the OLD detail-tile radius
+  `rounded-inner bg-background/30 p-3`; the canon `MobileDetailIslands` renders `rounded-button`.
+  That test is dirty/owned by the emergency desktop lane → assertion must be retired to
+  `rounded-button` (or to check `MobileDetailIslands`) before Emergency can commit green.
+  Change is left in the working tree.
+
+**GATED — authority decision required (NOT applied):**
+- **Subscriptions** — `SubscriptionManagementPage.contract.test.js` (Page 17) hard-locks the
+  pre-revamp markup (`label={formatLabel(sub.status)}`, `rightBlade`, `onEdit/onDelete` literals)
+  AND asserts `PAGE_REVAMP_GATE.md` still says "No visual revamp … authorized yet." Applying the
+  standard is impossible without breaking that active lock. To unblock: close the Subscriptions
+  blocker map in `PAGE_REVAMP_GATE.md` + rewrite the contract test to expect the new energy — a
+  coordinated authority change, out of single-file scope.
+
+**Still BLOCKED (dirty lanes, unchanged):** Verification, Ambulances, Hospitals, Organizations-VitalTrack.
+**Deferred:** flagship `MobileVisits` CTA retrofit to `MobileSheetActions` (its `VisitsPage.contract.test.js`
+is dirty). Optional: `TodayHome` rail polish.
+
 ---
 
 ## 0. The Standard — "the energy," made testable
