@@ -17,7 +17,6 @@ import {
   BarChart3
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
@@ -328,31 +327,31 @@ export const MobileOrganizations = ({
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Mail size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Contact</span>
+                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Contact</span>
                             <span className="text-xs font-semibold truncate">{org.contact_email || 'No contact email'}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <CreditCard size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Stripe</span>
+                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Stripe</span>
                             <span className="text-xs font-semibold truncate">{org.stripe_account_id || 'Not connected'}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Wallet size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Wallet Float</span>
+                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Wallet Float</span>
                             <span className="text-xs font-semibold">${Number(org.wallet_balance || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Badge className={`rounded-pill ${isActive ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'}`}>
+                        <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${isActive ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'}`}>
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           {isActive ? 'Active Node' : 'Inactive Node'}
-                        </Badge>
+                        </span>
                       </div>
 
                       <div className="flex gap-2 pt-1">
@@ -362,7 +361,7 @@ export const MobileOrganizations = ({
                           onClick={() => onView(org)}
                         >
                           <Eye size={16} className="text-muted-foreground" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                          <span className="text-[9px] font-semibold tracking-[0.14em]">Details</span>
                         </Button>
                         {canManage && (
                           <>
@@ -372,7 +371,7 @@ export const MobileOrganizations = ({
                               onClick={() => onEdit(org)}
                             >
                               <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                              <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
+                              <span className="text-[9px] font-semibold tracking-[0.14em]">Edit</span>
                             </Button>
                             <Button
                               variant="ghost"
