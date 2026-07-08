@@ -19,7 +19,7 @@ import { SEOHead } from '../common/SEOHead';
 const greetingFor = (h) => (h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
 
 const EmptyState = ({ icon: Icon, title, sub }) => (
-  <div className="rounded-inner bg-background/30 border border-dashed border-border/50 p-6 flex flex-col items-center text-center">
+  <div className="rounded-inner bg-background/30 p-6 flex flex-col items-center text-center">
     <div className="w-11 h-11 rounded-icon bg-muted/40 flex items-center justify-center mb-3">
       <Icon className="h-5 w-5 text-muted-foreground" />
     </div>
@@ -64,7 +64,7 @@ export const DoctorHome = () => {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease }}
-        className="glass-card rounded-card p-5 md:p-6"
+        className="bg-card/70 rounded-card p-5 md:p-6"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold tracking-tight text-foreground">Your visits today</h2>
@@ -91,7 +91,7 @@ export const DoctorHome = () => {
         ) : (
           <button
             onClick={() => navigate('/visits')}
-            className="w-full text-left rounded-inner bg-background/40 hover:bg-background/70 transition-colors p-4 flex items-center gap-4 border border-border/40"
+            className="w-full text-left rounded-inner bg-background/40 hover:bg-background/70 transition-colors p-4 flex items-center gap-4"
           >
             <div className="w-12 h-12 rounded-icon bg-primary/10 flex items-center justify-center shrink-0">
               <Calendar className="h-6 w-6 text-primary" />
@@ -115,7 +115,7 @@ export const DoctorHome = () => {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.05, ease }}
-          className="glass-card rounded-card p-5 md:p-6 text-left flex flex-col justify-between min-h-[150px] hover-lift"
+          className="bg-card/70 rounded-card p-5 md:p-6 text-left flex flex-col justify-between min-h-[150px]"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-icon bg-destructive/10 flex items-center justify-center">
@@ -136,18 +136,18 @@ export const DoctorHome = () => {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1, ease }}
-          className="glass-card rounded-card p-5 md:p-6 flex flex-col gap-2.5 min-h-[150px] justify-center"
+          className="bg-card/70 rounded-card p-5 md:p-6 flex flex-col gap-2.5 min-h-[150px] justify-center"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70">Quick actions</p>
           <button
             onClick={() => navigate('/visits')}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm py-3 hover:opacity-95 transition-opacity"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-card bg-primary text-primary-foreground font-semibold text-sm py-3 hover:opacity-95 transition-opacity"
           >
             <Play className="h-4 w-4" /> Start a visit
           </button>
           <button
             onClick={() => navigate('/support-tickets')}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-muted/50 text-foreground font-medium text-sm py-3 hover:bg-muted transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-card bg-muted/50 text-foreground font-medium text-sm py-3 hover:bg-muted transition-colors"
           >
             <Flag className="h-4 w-4" /> Report a problem
           </button>
