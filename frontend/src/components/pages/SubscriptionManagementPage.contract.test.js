@@ -20,8 +20,13 @@ describe('Subscriptions Page 17 intake contract', () => {
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 17 Intake Audit - Subscriptions');
-    expect(gate).toContain('Subscriptions at `/subscriptions` is intake only and is not admitted under the Today/Requests canon.');
-    expect(gate).toContain('No visual revamp, shared Requests pattern reuse, subscriber edit/delete/status/type, welcome/custom/bulk email send, export, route-owned visual action promotion, or hardgate promotion is authorized yet.');
+    // VISUAL-ONLY pass applied 2026-07-08: the Requests-canon energy now renders in
+    // MobileSubscriptions, while command/backend authority stays unauthorized and
+    // fail-closed (no mutation added). The doc must say visual done, commands NOT granted.
+    expect(gate).toContain('has the VISUAL-ONLY Requests-canon energy applied to `MobileSubscriptions.jsx`');
+    expect(gate).toContain('The visual pass changed presentation only; no mutation was added.');
+    expect(gate).toContain('Command and backend authority stay unauthorized and fail-closed: subscriber edit/delete/status/type, welcome/custom/bulk email send, and export remain blocked pending backend authority and delivery-consequence proof');
+    expect(gate).toContain('remains command/backend intake only and is not admitted under the Today/Requests canon.');
     expect(gate).toContain('Promotion rule: the first Subscriptions visual pass must close this blocker map before adding Page 17 to the default hardgate.');
 
     expect(app).toContain('<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />');
@@ -125,30 +130,63 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain('onDelete={null}');
     expect(page).toContain('canManage={false}');
 
+    // Shared inventory that survives the VISUAL-ONLY pass (present in both baseline and current).
     for (const source of [oldMobile, mobile]) {
       expect(source).toContain('MobileFeaturedMetric');
       expect(source).toContain('MobileSecondaryMetricRail');
       expect(source).toContain("title: 'Paid Mix'");
       expect(source).toContain('Subscriber Registry');
-      expect(source).toContain("Welcome Email: {sub.welcome_email_sent ? 'Sent' : 'Pending'}");
       expect(source).toContain('<MobileListEnd label="End of subscriber list" />');
-      expect(source).toContain('onClick={() => onEdit(sub)}');
-      expect(source).toContain('onClick={() => onDelete(sub)}');
     }
+    // Baseline (f31f29f) old-markup evidence: revenue/live wording, all-caps blades, the
+    // old inline welcome-email tile, and live edit/delete row CTAs existed before the pass.
     expect(oldMobile).toContain("delta: 'LIVE'");
     expect(oldMobile).toContain("label: 'Paid Conversion'");
     expect(oldMobile).toContain('Revenue Dynamics');
     expect(oldMobile).toContain("subtitle: 'Monetization'");
     expect(oldMobile).toContain("badge: paid ? 'PAID' : 'FREE'");
     expect(oldMobile).toContain("String(sub.status || 'unknown').toUpperCase()");
+    expect(oldMobile).toContain("Welcome Email: {sub.welcome_email_sent ? 'Sent' : 'Pending'}");
+    expect(oldMobile).toContain('onClick={() => onEdit(sub)}');
+    expect(oldMobile).toContain('onClick={() => onDelete(sub)}');
+
+    // Preserved outer-page source-voice (loaded/shown, no revenue language).
     expect(mobile).toContain("delta: 'Shown'");
     expect(mobile).toContain("label: 'Paid share'");
     expect(mobile).toContain('Subscriber mix');
     expect(mobile).toContain("subtitle: 'Type share'");
     expect(mobile).toContain("trendText: 'Loaded'");
-    expect(mobile).toContain("badge: paid ? 'Paid' : 'Free'");
+
+    // NEW ENERGY (Mobile Energy Rollout, VISUAL-ONLY): the row now carries the grounded
+    // status pill (S3) + subscription VitalTrack (S4) + identity islands (S6) + date
+    // groups (S5) + secondary plan/type meta, mirroring the MobileSupportTickets reference.
+    expect(mobile).toContain("import { VitalTrack } from '../common/VitalTrack';");
+    expect(mobile).toContain("import { resolveVital } from '../../constants/vitalTracks';");
+    expect(mobile).toContain("import { groupByMonth } from '../../utils/groupByMonth';");
+    expect(mobile).toContain("import { MobileDetailIslands } from './MobileDetailIslands';");
+    expect(mobile).toContain("import { MobileSheetActions } from './MobileSheetActions';");
+    expect(mobile).toContain("const vital = resolveVital('subscription', sub.status);");
+    expect(mobile).toContain('statusPill={vital?.pill}');
+    expect(mobile).toContain('<VitalTrack');
+    expect(mobile).toContain('<MobileDetailIslands');
+    expect(mobile).toContain('groupByMonth(displaySubscribers, (sub) => sub.subscription_date || sub.created_at)');
+    expect(mobile).toContain('color={vital?.accent');
+    expect(mobile).toContain('label="Subscriber"');
+    expect(mobile).toContain("secondary={`${formatLabel(sub.type, 'Free')} plan`}");
     expect(mobile).toContain("value: formatLabel(sub.type, 'Free')");
-    expect(mobile).toContain("label={formatLabel(sub.status)}");
+
+    // NEW ENERGY removed the status-only rightBlade and the old status label/badge.
+    expect(mobile).not.toContain('rightBlade');
+    expect(mobile).not.toContain("badge: paid ? 'Paid' : 'Free'");
+    expect(mobile).not.toContain('label={formatLabel(sub.status)}');
+
+    // Read-only lock (S7): a single Details CTA, no live edit/delete handler in the row.
+    expect(mobile).toContain('<MobileSheetActions');
+    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => onView(sub) }}");
+    expect(mobile).not.toContain('onClick={() => onEdit(sub)}');
+    expect(mobile).not.toContain('onClick={() => onDelete(sub)}');
+
+    // Chrome-clean locks preserved (borderless; canonical radius only).
     expect(mobile).toContain('rounded-inner');
     expect(mobile).toContain('rounded-button');
     expect(mobile).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
@@ -159,6 +197,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).not.toMatch(/\boutline-/);
     expect(mobile).not.toMatch(/\buppercase\b/);
     expect(mobile).not.toMatch(/\btracking-/);
+    // No-revenue-language safety locks preserved.
     expect(mobile).not.toContain("delta: 'LIVE'");
     expect(mobile).not.toContain('Revenue Dynamics');
     expect(mobile).not.toContain('Monetization');
@@ -315,6 +354,10 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(gate).toContain('Shared modal/panel: intake only. `SubscriptionModal` uses private chrome and direct command imports');
     expect(gate).toContain('Subscriptions mobile/right-panel squircle and source-voice cleanup on 2026-07-06 converted `MobileSubscriptions.jsx` and `SubscriptionsPanel.jsx` to semantic radius tokens, removed local decorative border/ring/outline/tracking/all-caps mobile chrome, replaced loaded-row `LIVE`/revenue/monetization wording with loaded-row subscriber mix language, and preserved search, filters, analytics trigger, row reveal, pull-to-refresh, load more, route-summary panel counts, Join/Data event bridges, disabled Email off, and unavailable command guards.');
     expect(gate).toContain('This gives `MobileSubscriptions.jsx` and `SubscriptionsPanel.jsx` focused strict-radius and source-voice proof only; it does not admit Subscriptions, prove subscriber projection/counts, prove email delivery, or make loaded-row charts canonical.');
+    // VISUAL-ONLY rollout pass documented (visual done, commands NOT granted).
+    expect(gate).toContain('Subscriptions VISUAL-ONLY rollout pass on 2026-07-08 applied the Requests-canon energy to `MobileSubscriptions.jsx`');
+    expect(gate).toContain('This pass changed presentation only; it added no mutation, kept `onEdit`/`onDelete` unwired with `canManage={false}`');
+    expect(gate).toContain('and did not grant subscriber command/backend authority, prove subscriber projection/counts, prove email delivery, or admit Page 17 to the default hardgate.');
     expect(gate).toContain('| Data quieting | PageData startup, context panel hook, desktop FAB hook, and mobile bottom hook are quieted from hidden subscriber fetch/realtime; Analytics no longer mounts the subscriber hook.');
 
     expect(subplan).toContain('Detailed implementation subplan only. No product, database, Edge Function, cleanup, email send, seed, migration, or runtime mutation is authorized by this document.');

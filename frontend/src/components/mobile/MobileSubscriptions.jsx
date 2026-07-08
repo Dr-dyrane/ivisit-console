@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Users, Search, Eye, Edit, Trash2, Mail, Clock, Crown, BadgeCheck, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Users, Search, Eye, Mail, Clock, Crown, BadgeCheck, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
@@ -12,6 +11,11 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { VitalTrack } from '../common/VitalTrack';
+import { resolveVital } from '../../constants/vitalTracks';
+import { groupByMonth } from '../../utils/groupByMonth';
 
 const formatLabel = (value, fallback = 'Unknown') => {
   const text = String(value || fallback).replace(/_/g, ' ').trim();
@@ -23,10 +27,7 @@ export const MobileSubscriptions = ({
   filters,
   setFilters,
   onView,
-  onEdit,
-  onDelete,
   onRefresh,
-  canManage = false,
   loading = false,
   onOpenFilters,
   onViewAnalytics,
@@ -252,60 +253,60 @@ export const MobileSubscriptions = ({
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {displaySubscribers.map((sub) => {
-              const active = sub.status === 'active';
+            {/* Date-grouped feed (rollout S5): newest-first, a month header at each
+                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
+            {groupByMonth(displaySubscribers, (sub) => sub.subscription_date || sub.created_at).map(({ item: sub, header }) => {
+              const vital = resolveVital('subscription', sub.status);
               const paid = sub.type === 'paid';
               return (
-                <MobileMetricRow
-                  key={sub.id}
-                  icon={Users}
-                  color={active ? 'hsl(160 60% 40%)' : 'hsl(var(--muted-foreground))'}
-                  label={formatLabel(sub.status)}
-                  value={sub.email || 'No email'}
-                  rightBlade={{
-                    badge: paid ? 'Paid' : 'Free',
-                    direction: paid ? 'up' : 'flat',
-                    label: 'Type',
-                    value: formatLabel(sub.type, 'Free'),
-                    color: paid ? 'hsl(38 92% 45%)' : 'hsl(var(--muted-foreground))'
-                  }}
-                  isExpanded={expandedId === sub.id}
-                  onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                  itemId={sub.id}
-                  isSelected={selectedIds.includes(sub.id)}
-                  onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
-                  selectionMode={selectionMode}
-                  expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Mail size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Welcome Email: {sub.welcome_email_sent ? 'Sent' : 'Pending'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Clock size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Joined: {sub.subscription_date ? new Date(sub.subscription_date).toLocaleDateString() : 'Date unknown'}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(sub)}>
-                          <Eye size={16} className="text-muted-foreground" />
-                          <span className="text-[11px] font-semibold">Details</span>
-                        </Button>
-                        {canManage && (
-                          <>
-                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(sub)}>
-                              <Edit size={16} className="text-muted-foreground" />
-                            </Button>
-                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(sub)}>
-                              <Trash2 size={16} className="text-destructive/60" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                <React.Fragment key={sub.id}>
+                  {header && (
+                    <div className="px-2 pb-1 pt-3 text-[11px] font-semibold text-muted-foreground/70">
+                      {header}
                     </div>
                   )}
-                />
+                  <MobileMetricRow
+                    icon={paid ? Crown : Users}
+                    color={vital?.accent || 'hsl(var(--muted-foreground))'}
+                    label="Subscriber"
+                    value={sub.email || 'No email'}
+                    secondary={`${formatLabel(sub.type, 'Free')} plan`}
+                    statusPill={vital?.pill}
+                    isExpanded={expandedId === sub.id}
+                    onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
+                    itemId={sub.id}
+                    isSelected={selectedIds.includes(sub.id)}
+                    onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
+                    selectionMode={selectionMode}
+                    expandedContent={(
+                      <div className="space-y-3 py-3">
+                        {vital && (
+                          <VitalTrack
+                            steps={vital.steps}
+                            currentKey={vital.currentKey}
+                            tone={vital.tone}
+                            cancelled={vital.cancelled}
+                            label="Subscription status"
+                          />
+                        )}
+                        <MobileDetailIslands
+                          items={[
+                            { icon: Mail, label: 'Email', value: sub.email || 'No email' },
+                            { icon: Crown, label: 'Plan', value: formatLabel(sub.type, 'Free') },
+                            { icon: BadgeCheck, label: 'Status', value: formatLabel(sub.status) },
+                            { icon: Clock, label: 'Subscribed', value: sub.subscription_date ? new Date(sub.subscription_date).toLocaleDateString() : 'Date unknown' },
+                            { icon: Mail, label: 'Welcome email', value: sub.welcome_email_sent ? 'Sent' : 'Pending' },
+                          ]}
+                        />
+                        {/* Read-only: a single Details CTA. No edit/delete secondary -
+                            command authority stays fail-closed and unauthorized here. */}
+                        <MobileSheetActions
+                          primary={{ label: 'Details', icon: Eye, onClick: () => onView(sub) }}
+                        />
+                      </div>
+                    )}
+                  />
+                </React.Fragment>
               );
             })}
           </AnimatePresence>
