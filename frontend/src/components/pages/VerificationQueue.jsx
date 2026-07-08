@@ -230,7 +230,7 @@ export const VerificationQueue = () => {
     >
       <FilterIcon className="h-4 w-4" />
       {(filters.search || filters.status !== 'all' || filters.created_at) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-300" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-amber-300" />
       )}
     </Button>
   ), [filters]);
@@ -440,12 +440,12 @@ export const VerificationQueue = () => {
 
       <Tabs defaultValue="providers" onValueChange={setQueueType} className="w-full">
         <div className="flex items-center justify-between mb-8">
-          <TabsList className="squircle-lg bg-background/30 backdrop-blur-md  p-1">
+          <TabsList className="rounded-inner bg-muted/30 p-1">
             <TabsTrigger
               value="providers"
               aria-label="Show provider approvals"
               data-testid="approval-tab-providers"
-              className="px-6 py-2 rounded-xl data-[state=active]:bg-amber-400/15 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-200 data-[state=active]:shadow-[0_10px_28px_rgba(251,191,36,0.14)] transition-all"
+              className="px-6 py-2 rounded-button data-[state=active]:bg-amber-400/15 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-200 data-[state=active]:shadow-[0_10px_28px_rgba(251,191,36,0.14)] transition-all active:scale-[0.96]"
             >
               Providers
             </TabsTrigger>
@@ -453,20 +453,20 @@ export const VerificationQueue = () => {
               value="organizations"
               aria-label="Show facility approvals"
               data-testid="approval-tab-facilities"
-              className="px-6 py-2 rounded-xl data-[state=active]:bg-amber-400/15 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-200 data-[state=active]:shadow-[0_10px_28px_rgba(251,191,36,0.14)] transition-all"
+              className="px-6 py-2 rounded-button data-[state=active]:bg-amber-400/15 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-200 data-[state=active]:shadow-[0_10px_28px_rgba(251,191,36,0.14)] transition-all active:scale-[0.96]"
             >
               Facilities
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* Bento Overview Cards - Updated with geo styles and responsive filtering */}
+        {/* Bento Overview Cards - responsive status filtering */}
         <LayoutGroup>
           <motion.div
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
           >
-            {/* Pending Card - geo-sharp */}
+            {/* Pending Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -478,30 +478,27 @@ export const VerificationQueue = () => {
                 type="button"
                 aria-label="Show applications needing review"
                 data-testid="approval-status-needs-review"
-                className={`h-full min-h-[140px] w-full text-left geo-sharp bg-background/45 backdrop-blur-xl shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'pending' ? 'bg-amber-400/10 shadow-[0_18px_55px_rgba(251,191,36,0.18)] scale-[1.01]' : 'hover:bg-white/[0.04]'
+                className={`h-full min-h-[140px] w-full text-left rounded-card bg-muted/22 shadow-sm p-6 active:scale-[0.98] cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'pending' ? 'bg-amber-400/10 shadow-[0_18px_55px_rgba(251,191,36,0.18)] scale-[1.01]' : 'hover:bg-muted/34'
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, status: 'pending' }))}
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-warning" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${filters.status === 'pending' ? 'bg-amber-400/25' : 'bg-amber-400/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Clock className={`h-5 w-5 ${filters.status === 'pending' ? 'text-amber-300' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Needs Review</p>
-                    {filters.status === 'pending' && <div className="h-2 w-2 rounded-full bg-amber-300 animate-pulse" />}
+                    <p className="text-sm font-semibold text-muted-foreground">Needs Review</p>
+                    {filters.status === 'pending' && <div className="h-2 w-2 rounded-pill bg-amber-300" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">
                     {queueType === 'providers' ? stats.pending : orgStats.pending}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-sharp bg-amber-400/15 text-amber-200 font-bold text-xs">
+                    <Badge className="rounded-pill bg-amber-400/15 text-amber-200 font-bold text-xs">
                       Review
                     </Badge>
                   </div>
@@ -509,7 +506,7 @@ export const VerificationQueue = () => {
               </button>
             </motion.div>
 
-            {/* Approved Card - geo-round */}
+            {/* Approved Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -521,32 +518,29 @@ export const VerificationQueue = () => {
                 type="button"
                 aria-label={queueType === 'providers' ? 'Show approved providers' : 'Show approved facilities'}
                 data-testid="approval-status-approved"
-                className={`h-full min-h-[140px] w-full text-left geo-round bg-background/45 backdrop-blur-xl shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'approved' ? 'bg-emerald-500/10 shadow-[0_18px_55px_rgba(52,211,153,0.18)] scale-[1.01]' : 'hover:bg-white/[0.04]'
+                className={`h-full min-h-[140px] w-full text-left rounded-card bg-muted/22 shadow-sm p-6 active:scale-[0.98] cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'approved' ? 'bg-emerald-500/10 shadow-[0_18px_55px_rgba(52,211,153,0.18)] scale-[1.01]' : 'hover:bg-muted/34'
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, status: 'approved' }))}
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-success" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${filters.status === 'approved' ? 'bg-emerald-500/25' : 'bg-emerald-500/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <CheckCircle className={`h-5 w-5 ${filters.status === 'approved' ? 'text-emerald-300' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    <p className="text-sm font-semibold text-muted-foreground">
                       {queueType === 'providers' ? 'Approved Providers' : 'Approved Facilities'}
                     </p>
-                    {filters.status === 'approved' && <div className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />}
+                    {filters.status === 'approved' && <div className="h-2 w-2 rounded-pill bg-emerald-300" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">
                     {queueType === 'providers' ? stats.approved : orgStats.verified}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-round bg-emerald-500/15 text-emerald-300 font-bold text-xs">
+                    <Badge className="rounded-pill bg-emerald-500/15 text-emerald-300 font-bold text-xs">
                       {Math.round(((queueType === 'providers' ? stats.approved : orgStats.verified) / ((queueType === 'providers' ? stats.total : orgStats.total) || 1)) * 100)}%
                     </Badge>
                   </div>
@@ -554,7 +548,7 @@ export const VerificationQueue = () => {
               </button>
             </motion.div>
 
-            {/* Rejected Card - geo-sharp */}
+            {/* Rejected Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -566,30 +560,27 @@ export const VerificationQueue = () => {
                 type="button"
                 aria-label="Show rejected applications"
                 data-testid="approval-status-rejected"
-                className={`h-full min-h-[140px] w-full text-left geo-sharp bg-background/45 backdrop-blur-xl shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'rejected' ? 'bg-destructive/10 shadow-[0_18px_55px_hsl(var(--destructive)/0.16)] scale-[1.01]' : 'hover:bg-white/[0.04]'
+                className={`h-full min-h-[140px] w-full text-left rounded-card bg-muted/22 shadow-sm p-6 active:scale-[0.98] cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'rejected' ? 'bg-destructive/10 shadow-[0_18px_55px_hsl(var(--destructive)/0.16)] scale-[1.01]' : 'hover:bg-muted/34'
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, status: 'rejected' }))}
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-destructive" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${filters.status === 'rejected' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Ban className={`h-5 w-5 ${filters.status === 'rejected' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Rejected</p>
-                    {filters.status === 'rejected' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                    <p className="text-sm font-semibold text-muted-foreground">Rejected</p>
+                    {filters.status === 'rejected' && <div className="h-2 w-2 rounded-pill bg-destructive" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">
                     {queueType === 'providers' ? stats.rejected : orgStats.rejected}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-sharp bg-destructive/20 text-destructive font-bold text-xs">
+                    <Badge className="rounded-pill bg-destructive/20 text-destructive font-bold text-xs">
                       INACTIVE
                     </Badge>
                   </div>
@@ -597,7 +588,7 @@ export const VerificationQueue = () => {
               </button>
             </motion.div>
 
-            {/* Total Card - geo-round */}
+            {/* Total Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -609,30 +600,27 @@ export const VerificationQueue = () => {
                 type="button"
                 aria-label="Show all approval applications"
                 data-testid="approval-status-total"
-                className={`h-full min-h-[140px] w-full text-left geo-round bg-background/45 backdrop-blur-xl shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'all' ? 'bg-sky-400/10 shadow-[0_18px_55px_rgba(56,189,248,0.18)] scale-[1.01]' : 'hover:bg-white/[0.04]'
+                className={`h-full min-h-[140px] w-full text-left rounded-card bg-muted/22 shadow-sm p-6 active:scale-[0.98] cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'all' ? 'bg-sky-400/10 shadow-[0_18px_55px_rgba(56,189,248,0.18)] scale-[1.01]' : 'hover:bg-muted/34'
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, status: 'all' }))}
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${filters.status === 'all' ? 'bg-sky-400/25' : 'bg-sky-400/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Shield className={`h-5 w-5 ${filters.status === 'all' ? 'text-sky-300' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total</p>
-                    {filters.status === 'all' && <div className="h-2 w-2 rounded-full bg-sky-300 animate-pulse" />}
+                    <p className="text-sm font-semibold text-muted-foreground">Total</p>
+                    {filters.status === 'all' && <div className="h-2 w-2 rounded-pill bg-sky-300" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">
                     {queueType === 'providers' ? stats.total : orgStats.total}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-round bg-sky-400/15 text-sky-300 font-bold text-xs">
+                    <Badge className="rounded-pill bg-sky-400/15 text-sky-300 font-bold text-xs">
                       All
                     </Badge>
                   </div>
@@ -686,7 +674,7 @@ export const VerificationQueue = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="h-[280px] squircle-lg bg-muted/10 animate-pulse"
+                    className="h-[280px] rounded-card bg-muted/10 animate-pulse"
                   />
                 ))}
               </motion.div>
@@ -727,7 +715,7 @@ export const VerificationQueue = () => {
                     >
                       <div
                         style={{ outline: 'none' }}
-                        className="h-full squircle-lg bg-background/45 backdrop-blur-xl shadow-2xl p-6 flex flex-col justify-between hover-lift group relative overflow-hidden cursor-pointer focus-visible:bg-amber-400/[0.04] focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.18),0_24px_60px_rgba(0,0,0,0.26)]"
+                        className="h-full rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between hover:bg-muted/34 active:scale-[0.98] group relative overflow-hidden cursor-pointer transition-all duration-200 focus-visible:bg-amber-400/[0.04] focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.18)]"
                         onClick={() => setSelectedProvider(provider)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -740,10 +728,9 @@ export const VerificationQueue = () => {
                         data-testid="approval-provider-card"
                         tabIndex={0}
                       >
-                        <div className="hover-glow hover-glow-warning" />
                         <div className="relative z-10 flex flex-col items-center text-center">
                           <div className="relative mb-4">
-                            <Avatar className="h-24 w-24 squircle-xl shadow-lg">
+                            <Avatar className="h-24 w-24 squircle shadow-sm">
                               <AvatarImage src={provider.avatar_url || provider.image_uri || undefined} />
                               <AvatarFallback className="text-2xl font-bold bg-amber-400/10 text-amber-700 dark:text-amber-200">
                                 {getAvatarFallback(provider)}
@@ -753,10 +740,10 @@ export const VerificationQueue = () => {
                           <h3 className="text-xl font-bold tracking-tight mb-1 truncate w-full">{provider.username || 'Unknown'}</h3>
                           <p className="text-sm text-muted-foreground font-medium mb-4 truncate w-full">{provider.email}</p>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="squircle-sm bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
+                            <Badge variant="secondary" className="rounded-pill bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
                               {provider.role}
                             </Badge>
-                            <Badge variant="secondary" className="squircle-sm bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
+                            <Badge variant="secondary" className="rounded-pill bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-widest font-bold">
                               {new Date(provider.created_at).toLocaleDateString()}
                             </Badge>
                           </div>
@@ -768,7 +755,7 @@ export const VerificationQueue = () => {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                className="h-8 flex-1 rounded-full text-[10px] font-bold"
+                                className="h-8 flex-1 rounded-pill text-[10px] font-bold"
                                 disabled={actionLoading}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -779,7 +766,7 @@ export const VerificationQueue = () => {
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-8 flex-1 rounded-full bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
+                                className="h-8 flex-1 rounded-pill bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
                                 disabled={actionLoading}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -791,7 +778,7 @@ export const VerificationQueue = () => {
                             </>
                           ) : (
                             <div className="flex items-center justify-center w-full">
-                              <Badge className={`${provider.bvn_verified ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-400/15 text-amber-200'} font-bold px-4 py-1 rounded-full`}>
+                              <Badge className={`${provider.bvn_verified ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-400/15 text-amber-200'} font-bold px-4 py-1 rounded-pill`}>
                                 {provider.bvn_verified ? 'APPROVED' : 'ADMIN REVIEW'}
                               </Badge>
                             </div>
@@ -845,7 +832,7 @@ export const VerificationQueue = () => {
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-[200px] squircle-lg bg-white/5 " />
+                <div key={i} className="h-[200px] rounded-card bg-muted/10" />
               ))}
             </div>
           )}
@@ -866,14 +853,14 @@ export const VerificationQueue = () => {
                 <div
                   key={org.id}
                   data-testid="approval-facility-card"
-                  className="squircle-lg bg-background/45 backdrop-blur-xl shadow-2xl p-6 hover-lift flex flex-col justify-between"
+                  className="rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
-                      <Badge className="squircle-sm bg-muted/35 text-foreground/60 font-mono text-[10px]">
+                      <Badge className="rounded-pill bg-muted/35 text-foreground/60 font-mono text-[10px]">
                         {org.display_id || 'ORG-PENDING'}
                       </Badge>
-                      <Badge className={`squircle-sm font-bold text-[10px] ${org.verification_status === 'verified' ? 'bg-emerald-500/15 text-emerald-300' :
+                      <Badge className={`rounded-pill font-bold text-[10px] ${org.verification_status === 'verified' ? 'bg-emerald-500/15 text-emerald-300' :
                         org.verification_status === 'rejected' ? 'bg-destructive/20 text-destructive' :
                           'bg-amber-400/15 text-amber-200'
                         }`}>
@@ -887,13 +874,13 @@ export const VerificationQueue = () => {
                     </p>
                   </div>
 
-                  <div className="mt-6 flex items-center gap-2 rounded-2xl bg-white/[0.03] p-2">
+                  <div className="mt-6 flex items-center gap-2 rounded-inner bg-muted/20 p-2">
                     {org.verification_status === 'pending' && canApprove && (
                       <>
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="h-8 flex-1 rounded-full text-[10px] font-bold"
+                          className="h-8 flex-1 rounded-pill text-[10px] font-bold"
                           disabled={actionLoading}
                           onClick={() => handleVerifyOrg(org.id, false)}
                         >
@@ -901,7 +888,7 @@ export const VerificationQueue = () => {
                         </Button>
                         <Button
                           size="sm"
-                          className="h-8 flex-1 rounded-full bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
+                          className="h-8 flex-1 rounded-pill bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
                           disabled={actionLoading}
                           onClick={() => handleVerifyOrg(org.id, true)}
                         >
@@ -910,7 +897,7 @@ export const VerificationQueue = () => {
                       </>
                     )}
                     {org.verification_status === 'pending' && !canApprove && (
-                      <Badge className="h-8 flex-1 rounded-full bg-amber-400/15 text-amber-200 flex items-center justify-center text-[10px] font-bold">
+                      <Badge className="h-8 flex-1 rounded-pill bg-amber-400/15 text-amber-200 flex items-center justify-center text-[10px] font-bold">
                         ADMIN REVIEW
                       </Badge>
                     )}
@@ -957,7 +944,7 @@ export const VerificationQueue = () => {
               size="icon"
               onClick={() => handleBulkVerify(true)}
               disabled={actionLoading}
-              className="h-10 w-10 rounded-full bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500 hover:text-white transition-all"
+              className="h-10 w-10 rounded-pill bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500 hover:text-white transition-all"
               title="Approve Selected"
             >
               <CheckCircle className="h-5 w-5" />
@@ -967,7 +954,7 @@ export const VerificationQueue = () => {
               size="icon"
               onClick={() => handleBulkVerify(false)}
               disabled={actionLoading}
-              className="h-10 w-10 rounded-full bg-destructive/15 text-destructive hover:bg-destructive hover:text-white transition-all"
+              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive hover:bg-destructive hover:text-white transition-all"
               title="Reject Selected"
             >
               <AlertTriangle className="h-5 w-5" />
