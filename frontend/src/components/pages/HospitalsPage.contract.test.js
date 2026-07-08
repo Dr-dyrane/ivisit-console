@@ -211,14 +211,18 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('<PaginationControls');
     expect(page).toContain('setFilters(prev => ({ ...prev, search: event.target.value }))');
     expect(page).toContain('pagination.resetPagination()');
-    expect(page).toContain('const [focusedHospitalId, setFocusedHospitalId] = useState(null)');
-    expect(page).toContain('const focusedHospital = React.useMemo');
+    // Shared focused-record store (useFocusedRecord) replaces the old private
+    // focusedHospitalId state + list.find(id)||list[0] memo: rail shows the
+    // most-urgent hospital at rest and toggles consistently on row focus.
+    expect(page).toContain("useFocusedRecord('hospitals', hospitals)");
+    expect(page).toContain('const focusedHospital = focusedRecord');
+    expect(page).not.toContain('setFocusedHospitalId');
     expect(page).toContain('<HospitalDetailRail');
     expect(page).toContain('const HospitalDetailRail =');
     expect(page).toContain('data-testid="hospitals-detail-rail"');
     expect(page).toContain('aria-pressed={focused}');
     expect(page).toContain("data-state={focused ? 'focused' : 'idle'}");
-    expect(page).toContain('setFocusedHospitalId(hospital.id)');
+    expect(page).toContain('setFocused(hospital.id)');
     expect(page).toContain('const RailMetric =');
     expect(page).toContain('const RailFact =');
     expect(page).toContain('Use Requests for reservation changes.');

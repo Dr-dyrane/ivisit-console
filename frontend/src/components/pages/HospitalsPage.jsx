@@ -24,6 +24,7 @@ import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 import { SEOHead } from '../common/SEOHead';
 import { MobileHospitals } from '../mobile/MobileHospitals';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 
 const getHospitalStatsFilters = (filters = {}) => {
   const { status, ...statsFilters } = filters || {};
@@ -156,14 +157,15 @@ export const HospitalsPage = () => {
   const [hospitalPageError, setHospitalPageError] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
-  const [focusedHospitalId, setFocusedHospitalId] = useState(null);
 
   const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
   const canEditHospitals = isAdmin() || isOrgAdmin();
-  const focusedHospital = React.useMemo(() => (
-    hospitals.find((hospital) => hospital.id === focusedHospitalId) || hospitals[0] || null
-  ), [hospitals, focusedHospitalId]);
+  // Shared focused-record store: rail shows the most-urgent hospital at rest and
+  // toggles consistently on row focus. Replaces the old private focusedHospitalId
+  // state + `list.find(id) || list[0]` memo + first-item re-pin effect.
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('hospitals', hospitals);
+  const focusedHospital = focusedRecord;
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
@@ -241,7 +243,7 @@ export const HospitalsPage = () => {
 
         // Auto-open the modal for this hospital
         if (specificHospital) {
-          setFocusedHospitalId(specificHospital.id);
+          setFocused(specificHospital.id);
           setSelectedHospital(specificHospital);
           setModalMode('view');
         }
@@ -284,17 +286,6 @@ export const HospitalsPage = () => {
       }
     }
   }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, location.search]);
-
-  useEffect(() => {
-    if (!hospitals.length) {
-      if (focusedHospitalId !== null) setFocusedHospitalId(null);
-      return;
-    }
-
-    if (!hospitals.some((hospital) => hospital.id === focusedHospitalId)) {
-      setFocusedHospitalId(hospitals[0].id);
-    }
-  }, [hospitals, focusedHospitalId]);
 
   useEffect(() => {
     let active = true;
@@ -400,17 +391,17 @@ export const HospitalsPage = () => {
 
   const handleView = useCallback((hospital) => {
     markActionFeedback(`view-${hospital?.id || 'unknown'}`);
-    if (hospital?.id) setFocusedHospitalId(hospital.id);
+    if (hospital?.id) setFocused(hospital.id);
     setSelectedHospital(hospital);
     setModalMode('view');
-  }, [markActionFeedback]);
+  }, [markActionFeedback, setFocused]);
 
   const handleEdit = useCallback((hospital) => {
     markActionFeedback(`edit-${hospital?.id || 'unknown'}`);
-    if (hospital?.id) setFocusedHospitalId(hospital.id);
+    if (hospital?.id) setFocused(hospital.id);
     setSelectedHospital(hospital);
     setModalMode('edit');
-  }, [markActionFeedback]);
+  }, [markActionFeedback, setFocused]);
 
   const handleClearFilters = useCallback(() => {
     handleKpiFilterChange('all');
@@ -635,7 +626,7 @@ export const HospitalsPage = () => {
                       className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
                     >
                       {hospitals.map((hospital, index) => {
-                        const focused = focusedHospital?.id === hospital.id;
+                        const focused = isFocused(hospital.id);
 
                         return (
                           <motion.div
@@ -652,11 +643,11 @@ export const HospitalsPage = () => {
                               tabIndex={0}
                               aria-pressed={focused}
                               data-state={focused ? 'focused' : 'idle'}
-                              onClick={() => setFocusedHospitalId(hospital.id)}
+                              onClick={() => setFocused(hospital.id)}
                               onKeyDown={(event) => {
                                 if (event.key === 'Enter' || event.key === ' ') {
                                   event.preventDefault();
-                                  setFocusedHospitalId(hospital.id);
+                                  setFocused(hospital.id);
                                 }
                               }}
                             >
