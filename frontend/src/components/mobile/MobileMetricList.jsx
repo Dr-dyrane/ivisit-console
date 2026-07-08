@@ -116,6 +116,8 @@ export const MobileMetricRow = ({
     icon: Icon,
     label,
     value,
+    secondary, // optional meta line under the identity name (mobile energy rollout S2)
+    statusPill, // optional { label, className } semantic status pill (rollout S3)
     trend,
     statusIndicators = [], // Array of { icon, color, label }
     onClick,
@@ -129,8 +131,7 @@ export const MobileMetricRow = ({
     onSelect,
     selectionMode,
     rightBlade,
-    layoutEnabled = true,
-    attentionPulse = false
+    layoutEnabled = true
 }) => {
     const { triggerFromEvent } = useFeedback();
     // Backward compatibility: Use internal state if controlled props not provided
@@ -302,22 +303,8 @@ export const MobileMetricRow = ({
                     )}
                 </AnimatePresence>
 
-                {/* 2px Left Accent - The only differentiator */}
-                {attentionPulse ? (
-                    <motion.div
-                        initial={false}
-                        animate={{ opacity: [0.45, 1, 0.45] }}
-                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
-                        style={{ backgroundColor: color }}
-                    />
-                ) : (
-                    <div
-                        className="absolute left-0 top-0 bottom-0 w-[2px] opacity-60"
-                        style={{ backgroundColor: color }}
-                    />
-                )}
-
+                {/* Borderless canon: status is carried by the icon tone + status pill,
+                    never a left-side accent bar (CONSOLE_DESIGN_SYSTEM_FROM_APP.md). */}
                 <div
                     className={`w-9 h-9 rounded-icon flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
                     style={{
@@ -352,6 +339,11 @@ export const MobileMetricRow = ({
                             the width-capped blade stays fixed. See MOTION_AND_INTERACTION_CANON §2.1. */}
                         <span className="text-[14px] font-medium tracking-tight text-foreground line-clamp-2 break-words font-dashboard-numbers">{value}</span>
                     </div>
+                    {secondary && (
+                        <p className="mt-1 truncate text-[12px] font-medium text-muted-foreground/85">
+                            {secondary}
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto relative z-10">
@@ -364,6 +356,12 @@ export const MobileMetricRow = ({
                             {indicator.icon && <indicator.icon size={16} style={{ color: indicator.color || 'white' }} className="opacity-95" />}
                         </div>
                     ))}
+
+                    {statusPill && (
+                        <span className={`shrink-0 whitespace-nowrap rounded-pill px-2.5 py-1 text-[11px] font-semibold ${statusPill.className || ''}`} data-status-pill>
+                            {statusPill.label}
+                        </span>
+                    )}
 
                     {blade && (
                         <div

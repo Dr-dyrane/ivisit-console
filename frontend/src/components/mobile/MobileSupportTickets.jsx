@@ -1,28 +1,40 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BarChart3, CheckCircle, Edit, Eye, Headphones, Search, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle, Clock, Edit, Eye, Headphones, Search, SlidersHorizontal, Tag, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { VitalTrack } from '../common/VitalTrack';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListSkeletonRows } from './MobileListStates';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { useStableList } from './useStableList';
-
-const STATUS_LABELS = {
-  open: 'Open',
-  in_progress: 'In progress',
-  resolved: 'Resolved',
-  closed: 'Closed',
-};
+import { resolveVital } from '../../constants/vitalTracks';
+import { groupByMonth } from '../../utils/groupByMonth';
 
 const priorityLabel = (value) => {
   const text = String(value || 'normal').replace('_', ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-const statusLabel = (value) => STATUS_LABELS[value] || STATUS_LABELS.open;
+const categoryLabel = (value) => {
+  const text = String(value || 'general').replace(/[_-]+/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+const requesterName = (ticket) =>
+  ticket?.requester_name || ticket?.user_name || ticket?.name || ticket?.email || ticket?.user?.email || 'Unknown requester';
+
+const createdLabel = (ticket) => {
+  const value = ticket?.created_at;
+  if (!value) return 'Unknown date';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Unknown date';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 export const MobileSupportTickets = ({
   tickets = [],
@@ -160,58 +172,61 @@ export const MobileSupportTickets = ({
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {displayItems.map((ticket) => {
+            {/* Date-grouped feed (rollout S5): newest-first, a month header at each
+                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
+            {groupByMonth(displayItems, (ticket) => ticket?.created_at).map(({ item: ticket, header }) => {
+              const vital = resolveVital('support', ticket.status);
               const resolved = ticket.status === 'resolved' || ticket.status === 'closed';
-              const active = ticket.status === 'open' || ticket.status === 'in_progress';
-              const color = resolved ? 'hsl(var(--success))' : active ? 'hsl(var(--warning))' : 'hsl(var(--primary))';
 
               return (
-                <MobileMetricRow
-                  key={ticket.id}
-                  icon={resolved ? CheckCircle : Headphones}
-                  color={color}
-                  label={statusLabel(ticket.status)}
-                  value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
-                  rightBlade={{
-                    badge: priorityLabel(ticket.priority),
-                    direction: resolved ? 'up' : active ? 'flat' : 'down',
-                    label: 'Category',
-                    value: ticket.category || 'general',
-                    color,
-                  }}
-                  isExpanded={expandedId === ticket.id}
-                  onExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
-                  itemId={ticket.id}
-                  expandedContent={(
-                    <div className="space-y-3 py-3">
-                      <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
-                        {ticket.message || 'No extra message was added.'}
-                      </div>
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-card/70 text-sm font-medium shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
-                          onClick={() => onView?.(ticket)}
-                        >
-                          <Eye className="h-4 w-4 text-primary" />
-                          Details
-                        </Button>
-                        {canManage && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="flex h-11 items-center justify-center rounded-button bg-card/70 px-4 shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
-                            onClick={() => onEdit?.(ticket)}
-                            aria-label={`Edit ${ticket.subject || 'support request'}`}
-                          >
-                            <Edit className="h-4 w-4 text-primary" />
-                          </Button>
-                        )}
-                      </div>
+                <React.Fragment key={ticket.id}>
+                  {header && (
+                    <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {header}
                     </div>
                   )}
-                />
+                  <MobileMetricRow
+                    icon={resolved ? CheckCircle : Headphones}
+                    color={vital?.accent || 'hsl(var(--primary))'}
+                    label="Support request"
+                    value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
+                    secondary={`${priorityLabel(ticket.priority)} priority · ${categoryLabel(ticket.category)}`}
+                    statusPill={vital?.pill}
+                    isExpanded={expandedId === ticket.id}
+                    onExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
+                    itemId={ticket.id}
+                    expandedContent={(
+                      <div className="space-y-3 py-3">
+                        {vital && (
+                          <VitalTrack
+                            steps={vital.steps}
+                            currentKey={vital.currentKey}
+                            tone={vital.tone}
+                            cancelled={vital.cancelled}
+                            label="Ticket status"
+                          />
+                        )}
+                        <MobileDetailIslands
+                          items={[
+                            { icon: User, label: 'Requester', value: requesterName(ticket) },
+                            { icon: AlertTriangle, label: 'Priority', value: `${priorityLabel(ticket.priority)}` },
+                            { icon: Tag, label: 'Category', value: categoryLabel(ticket.category) },
+                            { icon: Clock, label: 'Opened', value: createdLabel(ticket) },
+                          ]}
+                        />
+                        {ticket.message && (
+                          <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                            {ticket.message}
+                          </div>
+                        )}
+                        <MobileSheetActions
+                          primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(ticket) }}
+                          secondary={canManage ? { icon: Edit, onClick: () => onEdit?.(ticket), 'aria-label': `Edit ${ticket.subject || 'support request'}` } : undefined}
+                        />
+                      </div>
+                    )}
+                  />
+                </React.Fragment>
               );
             })}
           </AnimatePresence>
