@@ -735,7 +735,10 @@ export const EmergencyRequestsPage = () => {
         await fetchRequests();
         return;
       }
-      toast.error('Failed to dispatch request', { id: 'dispatch' });
+      // Surface the real server reason ("No available ambulance", "Ambulance is
+      // currently assigned to another request", ...) instead of masking it, so the
+      // operator knows why and does not retry blindly into the same collision.
+      toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });
     }
   }, [fetchRequests, isAdmin, isOrgAdmin, orgId]);
 
