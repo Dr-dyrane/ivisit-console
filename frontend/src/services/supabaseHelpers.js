@@ -79,7 +79,7 @@ export async function withRetry(fn, {
             const delay = baseDelayMs * Math.pow(2, attempt - 1);
             const jitter = Math.random() * delay * 0.3;
             await new Promise(r => setTimeout(r, delay + jitter));
-            if (import.meta.env.DEV) {
+            if (process.env.NODE_ENV !== 'production') {
                 console.warn(`[withRetry] Attempt ${attempt}/${maxRetries} failed, retrying in ${Math.round(delay + jitter)}ms...`);
             }
         }
@@ -163,7 +163,7 @@ export function subscribeToTable(table, event, callback, filter = null) {
             }
         )
         .subscribe((status) => {
-            if (import.meta.env.DEV) {
+            if (process.env.NODE_ENV !== 'production') {
                 if (status === 'SUBSCRIBED') {
                     console.log(`[Stream] Subscribed to ${table}.${event}`);
                 } else if (status === 'CHANNEL_ERROR') {

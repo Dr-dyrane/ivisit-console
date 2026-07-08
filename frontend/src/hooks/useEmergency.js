@@ -18,7 +18,7 @@ import {
   updateResponderLocation,
   updatePatientLocation,
   getEmergencyStats,
-  subscribeToEmergencyRequest,
+  subscribeToEmergencyDetail,
 } from '../services/emergencyService';
 
 export function useEmergency() {
@@ -272,7 +272,7 @@ export function useEmergency() {
 
   const subscribe = useCallback((requestId, callback) => {
     try {
-      return subscribeToEmergencyRequest(requestId, callback);
+      return subscribeToEmergencyDetail(requestId, callback);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to subscribe to emergency request';
       setError(message);
