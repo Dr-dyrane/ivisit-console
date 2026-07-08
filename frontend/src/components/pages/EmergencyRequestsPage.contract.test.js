@@ -556,7 +556,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('This request is not ready to dispatch. Refreshing list...');
     expect(pageSource).toContain("toast.loading('Dispatching request...', { id: 'dispatch' });");
     expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
-    expect(pageSource).toContain("toast.error('Failed to dispatch request', { id: 'dispatch' });");
+    expect(pageSource).toContain("toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });");
     expect(pageSource).toContain('setCompleteModal({ open: true, request });');
     expect(pageSource).toContain('await completeEmergency(request.id);');
     expect(pageSource).toContain("toast.success('Request completed');");
