@@ -96,7 +96,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
           Facilities overview
         </p>
 
-        <div className="rounded-[28px] bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -109,16 +109,16 @@ export const HospitalsPanel = ({ hospitalContext }) => {
                 {total === 1 ? 'Facility in this view' : 'Facilities in this view'}
               </p>
             </div>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-background/55 text-sky-700 dark:text-sky-200">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-background/55 text-sky-700 dark:text-sky-200">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Hospital className="h-5 w-5" />}
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[24px] bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_14px_38px_rgb(16_185_129/0.12)] dark:text-emerald-200">
+          <div className="rounded-inner bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_14px_38px_rgb(16_185_129/0.12)] dark:text-emerald-200">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <MapPin className="h-4 w-4" />
               </span>
               <span className="min-w-0">
@@ -132,9 +132,9 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200">
+          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <Bed className="h-4 w-4" />
               </span>
               <span className="min-w-0">
@@ -160,7 +160,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleAddFacility}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-sky-500/10 px-3 text-sky-700 shadow-[0_14px_42px_rgb(14_165_233/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-[0_14px_42px_rgb(14_165_233/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
             title="Add facility"
             data-state="unavailable"
           >
@@ -173,7 +173,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_14px_42px_rgb(6_182_212/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_14px_42px_rgb(6_182_212/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
             title="View facility statistics"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -185,7 +185,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-muted/34 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/34 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
             title="Filter facilities"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -197,7 +197,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleContact}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-muted/24 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.08)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/24 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.08)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34"
             title="Contact unavailable"
             aria-disabled="true"
             data-state="unavailable"
@@ -226,11 +226,11 @@ export const HospitalsPanel = ({ hospitalContext }) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className="group rounded-[24px] bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+                className="group rounded-inner bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] transition-transform duration-200 group-hover:scale-105 ${tone.iconClass}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon transition-transform duration-200 group-hover:scale-105 ${tone.iconClass}`}>
                       <Hospital className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">
@@ -242,7 +242,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
                       </span>
                     </span>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${tone.chipClass}`}>
+                  <span className={`shrink-0 rounded-pill px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${tone.chipClass}`}>
                     {tone.label}
                   </span>
                 </div>
@@ -251,13 +251,13 @@ export const HospitalsPanel = ({ hospitalContext }) => {
           })}
 
           {!loading && recent.length === 0 && (
-            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
               No facilities in the current view.
             </div>
           )}
 
           {loading && recent.length === 0 && (
-            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
               Loading facilities.
             </div>
           )}

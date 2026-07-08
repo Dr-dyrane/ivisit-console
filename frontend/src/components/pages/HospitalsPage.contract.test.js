@@ -177,7 +177,9 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain("usePageFooter(footerContent, 'pagination'");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain('min-h-screen text-foreground');
-    expect(page).toContain('glass-card');
+    // Borderless canon: manual glass (bg-card/NN backdrop-blur) replaces the legacy glass-card utility.
+    expect(page).toContain('bg-card/68 backdrop-blur-2xl');
+    expect(page).not.toContain('glass-card');
     expect(page).toContain('const getHospitalSignal =');
     expect(page).toContain('const HospitalSignalPanel =');
     expect(page).toContain('const HospitalStateStrip =');
@@ -224,7 +226,12 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('<Card');
     expect(page).not.toContain('</Card>');
     expect(page).not.toContain('border-t border-muted/20');
-    expect(page).toContain("rounded-[30px] p-5 transition-[background,box-shadow,transform]");
+    // Borderless canon: the focus card uses canonical squircle radius, no rounded-[30px] literal.
+    expect(page).toContain("rounded-card p-5 transition-[background,box-shadow,transform]");
+    expect(page).not.toContain('geo-round');
+    expect(page).not.toContain('geo-badge');
+    expect(page).not.toContain('geo-sharp');
+    expect(page).not.toContain('hover-glow');
 
     expect(mobile).toContain('MobileKPIStrip');
     expect(mobile).toContain('MobileSecondaryMetricRail');
@@ -432,10 +439,17 @@ describe('HospitalsPage admission audit contract', () => {
     expect(table).not.toContain('border-red-500/30');
     expect(table).not.toContain('border-blue-500/30');
     expect(table).not.toContain('border-gray-500/30');
-    expect(table).toContain('rounded-card bg-background/35 shadow-premium');
+    // Borderless canon: the raw <table> was rebuilt as a CSS-grid mirroring VisitTableView.
+    expect(table).toContain('rounded-card bg-background/35 p-3 backdrop-blur-xs');
     expect(table).toContain('rounded-icon overflow-hidden bg-black/20');
     expect(table).toContain('rounded-pill hover:bg-white/10');
-    expect(table).toContain('shadow-[inset_0_-1px_0_hsl(var(--foreground)/0.045)]');
+    expect(table).toContain('grid ${gridClass} items-center gap-2 rounded-inner');
+    expect(table).not.toContain('shadow-premium');
+    expect(table).not.toContain('uppercase tracking-wider');
+    expect(table).not.toContain('hover:bg-white/5');
+    expect(table).not.toContain('<table');
+    expect(table).not.toContain('<thead');
+    expect(table).not.toContain('<tbody');
 
     expect(modal).toContain('mode === \'view\'');
     expect(modal).toContain('mode === \'edit\'');

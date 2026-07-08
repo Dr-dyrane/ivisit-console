@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, Star, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown, Hospital, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,6 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+
+const GRID_TEMPLATE = 'grid-cols-[40px_60px_minmax(90px,0.7fr)_minmax(150px,1.3fr)_minmax(150px,1.2fr)_minmax(96px,0.7fr)_minmax(80px,0.5fr)_minmax(64px,0.4fr)_minmax(70px,0.5fr)_minmax(90px,0.6fr)_minmax(80px,0.5fr)_56px]';
+const GRID_TEMPLATE_NO_SELECT = 'grid-cols-[60px_minmax(90px,0.7fr)_minmax(150px,1.3fr)_minmax(150px,1.2fr)_minmax(96px,0.7fr)_minmax(80px,0.5fr)_minmax(64px,0.4fr)_minmax(70px,0.5fr)_minmax(90px,0.6fr)_minmax(80px,0.5fr)_56px]';
 
 export const HospitalTableView = ({
   hospitals,
@@ -32,12 +34,14 @@ export const HospitalTableView = ({
   const canSelect = selectionEnabled && canManage && Boolean(onSelect);
   const canDeleteRow = canDelete && canManage && Boolean(onDelete);
 
+  const gridClass = canSelect ? GRID_TEMPLATE : GRID_TEMPLATE_NO_SELECT;
+
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
       case 'verified':
         return 'bg-green-500/18 text-green-600 dark:text-green-300';
       case 'rejected':
-        return 'bg-red-500/18 text-red-600 dark:text-red-300';
+        return 'bg-rose-500/18 text-rose-600 dark:text-rose-300';
       case 'pending':
         return 'bg-blue-500/18 text-blue-600 dark:text-blue-300';
       case 'closed':
@@ -57,119 +61,135 @@ export const HospitalTableView = ({
     return Number.isFinite(numericMinutes) ? `${numericMinutes}m` : 'Unknown';
   };
 
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/30" />;
-    return sortConfig.direction === 'asc'
-      ? <ChevronUp className="ml-2 h-3 w-3 text-primary" />
-      : <ChevronDown className="ml-2 h-3 w-3 text-primary" />;
-  };
+  const SortableHead = ({ label, columnKey, className = "" }) => {
+    const isSorted = sortConfig?.key === columnKey;
+    const direction = isSorted ? sortConfig.direction : null;
 
-  const SortableHead = ({ label, columnKey, className = "" }) => (
-    <th
-      className={`h-10 px-2 text-left align-middle text-[11px] font-bold uppercase tracking-wider text-muted-foreground cursor-pointer select-none hover:bg-white/5 transition-colors ${className}`}
-      onClick={() => onSort && onSort(columnKey)}
-    >
-      <div className="flex items-center">
+    return (
+      <button
+        type="button"
+        className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors ${className}`}
+        onClick={() => onSort && onSort(columnKey)}
+      >
         {label}
-        <SortIcon columnKey={columnKey} />
-      </div>
-    </th>
-  );
+        {isSorted ? (
+          direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="overflow-hidden rounded-card bg-background/35 shadow-premium backdrop-blur-xs">
-        <div className="relative w-full overflow-auto">
-          <table className="w-full caption-bottom text-sm">
-            <thead className="bg-muted/18">
-              <tr className="shadow-[inset_0_-1px_0_hsl(var(--foreground)/0.05)]">
-                {canSelect && (
-                  <th className="h-10 w-[50px] px-2 text-left align-middle font-normal text-muted-foreground">
-                    <Checkbox
-                      checked={hospitals.length > 0 && selectedIds.length === hospitals.length}
-                      onCheckedChange={onSelectAll}
-                    />
-                  </th>
-                )}
-                <th className="h-10 w-[60px] px-2 text-left align-middle text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Image</th>
-                <SortableHead label="ID" columnKey="display_id" />
-                <SortableHead label="Name" columnKey="name" />
-                <SortableHead label="Address" columnKey="address" />
-                <SortableHead label="Status" columnKey="status" />
-                <SortableHead label="Beds" columnKey="available_beds" />
-                <SortableHead label="ICU" columnKey="icu_beds_available" />
-                <SortableHead label="Fleet" columnKey="ambulances_count" />
-                <SortableHead label="ER Wait" columnKey="emergency_wait_time_minutes" />
-                <SortableHead label="Rating" columnKey="rating" />
-                <th className="h-10 px-2 pr-6 text-right align-middle text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hospitals.map((hospital, index) => (
-                <motion.tr
-                  key={hospital.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: index * 0.02 }}
-                  className={`group shadow-[inset_0_-1px_0_hsl(var(--foreground)/0.045)] transition-[background,box-shadow] hover:bg-white/5 ${canSelect && selectedIds.includes(hospital.id) ? 'bg-primary/5' : ''}`}
-                  onClick={() => isMobile && onView(hospital)}
-                >
-                  {canSelect && (
-                    <td className="w-[50px] p-2 align-middle">
-                      <Checkbox
-                        checked={selectedIds.includes(hospital.id)}
-                        onCheckedChange={() => onSelect(hospital.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                  )}
-                  <td className="w-[60px] p-2 align-middle">
-                    {hospital.image ? (
-                      <div className="relative h-10 w-10 rounded-icon overflow-hidden bg-black/20">
-                        <img
-                          src={hospital.image}
-                          alt={hospital.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
+      <div className="rounded-card bg-background/35 p-3 backdrop-blur-xs overflow-hidden">
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[860px]">
+            {/* Header row */}
+            <div className={`grid ${gridClass} items-center gap-2 px-3 pb-3 pt-2`}>
+              {canSelect && (
+                <div className="flex items-center">
+                  <Checkbox
+                    checked={hospitals.length > 0 && selectedIds.length === hospitals.length}
+                    onCheckedChange={onSelectAll}
+                  />
+                </div>
+              )}
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Image</span>
+              <SortableHead label="ID" columnKey="display_id" />
+              <SortableHead label="Name" columnKey="name" />
+              <SortableHead label="Address" columnKey="address" />
+              <SortableHead label="Status" columnKey="status" />
+              <SortableHead label="Beds" columnKey="available_beds" />
+              <SortableHead label="ICU" columnKey="icu_beds_available" />
+              <SortableHead label="Fleet" columnKey="ambulances_count" />
+              <SortableHead label="ER Wait" columnKey="emergency_wait_time_minutes" />
+              <SortableHead label="Rating" columnKey="rating" />
+              <span className="justify-self-end text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Actions</span>
+            </div>
+
+            {/* Data rows */}
+            {hospitals.length === 0 ? (
+              <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+                No hospitals found.
+              </div>
+            ) : (
+              hospitals.map((hospital, index) => {
+                const selected = canSelect && selectedIds.includes(hospital.id);
+
+                return (
+                  <motion.div
+                    key={hospital.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: index * 0.02 }}
+                    className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-[background,transform] ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                    onClick={() => isMobile && onView(hospital)}
+                  >
+                    {canSelect && (
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.includes(hospital.id)}
+                          onCheckedChange={() => onSelect(hospital.id)}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
-                          <Hospital className="h-4 w-4 text-muted-foreground/50" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-10 w-10 rounded-icon bg-muted/20 flex items-center justify-center">
-                        <Hospital className="h-4 w-4 text-muted-foreground/50" />
                       </div>
                     )}
-                  </td>
-                  <td className="p-2 align-middle font-mono text-[10px] font-bold text-primary/80">
-                    {hospital.display_id || 'ORG-PENDING'}
-                  </td>
-                  <td className="p-2 align-middle font-bold">{hospital.name || 'Unknown'}</td>
-                  <td className="max-w-[200px] truncate p-2 align-middle text-muted-foreground">{hospital.address || '-'}</td>
-                  <td className="p-2 align-middle">
-                    <Badge className={`squircle-sm ${getStatusBadge(hospital.verification_status || hospital.status)} font-bold`}>
-                      {(hospital.verification_status || hospital.status)?.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td className="p-2 align-middle font-medium">{`${hospital.available_beds || 0}/${hospital.total_beds || 0}`}</td>
-                  <td className="p-2 align-middle font-medium">{hospital.icu_beds_available || 0}</td>
-                  <td className="p-2 align-middle font-medium">{hospital.ambulances_count || '0'}</td>
-                  <td className="p-2 align-middle font-medium">{formatWaitTime(hospital.emergency_wait_time_minutes)}</td>
-                  <td className="p-2 align-middle">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-warning fill-warning" />
-                      <span className="font-bold">{hospital.rating || 'N/A'}</span>
+                    {/* Image */}
+                    <div className="flex items-center">
+                      {hospital.image ? (
+                        <div className="relative h-10 w-10 rounded-icon overflow-hidden bg-black/20">
+                          <img
+                            src={hospital.image}
+                            alt={hospital.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
+                            <Hospital className="h-4 w-4 text-muted-foreground/50" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-icon bg-muted/20 flex items-center justify-center">
+                          <Hospital className="h-4 w-4 text-muted-foreground/50" />
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="p-2 align-middle" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end pr-2 opacity-100 transition-opacity">
+                    {/* ID */}
+                    <div className="font-mono text-[10px] font-bold text-foreground/70 truncate">
+                      {hospital.display_id || 'ORG-PENDING'}
+                    </div>
+                    {/* Name */}
+                    <div className="font-bold text-sm truncate">{hospital.name || 'Unknown'}</div>
+                    {/* Address */}
+                    <div className="text-sm text-muted-foreground truncate">{hospital.address || '-'}</div>
+                    {/* Status */}
+                    <div className="min-w-0">
+                      <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10px] font-bold ${getStatusBadge(hospital.verification_status || hospital.status)}`}>
+                        {(hospital.verification_status || hospital.status)?.toUpperCase()}
+                      </span>
+                    </div>
+                    {/* Beds */}
+                    <div className="text-sm font-medium truncate">{`${hospital.available_beds || 0}/${hospital.total_beds || 0}`}</div>
+                    {/* ICU */}
+                    <div className="text-sm font-medium">{hospital.icu_beds_available || 0}</div>
+                    {/* Fleet */}
+                    <div className="text-sm font-medium">{hospital.ambulances_count || '0'}</div>
+                    {/* ER Wait */}
+                    <div className="text-sm font-medium truncate">{formatWaitTime(hospital.emergency_wait_time_minutes)}</div>
+                    {/* Rating */}
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      <span className="text-sm font-bold">{hospital.rating || 'N/A'}</span>
+                    </div>
+                    {/* Actions */}
+                    <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
@@ -177,7 +197,7 @@ export const HospitalTableView = ({
                             <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 backdrop-blur-xl shadow-premium">
+                        <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 backdrop-blur-xl shadow-sm">
                           <DropdownMenuItem onClick={() => onView(hospital)} className="cursor-pointer font-medium text-xs py-2">
                             <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             View Details
@@ -190,7 +210,7 @@ export const HospitalTableView = ({
                               </DropdownMenuItem>
                               {onSchedule && (
                                 <DropdownMenuItem onClick={() => onSchedule(hospital)} className="cursor-pointer font-medium text-xs py-2">
-                                  <CalendarDays className="mr-2 h-3.5 w-3.5 text-purple-500" />
+                                  <CalendarDays className="mr-2 h-3.5 w-3.5 text-violet-500" />
                                   Manage Schedule
                                 </DropdownMenuItem>
                               )}
@@ -208,11 +228,11 @@ export const HospitalTableView = ({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </motion.div>

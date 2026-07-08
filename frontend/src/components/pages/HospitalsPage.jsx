@@ -7,7 +7,6 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { updateHospital, getHospital, getHospitalsPageData } from '../../services/hospitalsService';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -511,7 +510,7 @@ export const HospitalsPage = () => {
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-primary" />
       )}
     </Button>
   ), [activeActionFeedback, filters, handleOpenFilters]);
@@ -525,7 +524,7 @@ export const HospitalsPage = () => {
           title="Add facility unavailable"
           aria-busy={activeActionFeedback === 'create-unavailable'}
           data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'unavailable'}
-          className={`glass-card-premium h-9 px-4 text-xs font-semibold opacity-70 transition-all ${activeActionFeedback === 'create-unavailable' ? 'scale-95 bg-primary/10 text-primary' : ''}`}
+          className={`rounded-button bg-card/68 backdrop-blur-2xl h-9 px-4 text-xs font-semibold opacity-70 transition-all ${activeActionFeedback === 'create-unavailable' ? 'scale-95 bg-primary/10 text-primary' : ''}`}
         >
           <Plus className="h-4 w-4 mr-2" />
           Add facility
@@ -648,7 +647,7 @@ export const HospitalsPage = () => {
                             className="col-span-1"
                           >
                             <div
-                              className={`group relative flex h-full min-h-[520px] cursor-pointer flex-col overflow-hidden rounded-[30px] p-5 transition-[background,box-shadow,transform] duration-200 ${focused ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+                              className={`group relative flex h-full min-h-[520px] cursor-pointer flex-col overflow-hidden rounded-card p-5 transition-[background,box-shadow,transform] duration-200 ${focused ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
                               role="button"
                               tabIndex={0}
                               aria-pressed={focused}
@@ -661,12 +660,9 @@ export const HospitalsPage = () => {
                                 }
                               }}
                             >
-                              {/* Apple hover glow effect */}
-                              <div className="hover-glow hover-glow-primary" />
-
                               {/* Hospital Image */}
                               {hospital.image ? (
-                                <div className="relative h-48 w-full mb-4 rounded-xl overflow-hidden bg-black/20">
+                                <div className="relative h-48 w-full mb-4 rounded-inner overflow-hidden bg-black/20">
                                   <img
                                     src={hospital.image}
                                     alt={hospital.name}
@@ -683,7 +679,7 @@ export const HospitalsPage = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="h-48 w-full mb-4 rounded-xl bg-muted/20 flex items-center justify-center">
+                                <div className="h-48 w-full mb-4 rounded-inner bg-muted/20 flex items-center justify-center">
                                   <Hospital className="h-12 w-12 text-muted-foreground/50" />
                                 </div>
                               )}
@@ -691,24 +687,24 @@ export const HospitalsPage = () => {
                               {/* Top Right Icon */}
                               <div className="absolute top-0 right-0 p-5 z-20">
                                 <div className="relative">
-                                  <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                                  <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
+                                  <div className="absolute inset-0 bg-primary/10 blur-xl rounded-pill scale-150" />
+                                  <div className="w-10 h-10 rounded-icon bg-background/60 backdrop-blur-xl flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                                     <Hospital className="h-5 w-5 text-primary" />
                                   </div>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2 mb-4 relative z-10">
-                                <Badge className={`geo-badge ${hospital.status === 'available'
-                                  ? 'bg-success/20 text-success'
-                                  : 'bg-warning/20 text-warning'
-                                  } font-bold editorial-subtitle px-3 py-1`}>
+                                <span className={`inline-flex items-center rounded-pill ${hospital.status === 'available'
+                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                                  : 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
+                                  } text-xs font-bold px-3 py-1`}>
                                   {hospital.status}
-                                </Badge>
+                                </span>
                                 {hospital.verified && (
-                                  <Badge className="geo-badge bg-info/20 text-info px-2 py-1">
+                                  <span className="inline-flex items-center rounded-pill bg-sky-500/20 text-sky-600 dark:text-sky-300 text-xs font-bold px-2 py-1">
                                     OK
-                                  </Badge>
+                                  </span>
                                 )}
                               </div>
 
@@ -722,25 +718,25 @@ export const HospitalsPage = () => {
                               </div>
 
                               <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
-                                <div className="p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
+                                <div className="p-3 rounded-inner bg-muted/30 hover:bg-muted/50 transition-colors">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <Bed className="h-4 w-4 text-info" />
+                                    <Bed className="h-4 w-4 text-sky-600 dark:text-sky-300" />
                                     <p className="text-xs text-muted-foreground font-medium">Beds</p>
                                   </div>
                                   <p className="font-bold text-xl">{hospital.available_beds}</p>
                                 </div>
-                                <div className="p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
+                                <div className="p-3 rounded-inner bg-muted/30 hover:bg-muted/50 transition-colors">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <Ambulance className="h-4 w-4 text-success" />
+                                    <Ambulance className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                                     <p className="text-xs text-muted-foreground font-medium">Fleet</p>
                                   </div>
                                   <p className="font-bold text-xl">{hospital.ambulances_count}</p>
                                 </div>
                               </div>
 
-                              <div className="relative z-10 mt-auto flex items-center justify-between rounded-[22px] bg-background/35 px-3 py-2">
+                              <div className="relative z-10 mt-auto flex items-center justify-between rounded-inner bg-background/35 px-3 py-2">
                                 <div className="flex items-center gap-1.5">
-                                  <Star className="h-4 w-4 text-warning fill-warning" />
+                                  <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
                                   <span className="font-semibold text-sm">{hospital.rating}</span>
                                 </div>
 
@@ -752,7 +748,7 @@ export const HospitalsPage = () => {
                                       event.stopPropagation();
                                       handleView(hospital);
                                     }}
-                                    className={`geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `view-${hospital.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                                    className={`rounded-pill h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `view-${hospital.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
                                     aria-label={`View details for ${hospital.name}`}
                                     aria-busy={activeActionFeedback === `view-${hospital.id}`}
                                     data-state={activeActionFeedback === `view-${hospital.id}` ? 'opening' : 'idle'}
@@ -769,7 +765,7 @@ export const HospitalsPage = () => {
                                           event.stopPropagation();
                                           handleEdit(hospital);
                                         }}
-                                        className={`geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `edit-${hospital.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                                        className={`rounded-pill h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `edit-${hospital.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
                                         aria-label={`Edit ${hospital.name}`}
                                         aria-busy={activeActionFeedback === `edit-${hospital.id}`}
                                         data-state={activeActionFeedback === `edit-${hospital.id}` ? 'opening' : 'idle'}
@@ -891,7 +887,7 @@ const HospitalSignalPanel = ({ stats, hospitals, loading, kpiFilter, setKpiFilte
     >
       <div className="min-w-0">
         <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${hospitalToneClass[signal.tone] || hospitalToneClass.muted}`}>
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${hospitalToneClass[signal.tone] || hospitalToneClass.muted}`}>
             <SignalIcon className="h-4 w-4" />
             {signal.label}
           </div>
@@ -904,12 +900,12 @@ const HospitalSignalPanel = ({ stats, hospitals, loading, kpiFilter, setKpiFilte
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-2">
             <Bed className="h-4 w-4 text-amber-600 dark:text-amber-200" />
             Visible beds
             <strong className="text-foreground">{visibleBeds}</strong>
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-2">
             <Ambulance className="h-4 w-4 text-cyan-600 dark:text-cyan-200" />
             Visible fleet
             <strong className="text-foreground">{visibleFleet}</strong>
@@ -942,7 +938,7 @@ const HospitalStateStrip = ({ stats, hospitals, loading, kpiFilter, setKpiFilter
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
           aria-pressed={active}
           aria-label={`Show ${item.label.toLowerCase()} hospitals`}
           data-state={active ? 'selected' : 'idle'}
@@ -952,7 +948,7 @@ const HospitalStateStrip = ({ stats, hospitals, loading, kpiFilter, setKpiFilter
               <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
               <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
             </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
               <Icon className="h-4 w-4" />
             </span>
           </span>
@@ -964,10 +960,10 @@ const HospitalStateStrip = ({ stats, hospitals, loading, kpiFilter, setKpiFilter
 
 const HospitalActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
     data-testid="hospitals-activity-sheet"
   >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
     <HospitalSheetToolbar
       filters={filters}
       setFilters={setFilters}
@@ -984,7 +980,7 @@ const HospitalActivitySheet = ({ filters, setFilters, openFilters, loading, pagi
       <HospitalErrorBanner message={errorMessage} onRetry={onRetry} />
     )}
 
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
       {children}
     </div>
 
@@ -1006,13 +1002,13 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
   if (loading) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-          <div className="h-5 w-28 rounded-full bg-muted/40" />
-          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-sheet bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="h-5 w-28 rounded-pill bg-muted/40" />
+          <div className="mt-6 h-24 rounded-inner bg-muted/28" />
           <div className="mt-4 space-y-3">
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
           </div>
         </div>
       </aside>
@@ -1022,7 +1018,7 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
   if (!hospital) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-sheet bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
           <Hospital className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No facility selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Facilities will appear here when the list has results.</p>
@@ -1040,13 +1036,13 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
 
   return (
     <aside className="hidden min-h-0 lg:flex lg:flex-col" data-testid="hospitals-detail-rail">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
         <div className="flex items-center justify-between gap-3">
-          <Badge className={`${hospital.status === 'available' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200' : hospital.status === 'busy' ? 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-200' : 'bg-amber-500/12 text-amber-700 dark:text-amber-200'} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
+          <span className={`inline-flex items-center ${hospital.status === 'available' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200' : hospital.status === 'busy' ? 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-200' : 'bg-amber-500/12 text-amber-700 dark:text-amber-200'} rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
             {status}
-          </Badge>
+          </span>
           {hospital.verified && (
-            <span className="rounded-full bg-sky-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-200">
+            <span className="rounded-pill bg-sky-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-200">
               Verified
             </span>
           )}
@@ -1069,14 +1065,14 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
           <RailMetric icon={Activity} label="Care" value={hospital.emergency_level || 'Not set'} tone="emerald" />
         </div>
 
-        <div className="mt-5 space-y-3 rounded-[28px] bg-muted/20 p-4">
+        <div className="mt-5 space-y-3 rounded-inner bg-muted/20 p-4">
           <RailFact label="Phone" value={hospital.phone || 'No phone'} />
           <RailFact label="Tier" value={hospital.type || 'Not set'} />
           <RailFact label="Price" value={hospital.price_range || 'Not set'} />
           <RailFact label="Updated" value={hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'} />
         </div>
 
-        <div className="mt-5 rounded-[28px] bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
+        <div className="mt-5 rounded-inner bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
           <p className="text-sm font-semibold">Capacity changes need review</p>
           <p className="mt-1 text-xs leading-5 opacity-80">
             Use Requests for reservation changes. This panel is read-only evidence until an approved action opens.
@@ -1088,7 +1084,7 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
             type="button"
             variant="ghost"
             onClick={() => onView(hospital)}
-            className={`h-11 flex-1 rounded-[22px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95 ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+            className={`h-11 flex-1 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95 ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
             aria-busy={viewOpening}
             data-state={viewOpening ? 'opening' : 'idle'}
           >
@@ -1100,7 +1096,7 @@ const HospitalDetailRail = ({ hospital, loading, canEdit, onView, onEdit, active
               type="button"
               variant="ghost"
               onClick={() => onEdit(hospital)}
-              className={`h-11 flex-1 rounded-[22px] bg-primary/10 px-4 text-sm font-semibold text-primary transition-all hover:bg-primary/15 active:scale-95 ${editOpening ? 'scale-95' : ''}`}
+              className={`h-11 flex-1 rounded-button bg-primary/10 px-4 text-sm font-semibold text-primary transition-all hover:bg-primary/15 active:scale-95 ${editOpening ? 'scale-95' : ''}`}
               aria-busy={editOpening}
               data-state={editOpening ? 'opening' : 'idle'}
             >
@@ -1122,8 +1118,8 @@ const railToneClasses = {
 };
 
 const RailMetric = ({ icon: Icon, label, value, tone }) => (
-  <div className="rounded-[24px] bg-muted/24 p-3">
-    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-2xl ${railToneClasses[tone] || railToneClasses.sky}`}>
+  <div className="rounded-inner bg-muted/24 p-3">
+    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-button ${railToneClasses[tone] || railToneClasses.sky}`}>
       <Icon className="h-4 w-4" />
     </div>
     <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
@@ -1154,20 +1150,20 @@ const HospitalSheetToolbar = ({ filters, setFilters, openFilters, activeActionFe
           value={filters.search || ''}
           onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
           placeholder="Search hospitals..."
-          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          className="h-12 w-full rounded-inner bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
           data-testid="hospitals-sheet-search"
         />
       </div>
       <Button
         variant="ghost"
         onClick={openFilters}
-        className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+        className={`h-12 rounded-inner bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
         aria-busy={activeActionFeedback === 'filters'}
         data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
       >
         <Filter className="mr-2 h-4 w-4" />
         {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-        {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+        {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-primary" />}
       </Button>
     </div>
   );
@@ -1175,7 +1171,7 @@ const HospitalSheetToolbar = ({ filters, setFilters, openFilters, activeActionFe
 
 const HospitalErrorBanner = ({ message, onRetry }) => (
   <div
-    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    className="mt-3 flex flex-col gap-3 rounded-inner bg-amber-500/10 p-4 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
     data-testid="hospitals-error-state"
   >
     <div className="flex min-w-0 items-start gap-3">
@@ -1189,7 +1185,7 @@ const HospitalErrorBanner = ({ message, onRetry }) => (
       type="button"
       variant="ghost"
       onClick={onRetry}
-      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       <RefreshCw className="mr-2 h-4 w-4" />
       Retry
@@ -1198,7 +1194,7 @@ const HospitalErrorBanner = ({ message, onRetry }) => (
 );
 
 const HospitalEmptyState = ({ onClearFilters }) => (
-  <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[30px] bg-muted/18 p-8 text-center">
+  <div className="flex min-h-[320px] flex-col items-center justify-center rounded-card bg-muted/18 p-8 text-center">
     <Hospital className="mb-4 h-12 w-12 text-muted-foreground/60" />
     <h2 className="text-lg font-semibold">No hospitals found</h2>
     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
@@ -1208,7 +1204,7 @@ const HospitalEmptyState = ({ onClearFilters }) => (
       type="button"
       variant="ghost"
       onClick={onClearFilters}
-      className="mt-5 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="mt-5 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       Clear filters
     </Button>

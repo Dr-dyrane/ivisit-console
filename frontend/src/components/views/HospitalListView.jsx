@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Eye, Star, Hospital, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -81,9 +80,9 @@ export const HospitalListView = ({
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {hospital.name || 'Unknown Hospital'}
                   </h3>
-                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} font-bold`}>
+                  <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-bold ${getStatusBadge(hospital.status)}`}>
                     {hospital.status}
-                  </Badge>
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
                   {hospital.address || 'No address'} / Beds: {hospital.available_beds || 0}/{hospital.total_beds || 0} / ICU: {hospital.icu_beds_available || 0} / Fleet: {hospital.ambulances_count || 0}
@@ -96,7 +95,7 @@ export const HospitalListView = ({
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="rounded-inner bg-muted/24 px-3 py-2 text-right">
                   <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-warning fill-warning" />
+                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
                     <p className="font-bold text-lg">{hospital.rating || 'N/A'}</p>
                   </div>
                 </div>

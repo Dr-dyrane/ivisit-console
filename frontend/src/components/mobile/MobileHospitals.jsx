@@ -16,7 +16,6 @@ import {
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
@@ -210,7 +209,7 @@ export const MobileHospitals = ({
                             placeholder="Search hospitals..."
                             value={filters?.search || ''}
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+                            className="w-full h-11 pl-10 pr-4 rounded-button apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
                         />
                     </div>
                     <motion.button
@@ -219,7 +218,7 @@ export const MobileHospitals = ({
                             onOpenFilters?.();
                             triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
                         }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
+                        className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
                     >
                         <SlidersHorizontal size={18} />
                     </motion.button>
@@ -230,7 +229,7 @@ export const MobileHospitals = ({
                                 onViewAnalytics?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
                             }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out"
+                            className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out"
                         >
                             <BarChart3 size={18} />
                         </motion.button>
@@ -292,7 +291,7 @@ export const MobileHospitals = ({
                                     expandedContent={(
                                         <div className="space-y-4 py-3">
                                             <div className="grid grid-cols-1 gap-2">
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                     <MapPin size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col min-w-0">
                                                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Address</span>
@@ -300,14 +299,14 @@ export const MobileHospitals = ({
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Bed size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Beds</span>
                                                             <span className="text-xs font-semibold font-dashboard-numbers">{beds}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Ambulance size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Fleet</span>
@@ -322,16 +321,16 @@ export const MobileHospitals = ({
                                                     <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">Hospital ID</span>
                                                     <span className="text-[10px] font-mono text-foreground/40 font-normal">#{(hospital.id || '').slice(0, 12).toUpperCase()}</span>
                                                 </div>
-                                                <Badge className="squircle-sm font-semibold tracking-tight text-[9px] py-1 px-3 bg-info/20 text-info">
+                                                <span className="inline-flex items-center rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 bg-sky-500/20 text-sky-600 dark:text-sky-300">
                                                     <Star className="w-3 h-3 mr-1" />
                                                     {Number(hospital.rating || 0).toFixed(1)}
-                                                </Badge>
+                                                </span>
                                             </div>
 
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                    className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(hospital)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -341,7 +340,7 @@ export const MobileHospitals = ({
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                            className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                             onClick={() => onEdit(hospital)}
                                                         >
                                                             <Edit size={16} className="text-warning/60" />
@@ -350,7 +349,7 @@ export const MobileHospitals = ({
                                                         {onSchedule && (
                                                             <Button
                                                                 variant="ghost"
-                                                                className="w-12 h-12 rounded-2xl apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                                className="w-12 h-12 rounded-button apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                                 onClick={() => onSchedule(hospital)}
                                                             >
                                                                 <CalendarDays size={16} className="text-info/60" />
@@ -359,7 +358,7 @@ export const MobileHospitals = ({
                                                         {canDelete && onDelete && (
                                                             <Button
                                                                 variant="ghost"
-                                                                className="w-12 h-12 rounded-2xl apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
+                                                                className="w-12 h-12 rounded-button apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
                                                                 onClick={() => onDelete(hospital)}
                                                             >
                                                                 <Trash2 size={16} className="text-destructive/60" />
