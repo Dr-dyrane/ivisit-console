@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
 import { isAdmin, AuthorizationError, logAuthorizationEvent, handleServiceError } from './rbacPatterns';
 import { getDisplayIds } from './displayIdService';
+import { mergePreservedHospitalArrays } from './hospitalImportService';
 
 const TABLE_NAME = 'hospitals';
 
@@ -149,13 +150,18 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
         // Update verification status via SECURITY DEFINER RPC (hospitals has no
         // direct write RLS policy; a raw .update() is silently denied). Reuses
         // the same update_hospital_by_admin RPC hospitalsService.updateHospital uses.
+        //
+        // The RPC overwrites specialties/service_types/features unconditionally
+        // (blanking them for any absent key), so merge the row's current arrays
+        // into this narrow payload first to preserve them.
         const newStatus = approved ? 'verified' : 'rejected';
+        const payload = await mergePreservedHospitalArrays(hospitalId, {
+            verification_status: newStatus,
+            verified: approved // Keep boolean in sync
+        });
         const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
             target_hospital_id: hospitalId,
-            payload: {
-                verification_status: newStatus,
-                verified: approved // Keep boolean in sync
-            }
+            payload
         });
 
         if (error) throw error;

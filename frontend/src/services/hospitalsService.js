@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
+import { mergePreservedHospitalArrays } from './hospitalImportService';
 
 const TABLE_NAME = 'hospitals';
 const HOSPITAL_CREATE_FIELDS = [
@@ -417,11 +418,14 @@ export async function createHospital(input) {
 export async function updateHospital(hospitalId, input) {
   try {
     const payload = buildHospitalPayload(input, { isCreate: false });
-    // We use a SECURITY DEFINER RPC to bypass RLS issues and handle 
+    // We use a SECURITY DEFINER RPC to bypass RLS issues and handle
     // column stripping (total_beds, etc.) on the server side.
+    // The RPC overwrites specialties/service_types/features unconditionally, so on
+    // a partial edit that omits any of them, preserve the row's current arrays.
+    const mergedPayload = await mergePreservedHospitalArrays(hospitalId, payload);
     const { data, error } = await supabase.rpc('update_hospital_by_admin', {
       target_hospital_id: hospitalId,
-      payload: payload
+      payload: mergedPayload
     });
 
     if (error) throw error;
@@ -499,9 +503,12 @@ export async function updateHospitalBedCount(hospitalId, availableBeds) {
   try {
     // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
     // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
+    // The RPC overwrites specialties/service_types/features unconditionally, so
+    // preserve the row's current arrays before sending this narrow payload.
+    const payload = await mergePreservedHospitalArrays(hospitalId, { available_beds: availableBeds });
     const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
       target_hospital_id: hospitalId,
-      payload: { available_beds: availableBeds },
+      payload,
     });
 
     if (error) throw error;
@@ -532,9 +539,12 @@ export async function updateHospitalStatus(hospitalId, status) {
   try {
     // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
     // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
+    // The RPC overwrites specialties/service_types/features unconditionally, so
+    // preserve the row's current arrays before sending this narrow payload.
+    const payload = await mergePreservedHospitalArrays(hospitalId, { status: status });
     const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
       target_hospital_id: hospitalId,
-      payload: { status: status },
+      payload,
     });
 
     if (error) throw error;
