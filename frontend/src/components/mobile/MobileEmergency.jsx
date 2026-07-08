@@ -6,7 +6,6 @@ import {
     BedDouble,
     Calendar,
     CheckCheck,
-    ChevronDown,
     ChevronRight,
     ClipboardCheck,
     Clock,
@@ -21,9 +20,7 @@ import {
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
-import { VitalTrack } from '../common/VitalTrack';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -240,7 +237,7 @@ export const MobileEmergency = ({
     setKpiFilter
 }) => {
     const observerTarget = useRef(null);
-    const [expandedRequestId, setExpandedRequestId] = useState(null);
+    const [activeRequest, setActiveRequest] = useState(null);
     const { triggerFromEvent } = useFeedback();
     const { displayItems, isBuffering } = useStableList(emergencies, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -403,7 +400,7 @@ export const MobileEmergency = ({
 
                         <AnimatePresence mode="popLayout">
                             {/* Date-grouped feed (rollout S5): newest-first, a month header at each
-                                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
+                                boundary. Grouping is render-only; id-keyed state is unaffected. */}
                             {groupByMonth(displayItems, (request) => request?.created_at).map(({ item: request, header }) => (
                                 <React.Fragment key={request.id}>
                                     {header && (
@@ -413,10 +410,7 @@ export const MobileEmergency = ({
                                     )}
                                     <MobileRequestRow
                                         request={request}
-                                        expanded={expandedRequestId === request.id}
-                                        setExpandedRequestId={setExpandedRequestId}
-                                        onView={onView}
-                                        isAdmin={isAdmin}
+                                        onOpen={setActiveRequest}
                                     />
                                 </React.Fragment>
                             ))}
@@ -447,6 +441,46 @@ export const MobileEmergency = ({
                         </div>
                     </section>
                 </div>
+
+                {activeRequest && (() => {
+                    const projection = buildEmergencyRenderProjection(activeRequest);
+                    const vital = resolveVital('emergency', activeRequest.status);
+                    const name = projection.patientDisplay.name;
+                    const facility = projection.facilityDisplay.name;
+                    const location = projection.locationDisplay.label;
+                    const responder = projection.responderDisplay.label;
+                    // For an admin reviewing a request that needs attention, Review is the filled
+                    // primary and Details is demoted; otherwise Details is the single action. Both
+                    // route to the existing onView receiver — no new mutation is introduced here.
+                    const canAct = isAdmin && canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval';
+                    // Islands render through MobileDetailSheet -> MobileDetailIslands (canon tiles).
+                    return (
+                        <MobileDetailSheet
+                            isOpen
+                            onClose={() => setActiveRequest(null)}
+                            icon={ClipboardCheck}
+                            iconTone={vital?.tone}
+                            eyebrow={serviceLabel(activeRequest)}
+                            title={name}
+                            statusPill={vital?.pill}
+                            vital={vital ? { ...vital, label: 'Request status' } : null}
+                            islands={[
+                                { icon: User, label: 'Patient', value: name },
+                                { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(activeRequest) },
+                                { icon: Hospital, label: 'Facility', value: facility },
+                                { icon: Ambulance, label: 'Ambulance', value: responder },
+                                { icon: MapPin, label: 'Location', value: location },
+                                { icon: Calendar, label: 'Created', value: createdDateLabel(activeRequest.created_at) },
+                            ]}
+                            primary={canAct
+                                ? { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }
+                                : { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }}
+                            secondary={canAct
+                                ? { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }
+                                : undefined}
+                        />
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );
@@ -454,35 +488,28 @@ export const MobileEmergency = ({
 
 const MobileRequestRow = ({
     request,
-    expanded,
-    setExpandedRequestId,
-    onView,
-    isAdmin,
+    onOpen,
 }) => {
     const projection = buildEmergencyRenderProjection(request);
     const vital = resolveVital('emergency', request.status);
     const avatarClass = getMobileRequestAvatarClass(request);
     const name = projection.patientDisplay.name;
-    const facility = projection.facilityDisplay.name;
-    const location = projection.locationDisplay.label;
-    const responder = projection.responderDisplay.label;
-    const canAct = isAdmin && canonicalizeEmergencyStatus(request.status, null) === 'pending_approval';
 
     return (
         <motion.div
             layout
             data-mobile-request-row={request.id}
-            data-state={expanded ? 'expanded' : 'idle'}
-            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+            className="overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all"
         >
+            {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved design +
+                desktop rail behaviour — not an inline dropdown. */}
             <button
                 type="button"
-                onClick={() => setExpandedRequestId(expanded ? null : request.id)}
-                data-state={expanded ? 'expanded' : 'idle'}
+                onClick={() => onOpen(request)}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                 className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
-                aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
-                aria-expanded={expanded}
+                aria-label={`Open ${name}`}
+                aria-haspopup="dialog"
             >
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-sm font-semibold ${avatarClass}`}>
                     {getInitials(name)}
@@ -496,52 +523,9 @@ const MobileRequestRow = ({
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
                     <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${vital?.pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{vital?.pill?.label || 'New'}</span>
-                    {expanded ? (
-                        <ChevronDown size={18} className="text-muted-foreground" />
-                    ) : (
-                        <ChevronRight size={18} className="text-muted-foreground" />
-                    )}
+                    <ChevronRight size={18} className="text-muted-foreground" />
                 </span>
             </button>
-
-            {expanded && (
-                <div className="space-y-3 px-4 pb-4">
-                    {/* S4: lifecycle context from the grounded emergency track (collapses
-                        accepted -> in_progress; payment_declined/cancelled render muted). */}
-                    {vital && (
-                        <VitalTrack
-                            steps={vital.steps}
-                            currentKey={vital.currentKey}
-                            tone={vital.tone}
-                            cancelled={vital.cancelled}
-                            label="Request status"
-                        />
-                    )}
-                    {/* S6: identity islands — never a bare text block. */}
-                    <MobileDetailIslands
-                        items={[
-                            { icon: User, label: 'Patient', value: name },
-                            { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(request) },
-                            { icon: Hospital, label: 'Facility', value: facility },
-                            { icon: Ambulance, label: 'Ambulance', value: responder },
-                            { icon: MapPin, label: 'Location', value: location },
-                            { icon: Calendar, label: 'Created', value: createdDateLabel(request.created_at) },
-                        ]}
-                    />
-                    {/* S7: one authority-gated state-CTA. For an admin reviewing a request
-                        that needs attention, Review is the filled primary and Details is
-                        demoted; otherwise Details is the single action. Both route to the
-                        existing onView receiver — no new mutation is introduced here. */}
-                    <MobileSheetActions
-                        primary={canAct
-                            ? { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => onView?.(request) }
-                            : { label: 'Details', icon: Eye, onClick: () => onView?.(request) }}
-                        secondary={canAct
-                            ? { label: 'Details', icon: Eye, onClick: () => onView?.(request) }
-                            : undefined}
-                    />
-                </div>
-            )}
         </motion.div>
     );
 };

@@ -198,8 +198,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
     expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
     expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
-    expect(mobileSource).toContain("data-state={expanded ? 'expanded' : 'idle'}");
-    expect(mobileSource).toContain('aria-expanded={expanded}');
+    expect(mobileSource).toContain('<MobileDetailSheet');
+    expect(mobileSource).toContain('onClose={() => setActiveRequest(null)}');
   });
 
   it('keeps Requests UI language simple and interaction-safe', () => {
@@ -441,8 +441,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
     expect(mobileSource).toContain('aria-pressed={active}');
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
-    expect(mobileSource).toContain("data-state={expanded ? 'expanded' : 'idle'}");
-    expect(mobileSource).toContain('aria-expanded={expanded}');
+    expect(mobileSource).toContain('onClick={() => onOpen(request)}');
+    expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('className="space-y-4 px-5"');
     expect(mobileSource).toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain('rounded-card px-4 py-3');
