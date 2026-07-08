@@ -126,7 +126,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('onLoadMore');
     expect(mobile).toContain("id: 'in_progress'");
     expect(mobile).toContain("activeKpi || 'all'");
-    expect(mobile).toContain('onClick={() => onKpiChange?.(item.id)}');
+    expect(mobile).toContain('onKpiClick={onKpiChange}');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('canDelete = false');
     expect(list).toContain('onView(visit)');
@@ -359,12 +359,12 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('aria-busy={activeActionFeedback === \'create\'}');
     expect(page).toContain('aria-busy={viewOpening}');
 
-    expect(mobile).toContain("data-state={active ? 'selected' : 'idle'}");
+    // KPI selected-state now lives in the shared MobileKPIStrip chip row; the filter
+    // control keeps its local filtered-state here.
     expect(mobile).toContain("data-state={hasFilter ? 'filtered' : 'idle'}");
     // Row tap opens the detail bottom sheet (approved design + desktop rail behaviour),
     // replacing the old inline dropdown expand.
     expect(mobile).toContain('onClick={() => onOpen(visit)}');
-    expect(mobile).toContain('whileTap={{ scale: 0.97 }}');
     expect(mobile).toContain('whileTap={{ scale: 0.95 }}');
 
     expect(gate).toContain('Interaction feedback proof, 2026-06-30');
@@ -562,7 +562,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).not.toContain("if (kpi !== 'all')");
     expect(mobile).toContain('useStableList(visitRows, loading)');
     expect(mobile).toContain("id: 'in_progress'");
-    expect(mobile).toContain('onClick={() => onKpiChange?.(item.id)}');
+    expect(mobile).toContain('onKpiClick={onKpiChange}');
 
     expect(service).toContain('const sanitizeVisitSearchTerm');
     expect(service).toContain('const search = sanitizeVisitSearchTerm(filters.search)');
@@ -586,7 +586,6 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain("id: 'in_progress'");
     expect(mobile).toContain("id: 'completed'");
     expect(mobile).toContain("id: 'cancelled'");
-    expect(mobile).toContain('const getMobileVisitSignal = ({ states, activeKpi }) => {');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
     expect(mobile).toContain('data-testid="mobile-visits-sheet-search"');
     expect(mobile).toContain('aria-label="Filter visits"');
@@ -598,7 +597,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('Details');
     expect(mobile).toContain('Edit');
 
-    expect(mobile).not.toContain('MobileKPIStrip');
+    expect(mobile).toContain('MobileKPIStrip');
     expect(mobile).not.toContain('MobileFeaturedMetric');
     expect(mobile).not.toContain('MobileSecondaryMetricRail');
     expect(mobile).not.toContain('MobileSectionHeader');
@@ -656,9 +655,6 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).not.toContain('formatSignedPercent');
     expect(mobile).not.toContain('formatSignedPercent(completionRate - 50)');
     expect(mobile).toContain('const totalCount = countNumber(statistics?.total, visitRows.length)');
-    expect(mobile).toContain('Pick one visit, then view details or edit scheduling.');
-    expect(mobile).toContain('Use completed visits as read-only care history.');
-    expect(mobile).toContain('Review these records without changing outcomes.');
   });
 
   it('keeps Visits surfaces free of decorative borders, hairlines, and glass', () => {

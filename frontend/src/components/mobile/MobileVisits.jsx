@@ -21,6 +21,7 @@ import {
 import { Button } from '../ui/button';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
+import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { visitRowProjection } from '../../utils/visitRowProjection';
 import { MobileDetailSheet } from './MobileDetailSheet';
@@ -44,56 +45,16 @@ const countNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+// State choices feed the compact chip row (recycled MobileKPIStrip). Colors are raw
+// status hues (vitalTracks TONES): scheduled cyan, active amber, done emerald,
+// cancelled slate; All uses the brand token. countKey maps into `statistics`.
 const mobileVisitStates = [
-    {
-        id: 'all',
-        label: 'All',
-        icon: Calendar,
-        countKey: 'total',
-        activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'scheduled',
-        label: 'Scheduled',
-        icon: Clock,
-        countKey: 'scheduled',
-        activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'in_progress',
-        label: 'Active',
-        icon: Stethoscope,
-        countKey: 'inProgress',
-        activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.14)] dark:text-amber-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'completed',
-        label: 'Done',
-        icon: CheckCircle2,
-        countKey: 'completed',
-        activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'cancelled',
-        label: 'Cancelled',
-        icon: AlertCircle,
-        countKey: 'cancelled',
-        activeClass: 'bg-muted/36 text-foreground shadow-[0_18px_54px_rgb(0_0_0/0.10)]',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
+    { id: 'all', label: 'All', countKey: 'total', color: 'hsl(var(--primary))' },
+    { id: 'scheduled', label: 'Scheduled', countKey: 'scheduled', color: '#0891B2' },
+    { id: 'in_progress', label: 'Active', countKey: 'inProgress', color: '#B45309' },
+    { id: 'completed', label: 'Done', countKey: 'completed', color: '#047857' },
+    { id: 'cancelled', label: 'Cancelled', countKey: 'cancelled', color: '#64748B' },
 ];
-
-const mobileVisitSignalTone = {
-    all: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
-    scheduled: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-    in_progress: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-    completed: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-    cancelled: 'bg-muted/34 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
-};
 
 const MobileVisitsAtlasLayer = () => (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
@@ -122,50 +83,6 @@ const getMobileVisitStateCount = ({ item, statistics, visits }) => {
         : visits.filter((visit) => visit.status === item.id).length;
 
     return countNumber(statistics?.[item.countKey], fallback);
-};
-
-const getMobileVisitSignal = ({ states, activeKpi }) => {
-    const activeId = activeKpi || 'all';
-    const active = states.find((item) => item.id === activeId) || states[0];
-    const count = countNumber(active?.value, 0);
-
-    if (active.id === 'scheduled') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} scheduled visit${count === 1 ? '' : 's'}` : 'No scheduled visits',
-            subhead: count > 0 ? 'Open the next visit before changing the schedule.' : 'Scheduled visits will appear here.',
-        };
-    }
-
-    if (active.id === 'in_progress') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} active visit${count === 1 ? '' : 's'}` : 'No active visits',
-            subhead: count > 0 ? 'Check the focused record before acting.' : 'Active visits will appear here.',
-        };
-    }
-
-    if (active.id === 'completed') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} completed visit${count === 1 ? '' : 's'}` : 'No completed visits',
-            subhead: count > 0 ? 'Use completed visits as read-only care history.' : 'Completed visits will appear here.',
-        };
-    }
-
-    if (active.id === 'cancelled') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} cancelled visit${count === 1 ? '' : 's'}` : 'No cancelled visits',
-            subhead: count > 0 ? 'Review these records without changing outcomes.' : 'Cancelled visits will appear here.',
-        };
-    }
-
-    return {
-        ...active,
-        headline: count > 0 ? `${count} visit record${count === 1 ? '' : 's'}` : 'No visit records',
-        subhead: count > 0 ? 'Pick one visit, then view details or edit scheduling.' : 'Schedule the first visit when care is ready.',
-    };
 };
 
 const getStatusTone = (status) => {
@@ -237,12 +154,12 @@ export const MobileVisits = ({
     const visitRows = Array.isArray(visits) ? visits : [];
     const { displayItems: displayVisits, isBuffering } = useStableList(visitRows, loading);
     const showSkeleton = loading && displayVisits.length === 0;
-    const stateChoices = mobileVisitStates.map((item) => ({
-        ...item,
-        value: loading ? '...' : getMobileVisitStateCount({ item, statistics, visits: visitRows }),
+    const kpis = mobileVisitStates.map((item) => ({
+        id: item.id,
+        label: item.label,
+        value: getMobileVisitStateCount({ item, statistics, visits: visitRows }),
+        color: item.color,
     }));
-    const signal = getMobileVisitSignal({ states: stateChoices, activeKpi });
-    const SignalIcon = signal.icon || Calendar;
     const totalCount = countNumber(statistics?.total, visitRows.length);
     const hasFilter = Boolean(
         filters?.search ||
@@ -273,7 +190,15 @@ export const MobileVisits = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground"
+                kpiStrip={(
+                    <MobileKPIStrip
+                        kpis={kpis}
+                        activeKpi={activeKpi || 'all'}
+                        onKpiClick={onKpiChange}
+                        loading={loading}
+                    />
+                )}
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-4 text-foreground"
             >
                 <MobileVisitsAtlasLayer />
                 <div className="relative z-10 space-y-5">
@@ -281,50 +206,12 @@ export const MobileVisits = ({
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35 }}
-                        className="space-y-4 px-5"
+                        className="px-5"
                     >
-                        <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobileVisitSignalTone[signal.id] || mobileVisitSignalTone.all}`}>
-                            <SignalIcon size={15} />
-                            {signal.label}
-                        </div>
-                        <div>
-                            <h1 className="text-[34px] font-semibold leading-[1.03] tracking-normal text-foreground">
-                                {loading ? 'Loading visits' : signal.headline}
-                            </h1>
-                            <p className="mt-3 max-w-[22rem] text-[15px] leading-6 text-muted-foreground">
-                                {loading ? 'One moment while the latest records come in.' : signal.subhead}
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            {stateChoices.map((item) => {
-                                const Icon = item.icon;
-                                const active = (activeKpi || 'all') === item.id;
-
-                                return (
-                                    <motion.button
-                                        key={item.id}
-                                        type="button"
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => onKpiChange?.(item.id)}
-                                        className={`min-h-[82px] rounded-card px-4 py-3 text-left transition-all ${active ? item.activeClass : item.restClass}`}
-                                        aria-pressed={active}
-                                        aria-label={`Show ${item.label.toLowerCase()} visits`}
-                                        data-state={active ? 'selected' : 'idle'}
-                                    >
-                                        <span className="flex items-start justify-between gap-3">
-                                            <span className="min-w-0">
-                                                <span className="block text-xs font-semibold leading-tight">{item.label}</span>
-                                                <span className="mt-2 block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
-                                            </span>
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/40">
-                                                <Icon size={16} />
-                                            </span>
-                                        </span>
-                                    </motion.button>
-                                );
-                            })}
-                        </div>
+                        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Visits</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {loading ? 'Loading records...' : `${totalCount} record${totalCount === 1 ? '' : 's'}`}
+                        </p>
                     </motion.section>
 
                     <section
