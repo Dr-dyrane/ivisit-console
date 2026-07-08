@@ -68,7 +68,9 @@ describe('WalletManagementPage Payments contract', () => {
     const page = pageSource();
     const service = serviceSource();
 
-    expect(service).toContain('export const backfillMissingFeeLedger = async');
+    // Removed: redundant/dangerous client-side fee-ledger write. The canonical
+    // approve_cash_payment RPC owns the fee debit; the client duplicate was double-debit-prone.
+    expect(service).not.toContain('backfillMissingFeeLedger');
     expect(page).not.toContain('backfillMissingFeeLedger');
     expect(page).not.toContain('backfillLedger');
     expect(page).not.toContain('Self-healing');
