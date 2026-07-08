@@ -14,6 +14,8 @@ import {
   Eye,
   Filter,
   Hospital,
+  Info,
+  Mail,
   Phone,
   Plus,
   Stethoscope,
@@ -70,6 +72,7 @@ const staffFilterCards = [
     icon: Users,
     activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.18)]',
     restClass: 'bg-muted/28 text-muted-foreground hover:bg-sky-400/10 hover:text-sky-300',
+    iconClass: 'text-sky-300',
   },
   {
     id: 'available',
@@ -77,6 +80,7 @@ const staffFilterCards = [
     icon: CheckCircle2,
     activeClass: 'bg-emerald-400/12 text-emerald-300 shadow-[0_18px_54px_rgba(16,185,129,0.16)]',
     restClass: 'bg-muted/28 text-muted-foreground hover:bg-emerald-400/10 hover:text-emerald-300',
+    iconClass: 'text-emerald-300',
   },
   {
     id: 'on_call',
@@ -84,6 +88,7 @@ const staffFilterCards = [
     icon: Phone,
     activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.16)]',
     restClass: 'bg-muted/28 text-muted-foreground hover:bg-sky-400/10 hover:text-sky-300',
+    iconClass: 'text-sky-300',
   },
   {
     id: 'busy',
@@ -91,6 +96,7 @@ const staffFilterCards = [
     icon: Clock,
     activeClass: 'bg-amber-400/12 text-amber-300 shadow-[0_18px_54px_rgba(245,158,11,0.16)]',
     restClass: 'bg-muted/28 text-muted-foreground hover:bg-amber-400/10 hover:text-amber-300',
+    iconClass: 'text-amber-300',
   },
   {
     id: 'off_duty',
@@ -98,12 +104,31 @@ const staffFilterCards = [
     icon: UserRound,
     activeClass: 'bg-muted/50 text-foreground shadow-[0_18px_54px_rgba(0,0,0,0.12)]',
     restClass: 'bg-muted/28 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+    iconClass: 'text-foreground',
   },
 ];
 
 const getStaffFilterCount = (id, stats) => {
   if (id === 'all') return stats.total || 0;
   return stats[id] || 0;
+};
+
+const getStaffSignal = ({ stats, kpiFilter }) => {
+  const activeId = kpiFilter || 'all';
+  const option = staffFilterCards.find((item) => item.id === activeId) || staffFilterCards[0];
+  const count = getStaffFilterCount(option.id, stats);
+  const noun = option.id === 'all' ? 'staff member' : `${option.label.toLowerCase()} staff member`;
+  const emptyNoun = option.id === 'all' ? 'staff' : `${option.label.toLowerCase()} staff`;
+  return {
+    icon: option.icon,
+    label: option.label,
+    activeClass: option.activeClass,
+    iconClass: option.iconClass,
+    headline: count > 0 ? `${count} ${noun}${count === 1 ? '' : 's'}` : `No ${emptyNoun}`,
+    subhead: count > 0
+      ? 'Review the staff directory, confirm availability, and keep facility assignments current.'
+      : 'Staff that match this scope will appear here.',
+  };
 };
 
 const getStatusList = (value) => {
@@ -138,6 +163,7 @@ export const DoctorsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [focusedStaffId, setFocusedStaffId] = useState(null);
 
   const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
@@ -193,6 +219,13 @@ export const DoctorsPage = () => {
 
   const staffRows = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
 
+  const focusedStaff = useMemo(
+    () => staffRows.find((d) => d.id === focusedStaffId) || staffRows[0] || null,
+    [staffRows, focusedStaffId],
+  );
+
+  const handleFocusStaff = useCallback((d) => setFocusedStaffId(d?.id || null), []);
+
   useEffect(() => {
     pagination.setTotalCount(count);
   }, [count, pagination.setTotalCount]);
@@ -229,6 +262,7 @@ export const DoctorsPage = () => {
   }, [handleCreate]);
 
   const handleView = useCallback((doctor) => {
+    setFocusedStaffId(doctor?.id || null);
     setSelectedDoctor(doctor);
     setModalMode('view');
   }, []);
@@ -311,12 +345,12 @@ export const DoctorsPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="relative h-9 w-9 rounded-full bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+      className="relative h-9 w-9 rounded-pill bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
       aria-label="Filter staff"
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || (filters.specialization && filters.specialization.length > 0)) && (
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-sky-300" />
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-300" />
       )}
     </Button>
   ), [filters]);
@@ -327,7 +361,7 @@ export const DoctorsPage = () => {
     return (
       <Button
         onClick={handleCreate}
-        className="h-9 rounded-full bg-sky-400/12 px-4 text-sm font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
+        className="h-9 rounded-pill bg-sky-400/12 px-4 text-sm font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
       >
         <Plus className="mr-2 h-4 w-4" />
         Add staff
@@ -428,81 +462,98 @@ export const DoctorsPage = () => {
     <div className="min-h-screen py-6 md:py-8 text-foreground">
       <SEOHead title="Staff" description="Review and update staff directory records." />
 
-      <div className="space-y-5 pb-10">
-        <StaffFilterStrip
-          stats={derivedStats}
-          activeFilter={activeStaffFilter}
-          setFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-        />
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+        <section className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:self-stretch">
+          <StaffSignalPanel
+            stats={derivedStats}
+            loading={loading}
+            kpiFilter={activeStaffFilter}
+            setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+          />
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1 text-xs font-semibold text-muted-foreground">
-            <span>{loading ? 'Loading staff' : `${visibleStaffCount} staff`}</span>
-            <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+          <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+
+            <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
+              <span>{loading ? 'Loading staff' : `${visibleStaffCount} staff`}</span>
+              <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+            </div>
+
+            <div className="mt-3 min-h-0 flex-1">
+              {loading ? (
+                <StaffSkeletonGrid />
+              ) : (
+                <>
+                  {viewMode === 'grid' && (
+                    visibleStaffCount === 0 ? (
+                      <StaffEmptyState canManage={canManageStaff} onCreate={handleCreate} />
+                    ) : (
+                      <motion.div
+                        layout
+                        className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                        data-testid="doctors-grid"
+                      >
+                        {paginatedDoctors.map((doctor, index) => (
+                          <StaffMemberCard
+                            key={doctor.id}
+                            doctor={doctor}
+                            index={index}
+                            canManage={canManageStaff}
+                            selected={focusedStaff?.id === doctor.id}
+                            onFocus={handleFocusStaff}
+                            onView={handleView}
+                            onEdit={handleEdit}
+                          />
+                        ))}
+                      </motion.div>
+                    )
+                  )}
+
+                  {viewMode === 'list' && (
+                    <DoctorListView
+                      doctors={paginatedDoctors}
+                      onView={handleView}
+                      onEdit={handleEdit}
+                      onFocus={handleFocusStaff}
+                      getStatusBadge={getStatusBadge}
+                      isMobile={isMobile}
+                      canManage={canManageStaff}
+                    />
+                  )}
+
+                  {viewMode === 'table' && (
+                    <DoctorTableView
+                      doctors={paginatedDoctors}
+                      onView={handleView}
+                      onEdit={handleEdit}
+                      onFocus={handleFocusStaff}
+                      getStatusBadge={getStatusBadge}
+                      isMobile={isMobile}
+                      canManage={canManageStaff}
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPrevPage={pagination.prevPage}
+              onNextPage={pagination.nextPage}
+              hasPrevPage={pagination.hasPrevPage}
+              hasNextPage={pagination.hasNextPage}
+              loading={loading}
+            />
           </div>
-
-          {loading ? (
-            <StaffSkeletonGrid />
-          ) : (
-            <>
-              {viewMode === 'grid' && (
-                visibleStaffCount === 0 ? (
-                  <StaffEmptyState canManage={canManageStaff} onCreate={handleCreate} />
-                ) : (
-                  <motion.div
-                    layout
-                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-                    data-testid="doctors-grid"
-                  >
-                    {paginatedDoctors.map((doctor, index) => (
-                      <StaffMemberCard
-                        key={doctor.id}
-                        doctor={doctor}
-                        index={index}
-                        canManage={canManageStaff}
-                        onView={handleView}
-                        onEdit={handleEdit}
-                      />
-                    ))}
-                  </motion.div>
-                )
-              )}
-
-              {viewMode === 'list' && (
-                <DoctorListView
-                  doctors={paginatedDoctors}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  getStatusBadge={getStatusBadge}
-                  isMobile={isMobile}
-                  canManage={canManageStaff}
-                />
-              )}
-
-              {viewMode === 'table' && (
-                <DoctorTableView
-                  doctors={paginatedDoctors}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  getStatusBadge={getStatusBadge}
-                  isMobile={isMobile}
-                  canManage={canManageStaff}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              )}
-            </>
-          )}
         </section>
 
-        <PaginationControls
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          onPrevPage={pagination.prevPage}
-          onNextPage={pagination.nextPage}
-          hasPrevPage={pagination.hasPrevPage}
-          hasNextPage={pagination.hasNextPage}
-          loading={loading}
+        <StaffDetailRail
+          staff={focusedStaff}
+          canManage={canManageStaff}
+          onView={handleView}
         />
       </div>
 
@@ -536,48 +587,98 @@ export const DoctorsPage = () => {
   );
 };
 
-const StaffFilterStrip = ({ stats, activeFilter, setFilter }) => (
-  <div className="rounded-[32px] bg-background/45 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-white/[0.035]">
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      {staffFilterCards.map((item) => {
-        const Icon = item.icon;
-        const active = activeFilter === item.id;
-        const count = getStaffFilterCount(item.id, stats);
+const StaffSignalPanel = ({ stats, loading, kpiFilter, setKpiFilter }) => {
+  const signal = loading
+    ? {
+      icon: Users,
+      label: 'Loading',
+      activeClass: 'bg-muted/40 text-muted-foreground',
+      iconClass: 'text-muted-foreground',
+      headline: 'Loading staff',
+      subhead: 'One moment while the staff directory comes in.',
+    }
+    : getStaffSignal({ stats, kpiFilter });
+  const SignalIcon = signal.icon;
 
-        return (
-          <motion.button
-            key={item.id}
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setFilter(item.id)}
-            className={`group flex min-h-[92px] items-center justify-between rounded-[26px] px-5 py-4 text-left transition-all duration-200 ${active ? item.activeClass : item.restClass}`}
-            aria-pressed={active}
-          >
-            <span className="flex min-w-0 items-center gap-4">
-              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background/50 shadow-sm transition-transform group-hover:scale-105 ${active ? '' : 'text-muted-foreground'}`}>
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{item.label}</span>
-                <span className="mt-1 block text-3xl font-semibold tracking-normal text-foreground">{count}</span>
-              </span>
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42 }}
+      className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]"
+      aria-live="polite"
+    >
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${signal.activeClass}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">
+            {signal.headline}
+          </h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+            {signal.subhead}
+          </p>
+        </div>
+
+        <StaffStateStrip
+          stats={stats}
+          loading={loading}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+      </div>
+    </motion.section>
+  );
+};
+
+const StaffStateStrip = ({ stats, loading, kpiFilter, setKpiFilter }) => (
+  <div
+    className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
+    role="group"
+    aria-label="Staff status filters"
+  >
+    {staffFilterCards.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'all') === item.id;
+      const count = loading ? '...' : getStaffFilterCount(item.id, stats);
+
+      return (
+        <motion.button
+          key={item.id}
+          type="button"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active}
+          aria-label={`Show ${item.label.toLowerCase()} staff`}
+          data-state={active ? 'selected' : 'idle'}
+        >
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
             </span>
-            <ChevronRight className="h-5 w-5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" />
-          </motion.button>
-        );
-      })}
-    </div>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
   </div>
 );
 
-const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
+const StaffMemberCard = ({ doctor, index, canManage, selected, onFocus, onView, onEdit }) => {
   const status = getStaffStatusMeta(doctor.status);
   const StatusIcon = status.icon;
   const name = doctor.name || 'Unknown staff';
   const facility = doctor.hospitals?.name || 'No facility';
   const phone = doctor.phone || 'No phone';
 
-  const openDetails = () => onView(doctor);
+  const focusCard = () => onFocus(doctor);
   const stopAndRun = (handler) => (event) => {
     event.stopPropagation();
     handler(doctor);
@@ -585,7 +686,7 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      openDetails();
+      focusCard();
     }
   };
 
@@ -597,17 +698,19 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
       transition={{ delay: index * 0.025 }}
       role="button"
       tabIndex={0}
-      onClick={openDetails}
+      onClick={focusCard}
       onKeyDown={handleKeyDown}
-      className="group flex min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-[32px] bg-background/45 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-background/60 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22),0_24px_80px_rgba(0,0,0,0.14)] dark:bg-white/[0.035]"
+      data-state={selected ? 'selected' : 'idle'}
+      className={`group flex min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-card p-5 transition-all duration-200 hover:-translate-y-0.5 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22),0_24px_80px_rgba(0,0,0,0.14)] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.16)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
       data-testid={`doctor-card-${doctor.id}`}
-      aria-label={`Open ${name}`}
+      aria-pressed={selected}
+      aria-label={`${selected ? 'Selected' : 'Open'} ${name}`}
     >
       <div className="flex items-start justify-between gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-400/12 text-sm font-semibold text-sky-300">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-sky-400/12 text-sm font-semibold text-sky-300">
           {getInitials(name)}
         </span>
-        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold ${status.className}`}>
+        <span className={`inline-flex items-center gap-2 rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>
           <StatusIcon className="h-3.5 w-3.5" />
           {status.label}
         </span>
@@ -627,7 +730,7 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
         <StaffInfoLine icon={Phone} label="Contact" value={phone} />
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-3 rounded-[24px] bg-muted/22 p-2">
+      <div className="mt-auto flex items-center justify-between gap-3 rounded-inner bg-muted/22 p-2">
         <span className="px-2 text-xs font-semibold text-muted-foreground">
           {doctor.experience != null ? `${doctor.experience} years` : 'Experience not set'}
         </span>
@@ -636,7 +739,7 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
             variant="ghost"
             size="icon"
             onClick={stopAndRun(onView)}
-            className="h-9 w-9 rounded-full bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+            className="h-9 w-9 rounded-pill bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
             data-testid={`view-doctor-${doctor.id}`}
             aria-label={`View details for ${name}`}
           >
@@ -648,7 +751,7 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
                 variant="ghost"
                 size="icon"
                 onClick={stopAndRun(onEdit)}
-                className="h-9 w-9 rounded-full bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                className="h-9 w-9 rounded-pill bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
                 data-testid={`edit-doctor-${doctor.id}`}
                 aria-label={`Edit ${name}`}
               >
@@ -663,8 +766,8 @@ const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
 };
 
 const StaffInfoLine = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-[20px] bg-muted/22 p-3">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-background/42 text-muted-foreground">
+  <div className="flex items-center gap-3 rounded-inner bg-muted/22 p-3">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/42 text-muted-foreground">
       <Icon className="h-4 w-4" />
     </span>
     <span className="min-w-0">
@@ -674,8 +777,125 @@ const StaffInfoLine = ({ icon: Icon, label, value }) => (
   </div>
 );
 
+const StaffDetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const StaffRailButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const StaffDetailRail = ({ staff, canManage, onView }) => {
+  if (!staff) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <UserRound className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No staff member selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Staff that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const status = getStaffStatusMeta(staff.status);
+  const StatusIcon = status.icon;
+  const name = staff.name || 'Unknown staff';
+  const facility = staff.hospitals?.name || staff.organization?.name || 'No facility';
+  const contact = staff.phone || staff.email || 'No contact';
+  const joined = staff.created_at ? new Date(staff.created_at).toLocaleDateString() : 'N/A';
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Staff details</h2>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {status.label}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onView(staff)}
+          aria-label="Open full staff details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-sky-400/12 text-lg font-semibold text-sky-300">
+          {getInitials(name)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{name}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {staff.specialization || 'General'}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <StaffDetailLine icon={UserRound} label="Name" value={name} />
+        <StaffDetailLine icon={Stethoscope} label="Role" value={staff.specialization || 'General'} />
+        <StaffDetailLine icon={StatusIcon} label="Status" value={status.label} />
+        <StaffDetailLine icon={Hospital} label="Facility" value={facility} />
+        <StaffDetailLine icon={staff.phone ? Phone : Mail} label="Contact" value={contact} />
+        <StaffDetailLine icon={Clock} label="Joined" value={joined} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(staff)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        <div className="grid grid-cols-1 gap-3">
+          <StaffRailButton icon={Info} label="Open record" onClick={() => onView(staff)} />
+        </div>
+
+        {!canManage && (
+          <div
+            role="note"
+            className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+          >
+            <UserRound className="h-4 w-4 shrink-0" />
+            Staff changes are read-only until manage authority is verified.
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+};
+
 const StaffEmptyState = ({ canManage, onCreate }) => (
-  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[32px] bg-background/45 p-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.14)] backdrop-blur-xl dark:bg-white/[0.035]">
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
     <Stethoscope className="mb-4 h-12 w-12 text-muted-foreground/65" />
     <h3 className="text-xl font-semibold">No staff found</h3>
     <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -684,7 +904,7 @@ const StaffEmptyState = ({ canManage, onCreate }) => (
     {canManage && (
       <Button
         onClick={onCreate}
-        className="mt-5 rounded-full bg-sky-400/12 px-5 font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95"
+        className="mt-5 rounded-pill bg-sky-400/12 px-5 font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95"
         data-testid="add-first-doctor-btn"
         aria-label="Add staff"
       >
@@ -700,9 +920,9 @@ const StaffSkeletonGrid = () => (
     {Array.from({ length: 6 }).map((_, index) => (
       <div
         key={index}
-        className="h-64 animate-pulse rounded-[32px] bg-muted/20 shadow-sm"
+        className="h-64 animate-pulse rounded-card bg-muted/20 shadow-sm"
       >
-        <div className="h-full rounded-[32px] bg-gradient-to-br from-background/42 to-muted/14" />
+        <div className="h-full rounded-card bg-gradient-to-br from-background/42 to-muted/14" />
       </div>
     ))}
   </div>
