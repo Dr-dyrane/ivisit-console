@@ -21,7 +21,6 @@ import {
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const StaffScheduler = () => {
@@ -120,20 +119,20 @@ const StaffScheduler = () => {
 
   const getShiftStatusColor = (status) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'on-duty': return 'bg-green-100 text-green-800 border-green-200';
-      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'absent': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'scheduled': return 'bg-sky-500/15 text-sky-600';
+      case 'on-duty': return 'bg-emerald-500/15 text-emerald-600';
+      case 'completed': return 'bg-muted/40 text-muted-foreground';
+      case 'absent': return 'bg-destructive/15 text-destructive';
+      default: return 'bg-muted/40 text-muted-foreground';
     }
   };
 
   const getShiftTypeColor = (type) => {
     switch (type) {
-      case 'day': return 'bg-yellow-50 border-yellow-200';
-      case 'evening': return 'bg-orange-50 border-orange-200';
-      case 'night': return 'bg-indigo-50 border-indigo-200';
-      default: return 'bg-gray-50 border-gray-200';
+      case 'day': return 'bg-amber-500/15';
+      case 'evening': return 'bg-orange-500/15';
+      case 'night': return 'bg-violet-500/15';
+      default: return 'bg-muted/40';
     }
   };
 
@@ -180,12 +179,12 @@ const StaffScheduler = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Staff Scheduling</h1>
-          <p className="text-gray-600 mt-1">Manage staff shifts and schedules</p>
+          <h1 className="text-3xl font-bold text-foreground">Staff Scheduling</h1>
+          <p className="text-muted-foreground mt-1">Manage staff shifts and schedules</p>
         </div>
         <Button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="rounded-button bg-sky-500 text-white hover:bg-sky-600"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Shift
@@ -197,7 +196,7 @@ const StaffScheduler = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* View Mode */}
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
+            <Calendar className="w-4 h-4 text-muted-foreground" />
             <Select value={viewMode} onValueChange={setViewMode}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -237,7 +236,7 @@ const StaffScheduler = () => {
 
           {/* Search */}
           <div className="flex items-center gap-2 flex-1 min-w-[300px]">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search staff..."
               value={searchTerm}
@@ -248,7 +247,7 @@ const StaffScheduler = () => {
 
           {/* Filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
+            <Filter className="w-4 h-4 text-muted-foreground" />
             <Select value={filterDepartment} onValueChange={setFilterDepartment}>
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -277,20 +276,20 @@ const StaffScheduler = () => {
               {filteredStaff.map(staff => (
                 <div
                   key={staff.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                  className={`p-3 rounded-inner cursor-pointer transition-colors ${
                     selectedStaff?.id === staff.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'bg-sky-500/15'
+                      : 'bg-muted/30 hover:bg-muted/50'
                   }`}
                   onClick={() => setSelectedStaff(staff)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+                    <div className="w-8 h-8 rounded-pill bg-sky-500/15 flex items-center justify-center text-xs font-medium text-sky-600">
                       {staff.avatar}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">{staff.name}</p>
-                      <p className="text-xs text-gray-500">{staff.role} • {staff.department}</p>
+                      <p className="text-xs text-muted-foreground">{staff.role} • {staff.department}</p>
                     </div>
                   </div>
                 </div>
@@ -304,7 +303,7 @@ const StaffScheduler = () => {
           <Card className="p-4">
             <div className="grid grid-cols-7 gap-2 mb-4">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
+                <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                   {day}
                 </div>
               ))}
@@ -321,8 +320,8 @@ const StaffScheduler = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`min-h-[120px] p-2 border rounded-lg ${
-                      isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                    className={`min-h-[120px] p-2 rounded-inner ${
+                      isToday ? 'bg-sky-500/15' : 'bg-muted/30'
                     }`}
                   >
                     <div className="text-sm font-medium mb-2">
@@ -336,7 +335,7 @@ const StaffScheduler = () => {
                             key={shift.id}
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className={`text-xs p-1 rounded border ${getShiftTypeColor(shift.type)} ${getShiftStatusColor(shift.status)}`}
+                            className={`text-xs p-1 rounded-inner ${getShiftTypeColor(shift.type)} ${getShiftStatusColor(shift.status)}`}
                           >
                             <div className="font-medium truncate">
                               {staff?.name}
@@ -368,28 +367,28 @@ const StaffScheduler = () => {
                   key={shift.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-3 rounded-inner bg-muted/30"
                 >
                   <div className="flex items-center gap-4">
-                    <Badge className={getShiftStatusColor(shift.status)}>
+                    <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getShiftStatusColor(shift.status)}`}>
                       {shift.status}
-                    </Badge>
+                    </span>
                     <div>
                       <p className="font-medium">{shift.date}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {shift.startTime} - {shift.endTime} ({shift.type})
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="ghost" size="sm" className="rounded-button">
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteShift(shift.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="rounded-button text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -407,14 +406,14 @@ const StaffScheduler = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4"
             onClick={() => setShowAddModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg p-6 w-full max-w-md"
+              className="w-full max-w-md rounded-modal bg-card/95 p-6 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">

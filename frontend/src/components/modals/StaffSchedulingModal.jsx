@@ -13,7 +13,6 @@ import {
   Loader2
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -103,19 +102,19 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
-      case 'on-duty': return 'bg-green-500/20 text-green-500 border-green-500/30';
-      case 'completed': return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
-      default: return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+      case 'scheduled': return 'bg-sky-500/20 text-sky-600';
+      case 'on-duty': return 'bg-emerald-500/20 text-emerald-600';
+      case 'completed': return 'bg-muted/50 text-muted-foreground';
+      default: return 'bg-muted/50 text-muted-foreground';
     }
   };
 
   const getShiftTypeColor = (type) => {
     switch (type) {
-      case 'day': return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
-      case 'evening': return 'bg-orange-500/20 text-orange-500 border-orange-500/30';
-      case 'night': return 'bg-indigo-500/20 text-indigo-500 border-indigo-500/30';
-      default: return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+      case 'day': return 'bg-amber-500/20 text-amber-600';
+      case 'evening': return 'bg-orange-500/20 text-orange-600';
+      case 'night': return 'bg-violet-500/20 text-violet-600';
+      default: return 'bg-muted/50 text-muted-foreground';
     }
   };
 
@@ -306,7 +305,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
             aria-modal="true"
 
-            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl"
+            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-modal bg-card/95 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl"
             style={{
               maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
             }}
@@ -315,8 +314,8 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
             {/* Header Area */}
             <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2 md:p-2.5 bg-purple-500/20 rounded-2xl">
-                  <CalendarDays className="h-5 w-5 md:h-6 md:w-6 text-purple-500" />
+                <div className="p-2 md:p-2.5 bg-violet-500/20 rounded-icon">
+                  <CalendarDays className="h-5 w-5 md:h-6 md:w-6 text-violet-500" />
                 </div>
                 <div>
                   <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
@@ -328,7 +327,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+                className="h-10 w-10 rounded-pill bg-muted/50 hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -337,10 +336,10 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
             {/* Glassmorphic Tabs */}
             <div className="flex gap-1 p-2 md:p-8 pt-2">
               <button
-                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-button transition-all ${
                   activeTab === 'overview'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-transparent'
+                    ? 'bg-violet-500/20 text-violet-600'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
                 onClick={() => setActiveTab('overview')}
               >
@@ -348,10 +347,10 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                 Overview
               </button>
               <button
-                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-button transition-all ${
                   activeTab === 'add'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-transparent'
+                    ? 'bg-violet-500/20 text-violet-600'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
                 onClick={() => setActiveTab('add')}
               >
@@ -360,7 +359,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
               </button>
               {activeTab === 'edit' && (
                 <button
-                  className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all bg-primary/20 text-primary border border-primary/30`}
+                  className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-button transition-all bg-violet-500/20 text-violet-600`}
                 >
                   <Edit className="w-4 h-4" />
                   Edit Shift
@@ -378,40 +377,40 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                 <div className="space-y-6">
                   {/* Stats Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
+                    <div className="p-4 rounded-inner bg-muted/30 text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
-                          <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                          <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
                         ) : (
-                          <Users className="w-6 h-6 text-blue-500 opacity-60" />
+                          <Users className="w-6 h-6 text-sky-500 opacity-60" />
                         )}
                       </div>
                       <p className="text-xl md:text-2xl font-bold">{staffList.length}</p>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">Total Staff</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">Total Staff</p>
                     </div>
-                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
+                    <div className="p-4 rounded-inner bg-muted/30 text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
-                          <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+                          <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
                         ) : (
-                          <CheckCircle className="w-6 h-6 text-green-500 opacity-60" />
+                          <CheckCircle className="w-6 h-6 text-emerald-500 opacity-60" />
                         )}
                       </div>
-                      <p className="text-xl md:text-2xl font-bold text-green-400">
+                      <p className="text-xl md:text-2xl font-bold text-emerald-500">
                         {stats?.scheduled_today || 0}
                       </p>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">Scheduled Today</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">Scheduled Today</p>
                     </div>
-                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
+                    <div className="p-4 rounded-inner bg-muted/30 text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
-                          <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+                          <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
                         ) : (
-                          <Calendar className="w-6 h-6 text-purple-500 opacity-60" />
+                          <Calendar className="w-6 h-6 text-violet-500 opacity-60" />
                         )}
                       </div>
-                      <p className="text-xl md:text-2xl font-bold text-purple-400">{stats?.this_week || 0}</p>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50">This Week</p>
+                      <p className="text-xl md:text-2xl font-bold text-violet-500">{stats?.this_week || 0}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">This Week</p>
                     </div>
                   </div>
 
@@ -420,7 +419,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                     {loading ? (
                       <div className="space-y-3">
                         {[1, 2, 3].map((i) => (
-                          <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                          <div key={i} className="h-16 bg-muted/30 rounded-inner animate-pulse" />
                         ))}
                       </div>
                     ) : schedules.length === 0 ? (
@@ -434,10 +433,10 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                         {schedules.map(schedule => (
                           <div
                             key={schedule.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-white/5  hover:bg-white/10 transition-colors"
+                            className="flex items-center justify-between p-4 rounded-inner bg-muted/30 hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                              <div className="w-12 h-12 rounded-pill bg-violet-500/20 flex items-center justify-center text-sm font-bold text-violet-600">
                                 {schedule.profiles?.full_name?.split(' ').map(n => n[0]).join('') || 
                                  schedule.profile_name?.split(' ').map(n => n[0]).join('') || '??'}
                               </div>
@@ -453,17 +452,17 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge className={`squircle-sm ${getShiftTypeColor(schedule.shift_type)} border-0 font-bold`}>
+                              <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-bold ${getShiftTypeColor(schedule.shift_type)}`}>
                                 {schedule.shift_type}
-                              </Badge>
-                              <Badge className={`squircle-sm ${getStatusColor(schedule.status)} border-0 font-bold`}>
+                              </span>
+                              <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-bold ${getStatusColor(schedule.status)}`}>
                                 {schedule.status}
-                              </Badge>
+                              </span>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditSchedule(schedule)}
-                                className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary"
+                                className="h-8 w-8 rounded-pill hover:bg-violet-500/10 hover:text-violet-600"
                                 disabled={loading}
                               >
                                 <Edit className="h-4 w-4" />
@@ -472,7 +471,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteSchedule(schedule.id)}
-                                className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                className="h-8 w-8 rounded-pill hover:bg-destructive/10 hover:text-destructive"
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -493,16 +492,16 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Staff Member</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">Staff Member</Label>
                     <Select 
                       value={newSchedule.profile_id} 
                       onValueChange={(value) => setNewSchedule({...newSchedule, profile_id: value})}
                       disabled={fetchingStaff}
                     >
-                      <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-12">
+                      <SelectTrigger className="rounded-button bg-muted/30 h-12">
                         <SelectValue placeholder={fetchingStaff ? "Loading staff..." : "Select staff member"} />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                      <SelectContent className="rounded-inner bg-background/95 backdrop-blur-xl">
                         {staffList.length === 0 ? (
                           <div className="p-4 text-center text-sm text-muted-foreground">
                             {fetchingStaff ? 'Loading staff...' : 'No staff available'}
@@ -522,45 +521,45 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Date</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">Date</Label>
                     <Input
                       type="date"
                       value={newSchedule.date}
                       onChange={(e) => setNewSchedule({...newSchedule, date: e.target.value})}
-                      className="rounded-xl bg-white/5 border-white/10 h-12"
+                      className="rounded-button bg-muted/30 h-12"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Start Time</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">Start Time</Label>
                     <Input
                       type="time"
                       value={newSchedule.start_time}
                       onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
-                      className="rounded-xl bg-white/5 border-white/10 h-12"
+                      className="rounded-button bg-muted/30 h-12"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">End Time</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">End Time</Label>
                     <Input
                       type="time"
                       value={newSchedule.end_time}
                       onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
-                      className="rounded-xl bg-white/5 border-white/10 h-12"
+                      className="rounded-button bg-muted/30 h-12"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Shift Type</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">Shift Type</Label>
                     <Select 
                       value={newSchedule.shift_type} 
                       onValueChange={(value) => setNewSchedule({...newSchedule, shift_type: value})}
                     >
-                      <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-12">
+                      <SelectTrigger className="rounded-button bg-muted/30 h-12">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                      <SelectContent className="rounded-inner bg-background/95 backdrop-blur-xl">
                         <SelectItem value="day">Day Shift</SelectItem>
                         <SelectItem value="evening">Evening Shift</SelectItem>
                         <SelectItem value="night">Night Shift</SelectItem>
@@ -569,13 +568,13 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Notes (Optional)</Label>
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50 ml-1">Notes (Optional)</Label>
                     <Input
                       type="text"
                       value={newSchedule.notes}
                       onChange={(e) => setNewSchedule({...newSchedule, notes: e.target.value})}
                       placeholder="Additional notes..."
-                      className="rounded-xl bg-white/5 border-white/10 h-12"
+                      className="rounded-button bg-muted/30 h-12"
                     />
                   </div>
                 </div>
@@ -583,7 +582,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                 <div className="flex gap-3 mt-8">
                   <Button
                     variant="outline"
-                    className="flex-1 rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+                    className="flex-1 rounded-button bg-muted/40 hover:bg-muted/60"
                     onClick={() => {
                       setActiveTab('overview');
                       setNewSchedule({
@@ -603,7 +602,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                     Cancel
                   </Button>
                   <Button
-                    className="flex-1 rounded-xl"
+                    className="flex-1 rounded-button bg-sky-500 text-white hover:bg-sky-600"
                     onClick={activeTab === 'add' ? handleAddSchedule : handleUpdateSchedule}
                     disabled={loading}
                   >
@@ -627,10 +626,10 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
 /* GlassCard Component */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 ">
+  <div className="p-4 sm:p-6 rounded-card bg-muted/20">
     {title && (
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
-        <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        <div className="p-1.5 sm:p-2 bg-muted/40 rounded-icon">
           {icon}
         </div>
         <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground/90">
