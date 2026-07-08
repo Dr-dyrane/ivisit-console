@@ -153,7 +153,7 @@ describe('Analytics Page 13 intake contract', () => {
     expect(page).toContain('const FINANCE_CHART_HEIGHT = 160;');
     expect(page).toContain('const RESPONSE_TIME_INITIAL_DIMENSION = { width: 1, height: RESPONSE_TIME_CHART_HEIGHT };');
     expect(page).toContain('const PIE_CHART_INITIAL_DIMENSION = { width: PIE_CHART_SIZE, height: PIE_CHART_SIZE };');
-    expect(page).toContain('className="h-[160px] min-h-[160px] bg-success/5 rounded-2xl overflow-hidden p-2 border-success/10"');
+    expect(page).toContain('className="h-[160px] min-h-[160px] bg-emerald-500/5 rounded-button overflow-hidden p-2"');
     expect(page).toContain('height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}');
     expect(page).toContain('height={DAILY_VOLUME_CHART_HEIGHT} initialDimension={DAILY_VOLUME_INITIAL_DIMENSION}');
     expect(page).toContain('height={CASE_TYPE_CHART_HEIGHT} initialDimension={CASE_TYPE_INITIAL_DIMENSION}');
