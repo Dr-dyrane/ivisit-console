@@ -15,6 +15,7 @@ const GRID_TEMPLATE =
 export const HealthNewsTableView = ({
   healthNews,
   onView,
+  onFocus,
   getStatusBadge,
 }) => {
   return (
@@ -43,7 +44,8 @@ export const HealthNewsTableView = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: index * 0.02 }}
-              className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors hover:bg-muted/30`}
+              onClick={() => onFocus?.(news)}
+              className={`grid ${GRID_TEMPLATE} cursor-pointer items-center gap-2 rounded-inner px-3 py-3 transition-colors hover:bg-muted/30`}
             >
               {/* Title */}
               <div className="min-w-0 font-bold text-xs md:text-sm">
@@ -81,7 +83,7 @@ export const HealthNewsTableView = ({
                 </span>
               </div>
               {/* Actions */}
-              <div className="justify-self-end">
+              <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/40">

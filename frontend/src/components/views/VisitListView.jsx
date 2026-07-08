@@ -17,6 +17,7 @@ export const VisitListView = ({
   onView,
   onEdit,
   onDelete,
+  onFocus,
   getStatusBadge,
   isMobile = false,
   selectedIds = [],
@@ -41,17 +42,19 @@ export const VisitListView = ({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.02 }}
           >
-            <div className={`rounded-card p-4 transition-colors group ${selected ? 'bg-muted/50' : 'bg-background/30 hover:bg-muted/30'}`}>
+            <div onClick={() => onFocus?.(visit)} className={`rounded-card p-4 cursor-pointer transition-colors group ${selected ? 'bg-muted/50' : 'bg-background/30 hover:bg-muted/30'}`}>
               <div className="flex items-center gap-4 justify-between">
 
                 {/* Selection & Icon */}
                 <div className="flex items-center gap-4">
                   {selectionEnabled && (
-                    <Checkbox
-                      checked={selectedIds.includes(visit.id)}
-                      onCheckedChange={() => onSelect?.(visit.id)}
-                      className="bg-background/50"
-                    />
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.includes(visit.id)}
+                        onCheckedChange={() => onSelect?.(visit.id)}
+                        className="bg-background/50"
+                      />
+                    </span>
                   )}
                   <div className={`p-2 rounded-inner ${visit.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
                     <Clock className="w-5 h-5" />
@@ -113,7 +116,7 @@ export const VisitListView = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted/30 rounded-pill">

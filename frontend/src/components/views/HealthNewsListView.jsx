@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Eye, Clock, Globe, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const HealthNewsListView = ({ healthNews, onView, getStatusBadge, isMobile = false }) => {
+export const HealthNewsListView = ({ healthNews, onView, onFocus, getStatusBadge, isMobile = false }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -16,7 +16,8 @@ export const HealthNewsListView = ({ healthNews, onView, getStatusBadge, isMobil
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
-          className="group rounded-card bg-background/35 backdrop-blur-xs p-3 md:p-4 transition-colors hover:bg-muted/30"
+          onClick={() => onFocus?.(news)}
+          className="group cursor-pointer rounded-card bg-background/35 backdrop-blur-xs p-3 md:p-4 transition-colors hover:bg-muted/30"
         >
           <div className="flex items-center gap-3 md:gap-4 justify-between">
             <div className="flex-1 min-w-0">
@@ -51,7 +52,7 @@ export const HealthNewsListView = ({ healthNews, onView, getStatusBadge, isMobil
               </p>
             </div>
 
-            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-200`}>
                 <Button
                   variant="ghost"

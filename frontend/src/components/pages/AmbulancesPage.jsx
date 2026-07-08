@@ -194,6 +194,7 @@ export const AmbulancesPage = () => {
   const canManageFleet = isAdmin() || isOrgAdmin();
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('ambulances', ambulances);
   const focusedAmbulance = focusedRecord;
+  const handleFocus = useCallback((ambulance) => setFocused(ambulance?.id || null), [setFocused]);
 
   const markActionFeedback = useCallback((key) => {
     setActiveActionFeedback(key);
@@ -755,6 +756,7 @@ export const AmbulancesPage = () => {
                     ambulances={paginatedAmbulances}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={handleFocus}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canDelete={false}
@@ -765,6 +767,7 @@ export const AmbulancesPage = () => {
                     ambulances={paginatedAmbulances}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={handleFocus}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canDelete={false}

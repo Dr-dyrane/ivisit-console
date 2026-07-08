@@ -8,6 +8,7 @@ export const AmbulanceListView = ({
   onView,
   onEdit,
   onDelete,
+  onFocus,
   getStatusBadge,
   onSchedule,
   isMobile = false,
@@ -33,7 +34,10 @@ export const AmbulanceListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30 group">
+          <div
+            onClick={() => onFocus?.(ambulance)}
+            className="group cursor-pointer rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30"
+          >
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
@@ -54,7 +58,10 @@ export const AmbulanceListView = ({
                   <p className="text-xs text-muted-foreground font-medium">ETA</p>
                   <p className="font-bold text-lg">{ambulance.eta || 'N/A'}</p>
                 </div>
-                <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <div
+                  className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button
                     variant="ghost"
                     size="sm"

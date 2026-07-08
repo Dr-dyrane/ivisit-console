@@ -22,6 +22,7 @@ export const VisitTableView = ({
   onView,
   onEdit,
   onDelete,
+  onFocus,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -117,10 +118,11 @@ export const VisitTableView = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.02 }}
-                className={`grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                onClick={() => onFocus?.(visit)}
+                className={`grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 cursor-pointer transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
               >
                 {selectionEnabled && (
-                  <div className="flex items-center">
+                  <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.includes(visit.id)}
                       onCheckedChange={() => onSelect?.(visit.id)}
@@ -205,7 +207,7 @@ export const VisitTableView = ({
                   {formatDate(visit.date || visit.created_at)}
                 </div>
                 {/* Actions */}
-                <div className="justify-self-end">
+                <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">

@@ -7,6 +7,7 @@ export const HospitalListView = ({
   hospitals,
   onView,
   onEdit,
+  onFocus,
   canDelete = false,
   onDelete,
   onSchedule,
@@ -50,7 +51,10 @@ export const HospitalListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="group rounded-card bg-background/35 p-4 shadow-sm backdrop-blur-xs transition-[background,box-shadow,transform] duration-200 hover:bg-background/55 hover:shadow-md">
+          <div
+            className="group cursor-pointer rounded-card bg-background/35 p-4 shadow-sm backdrop-blur-xs transition-[background,box-shadow,transform] duration-200 hover:bg-background/55 hover:shadow-md"
+            onClick={() => onFocus?.(hospital)}
+          >
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-shrink-0">
                 {hospital.image ? (
@@ -99,7 +103,10 @@ export const HospitalListView = ({
                     <p className="font-bold text-lg">{hospital.rating || 'N/A'}</p>
                   </div>
                 </div>
-                <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <div
+                  className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button
                     variant="ghost"
                     size="sm"

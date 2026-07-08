@@ -166,6 +166,8 @@ export const HospitalsPage = () => {
   // state + `list.find(id) || list[0]` memo + first-item re-pin effect.
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('hospitals', hospitals);
   const focusedHospital = focusedRecord;
+  // Row-level focus wiring: toggles the detail rail from list/table rows, mirroring the grid cards.
+  const handleFocus = useCallback((hospital) => setFocused(hospital?.id || null), [setFocused]);
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
@@ -779,6 +781,7 @@ export const HospitalsPage = () => {
                     hospitals={hospitals}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={handleFocus}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canDelete={false}
@@ -790,6 +793,7 @@ export const HospitalsPage = () => {
                     hospitals={hospitals}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={handleFocus}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canDelete={false}

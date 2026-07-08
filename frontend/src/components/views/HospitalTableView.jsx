@@ -18,6 +18,7 @@ export const HospitalTableView = ({
   hospitals,
   onView,
   onEdit,
+  onFocus,
   onDelete,
   onSchedule,
   canDelete = false,
@@ -127,8 +128,8 @@ export const HospitalTableView = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-[background,transform] ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
-                    onClick={() => isMobile && onView(hospital)}
+                    className={`group grid ${gridClass} cursor-pointer items-center gap-2 rounded-inner px-3 py-3 transition-[background,transform] ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                    onClick={() => (isMobile ? onView(hospital) : onFocus?.(hospital))}
                   >
                     {canSelect && (
                       <div className="flex items-center" onClick={(e) => e.stopPropagation()}>

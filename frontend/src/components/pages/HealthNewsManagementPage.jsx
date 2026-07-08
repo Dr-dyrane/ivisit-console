@@ -240,6 +240,8 @@ export const HealthNewsManagementPage = () => {
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', healthNews);
   const focusedNews = focusedRecord;
 
+  const handleFocusNews = useCallback((news) => setFocused(news?.id || null), [setFocused]);
+
   useEffect(() => () => {
     if (actionFeedbackTimerRef.current) {
       window.clearTimeout(actionFeedbackTimerRef.current);
@@ -627,6 +629,7 @@ export const HealthNewsManagementPage = () => {
                   <HealthNewsListView
                     healthNews={healthNews}
                     onView={handleView}
+                    onFocus={handleFocusNews}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                   />
@@ -635,6 +638,7 @@ export const HealthNewsManagementPage = () => {
                   <HealthNewsTableView
                     healthNews={healthNews}
                     onView={handleView}
+                    onFocus={handleFocusNews}
                     getStatusBadge={getStatusBadge}
                   />
                 )}

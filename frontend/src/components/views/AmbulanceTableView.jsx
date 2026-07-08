@@ -18,6 +18,7 @@ export const AmbulanceTableView = ({
   onView,
   onEdit,
   onDelete,
+  onFocus,
   getStatusBadge,
   onSchedule,
   canDelete = false,
@@ -110,10 +111,11 @@ export const AmbulanceTableView = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.02 }}
-                className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                onClick={() => onFocus?.(ambulance)}
+                className={`group grid ${gridClass} cursor-pointer items-center gap-2 rounded-inner px-3 py-3 transition-colors ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
               >
                 {selectionEnabled && (
-                  <div className="flex items-center">
+                  <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={(checked) => handleSelectOne(ambulance.id, checked)}
@@ -138,7 +140,7 @@ export const AmbulanceTableView = ({
                 {/* Station */}
                 <div className="text-muted-foreground truncate">{getStationLabel(ambulance)}</div>
                 {/* Actions */}
-                <div className="justify-self-end">
+                <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/40 text-muted-foreground hover:text-foreground">

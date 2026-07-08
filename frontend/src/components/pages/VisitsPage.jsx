@@ -838,6 +838,7 @@ export const VisitsPage = () => {
                     visits={visits}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={(v) => setFocusedVisitId(v?.id || null)}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canEdit={canEditVisits}
@@ -850,6 +851,7 @@ export const VisitsPage = () => {
                     visits={visits}
                     onView={handleView}
                     onEdit={handleEdit}
+                    onFocus={(v) => setFocusedVisitId(v?.id || null)}
                     getStatusBadge={getStatusBadge}
                     isMobile={isMobile}
                     canEdit={canEditVisits}
