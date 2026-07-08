@@ -129,6 +129,11 @@ describe('Users Page 14 intake contract', () => {
     expect(mobile).toContain("label: hasMeasuredStatistics ? 'Active Users' : 'Visible Active'");
     expect(mobile).toContain("label=\"User Summary\"");
     expect(mobile).toContain("subtitle: hasMeasuredStatistics ? 'Last 30 days' : 'Source pending'");
+    // Tap now opens the canonical detail bottom sheet (MobileDetailSheet) instead of an
+    // inline-expand dropdown; the delete gate stays fail-closed inside that sheet.
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('setActiveUser');
+    expect(mobile).not.toContain('expandedContent');
     expect(mobile).toContain('canDelete = false');
     expect(mobile).toContain('canDelete && isAdmin');
     expect(page).toContain('canDelete={false}');

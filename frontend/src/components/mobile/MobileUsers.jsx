@@ -28,8 +28,7 @@ import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { statusPill } from '../../constants/vitalTracks';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -87,8 +86,7 @@ export const MobileUsers = ({
 }) => {
     // 1. Infinite scroll setup with Intersection Observer
     const observerTarget = useRef(null);
-    const [expandedUserId, setExpandedUserId] = useState(null);
-    const selectionMode = selectedIds.length > 0;
+    const [activeUser, setActiveUser] = useState(null);
     const { triggerFromEvent } = useFeedback();
 
 
@@ -355,10 +353,6 @@ export const MobileUsers = ({
                     label="User Directory"
                     count={displayUsers.length}
                     color="hsl(var(--foreground))"
-                    selectionMode={selectionMode}
-                    selectedCount={selectedIds.length}
-                    onSelectAll={displayUsers.length > 0 ? () => onSelectAll?.(displayUsers) : null}
-                    isAllSelected={displayUsers.length > 0 && selectedIds.length === displayUsers.length}
                 />
 
                 <div className="space-y-1">
@@ -392,44 +386,10 @@ export const MobileUsers = ({
                                 // KYC is a secondary axis, surfaced as a small verified marker only
                                 // (never the main pill). Unverified shows nothing on the row.
                                 statusIndicators={isVerified ? [{ icon: ShieldCheck, color: 'hsl(160 84% 39%)', label: 'KYC verified' }] : []}
-                                isExpanded={expandedUserId === user.id}
-                                onExpand={(id) => setExpandedUserId(prev => prev === id ? null : id)}
-                                itemId={user.id}
-                                isSelected={selectedIds.includes(user.id)}
-                                onSelect={onSelect}
-                                selectionMode={selectionMode}
-                                expandedContent={
-                                    <div className="space-y-3 py-3">
-                                        {/* S6: identity-island detail (email, phone, org, role, KYC). */}
-                                        <MobileDetailIslands
-                                            items={[
-                                                { icon: Mail, label: 'Email', value: user.email || 'No email' },
-                                                { icon: Phone, label: 'Phone', value: user.phone || 'No phone' },
-                                                { icon: Building, label: 'Organization', value: user.organization_name || 'No organization' },
-                                                { icon: Shield, label: 'Role', value: roleLabel(user.role) },
-                                                { icon: isVerified ? ShieldCheck : Shield, label: 'KYC', value: isVerified ? 'Verified' : 'Pending' },
-                                            ]}
-                                        />
-
-                                        {/* S7: one primary state-CTA (Details, filled) + gated ghost Edit. */}
-                                        <MobileSheetActions
-                                            primary={{ label: 'Details', icon: Eye, onClick: () => onView(user) }}
-                                            secondary={(isAdmin || isOrgAdmin) ? { icon: Edit, onClick: () => onEdit(user), 'aria-label': `Edit ${user.full_name || user.username || 'user'}` } : undefined}
-                                        />
-
-                                        {/* Delete is a demoted destructive control BELOW the CTA group. */}
-                                        {canDelete && isAdmin && (
-                                            <button
-                                                type="button"
-                                                onClick={() => onDelete(user)}
-                                                className="flex w-full items-center justify-center gap-2 rounded-button py-2.5 text-xs font-semibold text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-[0.98]"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                                Delete user
-                                            </button>
-                                        )}
-                                    </div>
-                                }
+                                // Tap opens the canonical detail bottom sheet (MobileDetailSheet),
+                                // not an inline dropdown — the approved mobile design + the desktop
+                                // detail-rail behaviour.
+                                onClick={() => setActiveUser(user)}
                             />
                             );
                         })}
@@ -448,6 +408,48 @@ export const MobileUsers = ({
                         <MobileListEmpty icon={Users} label="No users found" />
                     )}
                 </div>
+
+                {/* Tap-opened record detail bottom sheet (MobileDetailSheet) — replaces the
+                    old inline-dropdown reveal. Users is a directory (no modelled lifecycle),
+                    so NO VitalTrack; role is the eyebrow facet and active/inactive is the pill. */}
+                {activeUser && (() => {
+                    const user = activeUser;
+                    const isActive = user.is_active !== false;
+                    const isVerified = Boolean(user.bvn_verified);
+                    return (
+                        <MobileDetailSheet
+                            isOpen={!!activeUser}
+                            onClose={() => setActiveUser(null)}
+                            icon={User}
+                            iconTone={getRoleColor(user.role)}
+                            eyebrow={roleLabel(user.role)}
+                            title={user.full_name || user.username || 'Unknown User'}
+                            statusPill={statusPill(isActive ? 'active' : 'inactive')}
+                            islands={[
+                                { icon: Mail, label: 'Email', value: user.email || 'No email' },
+                                { icon: Phone, label: 'Phone', value: user.phone || 'No phone' },
+                                { icon: Building, label: 'Organization', value: user.organization_name || 'No organization' },
+                                { icon: Shield, label: 'Role', value: roleLabel(user.role) },
+                                { icon: isVerified ? ShieldCheck : Shield, label: 'KYC', value: isVerified ? 'Verified' : 'Pending' },
+                            ]}
+                            primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveUser(null); onView(user); } }}
+                            secondary={(isAdmin || isOrgAdmin) ? { icon: Edit, onClick: () => { setActiveUser(null); onEdit(user); }, 'aria-label': `Edit ${user.full_name || user.username || 'user'}` } : undefined}
+                        >
+                            {/* Delete stays a demoted, gated, fail-closed destructive control
+                                BELOW the CTA group (canDelete && isAdmin only). */}
+                            {canDelete && isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => onDelete(user)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-button py-2.5 text-xs font-semibold text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-[0.98]"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Delete user
+                                </button>
+                            )}
+                        </MobileDetailSheet>
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );
