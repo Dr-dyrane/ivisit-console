@@ -140,22 +140,23 @@ const GodModeMapContent = () => {
 	const [mapProvider, setMapProvider] = useState("google"); // 'google' | 'leaflet'
 	const [isSwitchingMap, setIsSwitchingMap] = useState(false);
 
-	// Apple semantic colors
+	// Marker colors — literal palette so the rendered map surface never shows theme-red
+	// for non-danger states (destructive stays for genuine critical/maintenance).
 	const getPriorityColor = (priority) => {
 		switch (priority) {
 			case "critical": return "hsl(var(--destructive))";
-			case "high": return "hsl(var(--warning))";
-			case "medium": return "hsl(var(--primary))";
-			case "low": return "hsl(var(--success))";
+			case "high": return "hsl(38 92% 50%)"; // amber-500
+			case "medium": return "hsl(199 89% 48%)"; // sky-500
+			case "low": return "hsl(160 84% 39%)"; // emerald-500
 			default: return "hsl(var(--muted-foreground))";
 		}
 	};
 
 	const getStatusColor = (status) => {
 		switch (status) {
-			case "available": return "hsl(var(--success))";
-			case "busy": return "hsl(var(--warning))";
-			case "on_route": return "hsl(var(--primary))";
+			case "available": return "hsl(160 84% 39%)"; // emerald-500
+			case "busy": return "hsl(38 92% 50%)"; // amber-500
+			case "on_route": return "hsl(199 89% 48%)"; // sky-500
 			case "maintenance": return "hsl(var(--destructive))";
 			default: return "hsl(var(--muted-foreground))";
 		}
@@ -613,10 +614,10 @@ const GodModeMapContent = () => {
 						)}
 
 						{isDriverMode ? (
-							<div className="absolute top-6 left-6 z-[120] w-[20rem] rounded-[28px] bg-background/85 backdrop-blur-xl p-4 shadow-premium">
+							<div className="absolute top-6 left-6 z-[120] w-[20rem] rounded-card bg-card/68 backdrop-blur-2xl p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
 								<div className="flex items-center justify-between mb-3">
-									<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Current request</div>
-									<div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+									<div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Current request</div>
+									<div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
 										<Radio className="h-3.5 w-3.5" />
 										Live
 									</div>
@@ -641,8 +642,8 @@ const GodModeMapContent = () => {
 														driverLocationStatus.state === "lost"
 															? "text-destructive"
 															: driverLocationStatus.state === "stale"
-																? "text-warning"
-																: "text-success"
+																? "text-amber-600 dark:text-amber-300"
+																: "text-emerald-600 dark:text-emerald-300"
 													}`}
 												>
 													{driverLocationStatus.state.toUpperCase()}
@@ -656,7 +657,7 @@ const GodModeMapContent = () => {
 												variant="outline"
 												onClick={handleDriverPingLocation}
 												disabled={driverAction !== null}
-												className="rounded-2xl"
+												className="rounded-button"
 												aria-label={driverAction === "ping" ? "Sharing location" : "Share location"}
 												aria-busy={driverAction === "ping"}
 											>
@@ -668,7 +669,7 @@ const GodModeMapContent = () => {
 												variant="outline"
 												onClick={() => handleDriverStatusUpdate("accepted")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "accepted"}
-												className="rounded-2xl"
+												className="rounded-button"
 												aria-label={driverAction === "accepted" ? "Saving on way" : "Mark on way"}
 												aria-busy={driverAction === "accepted"}
 											>
@@ -680,7 +681,7 @@ const GodModeMapContent = () => {
 												variant="outline"
 												onClick={() => handleDriverStatusUpdate("arrived")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "arrived"}
-												className="rounded-2xl"
+												className="rounded-button"
 												aria-label={driverAction === "arrived" ? "Saving arrived" : "Mark arrived"}
 												aria-busy={driverAction === "arrived"}
 											>
@@ -691,7 +692,7 @@ const GodModeMapContent = () => {
 												size="sm"
 												onClick={() => handleDriverStatusUpdate("completed")}
 												disabled={driverAction !== null || !["arrived", "accepted", "in_progress"].includes(String(driverActiveEmergency?.status || "").toLowerCase())}
-												className="rounded-2xl"
+												className="rounded-button"
 												aria-label={driverAction === "completed" ? "Closing request" : "Close request"}
 												aria-busy={driverAction === "completed"}
 											>
@@ -707,22 +708,22 @@ const GodModeMapContent = () => {
 								)}
 							</div>
 						) : (
-							<div className="absolute top-6 left-6 z-[120] w-[18rem] rounded-[28px] bg-background/82 backdrop-blur-xl p-4 shadow-premium">
-								<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3">Live status</div>
+							<div className="absolute top-6 left-6 z-[120] w-[18rem] rounded-card bg-card/68 backdrop-blur-2xl p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+								<div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-3">Live status</div>
 								<div className="grid grid-cols-2 gap-2 text-xs">
-									<div className="rounded-2xl bg-white/5 p-2">
+									<div className="rounded-inner bg-muted/40 p-2">
 										<div className="text-muted-foreground">Active routes</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.total}</div>
 									</div>
-									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-success">Current</div>
+									<div className="rounded-inner bg-muted/40 p-2">
+										<div className="text-emerald-600 dark:text-emerald-300">Current</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.live}</div>
 									</div>
-									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-warning">Delayed</div>
+									<div className="rounded-inner bg-muted/40 p-2">
+										<div className="text-amber-600 dark:text-amber-300">Delayed</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.stale}</div>
 									</div>
-									<div className="rounded-2xl bg-white/5 p-2">
+									<div className="rounded-inner bg-muted/40 p-2">
 										<div className="text-destructive">Offline</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.lost}</div>
 									</div>
@@ -738,12 +739,12 @@ const GodModeMapContent = () => {
 								e.stopPropagation();
 								refresh();
 							}}
-							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium  hover:bg-white/5 transition-all pointer-events-auto"
+							className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] hover:bg-card/80 transition-all pointer-events-auto"
 							title="Refresh map"
 							aria-label="Refresh map"
 							aria-busy={loading}
 						>
-							<RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
+							<RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-foreground/70`} />
 						</motion.button>
 
 							{!isDriverMode && (
@@ -764,7 +765,7 @@ const GodModeMapContent = () => {
 									toast.info("Location not ready");
 								}
 							}}
-							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium  hover:bg-white/5 transition-all pointer-events-auto"
+							className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] hover:bg-card/80 transition-all pointer-events-auto"
 							title="Center map"
 							aria-label="Center map"
 						>

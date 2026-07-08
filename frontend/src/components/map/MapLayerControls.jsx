@@ -6,9 +6,9 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const layerConfig = {
-		emergencies: { label: 'Emergencies', icon: AlertTriangle, color: 'text-red-500' },
-		ambulances: { label: 'Ambulances', icon: Ambulance, color: 'text-blue-500' },
-		hospitals: { label: 'Hospitals', icon: Building, color: 'text-green-500' }
+		emergencies: { label: 'Emergencies', icon: AlertTriangle, color: 'text-rose-500' },
+		ambulances: { label: 'Ambulances', icon: Ambulance, color: 'text-sky-500' },
+		hospitals: { label: 'Hospitals', icon: Building, color: 'text-emerald-500' }
 	};
 
 	const toggleLayer = (layer, e) => {
@@ -20,17 +20,17 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 		<div className="flex items-center justify-end">
 			<motion.div
 				initial={false}
-				className="apple-glass-heavy rounded-full p-1 flex flex-row-reverse items-center"
+				className="bg-card/68 backdrop-blur-2xl rounded-pill p-1 flex flex-row-reverse items-center shadow-[0_18px_48px_rgb(0_0_0/0.18)]"
 			>
 				<button
 					type="button"
-					className="p-2 flex items-center justify-center rounded-full transition-all hover:bg-foreground/[0.04] active:scale-[0.98] focus-visible:bg-foreground/[0.06]"
+					className="p-2 flex items-center justify-center rounded-pill transition-all hover:bg-foreground/[0.04] active:scale-[0.98] focus-visible:bg-foreground/[0.06]"
 					onClick={() => setIsExpanded(prev => !prev)}
 					aria-label={isExpanded ? "Hide map layers" : "Show map layers"}
 					aria-expanded={isExpanded}
 				>
 					<Layers
-						className={`h-5 w-5 transition-colors ${isExpanded ? 'text-primary' : 'text-foreground/60'}`}
+						className={`h-5 w-5 transition-colors ${isExpanded ? 'text-foreground' : 'text-foreground/60'}`}
 					/>
 				</button>
 
@@ -42,7 +42,7 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 							exit={{ opacity: 0, width: 0, x: 20 }}
 							className="flex items-center overflow-hidden"
 						>
-							<div className="flex items-center gap-2 pl-2 pr-1 mr-1 bg-foreground/[0.03] rounded-full">
+							<div className="flex items-center gap-2 pl-2 pr-1 mr-1 bg-foreground/[0.03] rounded-pill">
 								{Object.entries(layerConfig).map(([key, config]) => {
 									const isVisible = showLayers[key];
 									const Icon = config.icon;
@@ -58,11 +58,11 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 											aria-label={`${isVisible ? 'Hide' : 'Show'} ${config.label.toLowerCase()}`}
 											aria-pressed={isVisible}
 											className={`
-                        h-10 w-10 flex items-center justify-center rounded-2xl transition-all
-                        ${isVisible ? 'bg-primary text-white shadow-lg' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}
+                        h-10 w-10 flex items-center justify-center rounded-button transition-all
+                        ${isVisible ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}
                       `}
 										>
-											<Icon className={`h-4.5 w-4.5 ${isVisible ? 'text-white' : config.color}`} />
+											<Icon className={`h-4.5 w-4.5 ${isVisible ? 'text-background' : config.color}`} />
 										</motion.button>
 									);
 								})}

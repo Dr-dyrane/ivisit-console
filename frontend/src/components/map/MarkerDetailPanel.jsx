@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { AlertTriangle, Ambulance, Hospital, Phone, Send, CheckCheck, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -52,14 +51,14 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 				exit={{ opacity: 0, x: 20, scale: 0.95 }}
 				className="absolute top-4 right-4 z-[400] w-80"
 			>
-				<div className="squircle-xl p-0 overflow-hidden bg-background/50 backdrop-blur-xs shadow-premium backdrop-blur-xl bg-background/60">
+				<div className="rounded-card p-0 overflow-hidden bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
 					{/* Header Image/Color */}
 					<div
 						className={`h-24 relative ${selectedMarker.type === "emergency"
 							? "bg-destructive/20"
 							: selectedMarker.type === "ambulance"
-								? "bg-success/20"
-								: "bg-info/20"
+								? "bg-emerald-500/20"
+								: "bg-sky-500/20"
 							}`}
 					>
 						<div className="absolute inset-0 flex items-center justify-center">
@@ -67,17 +66,17 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								<AlertTriangle className="h-10 w-10 text-destructive opacity-50" />
 							)}
 							{selectedMarker.type === "ambulance" && (
-								<Ambulance className="h-10 w-10 text-success opacity-50" />
+								<Ambulance className="h-10 w-10 text-emerald-600 opacity-50 dark:text-emerald-300" />
 							)}
 							{selectedMarker.type === "hospital" && (
-								<Hospital className="h-10 w-10 text-info opacity-50" />
+								<Hospital className="h-10 w-10 text-sky-600 opacity-50 dark:text-sky-300" />
 							)}
 						</div>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => setSelectedMarker(null)}
-							className="absolute top-2 right-2 rounded-full hover:bg-black/10 h-8 w-8 p-0"
+							className="absolute top-2 right-2 rounded-pill hover:bg-black/10 h-8 w-8 p-0"
 							aria-label="Close details"
 						>
 							<X className="h-4 w-4" />
@@ -85,9 +84,9 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 					</div>
 
 					<div className="p-5 -mt-6 relative z-10">
-						<div className="squircle-lg bg-background shadow-lg p-4 mb-4 flex items-center justify-between">
+						<div className="rounded-card bg-background shadow-lg p-4 mb-4 flex items-center justify-between">
 							<div>
-								<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+								<p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.14em]">
 									{selectedMarker.type}
 								</p>
 								<h3 className="font-bold text-xl truncate w-48">
@@ -105,26 +104,23 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 						{selectedMarker.type === "emergency" && (
 							<div className="space-y-4">
 								<div className="flex items-center gap-2">
-									<Badge
-										className={`squircle font-semibold ${selectedMarker.data.priority === "critical"
+									<span
+										className={`inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${selectedMarker.data.priority === "critical"
 											? "bg-destructive text-destructive-foreground"
 											: selectedMarker.data.priority === "high"
-												? "bg-warning text-warning-foreground"
-												: "bg-info text-info-foreground"
+												? "bg-amber-500/10 text-amber-700 dark:text-amber-200"
+												: "bg-sky-500/10 text-sky-700 dark:text-sky-200"
 											}`}
 									>
 										{selectedMarker.data.priority || "medium"}
-									</Badge>
-									<Badge
-										className="squircle bg-muted"
-										variant="secondary"
-									>
+									</span>
+									<span className="inline-flex rounded-pill bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
 										{selectedMarker.data.status}
-									</Badge>
+									</span>
 								</div>
 
 								{patientData?.phone && (
-									<div className="p-3 squircle bg-muted/30">
+									<div className="p-3 rounded-inner bg-muted/30">
 										<div className="flex items-start gap-2 text-sm">
 											<Phone className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
 											<span className="font-normal">
@@ -137,8 +133,8 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								{/* PULLBACK NOTE: Replaced raw location display with LocationCell */}
 								{/* OLD: <MapPin> + selectedMarker.data.location */}
 								{/* NEW: LocationCell with PostGIS geometry support */}
-								<div className="p-3 squircle bg-muted/30">
-									<LocationCell 
+								<div className="p-3 rounded-inner bg-muted/30">
+									<LocationCell
 										location={selectedMarker.data.patient_location}
 										pickupLocation={selectedMarker.data.pickup_location}
 										responderLocation={selectedMarker.data.responder_location}
@@ -151,7 +147,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
 										!selectedMarker.data.ambulance_id && (
 											<Button
-												className="flex-1 squircle bg-success hover:bg-success/90 shadow-glow font-semibold"
+												className="flex-1 rounded-button bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_18px_56px_rgba(16,185,129,0.22)] font-semibold"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "send"}
@@ -176,7 +172,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
 										selectedMarker.data.status !== 'completed' && (
 											<Button
-												className="flex-1 squircle bg-info hover:bg-info/90 shadow-glow font-semibold"
+												className="flex-1 rounded-button bg-sky-600 text-white hover:bg-sky-500 shadow-[0_18px_56px_rgba(14,165,233,0.22)] font-semibold"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "close"}
@@ -206,20 +202,20 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 						{selectedMarker.type === "ambulance" && (
 							<div className="space-y-4">
 								<div className="grid grid-cols-2 gap-3">
-									<div className="p-3 squircle bg-muted/30 text-center">
+									<div className="p-3 rounded-inner bg-muted/30 text-center">
 										<p className="text-xs text-muted-foreground font-semibold">
 											STATUS
 										</p>
 										<p
 											className={`font-bold ${selectedMarker.data.status === "available"
-												? "text-success"
-												: "text-warning"
+												? "text-emerald-600 dark:text-emerald-300"
+												: "text-amber-600 dark:text-amber-300"
 												}`}
 										>
 											{selectedMarker.data.status?.toUpperCase()}
 										</p>
 									</div>
-									<div className="p-3 squircle bg-muted/30 text-center">
+									<div className="p-3 rounded-inner bg-muted/30 text-center">
 										<p className="text-xs text-muted-foreground font-semibold">
 											TYPE
 										</p>
@@ -228,7 +224,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										</p>
 									</div>
 								</div>
-								<div className="p-3 squircle bg-muted/30 flex justify-between items-center">
+								<div className="p-3 rounded-inner bg-muted/30 flex justify-between items-center">
 									<span className="text-sm font-medium text-muted-foreground">
 										Vehicle No.
 									</span>
@@ -245,15 +241,15 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 									{selectedMarker.data.address}
 								</p>
 								<div className="grid grid-cols-2 gap-3">
-									<div className="p-3 squircle bg-muted/30">
+									<div className="p-3 rounded-inner bg-muted/30">
 										<p className="text-xs text-muted-foreground font-semibold mb-1">
 											BEDS
 										</p>
-										<p className="font-bold text-2xl text-primary">
+										<p className="font-bold text-2xl text-sky-600 dark:text-sky-300">
 											{selectedMarker.data.available_beds || 0}
 										</p>
 									</div>
-									<div className="p-3 squircle bg-muted/30">
+									<div className="p-3 rounded-inner bg-muted/30">
 										<p className="text-xs text-muted-foreground font-semibold mb-1">
 											FLEET
 										</p>
@@ -265,7 +261,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								{selectedMarker.data.phone && (
 									<Button
 										variant="outline"
-										className="w-full squircle font-semibold"
+										className="w-full rounded-button font-semibold"
 										size="sm"
 									>
 										<Phone className="h-4 w-4 mr-2" />

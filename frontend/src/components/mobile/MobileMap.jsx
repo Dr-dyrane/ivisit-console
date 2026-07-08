@@ -11,7 +11,6 @@ import {
     CheckCheck,
     X
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     GoogleMapsRenderer,
@@ -74,25 +73,25 @@ export const MobileMap = ({
             id: 'ambulance',
             label: 'Units Ready',
             value: processedAmbulances.filter(a => a.status === 'available').length,
-            color: 'hsl(var(--success))'
+            color: 'hsl(160 84% 39%)' // emerald-500
         },
         {
             id: 'bed',
             label: 'Hospitals',
             value: processedHospitals.length,
-            color: 'hsl(var(--info))'
+            color: 'hsl(188 94% 43%)' // cyan-500
         },
         {
             id: 'routes',
             label: 'Routes',
             value: activeRoutes.length,
-            color: 'hsl(var(--primary))'
+            color: 'hsl(199 89% 48%)' // sky-500
         },
         {
             id: 'markers',
             label: 'Markers',
             value: allMarkers.length,
-            color: 'hsl(var(--secondary))'
+            color: 'hsl(258 90% 66%)' // violet-500
         }
     ], [filteredRequests, processedAmbulances, processedHospitals, activeRoutes.length, allMarkers.length]);
 
@@ -205,7 +204,7 @@ export const MobileMap = ({
             </div>
 
             <div className="absolute left-3 right-3 top-14 z-[80] pointer-events-auto">
-                <div className="apple-glass-heavy rounded-[28px] p-2 shadow-premium">
+                <div className="bg-card/68 backdrop-blur-2xl rounded-card p-2 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
                     <div className="flex gap-2 overflow-x-auto no-scrollbar">
                         {mapKPIs.slice(0, 4).map((item) => {
                             const isActive = (mapData?.filter || 'all') === item.id;
@@ -214,7 +213,7 @@ export const MobileMap = ({
                                     key={item.id}
                                     type="button"
                                     onClick={() => setFilter?.(item.id || 'all')}
-                                    className={`min-w-[5.2rem] rounded-[22px] px-3 py-2 text-left transition-all active:scale-[0.98] ${isActive ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-foreground/[0.04] text-foreground/78'}`}
+                                    className={`min-w-[5.2rem] rounded-inner px-3 py-2 text-left transition-all active:scale-[0.98] ${isActive ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/[0.04] text-foreground/78'}`}
                                 >
                                     <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] opacity-70">
                                         {item.label}
@@ -237,10 +236,10 @@ export const MobileMap = ({
                         e.stopPropagation();
                         refresh();
                     }}
-                    className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg pointer-events-auto"
+                    className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] pointer-events-auto"
                     aria-label="Refresh map"
                 >
-                    <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
+                    <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-foreground/70`} />
                 </motion.button>
 
                 <motion.button
@@ -254,7 +253,7 @@ export const MobileMap = ({
                             toast.info("Location not ready");
                         }
                     }}
-                    className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg pointer-events-auto"
+                    className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] pointer-events-auto"
                     aria-label="Center map"
                 >
                     <Navigation size={20} className="text-foreground/60" />
@@ -276,13 +275,13 @@ export const MobileMap = ({
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="fixed bottom-20 left-4 right-4 z-40"
                     >
-                        <div className="apple-glass-heavy rounded-[2.5rem] p-0 overflow-hidden shadow-2xl relative">
+                        <div className="bg-card/68 backdrop-blur-2xl rounded-sheet p-0 overflow-hidden shadow-[0_24px_70px_rgb(0_0_0/0.16)] relative">
                             {/* Drag Handle */}
-                            <div className="w-12 h-1 bg-foreground/10 rounded-full mx-auto my-3" />
+                            <div className="w-12 h-1.5 bg-foreground/20 rounded-pill mx-auto my-3" />
 
                             <button
                                 onClick={() => setSelectedMarker(null)}
-                                className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground active:scale-95"
+                                className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-pill text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground active:scale-95"
                                 aria-label="Close details"
                             >
                                 <X className="h-4 w-4" />
@@ -291,17 +290,14 @@ export const MobileMap = ({
                             <div className="px-6 pb-8">
                                 <header className="flex items-center gap-4 mb-5">
                                     <div
-                                        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner"
-                                        style={{
-                                            background: `rgba(var(--${selectedMarker.type === 'emergency' ? 'destructive' : selectedMarker.type === 'ambulance' ? 'success' : 'info'}), 0.1)`
-                                        }}
+                                        className={`w-12 h-12 rounded-button flex items-center justify-center shadow-inner ${selectedMarker.type === 'emergency' ? 'bg-destructive/10' : selectedMarker.type === 'ambulance' ? 'bg-emerald-500/10' : 'bg-sky-500/10'}`}
                                     >
                                         {selectedMarker.type === "emergency" && <AlertTriangle className="text-destructive" />}
-                                        {selectedMarker.type === "ambulance" && <Ambulance className="text-success" />}
-                                        {selectedMarker.type === "hospital" && <HospitalIcon className="text-info" />}
+                                        {selectedMarker.type === "ambulance" && <Ambulance className="text-emerald-600 dark:text-emerald-300" />}
+                                        {selectedMarker.type === "hospital" && <HospitalIcon className="text-sky-600 dark:text-sky-300" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+                                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
                                             {selectedMarker.type} - {selectedMarker.data.status || 'Active'}
                                         </p>
                                         <h3 className="text-lg font-semibold tracking-tight truncate">
@@ -315,16 +311,16 @@ export const MobileMap = ({
                                     {selectedMarker.type === 'emergency' && (
                                         <>
                                             <div className="flex items-center gap-2">
-                                                <Badge className={`squircle-sm font-black tracking-widest text-[9px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-info text-white"
+                                                <span className={`inline-flex rounded-pill px-2.5 py-1 font-black tracking-[0.14em] text-[9px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"
                                                     }`}>
                                                     {selectedMarker.data.priority?.toUpperCase()}
-                                                </Badge>
+                                                </span>
                                                 <span className="text-[11px] text-muted-foreground font-medium">
                                                     Requested: {new Date(selectedMarker.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
 
-                                            <div className="bg-white/[0.03] p-4 rounded-3xl space-y-3">
+                                            <div className="bg-muted/20 p-4 rounded-card space-y-3">
                                                 <div className="flex items-center gap-3">
                                                     <Phone size={14} className="text-muted-foreground" />
                                                     <span className="text-sm font-medium">{patientData?.phone || 'No phone recorded'}</span>
@@ -341,7 +337,7 @@ export const MobileMap = ({
                                             <div className="flex gap-3 pt-2">
                                                 {canManageRequests && !selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 apple-glass-heavy bg-success/20 text-success rounded-2xl h-14 font-semibold tracking-tight"
+                                                        className="flex-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 rounded-button h-14 font-semibold tracking-tight"
                                                         disabled={commandBusy}
                                                         aria-busy={mapCommand === "send"}
                                                         onClick={async () => {
@@ -358,7 +354,7 @@ export const MobileMap = ({
                                                 )}
                                                 {canManageRequests && selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 apple-glass-heavy bg-info/20 text-info rounded-2xl h-14 font-semibold tracking-tight"
+                                                        className="flex-1 bg-sky-500/15 text-sky-700 dark:text-sky-200 rounded-button h-14 font-semibold tracking-tight"
                                                         disabled={commandBusy}
                                                         aria-busy={mapCommand === "close"}
                                                         data-confirming={confirmClose ? "true" : "false"}
@@ -381,7 +377,7 @@ export const MobileMap = ({
                                                     </Button>
                                                 )}
                                                 {!canManageRequests && (
-                                                    <div className="flex-1 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-medium text-muted-foreground">
+                                                    <div className="flex-1 rounded-button bg-muted/25 px-4 py-3 text-xs font-medium text-muted-foreground">
                                                         Review this request from Requests.
                                                     </div>
                                                 )}
@@ -391,14 +387,14 @@ export const MobileMap = ({
 
                                     {selectedMarker.type === 'ambulance' && (
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-4 bg-white/[0.03] rounded-3xl text-center">
-                                                <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Status</p>
-                                                <p className={`text-sm font-semibold ${selectedMarker.data.status === 'available' ? 'text-success' : 'text-warning'}`}>
+                                            <div className="p-4 bg-muted/20 rounded-card text-center">
+                                                <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Status</p>
+                                                <p className={`text-sm font-semibold ${selectedMarker.data.status === 'available' ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
                                                     {selectedMarker.data.status?.toUpperCase()}
                                                 </p>
                                             </div>
-                                            <div className="p-4 bg-white/[0.03] rounded-3xl text-center">
-                                                <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Vehicle</p>
+                                            <div className="p-4 bg-muted/20 rounded-card text-center">
+                                                <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Vehicle</p>
                                                 <p className="text-sm font-semibold">{selectedMarker.data.vehicle_number}</p>
                                             </div>
                                         </div>
@@ -406,18 +402,18 @@ export const MobileMap = ({
 
                                     {selectedMarker.type === 'hospital' && (
                                         <>
-                                            <div className="p-4 bg-white/[0.03] rounded-3xl">
+                                            <div className="p-4 bg-muted/20 rounded-card">
                                                 <p className="text-xs text-muted-foreground leading-relaxed italic">
                                                     {selectedMarker.data.address}
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
-                                                <div className="p-4 bg-primary/[0.04] rounded-3xl">
-                                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Beds</p>
-                                                    <p className="text-xl font-semibold text-primary">{selectedMarker.data.available_beds || 0}</p>
+                                                <div className="p-4 bg-sky-500/[0.08] rounded-card">
+                                                    <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Beds</p>
+                                                    <p className="text-xl font-semibold text-sky-600 dark:text-sky-300">{selectedMarker.data.available_beds || 0}</p>
                                                 </div>
-                                                <div className="p-4 bg-white/[0.03] rounded-3xl">
-                                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Fleet</p>
+                                                <div className="p-4 bg-muted/20 rounded-card">
+                                                    <p className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Fleet</p>
                                                     <p className="text-xl font-semibold">{selectedMarker.data.ambulances_count || 0}</p>
                                                 </div>
                                             </div>

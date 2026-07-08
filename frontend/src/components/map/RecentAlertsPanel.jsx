@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { AlertTriangle, Clock, Activity } from 'lucide-react';
 import { LocationCell } from '../ui/LocationCell';
 
@@ -30,27 +29,27 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 		// OLD: pending, dispatched, en_route, arrived
 		// NEW: pending, assigned, in_progress, completed, cancelled
 		switch (status) {
-			case 'pending': return 'text-warning';
-			case 'assigned': return 'text-info';
-			case 'in_progress': return 'text-primary';
-			case 'completed': return 'text-success';
+			case 'pending': return 'text-amber-600 dark:text-amber-300';
+			case 'assigned': return 'text-cyan-600 dark:text-cyan-300';
+			case 'in_progress': return 'text-sky-600 dark:text-sky-300';
+			case 'completed': return 'text-emerald-600 dark:text-emerald-300';
 			case 'cancelled': return 'text-destructive';
 			default: return 'text-muted-foreground';
 		}
 	};
 
 	return (
-		<Card className="squircle-xl p-4 bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
+		<Card className="rounded-card p-4 bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-3">
 				<h3 className="font-bold text-sm flex items-center gap-2">
-					<AlertTriangle className="h-4 w-4 text-warning" />
+					<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
 					Recent Alerts
 				</h3>
 				<select
 					value={statusFilter}
 					onChange={(e) => setStatusFilter(e.target.value)}
-					className="text-xs bg-background/50 border border-border/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/20"
+					className="text-xs bg-muted/40 rounded-inner px-2 py-1 focus-visible:bg-muted/60"
 				>
 					<option value="all">All</option>
 					{/* PULLBACK NOTE: Updated status options to match new emergency schema */}
@@ -69,7 +68,7 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 				{filteredRequests.slice(0, 4).map((req) => (
 					<div
 						key={req.id}
-						className="group flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 cursor-pointer transition-colors"
+						className="group flex items-center gap-3 p-2 rounded-inner hover:bg-muted/40 cursor-pointer transition-colors"
 						onClick={() =>
 							setSelectedMarker({ type: "emergency", data: req })
 						}
@@ -85,15 +84,14 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 								<span className="font-normal text-xs text-muted-foreground truncate">
 									#{req.id?.slice(-6)}
 								</span>
-								<Badge
-									variant="secondary"
-									className={`text-[9px] px-1.5 py-0 h-4 ${
+								<span
+									className={`inline-flex items-center rounded-pill text-[9px] px-1.5 h-4 ${
 										req.service_type === 'critical_care'
 											? "bg-destructive/10 text-destructive"
 											: req.service_type === 'ambulance'
-												? "bg-primary/10 text-primary"
+												? "bg-sky-500/10 text-sky-700 dark:text-sky-200"
 												: req.service_type === 'bed'
-													? "bg-warning/10 text-warning"
+													? "bg-amber-500/10 text-amber-700 dark:text-amber-200"
 													: "bg-muted/50 text-muted-foreground"
 									}`}
 								>
@@ -101,7 +99,7 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 									{/* OLD: "unknown" */}
 									{/* NEW: "emergency" */}
 									{req.service_type?.replace('_', ' ') || "emergency"}
-								</Badge>
+								</span>
 							</div>
 							<div className="text-xs text-muted-foreground truncate">
 								{req.hospital_name || (
