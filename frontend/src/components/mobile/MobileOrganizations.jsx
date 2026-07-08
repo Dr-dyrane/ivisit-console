@@ -26,6 +26,7 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { mobileMotion } from './mobileMotion';
 
 export const MobileOrganizations = ({
   organizations = [],
@@ -254,14 +255,14 @@ export const MobileOrganizations = ({
               placeholder="Search organizations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-inner apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] transition-all"
+              className="w-full h-11 pl-10 pr-4 rounded-inner bg-muted/40 text-meta font-normal placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] transition-all"
             />
           </div>
           {onOpenFilters && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={mobileMotion.tap}
               onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
               aria-label="Open filters"
             >
               <SlidersHorizontal size={18} />
@@ -269,9 +270,9 @@ export const MobileOrganizations = ({
           )}
           {onViewAnalytics && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={mobileMotion.tap}
               onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -279,9 +280,9 @@ export const MobileOrganizations = ({
           )}
           {canManage && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={mobileMotion.tap}
               onClick={onCreate}
-              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.85)] hover:text-[hsl(var(--spark)/1)]"
+              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.85)] hover:text-[hsl(var(--spark)/1)]"
               aria-label="Create organization"
             >
               <Plus size={18} />
@@ -327,21 +328,21 @@ export const MobileOrganizations = ({
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Mail size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Contact</span>
+                            <span className="eyebrow">Contact</span>
                             <span className="text-xs font-semibold truncate">{org.contact_email || 'No contact email'}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <CreditCard size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Stripe</span>
+                            <span className="eyebrow">Stripe</span>
                             <span className="text-xs font-semibold truncate">{org.stripe_account_id || 'Not connected'}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Wallet size={14} className="text-muted-foreground/40" />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] tracking-[0.14em] text-muted-foreground font-semibold">Wallet Float</span>
+                            <span className="eyebrow">Wallet Float</span>
                             <span className="text-xs font-semibold">${Number(org.wallet_balance || 0).toLocaleString()}</span>
                           </div>
                         </div>
@@ -357,25 +358,25 @@ export const MobileOrganizations = ({
                       <div className="flex gap-2 pt-1">
                         <Button
                           variant="ghost"
-                          className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2"
+                          className="flex-1 h-12 rounded-button bg-muted/40 flex items-center justify-center gap-2"
                           onClick={() => onView(org)}
                         >
                           <Eye size={16} className="text-muted-foreground" />
-                          <span className="text-[9px] font-semibold tracking-[0.14em]">Details</span>
+                          <span className="eyebrow">Details</span>
                         </Button>
                         {canManage && (
                           <>
                             <Button
                               variant="ghost"
-                              className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2"
+                              className="flex-1 h-12 rounded-button bg-muted/40 flex items-center justify-center gap-2"
                               onClick={() => onEdit(org)}
                             >
                               <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                              <span className="text-[9px] font-semibold tracking-[0.14em]">Edit</span>
+                              <span className="eyebrow">Edit</span>
                             </Button>
                             <Button
                               variant="ghost"
-                              className="w-12 h-12 rounded-button apple-glass flex items-center justify-center hover:bg-destructive/10 hover:text-destructive"
+                              className="w-12 h-12 rounded-button bg-muted/40 flex items-center justify-center hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => onDelete(org)}
                             >
                               <Trash2 size={16} className="text-destructive/60" />
