@@ -14,6 +14,7 @@ import { Ambulance, Plus, Edit, Eye, MapPin, Activity, Filter, Search, AlertCirc
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from "sonner";
 import { useAuth } from '../../contexts/AuthContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ViewToggle } from '../common/ViewToggle';
@@ -185,16 +186,14 @@ export const AmbulancesPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const [ambulancePageError, setAmbulancePageError] = useState(null);
-  const [focusedAmbulanceId, setFocusedAmbulanceId] = useState(null);
   const actionFeedbackTimeoutRef = useRef(null);
 
   const { viewMode, setViewMode } = useViewMode('ambulances-page', 'grid');
   const pagination = usePagination(20);
   const { currentPage, itemsPerPage, paginationRange, setTotalCount, resetPagination } = pagination;
   const canManageFleet = isAdmin() || isOrgAdmin();
-  const focusedAmbulance = useMemo(() => (
-    ambulances.find(unit => unit.id === focusedAmbulanceId) || ambulances[0] || null
-  ), [ambulances, focusedAmbulanceId]);
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('ambulances', ambulances);
+  const focusedAmbulance = focusedRecord;
 
   const markActionFeedback = useCallback((key) => {
     setActiveActionFeedback(key);
@@ -271,17 +270,6 @@ export const AmbulancesPage = () => {
   useEffect(() => {
     fetchAmbulances();
   }, [fetchAmbulances]);
-
-  useEffect(() => {
-    if (loading) return;
-    if (ambulances.length === 0) {
-      setFocusedAmbulanceId(null);
-      return;
-    }
-    if (!focusedAmbulanceId || !ambulances.some(unit => unit.id === focusedAmbulanceId)) {
-      setFocusedAmbulanceId(ambulances[0].id);
-    }
-  }, [ambulances, focusedAmbulanceId, loading]);
 
   const displayStats = ambulancePageStats;
 
@@ -615,7 +603,7 @@ export const AmbulancesPage = () => {
         className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
       >
         {paginatedAmbulances.map((ambulance, index) => {
-          const focused = focusedAmbulance?.id === ambulance.id;
+          const focused = isFocused(ambulance.id);
           const status = getFleetStatus(ambulance);
           const station = getAmbulanceStation(ambulance);
           const vehicle = ambulance.vehicle_label || ambulance.vehicle_number || ambulance.license_plate || 'No vehicle';
@@ -637,11 +625,11 @@ export const AmbulancesPage = () => {
                 tabIndex={0}
                 aria-pressed={focused}
                 data-state={focused ? 'focused' : 'idle'}
-                onClick={() => setFocusedAmbulanceId(ambulance.id)}
+                onClick={() => setFocused(ambulance.id)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    setFocusedAmbulanceId(ambulance.id);
+                    setFocused(ambulance.id);
                   }
                 }}
               >
