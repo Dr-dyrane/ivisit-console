@@ -50,7 +50,7 @@ export const DoctorProfileCard = () => {
 
     if (loading && !doctorProfile) {
         return (
-            <Card className="squircle-3xl p-8 flex justify-center items-center bg-background/60 backdrop-blur-md border-white/5">
+            <Card className="rounded-card p-8 flex justify-center items-center bg-background/60 backdrop-blur-md">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </Card>
         );
@@ -58,8 +58,8 @@ export const DoctorProfileCard = () => {
 
     if (!doctorProfile) {
         return (
-            <Card className="squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-xl relative overflow-hidden p-8 text-center space-y-4">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Card className="rounded-card bg-background/60 backdrop-blur-md shadow-xl relative overflow-hidden p-8 text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-muted rounded-pill flex items-center justify-center mb-4">
                     <Stethoscope className="w-8 h-8 text-muted-foreground opacity-50" />
                 </div>
                 <h3 className="text-xl font-bold">Professional Profile Inactive</h3>
@@ -71,7 +71,7 @@ export const DoctorProfileCard = () => {
                     <Button
                         variant="outline"
                         onClick={() => window.dispatchEvent(new CustomEvent('openSupportModal'))}
-                        className="squircle-xl border-white/10"
+                        className="rounded-button"
                     >
                         Contact Support
                     </Button>
@@ -81,20 +81,15 @@ export const DoctorProfileCard = () => {
     }
 
     return (
-        <Card className="squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-xl relative overflow-hidden">
-            {/* Dynamic Background Pattern */}
+        <Card className="rounded-card bg-background/60 backdrop-blur-md shadow-xl relative overflow-hidden">
+            {/* Ambient wash */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50" />
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
-                }}
-            />
 
             {/* Header */}
-            <div className="p-6 border-b border-border/10 flex justify-between items-center bg-muted/10 relative z-10">
+            <div className="p-6 flex justify-between items-center bg-muted/10 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="relative">
-                        <div className="h-12 w-12 rounded-xl overflow-hidden  bg-muted/20">
+                        <div className="h-12 w-12 rounded-icon overflow-hidden  bg-muted/20">
                             {doctorProfile.image ? (
                                 <img
                                     src={doctorProfile.image}
@@ -107,14 +102,14 @@ export const DoctorProfileCard = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 p-1 bg-background rounded-lg border border-white/5 shadow-sm">
+                        <div className="absolute -bottom-1 -right-1 p-1 bg-background rounded-pill shadow-sm">
                             <Shield className="w-2.5 h-2.5 text-primary" />
                         </div>
                     </div>
                     <div>
                         <h3 className="text-xl font-black tracking-tight leading-none mb-1.5 text-foreground">Professional Profile</h3>
                         <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot" />
+                            <div className="w-1.5 h-1.5 rounded-pill bg-primary" />
                             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">
                                 ID: {displayId || `#${doctorProfile.id?.slice(-8)}`}
                             </p>
@@ -126,21 +121,21 @@ export const DoctorProfileCard = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => window.dispatchEvent(new CustomEvent('openDoctorModal'))}
-                        className="rounded-xl hover:bg-background/80 text-xs font-semibold px-3 hidden sm:flex"
+                        className="rounded-button hover:bg-background/80 text-xs font-semibold px-3 hidden sm:flex"
                     >
                         View Card
                     </Button>
                     {!isEditing ? (
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl hover:bg-background/80">
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="rounded-button hover:bg-background/80">
                             <Edit2 className="w-4 h-4 mr-2" />
                             Edit Details
                         </Button>
                     ) : (
                         <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="rounded-xl">
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="rounded-button">
                                 <X className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" onClick={handleSave} className="rounded-xl font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                            <Button size="sm" onClick={handleSave} className="rounded-button font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                                 <Save className="w-4 h-4 mr-2" />
                                 Save
                             </Button>
@@ -152,7 +147,7 @@ export const DoctorProfileCard = () => {
             <div className="p-6 grid gap-8 relative z-10">
                 {/* Read Only Stats Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                    <div className="p-4 rounded-inner bg-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
                             <Award className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Specialization
                         </div>
@@ -160,7 +155,7 @@ export const DoctorProfileCard = () => {
                             {doctorProfile.specialization || 'General'}
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                    <div className="p-4 rounded-inner bg-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
                             <Building2 className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Affiliation
                         </div>
@@ -168,19 +163,19 @@ export const DoctorProfileCard = () => {
                             {doctorProfile.hospitals?.name || 'Independent'}
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                    <div className="p-4 rounded-inner bg-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
-                            <Star className="w-3 h-3 text-orange-400 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Rating
+                            <Star className="w-3 h-3 text-amber-500 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Rating
                         </div>
                         <div className="font-bold text-sm text-foreground/90 group-hover/stat:text-foreground transition-colors">
                             {doctorProfile.rating} <span className="text-muted-foreground/60 text-[10px] font-medium ml-1">({doctorProfile.reviews_count} reviews)</span>
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                    <div className="p-4 rounded-inner bg-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
                             <Activity className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Status
                         </div>
-                        <div className={`font-bold text-sm transition-colors ${formData.is_available ? 'text-green-500' : 'text-muted-foreground/60'}`}>
+                        <div className={`font-bold text-sm transition-colors ${formData.is_available ? 'text-emerald-700 dark:text-emerald-200' : 'text-muted-foreground/60'}`}>
                             {formData.is_available ? 'Available' : 'Unavailable'}
                         </div>
                     </div>
@@ -198,7 +193,7 @@ export const DoctorProfileCard = () => {
                                     disabled={!isEditing}
                                     value={formData.consultation_fee}
                                     onChange={(e) => setFormData(p => ({ ...p, consultation_fee: parseFloat(e.target.value) }))}
-                                    className="pl-10 h-11 bg-muted/10 border-white/10"
+                                    className="pl-10 h-11 bg-muted/10"
                                 />
                             </div>
                         </div>
@@ -212,12 +207,12 @@ export const DoctorProfileCard = () => {
                                     disabled={!isEditing}
                                     value={formData.experience}
                                     onChange={(e) => setFormData(p => ({ ...p, experience: parseInt(e.target.value) }))}
-                                    className="pl-10 h-11 bg-muted/10 border-white/10"
+                                    className="pl-10 h-11 bg-muted/10"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5">
+                        <div className="flex items-center justify-between p-4 rounded-inner bg-muted/20">
                             <div className="space-y-1">
                                 <Label className="text-sm font-semibold">Availability Status</Label>
                                 <p className="text-xs text-muted-foreground">Toggle to appear in search results</p>
@@ -236,7 +231,7 @@ export const DoctorProfileCard = () => {
                             disabled={!isEditing}
                             value={formData.about}
                             onChange={(e) => setFormData(p => ({ ...p, about: e.target.value }))}
-                            className="h-full min-h-[160px] bg-muted/10 border-white/10 resize-none p-4 leading-relaxed"
+                            className="h-full min-h-[160px] bg-muted/10 resize-none p-4 leading-relaxed"
                             placeholder="Tell patients about your expertise and background..."
                         />
                     </div>
