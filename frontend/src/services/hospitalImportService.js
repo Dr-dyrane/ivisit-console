@@ -1,71 +1,6 @@
 // Hospital Import Service for Console - Manages Google Places integration
 import { supabase } from '../lib/supabase';
 
-// The three array columns update_hospital_by_admin overwrites unconditionally.
-const PRESERVED_HOSPITAL_ARRAY_FIELDS = ['specialties', 'service_types', 'features'];
-
-const toPreservedArray = (value) => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => (entry === null || entry === undefined ? '' : String(entry)))
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-};
-
-/**
- * Guard against update_hospital_by_admin's unconditional array overwrite.
- *
- * The RPC sets specialties/service_types/features from the payload every call,
- * defaulting each absent key to '{}' — so a narrow write (bed count, status,
- * verify, approve, reject) would BLANK all three arrays on the shared row. This
- * fetches the row's CURRENT arrays and folds them into the payload for any of the
- * three keys the caller did not explicitly provide, so the RPC preserves them.
- *
- * Only the three array fields are touched; the caller's intended fields pass
- * through untouched. Null/undefined current arrays degrade to [] (never crash).
- *
- * @param {string} hospitalId
- * @param {Object} payload - the caller's intended narrow payload
- * @returns {Promise<Object>} payload with preserved arrays merged in
- */
-export async function mergePreservedHospitalArrays(hospitalId, payload = {}) {
-  const basePayload = payload && typeof payload === 'object' ? payload : {};
-
-  // If the caller already supplied all three arrays, nothing to preserve.
-  const missing = PRESERVED_HOSPITAL_ARRAY_FIELDS.filter(
-    (field) => !Object.prototype.hasOwnProperty.call(basePayload, field)
-  );
-  if (missing.length === 0) {
-    return { ...basePayload };
-  }
-
-  let current = null;
-  try {
-    const { data, error } = await supabase
-      .from('hospitals')
-      .select('specialties, service_types, features')
-      .eq('id', hospitalId)
-      .maybeSingle();
-    if (error) throw error;
-    current = data;
-  } catch (fetchError) {
-    // Read failed (row missing / transient). Fall back to empty arrays for the
-    // missing keys — worst case we don't add data that wasn't there, and we
-    // still avoid crashing the intended narrow write.
-    console.error(
-      `mergePreservedHospitalArrays: could not read current arrays for ${hospitalId}, defaulting to []`,
-      fetchError
-    );
-    current = null;
-  }
-
-  const merged = { ...basePayload };
-  for (const field of missing) {
-    merged[field] = toPreservedArray(current ? current[field] : []);
-  }
-  return merged;
-}
-
 class HospitalImportService {
   isMissingRelationError(error, relationName) {
     if (!error) return false;
@@ -89,18 +24,12 @@ class HospitalImportService {
   // write RLS policy, so raw .update() is silently denied). Reuses the same
   // update_hospital_by_admin RPC hospitalsService.updateHospital uses. Re-reads the
   // row afterward so callers keep receiving the hospital object (RPC returns {success,id}).
-  //
-  // DATA-INTEGRITY GUARD: update_hospital_by_admin sets specialties/service_types/
-  // features UNCONDITIONALLY from the payload (COALESCE-to-'{}' when a key is absent),
-  // so a partial write would BLANK all three arrays on the shared row. Before every RPC
-  // call we fetch the row's CURRENT arrays and merge them into the payload (only for keys
-  // the caller did not explicitly provide) so the RPC's unconditional SET preserves them.
+  // (The RPC now preserves specialties/service_types/features when the payload omits
+  // the key via COALESCE, so no client-side array merge is needed.)
   async _writeHospitalViaRpc(hospitalId, payload, failureMessage) {
-    const mergedPayload = await mergePreservedHospitalArrays(hospitalId, payload);
-
     const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
       target_hospital_id: hospitalId,
-      payload: mergedPayload,
+      payload,
     });
 
     if (error) throw error;

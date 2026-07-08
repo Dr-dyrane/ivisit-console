@@ -6,7 +6,6 @@
 
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
-import { mergePreservedHospitalArrays } from './hospitalImportService';
 import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'hospitals';
@@ -451,17 +450,16 @@ export async function createHospital(input) {
 export async function updateHospital(hospitalId, input) {
   try {
     const payload = buildHospitalPayload(input, { isCreate: false });
-    // We use a SECURITY DEFINER RPC to bypass RLS issues and handle
-    // column stripping (total_beds, etc.) on the server side.
-    // The RPC overwrites specialties/service_types/features unconditionally, so on
-    // a partial edit that omits any of them, preserve the row's current arrays.
-    const mergedPayload = await mergePreservedHospitalArrays(hospitalId, payload);
+    // We use a SECURITY DEFINER RPC to bypass RLS issues and handle column
+    // stripping (total_beds, etc.) on the server side. The RPC now preserves
+    // specialties/service_types/features when the payload omits the key (COALESCE),
+    // so no client-side array merge is needed.
     // withAudit: critical write to the shared `hospitals` table via SECURITY
     // DEFINER RPC. Return shape unchanged (the RPC's data).
     return await withAudit('hospital.update', 'hospital', async () => {
       const { data, error } = await supabase.rpc('update_hospital_by_admin', {
         target_hospital_id: hospitalId,
-        payload: mergedPayload
+        payload
       });
 
       if (error) throw error;
@@ -553,10 +551,9 @@ export async function getHospitalsBySpecialty(specialty) {
 export async function updateHospitalBedCount(hospitalId, availableBeds) {
   try {
     // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
-    // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
-    // The RPC overwrites specialties/service_types/features unconditionally, so
-    // preserve the row's current arrays before sending this narrow payload.
-    const payload = await mergePreservedHospitalArrays(hospitalId, { available_beds: availableBeds });
+    // policy, so a raw .update() is silently denied). Same RPC as updateHospital;
+    // it now preserves arrays on omitted keys, so this narrow payload is safe as-is.
+    const payload = { available_beds: availableBeds };
     // withAudit: critical write to the shared `hospitals` table via SECURITY
     // DEFINER RPC. Return shape unchanged (the re-read hospital row).
     return await withAudit('hospital.bed_count.update', 'hospital', async () => {
@@ -593,10 +590,9 @@ export async function updateHospitalBedCount(hospitalId, availableBeds) {
 export async function updateHospitalStatus(hospitalId, status) {
   try {
     // Route through the SECURITY DEFINER RPC (hospitals has no direct write RLS
-    // policy, so a raw .update() is silently denied). Same RPC as updateHospital.
-    // The RPC overwrites specialties/service_types/features unconditionally, so
-    // preserve the row's current arrays before sending this narrow payload.
-    const payload = await mergePreservedHospitalArrays(hospitalId, { status: status });
+    // policy, so a raw .update() is silently denied). Same RPC as updateHospital;
+    // it now preserves arrays on omitted keys, so this narrow payload is safe as-is.
+    const payload = { status: status };
     // withAudit: critical write to the shared `hospitals` table via SECURITY
     // DEFINER RPC. Return shape unchanged (the re-read hospital row).
     return await withAudit('hospital.status.update', 'hospital', async () => {
