@@ -7,6 +7,8 @@ source: user direction, Today product room, AGENTS.md console safety rules
 
 # Page Revamp Gate
 
+> ⚠️ **RETIRED AS THE OPERATING FRAME — 2026-07-07.** The *page-by-page visual admission* method below is superseded. There is now **one canonical guide + goal**, in two living docs: the **design-system canon** for visual — [`CONSOLE_DESIGN_SYSTEM_FROM_APP.md`](../design-system/CONSOLE_DESIGN_SYSTEM_FROM_APP.md) + [`AGENT_HANDSHAKE`](../../../tools/automation/AGENT_HANDSHAKE.md) + [`MANAGEMENT_PAGE_STANDARDS` v2.0](../ui-ux/MANAGEMENT_PAGE_STANDARDS.md) — and the **data-sync remediation** for backend authority — [`DATA_SYNC_REMEDIATION_AUDIT.md`](../database/DATA_SYNC_REMEDIATION_AUDIT.md). This gate's **spine carried forward, not discarded**: it always said the real gate was *backend authority + app-consequence proof against `ivisit-app`*, which the data-sync remediation now itemizes. **Still active — NOT historical:** (1) fail-closed / no-parallel-truth / app-consequence discipline, (2) the UI hardgate + contract-test preservation locks, (3) the rendered-proof bar before "done", and (4) **every Git-safety rule below** (never push `main`; checkpoint-branch only; preservation baseline `f31f29f`). Kept for history + the per-page ledgers; new work follows the two canon docs above, not this frame.
+
 This is the operating rule for the console revamp:
 
 `One page at a time. RBAC first. Layout relationship second. Visual design third. Engineering last.`
@@ -44,6 +46,48 @@ After the preservation baseline re-anchor above, the canon and the six unadmitte
 - Intake safety audit, zero remaining source-closable violations: an adversarially-verified source audit of Users (14), Settings (16), Pricing (18), and Insurance (12) returned zero confirmed findings, and the Organizations (15) and Subscriptions (17) ledgers plus source were reviewed directly and show the same fail-closed, source-clean state. Across all six pages, unproven create/edit/delete/status/email/pricing/invite commands fail closed with honest unavailable feedback, fake/`LIVE`/revenue metrics are removed or labeled source-pending, PageData startup and right panels are route-owned or quieted, and generic FABs are hidden on those routes.
 - Remaining blockers are not source-closable in this repo: each intake page still needs a named backend-owned projection (exact counts, scoped reads), receiver/RLS/RPC/Edge authority for its commands, app-consequence proof against `ivisit-app`, and rendered desktop/tablet/mobile proof before admission. These require shared backend truth and a browser proof session, not console-source edits.
 - Goal status: the console revamp is NOT complete. The source-closable safety layer is essentially done across all pages, but the remaining work is per-page backend-authority proof, projection-owner design, action-model decisions, strict-radius visual admission, and rendered proof. Do not mark the goal complete until each admitted page has current triad plus rendered proof and each intake page is either admitted through the gate or explicitly kept out of scope with its backend blocker named.
+
+## Takeover Session Canon Re-Verification - 2026-07-07
+
+A fresh takeover session independently re-ran the canon proof from a clean tree on branch `codex/ivisit-console-revamp-checkpoint-20260707`. This is a verified-state recertification, not a new admission, and no source changed.
+
+- Contract suite green: the full contract suite passes 39 suites / 239 tests, run headless in three batches (canon pair plus PageRevampGate 54, first page batch 71, second page/shell batch 114). This is up from the earlier same-day 38 / 235 because one page contract suite was added since; all suites still pass.
+- Default UI hardgate green: `npm run check:ui-hardgate` passes for 81 files (up from the earlier same-day 79; the two additional files are already-admitted page surfaces), and `npm run check:database-types-encoding` reports the database type files UTF-8 clean.
+- Production build was not re-run in this session because no source changed. The earlier same-day recertification already recorded `npm run build` green.
+- No source-closable slice remains. Re-reading the Page 12 Insurance intake ledger in full plus the intake summaries for the other authenticated pages (Users 14, Settings 16, Pricing 18, Organizations 15, Subscriptions 17) and the public/auth pages (19-24) confirms every open item is a backend-authority decision (a named RLS/RPC/Edge receiver, a scoped projection owner, or app-consequence proof against `ivisit-app`) or a rendered desktop/tablet/mobile proof session. Neither is a console-source edit that can be closed safely from this repo alone.
+- Decision: stop with the blocker recorded, per the gate's own rule. Manufacturing a source change would violate one-page-at-a-time and the "zero confirmed findings" adversarial audit above. The next safe slice is not source-only. It requires either (a) shared backend truth for one intake page's command/projection authority, or (b) a rendered proof session using local `frontend/.env.local` per the Rendered Proof Access Guide below. Insurance (Page 12) is furthest along and is the recommended first page to close a backend/proof blocker before any visual admission.
+
+## Session Work Log - 2026-07-07 (interactive Cowork)
+
+Two directed slices were completed this session alongside a concurrent executor. A lane-claim
+handshake was added to `tools/automation/revamp-queue.md` ("Live claims") so files in flight are
+not double-edited. This session did not commit or push (`.git/index.lock` was observed in flight);
+it leaves reviewable working-tree changes for the checkpoint owner.
+
+- Visits (admitted Page 7) border/glass/hairline cleanup. `glass-card-premium` (which renders a
+  literal `border: 1px solid`) was replaced with the calm canonical `bg-card/70` surface; all
+  `backdrop-blur-*` glass, `shadow-[inset_...]` fake hairline/ring borders, and the
+  `DropdownMenuSeparator` hairlines (plus their imports) were removed; `bg-white/*` edge tints in
+  the list/table views became tonal `bg-muted/*`. Files: `VisitsPage.jsx`, `MobileVisits.jsx`,
+  `VisitListView.jsx`, `VisitTableView.jsx`, `VisitModal.jsx` (`VisitsPanel.jsx` had no borders, so
+  it was left untouched). Elevation drop-shadows and radius tokens were intentionally kept; this is
+  a border/glass pass, not a strict-radius admission. A new `VisitsPage.contract.test.js`
+  assertion locks the five surfaces free of `glass-card-premium`, `backdrop-blur`,
+  `shadow-[inset`, and `DropdownMenuSeparator`, and the list/table free of `bg-white/`. Proof: the
+  Visits contract suite passes 24/24 including the new lock; a byte-for-byte replication of the
+  hardgate's banned-token regexes (`border|ring|outline|divide|*-px|bg-orb`) returns zero findings
+  on all five files (hardgate-equivalent PASS); touched-file encoding is clean ASCII. Caveat: the
+  canonical `npm run check:ui-hardgate` and full `craco test` should be re-run on the Windows tree
+  as the official gate — this session's Linux sandbox mount intermittently served truncated views
+  of some files (including the hardgate script itself), so node-based whole-gate runs were not
+  reliable here.
+- Insurance (Page 12) backend-authority decision doc created at
+  `docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md`.
+  It frames the three open blockers (admin policy command authority, billing mutation authority,
+  card Storage) with receiver options, app-consequence risk, and a least-surprise recommendation
+  (narrow RPC for edit, verify-only receiver, keep delete/billing/upload excluded until proven).
+  It enables nothing, adds no file to the hardgate, and does not admit Page 12; the parked backend
+  rule still holds.
 
 ## Rendered Proof Access Guide - 2026-07-07
 
