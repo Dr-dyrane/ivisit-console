@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import {
   Newspaper,
   Calendar,
@@ -37,12 +36,12 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
     <div className="space-y-4">
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <div className="h-8 w-8 animate-pulse rounded-full bg-primary/25 shadow-[0_0_32px_hsl(var(--primary)/0.25)]" />
+          <div className="h-8 w-8 animate-pulse rounded-pill bg-muted/40" />
         </div>
       ) : (
         <>
           {error && (
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4 shadow-sm">
               <p className="text-sm font-medium text-muted-foreground">{error}</p>
             </Card>
           )}
@@ -52,28 +51,28 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">News Overview</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">News Overview</h3>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                    <Newspaper className="h-5 w-5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/15">
+                    <Newspaper className="h-5 w-5 text-sky-500" />
                   </div>
                   <div>
-                    <span className="font-bold tracking-tight">Published Feed</span>
+                    <span className="font-bold">Published Feed</span>
                     <p className="text-xs text-muted-foreground">{scopeLabel}</p>
                   </div>
                 </div>
-                <Badge className="bg-primary/20 text-primary">{totalCount}</Badge>
+                <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-sky-500/15 text-sky-700 dark:text-sky-200">{totalCount}</span>
               </div>
             </Card>
 
             <div className="grid grid-cols-2 gap-2">
-              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-success" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-icon bg-emerald-500/15">
+                    <Calendar className="h-4 w-4 text-emerald-500" />
                   </div>
                   <div>
                     <p className="font-bold text-sm">{stats.published}</p>
@@ -82,10 +81,10 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 </div>
               </Card>
 
-              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
-                    <Tag className="h-4 w-4 text-warning" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-icon bg-amber-500/15">
+                    <Tag className="h-4 w-4 text-amber-500" />
                   </div>
                   <div>
                     <p className="font-bold text-sm">{stats.categories}</p>
@@ -102,13 +101,13 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
             transition={{ delay: 0.2 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick Actions</h3>
 
             <div className="grid grid-cols-2 gap-2">
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleFilters}
-                className="bg-info/10 hover:bg-info/20 text-info rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                className="flex flex-col items-center gap-2 rounded-inner bg-sky-500/10 p-3 text-sky-700 transition-colors hover:bg-sky-500/18 dark:text-sky-200"
                 title="Filter Articles"
               >
                 <Filter className="h-4 w-4" />
@@ -118,7 +117,7 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleAnalytics}
-                className="bg-success/10 hover:bg-success/20 text-success rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                className="flex flex-col items-center gap-2 rounded-inner bg-emerald-500/10 p-3 text-emerald-700 transition-colors hover:bg-emerald-500/18 dark:text-emerald-200"
                 title="View Analytics"
               >
                 <BarChart3 className="h-4 w-4" />
@@ -133,14 +132,14 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
             transition={{ delay: 0.3 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Articles</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Recent Articles</h3>
 
             <div className="space-y-2">
               {recentNews.map((news) => (
-                <Card key={news.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                <Card key={news.id} className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 geo-round bg-success" />
+                      <div className="h-2 w-2 rounded-pill bg-emerald-500" />
                       <div>
                         <p className="font-normal text-sm truncate max-w-[120px]">{news.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">
@@ -148,9 +147,9 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                         </p>
                       </div>
                     </div>
-                    <Badge className="bg-muted/30 text-muted-foreground text-xs">
+                    <span className="inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium bg-muted/30 text-muted-foreground">
                       Published
-                    </Badge>
+                    </span>
                   </div>
                 </Card>
               ))}

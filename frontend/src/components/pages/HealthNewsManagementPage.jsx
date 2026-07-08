@@ -5,7 +5,6 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { getHealthNewsPage } from '../../services/healthNewsService';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -432,7 +431,7 @@ export const HealthNewsManagementPage = () => {
   }, [handleCreateUnavailable, handleOpenAnalytics, handleOpenFilters, location.search, navigate]);
 
   const getStatusBadge = (published) => {
-    return published ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning';
+    return published ? 'bg-emerald-500/16 text-emerald-500' : 'bg-amber-500/16 text-amber-500';
   };
 
   const filterSchema = useMemo(() => [
@@ -486,13 +485,13 @@ export const HealthNewsManagementPage = () => {
       variant="ghost"
       size="icon"
       onClick={handleOpenFilters}
-      className={`relative h-9 w-9 rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98] ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+      className={`relative h-9 w-9 rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98] ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
       aria-label="Filter health news"
       aria-busy={activeActionFeedback === 'filters'}
       data-state={activeActionFeedback === 'filters' ? 'opening' : hasAppliedFilters(filters) ? 'filtered' : 'idle'}
     >
       <Filter className="h-4 w-4" />
-      {hasAppliedFilters(filters) && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}
+      {hasAppliedFilters(filters) && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-pill bg-primary" />}
     </Button>
   ), [activeActionFeedback, filters, handleOpenFilters]);
 
@@ -503,7 +502,7 @@ export const HealthNewsManagementPage = () => {
           onClick={handleCreateUnavailable}
           aria-busy={activeActionFeedback === 'create-unavailable'}
           data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'idle'}
-          className="h-9 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+          className="h-9 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
         >
           <Plus className="h-4 w-4 mr-2" />
           New article
@@ -713,7 +712,7 @@ const HealthNewsSignalPanel = ({ stats, news, loading, kpiFilter, setKpiFilter }
     >
       <div className="min-w-0">
         <div className="max-w-3xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${newsToneClass[signal.tone] || newsToneClass.muted}`}>
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${newsToneClass[signal.tone] || newsToneClass.muted}`}>
             <SignalIcon className="h-4 w-4" />
             {signal.label}
           </div>
@@ -751,7 +750,7 @@ const HealthNewsStateStrip = ({ stats, news, loading, kpiFilter, setKpiFilter })
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform,color] duration-200 ${active ? item.activeClass : item.restClass}`}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform,color] duration-200 ${active ? item.activeClass : item.restClass}`}
           aria-pressed={active}
           aria-label={`Show ${item.label.toLowerCase()} health news`}
           data-state={active ? 'selected' : 'idle'}
@@ -761,7 +760,7 @@ const HealthNewsStateStrip = ({ stats, news, loading, kpiFilter, setKpiFilter })
               <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
               <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
             </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
               <Icon className="h-4 w-4" />
             </span>
           </span>
@@ -785,10 +784,10 @@ const HealthNewsActivitySheet = ({
   children,
 }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
     data-testid="health-news-activity-sheet"
   >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
     <HealthNewsSheetToolbar
       filters={filters}
       setFilters={setFilters}
@@ -807,7 +806,7 @@ const HealthNewsActivitySheet = ({
       <HealthNewsErrorBanner message={errorMessage} onRetry={onRetry} />
     )}
 
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-inner bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
       {children}
     </div>
 
@@ -837,7 +836,7 @@ const HealthNewsSheetToolbar = ({ filters, setFilters, openFilters, openAnalytic
           value={filters.search || ''}
           onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
           placeholder="Search health news"
-          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-[background,box-shadow] placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-[background,box-shadow] placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
           data-testid="health-news-sheet-search"
         />
       </div>
@@ -845,18 +844,18 @@ const HealthNewsSheetToolbar = ({ filters, setFilters, openFilters, openAnalytic
         <Button
           variant="ghost"
           onClick={openFilters}
-          className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-[background,color,transform] hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+          className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-[background,color,transform] hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
           aria-busy={activeActionFeedback === 'filters'}
           data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilter ? 'filtered' : 'idle'}
         >
           <Filter className="mr-2 h-4 w-4" />
           {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-          {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+          {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-primary" />}
         </Button>
         <Button
           variant="ghost"
           onClick={openAnalytics}
-          className={`h-12 rounded-[24px] bg-primary/10 px-4 text-sm font-semibold text-primary shadow-sm transition-[background,transform] hover:bg-primary/15 active:scale-95 ${activeActionFeedback === 'analytics' ? 'scale-95' : ''}`}
+          className={`h-12 rounded-button bg-primary/10 px-4 text-sm font-semibold text-primary shadow-sm transition-[background,transform] hover:bg-primary/15 active:scale-95 ${activeActionFeedback === 'analytics' ? 'scale-95' : ''}`}
           aria-busy={activeActionFeedback === 'analytics'}
           data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
         >
@@ -873,7 +872,7 @@ const HealthNewsSheetToolbar = ({ filters, setFilters, openFilters, openAnalytic
 
 const HealthNewsErrorBanner = ({ message, onRetry }) => (
   <div
-    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_2px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    className="mt-3 flex flex-col gap-3 rounded-card bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_2px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
     data-testid="health-news-error-state"
   >
     <div className="flex min-w-0 items-start gap-3">
@@ -887,7 +886,7 @@ const HealthNewsErrorBanner = ({ message, onRetry }) => (
       type="button"
       variant="ghost"
       onClick={onRetry}
-      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       <RefreshCw className="mr-2 h-4 w-4" />
       Retry
@@ -897,13 +896,13 @@ const HealthNewsErrorBanner = ({ message, onRetry }) => (
 
 const HealthNewsEmptyState = ({ title, copy, actionLabel, onAction }) => (
   <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
-    <div className="flex h-14 w-14 items-center justify-center rounded-[26px] bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
+    <div className="flex h-14 w-14 items-center justify-center rounded-icon bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
       <Newspaper className="h-6 w-6" />
     </div>
     <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
     {onAction && actionLabel && (
-      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-2xl px-4 text-sm font-semibold">
+      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-button px-4 text-sm font-semibold">
         <RefreshCw className="mr-2 h-4 w-4" />
         {actionLabel}
       </Button>
@@ -931,13 +930,13 @@ const HealthNewsGridCard = ({ news, index, selected, onFocus, onView, activeActi
         }
       }}
       data-state={selected ? 'selected' : 'idle'}
-      className={`flex min-h-[244px] cursor-pointer flex-col rounded-[34px] p-4 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+      className={`flex min-h-[244px] cursor-pointer flex-col rounded-card p-4 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${statusTone}`}>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusTone}`}>
           <Newspaper className="h-5 w-5" />
         </span>
-        <span className="rounded-full bg-background/45 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+        <span className="rounded-pill bg-background/45 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
           {news.published ? 'Published' : 'Draft'}
         </span>
       </div>
@@ -963,7 +962,7 @@ const HealthNewsGridCard = ({ news, index, selected, onFocus, onView, activeActi
         }}
         aria-busy={viewOpening}
         data-state={viewOpening ? 'opening' : 'idle'}
-        className={`mt-4 h-11 rounded-2xl bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background hover:text-primary active:scale-95 ${viewOpening ? 'scale-95 text-primary' : ''}`}
+        className={`mt-4 h-11 rounded-button bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background hover:text-primary active:scale-95 ${viewOpening ? 'scale-95 text-primary' : ''}`}
       >
         <Eye className="mr-2 h-4 w-4" />
         {viewOpening ? 'Opening' : 'Details'}
@@ -974,7 +973,7 @@ const HealthNewsGridCard = ({ news, index, selected, onFocus, onView, activeActi
 };
 
 const HealthNewsFact = ({ icon: Icon, label, value }) => (
-  <div className="flex min-w-0 items-center gap-2 rounded-[22px] bg-background/42 p-3">
+  <div className="flex min-w-0 items-center gap-2 rounded-inner bg-background/42 p-3">
     <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
     <div className="min-w-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
@@ -987,13 +986,13 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
   if (loading) {
     return (
       <aside className="hidden min-h-0 xl:flex xl:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-          <div className="h-5 w-28 rounded-full bg-muted/40" />
-          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-sheet bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="h-5 w-28 rounded-pill bg-muted/40" />
+          <div className="mt-6 h-24 rounded-inner bg-muted/28" />
           <div className="mt-4 space-y-3">
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-inner bg-muted/24" />
+            <div className="h-14 rounded-inner bg-muted/24" />
+            <div className="h-14 rounded-inner bg-muted/24" />
           </div>
         </div>
       </aside>
@@ -1003,7 +1002,7 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
   if (!news) {
     return (
       <aside className="hidden min-h-0 xl:flex xl:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-sheet bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
           <Newspaper className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No article selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Published items will appear here when the feed has results.</p>
@@ -1017,19 +1016,19 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
 
   return (
     <aside className="hidden min-h-0 xl:flex xl:flex-col" data-testid="health-news-detail-rail">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
         <div className="flex items-center justify-between gap-3">
-          <Badge className={`${news.published ? 'bg-success/16 text-success' : 'bg-warning/16 text-warning'} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
+          <span className={`${news.published ? 'bg-emerald-500/16 text-emerald-600 dark:text-emerald-300' : 'bg-amber-500/16 text-amber-600 dark:text-amber-300'} inline-flex items-center rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
             {news.published ? 'Published' : 'Draft'}
-          </Badge>
-          <span className="rounded-full bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          </span>
+          <span className="rounded-pill bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Focus
           </span>
         </div>
 
-        <div className="mt-6 rounded-[32px] bg-background/42 p-5 shadow-[inset_0_2px_0_hsl(var(--foreground)/0.06)]">
+        <div className="mt-6 rounded-card bg-background/42 p-5 shadow-[inset_0_2px_0_hsl(var(--foreground)/0.06)]">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-icon bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
               <Newspaper className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -1051,7 +1050,7 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
           <HealthNewsFocusRow icon={Clock} label="Time" value={news.time || 'No time'} />
           <HealthNewsFocusRow icon={Eye} label="URL" value={news.source_url_valid ? 'Valid link' : 'No valid link'} />
 
-          <div className="rounded-[28px] bg-muted/22 p-4">
+          <div className="rounded-inner bg-muted/22 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Record</p>
             <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{news.id}</p>
           </div>
@@ -1060,7 +1059,7 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
         <div className="mt-5 space-y-2">
           <Button
             onClick={() => onView(news)}
-            className={`h-12 w-full rounded-2xl bg-foreground text-sm font-semibold text-background shadow-[0_18px_46px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.01] hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
+            className={`h-12 w-full rounded-button bg-foreground text-sm font-semibold text-background shadow-[0_18px_46px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.01] hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
             aria-busy={viewOpening}
             data-state={viewOpening ? 'opening' : 'idle'}
           >
@@ -1068,7 +1067,7 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
             {viewOpening ? 'Opening' : 'View details'}
             <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
           </Button>
-          <p className="rounded-[24px] bg-muted/24 p-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+          <p className="rounded-inner bg-muted/24 p-3 text-center text-[11px] leading-relaxed text-muted-foreground">
             Writing, publish changes, imports, and deletion stay locked until the content receiver is proved.
           </p>
         </div>
@@ -1078,8 +1077,8 @@ const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) =
 };
 
 const HealthNewsFocusRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-[24px] bg-muted/24 p-3">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/45 text-muted-foreground">
+  <div className="flex items-center gap-3 rounded-inner bg-muted/24 p-3">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-background/45 text-muted-foreground">
       <Icon className="h-4 w-4" />
     </div>
     <div className="min-w-0">
