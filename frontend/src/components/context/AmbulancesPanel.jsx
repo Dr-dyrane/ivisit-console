@@ -67,8 +67,8 @@ const dispatchPanelEvent = (eventName) => {
 };
 
 const FleetMetric = ({ icon: Icon, label, value, tone }) => (
-  <div className={`rounded-[24px] p-3 ${tone}`}>
-    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-background/45">
+  <div className={`rounded-inner p-3 ${tone}`}>
+    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-button bg-background/45">
       <Icon className="h-4 w-4" />
     </div>
     <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
@@ -81,7 +81,7 @@ const PanelAction = ({ icon: Icon, label, onClick, tone = 'text-primary bg-prima
     type="button"
     whileTap={{ scale: 0.97 }}
     onClick={onClick}
-    className={`flex min-h-16 flex-col items-center justify-center gap-2 rounded-[24px] px-3 py-3 text-xs font-semibold transition-all active:scale-95 ${tone}`}
+    className={`flex min-h-16 flex-col items-center justify-center gap-2 rounded-inner px-3 py-3 text-xs font-semibold transition-all active:scale-95 ${tone}`}
   >
     <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
     <span>{label}</span>
@@ -118,9 +118,9 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
         </div>
 
         {stateCopy ? (
-          <div className="rounded-[28px] bg-muted/24 p-4">
+          <div className="rounded-card bg-muted/24 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/55 text-muted-foreground">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-background/55 text-muted-foreground">
                 <StateIcon className={`h-5 w-5 ${contextState === 'loading' ? 'animate-spin' : ''}`} />
               </div>
               <div className="min-w-0">
@@ -130,10 +130,10 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
             </div>
           </div>
         ) : (
-          <div className="rounded-[30px] bg-card/64 p-4 shadow-[0_20px_56px_rgba(0,0,0,0.12)] dark:bg-white/[0.05]">
+          <div className="rounded-card bg-card/64 p-4 shadow-[0_20px_56px_rgba(0,0,0,0.12)] dark:bg-white/[0.05]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[20px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
                   <Ambulance className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
@@ -141,7 +141,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
                   <p className="truncate text-xs text-muted-foreground">{total} fleet units</p>
                 </div>
               </div>
-              <Badge className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">
+              <Badge className="rounded-pill bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">
                 Ready
               </Badge>
             </div>
@@ -190,10 +190,10 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
             return (
               <div
                 key={unit.id}
-                className="flex items-center justify-between gap-3 rounded-[24px] bg-muted/22 p-3 transition-colors hover:bg-muted/34"
+                className="flex items-center justify-between gap-3 rounded-inner bg-muted/22 p-3 transition-colors hover:bg-muted/34"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button ${tone}`}>
                     <Ambulance className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -213,7 +213,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
           })}
 
           {recent.length === 0 && !stateCopy && (
-            <div className="rounded-[24px] bg-muted/22 py-6 text-center text-xs text-muted-foreground">
+            <div className="rounded-inner bg-muted/22 py-6 text-center text-xs text-muted-foreground">
               No units in this view
             </div>
           )}

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -34,16 +33,16 @@ export const AmbulanceListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 hover:shadow-md transition-shadow group">
+          <div className="rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30 group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-lg truncate transition-colors">
                     {ambulance.call_sign || 'Unknown Unit'}
                   </h3>
-                  <Badge className={`squircle-sm ${getStatusBadge(ambulance.status)} font-bold`}>
+                  <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(ambulance.status)}`}>
                     {ambulance.status}
-                  </Badge>
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
                   {ambulance.type || 'Standard'} - {ambulance.vehicle_number || 'No Plate'} - Station: {getStationLabel(ambulance)}
@@ -51,7 +50,7 @@ export const AmbulanceListView = ({
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-right rounded-2xl bg-muted/24 px-3 py-2">
+                <div className="text-right rounded-button bg-muted/24 px-3 py-2">
                   <p className="text-xs text-muted-foreground font-medium">ETA</p>
                   <p className="font-bold text-lg">{ambulance.eta || 'N/A'}</p>
                 </div>
@@ -60,7 +59,7 @@ export const AmbulanceListView = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(ambulance)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-button h-8 w-8 p-0 hover:bg-muted/40"
                     aria-label={`View details for ${ambulance.call_sign}`}
                   >
                     <Eye className="h-4 w-4" />
@@ -69,7 +68,7 @@ export const AmbulanceListView = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(ambulance)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-button h-8 w-8 p-0 hover:bg-muted/40"
                     aria-label={`Edit ${ambulance.call_sign}`}
                   >
                     <Edit className="h-4 w-4" />
@@ -79,7 +78,7 @@ export const AmbulanceListView = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => onSchedule(ambulance)}
-                      className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                      className="rounded-button h-8 w-8 p-0 hover:bg-violet-500/10 hover:text-violet-500"
                       aria-label={`Schedule crew for ${ambulance.call_sign}`}
                     >
                       <CalendarDays className="h-4 w-4" />
@@ -90,7 +89,7 @@ export const AmbulanceListView = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => onDelete(ambulance)}
-                      className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      className="rounded-button h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                       aria-label={`Delete ${ambulance.call_sign}`}
                     >
                       <Trash2 className="h-4 w-4" />

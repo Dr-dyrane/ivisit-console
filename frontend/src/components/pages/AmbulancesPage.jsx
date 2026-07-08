@@ -439,17 +439,17 @@ export const AmbulancesPage = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      available: 'bg-success/20 text-success',
-      dispatched: 'bg-info/20 text-info',
-      en_route: 'bg-warning/20 text-warning',
-      on_route: 'bg-warning/20 text-warning',
-      on_trip: 'bg-info/20 text-info',
-      on_scene: 'bg-info/20 text-info',
+      available: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200',
+      dispatched: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200',
+      en_route: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
+      on_route: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
+      on_trip: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200',
+      on_scene: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200',
       returning: 'bg-muted/45 text-muted-foreground',
-      busy: 'bg-info/20 text-info',
+      busy: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200',
       maintenance: 'bg-muted text-muted-foreground',
       offline: 'bg-muted text-muted-foreground',
-      pending_approval: 'bg-warning/20 text-warning',
+      pending_approval: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
     };
     return badges[status] || badges.available;
   };
@@ -514,14 +514,14 @@ export const AmbulancesPage = () => {
       variant="ghost"
       size="icon"
       onClick={handleOpenFilters}
-      className={`squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative transition-all ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+      className={`rounded-button h-9 w-9 hover:bg-primary/10 hover:text-primary relative transition-all ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
       aria-label="Filter ambulances"
       aria-busy={activeActionFeedback === 'filters'}
       data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0) || filters.hospital) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-primary" />
       )}
     </Button>
   ), [activeActionFeedback, filters, handleOpenFilters]);
@@ -532,7 +532,7 @@ export const AmbulancesPage = () => {
       return (
         <Button
           onClick={handleCreate}
-          className={`glass-card-premium h-9 px-4 text-[12px] font-semibold transition-all ${activeActionFeedback === 'create' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+          className={`rounded-button bg-card/68 backdrop-blur-2xl shadow-sm h-9 px-4 text-[12px] font-semibold transition-all ${activeActionFeedback === 'create' ? 'bg-primary/10 text-primary scale-95' : ''}`}
           aria-busy={activeActionFeedback === 'create'}
           data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         >
@@ -632,7 +632,7 @@ export const AmbulancesPage = () => {
               className="col-span-1"
             >
               <div
-                className={`group relative flex h-full min-h-[300px] cursor-pointer flex-col overflow-hidden rounded-[30px] p-5 transition-[background,box-shadow,transform] duration-200 ${focused ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+                className={`group relative flex h-full min-h-[300px] cursor-pointer flex-col overflow-hidden rounded-card p-5 transition-[background,box-shadow,transform] duration-200 ${focused ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
                 role="button"
                 tabIndex={0}
                 aria-pressed={focused}
@@ -645,21 +645,20 @@ export const AmbulancesPage = () => {
                   }
                 }}
               >
-                <div className="hover-glow hover-glow-primary" />
                 <div className="absolute right-0 top-0 p-5">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-[18px] bg-background/55 shadow-sm transition-transform duration-300 group-hover:scale-110">
+                    <div className="absolute inset-0 bg-primary/10 blur-xl rounded-pill scale-150" />
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-icon bg-background/55 shadow-sm transition-transform duration-300 group-hover:scale-110">
                       <Ambulance className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-wrap items-center gap-2 pr-12">
-                  <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${getStatusBadge(status)}`}>
+                  <Badge className={`rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${getStatusBadge(status)}`}>
                     {getFleetStatusLabel(status)}
                   </Badge>
-                  <Badge className="rounded-full bg-muted/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <Badge className="rounded-pill bg-muted/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {ambulance.type || 'Standard'}
                   </Badge>
                 </div>
@@ -675,17 +674,17 @@ export const AmbulancesPage = () => {
                 </div>
 
                 <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-[24px] bg-background/35 p-3">
+                  <div className="rounded-inner bg-background/35 p-3">
                     <p className="text-[11px] font-semibold text-muted-foreground">Vehicle</p>
                     <p className="mt-1 truncate text-lg font-semibold text-foreground">{vehicle}</p>
                   </div>
-                  <div className="rounded-[24px] bg-background/35 p-3">
+                  <div className="rounded-inner bg-background/35 p-3">
                     <p className="text-[11px] font-semibold text-muted-foreground">ETA</p>
                     <p className="mt-1 truncate text-lg font-semibold text-foreground">{ambulance.eta || 'Unknown'}</p>
                   </div>
                 </div>
 
-                <div className="relative z-10 mt-auto flex items-center justify-between rounded-[22px] bg-background/35 px-3 py-2">
+                <div className="relative z-10 mt-auto flex items-center justify-between rounded-inner bg-background/35 px-3 py-2">
                   <span className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {ambulance.vehicle_number || ambulance.license_plate || 'No plate'}
                   </span>
@@ -698,7 +697,7 @@ export const AmbulancesPage = () => {
                         event.stopPropagation();
                         handleView(ambulance);
                       }}
-                      className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                      className={`rounded-button h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
                       aria-label={`View details for ${ambulance.call_sign || 'unit'}`}
                       aria-busy={viewOpening}
                       data-state={viewOpening ? 'opening' : 'idle'}
@@ -713,7 +712,7 @@ export const AmbulancesPage = () => {
                           event.stopPropagation();
                           handleEdit(ambulance);
                         }}
-                        className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${editOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                        className={`rounded-button h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${editOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
                         aria-label={`Edit ${ambulance.call_sign || 'unit'}`}
                         aria-busy={editOpening}
                         data-state={editOpening ? 'opening' : 'idle'}
@@ -853,7 +852,7 @@ const AmbulanceSignalPanel = ({ stats, ambulances, loading, kpiFilter, setKpiFil
     >
       <div className="min-w-0">
         <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${ambulanceToneClass[signal.tone] || ambulanceToneClass.muted}`}>
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${ambulanceToneClass[signal.tone] || ambulanceToneClass.muted}`}>
             <SignalIcon className="h-4 w-4" />
             {signal.label}
           </div>
@@ -866,12 +865,12 @@ const AmbulanceSignalPanel = ({ stats, ambulances, loading, kpiFilter, setKpiFil
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-2">
             <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-200" />
             Ready
             <strong className="text-foreground">{loading ? '...' : getFleetStateCount({ id: 'available', stats, ambulances: sourceAmbulances })}</strong>
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-2">
             <Activity className="h-4 w-4 text-cyan-600 dark:text-cyan-200" />
             Active
             <strong className="text-foreground">{loading ? '...' : getFleetStateCount({ id: 'busy', stats, ambulances: sourceAmbulances })}</strong>
@@ -904,7 +903,7 @@ const AmbulanceStateStrip = ({ stats, ambulances, loading, kpiFilter, setKpiFilt
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
           aria-pressed={active}
           aria-label={`Show ${item.label.toLowerCase()} units`}
           data-state={active ? 'selected' : 'idle'}
@@ -914,7 +913,7 @@ const AmbulanceStateStrip = ({ stats, ambulances, loading, kpiFilter, setKpiFilt
               <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
               <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
             </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
               <Icon className="h-4 w-4" />
             </span>
           </span>
@@ -926,10 +925,10 @@ const AmbulanceStateStrip = ({ stats, ambulances, loading, kpiFilter, setKpiFilt
 
 const AmbulanceActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
     data-testid="ambulances-activity-sheet"
   >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
     <AmbulanceSheetToolbar
       filters={filters}
       setFilters={setFilters}
@@ -946,7 +945,7 @@ const AmbulanceActivitySheet = ({ filters, setFilters, openFilters, loading, pag
       <AmbulanceErrorBanner message={errorMessage} onRetry={onRetry} />
     )}
 
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
       {children}
     </div>
 
@@ -968,13 +967,13 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
   if (loading) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-          <div className="h-5 w-28 rounded-full bg-muted/40" />
-          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-sheet bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="h-5 w-28 rounded-pill bg-muted/40" />
+          <div className="mt-6 h-24 rounded-card bg-muted/28" />
           <div className="mt-4 space-y-3">
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
+            <div className="h-14 rounded-button bg-muted/24" />
           </div>
         </div>
       </aside>
@@ -984,7 +983,7 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
   if (!ambulance) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-sheet bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
           <Ambulance className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No unit selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Fleet units will appear here when the list has results.</p>
@@ -1001,12 +1000,12 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
 
   return (
     <aside className="hidden min-h-0 lg:flex lg:flex-col" data-testid="ambulances-detail-rail">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
         <div className="flex items-center justify-between gap-3">
-          <Badge className={`${getStatusBadgeForRail(status)} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
+          <Badge className={`${getStatusBadgeForRail(status)} rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
             {getFleetStatusLabel(status)}
           </Badge>
-          <span className="rounded-full bg-muted/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="rounded-pill bg-muted/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
             Fleet
           </span>
         </div>
@@ -1028,14 +1027,14 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
           <RailMetric icon={MapPin} label="Status" value={getFleetStatusLabel(status)} tone="emerald" />
         </div>
 
-        <div className="mt-5 space-y-3 rounded-[28px] bg-muted/20 p-4">
+        <div className="mt-5 space-y-3 rounded-card bg-muted/20 p-4">
           <RailFact label="Plate" value={ambulance.vehicle_number || ambulance.license_plate || 'Not set'} />
           <RailFact label="Station" value={station} />
           <RailFact label="Crew" value={Array.isArray(ambulance.crew) && ambulance.crew.length > 0 ? `${ambulance.crew.length} listed` : 'Not listed'} />
           <RailFact label="Updated" value={ambulance.updated_at ? new Date(ambulance.updated_at).toLocaleString() : 'Unknown'} />
         </div>
 
-        <div className="mt-5 rounded-[28px] bg-cyan-500/10 p-4 text-cyan-800 dark:text-cyan-200">
+        <div className="mt-5 rounded-card bg-cyan-500/10 p-4 text-cyan-800 dark:text-cyan-200">
           <p className="text-sm font-semibold">Dispatch changes stay in Requests</p>
           <p className="mt-1 text-xs leading-5 opacity-80">
             This panel shows fleet evidence. Trip status and location commands need a linked request owner.
@@ -1047,7 +1046,7 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
             type="button"
             variant="ghost"
             onClick={() => onView(ambulance)}
-            className={`h-11 flex-1 rounded-[22px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95 ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+            className={`h-11 flex-1 rounded-inner bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95 ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
             aria-busy={viewOpening}
             data-state={viewOpening ? 'opening' : 'idle'}
           >
@@ -1059,7 +1058,7 @@ const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, acti
               type="button"
               variant="ghost"
               onClick={() => onEdit(ambulance)}
-              className={`h-11 flex-1 rounded-[22px] bg-primary/10 px-4 text-sm font-semibold text-primary transition-all hover:bg-primary/15 active:scale-95 ${editOpening ? 'scale-95' : ''}`}
+              className={`h-11 flex-1 rounded-inner bg-primary/10 px-4 text-sm font-semibold text-primary transition-all hover:bg-primary/15 active:scale-95 ${editOpening ? 'scale-95' : ''}`}
               aria-busy={editOpening}
               data-state={editOpening ? 'opening' : 'idle'}
             >
@@ -1088,8 +1087,8 @@ const getStatusBadgeForRail = (status) => {
 };
 
 const RailMetric = ({ icon: Icon, label, value, tone }) => (
-  <div className="rounded-[24px] bg-muted/24 p-3">
-    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-2xl ${railToneClasses[tone] || railToneClasses.sky}`}>
+  <div className="rounded-inner bg-muted/24 p-3">
+    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-button ${railToneClasses[tone] || railToneClasses.sky}`}>
       <Icon className="h-4 w-4" />
     </div>
     <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
@@ -1122,20 +1121,20 @@ const AmbulanceSheetToolbar = ({ filters, setFilters, openFilters, activeActionF
           value={filters.search || ''}
           onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
           placeholder="Search fleet..."
-          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          className="h-12 w-full rounded-inner bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
           data-testid="ambulances-sheet-search"
         />
       </div>
       <Button
         variant="ghost"
         onClick={openFilters}
-        className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+        className={`h-12 rounded-inner bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
         aria-busy={activeActionFeedback === 'filters'}
         data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
       >
         <Filter className="mr-2 h-4 w-4" />
         {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-        {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+        {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-primary" />}
       </Button>
     </div>
   );
@@ -1143,7 +1142,7 @@ const AmbulanceSheetToolbar = ({ filters, setFilters, openFilters, activeActionF
 
 const AmbulanceErrorBanner = ({ message, onRetry }) => (
   <div
-    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[0_16px_38px_rgba(245,158,11,0.10)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    className="mt-3 flex flex-col gap-3 rounded-inner bg-amber-500/10 p-4 text-amber-800 shadow-[0_16px_38px_rgba(245,158,11,0.10)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
     data-testid="ambulances-error-state"
   >
     <div className="flex min-w-0 items-start gap-3">
@@ -1157,7 +1156,7 @@ const AmbulanceErrorBanner = ({ message, onRetry }) => (
       type="button"
       variant="ghost"
       onClick={onRetry}
-      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       <RefreshCw className="mr-2 h-4 w-4" />
       Retry
@@ -1166,7 +1165,7 @@ const AmbulanceErrorBanner = ({ message, onRetry }) => (
 );
 
 const AmbulanceEmptyState = ({ onClearFilters }) => (
-  <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[30px] bg-muted/18 p-8 text-center">
+  <div className="flex min-h-[320px] flex-col items-center justify-center rounded-card bg-muted/18 p-8 text-center">
     <Ambulance className="mb-4 h-12 w-12 text-muted-foreground/60" />
     <h2 className="text-lg font-semibold">No units found</h2>
     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
@@ -1176,7 +1175,7 @@ const AmbulanceEmptyState = ({ onClearFilters }) => (
       type="button"
       variant="ghost"
       onClick={onClearFilters}
-      className="mt-5 h-11 rounded-[22px] bg-background/55 px-5 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="mt-5 h-11 rounded-inner bg-background/55 px-5 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       Clear filters
     </Button>

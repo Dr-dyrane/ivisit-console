@@ -214,7 +214,7 @@ export const MobileAmbulances = ({
                             placeholder="Search ambulances..."
                             value={filters?.search || ''}
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+                            className="w-full h-11 pl-10 pr-4 rounded-button bg-background/60 text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
                         />
                     </div>
                     <motion.button
@@ -223,7 +223,7 @@ export const MobileAmbulances = ({
                             onOpenFilters?.();
                             triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
                         }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
+                        className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground/60 shadow-sm active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out dark:bg-white/[0.06]"
                         aria-label="Filter fleet"
                     >
                         <SlidersHorizontal size={18} />
@@ -236,7 +236,7 @@ export const MobileAmbulances = ({
                                 onViewAnalytics?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
                             }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out"
+                            className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out dark:bg-white/[0.06]"
                             aria-label="Open fleet statistics"
                         >
                             <BarChart3 size={18} />
@@ -296,25 +296,25 @@ export const MobileAmbulances = ({
                                     expandedContent={(
                                         <div className="space-y-4 py-3">
                                             <div className="grid grid-cols-1 gap-2">
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                     <MapPin size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col min-w-0">
-                                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Station</span>
+                                                        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Station</span>
                                                         <span className="text-xs font-semibold truncate">{station}</span>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Activity size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Status</span>
+                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Status</span>
                                                             <span className="text-xs font-semibold">{getAvailabilityLabel(status)}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Ambulance size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">ETA</span>
+                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">ETA</span>
                                                             <span className="text-xs font-semibold font-dashboard-numbers">{ambulance.eta || 'Unknown'}</span>
                                                         </div>
                                                     </div>
@@ -323,10 +323,10 @@ export const MobileAmbulances = ({
 
                                             <div className="flex items-center justify-between px-1">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">Vehicle</span>
+                                                    <span className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Vehicle</span>
                                                     <span className="text-[10px] font-mono text-foreground/40 font-normal">{ambulance.vehicle_number || 'N/A'}</span>
                                                 </div>
-                                                <Badge className="squircle-sm font-semibold tracking-tight text-[9px] py-1 px-3 bg-primary/20 text-primary">
+                                                <Badge className="rounded-pill font-semibold text-[9px] py-1 px-3 bg-primary/20 text-primary">
                                                     {String(ambulance.type || 'Standard').toUpperCase()}
                                                 </Badge>
                                             </div>
@@ -334,21 +334,21 @@ export const MobileAmbulances = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                    className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                     onClick={() => onView(ambulance)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
-                                                    <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                                                    <span className="text-[9px] uppercase font-semibold tracking-[0.14em]">Details</span>
                                                 </Button>
                                                 {canManage && (
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                            className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                             onClick={() => onEdit(ambulance)}
                                                         >
-                                                            <Edit size={16} className="text-warning/60" />
-                                                            <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
+                                                            <Edit size={16} className="text-amber-500/60" />
+                                                            <span className="text-[9px] uppercase font-semibold tracking-[0.14em]">Edit</span>
                                                         </Button>
                                                     </>
                                                 )}
