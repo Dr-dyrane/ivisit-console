@@ -654,22 +654,29 @@ export const EmergencyRequestsPage = () => {
       title: 'Cancel request',
       description: `Cancel ${getEmergencyLabel(request)}? This cannot be undone.`,
       onConfirm: async () => {
+        // The cancel is authoritative. Only a cancel failure may report failure.
         try {
           await cancelEmergencyRequest(request.id, 'cancelled_from_console');
-
+        } catch (error) {
+          console.error('Error cancelling request:', error);
+          toast.error(error.message || 'Failed to cancel request');
+          return; // genuinely failed — keep the modal open, do not refresh
+        }
+        // Cancel committed. The notification is best-effort: a notification failure
+        // must NOT report a committed cancel as failed (the false-negative bug).
+        try {
           await createNotification(
             NotificationTypes.EMERGENCY,
             NotificationActions.CANCELLED,
             request.id,
             { message: 'Request has been cancelled' }
           );
-          toast.success('Request cancelled');
-          fetchRequests();
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          console.error('Error cancelling request:', error);
-          toast.error(error.message || 'Failed to cancel request');
+        } catch (notifyError) {
+          console.warn('Cancel succeeded but notification failed:', notifyError);
         }
+        toast.success('Request cancelled');
+        fetchRequests();
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       },
       variant: 'destructive',
       confirmLabel: 'Cancel request'
