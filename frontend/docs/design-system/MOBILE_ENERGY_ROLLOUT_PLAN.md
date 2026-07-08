@@ -62,9 +62,29 @@ changed (no command authority loosened) — user decision 2026-07-08: **keep** (
   blocker map in `PAGE_REVAMP_GATE.md` + rewrite the contract test to expect the new energy — a
   coordinated authority change, out of single-file scope.
 
-**Still BLOCKED (dirty lanes, unchanged):** Verification, Ambulances, Hospitals, Organizations-VitalTrack.
+**Still BLOCKED (dirty lanes, unchanged):** Ambulances, Hospitals, Organizations-VitalTrack.
 **Deferred:** flagship `MobileVisits` CTA retrofit to `MobileSheetActions` (its `VisitsPage.contract.test.js`
 is dirty). Optional: `TodayHome` rail polish.
+
+### Interaction correction — detail is a SHEET, not an inline dropdown (2026-07-08)
+The approved mobile design opens a record's detail as a **bottom sheet** (+ the desktop
+detail-rail), NOT an inline accordion. New shared block **`MobileDetailSheet.jsx`** (on
+`ModalShell`: header icon+eyebrow+title+status pill, VitalTrack, `MobileDetailIslands`,
+`MobileSheetActions` CTA that leads to edit; smooth slide-up + swipe-to-dismiss). Row tap
+sets an active-record state and opens the sheet — the inline `expandedContent`/expand state is
+removed. Rolled out to **all 10 mobile entity pages**: Visits, Support, Wallet, Insurance,
+Doctors, Pricing, Users, Health News, Emergency, Subscriptions — each contract test swapped its
+inline-expand locks for sheet locks; strict-radius hardgate + mojibake clean throughout.
+
+### Approvals desktop parity (2026-07-08)
+Approvals now has BOTH the Quick Actions right panel (route-context wired) AND a persistent
+selected-record **detail rail** (`VerificationDetailRail`, mirrors Staff `StaffDetailRail`).
+Fixed the DS gap where table/list rows weren't clickable: rows now take `onFocus` (row click →
+select → rail), action buttons `stopPropagation`, `onView` opens the full modal — matching the
+Staff row-click→rail DS pattern. `VerificationQueue.contract` 7/7.
+
+**Standard update:** S6 "identity-island detail" now renders inside the tap-opened
+`MobileDetailSheet` (mobile) / the `onFocus` detail rail (desktop) — never an inline dropdown.
 
 ---
 
