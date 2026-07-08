@@ -22,7 +22,11 @@ import {
   AlertTriangle,
   ChevronRight,
   MoreHorizontal,
-  Ban
+  Ban,
+  Mail,
+  MapPin,
+  Eye,
+  Info
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -63,6 +67,9 @@ export const VerificationQueue = () => {
   const [providers, setProviders] = useState([]);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [selectedProvider, setSelectedProvider] = useState(null);
+  // Right-side detail rail focus (a provider or facility record). Distinct from
+  // selectedProvider, which drives the full-detail modal. Reset on queue switch.
+  const [focusedItem, setFocusedItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -243,6 +250,7 @@ export const VerificationQueue = () => {
   useEffect(() => {
     setPagination(prev => ({ ...prev, currentPage: 1 }));
     setSelectedIds([]);
+    setFocusedItem(null);
   }, [queueType]);
 
   const viewToggleComponent = useMemo(() => (
@@ -347,11 +355,11 @@ export const VerificationQueue = () => {
       stats: activeStats,
       count: items.length,
       recent: items.slice(0, 4),
-      selected: selectedProvider,
+      selected: focusedItem,
       canApprove,
       loading,
     };
-  }, [queueType, stats, orgStats, providers, organizations, selectedProvider, canApprove, loading]);
+  }, [queueType, stats, orgStats, providers, organizations, focusedItem, canApprove, loading]);
 
   const publishVerificationRouteContext = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -469,6 +477,8 @@ export const VerificationQueue = () => {
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Approvals" description="Review provider and facility approvals in iVisit Console." />
 
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+        <section className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:self-stretch">
       <Tabs defaultValue="providers" onValueChange={setQueueType} className="w-full">
         <div className="flex items-center justify-between mb-8">
           <TabsList className="rounded-inner bg-muted/30 p-1">
@@ -746,16 +756,16 @@ export const VerificationQueue = () => {
                     >
                       <div
                         style={{ outline: 'none' }}
-                        className="h-full rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between hover:bg-muted/34 active:scale-[0.98] group relative overflow-hidden cursor-pointer transition-all duration-200 focus-visible:bg-amber-400/[0.04] focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.18)]"
-                        onClick={() => setSelectedProvider(provider)}
+                        className={`h-full rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between hover:bg-muted/34 active:scale-[0.98] group relative overflow-hidden cursor-pointer transition-all duration-200 focus-visible:bg-amber-400/[0.04] focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.18),0_24px_60px_rgba(0,0,0,0.26)] ${focusedItem?.id === provider.id ? 'bg-amber-400/[0.06] shadow-[0_0_0_3px_rgba(251,191,36,0.18),0_24px_60px_rgba(0,0,0,0.26)]' : ''}`}
+                        onClick={() => setFocusedItem(provider)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            setSelectedProvider(provider);
+                            setFocusedItem(provider);
                           }
                         }}
                         role="button"
-                        aria-label={`Open approval for ${provider.username || provider.email || 'provider'}`}
+                        aria-label={`Select approval for ${provider.username || provider.email || 'provider'}`}
                         data-testid="approval-provider-card"
                         tabIndex={0}
                       >
@@ -825,7 +835,7 @@ export const VerificationQueue = () => {
           {!loading && providers.length > 0 && viewMode === 'list' && (
             <VerificationQueueListView
               providers={providers}
-              onView={setSelectedProvider}
+              onView={setFocusedItem}
               onVerify={canApprove ? handleVerify : null}
               isMobile={isMobile}
             />
@@ -834,7 +844,7 @@ export const VerificationQueue = () => {
           {!loading && providers.length > 0 && viewMode === 'table' && (
             <VerificationQueueTableView
               providers={providers}
-              onView={setSelectedProvider}
+              onView={setFocusedItem}
               onVerify={canApprove ? handleVerify : null}
               getStatusBadge={getStatusBadge}
               selectedIds={selectedIds}
@@ -884,7 +894,18 @@ export const VerificationQueue = () => {
                 <div
                   key={org.id}
                   data-testid="approval-facility-card"
-                  className="rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between"
+                  style={{ outline: 'none' }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select approval for ${org.name || 'facility'}`}
+                  onClick={() => setFocusedItem(org)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setFocusedItem(org);
+                    }
+                  }}
+                  className={`rounded-card bg-muted/22 shadow-sm p-6 flex flex-col justify-between cursor-pointer transition-all duration-200 hover:bg-muted/34 active:scale-[0.98] focus-visible:bg-amber-400/[0.04] focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.18)] ${focusedItem?.id === org.id ? 'bg-amber-400/[0.06] shadow-[0_0_0_3px_rgba(251,191,36,0.18),0_24px_60px_rgba(0,0,0,0.26)]' : ''}`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
@@ -913,7 +934,10 @@ export const VerificationQueue = () => {
                           variant="destructive"
                           className="h-8 flex-1 rounded-pill text-[10px] font-bold"
                           disabled={actionLoading}
-                          onClick={() => handleVerifyOrg(org.id, false)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerifyOrg(org.id, false);
+                          }}
                         >
                           REJECT
                         </Button>
@@ -921,7 +945,10 @@ export const VerificationQueue = () => {
                           size="sm"
                           className="h-8 flex-1 rounded-pill bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
                           disabled={actionLoading}
-                          onClick={() => handleVerifyOrg(org.id, true)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerifyOrg(org.id, true);
+                          }}
                         >
                           APPROVE
                         </Button>
@@ -943,6 +970,18 @@ export const VerificationQueue = () => {
           {/* Pagination etc move below TabsContent */}
         </div>
       </Tabs>
+        </section>
+
+        <VerificationDetailRail
+          item={focusedItem}
+          queueType={queueType}
+          canApprove={canApprove}
+          onOpen={setSelectedProvider}
+          onApprove={(item) => (queueType === 'providers' ? handleVerify(item.id, true) : handleVerifyOrg(item.id, true))}
+          onReject={(item) => (queueType === 'providers' ? handleVerify(item.id, false) : handleVerifyOrg(item.id, false))}
+          actionLoading={actionLoading}
+        />
+      </div>
 
       {/* Provider Details Modal - using new VerificationModal */}
       <VerificationModal
@@ -994,5 +1033,207 @@ export const VerificationQueue = () => {
         </BulkActionBar>
       )}
     </div>
+  );
+};
+
+// Detail line — icon + label + value on a soft inner surface. Borderless: depth via
+// spacing and background tone only (canon radii, no rings/borders/dividers).
+const VerificationDetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const VerificationRailButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 w-full rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const getFacilityInitials = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  const initials = parts.map((word) => word[0]).join('').toUpperCase();
+  return initials || 'F';
+};
+
+/**
+ * VerificationDetailRail — right-side selected-record rail for Approvals.
+ *
+ * Mirrors DoctorsPage's StaffDetailRail so Approvals carries BOTH a Quick Actions
+ * panel (shared ContextPanel/VerificationPanel) and this focused-row detail rail.
+ * The rail never mutates directly by itself: approve/reject are fail-closed on
+ * `canApprove`, and "View details"/"Open record" defer to the full modal via onOpen.
+ */
+const VerificationDetailRail = ({ item, queueType, canApprove, onOpen, onApprove, onReject, actionLoading }) => {
+  if (!item) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <FileCheck className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No application selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Applications that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const isProviders = queueType === 'providers';
+  const isPending = isProviders ? !item.bvn_verified : item.verification_status === 'pending';
+
+  let statusLabel;
+  let statusClass;
+  let StatusIcon;
+  if (isProviders) {
+    if (item.bvn_verified) {
+      statusLabel = 'Approved';
+      statusClass = 'bg-emerald-500/15 text-emerald-300';
+      StatusIcon = CheckCircle;
+    } else {
+      statusLabel = 'Pending review';
+      statusClass = 'bg-amber-400/15 text-amber-200';
+      StatusIcon = Clock;
+    }
+  } else if (item.verification_status === 'verified') {
+    statusLabel = 'Verified';
+    statusClass = 'bg-emerald-500/15 text-emerald-300';
+    StatusIcon = CheckCircle;
+  } else if (item.verification_status === 'rejected') {
+    statusLabel = 'Rejected';
+    statusClass = 'bg-destructive/20 text-destructive';
+    StatusIcon = Ban;
+  } else {
+    statusLabel = 'Pending';
+    statusClass = 'bg-amber-400/15 text-amber-200';
+    StatusIcon = Clock;
+  }
+
+  const primary = isProviders
+    ? (item.username || item.email || 'Unknown')
+    : (item.name || 'Unnamed facility');
+  const subtitle = isProviders ? (item.role || 'provider') : (item.type || 'facility');
+  const applied = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A';
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Application details</h2>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusClass}`}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {statusLabel}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onOpen(item)}
+          aria-label="Open full application details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        {isProviders ? (
+          <Avatar className="h-14 w-14 squircle shadow-sm">
+            <AvatarImage src={item.avatar_url || item.image_uri || undefined} />
+            <AvatarFallback className="text-lg font-bold bg-amber-400/10 text-amber-700 dark:text-amber-200">
+              {getAvatarFallback(item)}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center squircle bg-sky-400/12 text-lg font-semibold text-sky-300">
+            {getFacilityInitials(item.name)}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{primary}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {isProviders ? (
+          <>
+            <VerificationDetailLine icon={User} label="Applicant" value={item.username || item.email} />
+            <VerificationDetailLine icon={Shield} label="Role" value={item.role} />
+            <VerificationDetailLine icon={StatusIcon} label="Status" value={statusLabel} />
+            <VerificationDetailLine icon={Mail} label="Contact" value={item.email} />
+            <VerificationDetailLine icon={Clock} label="Applied" value={applied} />
+          </>
+        ) : (
+          <>
+            <VerificationDetailLine icon={User} label="Name" value={item.name} />
+            <VerificationDetailLine icon={Shield} label="Type" value={item.type} />
+            <VerificationDetailLine icon={StatusIcon} label="Status" value={statusLabel} />
+            <VerificationDetailLine icon={MapPin} label="Address" value={item.address} />
+            <VerificationDetailLine icon={Clock} label="Applied" value={applied} />
+          </>
+        )}
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onOpen(item)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        {canApprove && isPending && (
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="destructive"
+              disabled={actionLoading}
+              className="h-11 rounded-button text-sm font-bold"
+              onClick={() => onReject(item)}
+            >
+              <Ban className="mr-2 h-4 w-4" />
+              Reject
+            </Button>
+            <Button
+              disabled={actionLoading}
+              className="h-11 rounded-button bg-emerald-500/90 text-white transition-all hover:bg-emerald-400 text-sm font-bold"
+              onClick={() => onApprove(item)}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Approve
+            </Button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
+          <VerificationRailButton icon={Info} label="Open record" onClick={() => onOpen(item)} />
+        </div>
+
+        {!canApprove && (
+          <div
+            role="note"
+            className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+          >
+            <Shield className="h-4 w-4 shrink-0" />
+            Approvals are read-only until admin authority is verified.
+          </div>
+        )}
+      </div>
+    </aside>
   );
 };
