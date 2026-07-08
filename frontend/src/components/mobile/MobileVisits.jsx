@@ -273,7 +273,7 @@ export const MobileVisits = ({
                         transition={{ duration: 0.35 }}
                         className="space-y-4 px-5"
                     >
-                        <div className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${mobileVisitSignalTone[signal.id] || mobileVisitSignalTone.all}`}>
+                        <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobileVisitSignalTone[signal.id] || mobileVisitSignalTone.all}`}>
                             <SignalIcon size={15} />
                             {signal.label}
                         </div>
@@ -297,7 +297,7 @@ export const MobileVisits = ({
                                         type="button"
                                         whileTap={{ scale: 0.97 }}
                                         onClick={() => onKpiChange?.(item.id)}
-                                        className={`min-h-[82px] rounded-[28px] px-4 py-3 text-left transition-all ${active ? item.activeClass : item.restClass}`}
+                                        className={`min-h-[82px] rounded-card px-4 py-3 text-left transition-all ${active ? item.activeClass : item.restClass}`}
                                         aria-pressed={active}
                                         aria-label={`Show ${item.label.toLowerCase()} visits`}
                                         data-state={active ? 'selected' : 'idle'}
@@ -307,7 +307,7 @@ export const MobileVisits = ({
                                                 <span className="block text-xs font-semibold leading-tight">{item.label}</span>
                                                 <span className="mt-2 block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
                                             </span>
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/40">
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/40">
                                                 <Icon size={16} />
                                             </span>
                                         </span>
@@ -318,11 +318,11 @@ export const MobileVisits = ({
                     </motion.section>
 
                     <section
-                        className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] dark:bg-card/55"
+                        className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] dark:bg-card/55"
                         data-testid="mobile-visits-activity-sheet"
                     >
-                        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
-                        <div className="flex items-center gap-2 rounded-[34px] bg-background/42 p-2 dark:bg-black/[0.10]">
+                        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+                        <div className="flex items-center gap-2 rounded-modal bg-background/42 p-2 dark:bg-black/[0.10]">
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                                 <input
@@ -330,7 +330,7 @@ export const MobileVisits = ({
                                     placeholder="Search visits..."
                                     value={filters?.search || ''}
                                     onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
-                                    className="h-11 w-full rounded-[22px] bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+                                    className="h-11 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
                                     data-testid="mobile-visits-sheet-search"
                                 />
                             </div>
@@ -341,12 +341,12 @@ export const MobileVisits = ({
                                     onOpenFilters?.();
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--primary))', haptic: true, sound: true });
                                 }}
-                                className="relative flex h-11 w-11 items-center justify-center rounded-[22px] bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                className="relative flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
                                 aria-label="Filter visits"
                                 data-state={hasFilter ? 'filtered' : 'idle'}
                             >
                                 <SlidersHorizontal size={18} />
-                                {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />}
+                                {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-primary" />}
                             </motion.button>
 
                             {(isAdmin || isOrgAdmin) && (
@@ -357,7 +357,7 @@ export const MobileVisits = ({
                                         onViewAnalytics?.();
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--primary))', haptic: true, sound: true });
                                     }}
-                                    className="flex h-11 w-11 items-center justify-center rounded-[22px] bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                    className="flex h-11 w-11 items-center justify-center rounded-inner bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
                                     aria-label="Open visit statistics"
                                     data-state="idle"
                                 >
@@ -368,7 +368,7 @@ export const MobileVisits = ({
 
                         <div className="mt-4 flex items-center justify-between px-2">
                             <h2 className="text-lg font-semibold tracking-tight">Visits</h2>
-                            <span className="rounded-full bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                            <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                                 {isBuffering ? 'Updating' : `${totalCount} total`}
                             </span>
                         </div>
@@ -421,7 +421,7 @@ export const MobileVisits = ({
 
 const MobileVisitErrorBanner = ({ message, onRetry }) => (
     <div
-        className="rounded-[24px] bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200"
+        className="rounded-card bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200"
         data-testid="mobile-visits-error-state"
     >
         <div className="flex items-start gap-3">
@@ -435,7 +435,7 @@ const MobileVisitErrorBanner = ({ message, onRetry }) => (
             type="button"
             variant="ghost"
             onClick={onRetry}
-            className="mt-3 h-10 w-full rounded-[20px] bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+            className="mt-3 h-10 w-full rounded-button bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
         >
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
@@ -482,7 +482,7 @@ const MobileVisitRow = ({
     return (
         <motion.div
             layout
-            className={`overflow-hidden rounded-[28px] bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
         >
             <button
                 type="button"
@@ -492,7 +492,7 @@ const MobileVisitRow = ({
                 aria-expanded={expanded}
                 data-state={expanded ? 'open' : 'closed'}
             >
-                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${getStatusTone(visit.status)}`}>
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${getStatusTone(visit.status)}`}>
                     <StatusIcon size={17} />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -501,7 +501,7 @@ const MobileVisitRow = ({
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{row.secondary}</span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-2">
-                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`} data-status={row.statusKey}>{row.statusLabel}</span>
+                    <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`} data-status={row.statusKey}>{row.statusLabel}</span>
                     <span className="text-xs font-medium text-muted-foreground">{row.meta}</span>
                 </span>
                 {expanded ? (
@@ -522,7 +522,7 @@ const MobileVisitRow = ({
                     <div className={`${canEdit ? 'grid-cols-2' : 'grid-cols-1'} grid gap-2 pt-1`}>
                         <Button
                             variant="ghost"
-                            className="h-12 rounded-[20px] bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
+                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
                             onClick={() => onView(visit)}
                             data-state="idle"
                         >
@@ -532,7 +532,7 @@ const MobileVisitRow = ({
                         {canEdit && (
                             <Button
                                 variant="ghost"
-                                className="h-12 rounded-[20px] bg-background/36 font-semibold transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
+                                className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
                                 onClick={() => onEdit(visit)}
                                 data-state="idle"
                             >
@@ -545,7 +545,7 @@ const MobileVisitRow = ({
                     {canDelete && (
                         <Button
                             variant="ghost"
-                            className="h-12 w-full rounded-[20px] bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
+                            className="h-12 w-full rounded-button bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
                             onClick={() => onDelete?.(visit)}
                         >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -556,7 +556,7 @@ const MobileVisitRow = ({
                     {selectionEnabled && (
                         <Button
                             variant="ghost"
-                            className="h-11 w-full rounded-[20px] bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
+                            className="h-11 w-full rounded-button bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
                             onClick={() => onSelect?.(visit.id, !isSelected)}
                             style={{ color: rowColor }}
                         >
@@ -570,8 +570,8 @@ const MobileVisitRow = ({
 };
 
 const MobileVisitDetailLine = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 rounded-[20px] bg-background/30 p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-muted/28 text-muted-foreground">
+    <div className="flex items-center gap-3 rounded-button bg-background/30 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
             <Icon size={15} />
         </span>
         <span className="min-w-0">
