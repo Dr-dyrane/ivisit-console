@@ -63,7 +63,7 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 **Foundation gaps to close (highest-leverage for "one voice"):**
 - ✅ **Collapse glass to one recipe** — `apple-glass*` stripped of blur → opaque; `chrome-glass` sole frosted recipe (2026-07-08).
 - ✅ **State filter = one chip component** — recycled `MobileKPIStrip` into chips; Visits/Emergency bespoke grids deleted onto it (2026-07-08).
-- ☐ **Align `mobileMotion.js` to the canon** — spring 168/30/0.9 + Apple ease + graduated press; keep the reduced-motion + tap-flash kill.
+- ✅ **Align `mobileMotion.js` to the canon** — Apple ease + `mobileSpring 168/30/0.9` + `mobileMotion.press {control 0.96, card 0.988}` (2026-07-08). Follow-up: normalize inline `whileTap`/inline-spring values in components to these (component-parity pass).
 - ☐ **Tokenize spacing + typography + elevation** (CSS vars / Tailwind theme) so elements stop re-inlining.
 - ☐ **Element extraction** — `Eyebrow`, `MobileButton`, `MobileIconWell` (replace inline usages).
 - ☐ **Strict-radius hardgate green on every mobile page** (not just Today/Requests).
