@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -27,7 +26,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="rounded-card bg-background/35 shadow-sm p-4 hover:shadow-md transition-shadow group">
+          <div className="rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30 group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-1 mb-2">
@@ -35,9 +34,9 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     <h3 className="font-bold text-lg truncate group-hover:text-foreground transition-colors">
                       {user.full_name || user.profile_full_name || 'Unknown User'}
                     </h3>
-                    <Badge className={`rounded-pill ${getRoleBadge(user.role)} font-bold`}>
+                    <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getRoleBadge(user.role)}`}>
                       {user.role}
-                    </Badge>
+                    </span>
                   </div>
                   <span className="text-xs text-muted-foreground font-medium lowercase">@{user.username || user.profile_username || 'no-handle'}</span>
                 </div>
@@ -48,9 +47,9 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {user.bvn_verified && (
-                  <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2">
+                  <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">
                     Verified
-                  </Badge>
+                  </span>
                 )}
                 <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                   <Button
