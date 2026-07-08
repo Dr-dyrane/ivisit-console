@@ -28,6 +28,7 @@ import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
+import { formatVisitType, getVisitPatientLabel, getVisitFacilityLabel } from '../../utils/visitRowProjection';
 
 const normalizeVisitCount = (value, fallback = 0) => {
   const numeric = Number(value);
@@ -557,7 +558,7 @@ export const VisitsPage = () => {
       return (
         <Button
           onClick={handleCreate}
-          className={`glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase transition-all ${activeActionFeedback === 'create' ? 'scale-95 bg-primary/10 text-primary' : ''}`}
+          className={`bg-card/70 h-9 px-4 text-[10px] font-bold tracking-widest uppercase transition-all ${activeActionFeedback === 'create' ? 'scale-95 bg-primary/10 text-primary' : ''}`}
           aria-busy={activeActionFeedback === 'create'}
           data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         >
@@ -671,11 +672,11 @@ export const VisitsPage = () => {
               <>
                 {viewMode === 'grid' && (
                   visits.length === 0 ? (
-                    <Card className="squircle-lg glass-card-premium p-12 text-center">
+                    <Card className="squircle-lg bg-card/70 p-12 text-center">
                       <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                       <h3 className="font-bold text-xl mb-2">No visits yet</h3>
                       <p className="text-muted-foreground mb-6">Schedule the first visit.</p>
-                      <Button onClick={handleCreate} className="glass-card-premium" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
+                      <Button onClick={handleCreate} className="bg-card/70" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
                         <Plus className="h-4 w-4 mr-2" />
                         Schedule first visit
                       </Button>
@@ -697,7 +698,7 @@ export const VisitsPage = () => {
                             className="col-span-1"
                           >
                             <Card
-                              className={`h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col cursor-pointer transition-[transform,box-shadow,background] duration-200 ${focusedVisit?.id === visit.id ? 'bg-primary/6 shadow-[0_24px_80px_hsl(var(--primary)/0.14)]' : ''}`}
+                              className={`h-full squircle-xl bg-card/70 p-6 hover-lift group relative overflow-hidden flex flex-col cursor-pointer transition-[transform,box-shadow,background] duration-200 ${focusedVisit?.id === visit.id ? 'bg-primary/6 shadow-[0_24px_80px_hsl(var(--primary)/0.14)]' : ''}`}
                               data-testid={`visit-card-${visit.id}`}
                               role="button"
                               tabIndex={0}
@@ -784,7 +785,7 @@ export const VisitsPage = () => {
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between mt-auto pt-4 relative z-10 px-2 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]">
+                              <div className="flex items-center justify-between mt-auto pt-4 relative z-10 px-2 ">
                                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                   #{visit.id?.slice(0, 8)}
                                 </div>
@@ -994,7 +995,7 @@ const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =>
 
 const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] dark:bg-card/50 md:rounded-[44px]"
     data-testid="visits-activity-sheet"
   >
     <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
@@ -1034,7 +1035,7 @@ const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, paginat
 
 const VisitErrorBanner = ({ message, onRetry }) => (
   <div
-    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
     data-testid="visits-error-state"
   >
     <div className="flex min-w-0 items-start gap-3">
@@ -1092,25 +1093,9 @@ const VisitSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedb
   );
 };
 
-const formatVisitTypeLabel = (visit) => {
-  const raw = String(visit?.visit_type || visit?.type || 'Visit').replace(/_/g, ' ');
-  return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
-};
-
-const getVisitPatientLabel = (visit) => (
-  visit?.patient?.username ||
-  visit?.patient?.full_name ||
-  visit?.patient_name ||
-  (visit?.user_id ? 'Linked patient' : 'No patient')
-);
-
-const getVisitFacilityLabel = (visit) => (
-  visit?.hospital?.name ||
-  visit?.hospital_name ||
-  visit?.hospital ||
-  (visit?.hospital_id ? 'Linked facility' : 'No facility')
-);
-
+// formatVisitType / getVisitPatientLabel / getVisitFacilityLabel now come from the
+// shared visitRowProjection so record identity (full_name-first patient, facility-first
+// label) is decided in one place. Only the rail-specific doctor label stays local.
 const getVisitDoctorLabel = (visit) => (
   visit?.doctor?.name ||
   visit?.doctor ||
@@ -1122,7 +1107,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   if (loading) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
           <div className="h-5 w-28 rounded-full bg-muted/40" />
           <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
           <div className="mt-4 space-y-3">
@@ -1138,7 +1123,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   if (!visit) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
           <Calendar className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No visit selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Visits will appear here when the list has results.</p>
@@ -1155,7 +1140,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
 
   return (
     <aside className="hidden min-h-0 lg:flex lg:flex-col">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
         <div className="flex items-center justify-between gap-3">
           <Badge className={`${visit.status === 'completed' ? 'bg-success/16 text-success' : visit.status === 'cancelled' ? 'bg-destructive/14 text-destructive' : visit.status === 'in_progress' ? 'bg-warning/16 text-warning' : 'bg-info/16 text-info'} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
             {status}
@@ -1165,7 +1150,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           </span>
         </div>
 
-        <div className="mt-6 rounded-[32px] bg-background/42 p-5 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]">
+        <div className="mt-6 rounded-[32px] bg-background/42 p-5 ">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
               <Calendar className="h-5 w-5" />
@@ -1173,7 +1158,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Current visit</p>
               <h2 className="mt-1 line-clamp-2 text-2xl font-semibold tracking-tight">
-                {formatVisitTypeLabel(visit)}
+                {formatVisitType(visit)}
               </h2>
               <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />

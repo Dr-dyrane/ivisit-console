@@ -22,7 +22,7 @@ const LinkCard = ({ onClick, icon: Icon, title, sub, delay, ease }) => (
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay, ease }}
-    className="bg-card/70 rounded-card p-5 md:p-6 text-left flex items-center gap-4 min-h-[110px]"
+    className="glass-card rounded-card p-5 md:p-6 text-left flex items-center gap-4 min-h-[110px] hover-lift"
   >
     <div className="w-11 h-11 rounded-icon bg-muted/40 flex items-center justify-center shrink-0">
       <Icon className="h-5 w-5 text-foreground" />
@@ -60,7 +60,7 @@ export const SponsorHome = () => {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease }}
-        className="bg-card/70 rounded-card p-5 md:p-6"
+        className="glass-card rounded-card p-5 md:p-6"
       >
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-icon bg-primary/10 flex items-center justify-center shrink-0">
@@ -74,7 +74,7 @@ export const SponsorHome = () => {
             </p>
             <button
               onClick={() => navigate('/analytics')}
-              className="mt-4 inline-flex items-center justify-center gap-2 rounded-card bg-primary text-primary-foreground font-semibold text-sm py-2.5 px-5 hover:opacity-95 transition-opacity"
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm py-2.5 px-5 hover:opacity-95 transition-opacity"
             >
               <BarChart3 className="h-4 w-4" /> View analytics
             </button>
