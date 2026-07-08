@@ -364,7 +364,7 @@ export const MobileEmergency = ({
                             {groupByMonth(displayItems, (request) => request?.created_at).map(({ item: request, header }) => (
                                 <React.Fragment key={request.id}>
                                     {header && (
-                                        <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                        <div className="px-2 pb-1 pt-3 eyebrow">
                                             {header}
                                         </div>
                                     )}

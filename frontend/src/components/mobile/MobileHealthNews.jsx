@@ -237,7 +237,7 @@ export const MobileHealthNews = ({
               return (
                 <React.Fragment key={article.id}>
                   {header && (
-                    <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <div className="px-2 pb-1 pt-3 eyebrow">
                       {header}
                     </div>
                   )}

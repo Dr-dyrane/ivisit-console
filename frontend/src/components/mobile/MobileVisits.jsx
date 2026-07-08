@@ -290,7 +290,7 @@ export const MobileVisits = ({
                                         if (month && month !== lastMonth) {
                                             lastMonth = month;
                                             out.push(
-                                                <div key={`grp-${month}`} className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                                <div key={`grp-${month}`} className="px-2 pb-1 pt-3 eyebrow">
                                                     {month}
                                                 </div>
                                             );
@@ -450,7 +450,7 @@ const MobileVisitRow = ({
                     readable (2-line clamp, never a stub). when·ref drops to its own line so it can
                     never steal width from the facility. See MOTION_AND_INTERACTION_CANON.md §2.1. */}
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{row.caption}</span>
+                    <span className="block truncate eyebrow">{row.caption}</span>
                     <span className="mt-0.5 text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{row.primary}</span>
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{row.secondary}</span>
                     <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{row.meta}</span>
