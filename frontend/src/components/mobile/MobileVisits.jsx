@@ -24,6 +24,16 @@ import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { visitRowProjection } from '../../utils/visitRowProjection';
+import { VitalTrack } from '../common/VitalTrack';
+
+// Visit lifecycle for the shared VitalTrack (Scheduled -> Active -> Done). Tones are
+// the semantic status hues (cyan/amber/emerald); cancelled renders a muted track.
+const VISIT_STEPS = [
+  { key: 'scheduled', label: 'Scheduled' },
+  { key: 'in_progress', label: 'Active' },
+  { key: 'completed', label: 'Done' },
+];
+const VISIT_TONE = { scheduled: '#0891B2', in_progress: '#B45309', completed: '#047857' };
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -517,6 +527,12 @@ const MobileVisitRow = ({
 
             {expanded && (
                 <div className="space-y-3 px-4 pb-4">
+                    <VitalTrack
+                        steps={VISIT_STEPS}
+                        currentKey={row.statusKey}
+                        tone={VISIT_TONE[row.statusKey] || 'hsl(var(--primary))'}
+                        cancelled={row.statusKey === 'cancelled'}
+                    />
                     <MobileVisitDetailLine icon={ServiceIcon} label="Visit type" value={row.caption} />
                     <MobileVisitDetailLine icon={Stethoscope} label="Practitioner" value={getDoctorName(visit)} />
                     <MobileVisitDetailLine icon={Hospital} label="Facility" value={getFacilityName(visit)} />
