@@ -179,7 +179,7 @@ export async function verifyProvider(providerId, approved) {
       .from(TABLE_NAME)
       .select('username, email, role')
       .eq('id', providerId)
-      .single();
+      .maybeSingle();
 
     if (fetchError) throw fetchError;
     if (!provider) {
@@ -190,16 +190,16 @@ export async function verifyProvider(providerId, approved) {
       throw new Error('Only providers can be verified');
     }
 
-    // Update verification status
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        bvn_verified: approved,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', providerId)
-      .select()
-      .single();
+    // Update verification status.
+    // Admin verifies ANOTHER user's row; owner-only RLS on profiles makes a
+    // direct .update()...single() match 0 rows and 406 ("Cannot coerce the
+    // result to a single JSON object"). Route through the SECURITY DEFINER RPC
+    // already used by profilesService.updateProfile. RPC returns
+    // jsonb {success, id}; mirror that handling.
+    const { data, error } = await supabase.rpc('update_profile_by_admin', {
+      target_user_id: providerId,
+      profile_data: { bvn_verified: approved }
+    });
 
     if (error) throw error;
 

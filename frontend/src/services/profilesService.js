@@ -471,19 +471,19 @@ export async function getProvidersByType(providerType) {
  */
 export async function verifyProfileBVN(profileId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        bvn_verified: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profileId)
-      .select()
-      .single();
+    // Admin verifies ANOTHER user's row; owner-only RLS makes a direct
+    // .update()...single() match 0 rows and 406. Route through the same
+    // SECURITY DEFINER RPC updateProfile uses. The RPC returns jsonb
+    // {success, id}, not the row, so re-read the full profile to preserve
+    // the caller contract (useProfiles.verifyBVN splices the full row into state).
+    const { error } = await supabase.rpc('update_profile_by_admin', {
+      target_user_id: profileId,
+      profile_data: { bvn_verified: true },
+    });
 
     if (error) throw error;
 
-    return data;
+    return await getProfile(profileId);
   } catch (error) {
     console.error(`Error verifying profile BVN ${profileId}:`, error);
     throw error;
