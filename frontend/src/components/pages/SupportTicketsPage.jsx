@@ -507,7 +507,7 @@ export const SupportTicketsPage = () => {
         onClick={handleCreate}
         data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         aria-busy={activeActionFeedback === 'create'}
-        className="h-9 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+        className="h-9 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
       >
         <Plus className="mr-2 h-4 w-4" />
         New ticket
@@ -532,10 +532,10 @@ export const SupportTicketsPage = () => {
         onClick={handleOpenFilters}
         data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
         aria-label="Filter support"
-        className="relative h-9 w-9 rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
+        className="relative h-9 w-9 rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
       >
         <Filter className="h-4 w-4" />
-        {hasFilters && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}
+        {hasFilters && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-pill bg-primary" />}
       </Button>
     );
   }, [activeActionFeedback, filters, handleOpenFilters, kpiFilter]);
@@ -726,10 +726,10 @@ const SupportSignalPanel = ({ signal, stats, tickets, kpiFilter, setKpiFilter, l
   const SignalIcon = signal.icon;
 
   return (
-    <section className="relative overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/42 md:p-6 xl:min-h-[540px]">
-      <div className="absolute inset-x-10 top-0 h-36 rounded-full bg-primary/10 blur-3xl" />
+    <section className="relative overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/42 md:p-6 xl:min-h-[540px]">
+      <div className="absolute inset-x-10 top-0 h-36 rounded-pill bg-primary/10 blur-3xl" />
       <div className="relative z-10 flex h-full flex-col">
-        <div className={`mb-8 flex h-14 w-14 items-center justify-center rounded-[26px] ${supportToneClass[signal.tone] || supportToneClass.primary}`}>
+        <div className={`mb-8 flex h-14 w-14 items-center justify-center rounded-button ${supportToneClass[signal.tone] || supportToneClass.primary}`}>
           <SignalIcon className="h-6 w-6" />
         </div>
         <p className="text-sm font-medium text-muted-foreground">{signal.label}</p>
@@ -771,7 +771,7 @@ const SupportStateStrip = ({ stats, tickets, loading, kpiFilter, setKpiFilter })
           onClick={() => setKpiFilter(option.id)}
           data-state={selected ? 'selected' : 'idle'}
           aria-pressed={selected}
-          className={`min-h-[82px] rounded-[28px] p-3 text-left transition-[background,box-shadow,transform,color] duration-200 active:scale-[0.98] ${selected ? option.activeClass : option.restClass}`}
+          className={`min-h-[82px] rounded-inner p-3 text-left transition-[background,box-shadow,transform,color] duration-200 active:scale-[0.98] ${selected ? option.activeClass : option.restClass}`}
         >
           <span className="flex items-center justify-between gap-2">
             <Icon className={`h-4 w-4 ${selected ? option.iconClass : 'text-muted-foreground'}`} />
@@ -785,7 +785,7 @@ const SupportStateStrip = ({ stats, tickets, loading, kpiFilter, setKpiFilter })
 );
 
 const SupportSignalStat = ({ label, value, tone }) => (
-  <div className={`rounded-[28px] p-4 ${supportToneClass[tone] || supportToneClass.muted}`}>
+  <div className={`rounded-inner p-4 ${supportToneClass[tone] || supportToneClass.muted}`}>
     <p className="text-xs font-medium opacity-75">{label}</p>
     <p className="mt-1 text-2xl font-semibold">{value}</p>
   </div>
@@ -806,7 +806,7 @@ const SupportActivitySheet = ({
   const hasFilters = Boolean(filters?.search || filters?.kpiFilter !== 'all');
 
   return (
-    <section className="rounded-[40px] bg-card/72 p-3 shadow-[0_28px_90px_rgb(0_0_0/0.14)] backdrop-blur-2xl dark:bg-card/42 md:p-4 xl:min-h-[540px]">
+    <section className="rounded-sheet bg-card/72 p-3 shadow-[0_28px_90px_rgb(0_0_0/0.14)] backdrop-blur-2xl dark:bg-card/42 md:p-4 xl:min-h-[540px]">
       <div className="flex flex-col gap-3 p-2 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">Support queue</p>
@@ -822,14 +822,14 @@ const SupportActivitySheet = ({
               value={filters.search || ''}
               onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
               placeholder="Search support"
-              className="h-10 w-full rounded-2xl bg-muted/30 pl-9 pr-3 text-sm shadow-inner transition-[background,box-shadow] placeholder:text-muted-foreground/50 focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+              className="h-10 w-full rounded-button bg-muted/30 pl-9 pr-3 text-sm shadow-inner transition-[background,box-shadow] placeholder:text-muted-foreground/50 focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
             />
           </div>
           <button
             type="button"
             onClick={openFilters}
             data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
+            className="flex h-10 w-10 items-center justify-center rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
             aria-label="Filter support"
           >
             <Filter className="h-4 w-4" />
@@ -839,7 +839,7 @@ const SupportActivitySheet = ({
               type="button"
               onClick={openAnalytics}
               data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-[background,transform] hover:bg-primary/15 active:scale-[0.98]"
+              className="flex h-10 w-10 items-center justify-center rounded-button bg-primary/10 text-primary transition-[background,transform] hover:bg-primary/15 active:scale-[0.98]"
               aria-label="Open support analytics"
             >
               <BarChart3 className="h-4 w-4" />
@@ -849,15 +849,15 @@ const SupportActivitySheet = ({
       </div>
 
       {errorMessage && (
-        <div className="mx-2 mb-3 flex items-center justify-between rounded-[28px] bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_34px_rgba(245,158,11,0.12)] dark:text-amber-100">
+        <div className="mx-2 mb-3 flex items-center justify-between rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_34px_rgba(245,158,11,0.12)] dark:text-amber-100">
           <span className="text-sm">{errorMessage}</span>
-          <button type="button" onClick={onRetry} className="rounded-2xl bg-background/60 px-3 py-2 text-sm font-medium">
+          <button type="button" onClick={onRetry} className="rounded-button bg-background/60 px-3 py-2 text-sm font-medium">
             Retry
           </button>
         </div>
       )}
 
-      <div className="min-h-[420px] rounded-[32px] bg-background/45 p-2 shadow-inner dark:bg-black/10">
+      <div className="min-h-[420px] rounded-card bg-background/45 p-2 shadow-inner dark:bg-black/10">
         {children}
       </div>
 
@@ -903,11 +903,11 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
         }
       }}
       data-state={selected ? 'selected' : 'idle'}
-      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_88px] items-center gap-3 rounded-[28px] px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_88px] items-center gap-3 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-3">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${rowTone}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-button ${rowTone}`}>
             <MessageSquare className="h-4 w-4" />
           </span>
           <div className="min-w-0">
@@ -916,10 +916,10 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
           </div>
         </div>
       </div>
-      <span className="rounded-full bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+      <span className="rounded-pill bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
         {statusOption.label}
       </span>
-      <span className="rounded-full bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+      <span className="rounded-pill bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
         {priority.label}
       </span>
       <div className="flex justify-end gap-1">
@@ -930,7 +930,7 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
             onView(ticket);
           }}
           data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
-          className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
+          className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
           aria-label={`View ${ticket.subject}`}
         >
           <Eye className="h-4 w-4" />
@@ -943,7 +943,7 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
               onEdit(ticket);
             }}
             data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
-            className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
+            className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
             aria-label={`Edit ${ticket.subject}`}
           >
             <Edit className="h-4 w-4" />
@@ -956,7 +956,7 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
 
 const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate, canCreate, activeActionFeedback }) => (
   <aside className="hidden w-[340px] shrink-0 2xl:block">
-    <div className="sticky top-5 rounded-[40px] bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.15)] backdrop-blur-2xl dark:bg-card/42">
+    <div className="sticky top-5 rounded-sheet bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.15)] backdrop-blur-2xl dark:bg-card/42">
       <p className="text-sm font-medium text-muted-foreground">Focused request</p>
       {loading && !ticket ? (
         <div className="mt-5">
@@ -977,7 +977,7 @@ const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate,
               type="button"
               onClick={() => onView(ticket)}
               data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
-              className="h-11 w-full rounded-2xl text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+              className="h-11 w-full rounded-button text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
             >
               View details
             </Button>
@@ -987,13 +987,13 @@ const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate,
                 variant="ghost"
                 onClick={() => onEdit(ticket)}
                 data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
-                className="h-11 w-full rounded-2xl bg-muted/36 text-sm font-semibold hover:bg-muted/50"
+                className="h-11 w-full rounded-button bg-muted/36 text-sm font-semibold hover:bg-muted/50"
               >
                 Edit request
               </Button>
             )}
           </div>
-          <p className="mt-5 rounded-[24px] bg-muted/24 p-3 text-xs leading-5 text-muted-foreground">
+          <p className="mt-5 rounded-inner bg-muted/24 p-3 text-xs leading-5 text-muted-foreground">
             Assignment, status changes, and deletion stay unavailable until support receiver proof is documented.
           </p>
         </>
@@ -1002,7 +1002,7 @@ const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate,
           <h2 className="mt-3 text-2xl font-semibold">No request selected</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">Create a support request or change filters.</p>
           {canCreate && (
-            <Button type="button" onClick={onCreate} className="mt-5 h-11 w-full rounded-2xl text-sm font-semibold">
+            <Button type="button" onClick={onCreate} className="mt-5 h-11 w-full rounded-button text-sm font-semibold">
               New ticket
             </Button>
           )}
@@ -1013,7 +1013,7 @@ const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate,
 );
 
 const SupportDetailFact = ({ label, value }) => (
-  <div className="flex items-center justify-between rounded-2xl bg-muted/24 px-3 py-2">
+  <div className="flex items-center justify-between rounded-inner bg-muted/24 px-3 py-2">
     <span className="text-xs text-muted-foreground">{label}</span>
     <span className="max-w-[170px] truncate text-sm font-medium text-foreground">{value}</span>
   </div>
@@ -1022,20 +1022,20 @@ const SupportDetailFact = ({ label, value }) => (
 const SupportSkeletonRows = () => (
   <div className="space-y-2">
     {[0, 1, 2, 3].map((item) => (
-      <div key={item} className="h-[88px] animate-pulse rounded-[28px] bg-muted/26" />
+      <div key={item} className="h-[88px] animate-pulse rounded-card bg-muted/26" />
     ))}
   </div>
 );
 
 const SupportEmptyState = ({ title, copy, actionLabel, onAction }) => (
   <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-    <div className="flex h-14 w-14 items-center justify-center rounded-[26px] bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
+    <div className="flex h-14 w-14 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
       <Headphones className="h-6 w-6" />
     </div>
     <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
     {onAction && (
-      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-2xl px-4 text-sm font-semibold">
+      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-button px-4 text-sm font-semibold">
         <RefreshCw className="mr-2 h-4 w-4" />
         {actionLabel}
       </Button>

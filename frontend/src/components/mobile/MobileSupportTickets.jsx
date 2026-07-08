@@ -92,9 +92,9 @@ export const MobileSupportTickets = ({
         )}
         contentClassName="pt-4 pb-4 text-foreground"
       >
-        <section className="mb-3 rounded-[32px] bg-card/72 p-4 shadow-[0_22px_64px_rgb(0_0_0/0.14)] backdrop-blur-xl dark:bg-card/46">
+        <section className="mb-3 rounded-card bg-card/72 p-4 shadow-[0_22px_64px_rgb(0_0_0/0.14)] backdrop-blur-xl dark:bg-card/46">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-[0_14px_34px_hsl(var(--primary)/0.12)]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_14px_34px_hsl(var(--primary)/0.12)]">
               <Headphones className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -111,7 +111,7 @@ export const MobileSupportTickets = ({
             <Button
               type="button"
               onClick={onRetry}
-              className="mt-4 h-10 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+              className="mt-4 h-10 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
             >
               Try again
             </Button>
@@ -126,14 +126,14 @@ export const MobileSupportTickets = ({
               placeholder="Search support"
               value={filters?.search || ''}
               onChange={handleSearch}
-              className="h-11 w-full rounded-2xl bg-card/72 pl-10 pr-4 text-[13px] shadow-inner placeholder:text-muted-foreground/45 transition-[background,box-shadow] focus-visible:bg-card/88 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] dark:bg-card/46"
+              className="h-11 w-full rounded-button bg-card/72 pl-10 pr-4 text-[13px] shadow-inner placeholder:text-muted-foreground/45 transition-[background,box-shadow] focus-visible:bg-card/88 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] dark:bg-card/46"
             />
           </div>
           {onOpenFilters && (
             <button
               type="button"
               onClick={onOpenFilters}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card/72 text-muted-foreground shadow-[0_14px_32px_rgb(0_0_0/0.10)] transition-[background,color,transform] active:scale-[0.96] hover:bg-card/88 hover:text-primary dark:bg-card/46"
+              className="flex h-11 w-11 items-center justify-center rounded-button bg-card/72 text-muted-foreground shadow-[0_14px_32px_rgb(0_0_0/0.10)] transition-[background,color,transform] active:scale-[0.96] hover:bg-card/88 hover:text-primary dark:bg-card/46"
               aria-label="Filter support"
             >
               <SlidersHorizontal size={18} />
@@ -143,7 +143,7 @@ export const MobileSupportTickets = ({
             <button
               type="button"
               onClick={onViewAnalytics}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[0_14px_32px_hsl(var(--primary)/0.12)] transition-[background,transform] active:scale-[0.96] hover:bg-primary/15"
+              className="flex h-11 w-11 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_14px_32px_hsl(var(--primary)/0.12)] transition-[background,transform] active:scale-[0.96] hover:bg-primary/15"
               aria-label="Open support analytics"
             >
               <BarChart3 size={18} />
@@ -184,14 +184,14 @@ export const MobileSupportTickets = ({
                   itemId={ticket.id}
                   expandedContent={(
                     <div className="space-y-3 py-3">
-                      <div className="rounded-2xl bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                      <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
                         {ticket.message || 'No extra message was added.'}
                       </div>
                       <div className="flex gap-2 pt-1">
                         <Button
                           type="button"
                           variant="ghost"
-                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-card/70 text-sm font-medium shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
+                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-card/70 text-sm font-medium shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
                           onClick={() => onView?.(ticket)}
                         >
                           <Eye className="h-4 w-4 text-primary" />
@@ -201,7 +201,7 @@ export const MobileSupportTickets = ({
                           <Button
                             type="button"
                             variant="ghost"
-                            className="flex h-11 items-center justify-center rounded-2xl bg-card/70 px-4 shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
+                            className="flex h-11 items-center justify-center rounded-button bg-card/70 px-4 shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
                             onClick={() => onEdit?.(ticket)}
                             aria-label={`Edit ${ticket.subject || 'support request'}`}
                           >
