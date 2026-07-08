@@ -54,16 +54,18 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 | **Radius ladder** | `sheet 44 · modal 38 · card 30 · inner 22 · button 20 · icon 14 · pill 999`, squircle intent. In `index.css` + `tailwind rounded-{…}`. | ✅ defined · ◐ enforced (only Today/Requests strict-clean) |
 | **Color / brand** | `--primary 357 74% 26%` crimson (one action); `--destructive` red for danger only. | ✅ |
 | **Status hues (raw)** | semantic tokens collapse to red, so status uses raw hues via `constants/vitalTracks.js`: cyan `#0891B2` / amber `#B45309` / emerald `#047857` / sky `#0284C7` / slate. | ✅ (`resolveVital`, `statusPill`) |
-| **Glass** | ONE recipe: `chrome-glass` (0.68 / blur 24 / sat 180%) + `chrome-glass-strong` (0.80 / blur 36). Frosted, borderless, `+ chrome-float` shadow. | ◐ tokens exist; **`apple-glass-heavy` still coexists → collapse to one** |
+| **Glass** | ONE recipe: `chrome-glass` (0.68 / blur 24 / sat 180%) + `chrome-glass-strong` (0.80 / blur 36). Frosted, borderless, `+ chrome-float` shadow. Content/controls = opaque (no blur). | ✅ collapsed 2026-07-08 — `apple-glass*` stripped of blur → opaque aliases; `chrome-glass` is the sole frosted recipe (legacy unused `glass-surface` remains, out of mobile scope) |
 | **Spacing** | 4px grid (ivisit-app `SPACING xs4 sm8 md16 lg24 xl32`); mobile section rhythm 20/12/8. | ☐ not tokenized (inline) |
 | **Typography** | scale: title 27–34 / h2 20 / body 15 / meta 12 / caption(eyebrow) 10–11 uppercase `tracking-[0.14em]`. | ☐ not tokenized (inline per component) |
 | **Elevation** | soft: row `0 4px 10px /0.03`, card `0 22px 64px /0.14`, float `chrome-float`. app web shadow `0 18px 36px /0.18`. | ◐ inline; not tokenized |
 | **Motion** | **spring `{stiffness:168, damping:30, mass:0.9}`**, ease `[0.21,0.47,0.32,0.98]`, sheet-snap `[0.21,0.47,0.32,0.98]`, press controls `0.96` / cards `0.988`. | ⚠️ **`mobileMotion.js` uses ease `[0.22,1,0.36,1]` + durations — NOT the canon. Align.** |
 
 **Foundation gaps to close (highest-leverage for "one voice"):**
-- ☐ **Collapse glass to one recipe** — migrate `apple-glass-heavy` → `chrome-glass(-strong)`.
+- ✅ **Collapse glass to one recipe** — `apple-glass*` stripped of blur → opaque; `chrome-glass` sole frosted recipe (2026-07-08).
+- ✅ **State filter = one chip component** — recycled `MobileKPIStrip` into chips; Visits/Emergency bespoke grids deleted onto it (2026-07-08).
 - ☐ **Align `mobileMotion.js` to the canon** — spring 168/30/0.9 + Apple ease + graduated press; keep the reduced-motion + tap-flash kill.
 - ☐ **Tokenize spacing + typography + elevation** (CSS vars / Tailwind theme) so elements stop re-inlining.
+- ☐ **Element extraction** — `Eyebrow`, `MobileButton`, `MobileIconWell` (replace inline usages).
 - ☐ **Strict-radius hardgate green on every mobile page** (not just Today/Requests).
 
 ---
