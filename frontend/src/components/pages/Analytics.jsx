@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
@@ -139,7 +138,7 @@ const AnalyticsLoadErrorBanner = ({ onRetry }) => (
   <div
     data-testid="analytics-error-state"
     role="alert"
-    className="mb-4 mx-4 md:mx-6 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm"
+    className="mb-4 mx-4 md:mx-6 rounded-button bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm"
   >
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -153,7 +152,7 @@ const AnalyticsLoadErrorBanner = ({ onRetry }) => (
         size="sm"
         variant="ghost"
         onClick={onRetry}
-        className="self-start rounded-full bg-background/70 px-4 text-xs font-semibold text-destructive hover:bg-background/90 sm:self-auto"
+        className="self-start rounded-pill bg-background/70 px-4 text-xs font-semibold text-destructive hover:bg-background/90 sm:self-auto"
       >
         Retry
       </Button>
@@ -169,7 +168,7 @@ const AnalyticsSourceIssueBanner = ({ issueSummary, onRetry }) => {
       data-testid="analytics-source-state"
       role="status"
       aria-live="polite"
-      className="mb-4 mx-4 md:mx-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
+      className="mb-4 mx-4 md:mx-6 rounded-button bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -183,7 +182,7 @@ const AnalyticsSourceIssueBanner = ({ issueSummary, onRetry }) => {
           size="sm"
           variant="ghost"
           onClick={onRetry}
-          className="self-start rounded-full bg-background/70 px-4 text-xs font-semibold text-amber-900 hover:bg-background/90 dark:text-amber-100 sm:self-auto"
+          className="self-start rounded-pill bg-background/70 px-4 text-xs font-semibold text-amber-900 hover:bg-background/90 dark:text-amber-100 sm:self-auto"
         >
           Retry
         </Button>
@@ -354,7 +353,7 @@ export const Analytics = () => {
         <SelectTrigger className="w-[140px] h-9 rounded-card bg-card shadow-sm text-xs font-semibold">
           <SelectValue placeholder="Range" />
         </SelectTrigger>
-        <SelectContent className="squircle shadow-sm bg-card">
+        <SelectContent className="rounded-inner shadow-sm bg-card">
           <SelectItem value="7d">Last 7 days</SelectItem>
           <SelectItem value="30d">Last 30 days</SelectItem>
           <SelectItem value="90d">Last 90 days</SelectItem>
@@ -617,11 +616,11 @@ export const Analytics = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-sm">
+        <div className="bg-background/35 backdrop-blur-xs rounded-inner p-3 shadow-sm">
           <p className="font-semibold text-sm mb-1">{label}</p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <div className="w-2 h-2 rounded-pill" style={{ backgroundColor: entry.color }} />
               <span className="font-normal" style={{ color: entry.color }}>
                 {entry.name}: {entry.value}
               </span>
@@ -705,7 +704,7 @@ export const Analytics = () => {
           onRetry={fetchAnalytics}
         />
         {isDataSparse && (
-          <div className="mb-4 mx-4 md:mx-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
+          <div className="mb-4 mx-4 md:mx-6 rounded-inner bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
             <span>Analytics source is pending. Verify report scope before using these charts.</span>
             <button onClick={() => setSparseBannerDismissed(true)} className="ml-4 shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">Close</button>
           </div>
@@ -715,7 +714,7 @@ export const Analytics = () => {
             id="analytics-export-feedback"
             role="status"
             aria-live="polite"
-            className="mb-4 mx-4 md:mx-6 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+            className="mb-4 mx-4 md:mx-6 rounded-button bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
           >
             {commandNotice}
           </div>
@@ -745,17 +744,17 @@ export const Analytics = () => {
               className={`${stat.colSpan}`}
             >
               <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-pill -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                    <div className="w-12 h-12 rounded-inner flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                   <div>
@@ -782,17 +781,17 @@ export const Analytics = () => {
               className={`${stat.colSpan}`}
             >
               <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-pill -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                    <div className="w-12 h-12 rounded-inner flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`rounded-card ${stat.color === CHART_COLORS.warning ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card ${stat.color === CHART_COLORS.warning ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                   <div>
@@ -819,17 +818,17 @@ export const Analytics = () => {
               className={`${stat.colSpan}`}
             >
               <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-pill -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                    <div className="w-12 h-12 rounded-inner flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                   <div>
@@ -855,17 +854,17 @@ export const Analytics = () => {
               className={`${stat.colSpan}`}
             >
               <Card className={`h-full min-h-[160px] ${stat.shape} bg-card shadow-sm p-6 relative overflow-hidden group`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-pill -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                 <div className="relative z-10 flex flex-col justify-between h-full">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                    <div className="w-12 h-12 rounded-inner flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
                       <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                     </div>
                     {stat.trend && (
-                      <Badge className={`rounded-card ${stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card ${stat.color === CHART_COLORS.success ? 'bg-muted text-emerald-700 dark:text-emerald-200' : 'bg-muted text-muted-foreground'}`}>
                         {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                         {stat.trendValue}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                   <div>
@@ -894,10 +893,10 @@ export const Analytics = () => {
                     <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
@@ -959,10 +958,10 @@ export const Analytics = () => {
                     <p className="text-muted-foreground font-medium">Your organization's response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-amber-500/15 text-amber-700 dark:text-amber-200 font-semibold px-3 py-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-amber-500/15 text-amber-700 dark:text-amber-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
@@ -1024,10 +1023,10 @@ export const Analytics = () => {
                     <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-muted text-emerald-700 dark:text-emerald-200 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       {responseScopeBadge}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
@@ -1089,10 +1088,10 @@ export const Analytics = () => {
                     <p className="text-muted-foreground font-medium">Your personal response time performance</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-muted text-muted-foreground font-semibold px-3 py-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-muted text-muted-foreground font-semibold px-3 py-1">
                       <Activity className="h-4 w-4 mr-1" />
                       {providerResponseScopeBadge}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
@@ -1152,7 +1151,7 @@ export const Analytics = () => {
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1193,8 +1192,8 @@ export const Analytics = () => {
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-pill" style={{ backgroundColor: status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
                   ))}
@@ -1215,7 +1214,7 @@ export const Analytics = () => {
               <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-amber-700 dark:text-amber-200" />
                     </div>
                   </div>
@@ -1255,8 +1254,8 @@ export const Analytics = () => {
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-pill" style={{ backgroundColor: status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
                   ))}
@@ -1277,7 +1276,7 @@ export const Analytics = () => {
               <Card className="h-full min-h-[400px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1317,8 +1316,8 @@ export const Analytics = () => {
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-pill" style={{ backgroundColor: status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
                   ))}
@@ -1340,7 +1339,7 @@ export const Analytics = () => {
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1381,8 +1380,8 @@ export const Analytics = () => {
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/30 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color === CHART_COLORS.primary ? CHART_COLORS.info : status.color }} />
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-muted/30 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-pill" style={{ backgroundColor: status.color === CHART_COLORS.primary ? CHART_COLORS.info : status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
                   ))}
@@ -1404,7 +1403,7 @@ export const Analytics = () => {
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Mail className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1449,12 +1448,12 @@ export const Analytics = () => {
 
                 {/* Type Pills Below */}
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-amber-500/15 text-xs font-medium">
-                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-amber-500/15 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-pill bg-amber-500" />
                     <span>Premium {resolvedSubscriptionStats.paid}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                    <div className="w-2 h-2 rounded-full bg-muted" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-inner bg-muted/20 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-pill bg-muted" />
                     <span>Free {resolvedSubscriptionStats.free}</span>
                   </div>
                 </div>
@@ -1480,12 +1479,12 @@ export const Analytics = () => {
               <Card className="h-full min-h-[140px] rounded-card bg-card p-6 relative overflow-hidden group flex items-center justify-between">
                 {/* Top Right Icon Style Applied Here Too */}
                 <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                  <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
+                  <div className="w-24 h-24 rounded-pill" style={{ backgroundColor: stat.color }} />
                 </div>
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
+                    <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-sm relative z-10">
                       <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                     </div>
                     <p className="text-sm font-semibold text-muted-foreground">{stat.title}</p>
@@ -1510,12 +1509,12 @@ export const Analytics = () => {
             >
               <Card className="h-full min-h-[140px] rounded-card bg-card p-6 relative overflow-hidden group flex items-center justify-between">
                 <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                  <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
+                  <div className="w-24 h-24 rounded-pill" style={{ backgroundColor: stat.color }} />
                 </div>
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
+                    <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-sm relative z-10">
                       <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                     </div>
                     <p className="text-sm font-semibold text-muted-foreground">{stat.title}</p>
@@ -1544,16 +1543,16 @@ export const Analytics = () => {
                         {stats.totalAmbulances}
                         <span className="text-sm text-muted-foreground font-medium ml-1">units</span>
                       </h3>
-                      <Badge className="rounded-card bg-muted/30 text-muted-foreground text-[10px] font-bold">{SOURCE_PENDING_LABEL}</Badge>
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card bg-muted/30 text-muted-foreground text-[10px] font-bold">{SOURCE_PENDING_LABEL}</span>
                     </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-pill bg-muted flex items-center justify-center">
                     <Zap className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-muted/20 rounded-pill overflow-hidden">
                     <motion.div
                       className="h-full bg-muted"
                       initial={{ width: 0 }}
@@ -1583,16 +1582,16 @@ export const Analytics = () => {
                           {resolvedHospitalCapacity.occupied || 0}
                           <span className="text-sm text-muted-foreground font-medium ml-1">/ {resolvedHospitalCapacity.total || 0} BEDS</span>
                         </h3>
-                        <Badge className="rounded-card bg-muted text-muted-foreground text-[10px] font-bold">{resolvedHospitalCapacity.total > 0 ? 'Current' : SOURCE_PENDING_LABEL}</Badge>
+                        <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card bg-muted text-muted-foreground text-[10px] font-bold">{resolvedHospitalCapacity.total > 0 ? 'Current' : SOURCE_PENDING_LABEL}</span>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-pill bg-muted flex items-center justify-center">
                       <Hospital className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
                   <div className="mt-4 flex items-center gap-4 relative z-10">
                     <div className="flex-1 space-y-2">
-                      <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-muted/20 rounded-pill overflow-hidden">
                         <motion.div className="h-full bg-muted" initial={{ width: 0 }} animate={{ width: `${hospitalCapacityPercent}%` }} transition={{ duration: 1.5, delay: 0.8 }} />
                       </div>
                       <p className="text-[9px] text-muted-foreground font-medium flex justify-between">
@@ -1600,7 +1599,7 @@ export const Analytics = () => {
                         <span>{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}% Capacity` : SOURCE_PENDING_LABEL}</span>
                       </p>
                     </div>
-                    <div className="px-3 py-1 bg-muted/30 rounded-lg ">
+                    <div className="px-3 py-1 bg-muted/30 rounded-inner ">
                       <p className="text-[8px] font-bold text-muted-foreground">ICU Free</p>
                       <p className="text-sm font-black text-foreground">{resolvedHospitalCapacity.icu || 0}</p>
                     </div>
@@ -1623,7 +1622,7 @@ export const Analytics = () => {
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Calendar className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1681,7 +1680,7 @@ export const Analytics = () => {
                     </div>
                     <div className="flex flex-col items-end">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-muted" />
+                        <div className="w-2 h-2 rounded-pill bg-muted" />
                         <p className="text-[10px] font-bold">{SOURCE_PENDING_LABEL}</p>
                       </div>
                     </div>
@@ -1689,8 +1688,8 @@ export const Analytics = () => {
                   <div className="flex-1 grid grid-cols-6 grid-rows-4 gap-2 relative z-10">
                     {demandHeatmap.map((item, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 + (idx * 0.02) }} className="relative group/cell">
-                        <div className={`w-full h-full rounded-md transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-amber-500/15' : item.value > 30 ? 'bg-muted/40' : 'bg-muted/30'}`} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-sm pointer-events-none">
+                        <div className={`w-full h-full rounded-inner transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-amber-500/15' : item.value > 30 ? 'bg-muted/40' : 'bg-muted/30'}`} />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded-inner text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-sm pointer-events-none">
                           {item.hour} - {item.value > 0 ? `${item.value}% load` : SOURCE_PENDING_LABEL}
                         </div>
                       </motion.div>
@@ -1699,7 +1698,7 @@ export const Analytics = () => {
                   <div className="mt-8 flex items-center justify-between pt-6">
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-destructive/60" />
+                        <div className="w-2 h-2 rounded-pill bg-destructive/60" />
                         <span className="text-[8px] font-bold text-muted-foreground">Critical</span>
                       </div>
                     </div>
@@ -1722,7 +1721,7 @@ export const Analytics = () => {
               <Card className="h-full min-h-[350px] rounded-card bg-card shadow-sm p-8 flex flex-col relative group">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Calendar className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1781,7 +1780,7 @@ export const Analytics = () => {
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <AlertTriangle className="h-6 w-6 text-destructive" />
                     </div>
                   </div>
@@ -1792,9 +1791,9 @@ export const Analytics = () => {
                   {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-3xl font-bold text-destructive">{dominantType.name}</span>
-                      <Badge className="squircle bg-destructive/10 text-destructive font-semibold">
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-destructive/10 text-destructive font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
-                      </Badge>
+                      </span>
                     </div>
                   ) : (
                     <p className="mt-2 text-sm font-semibold text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
@@ -1845,7 +1844,7 @@ export const Analytics = () => {
               <Card className="h-full min-h-[350px] rounded-inner bg-card shadow-sm p-8 flex flex-col relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <AlertTriangle className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
@@ -1856,9 +1855,9 @@ export const Analytics = () => {
                   {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-3xl font-bold text-muted-foreground">{dominantType.name}</span>
-                      <Badge className="squircle bg-muted text-muted-foreground font-semibold">
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-muted text-muted-foreground font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of your cases
-                      </Badge>
+                      </span>
                     </div>
                   ) : (
                     <p className="mt-2 text-sm font-semibold text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
@@ -1911,7 +1910,7 @@ export const Analytics = () => {
               {/* Top Right Icon */}
               <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                  <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                     <TrendingUp className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
@@ -1932,9 +1931,9 @@ export const Analytics = () => {
                   <div key={idx} className="p-4 rounded-inner bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
-                      <Badge className="rounded-card bg-muted/30 text-muted-foreground font-bold text-xs">
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card bg-muted/30 text-muted-foreground font-bold text-xs">
                         {metric.change}
-                      </Badge>
+                      </span>
                     </div>
                     <p className="text-2xl font-bold">{metric.value}</p>
                   </div>
@@ -1955,7 +1954,7 @@ export const Analytics = () => {
               {/* Top Right Icon */}
               <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                  <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                     <Activity className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
@@ -1978,10 +1977,10 @@ export const Analytics = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-semibold">{metric.label}</span>
-                        <Badge className={`rounded-card ${metric.status === 'excellent' ? 'bg-muted text-emerald-700 dark:text-emerald-200' : metric.status === 'good' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : 'bg-muted/30 text-muted-foreground'
+                        <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-card ${metric.status === 'excellent' ? 'bg-muted text-emerald-700 dark:text-emerald-200' : metric.status === 'good' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200' : 'bg-muted/30 text-muted-foreground'
                           } font-bold text-xs`}>
                           {metric.status}
-                        </Badge>
+                        </span>
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         <span className="text-lg font-bold">{metric.value}</span>
@@ -2028,7 +2027,7 @@ export const Analytics = () => {
                     <h3 className="font-bold text-xl tracking-tight">Revenue Performance</h3>
                   </div>
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <div className="w-10 h-10 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Wallet className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
@@ -2040,7 +2039,7 @@ export const Analytics = () => {
                   {/* LEFT: Revenue Metrics */}
                   <div className="flex flex-col justify-between gap-3">
                     {financeMetricRows.map((m, idx) => (
-                      <div key={idx} className="space-y-1.5 p-3 rounded-xl bg-muted/30">
+                      <div key={idx} className="space-y-1.5 p-3 rounded-inner bg-muted/30">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] font-bold text-muted-foreground">{m.label}</span>
                           <span className="text-base font-black tracking-tight">{m.value}</span>
@@ -2057,7 +2056,7 @@ export const Analytics = () => {
                     ))}
 
                     {/* Health Score Row */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                    <div className="flex items-center gap-3 p-3 rounded-inner bg-muted/30">
                       <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90">
                           <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-muted/10" />
@@ -2079,7 +2078,7 @@ export const Analytics = () => {
 
                   {/* RIGHT: Area Chart */}
                   <div className="flex flex-col gap-3">
-                    <div className="h-[160px] min-h-[160px] bg-success/5 rounded-2xl overflow-hidden p-2 border-success/10">
+                    <div className="h-[160px] min-h-[160px] bg-emerald-500/5 rounded-button overflow-hidden p-2">
                       <ResponsiveContainer width="100%" height={FINANCE_CHART_HEIGHT} initialDimension={FINANCE_CHART_INITIAL_DIMENSION}>
                         <AreaChart data={financeData} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
                           <defs>
@@ -2105,11 +2104,11 @@ export const Analytics = () => {
                     </div>
                     {/* Quick Stat Tiles */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded-lg bg-muted/30 text-center">
+                      <div className="p-2 rounded-inner bg-muted/30 text-center">
                         <p className="text-[8px] font-bold text-muted-foreground">Paid Conv.</p>
                         <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
                       </div>
-                      <div className="p-2 rounded-lg bg-muted/30 text-center">
+                      <div className="p-2 rounded-inner bg-muted/30 text-center">
                         <p className="text-[8px] font-bold text-muted-foreground">Avg/Req</p>
                         <p className="text-sm font-black text-foreground">{avgPerRequestLabel}</p>
                       </div>

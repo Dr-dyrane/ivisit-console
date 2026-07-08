@@ -16,7 +16,6 @@ import {
     TrendingDown,
     Download
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
@@ -187,7 +186,7 @@ export const MobileAnalytics = ({
                         <section
                             data-testid="mobile-analytics-error-state"
                             role="alert"
-                            className="mx-3 mb-4 rounded-3xl bg-destructive/10 px-4 py-3 text-destructive shadow-sm"
+                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive shadow-sm"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div>
@@ -197,7 +196,7 @@ export const MobileAnalytics = ({
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
-                                    className="shrink-0 rounded-full bg-background/70 px-4 py-2 text-xs font-semibold text-destructive"
+                                    className="shrink-0 rounded-button bg-background/70 px-4 py-2 text-xs font-semibold text-destructive"
                                 >
                                     Retry
                                 </button>
@@ -209,7 +208,7 @@ export const MobileAnalytics = ({
                             data-testid="mobile-analytics-source-state"
                             role="status"
                             aria-live="polite"
-                            className="mx-3 mb-4 rounded-3xl bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
+                            className="mx-3 mb-4 rounded-card bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div>
@@ -219,7 +218,7 @@ export const MobileAnalytics = ({
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
-                                    className="shrink-0 rounded-full bg-background/70 px-4 py-2 text-xs font-semibold text-amber-900 dark:text-amber-100"
+                                    className="shrink-0 rounded-button bg-background/70 px-4 py-2 text-xs font-semibold text-amber-900 dark:text-amber-100"
                                 >
                                     Retry
                                 </button>
@@ -284,15 +283,15 @@ export const MobileAnalytics = ({
                                 expandedContent={
                                     <div className="space-y-4 py-3">
                                         <div className="flex flex-col gap-1 px-1">
-                                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Case Type Distribution</span>
+                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">Case Type Distribution</span>
                                             <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="text-destructive font-semibold">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {emergencyTypes.map((type, i) => (
-                                                <div key={i} className="flex flex-col gap-1 p-3 bg-primary/[0.04] rounded-2xl border border-white/[0.02]">
+                                                <div key={i} className="flex flex-col gap-1 p-3 bg-muted/30 rounded-inner">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">{type.name}</span>
-                                                        {type.isDominant && <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />}
+                                                        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{type.name}</span>
+                                                        {type.isDominant && <div className="w-1.5 h-1.5 rounded-pill bg-destructive animate-pulse" />}
                                                     </div>
                                                     <span className="text-lg font-semibold tracking-tighter">{type.value}</span>
                                                 </div>
@@ -318,14 +317,14 @@ export const MobileAnalytics = ({
                                     <div className="space-y-3 py-3">
                                         {requestsByStatus.map((status, i) => (
                                             <div key={i} className="space-y-1.5">
-                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-medium">
+                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.14em] font-semibold">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color }} />
+                                                        <div className="w-1.5 h-1.5 rounded-pill" style={{ backgroundColor: status.color }} />
                                                         <span className="text-foreground/60">{status.name}</span>
                                                     </div>
                                                     <span className="text-foreground/80 font-semibold">{status.value} units</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                                                <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${(status.value / Math.max(resolvedStats.totalEmergencies, 1)) * 100}%` }}
@@ -345,17 +344,17 @@ export const MobileAnalytics = ({
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-3">
                             <MobileSectionHeader label="Demand Velocity" color="hsl(var(--destructive))" />
-                            <div className="px-6 py-8 apple-glass-heavy bg-muted/30 rounded-3xl relative overflow-hidden shadow-xl border-0">
+                            <div className="px-6 py-8 bg-card/68 backdrop-blur-2xl rounded-card relative overflow-hidden shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Activity size={40} className="text-destructive" />
                                 </div>
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] uppercase tracking-[0.2em] text-destructive font-medium">Load Distribution</p>
+                                        <p className="text-[10px] uppercase tracking-[0.14em] text-destructive font-semibold">Load Distribution</p>
                                         <h4 className="text-xl font-medium tracking-tight">Peak Heatmap</h4>
                                     </div>
-                                    <div className="px-3 py-1 bg-destructive/10 rounded-full">
-                                        <span className="text-[10px] font-medium text-destructive uppercase tracking-widest">{SOURCE_PENDING_LABEL}</span>
+                                    <div className="px-3 py-1 bg-destructive/10 rounded-pill">
+                                        <span className="text-[10px] font-semibold text-destructive uppercase tracking-[0.14em]">{SOURCE_PENDING_LABEL}</span>
                                     </div>
                                 </div>
 
@@ -363,9 +362,9 @@ export const MobileAnalytics = ({
                                     {demandHeatmap.map((item, idx) => (
                                         <div key={idx} className="aspect-square relative group">
                                             <div
-                                                className={`w-full h-full rounded-md transition-all duration-300 ${item.value > 80 ? 'bg-destructive/60 shadow-[0_0_8px_rgba(var(--destructive),0.4)]' :
-                                                    item.value > 50 ? 'bg-warning/40' :
-                                                        item.value > 30 ? 'bg-info/20' :
+                                                className={`w-full h-full rounded-inner transition-all duration-300 ${item.value > 80 ? 'bg-destructive/60 shadow-[0_0_8px_rgba(var(--destructive),0.4)]' :
+                                                    item.value > 50 ? 'bg-amber-500/40' :
+                                                        item.value > 30 ? 'bg-sky-500/20' :
                                                             'bg-white/5'
                                                     }`}
                                             />
@@ -382,15 +381,15 @@ export const MobileAnalytics = ({
                                 <div className="mt-8 flex justify-between items-center opacity-40">
                                     <div className="flex gap-4">
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-                                            <span className="text-[8px] font-medium uppercase tracking-widest">Critical</span>
+                                            <div className="w-1.5 h-1.5 rounded-pill bg-destructive/60" />
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Critical</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                                            <span className="text-[8px] font-medium uppercase tracking-widest">Idle</span>
+                                            <div className="w-1.5 h-1.5 rounded-pill bg-white/10" />
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Idle</span>
                                         </div>
                                     </div>
-                                    <span className="text-[8px] font-medium italic opacity-50 uppercase tracking-widest">{SOURCE_PENDING_LABEL}</span>
+                                    <span className="text-[10px] font-semibold italic opacity-50 uppercase tracking-[0.14em]">{SOURCE_PENDING_LABEL}</span>
                                 </div>
                             </div>
                         </section>
@@ -416,23 +415,23 @@ export const MobileAnalytics = ({
                                     expandedContent={
                                         <div className="space-y-4 py-3">
                                             <div className="grid grid-cols-2 gap-3">
-                                                <div className="p-3 bg-primary/[0.04] rounded-2xl">
-                                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Total Capacity</p>
+                                                <div className="p-3 bg-muted/30 rounded-inner">
+                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">Total Capacity</p>
                                                     <p className="text-lg font-semibold tracking-tighter">{resolvedHospitalCapacity.total} Beds</p>
                                                 </div>
-                                                <div className="p-3 bg-primary/[0.04] rounded-2xl">
-                                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">ICU Reserved</p>
-                                                    <p className="text-lg font-semibold tracking-tighter text-info">{resolvedHospitalCapacity.icu}</p>
+                                                <div className="p-3 bg-muted/30 rounded-inner">
+                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">ICU Reserved</p>
+                                                    <p className="text-lg font-semibold tracking-tighter text-sky-500">{resolvedHospitalCapacity.icu}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-2 px-1">
                                                 <div className="flex justify-between items-baseline">
-                                                    <span className="text-[10px] uppercase tracking-widest font-medium opacity-40">Bed Occupancy</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.14em] font-semibold opacity-40">Bed Occupancy</span>
                                                     <span className="text-xs font-semibold">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
                                                 </div>
-                                                <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden shadow-inner">
+                                                <div className="h-1.5 w-full bg-muted/30 rounded-pill overflow-hidden shadow-inner">
                                                     <motion.div
-                                                        className="h-full bg-primary/60"
+                                                        className="h-full bg-sky-500/60"
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${hospitalCapacityPercent}%` }}
                                                     />
@@ -455,21 +454,21 @@ export const MobileAnalytics = ({
                                     color="hsl(var(--success))"
                                     expandedContent={
                                         <div className="space-y-4 py-3">
-                                            <div className="p-3 bg-success/[0.04] rounded-2xl flex justify-between items-center">
+                                            <div className="p-3 bg-muted/30 rounded-inner flex justify-between items-center">
                                                 <div>
-                                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Readiness Source</p>
+                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">Readiness Source</p>
                                                     <p className="text-lg font-semibold tracking-tighter">{SOURCE_PENDING_LABEL}</p>
                                                 </div>
-                                                <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 text-[10px] font-black tracking-widest">Pending</Badge>
+                                                <span className="inline-flex items-center rounded-pill bg-muted/40 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Pending</span>
                                             </div>
                                             <div className="space-y-2 px-1">
                                                 <div className="flex justify-between items-baseline opacity-40">
-                                                    <span className="text-[10px] uppercase tracking-widest font-medium">Deployment Ratio</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.14em] font-semibold">Deployment Ratio</span>
                                                     <span className="text-xs font-semibold">{SOURCE_PENDING_LABEL}</span>
                                                 </div>
-                                                <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                                                <div className="h-1.5 w-full bg-muted/30 rounded-pill overflow-hidden">
                                                     <motion.div
-                                                        className="h-full bg-success/60"
+                                                        className="h-full bg-emerald-500/60"
                                                         initial={{ width: 0 }}
                                                         animate={{ width: 0 }}
                                                     />
@@ -507,9 +506,9 @@ export const MobileAnalytics = ({
                                             { label: 'Latency', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'primary' },
                                             { label: 'Void Ratio', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'warning' }
                                         ].map((m, i) => (
-                                            <div key={i} className="p-3 bg-primary/[0.03] rounded-2xl flex flex-col justify-between min-h-[70px]">
+                                            <div key={i} className="p-3 bg-muted/30 rounded-inner flex flex-col justify-between min-h-[70px]">
                                                 <div className="flex justify-between items-start">
-                                                    <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-semibold">{m.label}</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{m.label}</span>
                                                     <span className="text-[7px] font-black text-muted-foreground">{m.change}</span>
                                                 </div>
                                                 <span className="text-lg font-semibold tracking-tighter">{m.value}</span>
@@ -540,13 +539,13 @@ export const MobileAnalytics = ({
                                             { label: 'Error Rate', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' }
                                         ].map((p, i) => (
                                             <div key={i} className="space-y-2">
-                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-black opacity-60">
+                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.14em] font-black opacity-60">
                                                     <span>{p.label}</span>
                                                     <span className="text-foreground">{p.value}</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                                                <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
                                                     <motion.div
-                                                        className={`h-full ${p.status === 'excellent' ? 'bg-success/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-primary/60'}`}
+                                                        className={`h-full ${p.status === 'excellent' ? 'bg-emerald-500/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-sky-500/60'}`}
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${p.progress}%` }}
                                                     />
@@ -563,14 +562,14 @@ export const MobileAnalytics = ({
                     {canReadFinanceAnalytics && (
                         <section className="mt-3">
                             <MobileSectionHeader label="Fiscal Trajectory" color="hsl(var(--warning))" />
-                            <div className="px-6 py-8 apple-glass-heavy bg-muted/30 rounded-3xl relative overflow-hidden shadow-xl border-0">
+                            <div className="px-6 py-8 bg-card/68 backdrop-blur-2xl rounded-card relative overflow-hidden shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
                                 <div className="absolute top-0 right-0 p-4 opacity-5">
-                                    <Wallet size={60} className="text-success" />
+                                    <Wallet size={60} className="text-emerald-500" />
                                 </div>
 
                                 <div className="flex justify-between items-center mb-8">
                                     <div>
-                                        <p className="text-[10px] uppercase tracking-[0.2em] text-success font-black mb-1">Revenue Stream</p>
+                                        <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-500 font-black mb-1">Revenue Stream</p>
                                         <h4 className="text-3xl font-black tracking-tighter">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
                                     </div>
                                     <div className="relative w-14 h-14 flex items-center justify-center">
@@ -580,7 +579,7 @@ export const MobileAnalytics = ({
                                                 cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent"
                                                 strokeDasharray={151}
                                                 strokeDashoffset={151 - (151 * resolvedFinanceSummary.health / 100)}
-                                                className="text-success transition-all duration-1000"
+                                                className="text-emerald-500 transition-all duration-1000"
                                             />
                                         </svg>
                                         <span className="absolute text-[10px] font-black">{Math.round(resolvedFinanceSummary.health)}%</span>
@@ -590,11 +589,11 @@ export const MobileAnalytics = ({
                                 <div className="space-y-5">
                                     {financeMetricRows.map((m, i) => (
                                         <div key={i} className="space-y-2">
-                                            <div className="flex justify-between text-[10px] uppercase tracking-widest font-semibold opacity-40">
+                                            <div className="flex justify-between text-[10px] uppercase tracking-[0.14em] font-semibold opacity-40">
                                                 <span>{m.label}</span>
                                                 <span className="text-foreground/80">{m.value}</span>
                                             </div>
-                                            <div className="h-1 w-full bg-white/[0.06] rounded-full overflow-hidden">
+                                            <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
                                                 <motion.div
                                                     className="h-full opacity-60"
                                                     style={{ backgroundColor: m.color }}
@@ -607,12 +606,12 @@ export const MobileAnalytics = ({
                                 </div>
 
                                 <div className="mt-8 grid grid-cols-2 gap-3">
-                                    <div className="p-3 bg-white/5 rounded-2xl text-center">
-                                        <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Conversion</p>
+                                    <div className="p-3 bg-white/5 rounded-inner text-center">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-1">Conversion</p>
                                         <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
                                     </div>
-                                    <div className="p-3 bg-white/5 rounded-2xl text-center">
-                                        <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Avg Ticket</p>
+                                    <div className="p-3 bg-white/5 rounded-inner text-center">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-1">Avg Ticket</p>
                                         <p className="text-sm font-black text-foreground">{avgTicketLabel}</p>
                                     </div>
                                 </div>
@@ -626,7 +625,7 @@ export const MobileAnalytics = ({
                             <p
                                 role="status"
                                 aria-live="polite"
-                                className="mb-3 rounded-2xl bg-muted/40 px-4 py-3 text-xs font-medium text-muted-foreground"
+                                className="mb-3 rounded-inner bg-muted/40 px-4 py-3 text-xs font-medium text-muted-foreground"
                             >
                                 {exportNotice}
                             </p>
@@ -635,15 +634,15 @@ export const MobileAnalytics = ({
                             whileTap={{ scale: 0.95 }}
                             onClick={handleExport}
                             aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
-                            className="w-full apple-glass-heavy py-4 rounded-xl flex items-center justify-center gap-3 shadow-xl group relative overflow-hidden"
+                            className="w-full bg-card/68 backdrop-blur-2xl py-4 rounded-button flex items-center justify-center gap-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] group relative overflow-hidden"
                         >
-                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-active:opacity-100 transition-opacity" />
-                            <Download size={20} className="text-primary" />
-                            <span className="text-[11px] font-medium tracking-[0.3em] uppercase text-primary/80">Report unavailable</span>
+                            <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-active:opacity-100 transition-opacity" />
+                            <Download size={20} className="text-sky-500" />
+                            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-sky-500/80">Report unavailable</span>
                         </motion.button>
                         <p
                             id="mobile-analytics-export-feedback"
-                            className="text-center text-[9px] text-muted-foreground/20 mt-6 uppercase tracking-[0.4em] font-black"
+                            className="text-center text-[10px] text-muted-foreground/20 mt-6 uppercase tracking-[0.14em] font-black"
                         >
                             Report scope pending - {new Date().toLocaleDateString()}
                         </p>
