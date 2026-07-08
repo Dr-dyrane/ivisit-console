@@ -17,6 +17,18 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 
 ---
 
+## Decisions log (locked)
+
+- **2026-07-08 · Borderless** — no borders / hairlines / left-accent bars anywhere; separation is
+  spacing + surface tint + soft shadow. Enforced by the strict-radius/no-border hardgate.
+- **2026-07-08 · One glass recipe** — chrome = `chrome-glass` / `chrome-glass-strong` (frosted,
+  borderless); content = opaque cards. `apple-glass-heavy` is deprecated → migrate to `chrome-glass`.
+- **2026-07-08 · State filter = compact CHIP row (pills)** — the list-page state/KPI filter is a
+  horizontal row of frosted pills (`rounded-pill` + status dot + `label count`, e.g. "Active 1"),
+  NOT a 2-col stats-grid and NOT the `rounded-icon` KPI strip. It takes one line, frees vertical
+  space for the list (the mock's energy). Big number/stat cards are reserved **only** for the
+  Home/dashboard billboard, where the number *is* the content. New primitive: `MobileStateChips`.
+
 ## 0. Principles (the feel)
 
 1. **Chrome is frosted glass; content is opaque.** Header, chips, nav island, sheets float
