@@ -17,8 +17,7 @@ export const MobileKPIStrip = ({
     activeKpi,
     animateOnMount = true,
     loading = false,
-    loadingCount = 4,
-    labelTone = 'caps'
+    loadingCount = 4
 }) => {
     const reduceMotion = useReducedMotion();
     const { isScrolling, bind } = useScrollCooldown(180);

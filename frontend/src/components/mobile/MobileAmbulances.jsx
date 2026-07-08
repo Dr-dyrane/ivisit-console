@@ -147,7 +147,6 @@ export const MobileAmbulances = ({
                         kpis={ambulanceKPIs}
                         activeKpi={kpiFilter || 'all'}
                         onKpiClick={(id) => setKpiFilter?.(id)}
-                        labelTone="plain"
                     />
                 )}
                 contentClassName="pt-4 pb-4 text-foreground"

@@ -283,7 +283,6 @@ export const MobileEmergency = ({
                         activeKpi={kpiFilter || 'pending'}
                         onKpiClick={(id) => setKpiFilter?.(id)}
                         loading={loading}
-                        labelTone="plain"
                     />
 
                     <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">

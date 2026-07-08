@@ -213,8 +213,9 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).not.toContain('Out of service');
     expect(mobile).toContain('MobileSecondaryMetricRail');
     expect(mobile).toContain("setKpiFilter?.(id)");
-    expect(mobileKpiStrip).toContain("labelTone = 'caps'");
-    expect(mobileKpiStrip).toContain("labelTone === 'plain'");
+    // Chips are uniformly plain (one-voice): the recycled strip carries no per-page
+    // label toning. Guard that the vestigial labelTone prop stays removed.
+    expect(mobileKpiStrip).not.toContain('labelTone');
     expect(mobileKpiStrip).toContain("data-state={isActive ? 'selected' : 'idle'}");
     expect(mobileMetricList).toContain("labelTone = 'caps'");
     expect(mobileMetricList).toContain("labelTone === 'plain'");

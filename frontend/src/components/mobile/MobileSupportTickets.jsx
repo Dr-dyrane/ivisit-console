@@ -97,7 +97,6 @@ export const MobileSupportTickets = ({
             kpis={kpis}
             activeKpi={filters?.kpiFilter || 'all'}
             onKpiClick={(id) => setFilters((current) => ({ ...current, kpiFilter: id }))}
-            labelTone="plain"
           />
         )}
         contentClassName="pt-4 pb-4 text-foreground"
