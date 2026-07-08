@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { Users, Plus, BarChart3, Shield, UserCheck, Stethoscope } from 'lucide-react';
 import { getProfiles } from '../../services/profilesService';
 
@@ -52,22 +51,22 @@ export const UsersPanel = ({
     <div className="space-y-4">
       {/* Quick Stats */}
       <div className="space-y-2">
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Statistics</h3>
+        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Live Statistics</h3>
         <div className="grid grid-cols-2 gap-2">
           <div className="p-4 bg-muted rounded-card flex flex-col gap-1 group">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+              <span className="text-[10px] font-bold text-muted-foreground">Total</span>
             </div>
-            <div className="text-xl font-bold tracking-tighter">{statistics?.totalUsers || users.length}</div>
+            <div className="text-xl font-bold">{statistics?.totalUsers || users.length}</div>
           </div>
 
           <div className="p-4 bg-emerald-500/10 rounded-card flex flex-col gap-1 group">
             <div className="flex items-center gap-2">
               <UserCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-200 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700/70 dark:text-emerald-200/70">Verified</span>
+              <span className="text-[10px] font-bold text-emerald-700/70 dark:text-emerald-200/70">Verified</span>
             </div>
-            <div className="text-xl font-bold tracking-tighter text-emerald-700 dark:text-emerald-200">
+            <div className="text-xl font-bold text-emerald-700 dark:text-emerald-200">
               {statistics?.bvnVerifiedUsers || verifiedCount}
             </div>
           </div>
@@ -76,16 +75,16 @@ export const UsersPanel = ({
 
       {/* Role Distribution */}
       <div className="space-y-1.5">
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Roles</h3>
+        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Roles</h3>
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between p-3 rounded-inner bg-amber-500/10 transition-colors hover:bg-amber-500/15">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-amber-700 dark:text-amber-200" />
               <span className="text-xs font-medium">Admins</span>
             </div>
-            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-200 rounded-pill text-[10px] font-bold">
+            <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-200">
               {(statistics ? ((statistics.roleDistribution?.admin || 0) + (statistics.roleDistribution?.org_admin || 0)) : adminCount)}
-            </Badge>
+            </span>
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-inner bg-emerald-500/10 transition-colors hover:bg-emerald-500/15">
@@ -93,9 +92,9 @@ export const UsersPanel = ({
               <Stethoscope className="h-4 w-4 text-emerald-700 dark:text-emerald-200" />
               <span className="text-xs font-medium">Providers</span>
             </div>
-            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 rounded-pill text-[10px] font-bold">
+            <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">
               {statistics?.roleDistribution?.provider || providerCount}
-            </Badge>
+            </span>
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-inner bg-sky-500/10 transition-colors hover:bg-sky-500/15">
@@ -103,9 +102,9 @@ export const UsersPanel = ({
               <Users className="h-4 w-4 text-sky-600 dark:text-sky-200" />
               <span className="text-xs font-medium">Patients</span>
             </div>
-            <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200 rounded-pill text-[10px] font-bold">
+            <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-200">
               {statistics?.roleDistribution?.patient || patientCount}
-            </Badge>
+            </span>
           </div>
         </div>
       </div>
@@ -118,7 +117,7 @@ export const UsersPanel = ({
           variant="ghost"
         >
           <Plus className="h-4 w-4 text-foreground group-hover:rotate-90 transition-transform" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-foreground">Invite</span>
+          <span className="text-[10px] font-bold text-foreground">Invite</span>
         </Button>
         <Button
           onClick={onViewAnalytics}
@@ -126,13 +125,13 @@ export const UsersPanel = ({
           variant="ghost"
         >
           <BarChart3 className="h-4 w-4 text-sky-600 dark:text-sky-200 group-hover:scale-110 transition-transform" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-sky-600 dark:text-sky-200">Data</span>
+          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-200">Data</span>
         </Button>
       </div>
 
       {/* Recent Activity */}
       <div className="space-y-2">
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Recent logins</h3>
+        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Recent logins</h3>
         <div className="space-y-1">
           {recentUsers.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-4 bg-white/5 rounded-card">
@@ -157,7 +156,7 @@ export const UsersPanel = ({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[8px] font-bold uppercase tracking-tighter text-muted-foreground">Sign In</p>
+                  <p className="text-[8px] font-bold text-muted-foreground">Sign In</p>
                   <p className="text-[10px] whitespace-nowrap">{new Date(user.last_sign_in_at).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -169,20 +168,20 @@ export const UsersPanel = ({
       {/* Verification Overview */}
       {statistics && (
         <div className="space-y-2">
-          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Trust Score</h3>
+          <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Trust Score</h3>
           <div className="p-4 bg-emerald-500/10 rounded-card flex items-center justify-around">
             <div className="text-center">
               <div className="text-xl font-bold text-emerald-700 dark:text-emerald-200">
                 {Math.round((verifiedCount / users.length) * 100)}%
               </div>
-              <p className="text-[8px] uppercase tracking-widest text-muted-foreground">Verified</p>
+              <p className="text-[8px] text-muted-foreground">Verified</p>
             </div>
-            <div className="w-px h-8 bg-white/5" />
+            <div className="h-8 w-1 rounded-pill bg-foreground/10" />
             <div className="text-center">
               <div className="text-xl font-bold text-foreground">
                 {users.length - verifiedCount}
               </div>
-              <p className="text-[8px] uppercase tracking-widest text-muted-foreground">Pending</p>
+              <p className="text-[8px] text-muted-foreground">Pending</p>
             </div>
           </div>
         </div>

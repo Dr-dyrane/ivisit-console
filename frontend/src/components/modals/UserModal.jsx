@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Badge } from '../ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHospitals } from '../../services/hospitalsService';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
@@ -164,13 +163,13 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       }
       badge={
         <div className="flex items-center gap-1.5">
-          <Badge className="rounded-pill bg-muted text-muted-foreground font-semibold px-2.5 py-0.5 text-xs">
+          <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
             {formData.role?.toUpperCase() || 'PATIENT'}
-          </Badge>
+          </span>
           {formData.bvn_verified && (
-            <Badge className="rounded-pill bg-green-500/10 text-green-500 font-semibold px-2.5 py-0.5 text-xs flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
               <BadgeCheck className="w-3 h-3" /> VERIFIED
-            </Badge>
+            </span>
           )}
         </div>
       }
@@ -184,7 +183,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 <GlassCard icon={<User className="text-muted-foreground" />} title="Personal Information">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="full_name" className="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-xs font-semibold text-muted-foreground">Full Name</Label>
                       <Input
                         id="full_name"
                         name="full_name"
@@ -196,7 +195,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground uppercase">Username</Label>
+                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground">Username</Label>
                       <Input
                         id="username"
                         name="username"
@@ -208,7 +207,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase">Email Address</Label>
+                      <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -224,7 +223,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">Phone Number</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -239,7 +238,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-2 min-w-0">
-                      <Label htmlFor="date_of_birth" className="text-xs font-semibold text-muted-foreground uppercase">Date of Birth</Label>
+                      <Label htmlFor="date_of_birth" className="text-xs font-semibold text-muted-foreground">Date of Birth</Label>
                       <div className="relative min-w-0">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -260,7 +259,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 <GlassCard icon={<Shield className="text-muted-foreground" />} title="Role & Access">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase">System Role</Label>
+                      <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground">System Role</Label>
                       <Select
                         value={formData.role || undefined}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
@@ -286,7 +285,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
                     {(formData.role === 'org_admin' || formData.role === 'provider') && (
                       <div className="space-y-2">
-                        <Label htmlFor="organization_id" className="text-xs font-semibold text-muted-foreground uppercase">Organization</Label>
+                        <Label htmlFor="organization_id" className="text-xs font-semibold text-muted-foreground">Organization</Label>
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                           {isView ? (
@@ -321,7 +320,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
                     {formData.role === 'provider' && (
                       <div className="space-y-2">
-                        <Label htmlFor="provider_type" className="text-xs font-semibold text-muted-foreground uppercase">Provider Type</Label>
+                        <Label htmlFor="provider_type" className="text-xs font-semibold text-muted-foreground">Provider Type</Label>
                         <Select
                           value={formData.provider_type || undefined}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
@@ -362,7 +361,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 {/* Address Section */}
                 <GlassCard icon={<MapPin className="text-muted-foreground" />} title="Location">
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase">Full Address</Label>
+                    <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">Full Address</Label>
                     <Input
                       id="address"
                       name="address"
@@ -419,7 +418,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-inner">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

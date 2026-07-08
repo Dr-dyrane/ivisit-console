@@ -21,7 +21,6 @@ import {
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
@@ -420,14 +419,14 @@ export const MobileUsers = ({
 
                                         {/* Status Indicators */}
                                         <div className="flex gap-2">
-                                            <Badge className={`rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 ${user.bvn_verified ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'
+                                            <span className={`inline-flex items-center rounded-pill font-semibold text-[9px] py-1 px-3 ${user.bvn_verified ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'
                                                 }`}>
                                                 {user.bvn_verified ? 'VERIFIED' : 'NOT VERIFIED'}
-                                            </Badge>
+                                            </span>
                                             {user.is_active !== false && (
-                                                <Badge className="rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-200">
+                                                <span className="inline-flex items-center rounded-pill font-semibold text-[9px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-200">
                                                     ACTIVE
-                                                </Badge>
+                                                </span>
                                             )}
                                         </div>
 
@@ -439,7 +438,7 @@ export const MobileUsers = ({
                                                 onClick={() => onView(user)}
                                             >
                                                 <Eye size={16} className="text-muted-foreground" />
-                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                                                <span className="text-[9px] font-semibold tracking-[0.2em]">Details</span>
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -447,7 +446,7 @@ export const MobileUsers = ({
                                                 onClick={() => onEdit(user)}
                                             >
                                                 <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
+                                                <span className="text-[9px] font-semibold tracking-[0.2em]">Edit</span>
                                             </Button>
                                             {canDelete && isAdmin && (
                                                 <Button

@@ -95,7 +95,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
             <div className="p-4 md:p-6">
                 <form onSubmit={handleInvite} className="space-y-5">
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Email Address</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground">Email Address</Label>
                         <div className={fieldShellClass}>
                             <Mail className={fieldIconClass} />
                             <Input
@@ -110,7 +110,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Access Role</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground">Access Role</Label>
                         <div className={fieldShellClass}>
                             <Shield className={fieldIconClass} />
                             <Select value={role} onValueChange={setRole}>
@@ -141,7 +141,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                             animate={{ opacity: 1, height: 'auto' }}
                             className="space-y-2"
                         >
-                            <Label className="text-xs font-semibold uppercase text-muted-foreground">Organization Assignment</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Organization Assignment</Label>
                             <div className={fieldShellClass}>
                                 <Building2 className={fieldIconClass} />
                                 <Select value={organizationId} onValueChange={setOrganizationId} required={showOrgSelect}>
@@ -164,7 +164,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-12 rounded-button text-sm font-semibold uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 shadow-lg"
+                            className="w-full h-12 rounded-button text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 shadow-md"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Invitation'}
                         </Button>
