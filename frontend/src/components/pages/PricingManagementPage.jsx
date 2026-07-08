@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { motion, LayoutGroup } from 'framer-motion';
 import { PricingTableView } from '../views/PricingTableView';

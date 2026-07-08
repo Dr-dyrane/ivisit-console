@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { toast } from "sonner";
 import { motion, LayoutGroup } from 'framer-motion';
-import { Badge } from '../ui/badge';
 
 const EMPTY_INSURANCE_PAGE = {
   data: [],
@@ -1092,13 +1091,13 @@ export const InsuranceManagementPage = () => {
 
                       {/* Content */}
                       <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`rounded-inner ${getStatusBadge(policy.status)} font-bold editorial-subtitle px-3 py-1`}>
+                        <span className={`inline-flex items-center rounded-pill ${getStatusBadge(policy.status)} px-3 py-1 text-xs font-medium`}>
                           {policy.status}
-                        </Badge>
+                        </span>
                         {policy.verified && (
-                          <Badge variant="outline" className="rounded-inner text-emerald-700 dark:text-emerald-200 px-2 py-1 font-semibold gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2 py-1 text-xs font-semibold">
                             <CheckCircle className="w-3 h-3" /> Verified
-                          </Badge>
+                          </span>
                         )}
                       </div>
                       <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10">

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { getOrganizations } from '../../services/organizationsService';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';

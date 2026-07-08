@@ -11,7 +11,6 @@ import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfi
 import { getOrganizations } from '../../services/organizationsService';
 import { getDoctorByProfileId, createDoctor } from '../../services/doctorsService';
 import { createAmbulance } from '../../services/ambulancesService';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -965,9 +964,9 @@ export const UsersPage = () => {
             <h4 className="font-medium mb-2">Role Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(statistics.roleDistribution).map(([role, count]) => (
-                <Badge key={role} className="rounded-pill bg-muted text-muted-foreground font-bold editorial-subtitle px-3 py-1">
+                <span key={role} className="inline-flex items-center rounded-pill bg-muted text-muted-foreground px-3 py-1 text-xs font-medium">
                   {role}: {count}
-                </Badge>
+                </span>
               ))}
             </div>
           </div>
@@ -1053,13 +1052,13 @@ export const UsersPage = () => {
                           </div>
 
                           <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className="rounded-pill bg-muted text-muted-foreground font-bold editorial-subtitle px-3 py-1">
+                            <span className="inline-flex items-center rounded-pill bg-muted text-muted-foreground px-3 py-1 text-xs font-medium">
                               {user.role || 'patient'}
-                            </Badge>
+                            </span>
                             {user.bvn_verified && (
-                              <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2 py-1">
+                              <span className="inline-flex items-center rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2 py-1 text-xs font-medium">
                                 Verified
-                              </Badge>
+                              </span>
                             )}
                           </div>
 
