@@ -19,6 +19,7 @@ export const UserTableView = ({
   onEdit,
   onDelete,
   onSchedule,
+  onFocus,
   selectedIds = [], // Array of selected user IDs
   onSelect,        // (id) => void
   onSelectAll,     // (checked) => void
@@ -109,10 +110,11 @@ export const UserTableView = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.02 }}
-                className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors group ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                onClick={() => onFocus?.(user)}
+                className={`grid ${GRID_TEMPLATE} cursor-pointer items-center gap-2 rounded-inner px-3 py-3 transition-colors group ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
               >
                 {/* Select */}
-                <div className="flex items-center">
+                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={(checked) => handleSelectOne(user.id, checked)}
@@ -155,7 +157,7 @@ export const UserTableView = ({
                   {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
                 </div>
                 {/* Actions */}
-                <div className="justify-self-end">
+                <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-icon hover:bg-muted/30">

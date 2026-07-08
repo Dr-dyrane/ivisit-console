@@ -25,6 +25,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { UserListView } from '../views/UserListView';
 import { UserTableView } from '../views/UserTableView';
 import { SEOHead } from '../common/SEOHead';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 
 import { InviteUserModal } from '../modals/InviteUserModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
@@ -273,7 +274,6 @@ export const UsersPage = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [focusedUserId, setFocusedUserId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
@@ -379,10 +379,11 @@ export const UsersPage = () => {
     return result;
   }, [filteredUsers, sortConfig]);
 
-  const focusedUser = useMemo(
-    () => processedUsers.find((u) => u.id === focusedUserId) || processedUsers[0] || null,
-    [processedUsers, focusedUserId],
-  );
+  // Shared focused-record store: rail shows the most-urgent user at rest and
+  // toggles consistently on row focus (replaces the old private focusedUserId +
+  // list[0] fallback + first-item re-pin effect).
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('users', processedUsers);
+  const focusedUser = focusedRecord;
 
   const usersRouteContext = useMemo(() => {
     const recentUsers = [...users]
@@ -606,12 +607,10 @@ export const UsersPage = () => {
   }, [handleCreate, handleInvite, handleOpenAnalytics]);
 
   const handleView = useCallback((user) => {
-    setFocusedUserId(user?.id || null);
+    setFocused(user?.id || null);
     setSelectedUser(user);
     setModalMode('view');
-  }, []);
-
-  const handleFocusUser = useCallback((u) => setFocusedUserId(u?.id || null), []);
+  }, [setFocused]);
 
   const handleEdit = useCallback((user) => {
     setSelectedUser(user);
@@ -1036,9 +1035,9 @@ export const UsersPage = () => {
                         className="col-span-1"
                       >
                         <div
-                          onClick={() => handleFocusUser(user)}
-                          data-state={focusedUser?.id === user.id ? 'selected' : 'idle'}
-                          className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${focusedUser?.id === user.id ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
+                          onClick={() => setFocused(user.id)}
+                          data-state={isFocused(user.id) ? 'selected' : 'idle'}
+                          className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${isFocused(user.id) ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
                         >
                           {/* Apple hover glow effect */}
                           {/* Top Right Icon */}
@@ -1113,7 +1112,7 @@ export const UsersPage = () => {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="mt-auto flex gap-2">
+                          <div className="mt-auto flex gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -1165,6 +1164,7 @@ export const UsersPage = () => {
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={confirmDelete}
+                  onFocus={setFocused}
                   isAdmin={isAdmin()}
                 />
               )}
@@ -1177,6 +1177,7 @@ export const UsersPage = () => {
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={confirmDelete}
+                  onFocus={setFocused}
                   selectedIds={selectedIds}
                   onSelect={handleSelect}
                   onSelectAll={handleSelectAll}

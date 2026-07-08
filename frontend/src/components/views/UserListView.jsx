@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMobile = false }) => {
+export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, onFocus, isMobile = false }) => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'admin': return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
@@ -26,7 +26,10 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30 group">
+          <div
+            onClick={() => onFocus?.(user)}
+            className="cursor-pointer rounded-card bg-background/30 p-4 transition-colors hover:bg-muted/30 group"
+          >
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-1 mb-2">
@@ -51,7 +54,10 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     Verified
                   </span>
                 )}
-                <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+                >
                   <Button
                     variant="ghost"
                     size="sm"
