@@ -835,7 +835,9 @@ export const VerificationQueue = () => {
           {!loading && providers.length > 0 && viewMode === 'list' && (
             <VerificationQueueListView
               providers={providers}
-              onView={setFocusedItem}
+              onFocus={setFocusedItem}
+              selectedId={focusedItem?.id}
+              onView={setSelectedProvider}
               onVerify={canApprove ? handleVerify : null}
               isMobile={isMobile}
             />
@@ -844,7 +846,9 @@ export const VerificationQueue = () => {
           {!loading && providers.length > 0 && viewMode === 'table' && (
             <VerificationQueueTableView
               providers={providers}
-              onView={setFocusedItem}
+              onFocus={setFocusedItem}
+              selectedId={focusedItem?.id}
+              onView={setSelectedProvider}
               onVerify={canApprove ? handleVerify : null}
               getStatusBadge={getStatusBadge}
               selectedIds={selectedIds}

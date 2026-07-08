@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const VerificationQueueListView = ({
   providers,
   onView,
+  onFocus,
+  selectedId,
   onVerify,
   getStatusBadge,
   isMobile = false
@@ -47,7 +49,9 @@ export const VerificationQueueListView = ({
           >
             <div
               data-testid="approval-provider-list-row"
-              className="bg-background/35 backdrop-blur-xs squircle-lg p-0 shadow-premium hover-lift transition-all group overflow-hidden"
+              onClick={() => onFocus?.(provider)}
+              aria-selected={selectedId === provider.id}
+              className={`backdrop-blur-xs squircle-lg p-0 shadow-premium hover-lift transition-all group overflow-hidden cursor-pointer ${selectedId === provider.id ? 'bg-amber-400/[0.08]' : 'bg-background/35'}`}
             >
               <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusAccent(provider.verification_status)}`} />
@@ -113,7 +117,7 @@ export const VerificationQueueListView = ({
                   </div>
                 </div>
 
-                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}>
+                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`} onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"

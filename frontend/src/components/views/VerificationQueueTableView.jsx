@@ -30,6 +30,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const VerificationQueueTableView = ({
     providers,
     onView,
+    onFocus,
+    selectedId,
     onVerify,
     getStatusBadge,
     selectedIds = [],
@@ -76,9 +78,11 @@ export const VerificationQueueTableView = ({
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.98 }}
                                     transition={{ delay: index * 0.03 }}
-                                    className="group transition-colors odd:bg-white/[0.025] hover:bg-white/[0.06]"
+                                    onClick={() => onFocus?.(provider)}
+                                    aria-selected={selectedId === provider.id}
+                                    className={`group cursor-pointer transition-colors odd:bg-white/[0.025] hover:bg-white/[0.06] ${selectedId === provider.id ? 'bg-amber-400/[0.08]' : ''}`}
                                 >
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
                                         {canSelect && (
                                             <Checkbox
                                                 checked={selectedIds.includes(provider.id)}
@@ -127,7 +131,7 @@ export const VerificationQueueTableView = ({
                                             {provider.verification_status || 'pending'}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right pr-6">
+                                    <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-end gap-1">
                                             {/* Approve/Reject Buttons - Keep inline for verification workflow */}
                                             {onVerify && !provider.bvn_verified && (
