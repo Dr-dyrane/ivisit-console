@@ -6,6 +6,7 @@
 
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { supabase } from '../lib/supabase';
+import { withRetry } from './supabaseHelpers';
 
 const TABLE_NAME = 'doctors';
 const STAFF_STATUSES = ['available', 'on_call', 'busy', 'off_duty'];
@@ -149,19 +150,30 @@ const sanitizeInput = (input) => {
 export async function getDoctors(filter = {}) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*, hospitals(name)', { count: 'exact' });
-    query = applyDoctorFilters(query, user, filter);
 
     const sortKey = DOCTOR_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
     const sortDirection = filter.sortDirection === 'asc' ? 'asc' : 'desc';
-    query = query.order(sortKey, { ascending: sortDirection === 'asc' });
 
-    if (filter.limit) {
-      const from = filter.offset || 0;
-      query = query.range(from, from + filter.limit - 1);
-    }
+    // L1 hardening: retry the primary doctors read with exponential backoff on
+    // transient failures (network/timeout, 429, 5xx, serialization). The query
+    // is rebuilt inside the callback because Supabase builders are single-use
+    // thenables; non-retryable errors (auth/RLS/constraint) still throw on the
+    // first attempt, preserving prior behavior.
+    const { data, error, count } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*, hospitals(name)', { count: 'exact' });
+      query = applyDoctorFilters(query, user, filter);
+      query = query.order(sortKey, { ascending: sortDirection === 'asc' });
 
-    const { data, error, count } = await query;
+      if (filter.limit) {
+        const from = filter.offset || 0;
+        query = query.range(from, from + filter.limit - 1);
+      }
+
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
+
     if (error) throw error;
 
     // NEW: Enrich with display IDs (PRV-XXXXXX) via profile_id

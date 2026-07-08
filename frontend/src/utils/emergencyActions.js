@@ -1,9 +1,22 @@
 import { canonicalizeEmergencyStatus, isTerminalEmergencyStatus } from './emergencyStatus';
+import { canTransition } from './transitions';
 
 const CASH_METHODS = new Set(['cash', 'cash_payment']);
 
 const toLower = (value) => String(value ?? '').trim().toLowerCase();
 
+/**
+ * getEmergencyActionState - operator action legality for one emergency request.
+ *
+ * Re-expressed over the L4 emergency transition table (constants/lifecycles.js
+ * via utils/transitions.js, CONSOLE_LAYER_MODEL_PLAN.md step S2-2): the state
+ * transitions (dispatch / complete / retryPayment) are read from the table via
+ * canTransition, then constrained by record-shape guards (bed flow, ambulance
+ * presence, patient id). Exported here under the original name so existing call
+ * sites keep working unchanged (utils/recordUrgency.js:51, the EmergencyRequest
+ * list/table views, and EmergencyRequestsPage). The returned object shape is
+ * unchanged and is pinned by EmergencyRequestsPage.contract.test.js.
+ */
 export function getEmergencyActionState(request) {
   const canonicalStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
   const status = toLower(canonicalStatus);
@@ -14,17 +27,15 @@ export function getEmergencyActionState(request) {
   const isBedFlow = serviceType === 'bed' || serviceType === 'booking';
   const isTerminal = isTerminalEmergencyStatus(status);
   const canDispatch =
-    !isTerminal &&
-    status === 'in_progress' &&
+    canTransition('emergency', status, 'dispatch') &&
     (isBedFlow || !hasAmbulance);
-  const canComplete =
-    !isTerminal &&
-    (status === 'accepted' || status === 'arrived');
+  const canComplete = canTransition('emergency', status, 'complete');
   const hasUnsettledCash =
     status === 'completed' &&
     CASH_METHODS.has(paymentMethod) &&
     paymentStatus !== 'completed';
-  const canRetryPayment = status === 'payment_declined' && Boolean(request?.user_id);
+  const canRetryPayment =
+    canTransition('emergency', status, 'retryPayment') && Boolean(request?.user_id);
   const canCancel = !isTerminal;
   const showClinicalRecord = status === 'completed' || status === 'cancelled';
 
