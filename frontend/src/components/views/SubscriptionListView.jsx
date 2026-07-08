@@ -16,6 +16,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const SubscriptionListView = ({
     subscribers,
     onView,
+    onFocus,
+    focusedId,
     onDelete,
     onEdit,
     getStatusBadge,
@@ -36,7 +38,11 @@ export const SubscriptionListView = ({
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <div className="bg-background/30 rounded-card p-0 transition-colors group overflow-hidden hover:bg-muted/30">
+                        <div
+                            onClick={() => onFocus?.(subscriber.id)}
+                            data-state={focusedId === subscriber.id ? 'selected' : 'idle'}
+                            className={`rounded-card p-0 transition-colors group overflow-hidden ${focusedId === subscriber.id ? 'bg-muted/40' : 'bg-background/30 hover:bg-muted/30'}`}
+                        >
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                                 {/* Status Strip */}
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${subscriber.status === 'active' ? 'bg-emerald-500/60' :
@@ -114,7 +120,10 @@ export const SubscriptionListView = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}>
+                                <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}
+                                >
                                     <Button
                                         variant="ghost"
                                         size="sm"

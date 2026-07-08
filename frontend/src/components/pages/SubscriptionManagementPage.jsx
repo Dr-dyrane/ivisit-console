@@ -5,6 +5,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -298,7 +299,6 @@ export const SubscriptionManagementPage = () => {
   } = useSubscription();
 
   const [selectedSubscriber, setSelectedSubscriber] = useState(null);
-  const [focusedSubscriberId, setFocusedSubscriberId] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -436,10 +436,8 @@ export const SubscriptionManagementPage = () => {
     return filteredSubscribers.slice(0, visibleCount);
   }, [filteredSubscribers, pagination.currentPage, pagination.itemsPerPage]);
 
-  const focusedSubscriber = useMemo(
-    () => paginatedSubscribers.find((s) => s.id === focusedSubscriberId) || paginatedSubscribers[0] || null,
-    [paginatedSubscribers, focusedSubscriberId],
-  );
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('subscriptions', paginatedSubscribers);
+  const focusedSubscriber = focusedRecord;
 
   const subscriptionsRouteContext = useMemo(() => {
     const subscriberRows = Array.isArray(subscribers) ? subscribers : [];
@@ -492,12 +490,10 @@ export const SubscriptionManagementPage = () => {
   }, [handleSubscriptionCommandUnavailable]);
 
   const handleView = useCallback((subscriber) => {
-    setFocusedSubscriberId(subscriber?.id || null);
+    if (subscriber?.id != null && !isFocused(subscriber.id)) setFocused(subscriber.id);
     setSelectedSubscriber(subscriber);
     setModalMode('view');
-  }, []);
-
-  const handleFocusSubscriber = useCallback((subscriber) => setFocusedSubscriberId(subscriber?.id || null), []);
+  }, [setFocused, isFocused]);
 
   const handleDelete = useCallback(() => {
     handleSubscriptionCommandUnavailable();
@@ -817,9 +813,9 @@ export const SubscriptionManagementPage = () => {
                     className="col-span-1"
                   >
                     <Card
-                      onClick={() => handleFocusSubscriber(subscriber)}
-                      data-state={focusedSubscriber?.id === subscriber.id ? 'selected' : 'idle'}
-                      className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${focusedSubscriber?.id === subscriber.id ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
+                      onClick={() => setFocused(subscriber.id)}
+                      data-state={isFocused(subscriber.id) ? 'selected' : 'idle'}
+                      className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${isFocused(subscriber.id) ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
                     >
                       {/* Decorative Elements */}
                       <div className="absolute top-0 right-0 p-5 z-20">
@@ -924,6 +920,8 @@ export const SubscriptionManagementPage = () => {
             <SubscriptionListView
               subscribers={paginatedSubscribers}
               onView={handleView}
+              onFocus={setFocused}
+              focusedId={focusedSubscriber?.id}
               onEdit={null}
               onDelete={null}
               getStatusBadge={getStatusBadge}
@@ -937,6 +935,8 @@ export const SubscriptionManagementPage = () => {
             <SubscriptionTableView
               subscribers={paginatedSubscribers}
               onView={handleView}
+              onFocus={setFocused}
+              focusedId={focusedSubscriber?.id}
               onEdit={null}
               onDelete={null}
               getStatusBadge={getStatusBadge}

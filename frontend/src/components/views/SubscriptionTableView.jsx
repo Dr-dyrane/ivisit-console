@@ -25,6 +25,8 @@ const GRID_TEMPLATE = 'grid-cols-[40px_minmax(200px,2fr)_minmax(90px,0.7fr)_minm
 export const SubscriptionTableView = ({
     subscribers,
     onView,
+    onFocus,
+    focusedId,
     onDelete,
     onEdit,
     getStatusBadge,
@@ -59,13 +61,16 @@ export const SubscriptionTableView = ({
             {/* Data rows */}
             {subscribers.map((subscriber, index) => {
                 const selected = selectedIds.includes(subscriber.id);
+                const focused = focusedId === subscriber.id;
                 return (
                     <div
                         key={subscriber.id}
-                        className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                        onClick={() => onFocus?.(subscriber.id)}
+                        data-state={focused ? 'selected' : 'idle'}
+                        className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected || focused ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
                     >
                         {/* Selection */}
-                        <div className="flex items-center">
+                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                                 checked={selected}
                                 onCheckedChange={(checked) => onSelect(subscriber.id, checked)}
@@ -124,7 +129,7 @@ export const SubscriptionTableView = ({
                             </span>
                         </div>
                         {/* Actions */}
-                        <div className="justify-self-end">
+                        <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/30">
