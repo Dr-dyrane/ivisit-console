@@ -98,7 +98,7 @@ export const WalletManagementPage = () => {
     };
 
     const headerActions = useMemo(() => (
-        <span className="hidden md:inline-flex items-center rounded-full bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="hidden md:inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {isAdmin() ? 'Platform admin' : 'Hospital admin'}
         </span>
     ), [isAdmin]);
@@ -313,12 +313,12 @@ const PaymentReceiptDialog = ({
         <AnimatePresence>
             {payment && (
                 <Dialog open={Boolean(payment)} onOpenChange={onClose}>
-                    <DialogContent className="w-[calc(100vw-1rem)] overflow-hidden rounded-[36px] bg-card/92 p-0 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.18)] backdrop-blur-2xl sm:max-w-[440px]">
+                    <DialogContent className="w-[calc(100vw-1rem)] overflow-hidden rounded-modal bg-card/92 p-0 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.18)] backdrop-blur-2xl sm:max-w-[440px]">
                         <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto p-5 no-scrollbar md:p-6">
-                            <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+                            <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
                             <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
-                                    <span className="inline-flex items-center gap-2 rounded-full bg-success/12 px-3 py-1.5 text-xs font-semibold text-success">
+                                    <span className="inline-flex items-center gap-2 rounded-pill bg-emerald-500/12 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
                                         <ShieldCheck className="h-3.5 w-3.5" />
                                         {payment.status || 'Ready'}
                                     </span>
@@ -329,12 +329,12 @@ const PaymentReceiptDialog = ({
                                         Receipt {payment.id?.slice(0, 12) || 'not available'}
                                     </DialogDescription>
                                 </div>
-                                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-sky-500/12 text-sky-700 dark:text-sky-100">
                                     <CreditCard className="h-5 w-5" />
                                 </span>
                             </div>
 
-                            <div className="mt-5 rounded-[30px] bg-background/42 p-5 dark:bg-white/[0.05]">
+                            <div className="mt-5 rounded-card bg-background/42 p-5 dark:bg-white/[0.05]">
                                 <div className="text-sm font-medium text-muted-foreground">Amount</div>
                                 <div className="mt-2 text-4xl font-semibold tracking-tight">
                                     {formatCurrency(payment.amount)}
@@ -365,8 +365,8 @@ const PaymentReceiptDialog = ({
                             </div>
 
                             {patient && (
-                                <div className="mt-4 flex items-center gap-3 rounded-[26px] bg-muted/22 p-4">
-                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/14 text-sm font-semibold text-primary">
+                                <div className="mt-4 flex items-center gap-3 rounded-inner bg-muted/22 p-4">
+                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-sky-500/14 text-sm font-semibold text-sky-700 dark:text-sky-100">
                                         {patientInitials}
                                     </span>
                                     <div className="min-w-0">
@@ -378,7 +378,7 @@ const PaymentReceiptDialog = ({
                                 </div>
                             )}
 
-                            <div className="mt-4 rounded-[26px] bg-muted/20 p-4">
+                            <div className="mt-4 rounded-inner bg-muted/20 p-4">
                                 <div className="flex items-center justify-between text-sm font-medium">
                                     <span>Subtotal</span>
                                     <span>{formatCurrency(payment.amount)}</span>
@@ -397,8 +397,8 @@ const PaymentReceiptDialog = ({
 };
 
 const ReceiptLine = ({ icon: Icon, label, value, detail }) => (
-    <div className="flex items-center gap-3 rounded-[24px] bg-muted/22 p-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/45 text-muted-foreground">
+    <div className="flex items-center gap-3 rounded-inner bg-muted/22 p-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-background/45 text-muted-foreground">
             <Icon className="h-4 w-4" />
         </span>
         <span className="min-w-0">
@@ -649,7 +649,7 @@ const PaymentsSignalPanel = ({
         >
             <div className="min-w-0">
                 <div className="max-w-2xl">
-                    <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${paymentToneClass[signal.tone] || paymentToneClass.muted}`}>
+                    <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${paymentToneClass[signal.tone] || paymentToneClass.muted}`}>
                         <SignalIcon className={`h-4 w-4 ${signal.spin ? 'animate-spin' : ''}`} />
                         {signal.label}
                     </div>
@@ -659,7 +659,7 @@ const PaymentsSignalPanel = ({
                     <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
                         {signal.subhead}
                     </p>
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-pill bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
                         <TrendingUp className="h-3.5 w-3.5" />
                         Next 30 days {formatCurrency(projection || 0)}
                     </div>
@@ -678,7 +678,7 @@ const PaymentsSignalPanel = ({
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={item.onClick}
-                                className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? tone.active : tone.rest}`}
+                                className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? tone.active : tone.rest}`}
                                 aria-pressed={active}
                             >
                                 <span className="flex items-start justify-between gap-2">
@@ -686,7 +686,7 @@ const PaymentsSignalPanel = ({
                                         <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
                                         <span className="mt-1 block truncate text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
                                     </span>
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/45 transition-transform group-hover:scale-105">
                                         <Icon className="h-4 w-4" />
                                     </span>
                                 </span>
@@ -710,11 +710,11 @@ const PaymentsSheet = ({
     formatPaymentMethod,
     formatPaymentDescription,
 }) => (
-    <div className="flex min-h-0 flex-1 flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]">
-        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
         <div className="flex items-center gap-3">
-            <div className="flex flex-1 rounded-[24px] bg-muted/30 p-1">
+            <div className="flex flex-1 rounded-inner bg-muted/30 p-1">
                 {[
                     { id: 'ledger', label: 'Transaction History', icon: History },
                     { id: 'payments', label: 'Patient Payments', icon: ShieldCheck },
@@ -727,7 +727,7 @@ const PaymentsSheet = ({
                             key={item.id}
                             type="button"
                             onClick={() => setActiveTab(item.id)}
-                            className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-[20px] px-3 text-sm font-semibold transition-all active:scale-[0.98] ${active ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-button px-3 text-sm font-semibold transition-all active:scale-[0.98] ${active ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground hover:text-foreground'}`}
                             aria-pressed={active}
                         >
                             <Icon className="h-4 w-4" />
@@ -741,7 +741,7 @@ const PaymentsSheet = ({
                 variant="ghost"
                 size="icon"
                 onClick={fetchData}
-                className="h-12 w-12 rounded-[24px] bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-95 dark:hover:text-sky-100"
+                className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-95 dark:hover:text-sky-100"
                 aria-label="Refresh payments"
             >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -753,11 +753,11 @@ const PaymentsSheet = ({
             <span>{activeTab === 'ledger' ? 'Balance activity' : 'Patient receipts'}</span>
         </div>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
             {loading && <PaymentSkeletonRows />}
 
             {!loading && activeItems.length === 0 && (
-                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[28px] bg-muted/16 p-10 text-center">
+                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
                     <History className="mb-4 h-12 w-12 text-muted-foreground/65" />
                     <h3 className="text-xl font-semibold">No {activeTab === 'ledger' ? 'transactions' : 'patient payments'} yet</h3>
                     <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -789,7 +789,7 @@ const PaymentsSheet = ({
 const PaymentSkeletonRows = () => (
     <div className="space-y-2">
         {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="h-[78px] rounded-[26px] bg-muted/20 shimmer" />
+            <div key={item} className="h-[78px] rounded-inner bg-muted/20 shimmer" />
         ))}
     </div>
 );
@@ -818,7 +818,7 @@ const PaymentRow = ({
     const content = (
         <>
             <div className="flex min-w-0 items-center gap-3">
-                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tone}`}>
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${tone}`}>
                     <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
@@ -828,7 +828,7 @@ const PaymentRow = ({
             </div>
 
             <div className="hidden min-w-0 items-center gap-2 md:flex">
-                <span className={`inline-flex max-w-full rounded-full px-3 py-1 text-xs font-semibold ${tone}`}>
+                <span className={`inline-flex max-w-full rounded-pill px-3 py-1 text-xs font-semibold ${tone}`}>
                     <span className="truncate">{label}</span>
                 </span>
             </div>
@@ -844,7 +844,7 @@ const PaymentRow = ({
                 <div className="mt-1 text-[11px] font-medium text-muted-foreground">{formatTime(item.created_at)}</div>
             </div>
 
-            <span className="hidden h-9 items-center gap-1 rounded-full bg-background/45 px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all group-hover:bg-foreground group-hover:text-background md:inline-flex">
+            <span className="hidden h-9 items-center gap-1 rounded-pill bg-background/45 px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all group-hover:bg-foreground group-hover:text-background md:inline-flex">
                 {isPayment ? 'Details' : 'Logged'}
                 {isPayment && <ArrowRight className="h-3.5 w-3.5" />}
             </span>
@@ -861,7 +861,7 @@ const PaymentRow = ({
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
                 onClick={() => onPaymentOpen(item)}
-                className="group mb-2 grid min-h-[78px] w-full grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-[26px] bg-muted/22 px-4 py-3 text-left transition-all duration-200 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)] active:scale-[0.995]"
+                className="group mb-2 grid min-h-[78px] w-full grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-inner bg-muted/22 px-4 py-3 text-left transition-all duration-200 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)] active:scale-[0.995]"
             >
                 {content}
             </motion.button>
@@ -875,7 +875,7 @@ const PaymentRow = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-            className="group mb-2 grid min-h-[78px] grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-[26px] bg-muted/22 px-4 py-3 transition-all duration-200 hover:bg-muted/34"
+            className="group mb-2 grid min-h-[78px] grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-inner bg-muted/22 px-4 py-3 transition-all duration-200 hover:bg-muted/34"
         >
             {content}
         </motion.div>
@@ -891,8 +891,8 @@ const PaymentDetailRail = ({
     onBilling,
     formatCurrency,
 }) => (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-[44px] bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-[44px] lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
         <div className="mb-5">
             <div className="flex items-start justify-between gap-4">
@@ -900,12 +900,12 @@ const PaymentDetailRail = ({
                     <h2 className="text-xl font-semibold tracking-tight">Payment actions</h2>
                     <p className="mt-1 text-sm text-muted-foreground">One action at a time.</p>
                 </div>
-                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${paymentMethods.length > 0 ? paymentToneClass.success : paymentToneClass.warning}`}>
+                <span className={`inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${paymentMethods.length > 0 ? paymentToneClass.success : paymentToneClass.warning}`}>
                     {paymentMethods.length > 0 ? 'Cards ready' : 'Cards needed'}
                 </span>
             </div>
 
-            <div className="mt-5 rounded-[32px] bg-background/42 p-5 dark:bg-white/[0.05]">
+            <div className="mt-5 rounded-card bg-background/42 p-5 dark:bg-white/[0.05]">
                 <div className="text-sm font-medium text-muted-foreground">Available balance</div>
                 <div className="mt-2 text-4xl font-semibold tracking-tight">{formatCurrency(wallet?.balance || 0)}</div>
                 <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -917,7 +917,7 @@ const PaymentDetailRail = ({
 
         <div className="grid grid-cols-2 gap-3">
             <Button
-                className="h-12 rounded-[22px] bg-emerald-500 text-white font-semibold shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
+                className="h-12 rounded-button bg-emerald-500 text-white font-semibold shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
                 onClick={onTopUp}
             >
                 <ArrowDownLeft className="mr-2 h-4 w-4" />
@@ -925,7 +925,7 @@ const PaymentDetailRail = ({
             </Button>
             <Button
                 variant="ghost"
-                className="h-12 rounded-[22px] bg-muted/30 font-semibold text-foreground transition-all hover:bg-muted/45 active:scale-[0.98]"
+                className="h-12 rounded-button bg-muted/30 font-semibold text-foreground transition-all hover:bg-muted/45 active:scale-[0.98]"
                 onClick={onWithdraw}
             >
                 <ArrowUpRight className="mr-2 h-4 w-4" />
@@ -935,7 +935,7 @@ const PaymentDetailRail = ({
 
         <Button
             variant="ghost"
-            className="mt-3 h-12 w-full rounded-[22px] bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-[0.98] dark:hover:text-sky-100"
+            className="mt-3 h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-[0.98] dark:hover:text-sky-100"
             onClick={onBilling}
         >
             <CreditCard className="mr-2 h-4 w-4" />
@@ -943,30 +943,30 @@ const PaymentDetailRail = ({
             <ChevronRightIcon />
         </Button>
 
-        <div className="mt-5 rounded-[30px] bg-background/35 p-4 dark:bg-black/[0.08]">
+        <div className="mt-5 rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <h3 className="text-sm font-semibold">Saved cards</h3>
                     <p className="mt-1 text-xs text-muted-foreground">{paymentMethods.length} ready</p>
                 </div>
-                <span className="rounded-full bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                <span className="rounded-pill bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
                     Cards
                 </span>
             </div>
 
             <div className="mt-3 space-y-2">
                 {paymentMethods.length === 0 && (
-                    <div className="rounded-[24px] bg-muted/22 px-4 py-5 text-center text-sm font-medium text-muted-foreground">
+                    <div className="rounded-inner bg-muted/22 px-4 py-5 text-center text-sm font-medium text-muted-foreground">
                         No saved cards
                     </div>
                 )}
                 {paymentMethods.map((method) => (
-                    <div key={method.id} className="group flex items-center justify-between gap-3 rounded-[24px] bg-muted/22 px-4 py-3">
+                    <div key={method.id} className="group flex items-center justify-between gap-3 rounded-inner bg-muted/22 px-4 py-3">
                         <div className="min-w-0">
                             <div className="truncate text-sm font-semibold">{method.card?.brand || 'Card'} **** {method.card?.last4}</div>
                             <div className="mt-1 text-xs text-muted-foreground">Expires {method.card?.exp_month}/{method.card?.exp_year}</div>
                         </div>
-                        <span className="shrink-0 rounded-full bg-background/55 px-3 py-1 text-[11px] font-semibold text-muted-foreground dark:bg-white/[0.06]">
+                        <span className="shrink-0 rounded-pill bg-background/55 px-3 py-1 text-[11px] font-semibold text-muted-foreground dark:bg-white/[0.06]">
                             Saved
                         </span>
                     </div>
@@ -974,9 +974,9 @@ const PaymentDetailRail = ({
             </div>
         </div>
 
-        <div className="mt-5 rounded-[30px] bg-background/35 p-4 dark:bg-black/[0.08]">
+        <div className="mt-5 rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
             <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 dark:text-sky-100">
+                <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-100">
                     <TrendingUp className="h-4 w-4" />
                 </span>
                 <div>

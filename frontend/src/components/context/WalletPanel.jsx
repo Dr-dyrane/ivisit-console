@@ -77,13 +77,13 @@ export const WalletPanel = ({ walletContext }) => {
                 className="space-y-3"
             >
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Payments overview</h3>
-                <div className="relative overflow-hidden rounded-[34px] bg-card/72 p-5 shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.05]">
+                <div className="relative overflow-hidden rounded-card bg-card/72 p-5 shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.05]">
                     <p className="mb-1 text-sm font-medium text-muted-foreground">Available balance</p>
                     <h2 className="text-4xl font-semibold tracking-tight text-foreground">
                         {balanceLabel}
                     </h2>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
+                        <span className="rounded-pill bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
                             {loading ? 'Loading' : 'Current'}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
@@ -91,19 +91,19 @@ export const WalletPanel = ({ walletContext }) => {
                 </div>
 
                 <div className="grid gap-2">
-                    <div className="flex flex-col gap-1 rounded-[24px] bg-muted/24 p-4 transition-colors hover:bg-muted/34">
+                    <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="h-3.5 w-3.5 text-primary transition-transform" />
+                            <TrendingUp className="h-3.5 w-3.5 text-sky-700 transition-transform dark:text-sky-100" />
                             <span className="text-xs font-medium text-muted-foreground">Next 30 days</span>
                         </div>
                         <p className="text-sm font-semibold tracking-tight">{formatCurrency(projection || 0)}</p>
                     </div>
-                    <div className="flex flex-col gap-1 rounded-[24px] bg-muted/24 p-4 transition-colors hover:bg-muted/34">
+                    <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <CreditCard className="h-3.5 w-3.5 text-success transition-transform" />
+                            <CreditCard className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
                             <span className="text-xs font-medium text-muted-foreground">Payment cards</span>
                         </div>
-                        <p className="text-sm font-semibold tracking-tight text-success">{cardState}</p>
+                        <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{cardState}</p>
                     </div>
                 </div>
             </motion.div>
@@ -119,7 +119,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleTopUp}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-primary/10 text-primary transition-all hover:bg-primary/18 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-sky-500/10 text-sky-700 transition-all hover:bg-sky-500/18 active:scale-[0.98] dark:text-sky-100"
                 >
                     <Plus className="h-5 w-5 transition-transform" />
                     <span className="text-sm font-semibold">Add funds</span>
@@ -127,7 +127,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleWithdraw}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
                 >
                     <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Withdraw</span>
@@ -135,7 +135,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleCards}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
                 >
                     <CreditCard className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Manage cards</span>
@@ -143,7 +143,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleExport}
                     disabled={!ledger.length}
-                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
                 >
                     <Download className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Export</span>
@@ -162,21 +162,21 @@ export const WalletPanel = ({ walletContext }) => {
             >
                 <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-semibold text-muted-foreground">Current route scope</h3>
-                    <span className="rounded-full bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                    <span className="rounded-pill bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
                         {transactionsCount + patientPaymentsCount} items
                     </span>
                 </div>
 
                 <div className="grid gap-2">
-                    <div className="rounded-[22px] bg-muted/22 p-3">
+                    <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Transactions</p>
                         <p className="mt-1 text-xl font-semibold">{transactionsCount}</p>
                     </div>
-                    <div className="rounded-[22px] bg-muted/22 p-3">
+                    <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Patient Payments</p>
                         <p className="mt-1 text-xl font-semibold">{patientPaymentsCount}</p>
                     </div>
-                    <div className="rounded-[22px] bg-muted/22 p-3">
+                    <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Cards</p>
                         <p className="mt-1 text-xl font-semibold">{paymentMethods.length}</p>
                     </div>
@@ -199,9 +199,9 @@ export const WalletPanel = ({ walletContext }) => {
                             : item.description || 'Transaction';
 
                         return (
-                        <div key={item.id} className="flex items-center justify-between rounded-[22px] bg-muted/22 p-3 transition-all hover:bg-muted/34">
+                        <div key={item.id} className="flex items-center justify-between rounded-inner bg-muted/22 p-3 transition-all hover:bg-muted/34">
                             <div className="flex items-center gap-3">
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${isCredit ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-100' : 'bg-muted/20'}`}>
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-icon ${isCredit ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-100' : 'bg-muted/20'}`}>
                                     {isPatientPayment ? <CreditCard className="h-4 w-4" /> : isCredit ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4 opacity-60" />}
                                 </div>
                                 <div className="min-w-0">
@@ -218,7 +218,7 @@ export const WalletPanel = ({ walletContext }) => {
                     );
                     })}
                     {!recentActivity.length && (
-                        <div className="rounded-[28px] bg-muted/22 py-8 text-center">
+                        <div className="rounded-card bg-muted/22 py-8 text-center">
                             <p className="text-sm font-medium text-muted-foreground">No transactions yet</p>
                         </div>
                     )}
@@ -229,12 +229,12 @@ export const WalletPanel = ({ walletContext }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-center gap-3 rounded-[28px] bg-success/8 p-4"
+                className="flex items-center gap-3 rounded-card bg-emerald-500/8 p-4"
             >
-                <ShieldCheck className="h-5 w-5 text-success" />
+                <ShieldCheck className="h-5 w-5 text-emerald-700 dark:text-emerald-100" />
                 <div className="min-w-0">
-                    <p className="text-sm font-semibold text-success">{cardState}</p>
-                    <p className="truncate text-xs leading-tight text-success/70">Cards are encrypted</p>
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-100">{cardState}</p>
+                    <p className="truncate text-xs leading-tight text-emerald-700/70 dark:text-emerald-100/70">Cards are encrypted</p>
                 </div>
             </motion.div>
         </div>

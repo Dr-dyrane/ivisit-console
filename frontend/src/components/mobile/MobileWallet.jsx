@@ -224,7 +224,7 @@ export const MobileWallet = ({
             transition={{ duration: 0.35 }}
             className="space-y-4 px-5"
           >
-            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${mobilePaymentTone[signal.tone] || mobilePaymentTone.muted}`}>
+            <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobilePaymentTone[signal.tone] || mobilePaymentTone.muted}`}>
               <SignalIcon size={15} className={signal.spin ? 'animate-spin' : ''} />
               {signal.label}
             </div>
@@ -241,7 +241,7 @@ export const MobileWallet = ({
               <button
                 type="button"
                 onClick={() => setShowBalance((prev) => !prev)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[20px] bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
                 aria-label={showBalance ? 'Hide balance' : 'Show balance'}
               >
                 {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -260,7 +260,7 @@ export const MobileWallet = ({
                     type="button"
                     whileTap={{ scale: 0.97 }}
                     onClick={item.onClick}
-                    className={`min-h-[86px] rounded-[28px] px-4 py-3 text-left transition-all ${active ? tone.active : tone.rest}`}
+                    className={`min-h-[86px] rounded-card px-4 py-3 text-left transition-all ${active ? tone.active : tone.rest}`}
                     aria-pressed={active}
                   >
                     <span className="flex items-start justify-between gap-3">
@@ -268,7 +268,7 @@ export const MobileWallet = ({
                         <span className="block text-xs font-semibold leading-tight">{item.label}</span>
                         <span className="mt-2 block truncate text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
                       </span>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/40">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/40">
                         <Icon size={16} />
                       </span>
                     </span>
@@ -277,30 +277,30 @@ export const MobileWallet = ({
               })}
             </div>
 
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
+            <div className="inline-flex w-fit items-center gap-2 rounded-pill bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
               <TrendingUp className="h-3.5 w-3.5" />
               Next 30 days {showBalance ? formatCurrency(projection || 0) : '****'}
             </div>
           </motion.section>
 
-          <section className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
-            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+          <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
+            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
             {showTopSectionLoading ? (
               <div className="mb-3 flex gap-2 overflow-hidden">
-                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
-                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
-                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+                <div className="h-12 flex-1 rounded-inner bg-muted/20 shimmer" />
+                <div className="h-12 flex-1 rounded-inner bg-muted/20 shimmer" />
+                <div className="h-12 flex-1 rounded-inner bg-muted/20 shimmer" />
               </div>
             ) : (
               <MobileActionRail actions={railActions} />
             )}
 
-            <div className="mt-3 flex items-center gap-2 rounded-[34px] bg-background/42 p-2 dark:bg-black/[0.10]">
+            <div className="mt-3 flex items-center gap-2 rounded-card bg-background/42 p-2 dark:bg-black/[0.10]">
               <button
                 type="button"
                 onClick={() => setActiveTab('ledger')}
-                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[22px] text-xs font-semibold transition-all active:scale-95 ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-95 ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
                 aria-pressed={activeTab === 'ledger'}
               >
                 <History size={15} />
@@ -309,7 +309,7 @@ export const MobileWallet = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('payments')}
-                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[22px] text-xs font-semibold transition-all active:scale-95 ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-inner text-xs font-semibold transition-all active:scale-95 ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
                 aria-pressed={activeTab === 'payments'}
               >
                 <ShieldCheck size={15} />
@@ -319,7 +319,7 @@ export const MobileWallet = ({
 
             <div className="mt-4 flex items-center justify-between px-2">
               <h2 className="text-lg font-semibold tracking-tight">{activeTab === 'ledger' ? 'Transaction History' : 'Patient Payments'}</h2>
-              <span className="rounded-full bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+              <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                 {loading ? 'Updating' : `${items.length}`}
               </span>
             </div>
@@ -354,14 +354,14 @@ export const MobileWallet = ({
                       expandedContent={(
                         <div className="space-y-4 py-3">
                           <div className="grid grid-cols-1 gap-2">
-                            <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-3">
+                            <div className="flex items-center gap-3 rounded-inner bg-white/[0.02] p-3">
                               <History size={14} className="text-muted-foreground/40" />
                               <span className="text-xs font-normal opacity-80">
                                 {new Date(item.created_at).toLocaleString()}
                               </span>
                             </div>
                             {!isLedger && (
-                              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-3">
+                              <div className="flex items-center gap-3 rounded-inner bg-white/[0.02] p-3">
                                 <Building size={14} className="text-muted-foreground/40" />
                                 <span className="text-xs font-normal opacity-80">
                                   {item.emergency_requests?.hospitals?.name || 'Hospital unavailable'}
@@ -370,13 +370,13 @@ export const MobileWallet = ({
                             )}
                           </div>
 
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${isCredit ? 'bg-emerald-500/15 text-emerald-200' : 'bg-sky-500/15 text-sky-200'}`}>
+                          <span className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${isCredit ? 'bg-emerald-500/15 text-emerald-200' : 'bg-sky-500/15 text-sky-200'}`}>
                             {isCredit ? 'Ready' : 'Waiting'}
                           </span>
 
                           {!isLedger && (
-                            <Button variant="ghost" className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-muted/25" onClick={() => onOpenPayment(item)}>
-                              <Eye size={16} className="text-primary/60" />
+                            <Button variant="ghost" className="flex h-12 w-full items-center justify-center gap-2 rounded-inner bg-muted/25" onClick={() => onOpenPayment(item)}>
+                              <Eye size={16} className="text-muted-foreground" />
                               <span className="text-[11px] font-semibold">Receipt</span>
                             </Button>
                           )}
