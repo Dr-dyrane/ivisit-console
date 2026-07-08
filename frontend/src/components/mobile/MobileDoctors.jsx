@@ -1,28 +1,30 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+    BadgeCheck,
     CheckCircle2,
-    ChevronDown,
-    ChevronRight,
     Clock,
     Edit,
     Eye,
     Filter,
     Hospital,
+    Mail,
     Phone,
     Search,
     Stethoscope,
-    UserRound,
     Users
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
+import { MobileMetricRow } from './MobileMetricList';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { statusPill } from '../../constants/vitalTracks';
 
 const mobileStaffFilters = [
     {
@@ -55,37 +57,7 @@ const mobileStaffFilters = [
     },
 ];
 
-const statusMeta = {
-    available: {
-        label: 'Available',
-        className: 'bg-emerald-400/12 text-emerald-300',
-        icon: CheckCircle2,
-    },
-    on_call: {
-        label: 'On call',
-        className: 'bg-sky-400/12 text-sky-300',
-        icon: Phone,
-    },
-    busy: {
-        label: 'Busy',
-        className: 'bg-amber-400/12 text-amber-300',
-        icon: Clock,
-    },
-    off_duty: {
-        label: 'Away',
-        className: 'bg-muted/34 text-muted-foreground',
-        icon: UserRound,
-    },
-};
-
 const getStatus = (doctor) => String(doctor?.status || 'available').toLowerCase();
-
-const getStatusMeta = (doctor) => statusMeta[getStatus(doctor)] || statusMeta.available;
-
-const getInitials = (name = 'Staff') => {
-    const parts = String(name).trim().split(/\s+/).filter(Boolean);
-    return `${parts[0]?.[0] || 'S'}${parts[1]?.[0] || ''}`.toUpperCase();
-};
 
 const getFilterValue = ({ id, statistics, doctors }) => {
     if (id === 'all') return Number(statistics?.total) || doctors.length;
@@ -209,18 +181,46 @@ export const MobileDoctors = ({
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        {displayDoctors.map((doctor) => (
-                            <MobileStaffRow
-                                key={doctor.id}
-                                doctor={doctor}
-                                expanded={expandedDoctorId === doctor.id}
-                                setExpandedDoctorId={setExpandedDoctorId}
-                                onView={onView}
-                                onEdit={onEdit}
-                                canManage={canManage}
-                            />
-                        ))}
+                    <div className="space-y-1">
+                        {displayDoctors.map((doctor) => {
+                            const name = doctor.name || 'Unknown staff';
+                            const specialty = doctor.specialization || 'General';
+                            const facility = doctor.hospitals?.name || 'No facility';
+                            const phone = doctor.phone || 'No phone';
+
+                            return (
+                                <MobileMetricRow
+                                    key={doctor.id}
+                                    icon={Stethoscope}
+                                    color="hsl(var(--primary))"
+                                    label="Staff member"
+                                    value={name}
+                                    secondary={`${specialty} · ${facility}`}
+                                    statusPill={statusPill(getStatus(doctor))}
+                                    isExpanded={expandedDoctorId === doctor.id}
+                                    onExpand={(id) => setExpandedDoctorId((current) => (current === id ? null : id))}
+                                    itemId={doctor.id}
+                                    expandedContent={(
+                                        <div className="space-y-3 py-3">
+                                            <MobileDetailIslands
+                                                items={[
+                                                    { icon: Stethoscope, label: 'Specialty', value: specialty },
+                                                    { icon: Hospital, label: 'Facility', value: facility },
+                                                    { icon: Phone, label: 'Contact', value: phone },
+                                                    doctor.email && { icon: Mail, label: 'Email', value: doctor.email },
+                                                    doctor.license_number && { icon: BadgeCheck, label: 'License', value: doctor.license_number },
+                                                    { icon: Clock, label: 'Experience', value: doctor.experience != null ? `${doctor.experience} years` : 'Not set' },
+                                                ]}
+                                            />
+                                            <MobileSheetActions
+                                                primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(doctor) }}
+                                                secondary={canManage ? { icon: Edit, onClick: () => onEdit?.(doctor), 'aria-label': `Edit ${name}` } : undefined}
+                                            />
+                                        </div>
+                                    )}
+                                />
+                            );
+                        })}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
                             {showSkeleton && <MobileListSkeletonRows />}
@@ -237,105 +237,3 @@ export const MobileDoctors = ({
         </PullToRefresh>
     );
 };
-
-const MobileStaffRow = ({
-    doctor,
-    expanded,
-    setExpandedDoctorId,
-    onView,
-    onEdit,
-    canManage,
-}) => {
-    const status = getStatusMeta(doctor);
-    const StatusIcon = status.icon;
-    const name = doctor.name || 'Unknown staff';
-    const facility = doctor.hospitals?.name || 'No facility';
-    const phone = doctor.phone || 'No phone';
-
-    return (
-        <motion.div
-            layout
-            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
-        >
-            <button
-                type="button"
-                onClick={() => setExpandedDoctorId(expanded ? null : doctor.id)}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
-                aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
-                aria-expanded={expanded}
-            >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-sky-400/12 text-sm font-semibold text-sky-300">
-                    {getInitials(name)}
-                </span>
-                {/* Readable identity: name is the primary line (2-line clamp, never a stub). See canon §2.1. */}
-                <span className="min-w-0 flex-1">
-                    <span className="text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{name}</span>
-                    <span className="mt-1 block truncate text-sm text-muted-foreground">{doctor.specialization || 'General'}</span>
-                </span>
-                <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
-                    <span className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>
-                        <StatusIcon size={12} />
-                        {status.label}
-                    </span>
-                    {expanded ? (
-                        <ChevronDown size={18} className="text-muted-foreground" />
-                    ) : (
-                        <ChevronRight size={18} className="text-muted-foreground" />
-                    )}
-                </span>
-            </button>
-
-            {expanded && (
-                <div className="space-y-3 px-4 pb-4">
-                    <MobileStaffDetail icon={Hospital} label="Facility" value={facility} />
-                    <MobileStaffDetail icon={Phone} label="Contact" value={phone} />
-                    <MobileStaffDetail icon={Clock} label="Experience" value={doctor.experience != null ? `${doctor.experience} years` : 'Not set'} />
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                        <Button
-                            variant="ghost"
-                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
-                            onClick={() => onView(doctor)}
-                        >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Details
-                        </Button>
-                        {canManage ? (
-                            <Button
-                                variant="ghost"
-                                className="h-12 rounded-button bg-sky-400/12 font-semibold text-sky-300 transition-all hover:bg-sky-400/18 active:scale-95"
-                                onClick={() => onEdit(doctor)}
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                className="h-12 rounded-button bg-muted/28 font-semibold text-muted-foreground transition-all hover:bg-muted/38 active:scale-95"
-                                onClick={() => onView(doctor)}
-                            >
-                                <UserRound className="mr-2 h-4 w-4" />
-                                Profile
-                            </Button>
-                        )}
-                    </div>
-
-                </div>
-            )}
-        </motion.div>
-    );
-};
-
-const MobileStaffDetail = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 rounded-inner bg-background/30 p-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
-            <Icon size={15} />
-        </span>
-        <span className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-            <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value || 'Not set'}</span>
-        </span>
-    </div>
-);

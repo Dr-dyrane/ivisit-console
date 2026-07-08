@@ -12,14 +12,19 @@ import {
   EyeOff,
   Building,
   BarChart3,
+  Clock,
+  Hash,
   Loader2 as LoaderIcon
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { MobileMetricRow } from './MobileMetricList';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
 import { MobileActionRail } from './MobileActionRail';
+import { statusPill } from '../../constants/vitalTracks';
+import { groupByMonth } from '../../utils/groupByMonth';
 
 const mobilePaymentTone = {
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
@@ -324,65 +329,78 @@ export const MobileWallet = ({
               </span>
             </div>
 
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-1">
               <AnimatePresence mode="popLayout">
-                {items.map((item) => {
+                {/* Date-grouped feed (rollout S5): newest-first, a month header at each
+                    boundary. Grouping is render-only; id-keyed expand state is unaffected.
+                    A ledger has no linear lifecycle, so there is no VitalTrack here (S4 N/A). */}
+                {groupByMonth(items, (entry) => entry?.created_at).map(({ item, header }) => {
                   const isLedger = activeTab === 'ledger';
+                  // Ledger carries direction via transaction_type (no status column);
+                  // payments carry a real status column (completed/pending/...).
                   const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
                   const rowColor = isLedger
                     ? (isCredit ? mobilePaymentReadyColor : mobilePaymentNeutralColor)
                     : (isCredit ? mobilePaymentReadyColor : mobilePaymentWaitingColor);
-                  const rowDirection = isLedger ? (isCredit ? 'up' : 'down') : undefined;
                   const amount = Math.abs(Number(item.amount || 0));
+                  const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount)}`;
+                  const typeLabel = formatServiceTypeLabel(item.transaction_type) || 'Transaction';
+                  const methodLabel = formatServiceTypeLabel(item.payment_method) || 'Card';
+                  const facilityName = item.emergency_requests?.hospitals?.name || 'Hospital unavailable';
+                  const referenceValue = item.reference_id || item.external_reference || null;
+                  // S3: semantic status pill (raw hue) replaces the rightBlade. Ledger has no
+                  // modelled lifecycle, so the generic keyword pill is correct here.
+                  const pill = isLedger ? statusPill(item.transaction_type) : statusPill(item.status);
+                  // S2: freed meta (amount + counterparty) moves onto the secondary line.
+                  const secondary = isLedger
+                    ? signedAmount
+                    : `${signedAmount} · ${facilityName === 'Hospital unavailable' ? methodLabel : facilityName}`;
+
                   return (
-                    <MobileMetricRow
-                      key={item.id}
-                      icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
-                      color={rowColor}
-                      label={isLedger ? (item.transaction_type || 'transaction') : (item.status || 'payment')}
-                      value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
-                      rightBlade={{
-                        badge: isLedger ? 'Transaction' : 'Payment',
-                        direction: rowDirection,
-                        label: 'Amount',
-                        value: `${isLedger ? (isCredit ? '+' : '-') : ''} ${formatCurrency(amount)}`,
-                        color: rowColor
-                      }}
-                      isExpanded={expandedId === item.id}
-                      onExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
-                      itemId={item.id}
-                      expandedContent={(
-                        <div className="space-y-4 py-3">
-                          <div className="grid grid-cols-1 gap-2">
-                            <div className="flex items-center gap-3 rounded-inner bg-white/[0.02] p-3">
-                              <History size={14} className="text-muted-foreground/40" />
-                              <span className="text-xs font-normal opacity-80">
-                                {new Date(item.created_at).toLocaleString()}
-                              </span>
-                            </div>
-                            {!isLedger && (
-                              <div className="flex items-center gap-3 rounded-inner bg-white/[0.02] p-3">
-                                <Building size={14} className="text-muted-foreground/40" />
-                                <span className="text-xs font-normal opacity-80">
-                                  {item.emergency_requests?.hospitals?.name || 'Hospital unavailable'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <span className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${isCredit ? 'bg-emerald-500/15 text-emerald-200' : 'bg-sky-500/15 text-sky-200'}`}>
-                            {isCredit ? 'Ready' : 'Waiting'}
-                          </span>
-
-                          {!isLedger && (
-                            <Button variant="ghost" className="flex h-12 w-full items-center justify-center gap-2 rounded-inner bg-muted/25" onClick={() => onOpenPayment(item)}>
-                              <Eye size={16} className="text-muted-foreground" />
-                              <span className="text-[11px] font-semibold">Receipt</span>
-                            </Button>
-                          )}
+                    <React.Fragment key={item.id}>
+                      {header && (
+                        <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          {header}
                         </div>
                       )}
-                    />
+                      <MobileMetricRow
+                        icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
+                        color={rowColor}
+                        label={isLedger ? 'Transaction' : 'Patient payment'}
+                        value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
+                        secondary={secondary}
+                        statusPill={pill}
+                        isExpanded={expandedId === item.id}
+                        onExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
+                        itemId={item.id}
+                        expandedContent={(
+                          <div className="space-y-3 py-3">
+                            {/* S6: identity-island detail from the record's real fields. */}
+                            <MobileDetailIslands
+                              items={isLedger ? [
+                                { icon: isCredit ? ArrowDownLeft : ArrowUpRight, label: 'Type', value: typeLabel },
+                                { icon: Wallet, label: 'Amount', value: signedAmount },
+                                referenceValue && { icon: Hash, label: 'Reference', value: referenceValue },
+                                { icon: Clock, label: 'Recorded', value: new Date(item.created_at).toLocaleString() },
+                              ] : [
+                                { icon: Wallet, label: 'Amount', value: formatCurrency(amount) },
+                                { icon: CreditCard, label: 'Method', value: methodLabel },
+                                { icon: Building, label: 'Facility', value: facilityName },
+                                { icon: Clock, label: 'Paid', value: new Date(item.created_at).toLocaleString() },
+                              ]}
+                            />
+
+                            {/* S7: read-only ledger. Only the payment record has a detail view;
+                                a single Details CTA opens the receipt. No money-moving actions. */}
+                            {!isLedger && onOpenPayment && (
+                              <MobileSheetActions
+                                primary={{ label: 'Details', icon: Eye, onClick: () => onOpenPayment(item) }}
+                              />
+                            )}
+                          </div>
+                        )}
+                      />
+                    </React.Fragment>
                   );
                 })}
               </AnimatePresence>

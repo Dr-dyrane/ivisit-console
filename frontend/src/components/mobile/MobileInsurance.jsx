@@ -1,21 +1,27 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, Search, Eye, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3 } from 'lucide-react';
+import { Shield, ShieldCheck, Search, Eye, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3, User, Building2, Hash, Tag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { VitalTrack } from '../common/VitalTrack';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { resolveVital } from '../../constants/vitalTracks';
 
-const formatPolicyStatusLabel = (status) => {
-  const value = String(status || 'unknown').replace(/_/g, ' ').trim();
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Unknown';
+const formatPlanType = (policy) => {
+  const raw = policy?.policy_type || policy?.coverage_type || policy?.plan_type;
+  if (!raw) return '';
+  const text = String(raw).replace(/[_-]+/g, ' ').trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
 };
 
 export const MobileInsurance = ({
@@ -243,45 +249,53 @@ export const MobileInsurance = ({
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
             {displayPolicies.map((policy) => {
-              const isActive = policy.status === 'active';
-              const isPending = policy.status === 'pending';
-              const color = isActive ? 'hsl(var(--foreground))' : isPending ? 'hsl(var(--foreground))' : 'hsl(var(--destructive))';
+              const v = resolveVital('insurance', policy.status);
+              const planType = formatPlanType(policy);
+              const providerLabel = policy.provider_name || 'Unknown provider';
+              const coverageValue = policy.coverage_amount != null
+                ? `$${Number(policy.coverage_amount).toLocaleString()}`
+                : null;
+              const expiresValue = policy.end_date
+                ? new Date(policy.end_date).toLocaleDateString()
+                : null;
               return (
                 <MobileMetricRow
                   key={policy.id}
                   icon={Shield}
-                  color={color}
-                  label={formatPolicyStatusLabel(policy.status)}
-                  value={policy.policy_holder_name || policy.policy_number || 'Unnamed Policy'}
-                  rightBlade={{
-                    badge: policy.verified ? 'Verified' : 'Unverified',
-                    direction: policy.verified ? 'up' : 'flat',
-                    label: 'Provider',
-                    value: policy.provider_name || 'N/A',
-                    color
-                  }}
+                  color={v?.accent || 'hsl(var(--foreground))'}
+                  label="Insurance policy"
+                  value={policy.policy_holder_name || policy.policy_number || 'Unnamed policy'}
+                  secondary={planType ? `${providerLabel} · ${planType}` : providerLabel}
+                  statusPill={v?.pill}
+                  statusIndicators={policy.verified ? [{ icon: ShieldCheck, color: 'hsl(162 94% 24%)', label: 'Verified' }] : []}
                   isExpanded={expandedId === policy.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
                   itemId={policy.id}
                   expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <DollarSign size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Coverage: ${Number(policy.coverage_amount || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                          <Calendar size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Expires: {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-inner apple-glass flex items-center justify-center gap-2" onClick={() => onView(policy)}>
-                          <Eye size={16} className="text-muted-foreground/70" />
-                          <span className="text-xs font-semibold">Details</span>
-                        </Button>
-                      </div>
+                    <div className="space-y-3 py-3">
+                      {v && (
+                        <VitalTrack
+                          steps={v.steps}
+                          currentKey={v.currentKey}
+                          tone={v.tone}
+                          cancelled={v.cancelled}
+                          label="Policy status"
+                        />
+                      )}
+                      <MobileDetailIslands
+                        items={[
+                          { icon: User, label: 'Holder', value: policy.policy_holder_name },
+                          { icon: Building2, label: 'Provider', value: policy.provider_name },
+                          { icon: Hash, label: 'Policy number', value: policy.policy_number },
+                          { icon: Tag, label: 'Plan type', value: planType },
+                          { icon: DollarSign, label: 'Coverage', value: coverageValue },
+                          { icon: Calendar, label: 'Expires', value: expiresValue },
+                          { icon: ShieldCheck, label: 'Verification', value: policy.verified ? 'Verified' : 'Not verified' },
+                        ]}
+                      />
+                      <MobileSheetActions
+                        primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(policy), tone: v?.accent }}
+                      />
                     </div>
                   )}
                 />
