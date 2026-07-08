@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import {
@@ -222,7 +223,6 @@ export const SupportTicketsPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
-  const [focusedTicketId, setFocusedTicketId] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const pagination = usePagination(20);
   const isMountedRef = useRef(false);
@@ -230,9 +230,8 @@ export const SupportTicketsPage = () => {
   const actionFeedbackTimerRef = useRef(null);
   const deepLinkHandledRef = useRef(null);
 
-  const focusedTicket = useMemo(() => (
-    tickets.find((ticket) => ticket.id === focusedTicketId) || tickets[0] || null
-  ), [tickets, focusedTicketId]);
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('support', tickets);
+  const focusedTicket = focusedRecord;
 
   const analytics = useMemo(() => buildAnalytics(supportStats), [supportStats]);
 
@@ -339,16 +338,6 @@ export const SupportTicketsPage = () => {
   }, [fetchSupportTickets]);
 
   useEffect(() => {
-    if (!tickets.length) {
-      if (focusedTicketId !== null) setFocusedTicketId(null);
-      return;
-    }
-    if (!tickets.some((ticket) => ticket.id === focusedTicketId)) {
-      setFocusedTicketId(tickets[0].id);
-    }
-  }, [tickets, focusedTicketId]);
-
-  useEffect(() => {
     const unsubscribe = subscribeToSupportTickets(() => {
       if (isMountedRef.current) fetchSupportTickets();
     });
@@ -394,10 +383,10 @@ export const SupportTicketsPage = () => {
 
   const handleView = useCallback((ticket) => {
     markActionFeedback(`view-${ticket?.id || 'unknown'}`);
-    if (ticket?.id) setFocusedTicketId(ticket.id);
+    if (ticket?.id && !isFocused(ticket.id)) setFocused(ticket.id);
     setSelectedTicket(ticket);
     setModalMode('view');
-  }, [markActionFeedback]);
+  }, [markActionFeedback, setFocused, isFocused]);
 
   const canEditTicket = useCallback((ticket) => (
     canManageSupport || (isProvider() && ticket?.user_id === profile?.id)
@@ -409,10 +398,10 @@ export const SupportTicketsPage = () => {
       return;
     }
     markActionFeedback(`edit-${ticket?.id || 'unknown'}`);
-    if (ticket?.id) setFocusedTicketId(ticket.id);
+    if (ticket?.id && !isFocused(ticket.id)) setFocused(ticket.id);
     setSelectedTicket(ticket);
     setModalMode('edit');
-  }, [canEditTicket, markActionFeedback]);
+  }, [canEditTicket, markActionFeedback, setFocused, isFocused]);
 
   const handleSave = useCallback(async (...args) => {
     try {
@@ -672,10 +661,10 @@ export const SupportTicketsPage = () => {
                       <SupportTicketRow
                         key={ticket.id}
                         ticket={ticket}
-                        selected={focusedTicket?.id === ticket.id}
+                        selected={isFocused(ticket.id)}
                         index={index}
                         canEdit={canEditTicket(ticket)}
-                        onFocus={() => setFocusedTicketId(ticket.id)}
+                        onFocus={() => setFocused(ticket.id)}
                         onView={handleView}
                         onEdit={handleEdit}
                         activeActionFeedback={activeActionFeedback}
