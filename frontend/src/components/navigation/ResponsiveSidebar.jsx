@@ -66,7 +66,7 @@ export const ContextPanelShell = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className={`fixed top-4 bottom-4 left-auto right-0 z-40 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} rounded-3xl bg-background/92 shadow-[0_28px_80px_rgb(0_0_0/0.22)] backdrop-blur-xl dark:bg-background/86 overflow-hidden`}
+            className={`fixed top-4 bottom-4 left-auto right-0 z-40 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} rounded-card bg-background/92 shadow-[0_28px_80px_rgb(0_0_0/0.22)] backdrop-blur-xl dark:bg-background/86 overflow-hidden`}
             role="dialog"
             aria-modal="true"
             aria-label="Quick actions panel"

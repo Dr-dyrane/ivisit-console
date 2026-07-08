@@ -85,7 +85,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 key={item.path}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleNavigate(item.path)}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-button transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
                     } ${isSub ? 'pl-12' : ''}`}
                 aria-label={item.label}
             >
@@ -93,7 +93,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 <span className={`text-xs md:text-base tracking-tight ${active ? 'font-semibold' : 'font-normal'}`}>
                     {item.label}
                 </span>
-                {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+                {active && <div className="ml-auto w-1.5 h-1.5 rounded-pill bg-primary" />}
             </motion.button>
         );
     };
@@ -104,7 +104,7 @@ export const MobileNavMenu = ({ onClose }) => {
             <div className="flex-shrink-0 p-2 pb-0">
                 <div className="h-14 flex items-center mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-icon bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
                         </div>
                         <div className="flex flex-col leading-none">
@@ -114,9 +114,9 @@ export const MobileNavMenu = ({ onClose }) => {
                 </div>
 
                 {/* TAB TOGGLE (Subtle Segmented Control) */}
-                <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative mb-4">
+                <div className="p-1 rounded-inner bg-muted/20 backdrop-blur-md flex relative mb-4">
                     <motion.div
-                        className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-lg"
+                        className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-button"
                         initial={false}
                         animate={{
                             left: activeTab === 'menu' ? '4px' : '50%',
@@ -166,7 +166,7 @@ export const MobileNavMenu = ({ onClose }) => {
                                         <div key={groupId} className="space-y-1">
                                             <button
                                                 onClick={() => setActiveGroup(isOpen ? null : groupId)}
-                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${isOpen ? 'text-foreground' : 'text-muted-foreground/75'
+                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-button transition-all ${isOpen ? 'text-foreground' : 'text-muted-foreground/75'
                                                     }`}
                                                 aria-label={`${isOpen ? 'Hide' : 'Show'} ${group.label}`}
                                             >
@@ -195,7 +195,7 @@ export const MobileNavMenu = ({ onClose }) => {
                             <div className="mx-4 py-1" aria-hidden="true" />
 
                             {showPageActions && (
-                                <div className="p-4 rounded-2xl bg-primary/10">
+                                <div className="p-4 rounded-card bg-primary/10">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60 mb-3 ml-1">Actions</p>
                                     <div className="flex flex-wrap gap-2">
                                         {headerConfig.actions}
@@ -223,14 +223,14 @@ export const MobileNavMenu = ({ onClose }) => {
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-out active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                        className="flex-1 flex items-center justify-center h-12 rounded-button bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-out active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
                         aria-label="Toggle theme"
                     >
                         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                     </button>
                     <button
                         onClick={() => { signOut(); navigate('/login'); }}
-                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-destructive/5 text-destructive transition-colors active:bg-destructive/10"
+                        className="flex-1 flex items-center justify-center h-12 rounded-button bg-destructive/5 text-destructive transition-colors active:bg-destructive/10"
                         aria-label="Sign out"
                     >
                         <LogOut className="h-5 w-5" />
@@ -239,10 +239,10 @@ export const MobileNavMenu = ({ onClose }) => {
 
                 <button
                     onClick={() => handleNavigate('/settings')}
-                    className="w-full flex items-center gap-4 p-3 rounded-2xl apple-glass shadow-sm"
+                    className="w-full flex items-center gap-4 p-3 rounded-button apple-glass shadow-sm"
                     aria-label="Open account settings"
                 >
-                    <Avatar className="h-10 w-10 rounded-xl">
+                    <Avatar className="h-10 w-10 rounded-icon">
                         <AvatarFallback className="bg-primary/5 text-primary text-xs">
                             {avatarInitial}
                         </AvatarFallback>

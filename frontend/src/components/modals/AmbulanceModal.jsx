@@ -41,8 +41,8 @@ const TYPE_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
   { value: 'critical', label: 'Critical care' },
 ];
-const modalFieldClassName = 'rounded-2xl bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
-const modalSelectContentClassName = 'rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl';
+const modalFieldClassName = 'rounded-button bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
+const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl backdrop-blur-xl';
 
 const normalizeFormData = (ambulance, orgId, isCreate, isOrgAdmin) => {
   const base = {
@@ -166,7 +166,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const modalSubtitle = stationName;
 
   const statusBadge = (
-    <Badge className={`rounded-full px-3 py-0.5 text-xs font-semibold ${getStatusTone(status)}`}>
+    <Badge className={`rounded-pill px-3 py-0.5 text-xs font-semibold ${getStatusTone(status)}`}>
       {formatLabel(status, 'Available')}
     </Badge>
   );
@@ -419,12 +419,12 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
             </div>
           </GlassCard>
 
-          <div className="flex justify-end gap-3 rounded-[24px] bg-muted/30 p-3 md:p-4">
+          <div className="flex justify-end gap-3 rounded-card bg-muted/30 p-3 md:p-4">
             <Button
               type="button"
               variant="ghost"
               onClick={() => onClose(false)}
-              className="h-11 rounded-2xl px-5 font-semibold text-muted-foreground hover:bg-muted"
+              className="h-11 rounded-button px-5 font-semibold text-muted-foreground hover:bg-muted"
               disabled={loading}
             >
               {isView ? 'Close' : 'Cancel'}
@@ -432,7 +432,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
             {!isView && (
               <Button
                 type="submit"
-                className="h-11 rounded-2xl bg-primary px-6 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+                className="h-11 rounded-button bg-primary px-6 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
                 disabled={!canSubmit}
                 aria-busy={loading}
                 data-state={loading ? 'saving' : 'idle'}
@@ -448,9 +448,9 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 };
 
 const GlassCard = ({ children, title, icon }) => (
-  <section className="rounded-[28px] bg-muted/30 p-4 shadow-[0_18px_44px_rgb(0_0_0/0.06)] sm:p-6">
+  <section className="rounded-card bg-muted/30 p-4 shadow-[0_18px_44px_rgb(0_0_0/0.06)] sm:p-6">
     <div className="mb-4 flex items-center gap-3">
-      <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-primary shadow-sm">
+      <span className="flex h-9 w-9 items-center justify-center rounded-icon bg-background/60 text-primary shadow-sm">
         {React.cloneElement(icon, { size: 17 })}
       </span>
       <h3 className="text-sm font-semibold tracking-normal text-foreground sm:text-base">{title}</h3>
@@ -469,8 +469,8 @@ const FieldGroup = ({ children, label, htmlFor }) => (
 );
 
 const ReadOnlyField = ({ value, subtext, icon }) => (
-  <div className="flex min-h-12 items-center gap-3 rounded-2xl bg-background/55 px-3 py-3 text-sm shadow-sm md:min-h-14">
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground">
+  <div className="flex min-h-12 items-center gap-3 rounded-inner bg-background/55 px-3 py-3 text-sm shadow-sm md:min-h-14">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-muted/50 text-muted-foreground">
       {icon}
     </span>
     <span className="min-w-0 flex-1">
@@ -483,7 +483,7 @@ const ReadOnlyField = ({ value, subtext, icon }) => (
 );
 
 const UnavailableNote = ({ title, text }) => (
-  <div className="rounded-[22px] bg-background/55 p-4 shadow-sm">
+  <div className="rounded-inner bg-background/55 p-4 shadow-sm">
     <p className="text-sm font-semibold text-foreground">{title}</p>
     <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
   </div>

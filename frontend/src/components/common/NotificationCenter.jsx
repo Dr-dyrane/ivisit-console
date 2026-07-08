@@ -172,7 +172,7 @@ export const NotificationCenter = () => {
           if (nextOpen) fetchNotifications({ force: true });
         }}
         className={`${isMobile
-          ? 'h-8 w-8 rounded-full hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]'
+          ? 'h-8 w-8 rounded-pill hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]'
           : 'h-9 w-9 squircle hover:bg-primary/10 hover:text-primary'
           } relative transition-[color,background] duration-200 ease-out`}
       >
@@ -190,7 +190,7 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[88%] max-w-[385px] px-2 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-[36px] overflow-hidden shadow-2xl"
+            className="w-[88%] max-w-[385px] px-2 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-sheet overflow-hidden shadow-2xl"
           >
             <div className="px-4 pt-3 pb-2">
               <div>
@@ -207,7 +207,7 @@ export const NotificationCenter = () => {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-20 squircle-lg bg-muted/10 animate-pulse"
+                      className="h-20 rounded-inner bg-muted/10 animate-pulse"
                     />
                   ))}
                 </div>
@@ -235,7 +235,7 @@ export const NotificationCenter = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs rounded-2xl hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]"
+                  className="w-full text-xs rounded-button hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]"
                   onClick={handleMarkAllRead}
                 >
                   Mark all as read
@@ -262,7 +262,7 @@ export const NotificationCenter = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"
               >
-                <div className="squircle-xl bg-background/35 backdrop-blur-xs shadow-2xl overflow-hidden flex flex-col">
+                <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-2xl overflow-hidden flex flex-col">
                   <div className="p-4 bg-white/[0.04] flex items-center justify-between">
                     <div>
                       <h3 className="font-bold">Notifications</h3>
@@ -287,7 +287,7 @@ export const NotificationCenter = () => {
                         {[...Array(3)].map((_, i) => (
                           <div
                             key={i}
-                            className="h-20 squircle-lg bg-muted/10 animate-pulse"
+                            className="h-20 rounded-inner bg-muted/10 animate-pulse"
                           />
                         ))}
                       </div>

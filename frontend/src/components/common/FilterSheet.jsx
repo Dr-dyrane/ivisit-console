@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const filterInputClassName = 'w-full rounded-xl bg-black/5 px-3 py-2.5 text-sm shadow-[0_12px_28px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
+const filterInputClassName = 'w-full rounded-button bg-black/5 px-3 py-2.5 text-sm shadow-[0_12px_28px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
 const filterBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
 const filterSheetTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
 
@@ -109,7 +109,7 @@ export const FilterSheet = ({
     switch (type) {
       case 'text':
         return (
-          <div key={key} className="hidden lg:block space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
+          <div key={key} className="hidden lg:block space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
@@ -125,7 +125,7 @@ export const FilterSheet = ({
                   type="button"
                   aria-label={`Clear ${label}`}
                   onClick={() => handleFilterChange(key, '')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-pill hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -140,7 +140,7 @@ export const FilterSheet = ({
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
               {(options || []).map(option => (
-                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-inner hover:bg-white/5 transition-colors cursor-pointer">
                   <Checkbox
                     id={`${key}-${option.value}`}
                     checked={(currentValue || []).includes(option.value)}
@@ -163,7 +163,7 @@ export const FilterSheet = ({
 
       case 'range':
         return (
-          <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
+          <div key={key} className="space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <Slider
               min={min}
@@ -186,7 +186,7 @@ export const FilterSheet = ({
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
               {(options || []).map(option => (
-                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-inner hover:bg-white/5 transition-colors cursor-pointer">
                   <input
                     type="radio"
                     id={`${key}-${option.value}`}
@@ -194,7 +194,7 @@ export const FilterSheet = ({
                     value={option.value}
                     checked={currentValue === option.value}
                     onChange={(e) => handleFilterChange(key, e.target.value)}
-                    className="w-5 h-5 rounded-full accent-primary"
+                    className="w-5 h-5 rounded-pill accent-primary"
                   />
                   <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
                     {option.label}
@@ -210,7 +210,7 @@ export const FilterSheet = ({
         const endDateId = `${key}-end-date`;
 
         return (
-          <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
+          <div key={key} className="space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <div className="flex flex-col gap-3">
               <div className="space-y-1.5">
@@ -246,7 +246,7 @@ export const FilterSheet = ({
                     key={preset.label}
                     variant="ghost"
                     size="sm"
-                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-lg hover:bg-foreground hover:text-background dark:hover:bg-white dark:hover:text-black transition-all"
+                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-button hover:bg-foreground hover:text-background dark:hover:bg-white dark:hover:text-black transition-all"
                     onClick={() => {
                       const end = new Date();
                       const start = new Date();
@@ -300,11 +300,11 @@ export const FilterSheet = ({
           : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
         }
       >
-        <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-[48px] pb-8' : 'squircle-xl'}`}>
+        <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (
-                <div className="w-12 h-1.5 bg-black/20 dark:bg-white/20 rounded-full mx-auto mb-6 shrink-0" />
+                <div className="w-12 h-1.5 bg-black/20 dark:bg-white/20 rounded-pill mx-auto mb-6 shrink-0" />
               )}
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
@@ -324,7 +324,7 @@ export const FilterSheet = ({
                     type="button"
                     onClick={() => onOpenChange(false)}
                     aria-label="Close filters"
-                    className="p-2 hover:bg-white/5 rounded-full transition-colors"
+                    className="p-2 hover:bg-white/5 rounded-pill transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -366,14 +366,14 @@ export const FilterSheet = ({
                   type="button"
                   variant="ghost"
                   onClick={handleReset}
-                  className="flex-1 squircle-lg bg-black/5 dark:bg-white/5 hover:bg-white/10"
+                  className="flex-1 rounded-button bg-black/5 dark:bg-white/5 hover:bg-white/10"
                 >
                   {resetLabel}
                 </Button>
                 <Button
                   type="button"
                   onClick={handleApply}
-                  className="flex-1 squircle-lg bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  className="flex-1 rounded-button bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                 >
                   Apply
                 </Button>

@@ -89,7 +89,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-background dark:bg-background/10 backdrop-blur-sm rounded-3xl flex flex-col max-h-[70vh]"
+          className="bg-background dark:bg-background/10 backdrop-blur-sm rounded-card flex flex-col max-h-[70vh]"
         >
           {/* Header */}
           <div className="flex items-center px-6 py-4">
@@ -104,12 +104,12 @@ export const QuickSearch = ({ isOpen, onClose }) => {
             />
             {loading && <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />}
             {query && (
-              <button onClick={() => handleSearch('')} className="p-1 hover:bg-white/5 rounded-lg" aria-label="Clear search">
+              <button onClick={() => handleSearch('')} className="p-1 hover:bg-white/5 rounded-button" aria-label="Clear search">
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             )}
             <div className="hidden sm:flex gap-2 ml-4">
-              <kbd className="h-6 select-none items-center gap-1 rounded bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground flex">
+              <kbd className="h-6 select-none items-center gap-1 rounded-icon bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground flex">
                 <span className="text-xs">ESC</span>
               </kbd>
             </div>
@@ -157,7 +157,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-2 mb-3 px-2">
                         {categoryColors[category.category] && (
                           <div
-                            className="w-2 h-2 rounded-full"
+                            className="w-2 h-2 rounded-pill"
                             style={{ backgroundColor: categoryColors[category.category] }}
                           />
                         )}
@@ -175,17 +175,17 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             key={item.id}
                             whileHover={{ x: 4 }}
                             onClick={() => handleSelect(item)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-button hover:bg-white/5 transition-colors group text-left"
                           >
                             <div
-                              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+                              className="w-9 h-9 rounded-icon flex items-center justify-center flex-shrink-0 transition-all"
                               style={{ backgroundColor: categoryColors[category.category] + '15' }}
                             >
                               {item.avatar ? (
-                                <img src={item.avatar} alt={item.title || 'Item avatar'} className="w-full h-full rounded-lg object-cover" />
+                                <img src={item.avatar} alt={item.title || 'Item avatar'} className="w-full h-full rounded-icon object-cover" />
                               ) : (
                                 <div
-                                  className="w-full h-full rounded-lg flex items-center justify-center text-white font-semibold text-xs"
+                                  className="w-full h-full rounded-icon flex items-center justify-center text-white font-semibold text-xs"
                                   style={{ backgroundColor: categoryColors[category.category] }}
                                 >
                                   {item.title?.charAt(0)?.toUpperCase() || '?'}
@@ -240,7 +240,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             key={`recent-${idx}`}
                             whileHover={{ x: 4 }}
                             onClick={() => handleRecentClick(item.query)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-button hover:bg-white/5 transition-colors group text-left"
                           >
                             <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <span className="flex-1 font-normal text-sm text-foreground">{item.query}</span>
@@ -266,10 +266,10 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             key={`trending-${idx}`}
                             whileHover={{ x: 4 }}
                             onClick={() => handleTrendingClick(item.query)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-button hover:bg-white/5 transition-colors group text-left"
                           >
                             <span
-                              className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
+                              className="w-6 h-6 rounded-icon flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
                               style={{ backgroundColor: item.color }}
                             >
                               {idx + 1}

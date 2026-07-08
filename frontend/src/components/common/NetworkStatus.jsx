@@ -53,7 +53,7 @@ export const NetworkStatus = () => {
     <div className="group relative">
       {getWifiIcon()}
       {/* Apple-style tooltip - matches existing IslandNavigation tooltips */}
-      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
+      <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-semibold rounded-button opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
         {getStatusText()}
       </div>
     </div>

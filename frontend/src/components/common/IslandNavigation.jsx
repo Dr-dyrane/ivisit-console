@@ -104,7 +104,7 @@ export const IslandNavigation = () => {
       <button
         type="button"
         onClick={() => handleNavigate(item.path)}
-        className={`flex items-center h-10 rounded-2xl transition-all duration-300 relative overflow-hidden group ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`}`}
+        className={`flex items-center h-10 rounded-button transition-all duration-300 relative overflow-hidden group ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`}`}
         aria-label={item.label}
         aria-current={isActive ? 'page' : undefined}
         data-desktop-nav-item={item.id}
@@ -133,7 +133,7 @@ export const IslandNavigation = () => {
           // Active indicator - Apple-style
           <motion.div
             layoutId="activeRail"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[hsl(var(--spark)/0.75)] rounded-full"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[hsl(var(--spark)/0.75)] rounded-pill"
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -145,7 +145,7 @@ export const IslandNavigation = () => {
             <TooltipTrigger asChild>
               {buttonContent}
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+            <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-pill px-4 py-2 font-bold tracking-wide shadow-xl">
               {item.label}
             </TooltipContent>
           </Tooltip>
@@ -174,14 +174,14 @@ export const IslandNavigation = () => {
                   onClick={() => toggleGroup(id)}
                   aria-expanded={isOpen}
                   data-desktop-nav-group={id}
-                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
+                  className={`w-10 h-10 rounded-button transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
                     }`}
                   aria-label={`Toggle ${label} group`}
                 >
                   <GroupIcon className="w-5 h-5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+              <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-pill px-4 py-2 font-bold tracking-wide shadow-xl">
                 {label}
               </TooltipContent>
             </Tooltip>
@@ -216,7 +216,7 @@ export const IslandNavigation = () => {
             aria-expanded={isOpen}
             aria-label={`${isOpen ? 'Hide' : 'Show'} ${label}`}
             data-desktop-nav-group={id}
-            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:text-foreground'
+            className={`w-full flex items-center h-10 px-3 rounded-button transition-colors ${isAnyChildActive && !isOpen ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:text-foreground'
               }`}
           >
             <GroupIcon className="w-5 h-5 flex-shrink-0" />
@@ -278,7 +278,7 @@ export const IslandNavigation = () => {
                     closeSmartReveal();
                     navigate(-1);
                   }}
-                  className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                  className="w-10 h-10 rounded-button bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                   aria-label="Go back"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -290,7 +290,7 @@ export const IslandNavigation = () => {
                   animate={{ opacity: 1 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-icon bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
                   </div>
                 </motion.div>
@@ -331,7 +331,7 @@ export const IslandNavigation = () => {
                   <button
                     type="button"
                     onClick={() => setConfigOpen(true)}
-                    className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group ${!isBroad ? 'justify-center px-0' : ''}`}
+                    className={`flex items-center gap-3 w-full rounded-button h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group ${!isBroad ? 'justify-center px-0' : ''}`}
                     aria-label="Sidebar Layout Settings"
                     aria-haspopup="dialog"
                     aria-expanded={configOpen}
@@ -339,7 +339,7 @@ export const IslandNavigation = () => {
                     <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-pill px-4 py-2 font-bold tracking-wide shadow-xl">
                   Layout
                 </TooltipContent>
               </Tooltip>
@@ -347,7 +347,7 @@ export const IslandNavigation = () => {
               <button
                 type="button"
                 onClick={() => setConfigOpen(true)}
-                className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group`}
+                className={`flex items-center gap-3 w-full rounded-button h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group`}
                 aria-label="Sidebar Layout Settings"
                 aria-haspopup="dialog"
                 aria-expanded={configOpen}
@@ -371,13 +371,13 @@ export const IslandNavigation = () => {
                   <button
                     type="button"
                     onClick={toggle}
-                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                    className="flex justify-center w-full rounded-button p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
                     aria-label="Toggle theme"
                   >
                     {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-pill px-4 py-2 font-bold tracking-wide shadow-xl">
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </TooltipContent>
               </Tooltip>
@@ -385,7 +385,7 @@ export const IslandNavigation = () => {
               <button
                 type="button"
                 onClick={toggle}
-                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                className="flex items-center gap-3 w-full rounded-button h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
                 aria-label="Toggle theme"
               >
                 <div className="w-5 h-5 flex items-center justify-center">
@@ -405,11 +405,11 @@ export const IslandNavigation = () => {
           <button
             type="button"
             onClick={() => handleNavigate('/settings')}
-            className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
+            className="w-full flex items-center gap-3 p-1 rounded-button hover:bg-muted transition-colors group"
             aria-label="User Settings"
           >
             <div className="relative">
-              <Avatar className={`h-9 w-9 rounded-lg flex-shrink-0 ${avatarToneClass}`}>
+              <Avatar className={`h-9 w-9 rounded-icon flex-shrink-0 ${avatarToneClass}`}>
                 <AvatarFallback className="bg-transparent text-xs font-semibold">
                   {getAvatarFallback(profile, user)}
                 </AvatarFallback>
@@ -425,7 +425,7 @@ export const IslandNavigation = () => {
         </div>
 
         <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-          <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden bg-white/50 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-2xl rounded-[28px]" style={{ borderWidth: 0 }}>
+          <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden bg-white/50 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-2xl rounded-modal" style={{ borderWidth: 0 }}>
             <DialogHeader className="pt-6 px-6">
               <DialogTitle className="text-center text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 Sidebar Layout
@@ -466,7 +466,7 @@ export const IslandNavigation = () => {
                       setTimeout(() => setConfigOpen(false), 200); // Slight delay for visual feedback
                     }}
                     className={`
-              relative flex items-center gap-4 p-3 rounded-[14px] transition-all duration-200 group
+              relative flex items-center gap-4 p-3 rounded-inner transition-all duration-200 group
               ${sidebarMode === item.id
                         ? 'bg-white/40 dark:bg-white/10 shadow-sm'
                         : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98]'}
@@ -474,7 +474,7 @@ export const IslandNavigation = () => {
                   >
                     {/* Icon Container */}
                     <div className={`
-              w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+              w-10 h-10 rounded-icon flex items-center justify-center transition-colors
               ${sidebarMode === item.id
                         ? 'bg-[hsl(var(--spark)/0.88)] text-black dark:text-zinc-950 shadow-[0_14px_30px_-18px_hsl(var(--spark)/0.65)]'
                         : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'}

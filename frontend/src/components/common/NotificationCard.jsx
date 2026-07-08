@@ -58,7 +58,7 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <div className={`squircle-lg bg-background/35 backdrop-blur-xs p-4 ${signalConfig[notification.color]} relative overflow-hidden group hover:shadow-xl transition-shadow`}>
+      <div className={`rounded-card bg-background/35 backdrop-blur-xs p-4 ${signalConfig[notification.color]} relative overflow-hidden group hover:shadow-xl transition-shadow`}>
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 squircle flex items-center justify-center flex-shrink-0 ${colorConfig[notification.color]}`}>
             {IconComponent ? <IconComponent className="h-5 w-5" /> : null}
@@ -73,7 +73,7 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
                 </Badge>
               )}
               {!notification.read && (
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <div className="w-2 h-2 rounded-pill bg-primary animate-pulse" />
               )}
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>

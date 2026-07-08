@@ -239,8 +239,8 @@ Metadata:
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-2 md:p-4 overflow-auto">
           <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-destructive/5 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-warning/5 rounded-full blur-[100px]" />
+            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-destructive/5 rounded-pill blur-[120px]" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-warning/5 rounded-pill blur-[100px]" />
           </div>
 
           <motion.div
@@ -249,7 +249,7 @@ Metadata:
             transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
             className="relative z-10 w-full max-w-2xl"
           >
-            <div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-2 md:p-8 border-0 overflow-auto max-h-[85vh] relative">
+            <div className="rounded-card bg-background/50 backdrop-blur-xs shadow-2xl p-2 md:p-8 overflow-auto max-h-[85vh] relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
 
               {/* Copy Button - Top Right */}
@@ -259,7 +259,7 @@ Metadata:
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
                   onClick={this.handleCopyError}
-                  className="absolute top-4 right-4 w-8 h-8 squircle-md bg-muted/50 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center justify-center group"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-icon bg-muted/50 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center justify-center group"
                   title="Copy error details"
                 >
                   <motion.div
@@ -283,7 +283,7 @@ Metadata:
                   initial={{ rotate: -10, scale: 0.8 }}
                   animate={{ rotate: 0, scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-                  className="w-24 h-24 squircle-xl bg-destructive/10 flex items-center justify-center shadow-inner"
+                  className="w-24 h-24 rounded-inner bg-destructive/10 flex items-center justify-center shadow-inner"
                 >
                   <AlertTriangle className="w-12 h-12 text-destructive" />
                 </motion.div>
@@ -302,7 +302,7 @@ Metadata:
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="w-full bg-muted/30 squircle-lg p-4 border border-destructive/30 max-h-64 overflow-y-auto"
+                    className="w-full bg-muted/30 rounded-inner p-4 max-h-64 overflow-y-auto"
                   >
                     <div className="text-left space-y-3">
                       <div>
@@ -328,7 +328,7 @@ Metadata:
                 )}
 
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 text-xs font-semibold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-pill bg-muted/50 text-xs font-semibold">
                     {this.state.errorCount}
                   </span>
                   <span>Error{this.state.errorCount > 1 ? 's' : ''} occurred</span>
@@ -339,7 +339,7 @@ Metadata:
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={this.handleReset}
-                    className="flex-1 h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 h-12 rounded-button bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors flex items-center justify-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Try Again
@@ -348,7 +348,7 @@ Metadata:
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={primaryAction}
-                    className="flex-1 h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all flex items-center justify-center gap-2"
+                    className="flex-1 h-12 rounded-button bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all flex items-center justify-center gap-2"
                   >
                     <PrimaryIcon className="w-4 h-4" />
                     {primaryLabel}

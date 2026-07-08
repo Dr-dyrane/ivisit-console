@@ -63,14 +63,14 @@ export const ConfirmationModal = ({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl"
+                        className="relative z-10 w-full max-w-sm overflow-hidden rounded-modal bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl"
                         style={{ outline: 'none' }}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby={titleId}
                     >
                         <div className="p-2 md:p-6 flex flex-col items-center text-center">
-                            <div className={`p-4 rounded-full mb-4 ${variant === 'destructive' ? 'bg-destructive/10' :
+                            <div className={`p-4 rounded-pill mb-4 ${variant === 'destructive' ? 'bg-destructive/10' :
                                 variant === 'warning' ? 'bg-warning/10' : 'bg-primary/10'
                                 }`}>
                                 {getIcon()}
@@ -88,7 +88,7 @@ export const ConfirmationModal = ({
                                 <Button
                                     variant="ghost"
                                     onClick={onClose}
-                                    className="flex-1 rounded-2xl font-medium hover:bg-muted/50"
+                                    className="flex-1 rounded-button font-medium hover:bg-muted/50"
                                     disabled={isLoading}
                                 >
                                     {cancelLabel}
@@ -96,7 +96,7 @@ export const ConfirmationModal = ({
                                 <Button
                                     variant={getButtonVariant()}
                                     onClick={onConfirm}
-                                    className="flex-1 rounded-2xl font-bold shadow-lg"
+                                    className="flex-1 rounded-button font-bold shadow-lg"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? 'Processing...' : confirmLabel}

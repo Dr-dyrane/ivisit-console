@@ -349,7 +349,7 @@ export const ContextPanel = () => {
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="text-center py-12"
       >
-        <div className="w-16 h-16 bg-destructive/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 bg-destructive/20 rounded-icon flex items-center justify-center mx-auto mb-6">
           <Lock className="h-8 w-8 text-destructive" />
         </div>
         <h3 className="font-bold text-xl mb-2 text-foreground">No access</h3>
@@ -414,7 +414,7 @@ export const ContextPanel = () => {
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="w-2 h-2 bg-success rounded-full"
+                  className="w-2 h-2 bg-success rounded-pill"
                   aria-hidden="true"
                 />
               )}
@@ -425,7 +425,7 @@ export const ContextPanel = () => {
                   const event = new CustomEvent('closeContextPanel');
                   window.dispatchEvent(event);
                 }}
-                className="hidden md:block w-8 h-8 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group"
+                className="hidden md:block w-8 h-8 rounded-button bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group"
                 type="button"
                 aria-label="Close panel"
               >
@@ -439,7 +439,7 @@ export const ContextPanel = () => {
   };
 
   const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col rounded-3xl" data-context-panel-content="true">
+    <div className="h-full flex flex-col rounded-card" data-context-panel-content="true">
       {/* Header - Hidden on mobile */}
       <div className="hidden md:block">
         {renderPanelHeader()}
@@ -547,7 +547,7 @@ export const ContextPanel = () => {
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="text-center py-12"
       >
-        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 bg-primary/20 rounded-icon flex items-center justify-center mx-auto mb-6">
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
         <h3 className="font-bold text-xl mb-2 text-foreground">Page help</h3>

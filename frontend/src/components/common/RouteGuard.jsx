@@ -124,7 +124,7 @@ export const RouteAccessDebug = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs max-w-sm z-50">
+    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-inner text-xs max-w-sm z-50">
       <div className="font-bold mb-2">Route Access Debug</div>
       <div>Path: {currentPath}</div>
       <div>Role: {profile?.role}</div>

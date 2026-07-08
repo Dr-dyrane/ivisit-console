@@ -23,9 +23,9 @@ const STATUS_LABELS = {
   closed: 'Closed',
 };
 
-const fieldClassName = 'h-11 rounded-2xl bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
-const areaClassName = 'min-h-[128px] resize-none rounded-2xl bg-muted/35 px-3 py-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
-const selectTriggerClassName = 'h-11 rounded-2xl bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
+const fieldClassName = 'h-11 rounded-button bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
+const areaClassName = 'min-h-[128px] resize-none rounded-button bg-muted/35 px-3 py-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
+const selectTriggerClassName = 'h-11 rounded-button bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
 
 export const SupportTicketModal = ({
   isOpen = true,
@@ -110,7 +110,7 @@ export const SupportTicketModal = ({
       subtitle={isCreate ? 'Send one clear request to the support queue.' : statusLabel}
       icon={<Headphones className="h-5 w-5 text-primary" />}
       badge={(
-        <div className="hidden rounded-full bg-muted/45 px-3 py-1 text-xs font-medium text-muted-foreground sm:block">
+        <div className="hidden rounded-pill bg-muted/45 px-3 py-1 text-xs font-medium text-muted-foreground sm:block">
           {priorityLabel}
         </div>
       )}
@@ -118,9 +118,9 @@ export const SupportTicketModal = ({
     >
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 md:px-6">
-          <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+          <section className="rounded-card bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
             <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <span className="flex h-9 w-9 items-center justify-center rounded-icon bg-primary/10 text-primary">
                 <MessageSquare className="h-4 w-4" />
               </span>
               <div>
@@ -160,9 +160,9 @@ export const SupportTicketModal = ({
             </div>
           </section>
 
-          <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+          <section className="rounded-card bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
             <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 dark:text-sky-200">
+              <span className="flex h-9 w-9 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-200">
                 <Tag className="h-4 w-4" />
               </span>
               <div>
@@ -182,7 +182,7 @@ export const SupportTicketModal = ({
                   <SelectTrigger id="support-category" className={selectTriggerClassName}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl">
+                  <SelectContent className="rounded-inner bg-background/95 shadow-xl backdrop-blur-xl">
                     {(categories || []).map((category) => {
                       const value = typeof category === 'string' ? category : category.value;
                       const label = typeof category === 'string'
@@ -204,7 +204,7 @@ export const SupportTicketModal = ({
                   <SelectTrigger id="support-priority" className={selectTriggerClassName}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl">
+                  <SelectContent className="rounded-inner bg-background/95 shadow-xl backdrop-blur-xl">
                     {(priorities || []).map((priority) => (
                       <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
                     ))}
@@ -215,9 +215,9 @@ export const SupportTicketModal = ({
           </section>
 
           {!isCreate && (
-            <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+            <section className="rounded-card bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                <span className="flex h-9 w-9 items-center justify-center rounded-icon bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
                   <Clock className="h-4 w-4" />
                 </span>
                 <div>
@@ -241,7 +241,7 @@ export const SupportTicketModal = ({
               variant="ghost"
               onClick={close}
               disabled={loading}
-              className="h-10 rounded-2xl bg-muted/45 px-4 text-sm font-medium hover:bg-muted/65"
+              className="h-10 rounded-button bg-muted/45 px-4 text-sm font-medium hover:bg-muted/65"
             >
               {isView ? 'Close' : 'Cancel'}
             </Button>
@@ -249,7 +249,7 @@ export const SupportTicketModal = ({
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-10 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.22)]"
+                className="h-10 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.22)]"
               >
                 {loading ? 'Saving...' : (
                   <span className="inline-flex items-center gap-2">

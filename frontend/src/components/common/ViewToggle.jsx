@@ -34,26 +34,26 @@ export const ViewToggle = ({ value, onChange, size = 'default', tone = 'primary'
         type="single"
         value={value}
         onValueChange={onChange}
-        className="bg-white/5  rounded-full p-1 gap-0"
+        className="bg-white/5  rounded-pill p-1 gap-0"
       >
         <ToggleGroupItem
           value="grid"
           aria-label="Grid view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
+          className={`${sizeClasses[size]} rounded-pill hover:bg-white/10 ${activeTone}`}
         >
           <LayoutGrid size={iconSize[size]} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="list"
           aria-label="List view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
+          className={`${sizeClasses[size]} rounded-pill hover:bg-white/10 ${activeTone}`}
         >
           <List size={iconSize[size]} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="table"
           aria-label="Table view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
+          className={`${sizeClasses[size]} rounded-pill hover:bg-white/10 ${activeTone}`}
         >
           <Table2 size={iconSize[size]} />
         </ToggleGroupItem>

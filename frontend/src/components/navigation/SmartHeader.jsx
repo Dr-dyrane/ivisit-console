@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { MobileNavMenu } from './MobileNavMenu';
 
 const HeaderDivider = () => (
-    <div className="mx-2 h-6 w-[2px] rounded-full bg-foreground/[0.06]" aria-hidden="true" />
+    <div className="mx-2 h-6 w-[2px] rounded-pill bg-foreground/[0.06]" aria-hidden="true" />
 );
 
 export const SmartHeader = () => {
@@ -98,7 +98,7 @@ export const SmartHeader = () => {
                 }}
                 // Shared header chrome for route title, shell actions, and mobile account access.
                 className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-2 left-2 right-2 h-11 rounded-full pointer-events-auto bg-transparent backdrop-blur-sm'
+                    ? 'top-2 left-2 right-2 h-11 rounded-pill pointer-events-auto bg-transparent backdrop-blur-sm'
                     : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
@@ -115,7 +115,7 @@ export const SmartHeader = () => {
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => navigate(-1)}
-                                    className="h-6 max-w-[100px] px-1.5 rounded-full inline-flex items-center gap-1 text-[8px] font-semibold tracking-[0.05em] text-foreground/75 truncate bg-[hsl(var(--spark)/0.12)] hover:bg-[hsl(var(--spark)/0.16)] transition-colors"
+                                    className="h-6 max-w-[100px] px-1.5 rounded-pill inline-flex items-center gap-1 text-[8px] font-semibold tracking-[0.05em] text-foreground/75 truncate bg-[hsl(var(--spark)/0.12)] hover:bg-[hsl(var(--spark)/0.16)] transition-colors"
                                     aria-label="Go back"
                                 >
                                     <Play className="h-3 w-3 rotate-180 text-[hsl(var(--spark)/0.88)] fill-current stroke-0 shrink-0" />
@@ -124,7 +124,7 @@ export const SmartHeader = () => {
                             )}
                             <button
                                 onClick={() => setMenuOpen(true)}
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shadow-sm shrink-0"
+                                className="flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shadow-sm shrink-0"
                                 aria-label="Open account menu"
                                 aria-expanded={menuOpen}
                                 aria-haspopup="dialog"
@@ -135,7 +135,7 @@ export const SmartHeader = () => {
 
                         {/* CENTER - logo or page title */}
                         {isHome ? (
-                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] pointer-events-none select-none">
+                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-pill backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] pointer-events-none select-none">
                                 <img src="/logo.png" alt="iVisit" className="h-4 w-4 object-contain opacity-90" />
                                 <span className="text-[13px] font-semibold tracking-tight text-foreground/88 inline-flex items-center">
                                     iVisit
@@ -144,7 +144,7 @@ export const SmartHeader = () => {
                             </div>
                         ) : (
                             <div className="flex-1 flex items-center justify-center min-w-0 px-2">
-                                <div className="flex items-center px-2.5 py-1 rounded-full backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] select-none min-w-0 max-w-full">
+                                <div className="flex items-center px-2.5 py-1 rounded-pill backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] select-none min-w-0 max-w-full">
                                     <span className="text-[12px] font-semibold tracking-tight text-foreground/85 inline-flex items-center min-w-0">
                                         <span className="truncate">{currentPageLabel}</span>
                                         <span className="text-primary leading-none shrink-0">.</span>
@@ -154,10 +154,10 @@ export const SmartHeader = () => {
                         )}
 
                         {/* RIGHT - search and notifications */}
-                        <div className="flex items-center gap-1.5 rounded-full px-1.5 py-1 bg-white/[0.03] shrink-0">
+                        <div className="flex items-center gap-1.5 rounded-pill px-1.5 py-1 bg-white/[0.03] shrink-0">
                             <button
                                 onClick={() => setSearchOpen(true)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center transition-[color,background] duration-200 ease-out text-muted-foreground/75 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                                className="w-8 h-8 rounded-pill flex items-center justify-center transition-[color,background] duration-200 ease-out text-muted-foreground/75 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
                                 aria-label="Search"
                                 aria-expanded={searchOpen}
                                 aria-haspopup="dialog"
@@ -207,7 +207,7 @@ export const SmartHeader = () => {
                             )}
                             <button
                                 onClick={() => setSearchOpen(true)}
-                                className="group relative flex items-center gap-2 overflow-hidden rounded-2xl bg-background/58 px-4 py-2 shadow-[0_14px_36px_-30px_hsl(var(--foreground)/0.55)] backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 ease-out hover:bg-background/76 active:scale-[0.98] lg:min-w-[200px]"
+                                className="group relative flex items-center gap-2 overflow-hidden rounded-button bg-background/58 px-4 py-2 shadow-[0_14px_36px_-30px_hsl(var(--foreground)/0.55)] backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 ease-out hover:bg-background/76 active:scale-[0.98] lg:min-w-[200px]"
                                 aria-label="Search"
                                 aria-expanded={searchOpen}
                                 aria-haspopup="dialog"
@@ -223,7 +223,7 @@ export const SmartHeader = () => {
                                     <TooltipTrigger asChild>
                                         <button
                                             onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
-                                            className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-300 ${isContextPanelOpen
+                                            className={`flex items-center justify-center h-9 w-9 rounded-icon transition-all duration-300 ${isContextPanelOpen
                                                 ? 'bg-primary/20 text-primary shadow-inner'
                                                 : 'bg-primary/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
                                                 }`}
@@ -250,7 +250,7 @@ export const SmartHeader = () => {
                 <SheetOverlay className="bg-transparent backdrop-blur-xs" />
                 <SheetContent
                     side="left"
-                    className="w-[88%] max-w-[365px] p-0 bg-background/95 dark:bg-muted/70 backdrop-blur-sm rounded-r-[36px] overflow-hidden shadow-2xl"
+                    className="w-[88%] max-w-[365px] p-0 bg-background/95 dark:bg-muted/70 backdrop-blur-sm rounded-r-sheet overflow-hidden shadow-2xl"
                 >
                     <SheetTitle className="sr-only">Navigation</SheetTitle>
                     <SheetDescription className="sr-only">
