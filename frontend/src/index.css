@@ -438,28 +438,23 @@ code {
 		background-color: hsl(var(--background) / 0.9);
 	}
 
+	/* DEPRECATED glass -> opaque control surface. Blur/glass is now ONLY chrome-glass
+	   (Mobile DS: chrome = frosted glass, content + controls = opaque). Prefer bg-card /
+	   bg-muted for content and chrome-glass for chrome; these remain as opaque aliases so
+	   the ~60 existing usages stay visible without per-file churn. */
 	.apple-glass {
-		/* Higher opacity background reduces the work the blur shader has to do */
-		background: hsl(var(--background) / 0.8);
-		backdrop-filter: saturate(180%) blur(20px);
-		-webkit-backdrop-filter: saturate(180%) blur(20px);
-
-		/* Hardware acceleration */
+		background: hsl(var(--background) / 0.85);
 		will-change: transform;
 		backface-visibility: hidden;
 	}
 
 	.apple-glass-heavy {
-		background: hsl(var(--muted) / 0.15);
-		backdrop-filter: saturate(125%) blur(12px);
-		-webkit-backdrop-filter: saturate(125%) blur(12px);
+		background: hsl(var(--muted) / 0.4);
 		will-change: transform;
 	}
 
 	.dark .apple-glass-heavy {
-		background: hsl(var(--muted) / 0.15);
-		backdrop-filter: saturate(125%) blur(12px);
-		-webkit-backdrop-filter: saturate(125%) blur(12px);
+		background: hsl(var(--muted) / 0.4);
 	}
 
 	/* App-grounded Liquid Glass chrome — floating, frosted, BORDERLESS, no specular.
