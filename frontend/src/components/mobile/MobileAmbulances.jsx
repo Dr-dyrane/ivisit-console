@@ -25,6 +25,7 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { mobileMotion } from './mobileMotion';
 
 const ACTIVE_FLEET_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene']);
 
@@ -218,7 +219,7 @@ export const MobileAmbulances = ({
                         />
                     </div>
                     <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={mobileMotion.tap}
                         onClick={(event) => {
                             onOpenFilters?.();
                             triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
@@ -231,7 +232,7 @@ export const MobileAmbulances = ({
 
                     {canManage && (
                         <motion.button
-                            whileTap={{ scale: 0.95 }}
+                            whileTap={mobileMotion.tap}
                             onClick={(event) => {
                                 onViewAnalytics?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
@@ -299,7 +300,7 @@ export const MobileAmbulances = ({
                                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                     <MapPin size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col min-w-0">
-                                                        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Station</span>
+                                                        <span className="eyebrow">Station</span>
                                                         <span className="text-xs font-semibold truncate">{station}</span>
                                                     </div>
                                                 </div>
@@ -307,14 +308,14 @@ export const MobileAmbulances = ({
                                                     <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Activity size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Status</span>
+                                                            <span className="eyebrow">Status</span>
                                                             <span className="text-xs font-semibold">{getAvailabilityLabel(status)}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
                                                         <Ambulance size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-medium">ETA</span>
+                                                            <span className="eyebrow">ETA</span>
                                                             <span className="text-xs font-semibold font-dashboard-numbers">{ambulance.eta || 'Unknown'}</span>
                                                         </div>
                                                     </div>
@@ -323,7 +324,7 @@ export const MobileAmbulances = ({
 
                                             <div className="flex items-center justify-between px-1">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground font-medium">Vehicle</span>
+                                                    <span className="eyebrow">Vehicle</span>
                                                     <span className="text-[10px] font-mono text-foreground/40 font-normal">{ambulance.vehicle_number || 'N/A'}</span>
                                                 </div>
                                                 <Badge className="rounded-pill font-semibold text-[9px] py-1 px-3 bg-primary/20 text-primary">
@@ -338,7 +339,7 @@ export const MobileAmbulances = ({
                                                     onClick={() => onView(ambulance)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
-                                                    <span className="text-[9px] uppercase font-semibold tracking-[0.14em]">Details</span>
+                                                    <span className="text-[10px] uppercase font-semibold tracking-[0.14em]">Details</span>
                                                 </Button>
                                                 {canManage && (
                                                     <>
@@ -348,7 +349,7 @@ export const MobileAmbulances = ({
                                                             onClick={() => onEdit(ambulance)}
                                                         >
                                                             <Edit size={16} className="text-amber-500/60" />
-                                                            <span className="text-[9px] uppercase font-semibold tracking-[0.14em]">Edit</span>
+                                                            <span className="text-[10px] uppercase font-semibold tracking-[0.14em]">Edit</span>
                                                         </Button>
                                                     </>
                                                 )}
