@@ -260,28 +260,30 @@ const MobileStaffRow = ({
             <button
                 type="button"
                 onClick={() => setExpandedDoctorId(expanded ? null : doctor.id)}
-                className="flex w-full items-center gap-3 p-4 text-left"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
                 aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
                 aria-expanded={expanded}
             >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-sky-400/12 text-sm font-semibold text-sky-300">
                     {getInitials(name)}
                 </span>
+                {/* Readable identity: name is the primary line (2-line clamp, never a stub). See canon §2.1. */}
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold text-foreground">{name}</span>
+                    <span className="text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{name}</span>
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{doctor.specialization || 'General'}</span>
                 </span>
-                <span className="flex shrink-0 flex-col items-end gap-2">
+                <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
                     <span className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>
                         <StatusIcon size={12} />
                         {status.label}
                     </span>
+                    {expanded ? (
+                        <ChevronDown size={18} className="text-muted-foreground" />
+                    ) : (
+                        <ChevronRight size={18} className="text-muted-foreground" />
+                    )}
                 </span>
-                {expanded ? (
-                    <ChevronDown size={18} className="text-muted-foreground" />
-                ) : (
-                    <ChevronRight size={18} className="text-muted-foreground" />
-                )}
             </button>
 
             {expanded && (

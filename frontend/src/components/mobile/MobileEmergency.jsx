@@ -490,26 +490,29 @@ const MobileRequestRow = ({
                 type="button"
                 onClick={() => setExpandedRequestId(expanded ? null : request.id)}
                 data-state={expanded ? 'expanded' : 'idle'}
-                className="flex w-full items-center gap-3 p-4 text-left"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.98]"
                 aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
                 aria-expanded={expanded}
             >
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-sm font-semibold ${avatarClass}`}>
                     {getInitials(name)}
                 </span>
+                {/* Readable identity: patient name is the primary line (2-line clamp); the request
+                    time drops to its own line so it never steals width. See canon §2.1. */}
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold text-foreground">{name}</span>
+                    <span className="text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{name}</span>
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{serviceLabel(request)}</span>
+                    <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{formatRequestTime(request.created_at)}</span>
                 </span>
-                <span className="flex shrink-0 flex-col items-end gap-2">
+                <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
                     <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{formatRequestTime(request.created_at)}</span>
+                    {expanded ? (
+                        <ChevronDown size={18} className="text-muted-foreground" />
+                    ) : (
+                        <ChevronRight size={18} className="text-muted-foreground" />
+                    )}
                 </span>
-                {expanded ? (
-                    <ChevronDown size={18} className="text-muted-foreground" />
-                ) : (
-                    <ChevronRight size={18} className="text-muted-foreground" />
-                )}
             </button>
 
             {expanded && (

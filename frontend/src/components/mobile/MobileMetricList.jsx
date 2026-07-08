@@ -346,8 +346,11 @@ export const MobileMetricRow = ({
                     <p className="text-[8px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/85">
                         {label}
                     </p>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-medium tracking-tight text-foreground truncate font-dashboard-numbers">{value}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                        {/* Readable identity: the record name is the primary line and must never
+                            stub. line-clamp-2 (not single-line truncate) lets long names wrap while
+                            the width-capped blade stays fixed. See MOTION_AND_INTERACTION_CANON §2.1. */}
+                        <span className="text-[14px] font-medium tracking-tight text-foreground line-clamp-2 break-words font-dashboard-numbers">{value}</span>
                     </div>
                 </div>
 
