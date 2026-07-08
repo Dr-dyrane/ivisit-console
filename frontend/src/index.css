@@ -148,6 +148,18 @@ code {
 		--glass-bg-dark: hsl(var(--glass-bg));
 		--glass-blur: 20px;
 		--glass-saturation: 140%;
+
+		/* App-grounded Liquid Glass — CHROME ONLY (nav/header/island/sheet/panel).
+		   Mirrors ivisit-app mapGlassTokens/paymentGlassTokens for web: frosted,
+		   BORDERLESS, no specular. Depth = blur + soft float shadow (never a border).
+		   Content stays opaque; never glassify rows/tables/badges. */
+		--chrome-glass:        rgba(255, 255, 255, 0.68);
+		--chrome-glass-strong: rgba(250, 250, 252, 0.80);
+		--chrome-blur:         24px;
+		--chrome-blur-strong:  36px;
+		--chrome-saturate:     180%;
+		--chrome-float:        0 14px 40px rgba(15, 23, 42, 0.14);
+		--chrome-float-strong: 0 18px 44px rgba(15, 23, 42, 0.16);
 		/* Apple-inspired background hierarchy */
 		--background: 210 40% 98%;
 		/* Slate-50 - light gray background */
@@ -301,6 +313,11 @@ code {
 		--chart-5: 15 80% 60%;
 		--glass-bg: 217 30% 9% / 0.35;
 		--glass-border: 357 74% 26% / 0.4;
+		/* App-grounded Liquid Glass (chrome) — dark */
+		--chrome-glass:        rgba(17, 24, 39, 0.62);
+		--chrome-glass-strong: rgba(11, 15, 26, 0.74);
+		--chrome-float:        0 14px 40px rgba(0, 0, 0, 0.45);
+		--chrome-float-strong: 0 18px 44px rgba(0, 0, 0, 0.50);
 		--shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
 		--shadow-md: 0 6px 16px -3px rgb(0 0 0 / 0.2);
 		--shadow-lg: 0 12px 32px -6px rgb(0 0 0 / 0.15);
@@ -443,6 +460,34 @@ code {
 		background: hsl(var(--muted) / 0.15);
 		backdrop-filter: saturate(125%) blur(12px);
 		-webkit-backdrop-filter: saturate(125%) blur(12px);
+	}
+
+	/* App-grounded Liquid Glass chrome — floating, frosted, BORDERLESS, no specular.
+	   Use on chrome only (header, nav island, sheet, panel). Depth = blur + float shadow.
+	   Radius comes from the semantic ladder (rounded-card/pill/sheet), never here. */
+	.chrome-glass {
+		background: var(--chrome-glass);
+		backdrop-filter: blur(var(--chrome-blur)) saturate(var(--chrome-saturate));
+		-webkit-backdrop-filter: blur(var(--chrome-blur)) saturate(var(--chrome-saturate));
+		box-shadow: var(--chrome-float);
+	}
+
+	.chrome-glass-strong {
+		background: var(--chrome-glass-strong);
+		backdrop-filter: blur(var(--chrome-blur-strong)) saturate(var(--chrome-saturate));
+		-webkit-backdrop-filter: blur(var(--chrome-blur-strong)) saturate(var(--chrome-saturate));
+		box-shadow: var(--chrome-float-strong);
+	}
+
+	/* Fallback: no backdrop-filter (or user prefers reduced transparency) -> near-opaque,
+	   no blur — mirrors the app's Android/web frosted fallback (~0.94). */
+	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+		.chrome-glass { background: hsl(var(--background) / 0.94); }
+		.chrome-glass-strong { background: hsl(var(--background) / 0.96); }
+	}
+	@media (prefers-reduced-transparency: reduce) {
+		.chrome-glass { background: hsl(var(--background) / 0.94); backdrop-filter: none; -webkit-backdrop-filter: none; }
+		.chrome-glass-strong { background: hsl(var(--background) / 0.96); backdrop-filter: none; -webkit-backdrop-filter: none; }
 	}
 
 	.ios-material {

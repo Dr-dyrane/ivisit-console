@@ -91,7 +91,7 @@ const DynamicBottomBarContent = () => {
                             x: isScrolledDown ? -100 : 0,
                             opacity: isScrolledDown ? 0 : 1,
                         }}
-                        className="flex items-center gap-1 rounded-pill bg-card/75 p-1 shadow-[0_16px_40px_rgb(0_0_0/0.18)] backdrop-blur-xl dark:bg-card/55"
+                        className="flex items-center gap-1 rounded-pill chrome-glass-strong p-1"
                         aria-label="Primary mobile"
                     >
                         {navItems.map((item) => {
