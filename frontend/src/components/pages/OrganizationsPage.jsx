@@ -16,7 +16,11 @@ import {
     Wallet,
     Globe,
     X,
-    Trash2
+    Trash2,
+    MapPin,
+    Eye,
+    Info,
+    ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -139,6 +143,136 @@ const OrgSignalPanel = ({ stats, organizations, loading, kpiFilter, setKpiFilter
   );
 };
 
+const getOrgInitials = (name = 'Organization') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || 'O';
+  const second = parts[1]?.[0] || '';
+  return `${first}${second}`.toUpperCase();
+};
+
+const OrgDetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const OrgRailButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const OrganizationDetailRail = ({ organization, onView }) => {
+  if (!organization) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Building2 className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No organization selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Organizations that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const isActive = !!organization.is_active;
+  const statusClass = isActive
+    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'
+    : 'bg-muted/30 text-muted-foreground';
+  const StatusIcon = isActive ? Activity : Building2;
+  const typeValue = organization.type || organization.org_type || 'N/A';
+  const statusValue = isActive ? 'Active' : 'Inactive';
+  const walletValue = organization.wallet_balance != null
+    ? `$${Number(organization.wallet_balance).toLocaleString()}`
+    : 'N/A';
+  const locationValue = organization.city || organization.address || 'N/A';
+  const createdValue = organization.created_at
+    ? new Date(organization.created_at).toLocaleDateString()
+    : 'N/A';
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Organization details</h2>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusClass}`}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {statusValue}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onView(organization)}
+          aria-label="Open full organization details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/30 text-lg font-semibold text-foreground">
+          {getOrgInitials(organization.name)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{organization.name || 'Unnamed organization'}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {organization.contact_email || 'No contact email'}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <OrgDetailLine icon={Building2} label="Name" value={organization.name} />
+        <OrgDetailLine icon={Globe} label="Type" value={typeValue} />
+        <OrgDetailLine icon={Activity} label="Status" value={statusValue} />
+        <OrgDetailLine icon={Wallet} label="Wallet" value={walletValue} />
+        <OrgDetailLine icon={MapPin} label="Location" value={locationValue} />
+        <OrgDetailLine icon={DollarSign} label="Created" value={createdValue} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(organization)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        <div className="grid grid-cols-1 gap-3">
+          <OrgRailButton icon={Info} label="Open record" onClick={() => onView(organization)} />
+        </div>
+
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+        >
+          <Building2 className="h-4 w-4 shrink-0" />
+          Organization commands are read-only until admin authority is verified.
+        </div>
+      </div>
+    </aside>
+  );
+};
+
 export const OrganizationsPage = () => {
     const { isAdmin } = useAuth();
     const { isMobile } = useNavigation();
@@ -160,6 +294,7 @@ export const OrganizationsPage = () => {
     });
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [focusedOrgId, setFocusedOrgId] = useState(null);
     const [organizationCommandNotice, setOrganizationCommandNotice] = useState(null);
 
     const fetchOrganizations = useCallback(async () => {
@@ -183,6 +318,14 @@ export const OrganizationsPage = () => {
         toast.info(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
         return false;
     }, []);
+
+    // Read-only view path: focus the record, then surface the unavailable notice.
+    // (OrganizationTableView/ListView do not expose an onFocus/row-click prop, so
+    //  row focus is driven through this shared view handler rather than per-row wiring.)
+    const handleView = useCallback((org) => {
+        setFocusedOrgId(org?.id || null);
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
 
     const handleCreate = useCallback(() => {
         handleOrganizationCommandUnavailable();
@@ -254,6 +397,11 @@ export const OrganizationsPage = () => {
         const visibleCount = pagination.currentPage * pagination.itemsPerPage;
         return filteredOrgs.slice(0, visibleCount);
     }, [filteredOrgs, pagination.currentPage, pagination.itemsPerPage]);
+
+    const focusedOrg = useMemo(
+        () => paginatedOrgs.find((o) => o.id === focusedOrgId) || paginatedOrgs[0] || null,
+        [paginatedOrgs, focusedOrgId],
+    );
 
     const organizationSummary = useMemo(() => ({
         total: organizations.length,
@@ -522,6 +670,8 @@ export const OrganizationsPage = () => {
                 </p>
             )}
 
+            <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+              <section className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:self-stretch">
             {/* Signal Panel - Network Float / Avg_Fee context retained in headline + strip */}
             <OrgSignalPanel
                 stats={organizationSummary}
@@ -586,7 +736,7 @@ export const OrganizationsPage = () => {
                 ) : (!isMobile && viewMode === 'table') ? (
                     <OrganizationTableView
                         organizations={paginatedOrgs}
-                        onView={handleEdit}
+                        onView={handleView}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         selectedIds={selectedIds}
@@ -596,7 +746,7 @@ export const OrganizationsPage = () => {
                 ) : (
                     <OrganizationListView
                         organizations={paginatedOrgs}
-                        onView={handleEdit}
+                        onView={handleView}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                     />
@@ -612,6 +762,10 @@ export const OrganizationsPage = () => {
                 hasNextPage={pagination.hasNextPage}
                 loading={loading}
             />
+            </div>
+              </section>
+
+              <OrganizationDetailRail organization={focusedOrg} onView={handleView} />
             </div>
 
             {/* Org Modal */}
