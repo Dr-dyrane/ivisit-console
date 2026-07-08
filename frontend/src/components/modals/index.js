@@ -9,5 +9,4 @@ export { SupportTicketModal } from './SupportTicketModal';
 export { InsuranceModal } from './InsuranceModal';
 export { SubscriptionModal } from './SubscriptionModal';
 export { AnalyticsModal } from './AnalyticsModal';
-export { BulkImportModal } from './BulkImportModal';
 export { EmergencyDetailsModal } from './EmergencyDetailsModal';
