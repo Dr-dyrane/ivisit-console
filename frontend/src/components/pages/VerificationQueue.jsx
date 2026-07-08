@@ -334,6 +334,37 @@ export const VerificationQueue = () => {
     }
   };
 
+  // Desktop right panel — publish live route context so ContextPanel/VerificationPanel
+  // render this page's real data (canon pattern shared by Staff/Visits/etc.), instead of
+  // reading stale PageData. Org stats use `verified`; normalize to the panel's shape.
+  const verificationPanelContext = useMemo(() => {
+    const activeStats = queueType === 'providers'
+      ? stats
+      : { pending: orgStats.pending, approved: orgStats.verified, rejected: orgStats.rejected, total: orgStats.total };
+    const items = queueType === 'providers' ? providers : organizations;
+    return {
+      queueType,
+      stats: activeStats,
+      count: items.length,
+      recent: items.slice(0, 4),
+      selected: selectedProvider,
+      canApprove,
+      loading,
+    };
+  }, [queueType, stats, orgStats, providers, organizations, selectedProvider, canApprove, loading]);
+
+  const publishVerificationRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('verificationRouteContextUpdated', { detail: verificationPanelContext }));
+  }, [verificationPanelContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    publishVerificationRouteContext();
+    window.addEventListener('requestVerificationRouteContext', publishVerificationRouteContext);
+    return () => window.removeEventListener('requestVerificationRouteContext', publishVerificationRouteContext);
+  }, [publishVerificationRouteContext]);
+
   const filterSchema = useMemo(() => [
     {
       key: 'search',

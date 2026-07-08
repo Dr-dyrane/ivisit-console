@@ -48,6 +48,7 @@ export const ContextPanel = () => {
   const [walletRouteContext, setWalletRouteContext] = React.useState(null);
   const [healthNewsRouteContext, setHealthNewsRouteContext] = React.useState(null);
   const [insuranceRouteContext, setInsuranceRouteContext] = React.useState(null);
+  const [verificationRouteContext, setVerificationRouteContext] = React.useState(null);
 
   const emergencyStats = getEmergencyStats();
 
@@ -341,6 +342,25 @@ export const ContextPanel = () => {
     };
   }, [currentPath]);
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/verification')) {
+      setVerificationRouteContext(null);
+      return undefined;
+    }
+
+    const handleVerificationRouteContext = (event) => {
+      setVerificationRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('verificationRouteContextUpdated', handleVerificationRouteContext);
+    window.dispatchEvent(new CustomEvent('requestVerificationRouteContext'));
+
+    return () => {
+      window.removeEventListener('verificationRouteContextUpdated', handleVerificationRouteContext);
+    };
+  }, [currentPath]);
+
   const renderAccessDenied = () => (
     <div className="p-0 md:p-6 scrollbar-hide">
       <motion.div
@@ -507,7 +527,13 @@ export const ContextPanel = () => {
   } else if (currentPath.includes('/visits')) {
     return renderPanelWithHeader(<VisitsPanel visitContext={visitsRouteContext} />);
   } else if (currentPath.includes('/verification')) {
-    return renderPanelWithHeader(<VerificationPanel verificationData={verificationData} loading={loading} />);
+    return renderPanelWithHeader(
+      <VerificationPanel
+        verificationContext={verificationRouteContext}
+        verificationData={verificationRouteContext?.stats || verificationData}
+        loading={verificationRouteContext ? { verification: verificationRouteContext.loading } : loading}
+      />
+    );
   } else if (currentPath.includes('/health-news')) {
     return renderPanelWithHeader(<HealthNewsPanel healthNewsContext={healthNewsRouteContext} />);
   } else if (currentPath.includes('/support-tickets')) {
