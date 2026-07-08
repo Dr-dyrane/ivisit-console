@@ -164,3 +164,21 @@ Everything else reuses §7.1's existing RPCs. No new client-side context/util/se
 - **Align** `insurance_policies`/`profiles` to what the console already reads: add the missing columns **or** realign the console projection — choose whichever removes console dead code rather than adds it.
 
 **Net:** ~2 new RPCs, ~0 new client abstractions, and a sizable **deletion** of dead mock/duplicate/redundant code. The bulk of the P0/P1 set is fixed by re-pointing calls to RPCs that already exist and copying three in-repo patterns.
+
+---
+
+## 8. Reconciliation with `ivisit-app/supabase/docs/CONTRIBUTING.md` (2026-07-08)
+
+Read after the initial audit; it **overrides** several earlier recommendations. The already-shipped frontend fixes (reuse `update_*_by_admin` RPCs + `.maybeSingle()`) remain correct — they are the documented pattern. Corrections for work *going forward*:
+
+1. **[CORRECTION] "Silent Guarding" is REQUIRED, not a bug.** §2: restricted-module services (Analytics/Activity/Admin/Finance) MUST include a client-side role check returning empty/neutral to prevent 400 log spam (`if (user?.role === 'patient') return []`). So §3A/§C "un-mask the `[]` returns / client-side role gating is a problem" is **partly wrong**: keep the **pre-query role-guard `[]`**. Only fix the **post-query error swallow** (a real RLS/network failure rendered as empty) — distinguish denied-vs-failed while preserving the silent-guard `[]` for the no-role case.
+
+2. **[CORRECTION] `supabaseHelpers` (`withRetry`/`withAudit`/`withTimeout`/`subscribeToTable`) + `displayIdService` are canonical Zone-1 "must stay in sync" utilities that must be USED — not dead code.** Reverse the "delete dead infra" item: **ADOPT** them — reads→`withRetry` (§9 "all reads use withRetry"), mutations→`withAudit`, RPCs→`withTimeout`. Only the *duplicate* `subscribeToTable` in `supabase.js` is dropped (defer to the canonical `supabaseHelpers` one). Never re-declare `isValidUUID` inline (§2 canonical imports).
+
+3. **[CORRECTION] The RPC proposal goes INTO the core pillar files, NOT a new migration.** §1: "Always update the core pillar file — never create fix migrations." `PROPOSED_CONSOLE_BOUNDARY_RPCS.sql` is a **review artifact only**; real placement is pillar edits — RPCs → `0100_core_rpcs`, RLS → `0007_security`, visits → `0003_logistics`, medical → `0001_identity`, wallet → `0004_finance`. The console then receives them via `node supabase/scripts/sync_to_console.js` (migrations/docs/types auto-sync app→console). **Do not author console-side migrations.**
+
+4. **[REFINEMENT] New RPCs use centralized RBAC helpers** `p_is_admin()` / `p_is_console_allowed()` (in `0007_security`), never inline role strings (§11 RBAC Consolidation Rule).
+
+5. **[VALIDATION] The reuse-RPC strategy is the sanctioned pattern.** §9 "SECURITY DEFINER bypasses RLS for internal logic"; §11 RPC index lists `update_profile_by_admin` + `delete_user_by_admin` as Core-RPCs "used by console profilesService.js" (exactly the verify-provider reuse). `wallet_ledger` append-only + "financial ops log synchronously" (§9) matches `console_record_wallet_fee_debit`.
+
+6. **[PROCESS] Any schema change runs the ivisit-app testing/hardening gate** — `test_runner.js`, the Zero-Side-Effect Cleanup Gate, `hardening:contract-drift-guard` — before the console sync (`TESTING.md`). Migration test artifacts must be cleaned every time (hard gate).
