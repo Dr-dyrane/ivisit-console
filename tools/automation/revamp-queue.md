@@ -242,11 +242,21 @@ Notes:
 - **Action:** no src changes, no commits, queue append only. Real unblock unchanged: codex committing/fixing the
   shared hardgate script (frees Support first, token map pre-verified), or controller finishing Pages 12-18.
 
-### 2026-07-07 — modal-canon agent — top un-revamped modals to borderless canon — in_progress
+### 2026-07-07 — modal-canon agent — top un-revamped modals to borderless canon — done (ff7a1d55)
 - **Lane:** chrome-only canon pass on detail/form modals. Files: `modals/VerificationModal.jsx`,
-  `modals/HealthNewsModal.jsx`, `modals/AnalyticsModal.jsx`.
-- **SKIPPED (another lane):** `modals/VisitModal.jsx` — has a REAL working-tree content diff at start
+  `modals/HealthNewsModal.jsx`, `modals/AnalyticsModal.jsx`. Commit `ff7a1d55` (claim `da23b3a4`).
+- **SKIPPED (another lane):** `modals/VisitModal.jsx` — had a REAL working-tree content diff at start
   (codex WIP stripping inset/backdrop shadows). Left untouched per handshake rule #6.
-- **Note:** working-tree hardgate script parses clean in this checkout (`node --check` OK); the three
-  target files are codex-clean (no diff at start). CHROME-ONLY: preserving ModalShell, all fields,
-  effects, validation, handlers.
+- **Applied (chrome-only):** canonical radius tokens (rounded-{modal,card,inner,icon,button,pill});
+  shadcn `<Badge>`→borderless `<span rounded-pill>` (dropped now-unused `ui/badge` imports in Verification
+  + HealthNews); red-rendering tokens `--info/--success/--warning/--primary` → literal palette
+  (sky/emerald/amber) — `--destructive`/`--muted-foreground` kept; `apple-glass`/`apple-glass-heavy` →
+  manual glass (`bg-muted/15`|`bg-background/80` + `backdrop-blur-{md,xl}`); Verification panel given
+  canonical `rounded-modal bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]`;
+  non-eyebrow `uppercase` stripped from Verification GlassCard title. ModalShell, every field, all
+  effects/validation/handlers preserved (diff is 100% className/import/color).
+- **VERIFY:** strict-radius hardgate GREEN for all 3 (combined 3/3 pass); babel parse OK ×3; 0 non-ASCII.
+  Contracts: HealthNewsManagementPage / UsersPage / VerificationQueue PASS. AnalyticsPage.contract has
+  1 PRE-EXISTING failure (L156) asserting a `rounded-2xl`+`border-success/10` chart string in
+  `Analytics.jsx` (a PAGE I did not touch; the modal is codex-clean and my file isn't read by that
+  assertion) — unrelated to this lane.
