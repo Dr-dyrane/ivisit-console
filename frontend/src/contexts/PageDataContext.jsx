@@ -917,12 +917,12 @@ export const PageDataProvider = ({ children }) => {
       .channel('support_tickets_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'support_tickets' },
-        debouncedFetchSupportTickets
+        () => { debouncedFetchSupportTickets(); queryClient.invalidateQueries({ queryKey: ['support'] }); }
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, debouncedFetchSupportTickets]);
+  }, [user, useMockData, startupDomains, debouncedFetchSupportTickets, queryClient]);
 
   // Calculate statistics (Memoized to prevent churn)
   const emergencyStats = useMemo(() => {

@@ -11,6 +11,11 @@ describe('SupportTicketsPage canonical source contract', () => {
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/SupportTicketModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/supportTicketsService.js', 'utf8');
+  // S3 React Query migration (mirrors DoctorsPage/HospitalsPage): the page reads via
+  // useSupportTicketsQuery and writes via useSupportTicketsMutations. These readers let
+  // the conversion assertions point at the relocated data layer.
+  const queryHookSource = () => fs.readFileSync('src/hooks/useSupportTicketsQuery.js', 'utf8');
+  const mutationsHookSource = () => fs.readFileSync('src/hooks/useSupportTicketsMutations.js', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
@@ -101,7 +106,30 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(gate).toContain('`SupportTicketsPanel.jsx` now consumes `supportContext`, not direct Supabase or `PageDataContext`');
     expect(gate).toContain('`cmd /c npm run check:ui-hardgate` for 74 files');
 
-    expect(page).toContain('getSupportTicketsPage');
+    // S3 React Query migration (mirrors DoctorsPage/HospitalsPage): the route
+    // projection now flows through useSupportTicketsQuery; create/update write via
+    // useSupportTicketsMutations; realtime invalidates the ['support'] cache. The
+    // imperative fetch-dedup loop (fetchRequestRef/requestId) and the
+    // list/stats/loading/error useState setters are gone, but every governance guard
+    // below is preserved.
+    expect(page).toContain('useSupportTicketsQuery(queryFilter)');
+    expect(page).toContain('statsFilter: getStatsFilters(routeFilters)');
+    expect(page).toContain('stats: supportStats');
+    expect(page).toContain('createTicketMutation.mutateAsync(args[0])');
+    expect(page).toContain('updateTicketMutation.mutateAsync({ id: args[0], ...args[1] })');
+    expect(page).toContain(".channel('support_tickets_page_changes')");
+    expect(page).toContain("queryClient.invalidateQueries({ queryKey: ['support'] })");
+    expect(page).toContain('supabase.removeChannel(channel)');
+    expect(page).toContain('const supportError = queryError');
+    expect(page).toContain('pagination.setTotalCount(count || 0)');
+    expect(page).not.toContain('fetchRequestRef');
+    expect(page).not.toContain('setTickets(');
+    expect(page).not.toContain('setSupportStats(');
+    expect(page).not.toContain('setSupportError(');
+    expect(page).not.toContain('getSupportTicketsPage({');
+    expect(queryHookSource()).toContain('getSupportTicketsPage(filter)');
+    expect(queryHookSource()).toContain("queryKey: ['support', filter]");
+    expect(mutationsHookSource()).toContain('applyOptimisticUpsert');
     expect(page).toContain('const location = useLocation();');
     expect(page).toContain('const navigate = useNavigate();');
     expect(page).toContain("usePageFooter(null, 'status', false)");

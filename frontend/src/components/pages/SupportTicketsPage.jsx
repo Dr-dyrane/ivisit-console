@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useSupportTicketsQuery } from '../../hooks/useSupportTicketsQuery';
+import { useSupportTicketsMutations, applyOptimisticUpsert } from '../../hooks/useSupportTicketsMutations';
 import {
   createSupportTicket,
-  getSupportTicketsPage,
-  subscribeToSupportTickets,
   updateSupportTicket,
 } from '../../services/supportTicketsService';
 import { handleApiError } from '../../utils/errorHandler';
@@ -213,10 +214,7 @@ export const SupportTicketsPage = () => {
   const isProviderOnly = !isAdmin() && !isOrgAdmin() && isProvider();
   const canCreate = isAdmin() || isOrgAdmin() || isProvider();
   const canManageSupport = isAdmin() || isOrgAdmin();
-  const [tickets, setTickets] = useState([]);
-  const [supportStats, setSupportStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [supportError, setSupportError] = useState(null);
+  const queryClient = useQueryClient();
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
   const [kpiFilter, setKpiFilter] = useState('all');
@@ -226,9 +224,45 @@ export const SupportTicketsPage = () => {
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const pagination = usePagination(20);
   const isMountedRef = useRef(false);
-  const fetchRequestRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
   const deepLinkHandledRef = useRef(null);
+
+  // --- Read path: React Query (S3 migration; mirrors DoctorsPage/HospitalsPage) ---
+  // The route-owned page projection (getSupportTicketsPage) now flows through
+  // useSupportTicketsQuery, so the ['support', queryFilter] cache is the single
+  // store: this page reads it, the create/update mutations settle it, and realtime
+  // invalidates it. The KPI status pill and sheet filters compose into one server
+  // filter; stats are requested on the status-agnostic set (getStatsFilters) so the
+  // KPI counts stay stable while the list narrows.
+  const queryFilter = useMemo(() => {
+    const routeFilters = {
+      ...filters,
+      ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
+    };
+    delete routeFilters.kpiFilter;
+
+    return {
+      ...routeFilters,
+      statsFilter: getStatsFilters(routeFilters),
+      limit: pagination.itemsPerPage,
+      offset: pagination.paginationRange.start,
+      quiet: true,
+    };
+  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
+
+  const {
+    tickets,
+    count,
+    stats: supportStats,
+    loading,
+    error: queryError,
+    refetch,
+  } = useSupportTicketsQuery(queryFilter);
+
+  // RQ error object -> the page's existing degraded-state copy (kept verbatim).
+  const supportError = queryError ? 'Support could not load. Try again.' : null;
+  // fetchSupportTickets is now the RQ refetch (Retry on desktop, pull-to-refresh on mobile).
+  const fetchSupportTickets = refetch;
 
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('support', tickets);
   const focusedTicket = focusedRecord;
@@ -239,12 +273,16 @@ export const SupportTicketsPage = () => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      fetchRequestRef.current += 1;
       if (actionFeedbackTimerRef.current) {
         window.clearTimeout(actionFeedbackTimerRef.current);
       }
     };
   }, []);
+
+  // Keep the shared pagination store's total in sync with the RQ count.
+  useEffect(() => {
+    pagination.setTotalCount(count || 0);
+  }, [count, pagination.setTotalCount]);
 
   const markActionFeedback = useCallback((actionId) => {
     if (!actionId) return;
@@ -286,70 +324,29 @@ export const SupportTicketsPage = () => {
     });
   }, [handleApplyFilters, kpiFilter]);
 
-  const fetchSupportTickets = useCallback(async () => {
-    const requestId = fetchRequestRef.current + 1;
-    fetchRequestRef.current = requestId;
-
-    try {
-      if (isMountedRef.current) {
-        setLoading(true);
-        setSupportError(null);
-      }
-
-      const routeFilters = {
-        ...filters,
-        ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
-      };
-      delete routeFilters.kpiFilter;
-
-      const statsFilter = getStatsFilters(routeFilters);
-      const { data, count, stats } = await getSupportTicketsPage({
-        ...routeFilters,
-        statsFilter,
-        limit: pagination.itemsPerPage,
-        offset: pagination.paginationRange.start,
-        quiet: true,
-      });
-
-      if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
-
-      setTickets(data || []);
-      setSupportStats(stats);
-      pagination.setTotalCount(count || 0);
-      setSupportError(null);
-    } catch (error) {
-      if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
-
-      console.error('Error fetching support tickets:', error);
-      setSupportError('Support could not load. Try again.');
-      setTickets([]);
-      setSupportStats(null);
-      pagination.setTotalCount(0);
-      handleApiError(error, 'fetch');
-    } finally {
-      if (isMountedRef.current && fetchRequestRef.current === requestId) {
-        setLoading(false);
-      }
-    }
-  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount]);
-
+  // Real-time updates: a support_tickets row change now invalidates the ['support']
+  // cache (the single store) instead of a manual refetch. Any mounted
+  // useSupportTicketsQuery observer converges on the next fetch. This page-level
+  // channel is the only support realtime on /support-tickets (PageDataContext
+  // excludes supportTickets from the route's startup domains), so it stays here
+  // rather than in the context.
   useEffect(() => {
-    fetchSupportTickets();
-  }, [fetchSupportTickets]);
+    let active = true;
 
-  useEffect(() => {
-    const unsubscribe = subscribeToSupportTickets(() => {
-      if (isMountedRef.current) fetchSupportTickets();
-    });
+    const channel = supabase
+      .channel('support_tickets_page_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => {
+        if (active && isMountedRef.current) {
+          queryClient.invalidateQueries({ queryKey: ['support'] });
+        }
+      })
+      .subscribe();
 
     return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      } else if (unsubscribe) {
-        supabase.removeChannel(unsubscribe);
-      }
+      active = false;
+      supabase.removeChannel(channel);
     };
-  }, [fetchSupportTickets]);
+  }, [queryClient]);
 
   const handleCreate = useCallback(() => {
     if (!canCreate) {
@@ -403,20 +400,41 @@ export const SupportTicketsPage = () => {
     setModalMode('edit');
   }, [canEditTicket, markActionFeedback, setFocused, isFocused]);
 
+  // --- Write path: React Query optimistic mutations (mirrors AmbulanceModal S3-3) --
+  // createSupportTicket / updateSupportTicket stay imported from the service and are
+  // handed in as the mutationFn - their RLS-scoped inserts/updates are never bypassed.
+  // useSupportTicketsMutations wraps them with the onMutate snapshot -> optimistic
+  // setQueryData -> onError rollback -> onSettled invalidateQueries(['support'])
+  // lifecycle, so the ['support', queryFilter] cache is the single post-write refresh
+  // (handleSave no longer refetches).
+  //
+  // Create omits the optimistic reducer: the server owns the new id, so an optimistic
+  // row would render keyless. onSettled invalidation refetches the real row. Update
+  // carries the id in the variables so applyOptimisticUpsert merges the cached row;
+  // the mutationFn strips it back off for updateSupportTicket(id, changes).
+  const createTicketMutation = useSupportTicketsMutations({
+    mutationFn: createSupportTicket,
+    filter: queryFilter,
+  });
+  const updateTicketMutation = useSupportTicketsMutations({
+    mutationFn: ({ id, ...changes }) => updateSupportTicket(id, changes),
+    applyOptimistic: applyOptimisticUpsert,
+    filter: queryFilter,
+  });
+
   const handleSave = useCallback(async (...args) => {
     try {
       if (args.length === 1) {
-        await createSupportTicket(args[0]);
+        await createTicketMutation.mutateAsync(args[0]);
       } else {
-        await updateSupportTicket(args[0], args[1]);
+        await updateTicketMutation.mutateAsync({ id: args[0], ...args[1] });
       }
-      await fetchSupportTickets();
       return true;
     } catch (error) {
       handleApiError(error, args.length === 1 ? 'create' : 'update');
       throw error;
     }
-  }, [fetchSupportTickets]);
+  }, [createTicketMutation, updateTicketMutation]);
 
   const handleOpenFilters = useCallback(() => {
     markActionFeedback('filters');
