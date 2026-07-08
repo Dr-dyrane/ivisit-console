@@ -212,7 +212,7 @@ async function enrichVisitsForPage(visits = []) {
     userIds.length > 0
       ? supabase
         .from('profiles')
-        .select('id, username, email')
+        .select('id, username, email, full_name')
         .in('id', userIds)
       : Promise.resolve({ data: [] }),
     emergencyLookupIds.length > 0

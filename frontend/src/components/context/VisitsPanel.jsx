@@ -8,7 +8,7 @@ import {
   Loader2,
   Plus
 } from 'lucide-react';
-import { formatDate } from '../../lib/utils';
+import { visitRowProjection } from '../../utils/visitRowProjection';
 
 const toCount = (value, fallback = 0) => {
   const numeric = Number(value);
@@ -39,19 +39,6 @@ const statusTone = {
 };
 
 const getStatusTone = (status) => statusTone[status] || statusTone.scheduled;
-
-const getVisitTitle = (visit) => (
-  visit?.patient?.username ||
-  visit?.patient_name ||
-  visit?.visit_type ||
-  visit?.type ||
-  'Visit record'
-);
-
-const getVisitTime = (visit) => {
-  const value = visit?.scheduled_at || visit?.date || visit?.created_at;
-  return value ? formatDate(value) : 'Time not set';
-};
 
 export const VisitsPanel = ({ visitContext }) => {
   const context = visitContext || {};
@@ -190,6 +177,7 @@ export const VisitsPanel = ({ visitContext }) => {
         <div className="space-y-2">
           {recent.map((visit, index) => {
             const tone = getStatusTone(visit?.status);
+            const row = visitRowProjection(visit);
 
             return (
               <motion.div
@@ -206,15 +194,18 @@ export const VisitsPanel = ({ visitContext }) => {
                     </span>
                     <span className="min-w-0">
                       <span className="block max-w-[150px] truncate text-sm font-semibold text-foreground">
-                        {getVisitTitle(visit)}
+                        {row.primary}
                       </span>
                       <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
-                        {getVisitTime(visit)}
+                        {row.secondary}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground/80">
+                        {row.meta}
                       </span>
                     </span>
                   </div>
                   <span className={`shrink-0 rounded-pill px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${tone.chipClass}`}>
-                    {tone.label}
+                    {row.statusLabel}
                   </span>
                 </div>
               </motion.div>

@@ -12,6 +12,7 @@ import { Edit, Trash2, Eye, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown,
 import { motion } from 'framer-motion';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { getStandardizedHospital } from '../../utils/hospitalUtils';
+import { visitRowProjection } from '../../utils/visitRowProjection';
 
 const GRID_TEMPLATE = 'grid-cols-[40px_minmax(90px,0.7fr)_minmax(160px,1.4fr)_minmax(150px,1.2fr)_minmax(96px,0.7fr)_minmax(90px,0.6fr)_minmax(80px,0.5fr)_minmax(150px,1.1fr)_minmax(110px,0.7fr)_64px]';
 const GRID_TEMPLATE_NO_SELECT = 'grid-cols-[minmax(90px,0.7fr)_minmax(160px,1.4fr)_minmax(150px,1.2fr)_minmax(96px,0.7fr)_minmax(90px,0.6fr)_minmax(80px,0.5fr)_minmax(150px,1.1fr)_minmax(110px,0.7fr)_64px]';
@@ -109,6 +110,7 @@ export const VisitTableView = ({
         ) : (
           visits.map((visit, index) => {
             const selected = selectionEnabled && selectedIds.includes(visit.id);
+            const row = visitRowProjection(visit);
             return (
               <motion.div
                 key={visit.id}
@@ -137,9 +139,9 @@ export const VisitTableView = ({
                       <>
                         <span className="font-semibold text-sm flex items-center gap-1.5">
                           <User className="w-3 h-3 text-muted-foreground" />
-                          <span className="truncate">{patient.name}</span>
+                          <span className="truncate">{row.patientName}</span>
                         </span>
-                        {patient.email && (
+                        {patient.email && patient.email !== 'No email' && (
                           <span className="text-xs text-muted-foreground truncate max-w-[150px]">
                             {patient.email}
                           </span>
@@ -154,32 +156,25 @@ export const VisitTableView = ({
                     );
                   })()}
                 </div>
-                {/* Hospital */}
+                {/* Hospital (facility-first identity) */}
                 <div className="flex flex-col min-w-0">
-                  {(() => {
-                    const hospital = getStandardizedHospital(visit);
-                    return (
-                      <>
-                        <span className="font-medium text-sm truncate">{hospital.name}</span>
-                        {visit.room_number && (
-                          <span className="text-xs text-muted-foreground">
-                            Room {visit.room_number}
-                          </span>
-                        )}
-                      </>
-                    );
-                  })()}
+                  <span className="font-medium text-sm truncate">{row.primary}</span>
+                  {visit.room_number && (
+                    <span className="text-xs text-muted-foreground">
+                      Room {visit.room_number}
+                    </span>
+                  )}
                 </div>
                 {/* Status */}
                 <div className="min-w-0">
-                  <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(visit.status)}`}>
-                    {visit.status}
+                  <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(row.statusKey)}`}>
+                    {row.statusLabel}
                   </span>
                 </div>
                 {/* Type */}
                 <div className="min-w-0">
                   <span className="inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold bg-muted text-foreground/80">
-                    {visit.type || 'General'}
+                    {row.caption}
                   </span>
                 </div>
                 {/* Cost */}

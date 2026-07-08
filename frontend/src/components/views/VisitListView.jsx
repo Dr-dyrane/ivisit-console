@@ -10,6 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { visitRowProjection } from '../../utils/visitRowProjection';
 
 export const VisitListView = ({
   visits,
@@ -24,16 +25,6 @@ export const VisitListView = ({
   canDelete = false,
   selectionEnabled = false
 }) => {
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -42,6 +33,7 @@ export const VisitListView = ({
     >
       {visits.map((visit, index) => {
         const selected = selectionEnabled && selectedIds.includes(visit.id);
+        const row = visitRowProjection(visit);
         return (
           <motion.div
             key={visit.id}
@@ -69,12 +61,15 @@ export const VisitListView = ({
                 {/* Info Block */}
                 <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4">
 
-                  {/* ID & Status */}
-                  <div>
+                  {/* Facility (primary) + type caption + status */}
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-semibold text-muted-foreground tracking-[0.14em] mb-1">
+                      {row.caption}
+                    </span>
                     <h3 className="font-bold text-base group-hover:text-foreground transition-colors flex items-center gap-2 flex-wrap">
-                      Visit #{visit.id?.slice(0, 8)}
+                      <span className="truncate">{row.primary}</span>
                       <span className={`inline-flex items-center rounded-pill px-2 py-0.5 ${getStatusBadge(visit.status)} font-semibold text-[10px]`}>
-                        {visit.status}
+                        {row.statusLabel}
                       </span>
                       {visit.cost && (
                         <span className="inline-flex items-center rounded-pill px-2 py-0.5 font-mono text-[10px] bg-muted text-foreground/80">
@@ -83,13 +78,9 @@ export const VisitListView = ({
                       )}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                      {formatDate(visit.date || visit.created_at)}
-                      {visit.room_number && (
-                        <>
-                          <span className="w-1 h-1 rounded-pill bg-muted-foreground/40" />
-                          <span>Rm {visit.room_number}</span>
-                        </>
-                      )}
+                      <span className="font-mono">#{visit.id?.slice(0, 8)}</span>
+                      <span className="w-1 h-1 rounded-pill bg-muted-foreground/40" />
+                      <span>{row.meta}</span>
                     </p>
                   </div>
 
@@ -98,7 +89,7 @@ export const VisitListView = ({
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em] block mb-1">Patient</span>
                     <div className="flex items-center gap-2 font-semibold text-sm truncate">
                       <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                      {visit.patient?.username || visit.user_id?.slice(0, 8) || 'Unknown'}
+                      <span className="truncate">{row.patientName}</span>
                     </div>
                   </div>
 
