@@ -71,7 +71,7 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete, 
 
                         <div className="flex items-center justify-between mt-auto pt-4 relative z-10">
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-pill ${org.stripe_account_id ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                                <div className={`w-2 h-2 rounded-pill ${org.stripe_account_id ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
                                 <span className="text-[10px] font-black text-muted-foreground">
                                     {org.stripe_account_id ? 'STRIPE_LIVE' : 'WAITING_INTEGRATION'}
                                 </span>

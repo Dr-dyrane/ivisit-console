@@ -73,7 +73,7 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
                 </Badge>
               )}
               {!notification.read && (
-                <div className="w-2 h-2 rounded-pill bg-primary animate-pulse" />
+                <div className="w-2 h-2 rounded-pill bg-primary" />
               )}
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
