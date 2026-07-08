@@ -1,22 +1,18 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
+    DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import {
-    DollarSign,
     Ambulance,
     Bed,
     Clock,
     Eye,
     Trash2,
-    Calendar,
     Edit,
     MoreHorizontal,
     Globe,
@@ -43,8 +39,12 @@ const getPricingAmount = (item) => {
 
 const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
 
+const GRID_TEMPLATE = 'grid-cols-[40px_minmax(160px,1.6fr)_minmax(96px,0.8fr)_minmax(90px,0.7fr)_minmax(150px,1.2fr)_minmax(110px,0.9fr)_64px]';
+const GRID_TEMPLATE_NO_SELECT = 'grid-cols-[minmax(160px,1.6fr)_minmax(96px,0.8fr)_minmax(90px,0.7fr)_minmax(150px,1.2fr)_minmax(110px,0.9fr)_64px]';
+
 export const PricingTableView = ({
     pricing,
+    onFocus,
     onView,
     onDelete,
     onEdit,
@@ -66,149 +66,128 @@ export const PricingTableView = ({
         }
     };
 
-    return (
-        <div className="bg-background/35 rounded-card overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead>
-                        <tr className=" ">
-                            {selectionEnabled && (
-                                <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                    <Checkbox
-                                        checked={selectedIds.length === pricing.length && pricing.length > 0}
-                                        onCheckedChange={(checked) => onSelectAll?.(checked)}
-                                        aria-label="Select all"
-                                    />
-                                </th>
-                            )}
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Service / Item
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Price
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Unit
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Scope
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Last Updated
-                            </th>
-                            <th className="text-right p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {pricing.map((item, index) => {
-                            const isGlobal = !item.organization_id && !item.hospital_id;
-                            const isEditable = canEdit(item);
-                            const name = item.name || item.service_name || item.room_name || 'Unnamed price';
-                            const type = item.type || item.service_type || item.room_type || 'General';
-                            const sourceLabel = formatSourceLabel(item.sourceLabel || item.source_label, isGlobal ? 'platform fallback' : 'facility price');
-                            const facilityLabel = item.facilityName || item.facility_name;
-                            const updatedAt = getUpdatedAt(item);
+    const gridClass = selectionEnabled ? GRID_TEMPLATE : GRID_TEMPLATE_NO_SELECT;
 
-                            return (
-                                <tr
-                                    key={item.id}
-                                    className={`  hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
-                                        }`}
-                                >
-                                    {selectionEnabled && (
-                                        <td className="p-4">
-                                            <Checkbox
-                                                checked={selectedIds.includes(item.id)}
-                                                onCheckedChange={(checked) => onSelect?.(item.id, checked)}
-                                                aria-label={`Select item ${name}`}
-                                            />
-                                        </td>
-                                    )}
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-card bg-muted flex items-center justify-center shrink-0">
-                                                {getTypeIcon(type)}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-normal text-foreground">
-                                                        {name}
-                                                    </span>
-                                                </div>
-                                                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                                                    {type}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="font-bold text-foreground">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(getPricingAmount(item))}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                        {item.unit || item.room_type || 'Per Unit'}
-                                    </td>
-                                    <td className="p-4">
-                                        <Badge className={`rounded-inner px-2 py-1 ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
-                                            <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
-                                                {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
-                                                {sourceLabel}
-                                            </div>
-                                        </Badge>
-                                        {facilityLabel && (
-                                            <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                                                {facilityLabel}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="h-3.5 w-3.5" />
-                                            <span>{updatedAt ? new Date(updatedAt).toLocaleDateString() : 'N/A'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex justify-end">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
-                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="sr-only">Open menu</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 ">
-                                                    <DropdownMenuItem onClick={() => onView(item)} className="cursor-pointer font-medium text-xs py-2">
-                                                        <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                                                        View Details
-                                                    </DropdownMenuItem>
-                                                    {isEditable && (
-                                                        <DropdownMenuItem onClick={() => onEdit(item)} className="cursor-pointer font-medium text-xs py-2">
-                                                            <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {isEditable && (
-                                                        <>
-                                                            <DropdownMenuSeparator className="bg-white/5" />
-                                                            <DropdownMenuItem onClick={() => onDelete(item)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+    return (
+        <div className="rounded-card bg-background/30 overflow-hidden p-3">
+            {/* Header row */}
+            <div className={`grid ${gridClass} items-center gap-2 px-3 pb-3 pt-2 text-[10px]`}>
+                {selectionEnabled && (
+                    <div className="flex items-center">
+                        <Checkbox
+                            checked={selectedIds.length === pricing.length && pricing.length > 0}
+                            onCheckedChange={(checked) => onSelectAll?.(checked)}
+                            aria-label="Select all"
+                        />
+                    </div>
+                )}
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Service / Item</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Price</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Unit</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Scope</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Last Updated</span>
+                <span className="justify-self-end font-semibold tracking-[0.14em] text-muted-foreground">Actions</span>
             </div>
+
+            {/* Data rows */}
+            {pricing.map((item) => {
+                const isGlobal = !item.organization_id && !item.hospital_id;
+                const isEditable = canEdit(item);
+                const selected = selectionEnabled && selectedIds.includes(item.id);
+                const name = item.name || item.service_name || item.room_name || 'Unnamed price';
+                const type = item.type || item.service_type || item.room_type || 'General';
+                const sourceLabel = formatSourceLabel(item.sourceLabel || item.source_label, isGlobal ? 'platform fallback' : 'facility price');
+                const facilityLabel = item.facilityName || item.facility_name;
+                const updatedAt = getUpdatedAt(item);
+
+                return (
+                    <div
+                        key={item.id}
+                        onClick={() => onFocus?.(item)}
+                        className={`grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                    >
+                        {selectionEnabled && (
+                            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                    checked={selectedIds.includes(item.id)}
+                                    onCheckedChange={(checked) => onSelect?.(item.id, checked)}
+                                    aria-label={`Select item ${name}`}
+                                />
+                            </div>
+                        )}
+                        {/* Service / Item */}
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-inner bg-muted flex items-center justify-center shrink-0">
+                                {getTypeIcon(type)}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="font-normal text-foreground truncate">
+                                    {name}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground tracking-[0.14em] font-bold truncate">
+                                    {type}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Price */}
+                        <div className="font-bold text-foreground truncate">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(getPricingAmount(item))}
+                        </div>
+                        {/* Unit */}
+                        <div className="text-sm text-muted-foreground truncate">
+                            {item.unit || item.room_type || 'Per Unit'}
+                        </div>
+                        {/* Scope */}
+                        <div className="min-w-0">
+                            <span className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-[9px] font-black tracking-[0.14em] ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
+                                {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                                {sourceLabel}
+                            </span>
+                            {facilityLabel && (
+                                <div className="mt-1 text-[10px] tracking-[0.14em] text-muted-foreground truncate">
+                                    {facilityLabel}
+                                </div>
+                            )}
+                        </div>
+                        {/* Last Updated */}
+                        <div className="text-sm text-muted-foreground min-w-0">
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{updatedAt ? new Date(updatedAt).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                        </div>
+                        {/* Actions */}
+                        <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/30">
+                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                        <span className="sr-only">Open menu</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70">
+                                    <DropdownMenuItem onClick={() => onView(item)} className="cursor-pointer font-medium text-xs py-2">
+                                        <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                        View Details
+                                    </DropdownMenuItem>
+                                    {isEditable && (
+                                        <DropdownMenuItem onClick={() => onEdit(item)} className="cursor-pointer font-medium text-xs py-2">
+                                            <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                            Edit
+                                        </DropdownMenuItem>
+                                    )}
+                                    {isEditable && (
+                                        <DropdownMenuItem onClick={() => onDelete(item)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };

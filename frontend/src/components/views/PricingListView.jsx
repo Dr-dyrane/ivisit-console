@@ -1,6 +1,4 @@
 import React from 'react';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Edit,
@@ -31,7 +29,7 @@ const getPricingAmount = (item) => {
 
 const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
 
-export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) => {
+export const PricingListView = ({ pricing, onFocus, onView, onEdit, onDelete, canEdit }) => {
     if (!pricing || pricing.length === 0) return null;
 
     const getTypeIcon = (type) => {
@@ -62,18 +60,16 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
-                            <div className="absolute inset-0 dot-grid opacity-10" />
-                            <div className={` ${isGlobal ? '' : ''}`} />
-
+                        <div
+                            onClick={() => onFocus?.(item)}
+                            className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col transition-colors hover:bg-muted/30"
+                        >
                             <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
-                                <Badge className={`rounded-inner px-2.5 py-1 shadow-sm ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
-                                    <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
-                                        {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
-                                        {sourceLabel}
-                                    </div>
-                                </Badge>
-                                <div className="w-10 h-10 rounded-inner bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 shadow-inner transition-transform duration-300">
+                                <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[9px] font-black tracking-[0.14em] ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
+                                    {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                                    {sourceLabel}
+                                </span>
+                                <div className="w-10 h-10 rounded-inner bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform duration-300">
                                     {getTypeIcon(item.service_type || item.room_type)}
                                 </div>
                             </div>
@@ -81,7 +77,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                             <h3 className="font-bold text-lg mb-1 tracking-tight relative z-10 truncate">
                                 {name}
                             </h3>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4 transition-colors duration-300">
+                            <p className="text-[10px] font-bold tracking-[0.14em] text-muted-foreground mb-4 transition-colors duration-300">
                                 {type}
                             </p>
 
@@ -91,25 +87,25 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
 
                             <div className="flex items-end justify-between relative z-10 mb-6">
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Fee</p>
-                                    <span className="text-3xl font-black tracking-tighter">
+                                    <p className="text-[10px] font-bold tracking-[0.14em] text-muted-foreground mb-1">Fee</p>
+                                    <span className="text-3xl font-black tracking-tight">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(getPricingAmount(item))}
                                     </span>
                                     <span className="text-[10px] font-bold text-muted-foreground ml-1">/ {item.unit || 'Unit'}</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between mt-auto pt-4   relative z-10 px-2">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <div className="flex items-center justify-between mt-auto pt-4 relative z-10 px-2">
+                                <div className="text-[10px] font-bold text-muted-foreground tracking-[0.14em] flex items-center gap-2">
                                     <Clock className="w-3 h-3" />
                                     {updatedAt ? new Date(updatedAt).toLocaleDateString() : 'N/A'}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => onView(item)}
-                                        className="rounded-card h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
+                                        className="rounded-inner h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
@@ -118,7 +114,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => onEdit(item)}
-                                            className="rounded-card h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
+                                            className="rounded-inner h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -128,14 +124,14 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => onDelete(item)}
-                                            className="rounded-card h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                            className="rounded-inner h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     )}
                                 </div>
                             </div>
-                        </Card>
+                        </div>
                     </motion.div>
                 );
             })}
