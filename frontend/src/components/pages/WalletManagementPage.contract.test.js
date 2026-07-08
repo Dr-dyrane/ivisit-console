@@ -303,4 +303,26 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('All transactions exported');
     expect(page).not.toContain('Full ledger');
   });
+
+  it('opens mobile ledger and payment rows in the shared detail bottom sheet, not an inline dropdown', () => {
+    const mobile = mobileSource();
+
+    // Tap-opens-detail-sheet: active-record state + row onClick + one MobileDetailSheet render.
+    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
+    expect(mobile).toContain('const [activeEntry, setActiveEntry] = useState(null);');
+    expect(mobile).toContain('onClick={() => setActiveEntry');
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('isOpen={!!activeEntry}');
+    expect(mobile).toContain('onClose={() => setActiveEntry(null)}');
+
+    // Read-only ledger: the payment receipt CTA is the only action, still via onOpenPayment.
+    expect(mobile).toContain('onOpenPayment(item)');
+
+    // The inline-expand affordance is fully removed from the ledger rows.
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('expandedId');
+    expect(mobile).not.toContain('setExpandedId');
+    expect(mobile).not.toContain('isExpanded=');
+    expect(mobile).not.toContain('onExpand=');
+  });
 });

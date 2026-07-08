@@ -17,8 +17,7 @@ import {
   Loader2 as LoaderIcon
 } from 'lucide-react';
 import { MobileMetricRow } from './MobileMetricList';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
@@ -71,7 +70,7 @@ export const MobileWallet = ({
   isAdmin,
   isOrgAdmin
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeEntry, setActiveEntry] = useState(null);
   const [showBalance, setShowBalance] = useState(true);
   const showTopSectionLoading = loading && !wallet && ledger.length === 0 && payments.length === 0;
   const items = activeTab === 'ledger' ? ledger : payments;
@@ -332,7 +331,8 @@ export const MobileWallet = ({
             <div className="mt-3 space-y-1">
               <AnimatePresence mode="popLayout">
                 {/* Date-grouped feed (rollout S5): newest-first, a month header at each
-                    boundary. Grouping is render-only; id-keyed expand state is unaffected.
+                    boundary. Grouping is render-only. Tapping a row opens the shared detail
+                    bottom sheet (MobileDetailSheet) rendered below, not an inline dropdown.
                     A ledger has no linear lifecycle, so there is no VitalTrack here (S4 N/A). */}
                 {groupByMonth(items, (entry) => entry?.created_at).map(({ item, header }) => {
                   const isLedger = activeTab === 'ledger';
@@ -344,10 +344,8 @@ export const MobileWallet = ({
                     : (isCredit ? mobilePaymentReadyColor : mobilePaymentWaitingColor);
                   const amount = Math.abs(Number(item.amount || 0));
                   const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount)}`;
-                  const typeLabel = formatServiceTypeLabel(item.transaction_type) || 'Transaction';
                   const methodLabel = formatServiceTypeLabel(item.payment_method) || 'Card';
                   const facilityName = item.emergency_requests?.hospitals?.name || 'Hospital unavailable';
-                  const referenceValue = item.reference_id || item.external_reference || null;
                   // S3: semantic status pill (raw hue) replaces the rightBlade. Ledger has no
                   // modelled lifecycle, so the generic keyword pill is correct here.
                   const pill = isLedger ? statusPill(item.transaction_type) : statusPill(item.status);
@@ -363,6 +361,9 @@ export const MobileWallet = ({
                           {header}
                         </div>
                       )}
+                      {/* Tap opens the shared detail bottom sheet (rendered below), not an
+                          inline dropdown — the approved mobile design + desktop detail-rail
+                          behaviour. Keep icon/color/label/value/secondary/statusPill. */}
                       <MobileMetricRow
                         icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
                         color={rowColor}
@@ -370,35 +371,7 @@ export const MobileWallet = ({
                         value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
                         secondary={secondary}
                         statusPill={pill}
-                        isExpanded={expandedId === item.id}
-                        onExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
-                        itemId={item.id}
-                        expandedContent={(
-                          <div className="space-y-3 py-3">
-                            {/* S6: identity-island detail from the record's real fields. */}
-                            <MobileDetailIslands
-                              items={isLedger ? [
-                                { icon: isCredit ? ArrowDownLeft : ArrowUpRight, label: 'Type', value: typeLabel },
-                                { icon: Wallet, label: 'Amount', value: signedAmount },
-                                referenceValue && { icon: Hash, label: 'Reference', value: referenceValue },
-                                { icon: Clock, label: 'Recorded', value: new Date(item.created_at).toLocaleString() },
-                              ] : [
-                                { icon: Wallet, label: 'Amount', value: formatCurrency(amount) },
-                                { icon: CreditCard, label: 'Method', value: methodLabel },
-                                { icon: Building, label: 'Facility', value: facilityName },
-                                { icon: Clock, label: 'Paid', value: new Date(item.created_at).toLocaleString() },
-                              ]}
-                            />
-
-                            {/* S7: read-only ledger. Only the payment record has a detail view;
-                                a single Details CTA opens the receipt. No money-moving actions. */}
-                            {!isLedger && onOpenPayment && (
-                              <MobileSheetActions
-                                primary={{ label: 'Details', icon: Eye, onClick: () => onOpenPayment(item) }}
-                              />
-                            )}
-                          </div>
-                        )}
+                        onClick={() => setActiveEntry(item)}
                       />
                     </React.Fragment>
                   );
@@ -410,6 +383,57 @@ export const MobileWallet = ({
               )}
             </div>
           </section>
+
+          {activeEntry && (() => {
+            // Tap-opens-detail: the composition that used to live inline (identity islands +
+            // the payment-only Details CTA) now renders in the shared MobileDetailSheet.
+            const item = activeEntry;
+            const isLedger = activeTab === 'ledger';
+            // Ledger carries direction via transaction_type (no status column); payments
+            // carry a real status column (completed/pending/...).
+            const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
+            const iconTone = isLedger
+              ? (isCredit ? mobilePaymentReadyColor : mobilePaymentNeutralColor)
+              : (isCredit ? mobilePaymentReadyColor : mobilePaymentWaitingColor);
+            const amount = Math.abs(Number(item.amount || 0));
+            const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount)}`;
+            const typeLabel = formatServiceTypeLabel(item.transaction_type) || 'Transaction';
+            const methodLabel = formatServiceTypeLabel(item.payment_method) || 'Card';
+            const facilityName = item.emergency_requests?.hospitals?.name || 'Hospital unavailable';
+            const referenceValue = item.reference_id || item.external_reference || null;
+            const RowIcon = isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard;
+            // S3: generic keyword status pill (a ledger has no modelled lifecycle).
+            const pill = isLedger ? statusPill(item.transaction_type) : statusPill(item.status);
+
+            // S6 islands are the same identity tiles the inline expand used. S4 N/A: a
+            // ledger has no linear lifecycle, so no VitalTrack (vital omitted). S7: read-only
+            // — the only action is a Details CTA on a payment receipt; no money-moving actions.
+            return (
+              <MobileDetailSheet
+                isOpen={!!activeEntry}
+                onClose={() => setActiveEntry(null)}
+                icon={RowIcon}
+                iconTone={iconTone}
+                eyebrow={isLedger ? typeLabel : 'Patient payment'}
+                title={isLedger ? signedAmount : formatPaymentDescription(item)}
+                statusPill={pill}
+                islands={isLedger ? [
+                  { icon: isCredit ? ArrowDownLeft : ArrowUpRight, label: 'Type', value: typeLabel },
+                  { icon: Wallet, label: 'Amount', value: signedAmount },
+                  referenceValue && { icon: Hash, label: 'Reference', value: referenceValue },
+                  { icon: Clock, label: 'Recorded', value: new Date(item.created_at).toLocaleString() },
+                ] : [
+                  { icon: Wallet, label: 'Amount', value: formatCurrency(amount) },
+                  { icon: CreditCard, label: 'Method', value: methodLabel },
+                  { icon: Building, label: 'Facility', value: facilityName },
+                  { icon: Clock, label: 'Paid', value: new Date(item.created_at).toLocaleString() },
+                ]}
+                primary={!isLedger && onOpenPayment
+                  ? { label: 'Details', icon: Eye, onClick: () => { setActiveEntry(null); onOpenPayment(item); } }
+                  : undefined}
+              />
+            );
+          })()}
         </div>
       </MobilePageShell>
     </PullToRefresh>
