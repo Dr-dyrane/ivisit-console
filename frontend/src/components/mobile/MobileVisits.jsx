@@ -34,6 +34,15 @@ const VISIT_STEPS = [
   { key: 'completed', label: 'Done' },
 ];
 const VISIT_TONE = { scheduled: '#0891B2', in_progress: '#B45309', completed: '#047857' };
+
+// Month-year label for date-grouped list sections (e.g. "May 2026"). Null if undated.
+const visitMonthLabel = (visit) => {
+  const value = visit?.date || visit?.scheduled_at || visit?.created_at;
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -389,25 +398,47 @@ export const MobileVisits = ({
                             )}
 
                             <AnimatePresence mode="popLayout">
-                                {displayVisits.map((visit) => (
-                                    <MobileVisitRow
-                                        key={visit.id}
-                                        visit={visit}
-                                        expanded={expandedVisitId === visit.id}
-                                        setExpandedVisitId={setExpandedVisitId}
-                                        onView={onView}
-                                        onEdit={onEdit}
-                                        onDelete={onDelete}
-                                        canEdit={canEdit}
-                                        canDelete={canDelete}
-                                        selectionEnabled={selectionEnabled}
-                                        selectionMode={selectionMode}
-                                        isSelected={selectionEnabled && selectedIds.includes(visit.id)}
-                                        onSelect={selectionEnabled ? onSelect : undefined}
-                                        getStatusIcon={getStatusIcon}
-                                        getStatusColor={getStatusColor}
-                                    />
-                                ))}
+                                {(() => {
+                                    // Date-grouped sections: sort newest-first so month headers read
+                                    // chronologically, then emit a header at each month boundary
+                                    // (see mobile design canon). Order is render-only; id-keyed state
+                                    // (expand/select) is unaffected.
+                                    const timeOf = (v) => new Date(v?.date || v?.scheduled_at || v?.created_at || 0).getTime();
+                                    const ordered = [...displayVisits].sort((a, b) => timeOf(b) - timeOf(a));
+                                    let lastMonth = null;
+                                    const out = [];
+                                    ordered.forEach((visit) => {
+                                        const month = visitMonthLabel(visit);
+                                        if (month && month !== lastMonth) {
+                                            lastMonth = month;
+                                            out.push(
+                                                <div key={`grp-${month}`} className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                                    {month}
+                                                </div>
+                                            );
+                                        }
+                                        out.push(
+                                            <MobileVisitRow
+                                                key={visit.id}
+                                                visit={visit}
+                                                expanded={expandedVisitId === visit.id}
+                                                setExpandedVisitId={setExpandedVisitId}
+                                                onView={onView}
+                                                onEdit={onEdit}
+                                                onDelete={onDelete}
+                                                canEdit={canEdit}
+                                                canDelete={canDelete}
+                                                selectionEnabled={selectionEnabled}
+                                                selectionMode={selectionMode}
+                                                isSelected={selectionEnabled && selectedIds.includes(visit.id)}
+                                                onSelect={selectionEnabled ? onSelect : undefined}
+                                                getStatusIcon={getStatusIcon}
+                                                getStatusColor={getStatusColor}
+                                            />
+                                        );
+                                    });
+                                    return out;
+                                })()}
                             </AnimatePresence>
 
                             <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
