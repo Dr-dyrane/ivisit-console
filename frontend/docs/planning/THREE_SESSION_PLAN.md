@@ -1,0 +1,41 @@
+# Three-Session Execution Plan
+
+**2026-07-08.** The remaining work, split into three parallel-capable sessions so each runs on clean context. The DB is confirmed healthy (live grand schema `src/types/database.ts` — don't assume anything missing); changes to it are few and staged.
+
+## Shared ground rules (every session)
+- Branch `codex/ivisit-console-revamp-checkpoint-20260707`. Never push `main`, never force-push. Path-limited commits, commit-fast, push-rebase-retry; never revert another agent's uncommitted work (`tools/automation/AGENT_HANDSHAKE.md`).
+- **DB is sacred.** Truth = `src/types/database.ts` + `ivisit-app/docs/audit/inventory/live_schema_inventory_latest.json` — never infer columns from the (stale) pillar migrations. **Never `db reset`.** DB changes land in the `ivisit-app` pillar file via the SOP in `frontend/docs/database/backend-research/04_EDGE_FUNCTIONS_AND_CHANGE_SOP.md`, with per-change confirmation from the user; the assistant may READ live via the inventory tools (service-role key stays in the user's env) but does not handle the key for WRITES.
+- Canon: design-system (`CONSOLE_DESIGN_SYSTEM_FROM_APP.md` + `AGENT_HANDSHAKE` + `MANAGEMENT_PAGE_STANDARDS` v2.0 + `MOTION_AND_INTERACTION_CANON.md`) for visual; `CONSOLE_DATA_LAYER.md` for data; `DATA_SYNC_REMEDIATION_AUDIT.md` (+ §8) for the fix plan; the four `backend-research/*` docs for the backend model.
+- **Verify or it isn't done:** every fix ends in a browser-confirm (localhost:3000, user-authenticated, read-only) OR a test. Visualize design decisions before building. Write settled decisions back into the relevant canon doc.
+
+## Order
+- **Session 1 (UI/UX)** — independent, run anytime (your design focus).
+- **Session 2 (API & Data Sync)** — establishes the plumbing + patterns + guardrail + DB changes. **Run before Session 3.**
+- **Session 3 (Services)** — applies the patterns per-domain against the okay DB. **After Session 2.**
+
+---
+
+## Session 1 — UI/UX
+**Owns:** the visual + interaction surface and the design system. Nothing data-shaped.
+**Scope:** Phase 0 of `MOTION_AND_INTERACTION_CANON.md` — readable-identity mobile rows across every mobile page (the §2.1 structure), Apple-HIG micro-interactions (press-0.98 + tap-highlight-transparent, spring/Apple easing, bottom-sheet gestures via `ModalShell`, haptics + iOS fallback, reduced-motion, focus-animates-in-place). Remaining canon stragglers: `VisitModal` + `MobileVisits` strict-radius, the `hsl(var(--primary))` color-prop-default consumer sweep, and the Visits detail-rail "admin" → `full_name` tidy. Plus design-system evolution you drive.
+
+**Kickoff prompt:**
+> Continue the iVisit Console UI/UX in `C:\Users\Dyrane\Documents\GitHub\ivisit-console`, branch `codex/ivisit-console-revamp-checkpoint-20260707`. Read `frontend/docs/design-system/MOTION_AND_INTERACTION_CANON.md`, `CONSOLE_DESIGN_SYSTEM_FROM_APP.md`, and `tools/automation/AGENT_HANDSHAKE.md` (Design System Canon) first. Execute Phase 0: (1) apply the §2.1 readable-identity row structure to every mobile list row (`MobileVisits` first, then Users/Hospitals/Ambulances/Doctors/Support/etc.); (2) bring micro-interactions to Apple-HIG per the canon (press 0.98, spring/Apple easing, reuse `ModalShell`'s mobile bottom-sheet + `PullToRefresh`, haptics + iOS fallback, reduced-motion); (3) clear the stragglers (`VisitModal` + `MobileVisits` strict-radius, the `hsl(var(--primary))` prop-default sweep, the Visits detail-rail `full_name` fix). Process: visualize the target before building; verify each fix by connecting to the running app at http://localhost:3000 (I'm signed in — read-only, never trigger writes) OR a test; write settled decisions back into the motion canon. Data layer is OUT of scope. Confirm the plan with me before executing.
+
+---
+
+## Session 2 — API & Data Sync
+**Owns:** the console↔Supabase plumbing — the connection patterns, realtime sync, the RLS/RPC boundary, the DB changes, and the drift guardrail.
+**Scope:** Execute `CONSOLE_DATA_LAYER.md` §2A (frontend-safe finalization: `.maybeSingle()` sweep; adopt canonical `withRetry`/`withAudit`/`withTimeout`; classify errors `{data,error,kind}` while KEEPING Silent-Guard `[]`s; finish realtime hub wiring; gate `adminService` phantom-column reads; drop the duplicate `subscribeToTable`; delete the dead mock machinery) as a deterministic workflow; add §3 (a console `check:data-contract` script running `ivisit-app`'s surface-field guards, wired into the build gate). Then §2B: draft the exact pillar deltas (visits/medical_profiles operator-SELECT mirroring `emergency_requests`; the new RPCs from `PROPOSED_CONSOLE_BOUNDARY_RPCS.sql` placed into the pillars; publication additions; `visits.status` CHECK; `update_hospital_by_admin` array-COALESCE) and land each via the SOP with my confirmation. Honor §8 reconciliation. **Drop the insurance "drift" item — false alarm, columns are live.**
+
+**Kickoff prompt:**
+> Finalize the iVisit Console data layer in `C:\Users\Dyrane\Documents\GitHub\ivisit-console`, branch `codex/ivisit-console-revamp-checkpoint-20260707`. Read `frontend/docs/database/CONSOLE_DATA_LAYER.md`, `DATA_SYNC_REMEDIATION_AUDIT.md` (esp. §8), and all four `frontend/docs/database/backend-research/*` docs first. DB is sacred: truth is `src/types/database.ts` (don't assume missing); never `db reset`; DB changes go into `ivisit-app` pillar files via the SOP in `backend-research/04`, and you draft + I confirm each write (you may READ live via `npm run hardening:inventory-refresh` with the key in my env, but do not handle the key for writes). Execute CONSOLE_DATA_LAYER §2A as a deterministic workflow (one service per worker, each verified), add the §3 `check:data-contract` guardrail, then draft the §2B pillar deltas for my review. Reuse existing RPCs (`update_profile_by_admin`/`update_hospital_by_admin`/`delete_user_by_admin`), keep Silent-Guarding `[]`s, adopt (don't delete) `supabaseHelpers`. Verify each console change (browser at localhost:3000 read-only, or a test). Confirm the plan with me before executing.
+
+---
+
+## Session 3 — Services
+**Owns:** per-domain service correctness against the confirmed-okay live DB (the service files + the console's own edge functions). Applies the Session-2 patterns, doesn't invent new ones.
+**Scope:** For each `frontend/src/services/*.js`: confirm its field projection matches the actual `database.ts` columns for that table (no phantom reads, no missing real columns — the insurance columns ARE live, use them); complete/verify each domain's CRUD against the live schema + the reused RPCs; keep Zone-1 (`displayIdService`, `supabaseHelpers`) in sync with the app; verify the console-owned edge functions in `frontend/supabase/functions/` (`invite-user`, `check-user`, `unsubscribe`, `discovery`, `payments`, `webhooks`). Prove each service against the live DB with the relevant `ivisit-app` surface-field guard. Reference `frontend/docs/implementation/console-service-alignment/` (the Pass 1–8 program) as the domain map.
+
+**Kickoff prompt:**
+> Align the iVisit Console services to the live DB in `C:\Users\Dyrane\Documents\GitHub\ivisit-console`, branch `codex/ivisit-console-revamp-checkpoint-20260707`. The DB is confirmed okay — truth is `src/types/database.ts` + `ivisit-app/docs/audit/inventory/live_schema_inventory_latest.json`; don't assume missing (insurance_policies columns ARE live). Read `frontend/docs/database/CONSOLE_DATA_LAYER.md` (follow its best-practices — Session 2 must be done first) and `frontend/docs/implementation/console-service-alignment/README.md`. Per domain: verify each `services/*.js` projection against the real columns, complete/verify CRUD through the reused RPCs, keep Zone-1 utilities synced with the app, and confirm the console-owned edge functions work. Prove each with the matching `ivisit-app` `hardening:<table>-surface-field-guard`. Never write canonical tables directly; never `db reset`. Verify via browser (localhost:3000 read-only) or tests. Confirm the plan with me before executing.
