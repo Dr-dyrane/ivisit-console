@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '../ui/table';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import {
     DropdownMenu,
@@ -26,6 +16,9 @@ import {
     Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const GRID_TEMPLATE = 'grid-cols-[40px_minmax(220px,2fr)_minmax(150px,1.3fr)_minmax(120px,0.9fr)_minmax(140px,1fr)_64px]';
+const GRID_TEMPLATE_NO_SELECT = 'grid-cols-[minmax(220px,2fr)_minmax(150px,1.3fr)_minmax(120px,0.9fr)_minmax(140px,1fr)_64px]';
 
 export const InsuranceTableView = ({
     policies,
@@ -46,121 +39,120 @@ export const InsuranceTableView = ({
     const showDeleteAction = canDelete && typeof onDelete === 'function';
     const hasSecondaryActions = showVerifyAction || showDeleteAction;
 
+    const gridClass = canSelect ? GRID_TEMPLATE : GRID_TEMPLATE_NO_SELECT;
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
         >
-            <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
-                <Table>
-                    <TableHeader className="bg-muted/30">
-                        <TableRow className="border-b border-white/10 hover:bg-transparent">
+            <div className="rounded-card bg-background/30 overflow-hidden p-3">
+                {/* Header row */}
+                <div className={`grid ${gridClass} items-center gap-2 px-3 pb-3 pt-2 text-[10px]`}>
+                    {canSelect && (
+                        <div className="flex items-center">
+                            <Checkbox
+                                checked={selectedIds.length === policies.length && policies.length > 0}
+                                onCheckedChange={(checked) => onSelectAll(checked)}
+                                aria-label="Select all"
+                            />
+                        </div>
+                    )}
+                    <span className="font-semibold tracking-[0.14em] text-muted-foreground">Policy details</span>
+                    <span className="font-semibold tracking-[0.14em] text-muted-foreground">Provider</span>
+                    <span className="font-semibold tracking-[0.14em] text-muted-foreground">Coverage</span>
+                    <span className="font-semibold tracking-[0.14em] text-muted-foreground">Status</span>
+                    <span className="justify-self-end font-semibold tracking-[0.14em] text-muted-foreground">Actions</span>
+                </div>
+
+                {/* Data rows */}
+                {policies.map((policy, index) => {
+                    const selected = canSelect && selectedIds.includes(policy.id);
+                    return (
+                        <motion.div
+                            key={policy.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`group grid ${gridClass} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                        >
                             {canSelect && (
-                                <TableHead className="w-12 py-4 text-xs font-semibold text-muted-foreground">
+                                <div className="flex items-center">
                                     <Checkbox
-                                        checked={selectedIds.length === policies.length && policies.length > 0}
-                                        onCheckedChange={(checked) => onSelectAll(checked)}
-                                        aria-label="Select all"
+                                        checked={selectedIds.includes(policy.id)}
+                                        onCheckedChange={(checked) => onSelect(policy.id, checked)}
+                                        aria-label={`Select policy ${policy.policy_number}`}
                                     />
-                                </TableHead>
+                                </div>
                             )}
-                            <TableHead className="w-[300px] py-4 pl-6 text-xs font-semibold text-muted-foreground">Policy details</TableHead>
-                            <TableHead className="text-xs font-semibold text-muted-foreground">Provider</TableHead>
-                            <TableHead className="text-xs font-semibold text-muted-foreground">Coverage</TableHead>
-                            <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
-                            <TableHead className="pr-6 text-right text-xs font-semibold text-muted-foreground">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {policies.map((policy, index) => (
-                            <motion.tr
-                                key={policy.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="group border-b border-white/5 transition-colors hover:bg-white/5"
-                            >
-                                {canSelect && (
-                                    <TableCell className="py-4">
-                                        <Checkbox
-                                            checked={selectedIds.includes(policy.id)}
-                                            onCheckedChange={(checked) => onSelect(policy.id, checked)}
-                                            aria-label={`Select policy ${policy.policy_number}`}
-                                        />
-                                    </TableCell>
+                            {/* Policy details */}
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+                                    <Shield className="w-5 h-5" />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <span className="font-semibold text-sm tracking-tight text-foreground truncate">{policy.policy_holder_name}</span>
+                                    <span className="text-xs text-muted-foreground font-mono truncate">{policy.policy_number}</span>
+                                </div>
+                            </div>
+                            {/* Provider */}
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-normal truncate">{policy.provider_name}</span>
+                                <span className="inline-flex w-fit items-center rounded-pill px-2.5 py-0.5 mt-1 text-[10px] font-medium bg-muted text-muted-foreground">
+                                    {policy.policy_type}
+                                </span>
+                            </div>
+                            {/* Coverage */}
+                            <div className="min-w-0">
+                                <span className="font-mono text-sm font-semibold text-foreground">
+                                    ${policy.coverage_amount?.toLocaleString() || '0'}
+                                </span>
+                            </div>
+                            {/* Status */}
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className={`inline-flex items-center rounded-pill px-2.5 py-1 text-xs font-medium ${getStatusBadge(policy.status)}`}>
+                                    {policy.status}
+                                </span>
+                                {policy.verified && (
+                                    <div className="text-emerald-700 dark:text-emerald-200" title="Verified">
+                                        <CheckCircle className="h-4 w-4 fill-emerald-500/10" />
+                                    </div>
                                 )}
-                                <TableCell className="py-4 pl-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 squircle bg-muted flex items-center justify-center text-muted-foreground shrink-0">
-                                            <Shield className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-semibold text-sm tracking-tight text-foreground">{policy.policy_holder_name}</span>
-                                            <span className="text-xs text-muted-foreground font-mono">{policy.policy_number}</span>
-                                        </div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-normal">{policy.provider_name}</span>
-                                        <Badge variant="outline" className="w-fit mt-1 text-[10px] border-white/10 text-muted-foreground">
-                                            {policy.policy_type}
-                                        </Badge>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <span className="font-mono text-sm font-semibold text-foreground">
-                                        ${policy.coverage_amount?.toLocaleString() || '0'}
-                                    </span>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        <Badge className={`geo-sharp border-0 px-2.5 py-1 ${getStatusBadge(policy.status)}`}>
-                                            {policy.status}
-                                        </Badge>
-                                        {policy.verified && (
-                                            <div className="text-emerald-700 dark:text-emerald-200" title="Verified">
-                                                <CheckCircle className="h-4 w-4 fill-emerald-500/10" />
-                                            </div>
+                            </div>
+                            {/* Actions */}
+                            <div className="justify-self-end">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/30">
+                                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                            <span className="sr-only">Open menu</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 backdrop-blur-xl shadow-sm">
+                                        <DropdownMenuItem onClick={() => onView(policy)} className="cursor-pointer font-medium text-xs py-2">
+                                            <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                            View Details
+                                        </DropdownMenuItem>
+                                        {showVerifyAction && !policy.verified && (
+                                            <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-emerald-700 dark:text-emerald-200 focus:text-emerald-700 dark:focus:text-emerald-200 focus:bg-emerald-500/15">
+                                                <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                                                Verify Policy
+                                            </DropdownMenuItem>
                                         )}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-right pr-6">
-                                    <div className="flex justify-end">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
-                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="sr-only">Open menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
-                                                <DropdownMenuItem onClick={() => onView(policy)} className="cursor-pointer font-medium text-xs py-2">
-                                                    <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                {showVerifyAction && !policy.verified && (
-                                                    <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-emerald-700 dark:text-emerald-200 focus:text-emerald-700 dark:focus:text-emerald-200 focus:bg-emerald-500/15">
-                                                        <CheckCircle className="mr-2 h-3.5 w-3.5" />
-                                                        Verify Policy
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {hasSecondaryActions && <DropdownMenuSeparator className="bg-white/5" />}
-                                                {showDeleteAction && (
-                                                    <DropdownMenuItem onClick={() => onDelete(policy)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </TableCell>
-                            </motion.tr>
-                        ))}
-                    </TableBody>
-                </Table>
-            </Card>
+                                        {hasSecondaryActions && <DropdownMenuSeparator />}
+                                        {showDeleteAction && (
+                                            <DropdownMenuItem onClick={() => onDelete(policy)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
         </motion.div>
     );
 };

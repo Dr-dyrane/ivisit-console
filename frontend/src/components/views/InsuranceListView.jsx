@@ -1,12 +1,8 @@
 import React from 'react';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Shield,
-    Clock,
     CheckCircle,
-    AlertTriangle,
     Eye,
     Trash2,
     Calendar,
@@ -41,10 +37,10 @@ export const InsuranceListView = ({
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-0 border-0 shadow-premium hover-lift transition-all group overflow-hidden">
+                        <div className="bg-background/30 rounded-card p-0 transition-colors hover:bg-muted/30 group overflow-hidden">
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                                 {/* Status Strip Gradient */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${policy.status === 'active' ? 'bg-emerald-500/60' : policy.status === 'expired' ? 'bg-destructive' : 'bg-amber-500/60'}`} />
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-pill ${policy.status === 'active' ? 'bg-emerald-500/60' : policy.status === 'expired' ? 'bg-destructive' : 'bg-amber-500/60'}`} />
 
                                 {/* Main Content */}
                                 <div className="flex-1 space-y-3 md:space-y-0 md:pl-4">
@@ -53,7 +49,7 @@ export const InsuranceListView = ({
 
                                         {/* Policy Info */}
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 geo-round bg-muted flex items-center justify-center shrink-0">
+                                            <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center shrink-0">
                                                 <Shield className="h-5 w-5 text-muted-foreground" />
                                             </div>
                                             <div>
@@ -62,26 +58,24 @@ export const InsuranceListView = ({
                                                         {policy.policy_number}
                                                     </h3>
                                                     {policy.verified && (
-                                                        <Badge variant="ghost" className="p-0 h-auto">
-                                                            <CheckCircle className="h-3 w-3 text-emerald-700 dark:text-emerald-200 fill-emerald-500/20" />
-                                                        </Badge>
+                                                        <CheckCircle className="h-3 w-3 text-emerald-700 dark:text-emerald-200 fill-emerald-500/20" />
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                                                     <span className="font-normal text-foreground/80">{policy.provider_name}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                                    <span className="w-1 h-1 rounded-pill bg-muted-foreground/30" />
                                                     <span>{policy.policy_type || 'General'}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Meta Data Grid (Tablet/Desktop) */}
-                                        <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 ${isMobile ? 'w-full bg-muted/30 p-3 rounded-lg' : ''}`}>
+                                        <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 ${isMobile ? 'w-full bg-muted/30 p-3 rounded-inner' : ''}`}>
 
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Expires</span>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em]">Expires</span>
                                                     <span className="text-sm font-normal">
                                                         {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}
                                                     </span>
@@ -91,7 +85,7 @@ export const InsuranceListView = ({
                                             <div className="flex items-center gap-2">
                                                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Coverage</span>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em]">Coverage</span>
                                                     <span className="text-sm font-normal">
                                                         {policy.coverage_amount ? `$${policy.coverage_amount.toLocaleString()}` : 'N/A'}
                                                     </span>
@@ -100,10 +94,10 @@ export const InsuranceListView = ({
 
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col md:items-end">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Status</span>
-                                                    <Badge className={`geo-sharp border-0 px-2 py-0.5 ${getStatusBadge(policy.status)}`}>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em] mb-1">Status</span>
+                                                    <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium ${getStatusBadge(policy.status)}`}>
                                                         {policy.status}
-                                                    </Badge>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -112,13 +106,13 @@ export const InsuranceListView = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end border-t border-border/40 pt-3 mt-2' : 'md:border-l md:border-border/40 md:pl-4'}`}>
+                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}>
                                     {showVerifyAction && !policy.verified && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => onVerify(policy)}
-                                            className="squircle h-8 px-3 text-xs font-semibold hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-200"
+                                            className="rounded-button h-8 px-3 text-xs font-semibold hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-200"
                                         >
                                             Verify
                                         </Button>
@@ -128,7 +122,7 @@ export const InsuranceListView = ({
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => onView(policy)}
-                                        className="squircle h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
+                                        className="rounded-button h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
@@ -138,7 +132,7 @@ export const InsuranceListView = ({
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => onDelete(policy)}
-                                            className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                            className="rounded-button h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -146,7 +140,7 @@ export const InsuranceListView = ({
                                 </div>
 
                             </div>
-                        </Card>
+                        </div>
                     </motion.div>
                 ))}
             </AnimatePresence>
