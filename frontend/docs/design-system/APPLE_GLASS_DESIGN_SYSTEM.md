@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (historical, Jan 2026).** This describes the pre-pivot "loud" era (glassmorphism, red borders as brand signal, neon glow, all-caps editorial chrome). It was **reversed by the 2026-07-06 design pivot**. The authority is [CONSOLE_DESIGN_SYSTEM_FROM_APP.md](./CONSOLE_DESIGN_SYSTEM_FROM_APP.md) and the gold-standard reference is `EmergencyRequestsPage.jsx`. Do NOT use this as a pattern source; kept for history only.
+
 # Apple Glass Design System - Comprehensive Implementation Guide
 
 ## Executive Summary

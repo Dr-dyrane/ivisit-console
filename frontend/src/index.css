@@ -132,6 +132,7 @@ code {
 		--bottom-bar-height: 80px;
 		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 16px);
 
+		/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
 		/* Core Glass Tokens - (RESTORED) */
 		--glow-blur: 48px;
 		--glow-scale: 1.1;
@@ -343,6 +344,7 @@ code {
 		background-color: var(--glass-bg-light);
 	}
 
+	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
 	/* Gold Standard Glow Utilities */
 	.hover-glow {
 		position: absolute;
@@ -886,6 +888,7 @@ code {
 		@apply bg-black/5 dark:bg-white/5 focus-within:bg-black/[0.08] dark:focus-within:bg-white/[0.08] transition-colors;
 	}
 
+	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
 	/* Enhanced Dark Mode Neon Effects */
 	.dark .glass-card {
 		background: hsl(var(--glass-bg));
@@ -955,6 +958,7 @@ code {
 		box-shadow: 0 0 15px hsl(var(--secondary) / 0.2);
 	}
 
+	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
 	/* Dark Mode Border Neon Enhancement */
 	.dark .border-primary\/30 {
 		border-color: hsl(var(--primary) / 0.6);

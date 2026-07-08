@@ -1,3 +1,5 @@
+> ⚠️ **Partially superseded.** The tablet-specific treatments below (icon rail / overlay sidebar) were NOT implemented and are retired — tablet uses the desktop shell. The mobile context panel is `null` on mobile in code. Verify against code before following.
+
 # Context Panel System Documentation
 
 ## 🎯 Overview
