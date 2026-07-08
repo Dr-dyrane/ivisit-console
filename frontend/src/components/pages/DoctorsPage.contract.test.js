@@ -114,6 +114,18 @@ describe('DoctorsPage Staff contract', () => {
     expect(mobile).not.toContain('let result = Array.isArray(doctors)');
     expect(mobile).not.toContain('result.filter');
 
+    // Staff mobile detail is a tap-opens bottom sheet (MobileDetailSheet), not an
+    // inline MobileMetricRow dropdown. One active-record state, row onClick opens it.
+    expect(mobile).toContain('const [activeDoctor, setActiveDoctor] = useState(null);');
+    expect(mobile).toContain('onClick={() => setActiveDoctor(doctor)}');
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('isOpen={!!activeDoctor}');
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('onExpand');
+    expect(mobile).not.toContain('expandedDoctorId');
+    expect(mobile).not.toContain('MobileDetailIslands');
+    expect(mobile).not.toContain('MobileSheetActions');
+
     [
       'deleteDoctor',
       'handleDelete',

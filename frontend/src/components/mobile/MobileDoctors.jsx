@@ -17,8 +17,7 @@ import {
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileMetricRow } from './MobileMetricList';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -82,7 +81,7 @@ export const MobileDoctors = ({
     canManage: canManageOverride
 }) => {
     const observerTarget = useRef(null);
-    const [expandedDoctorId, setExpandedDoctorId] = useState(null);
+    const [activeDoctor, setActiveDoctor] = useState(null);
     const canManage = Boolean(canManageOverride ?? (isAdmin || isOrgAdmin));
     const { triggerFromEvent } = useFeedback();
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -186,7 +185,6 @@ export const MobileDoctors = ({
                             const name = doctor.name || 'Unknown staff';
                             const specialty = doctor.specialization || 'General';
                             const facility = doctor.hospitals?.name || 'No facility';
-                            const phone = doctor.phone || 'No phone';
 
                             return (
                                 <MobileMetricRow
@@ -197,27 +195,7 @@ export const MobileDoctors = ({
                                     value={name}
                                     secondary={`${specialty} · ${facility}`}
                                     statusPill={statusPill(getStatus(doctor))}
-                                    isExpanded={expandedDoctorId === doctor.id}
-                                    onExpand={(id) => setExpandedDoctorId((current) => (current === id ? null : id))}
-                                    itemId={doctor.id}
-                                    expandedContent={(
-                                        <div className="space-y-3 py-3">
-                                            <MobileDetailIslands
-                                                items={[
-                                                    { icon: Stethoscope, label: 'Specialty', value: specialty },
-                                                    { icon: Hospital, label: 'Facility', value: facility },
-                                                    { icon: Phone, label: 'Contact', value: phone },
-                                                    doctor.email && { icon: Mail, label: 'Email', value: doctor.email },
-                                                    doctor.license_number && { icon: BadgeCheck, label: 'License', value: doctor.license_number },
-                                                    { icon: Clock, label: 'Experience', value: doctor.experience != null ? `${doctor.experience} years` : 'Not set' },
-                                                ]}
-                                            />
-                                            <MobileSheetActions
-                                                primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(doctor) }}
-                                                secondary={canManage ? { icon: Edit, onClick: () => onEdit?.(doctor), 'aria-label': `Edit ${name}` } : undefined}
-                                            />
-                                        </div>
-                                    )}
+                                    onClick={() => setActiveDoctor(doctor)}
                                 />
                             );
                         })}
@@ -233,6 +211,35 @@ export const MobileDoctors = ({
                         )}
                     </div>
                 </div>
+
+                {activeDoctor && (() => {
+                    const name = activeDoctor.name || 'Unknown staff';
+                    const specialty = activeDoctor.specialization || 'General';
+                    const facility = activeDoctor.hospitals?.name || 'No facility';
+                    const phone = activeDoctor.phone || 'No phone';
+
+                    return (
+                        <MobileDetailSheet
+                            isOpen={!!activeDoctor}
+                            onClose={() => setActiveDoctor(null)}
+                            icon={Stethoscope}
+                            iconTone="hsl(var(--primary))"
+                            eyebrow="Staff member"
+                            title={name}
+                            statusPill={statusPill(getStatus(activeDoctor))}
+                            islands={[
+                                { icon: Stethoscope, label: 'Specialty', value: specialty },
+                                { icon: Hospital, label: 'Facility', value: facility },
+                                { icon: Phone, label: 'Contact', value: phone },
+                                activeDoctor.email && { icon: Mail, label: 'Email', value: activeDoctor.email },
+                                activeDoctor.license_number && { icon: BadgeCheck, label: 'License', value: activeDoctor.license_number },
+                                { icon: Clock, label: 'Experience', value: activeDoctor.experience != null ? `${activeDoctor.experience} years` : 'Not set' },
+                            ]}
+                            primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveDoctor(null); onView?.(activeDoctor); } }}
+                            secondary={canManage ? { icon: Edit, onClick: () => { setActiveDoctor(null); onEdit?.(activeDoctor); }, 'aria-label': `Edit ${name}` } : undefined}
+                        />
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );
