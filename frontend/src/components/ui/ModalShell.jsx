@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useId, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from './button';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 
 const modalBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
 const modalShellTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
@@ -108,7 +109,10 @@ export const useFocusTrap = (containerRef, active, onEscape) => {
  * ModalShell - shared wrapper for all entity modals.
  *
  * Handles:
- *  - Bounded opening motion (fade, scale+y)
+ *  - Responsive presentation: centered dialog on desktop, bottom-anchored
+ *    sheet on mobile (< 768px) with a grab handle and swipe-down-to-dismiss
+ *  - Bounded opening motion (fade + scale/y on desktop, slide-up on mobile),
+ *    reduced-motion aware (fade only)
  *  - Backdrop (blur, click-to-close)
  *  - ARIA: role="dialog" aria-modal="true" aria-labelledby
  *  - Mobile bottom-bar suppression (#dynamic-bottom-bar)
@@ -153,6 +157,11 @@ export const ModalShell = ({
 }) => {
     const labelId = useId();
     const containerRef = useRef(null);
+
+    // Mobile (< 768px) gets a bottom-anchored sheet; desktop keeps the centered dialog.
+    const { isMobile } = useBreakpoint();
+    // Respect prefers-reduced-motion: fade only, no slide / scale.
+    const reduceMotion = useReducedMotion();
 
     // Keyboard accessibility: Escape-to-close, focus trap, autofocus, focus restore.
     useFocusTrap(containerRef, isOpen, onClose);
@@ -201,12 +210,47 @@ export const ModalShell = ({
 
     if (!isOpen) return null;
 
+    // --- Responsive presentation -------------------------------------------------
+    // Desktop: centered dialog (unchanged) — fade + gentle scale/y settle.
+    // Mobile:  bottom-anchored sheet — full-width, top-rounded, slide up from below.
+    // Reduced motion: fade only in both cases (no slide / scale).
+    const surfaceInitial = reduceMotion
+        ? { opacity: 0 }
+        : isMobile
+            ? { opacity: 1, y: '100%' }
+            : { opacity: 0, scale: 0.96, y: 16 };
+    const surfaceAnimate = reduceMotion
+        ? { opacity: 1 }
+        : isMobile
+            ? { opacity: 1, y: 0 }
+            : { opacity: 1, scale: 1, y: 0 };
+    const surfaceExit = reduceMotion
+        ? { opacity: 0 }
+        : isMobile
+            ? { opacity: 1, y: '100%' }
+            : { opacity: 0, scale: 0.96, y: 16 };
+
+    // Swipe-down-to-dismiss (mobile only): close once dragged past a threshold or
+    // released with enough downward velocity. Desktop never receives drag props.
+    const dragProps = (isMobile && !reduceMotion)
+        ? {
+            drag: 'y',
+            dragConstraints: { top: 0, bottom: 0 },
+            dragElastic: { top: 0, bottom: 0.6 },
+            onDragEnd: (_event, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 700) {
+                    onClose();
+                }
+            },
+        }
+        : {};
+
     return (
         <div
-            className="fixed inset-0 z-[420] flex items-center justify-center p-3 sm:p-4"
+            className={`fixed inset-0 z-[420] flex ${isMobile ? 'items-end justify-center p-0' : 'items-center justify-center p-3 sm:p-4'}`}
             style={{
-                paddingTop:    'max(12px, var(--safe-top, 0px))',
-                paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))',
+                paddingTop:    isMobile ? '0px' : 'max(12px, var(--safe-top, 0px))',
+                paddingBottom: isMobile ? '0px' : 'max(12px, calc(var(--safe-bottom, 0px) + 12px))',
             }}
         >
             {/* Backdrop */}
@@ -214,6 +258,7 @@ export const ModalShell = ({
                 key="modal-shell-backdrop"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={modalBackdropTransition}
                 className="absolute inset-0 bg-background/88 backdrop-blur-2xl dark:bg-black/80"
                 onClick={() => onClose()}
@@ -228,15 +273,32 @@ export const ModalShell = ({
                 aria-modal="true"
                 aria-labelledby={title ? labelId : undefined}
                 data-modal-shell="true"
-                initial={{ opacity: 0, scale: 0.96, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={surfaceInitial}
+                animate={surfaceAnimate}
+                exit={surfaceExit}
                 transition={modalShellTransition}
-                className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-modal shadow-2xl flex flex-col bg-background ${className}`}
+                {...dragProps}
+                className={`relative z-10 flex flex-col overflow-hidden bg-background shadow-2xl ${
+                    isMobile
+                        ? 'w-full rounded-t-sheet'
+                        : `w-full ${maxWidthClass} rounded-modal`
+                } ${className}`}
                 style={{
                     outline: 'none',
-                    maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)',
+                    maxHeight: isMobile
+                        ? 'calc(100dvh - var(--safe-top, 0px) - 12px)'
+                        : 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)',
+                    // Keep the sheet body clear of the home-indicator / bottom safe inset.
+                    paddingBottom: isMobile ? 'var(--safe-bottom, 0px)' : undefined,
                 }}
             >
+                {/* Mobile grab handle — visual affordance + swipe-to-dismiss target */}
+                {isMobile && (
+                    <div className="shrink-0 pt-2 pb-1">
+                        <div className="mx-auto h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+                    </div>
+                )}
+
                 {/* Header */}
                 {(title || icon || badge || actions || !hideClose) && (
                     <div className="flex items-center justify-between p-4 md:p-6 pb-3 md:pb-4 shrink-0">
@@ -273,7 +335,7 @@ export const ModalShell = ({
                                     type="button"
                                     variant="ghost"
                                     onClick={() => onClose()}
-                                    className="h-9 w-9 rounded-full bg-muted/50 hover:bg-muted transition-colors p-0"
+                                    className="h-9 w-9 rounded-pill bg-muted/50 hover:bg-muted transition-colors p-0"
                                     aria-label="Close"
                                 >
                                     <X className="h-4 w-4" />
