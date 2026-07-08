@@ -69,9 +69,9 @@ export const MobileSettings = ({
               <h2 className="truncate text-lg font-black">{profile?.username || 'User Profile'}</h2>
               <p className="text-[11px] text-muted-foreground truncate">{user?.email || profile?.email || 'No email'}</p>
               <div className="flex items-center gap-2 mt-1.5">
-                <Badge className="rounded-pill bg-primary/20 text-primary text-[9px] font-semibold">{roleLabel}</Badge>
+                <Badge className="rounded-pill bg-primary/20 text-primary text-[10px] font-semibold">{roleLabel}</Badge>
                 {profile?.bvn_verified && (
-                  <Badge className="rounded-pill bg-success/20 text-success text-[9px] font-semibold">
+                  <Badge className="rounded-pill bg-success/20 text-success text-[10px] font-semibold">
                     <BadgeCheck className="h-3 w-3 mr-1" />
                     Verified
                   </Badge>
@@ -118,7 +118,7 @@ export const MobileSettings = ({
       <MobileSectionHeader label="Preferences" color="hsl(var(--secondary))" labelTone="plain" />
       <div className="apple-glass-heavy mb-2 flex items-center justify-between rounded-inner p-3 shadow-sm">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-muted-foreground/70">Theme</p>
+          <p className="text-meta font-semibold text-muted-foreground/70">Theme</p>
           <p className="text-sm font-semibold">Dark Mode</p>
         </div>
         <Switch checked={darkMode} onCheckedChange={onToggleDarkMode} aria-label="Toggle dark mode" />
