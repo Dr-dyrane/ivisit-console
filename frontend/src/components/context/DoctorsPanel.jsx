@@ -47,9 +47,10 @@ export const DoctorsPanel = ({ staffContext }) => {
     window.dispatchEvent(new CustomEvent('openFilters'));
   };
 
-  const panelSurface = 'bg-background/55 backdrop-blur-xs squircle-lg p-4 shadow-premium';
-  const compactSurface = 'bg-background/55 backdrop-blur-xs squircle-lg p-3 shadow-sm';
-  const actionBase = 'group flex flex-col items-center justify-center gap-2 rounded-2xl p-3 shadow-sm transition-all duration-200 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.16),0_16px_40px_rgba(0,0,0,0.18)]';
+  const panelSurface = 'bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_18px_50px_rgb(0_0_0/0.12)]';
+  const compactSurface = 'bg-card/68 backdrop-blur-2xl rounded-card p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)]';
+  const actionBase = 'group flex flex-col items-center justify-center gap-2 rounded-button p-3 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-all duration-200 focus-visible:shadow-[0_16px_40px_rgba(0,0,0,0.18)]';
+  const eyebrow = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground';
 
   return (
     <div className="space-y-4">
@@ -58,11 +59,11 @@ export const DoctorsPanel = ({ staffContext }) => {
         animate={{ opacity: 1, scale: 1 }}
         className="space-y-3"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Staff overview</h3>
+        <h3 className={eyebrow}>Staff overview</h3>
 
         <motion.div className={panelSurface} whileHover={{ y: -1 }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 geo-round bg-sky-500/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-pill bg-sky-500/10 flex items-center justify-center">
               <Stethoscope className="h-5 w-5 text-sky-600 dark:text-sky-300" aria-hidden="true" />
             </div>
             <div>
@@ -70,7 +71,7 @@ export const DoctorsPanel = ({ staffContext }) => {
               <p className="text-xs text-muted-foreground">Current route scope</p>
             </div>
           </div>
-          <span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
+          <span className="rounded-pill bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
             {stats.totalDoctors || stats.total || 0}
           </span>
         </motion.div>
@@ -78,7 +79,7 @@ export const DoctorsPanel = ({ staffContext }) => {
         <div className="grid grid-cols-2 gap-2">
           <motion.div className={compactSurface} whileHover={{ y: -1 }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-cyan-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-pill bg-cyan-500/10 flex items-center justify-center">
                 <UserCheck className="h-4 w-4 text-cyan-600 dark:text-cyan-300" aria-hidden="true" />
               </div>
               <div>
@@ -90,7 +91,7 @@ export const DoctorsPanel = ({ staffContext }) => {
 
           <motion.div className={compactSurface} whileHover={{ y: -1 }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-emerald-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-pill bg-emerald-500/10 flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" />
               </div>
               <div>
@@ -108,7 +109,7 @@ export const DoctorsPanel = ({ staffContext }) => {
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Panel actions</h3>
+        <h3 className={eyebrow}>Panel actions</h3>
 
         <div className="grid grid-cols-3 gap-2">
           <motion.button
@@ -151,14 +152,14 @@ export const DoctorsPanel = ({ staffContext }) => {
         <div
           role="status"
           aria-live="polite"
-          className="rounded-xl bg-muted/25 px-3 py-2 text-xs text-muted-foreground shadow-sm"
+          className="rounded-inner bg-muted/25 px-3 py-2 text-xs text-muted-foreground shadow-sm"
         >
           {panelNotice}
         </div>
       </motion.div>
 
       <div className="space-y-3">
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Current list</h3>
+        <h3 className={eyebrow}>Current list</h3>
         <div className="space-y-1">
           {context.loading && (
             <div className={`${compactSurface} flex items-center justify-center gap-2 py-4`} role="status" aria-live="polite">
@@ -169,11 +170,11 @@ export const DoctorsPanel = ({ staffContext }) => {
           {!context.loading && visibleStaff.map((staff, idx) => (
             <motion.div
               key={staff.id || idx}
-              className="bg-background/45 p-3 rounded-2xl flex items-center justify-between shadow-sm transition-colors hover:bg-background/65 group"
+              className="bg-card/68 backdrop-blur-2xl p-3 rounded-button flex items-center justify-between shadow-[0_12px_32px_rgb(0_0_0/0.10)] transition-colors hover:bg-card/80 group"
               whileHover={{ y: -1 }}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 geo-round flex items-center justify-center flex-shrink-0 ${getStatusTone(staff.status)} group-hover:scale-105 transition-transform`}>
+                <div className={`w-8 h-8 rounded-pill flex items-center justify-center flex-shrink-0 ${getStatusTone(staff.status)} group-hover:scale-105 transition-transform`}>
                   <Stethoscope className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
@@ -185,7 +186,7 @@ export const DoctorsPanel = ({ staffContext }) => {
                   </p>
                 </div>
               </div>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${getStatusTone(staff.status)}`}>
+              <span className={`rounded-pill px-2 py-1 text-[10px] font-semibold ${getStatusTone(staff.status)}`}>
                 {staff.status === 'on_call' ? 'On call' : staff.status === 'off_duty' ? 'Away' : staff.status || 'Active'}
               </span>
             </motion.div>
