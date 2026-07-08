@@ -36,7 +36,7 @@ export const VitalTrack = ({
 
   return (
     <div className={`rounded-inner bg-muted/22 p-4 ${className}`}>
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      <p className="eyebrow mb-3">
         {label}
       </p>
       <div className="flex items-center">

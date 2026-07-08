@@ -26,7 +26,7 @@ export const MobileDetailIslands = ({ items = [], className = '' }) => {
               {Icon && <Icon size={15} />}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="eyebrow block">
                 {item.label}
               </span>
               <span className="mt-1 block truncate text-sm font-semibold text-foreground">

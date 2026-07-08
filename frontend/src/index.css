@@ -474,6 +474,17 @@ code {
 		box-shadow: var(--chrome-float-strong);
 	}
 
+	/* Canon eyebrow / caption — the one uppercase micro-label (Mobile DS Layer 3, elements).
+	   Replaces the re-inlined `text-[10px] font-semibold uppercase tracking-[0.14em]
+	   text-muted-foreground`. Compose with layout classes, e.g. `className="eyebrow mb-3"`. */
+	.eyebrow {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: hsl(var(--muted-foreground));
+	}
+
 	/* Fallback: no backdrop-filter (or user prefers reduced transparency) -> near-opaque,
 	   no blur — mirrors the app's Android/web frosted fallback (~0.94). */
 	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

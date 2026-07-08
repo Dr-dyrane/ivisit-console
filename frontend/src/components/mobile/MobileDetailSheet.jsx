@@ -60,7 +60,7 @@ export const MobileDetailSheet = ({
         )}
         <div className="min-w-0 flex-1">
           {eyebrow && (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</p>
+            <p className="eyebrow">{eyebrow}</p>
           )}
           <h2 className="mt-0.5 text-xl font-semibold leading-tight text-foreground line-clamp-2 break-words">
             {title}
