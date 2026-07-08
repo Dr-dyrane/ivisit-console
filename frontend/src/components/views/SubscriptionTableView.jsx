@@ -1,13 +1,11 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
+    DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import {
     Users,
@@ -22,6 +20,8 @@ import {
     MoreHorizontal
 } from 'lucide-react';
 
+const GRID_TEMPLATE = 'grid-cols-[40px_minmax(200px,2fr)_minmax(90px,0.7fr)_minmax(96px,0.7fr)_minmax(120px,0.9fr)_minmax(120px,0.9fr)_64px]';
+
 export const SubscriptionTableView = ({
     subscribers,
     onView,
@@ -35,145 +35,126 @@ export const SubscriptionTableView = ({
 }) => {
     if (!subscribers || subscribers.length === 0) return null;
 
+    const isAllSelected = selectedIds.length === subscribers.length && subscribers.length > 0;
+
     return (
-        <div className="bg-background/35 rounded-card overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead>
-                        <tr className=" ">
-                            <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                <Checkbox
-                                    checked={selectedIds.length === subscribers.length && subscribers.length > 0}
-                                    onCheckedChange={(checked) => onSelectAll(checked)}
-                                    aria-label="Select all"
-                                />
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Subscriber
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Type
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Status
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Joined
-                            </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Welcome Email
-                            </th>
-                            <th className="text-right p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {subscribers.map((subscriber, index) => (
-                            <tr
-                                key={subscriber.id}
-                                className={`  hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
-                                    }`}
-                            >
-                                <td className="p-4">
-                                    <Checkbox
-                                        checked={selectedIds.includes(subscriber.id)}
-                                        onCheckedChange={(checked) => onSelect(subscriber.id, checked)}
-                                        aria-label={`Select subscriber ${subscriber.email}`}
-                                    />
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-card bg-muted flex items-center justify-center shrink-0">
-                                            {subscriber.type === 'paid' ? (
-                                                <Crown className="h-4 w-4 text-muted-foreground" />
-                                            ) : (
-                                                <Users className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-normal text-foreground">
-                                                    {subscriber.email}
-                                                </span>
-                                                {subscriber.new_user && (
-                                                    <Badge variant="ghost" className="p-0 h-auto">
-                                                        <Clock className="h-3 w-3 text-amber-700 dark:text-amber-200 fill-amber-500/20" />
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <Badge className={`rounded-inner ${getTypeBadge(subscriber.type)} font-bold editorial-subtitle px-2 py-1`}>
-                                        {subscriber.type}
-                                    </Badge>
-                                </td>
-                                <td className="p-4">
-                                    <Badge className={`rounded-inner px-2 py-1 ${getStatusBadge(subscriber.status)}`}>
-                                        {subscriber.status}
-                                    </Badge>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Calendar className="h-3.5 w-3.5" />
-                                        <span>
-                                            {subscriber.subscription_date ? new Date(subscriber.subscription_date).toLocaleDateString() : 'N/A'}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                        {subscriber.welcome_email_sent ? (
-                                            <CheckCircle className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-200" />
-                                        ) : (
-                                            <Clock className="h-3.5 w-3.5 text-amber-700 dark:text-amber-200" />
-                                        )}
-                                        <span className="text-sm">
-                                            {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex justify-end">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
-                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="sr-only">Open menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 ">
-                                                <DropdownMenuItem onClick={() => onView(subscriber)} className="cursor-pointer font-medium text-xs py-2">
-                                                    <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                {onEdit && (
-                                                    <DropdownMenuItem onClick={() => onEdit(subscriber)} className="cursor-pointer font-medium text-xs py-2">
-                                                        <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {onDelete && (
-                                                    <>
-                                                        <DropdownMenuSeparator className="bg-white/5" />
-                                                        <DropdownMenuItem onClick={() => onDelete(subscriber)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                            <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                            Delete
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+        <div className="rounded-card bg-background/30 overflow-hidden p-3">
+            {/* Header row */}
+            <div className={`grid ${GRID_TEMPLATE} items-center gap-2 px-3 pb-3 pt-2 text-[10px]`}>
+                <div className="flex items-center">
+                    <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={(checked) => onSelectAll(checked)}
+                        aria-label="Select all"
+                    />
+                </div>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Subscriber</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Type</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Status</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Joined</span>
+                <span className="font-semibold tracking-[0.14em] text-muted-foreground">Welcome Email</span>
+                <span className="justify-self-end font-semibold tracking-[0.14em] text-muted-foreground">Actions</span>
             </div>
+
+            {/* Data rows */}
+            {subscribers.map((subscriber, index) => {
+                const selected = selectedIds.includes(subscriber.id);
+                return (
+                    <div
+                        key={subscriber.id}
+                        className={`grid ${GRID_TEMPLATE} items-center gap-2 rounded-inner px-3 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+                    >
+                        {/* Selection */}
+                        <div className="flex items-center">
+                            <Checkbox
+                                checked={selected}
+                                onCheckedChange={(checked) => onSelect(subscriber.id, checked)}
+                                aria-label={`Select subscriber ${subscriber.email}`}
+                            />
+                        </div>
+                        {/* Subscriber */}
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center shrink-0">
+                                {subscriber.type === 'paid' ? (
+                                    <Crown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-normal text-foreground truncate">
+                                        {subscriber.email}
+                                    </span>
+                                    {subscriber.new_user && (
+                                        <Clock className="h-3 w-3 text-amber-700 dark:text-amber-200 fill-amber-500/20 shrink-0" />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Type */}
+                        <div className="min-w-0">
+                            <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getTypeBadge(subscriber.type)}`}>
+                                {subscriber.type}
+                            </span>
+                        </div>
+                        {/* Status */}
+                        <div className="min-w-0">
+                            <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getStatusBadge(subscriber.status)}`}>
+                                {subscriber.status}
+                            </span>
+                        </div>
+                        {/* Joined */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                            <Calendar className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                                {subscriber.subscription_date ? new Date(subscriber.subscription_date).toLocaleDateString() : 'N/A'}
+                            </span>
+                        </div>
+                        {/* Welcome Email */}
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            {subscriber.welcome_email_sent ? (
+                                <CheckCircle className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-200 shrink-0" />
+                            ) : (
+                                <Clock className="h-3.5 w-3.5 text-amber-700 dark:text-amber-200 shrink-0" />
+                            )}
+                            <span className="text-sm truncate">
+                                {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
+                            </span>
+                        </div>
+                        {/* Actions */}
+                        <div className="justify-self-end">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-muted/30">
+                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                        <span className="sr-only">Open menu</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/80 shadow-sm">
+                                    <DropdownMenuItem onClick={() => onView(subscriber)} className="cursor-pointer font-medium text-xs py-2">
+                                        <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                        View Details
+                                    </DropdownMenuItem>
+                                    {onEdit && (
+                                        <DropdownMenuItem onClick={() => onEdit(subscriber)} className="cursor-pointer font-medium text-xs py-2">
+                                            <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                            Edit
+                                        </DropdownMenuItem>
+                                    )}
+                                    {onDelete && (
+                                        <DropdownMenuItem onClick={() => onDelete(subscriber)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };

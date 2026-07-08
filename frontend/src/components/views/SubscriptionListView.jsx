@@ -1,6 +1,4 @@
 import React from 'react';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Users,
@@ -38,9 +36,9 @@ export const SubscriptionListView = ({
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="bg-background/35 rounded-card p-0 transition-all group overflow-hidden">
+                        <div className="bg-background/30 rounded-card p-0 transition-colors group overflow-hidden hover:bg-muted/30">
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
-                                {/* Status Strip Gradient */}
+                                {/* Status Strip */}
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${subscriber.status === 'active' ? 'bg-emerald-500/60' :
                                     subscriber.status === 'unsubscribed' ? 'bg-destructive' :
                                         subscriber.status === 'pending' ? 'bg-amber-500/60' : 'bg-muted'
@@ -53,7 +51,7 @@ export const SubscriptionListView = ({
 
                                         {/* Subscriber Info */}
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-card bg-muted flex items-center justify-center shrink-0">
+                                            <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center shrink-0">
                                                 {subscriber.type === 'paid' ? (
                                                     <Crown className="h-5 w-5 text-muted-foreground" />
                                                 ) : (
@@ -62,19 +60,17 @@ export const SubscriptionListView = ({
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-bold text-lg tracking-tight text-foreground line-clamp-1">
+                                                    <h3 className="font-bold text-lg text-foreground line-clamp-1">
                                                         {subscriber.email}
                                                     </h3>
                                                     {subscriber.new_user && (
-                                                        <Badge variant="ghost" className="p-0 h-auto">
-                                                            <Clock className="h-3 w-3 text-amber-700 dark:text-amber-200 fill-amber-500/20" />
-                                                        </Badge>
+                                                        <Clock className="h-3 w-3 text-amber-700 dark:text-amber-200 fill-amber-500/20 shrink-0" />
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                                    <Badge className={`rounded-inner ${getTypeBadge(subscriber.type)} font-bold editorial-subtitle px-2 py-0.5`}>
+                                                    <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getTypeBadge(subscriber.type)}`}>
                                                         {subscriber.type}
-                                                    </Badge>
+                                                    </span>
                                                     <span className="w-1 h-1 rounded-pill bg-muted-foreground/30" />
                                                     <span>{subscriber.new_user ? 'New subscriber' : 'Member'}</span>
                                                 </div>
@@ -87,7 +83,7 @@ export const SubscriptionListView = ({
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Joined</span>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em]">Joined</span>
                                                     <span className="text-sm font-normal">
                                                         {subscriber.subscription_date ? new Date(subscriber.subscription_date).toLocaleDateString() : 'N/A'}
                                                     </span>
@@ -97,7 +93,7 @@ export const SubscriptionListView = ({
                                             <div className="flex items-center gap-2">
                                                 <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Welcome</span>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em]">Welcome</span>
                                                     <span className="text-sm font-normal">
                                                         {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
                                                     </span>
@@ -106,10 +102,10 @@ export const SubscriptionListView = ({
 
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col md:items-end">
-                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Status</span>
-                                                    <Badge className={`rounded-inner px-2 py-0.5 ${getStatusBadge(subscriber.status)}`}>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.14em] mb-1">Status</span>
+                                                    <span className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium ${getStatusBadge(subscriber.status)}`}>
                                                         {subscriber.status}
-                                                    </Badge>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -118,12 +114,12 @@ export const SubscriptionListView = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end   pt-3 mt-2' : 'md:border-l  md:pl-4'}`}>
+                                <div className={`flex items-center gap-2 ${isMobile ? 'justify-end pt-3 mt-2' : 'md:pl-4'}`}>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => onView(subscriber)}
-                                        className="squircle h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
+                                        className="rounded-button h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
@@ -134,7 +130,7 @@ export const SubscriptionListView = ({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => onEdit(subscriber)}
-                                                className="squircle h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
+                                                className="rounded-button h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </Button>
@@ -145,7 +141,7 @@ export const SubscriptionListView = ({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => onDelete(subscriber)}
-                                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                                className="rounded-button h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -154,7 +150,7 @@ export const SubscriptionListView = ({
                                 </div>
 
                             </div>
-                        </Card>
+                        </div>
                     </motion.div>
                 ))}
             </AnimatePresence>
