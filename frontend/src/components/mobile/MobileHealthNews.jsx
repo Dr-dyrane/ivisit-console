@@ -6,9 +6,7 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
-import { MobileDetailIslands } from './MobileDetailIslands';
-import { MobileSheetActions } from './MobileSheetActions';
-import { VitalTrack } from '../common/VitalTrack';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
@@ -54,7 +52,7 @@ export const MobileHealthNews = ({
   hasMore = false,
   onLoadMore
 }) => {
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeArticle, setActiveArticle] = useState(null);
   const observerTarget = useRef(null);
 
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -235,9 +233,6 @@ export const MobileHealthNews = ({
             {groupByMonth(displayArticles, (article) => article.published_at || article.created_at).map(({ item: article, header }) => {
               const published = isArticlePublished(article);
               const vital = resolveVital('healthNews', published ? 'published' : 'draft');
-              const linkValue = article.source_url_valid
-                ? (article.source_host || article.source || 'Valid link')
-                : (article.raw_url || article.url ? 'Unverified link' : null);
 
               return (
                 <React.Fragment key={article.id}>
@@ -246,6 +241,9 @@ export const MobileHealthNews = ({
                       {header}
                     </div>
                   )}
+                  {/* Tap opens the canonical detail bottom sheet (MobileDetailSheet) — the
+                      approved mobile design + desktop detail-rail behaviour — not an inline
+                      dropdown. */}
                   <MobileMetricRow
                     icon={published ? FileCheck : Newspaper}
                     color={vital?.accent || 'hsl(var(--primary))'}
@@ -253,37 +251,7 @@ export const MobileHealthNews = ({
                     value={article.title || 'Untitled article'}
                     secondary={`${categoryLabel(article.category)} · ${article.source || 'Unknown source'}`}
                     statusPill={vital?.pill}
-                    isExpanded={expandedId === article.id}
-                    onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
-                    itemId={article.id}
-                    expandedContent={(
-                      <div className="space-y-3 py-3">
-                        {vital && (
-                          <VitalTrack
-                            steps={vital.steps}
-                            currentKey={vital.currentKey}
-                            tone={vital.tone}
-                            cancelled={vital.cancelled}
-                            label="Article status"
-                          />
-                        )}
-                        <MobileDetailIslands
-                          items={[
-                            { icon: Globe, label: 'Source', value: article.source || 'Unknown source' },
-                            { icon: Tag, label: 'Category', value: categoryLabel(article.category) },
-                            { icon: Clock, label: 'Published', value: dateLabel(article.published_at || article.created_at) },
-                            linkValue ? { icon: Link, label: 'Link', value: linkValue } : null,
-                          ]}
-                        />
-                        {/* S7: Health News is a contract-locked read-only published feed
-                            (HealthNewsManagementPage.contract.test.js forbids surfacing
-                            publish/edit/delete in mobile, and the page passes no mutation
-                            handler), so the single state-CTA is Details. */}
-                        <MobileSheetActions
-                          primary={{ label: 'Details', icon: Eye, onClick: () => onView?.(article) }}
-                        />
-                      </div>
-                    )}
+                    onClick={() => setActiveArticle(article)}
                   />
                 </React.Fragment>
               );
@@ -311,6 +279,39 @@ export const MobileHealthNews = ({
             {!loading && !hasMore && displayArticles.length > 0 && <MobileListEnd label="End of article list" />}
           </div>
         </div>
+
+        {activeArticle && (() => {
+          const published = isArticlePublished(activeArticle);
+          const derivedStatus = published ? 'published' : 'draft';
+          const vital = resolveVital('healthNews', derivedStatus);
+          const linkValue = activeArticle.source_url_valid
+            ? (activeArticle.source_host || activeArticle.source || 'Valid link')
+            : (activeArticle.raw_url || activeArticle.url ? 'Unverified link' : null);
+
+          // S7: Health News is a contract-locked read-only published feed
+          // (HealthNewsManagementPage.contract.test.js forbids surfacing
+          // publish/edit/delete in mobile, and the page passes no mutation
+          // handler), so the single state-CTA is Details.
+          return (
+            <MobileDetailSheet
+              isOpen={!!activeArticle}
+              onClose={() => setActiveArticle(null)}
+              icon={published ? FileCheck : Newspaper}
+              iconTone={vital?.tone}
+              eyebrow="Health article"
+              title={activeArticle.title || 'Untitled article'}
+              statusPill={resolveVital('healthNews', derivedStatus).pill}
+              vital={vital ? { ...vital, label: 'Article status' } : null}
+              islands={[
+                { icon: Globe, label: 'Source', value: activeArticle.source || 'Unknown source' },
+                { icon: Tag, label: 'Category', value: categoryLabel(activeArticle.category) },
+                { icon: Clock, label: 'Published', value: dateLabel(activeArticle.published_at || activeArticle.created_at) },
+                linkValue ? { icon: Link, label: 'Link', value: linkValue } : null,
+              ]}
+              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveArticle(null); onView?.(activeArticle); } }}
+            />
+          );
+        })()}
       </MobilePageShell>
     </PullToRefresh>
   );

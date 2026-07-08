@@ -303,6 +303,13 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(mobile).not.toContain('onDelete');
     expect(mobile).not.toContain('Trash2');
 
+    // Rows now tap-open the canonical detail bottom sheet (MobileDetailSheet),
+    // not an inline MobileMetricRow dropdown. Read-only: the sheet's only CTA is Details.
+    expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('setActiveArticle');
+    expect(mobile).not.toContain('expandedContent');
+    expect(mobile).not.toContain('expandedId');
+
     expect(gate).toContain('It no longer renders hardcoded chart data, `LIVE` trend copy, row selection, publish/unpublish, edit, or delete controls.');
     expect(gate).toContain('Mobile projection cleanup on 2026-07-04 removed duplicate local search/KPI row filtering');
     expect(gate).toContain('Fake charts, `LIVE` copy, ratio/pulse/registry dashboard wording, local-only row filtering, selection, publish, edit, and delete are removed from active mobile');
