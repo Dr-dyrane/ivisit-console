@@ -23,7 +23,7 @@ export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
                         delay: i * 0.15,
                         ease: 'easeInOut',
                     }}
-                    className="w-1 h-1 rounded-full bg-primary/30"
+                    className="w-1 h-1 rounded-pill bg-foreground/30"
                 />
             ))}
         </div>
@@ -36,15 +36,15 @@ export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
 export const MobileListSkeletonRows = ({ count = 3 }) => (
     <div className="w-full flex flex-col gap-2 px-2">
         {Array.from({ length: count }).map((_, idx) => (
-            <div key={idx} className="apple-glass-heavy rounded-2xl p-4 flex items-center justify-between border-0">
+            <div key={idx} className="apple-glass-heavy rounded-button p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted/20 shimmer" />
+                    <div className="w-9 h-9 rounded-pill bg-muted/20 shimmer" />
                     <div className="space-y-2">
-                        <div className="h-2 w-24 rounded-full bg-muted/20 shimmer" />
-                        <div className="h-2 w-16 rounded-full bg-muted/10 shimmer" />
+                        <div className="h-2 w-24 rounded-pill bg-muted/20 shimmer" />
+                        <div className="h-2 w-16 rounded-pill bg-muted/10 shimmer" />
                     </div>
                 </div>
-                <div className="h-6 w-12 rounded-full bg-muted/20 shimmer" />
+                <div className="h-6 w-12 rounded-pill bg-muted/20 shimmer" />
             </div>
         ))}
     </div>
@@ -69,7 +69,7 @@ export const MobileListLoadMore = ({ armed = false, onRequest, labelTone = 'caps
                     sound: true
                 });
             }}
-            className={`h-11 px-4 rounded-2xl apple-glass-heavy font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-95 transition-[transform,color,background] duration-200 ${labelClassName}`}
+            className={`h-11 px-4 rounded-button apple-glass-heavy font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-95 transition-[transform,color,background] duration-200 ${labelClassName}`}
         >
             {copy}
         </button>
@@ -133,7 +133,7 @@ export const MobileListEmpty = ({
                             sound: true
                         });
                     }}
-                    className="mt-3 h-8 px-3 rounded-xl text-[9px] uppercase tracking-[0.14em] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
+                    className="mt-3 h-8 px-3 rounded-button text-[9px] uppercase tracking-[0.14em] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
                 >
                     {recoverLabel || fallbackRecoverLabel}
                 </motion.button>

@@ -33,15 +33,15 @@ export const MobileFeaturedMetric = ({
     if (loading) {
         return (
             <div className="mb-4 px-1">
-                <div className="rounded-3xl apple-glass-heavy p-4 sm:p-5 space-y-4 min-h-[160px]">
+                <div className="rounded-card apple-glass-heavy p-4 sm:p-5 space-y-4 min-h-[160px]">
                     <div className="flex justify-between items-start gap-3">
                         <div className="space-y-2 min-w-0 flex-1">
-                            <div className="h-3 w-24 rounded bg-muted/20" />
-                            <div className="h-9 w-32 rounded bg-muted/20" />
+                            <div className="h-3 w-24 rounded-inner bg-muted/20" />
+                            <div className="h-9 w-32 rounded-inner bg-muted/20" />
                         </div>
-                        <div className="w-10 h-10 rounded-2xl bg-muted/20 shrink-0" />
+                        <div className="w-10 h-10 rounded-button bg-muted/20 shrink-0" />
                     </div>
-                    <div className="h-14 rounded-xl bg-muted/20" />
+                    <div className="h-14 rounded-inner bg-muted/20" />
                 </div>
             </div>
         );
@@ -72,7 +72,7 @@ export const MobileFeaturedMetric = ({
                 key={idx}
                 type={item.onClick ? 'button' : undefined}
                 onClick={item.onClick ? handleClick : undefined}
-                className={`p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-3xl ${item.onClick ? 'text-left active:scale-[0.985] transition-transform duration-150 transform-gpu' : ''}`}
+                className={`p-6 apple-glass-heavy flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-card ${item.onClick ? 'text-left active:scale-[0.985] transition-transform duration-150 transform-gpu' : ''}`}
                 style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
             >
                 {/* Enhanced Neon primary glow background - Slightly more presence */}
@@ -106,7 +106,7 @@ export const MobileFeaturedMetric = ({
                                 {item.value}
                             </h2>
                             {item.trend && (
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${String(item.trend).includes('+') ? 'text-success bg-success/10' : String(item.trend).includes('-') ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-pill ${String(item.trend).includes('+') ? 'text-emerald-500 bg-emerald-500/10' : String(item.trend).includes('-') ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'
                                     }`}>
                                     {item.trend}
                                 </span>
@@ -115,7 +115,7 @@ export const MobileFeaturedMetric = ({
                     </div>
 
                     <div
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md relative z-10"
+                        className="w-10 h-10 rounded-button flex items-center justify-center shrink-0 shadow-md relative z-10"
                         style={{ background: `radial-gradient(circle at 30% 30%, ${c.replace(/\)$/, ' / 0.2)')}, ${c.replace(/\)$/, ' / 0.1)')})` }}
                     >
                         {ItemIcon && <ItemIcon size={20} className="opacity-70" style={{ color: c }} />}
@@ -143,7 +143,7 @@ export const MobileFeaturedMetric = ({
                 )}
 
                 {item.onClick && (
-                    <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-10 transition-all duration-300">
+                    <div className="absolute bottom-6 right-6 w-8 h-8 rounded-pill bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-10 transition-all duration-300">
                         <ChevronRight size={16} className="text-foreground" />
                     </div>
                 )}
@@ -170,7 +170,7 @@ export const MobileFeaturedMetric = ({
             {/* Subtle premium framing: soft top/bottom fade + inner shadow */}
             <div className="pointer-events-none absolute left-2 right-2 top-1 h-4 bg-gradient-to-b from-background/50 to-transparent" />
             <div className="pointer-events-none absolute left-2 right-2 bottom-1 h-4 bg-gradient-to-t from-background/50 to-transparent" />
-            <div className="pointer-events-none absolute inset-2 rounded-3xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),inset_0_-1px_0_0_rgba(0,0,0,0.25)]" />
+            <div className="pointer-events-none absolute inset-2 rounded-card shadow-[inset_0_10px_24px_rgba(0,0,0,0.18)]" />
             {/* Edge masks to hint overflow */}
             <div className="pointer-events-none absolute left-2 top-2 bottom-2 w-6 bg-gradient-to-r from-background/70 to-transparent" />
             <div className="pointer-events-none absolute right-2 top-2 bottom-2 w-6 bg-gradient-to-l from-background/70 to-transparent" />

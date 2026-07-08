@@ -24,11 +24,11 @@ export const MobileQuickNavPill = ({ items }) => {
             >
                 <motion.div
                     whileTap={{ scale: 0.96 }}
-                    className="flex items-center gap-4 p-4 rounded-2xl apple-glass-heavy border-0 active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
+                    className="flex items-center gap-4 p-4 rounded-button apple-glass-heavy active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
                 >
                 {/* Background Analytical Glow */}
                 <div
-                    className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-[0.12] group-active:scale-125 transition-transform duration-700"
+                    className="absolute -top-6 -right-6 w-20 h-20 rounded-pill opacity-[0.12] group-active:scale-125 transition-transform duration-700"
                     style={{ backgroundColor: item.color }}
                 />
 
@@ -40,7 +40,7 @@ export const MobileQuickNavPill = ({ items }) => {
                 />
 
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-active:scale-110 relative z-10 shadow-md"
+                    className="w-10 h-10 rounded-icon flex items-center justify-center shrink-0 transition-all duration-300 group-active:scale-110 relative z-10 shadow-md"
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${item.color.replace(/\)$/, ' / 0.2)')}, ${item.color.replace(/\)$/, ' / 0.1)')})`,
                     }}

@@ -56,7 +56,7 @@ export const MobileKPIStrip = ({
                     {Array.from({ length: Math.max(1, loadingCount) }).map((_, idx) => (
                         <div
                             key={idx}
-                            className="h-12 flex-1 rounded-[14px] bg-muted/20 shrink-0"
+                            className="h-12 flex-1 rounded-icon bg-muted/20 shrink-0"
                             style={{
                                 minWidth: loadingCount <= 4 ? `calc((100% - ${(loadingCount - 1) * 8}px) / ${loadingCount})` : 'auto'
                             }}
@@ -92,7 +92,7 @@ export const MobileKPIStrip = ({
                                 onClick={isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
                                 aria-pressed={isActive}
                                 data-state={isActive ? 'selected' : 'idle'}
-                                className={`relative shrink-0 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] transition-[background,transform,box-shadow] duration-200 ease-out overflow-hidden kpi-rail ${isActive
+                                className={`relative shrink-0 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-icon transition-[background,transform,box-shadow] duration-200 ease-out overflow-hidden kpi-rail ${isActive
                                     ? 'bg-background/80 dark:bg-muted/40'
                                     : 'bg-muted/20'
                                     }`}
@@ -116,7 +116,7 @@ export const MobileKPIStrip = ({
                                 {/* 2. Breathing Lens (Status Dot) */}
                                 <div className="relative flex items-center justify-center">
                                     <div
-                                        className="w-1.5 h-1.5 rounded-full relative z-10 transition-transform duration-500"
+                                        className="w-1.5 h-1.5 rounded-pill relative z-10 transition-transform duration-500"
                                         style={{
                                             backgroundColor: kpi.color || 'hsl(var(--primary))',
                                             boxShadow: isActive ? `0 0 10px ${kpi.color}` : `0 0 4px ${kpi.color}33`
@@ -126,7 +126,7 @@ export const MobileKPIStrip = ({
                                         <motion.div
                                             animate={{ scale: [1, 2.5], opacity: [0.3, 0] }}
                                             transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                                            className="absolute w-1.5 h-1.5 rounded-full"
+                                            className="absolute w-1.5 h-1.5 rounded-pill"
                                             style={{ backgroundColor: kpi.color }}
                                         />
                                     )}
@@ -141,7 +141,7 @@ export const MobileKPIStrip = ({
                                         {kpi.label}
                                     </span>
                                     {Boolean(kpi.delta) && (
-                                        <span className={`mt-1 inline-flex items-center gap-1 w-fit text-[7px] leading-none px-1.5 py-0.5 rounded-full font-semibold tracking-[0.12em] ${kpi.direction === 'up' ? 'text-success bg-success/10' : kpi.direction === 'down' ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'}`}>
+                                        <span className={`mt-1 inline-flex items-center gap-1 w-fit text-[7px] leading-none px-1.5 py-0.5 rounded-pill font-semibold tracking-[0.12em] ${kpi.direction === 'up' ? 'text-emerald-500 bg-emerald-500/10' : kpi.direction === 'down' ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'}`}>
                                             {kpi.direction === 'up' && <TrendingUp size={8} />}
                                             {kpi.direction === 'down' && <TrendingDown size={8} />}
                                             {kpi.delta}

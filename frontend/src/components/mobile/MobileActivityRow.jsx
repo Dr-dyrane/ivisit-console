@@ -14,12 +14,12 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
         <motion.div
             layout
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex flex-col apple-glass border-0 relative overflow-hidden mb-[1px] last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
+            className={`flex flex-col apple-glass relative overflow-hidden mb-0.5 last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
                 }`}
         >
-            <div className="flex items-center gap-4 p-4 rounded">
+            <div className="flex items-center gap-4 p-4 rounded-inner">
                 <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-icon flex items-center justify-center shrink-0"
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
                     }}
@@ -35,7 +35,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                     </p>
                 </div>
                 <div
-                    className="min-w-[74px] rounded-lg px-2 py-1 text-right"
+                    className="min-w-[74px] rounded-inner px-2 py-1 text-right"
                     style={{
                         background: `linear-gradient(120deg, ${color.replace(/\)$/, ' / 0.16)')}, ${color.replace(/\)$/, ' / 0.04)')})`,
                     }}
@@ -57,17 +57,17 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                         }}
                         className="px-4 pb-4"
                     >
-                        <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
+                        <div className="pt-3 flex flex-col gap-2">
                             {user && (
                                 <p className="text-[11px] text-muted-foreground tracking-tight font-normal">
                                     Triggered by <span className="text-foreground/70 font-medium">{user}</span>
                                 </p>
                             )}
-                            <div className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02]">
+                            <div className="flex items-center justify-between p-2 rounded-inner bg-white/[0.02]">
                                 <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase font-medium">
                                     Event: {derivedEventId || 'LIVE'}
                                 </p>
-                                <p className="text-[9px] text-success/70 font-semibold uppercase tracking-widest">
+                                <p className="text-[9px] text-emerald-500/70 font-semibold uppercase tracking-widest">
                                     Verified
                                 </p>
                             </div>

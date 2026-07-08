@@ -25,7 +25,7 @@ export const MobileSecondaryMetricCard = ({
     color = 'hsl(var(--primary))',
     trendDirection,
     trendText,
-    trendUpClass = 'text-success',
+    trendUpClass = 'text-emerald-500',
     trendDownClass = 'text-destructive',
     trendFlatClass = 'text-muted-foreground/60',
     variant = 'compact',
@@ -54,12 +54,12 @@ export const MobileSecondaryMetricCard = ({
             <Comp
                 type={isInteractive ? 'button' : undefined}
                 onClick={handleClick}
-                className={`w-full min-w-0 p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
+                className={`w-full min-w-0 p-4 apple-glass-heavy rounded-button flex items-center justify-between text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
             >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     {Icon && (
                         <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgClass || ''}`}
+                            className={`w-10 h-10 rounded-pill flex items-center justify-center ${iconBgClass || ''}`}
                             style={!iconBgClass ? { backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)` } : undefined}
                         >
                             <Icon
@@ -83,9 +83,9 @@ export const MobileSecondaryMetricCard = ({
         <Comp
             type={isInteractive ? 'button' : undefined}
             onClick={handleClick}
-            className={`relative w-full min-w-0 p-4 apple-glass-heavy rounded-2xl border-0 overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
+            className={`relative w-full min-w-0 p-4 apple-glass-heavy rounded-button overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
         >
-            {Icon && <Icon className="absolute top-3 right-3 h-4 w-4 text-primary/30" />}
+            {Icon && <Icon className="absolute top-3 right-3 h-4 w-4 text-foreground/30" />}
             <div className="flex flex-col pr-6 min-w-0 flex-1">
                 <span className="text-[11px] font-medium tracking-tight truncate">{title}</span>
                 <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50 truncate">{subtitle}</span>
@@ -135,7 +135,7 @@ export const MobileSecondaryMetricRail = ({
                             className="shrink-0"
                             style={{ flex: '0 0 calc((100% - 8px) / 2)', maxWidth: 'calc((100% - 8px) / 2)' }}
                         >
-                            <div className="h-[88px] rounded-2xl bg-muted/20" />
+                            <div className="h-[88px] rounded-button bg-muted/20" />
                         </div>
                     ))}
                 </div>

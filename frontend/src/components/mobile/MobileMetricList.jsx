@@ -52,7 +52,7 @@ export const MobileSectionHeader = ({
         <div className="px-1 pt-6 pb-2">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full opacity-50" style={{ backgroundColor: color }} />
+                <div className="w-1 h-1 rounded-pill opacity-50" style={{ backgroundColor: color }} />
                 <h5 className={labelClassName}>
                     {label}
                 </h5>
@@ -61,19 +61,19 @@ export const MobileSectionHeader = ({
                 {onSelectAll && (
                     <button
                         onClick={handleSelectAll}
-                        className="w-8 h-8 flex items-center justify-center rounded-2xl apple-glass-heavy active:scale-90 transition-all text-primary/60 hover:text-primary"
+                        className="w-8 h-8 flex items-center justify-center rounded-button apple-glass-heavy active:scale-90 transition-all text-foreground/60 hover:text-foreground"
                         aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                     >
                         {isAllSelected ? (
-                            <CheckCircle2 size={16} className="text-primary" />
+                            <CheckCircle2 size={16} className="text-foreground" />
                         ) : (
-                            <Circle size={16} className="text-primary/30" />
+                            <Circle size={16} className="text-foreground/30" />
 
                         )}
                     </button>
                 )}
                 {count !== undefined && (
-                    <span className="text-[10px] font-semibold text-muted-foreground/50 bg-white/5 px-2 py-1 rounded-lg">
+                    <span className="text-[10px] font-semibold text-muted-foreground/50 bg-white/5 px-2 py-1 rounded-pill">
                         {count}
                     </span>
                 )}
@@ -86,7 +86,7 @@ export const MobileSectionHeader = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={mobileMotion.base}
-                    className="mt-2 px-2 py-1.5 rounded-xl bg-[hsl(var(--spark)/0.08)] shadow-[0_12px_28px_hsl(var(--spark)/0.10)] flex items-center justify-between gap-2"
+                    className="mt-2 px-2 py-1.5 rounded-inner bg-[hsl(var(--spark)/0.08)] shadow-[0_12px_28px_hsl(var(--spark)/0.10)] flex items-center justify-between gap-2"
                 >
                     <span className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.95)]">
                         Selection Mode - {selectedCount} selected
@@ -94,7 +94,7 @@ export const MobileSectionHeader = ({
                     {typeof onClearSelection === 'function' && (
                         <button
                             onClick={handleClearSelection}
-                            className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.92)] px-2 py-1 rounded-lg bg-[hsl(var(--spark)/0.10)]"
+                            className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.92)] px-2 py-1 rounded-button bg-[hsl(var(--spark)/0.10)]"
                         >
                             Clear
                         </button>
@@ -273,7 +273,7 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy rounded-2xl relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'bg-primary/10 shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]' : isCurrentlyExpanded ? 'bg-muted/80 rounded-b-none shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'bg-muted/50 active:bg-muted/70'
+                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_3px_hsl(var(--foreground)/0.14)]' : isCurrentlyExpanded ? 'rounded-t-button bg-muted/80 shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'rounded-button bg-muted/50 active:bg-muted/70'
                     }`}
                 style={{
                     WebkitTapHighlightColor: 'transparent',
@@ -290,7 +290,7 @@ export const MobileMetricRow = ({
                             animate={{ opacity: 0, scale: 16 }}
                             exit={{ opacity: 0 }}
                             transition={mobileMotion.linger}
-                            className="absolute pointer-events-none rounded-full"
+                            className="absolute pointer-events-none rounded-pill"
                             style={{
                                 left: ripple.x - 8,
                                 top: ripple.y - 8,
@@ -319,7 +319,7 @@ export const MobileMetricRow = ({
                 )}
 
                 <div
-                    className={`w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
+                    className={`w-9 h-9 rounded-icon flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
                         boxShadow: isSelected ? `0 0 15px ${color.replace(/\)$/, ' / 0.4)')}` : 'none',
@@ -334,9 +334,9 @@ export const MobileMetricRow = ({
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0, opacity: 0 }}
-                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_3px_hsl(var(--background)),0_8px_20px_rgb(0_0_0/0.18)] z-20"
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-pill bg-foreground flex items-center justify-center shadow-[0_0_0_3px_hsl(var(--background)),0_8px_20px_rgb(0_0_0/0.18)] z-20"
                             >
-                                <Check size={10} className="text-white stroke-[4px]" />
+                                <Check size={10} className="text-background stroke-[4px]" />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -364,7 +364,7 @@ export const MobileMetricRow = ({
 
                     {blade && (
                         <div
-                            className="relative min-w-[118px] max-w-[132px] h-9 rounded-xl px-2.5 py-1 overflow-hidden"
+                            className="relative min-w-[118px] max-w-[132px] h-9 rounded-inner px-2.5 py-1 overflow-hidden"
                             style={{
                                 background: `linear-gradient(120deg, ${blade.color.replace(/\)$/, ' / 0.16)')}, ${blade.color.replace(/\)$/, ' / 0.04)')})`,
                                 boxShadow: `0 0 14px ${blade.color.replace(/\)$/, ' / 0.16)')}`
@@ -376,8 +376,8 @@ export const MobileMetricRow = ({
                             />
                             <div className="relative z-10 h-full flex items-center gap-2">
                                 {blade.badge && (
-                                    <span className="inline-flex shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-semibold leading-none tracking-wide text-foreground/90 bg-black/10 dark:bg-white/10">
-                                        {blade.direction === 'up' && <TrendingUp size={8} className="mr-1 text-success" />}
+                                    <span className="inline-flex shrink-0 rounded-pill px-1.5 py-0.5 text-[8px] font-semibold leading-none tracking-wide text-foreground/90 bg-black/10 dark:bg-white/10">
+                                        {blade.direction === 'up' && <TrendingUp size={8} className="mr-1 text-emerald-500" />}
                                         {blade.direction === 'down' && <TrendingDown size={8} className="mr-1 text-destructive" />}
                                         {blade.badge}
                                     </span>
@@ -416,10 +416,10 @@ export const MobileMetricRow = ({
                             height: { type: 'spring', stiffness: 300, damping: 30 },
                             opacity: mobileMotion.quick
                         }}
-                        className="bg-primary/[0.025] overflow-hidden rounded-b-2xl -mt-2 pt-2"
+                        className="bg-foreground/[0.025] overflow-hidden rounded-b-button -mt-2 pt-2"
                     >
                         <div className="px-3 pt-3 pb-1 flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-full opacity-70" style={{ backgroundColor: color }} />
+                            <div className="w-1 h-1 rounded-pill opacity-70" style={{ backgroundColor: color }} />
                             <span className="text-[8px] uppercase tracking-[0.16em] font-medium text-foreground/45">Detail Layer</span>
                         </div>
                         <div className="p-3 pt-2 text-[11px] text-muted-foreground/80 tracking-tight leading-relaxed font-medium">

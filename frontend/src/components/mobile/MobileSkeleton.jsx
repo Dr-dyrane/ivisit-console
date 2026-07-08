@@ -12,7 +12,7 @@ const SkeletonPulse = ({ className, delay = 0 }) => (
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay, ease: 'easeOut' }}
-        className={`bg-muted/20 rounded-2xl relative overflow-hidden ${className}`}
+        className={`bg-muted/20 rounded-button relative overflow-hidden ${className}`}
     >
         {/* Shimmer sweep — reuses @keyframes shimmer + .shimmer from index.css */}
         <div className="absolute inset-0 shimmer opacity-40" />
@@ -45,15 +45,15 @@ export const MobileFeaturedMetricSkeleton = () => (
         transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
         className="mx-2 mb-6"
     >
-        <div className="apple-glass-heavy rounded-3xl p-6 h-40 flex flex-col justify-between">
+        <div className="apple-glass-heavy rounded-card p-6 h-40 flex flex-col justify-between">
             <div className="flex justify-between items-start">
                 <div className="space-y-2">
                     <SkeletonPulse className="h-3 w-20" delay={0.15} />
                     <SkeletonPulse className="h-8 w-32" delay={0.2} />
                 </div>
-                <SkeletonPulse className="w-12 h-12 rounded-full" delay={0.25} />
+                <SkeletonPulse className="w-12 h-12 rounded-pill" delay={0.25} />
             </div>
-            <SkeletonPulse className="h-10 w-full rounded-xl" delay={0.3} />
+            <SkeletonPulse className="h-10 w-full rounded-inner" delay={0.3} />
         </div>
     </motion.div>
 );
@@ -81,16 +81,16 @@ export const MobileMetricRowSkeleton = ({ delay = 0 }) => (
         initial={{ opacity: 0, x: -4 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, delay: 0.25 + delay, ease: 'easeOut' }}
-        className="mx-2 py-4 flex items-center justify-between border-b border-white/[0.02]"
+        className="mx-2 py-4 flex items-center justify-between"
     >
         <div className="flex items-center gap-4">
-            <SkeletonPulse className="w-10 h-10 rounded-full" delay={0.3 + delay} />
+            <SkeletonPulse className="w-10 h-10 rounded-pill" delay={0.3 + delay} />
             <div className="space-y-1.5">
                 <SkeletonPulse className="h-3 w-24" delay={0.35 + delay} />
                 <SkeletonPulse className="h-2 w-32 opacity-50" delay={0.4 + delay} />
             </div>
         </div>
-        <SkeletonPulse className="h-6 w-12 rounded-lg" delay={0.4 + delay} />
+        <SkeletonPulse className="h-6 w-12 rounded-inner" delay={0.4 + delay} />
     </motion.div>
 );
 
@@ -123,8 +123,8 @@ export const MobileDashboardSkeleton = () => (
             >
                 <SkeletonPulse className="h-4 w-40 mb-4" delay={0.55} />
                 <div className="grid grid-cols-2 gap-3 pb-20">
-                    <SkeletonPulse className="h-24 rounded-3xl" delay={0.6} />
-                    <SkeletonPulse className="h-24 rounded-3xl" delay={0.65} />
+                    <SkeletonPulse className="h-24 rounded-card" delay={0.6} />
+                    <SkeletonPulse className="h-24 rounded-card" delay={0.65} />
                 </div>
             </motion.div>
         </div>
@@ -154,15 +154,15 @@ export const MobileAnalyticsSkeleton = () => (
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.4, ease: 'easeOut' }}
-                className="mx-2 mb-8 apple-glass-heavy rounded-3xl p-6 h-64 overflow-hidden"
+                className="mx-2 mb-8 apple-glass-heavy rounded-card p-6 h-64 overflow-hidden"
             >
                 <div className="flex justify-between items-center mb-6">
                     <SkeletonPulse className="h-4 w-32" delay={0.45} />
-                    <SkeletonPulse className="h-6 w-12 rounded-full" delay={0.5} />
+                    <SkeletonPulse className="h-6 w-12 rounded-pill" delay={0.5} />
                 </div>
                 <div className="grid grid-cols-6 gap-2">
                     {Array.from({ length: 24 }).map((_, i) => (
-                        <SkeletonPulse key={i} className="aspect-square rounded-md" delay={0.5 + i * 0.01} />
+                        <SkeletonPulse key={i} className="aspect-square rounded-inner" delay={0.5 + i * 0.01} />
                     ))}
                 </div>
             </motion.div>
