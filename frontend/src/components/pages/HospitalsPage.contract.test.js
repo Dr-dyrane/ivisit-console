@@ -465,7 +465,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(table).toContain('rounded-card bg-background/35 p-3 backdrop-blur-xs');
     expect(table).toContain('rounded-icon overflow-hidden bg-black/20');
     expect(table).toContain('rounded-pill hover:bg-white/10');
-    expect(table).toContain('grid ${gridClass} items-center gap-2 rounded-inner');
+    expect(table).toContain('grid ${gridClass} cursor-pointer items-center gap-2 rounded-inner');
     expect(table).not.toContain('shadow-premium');
     expect(table).not.toContain('uppercase tracking-wider');
     expect(table).not.toContain('hover:bg-white/5');
