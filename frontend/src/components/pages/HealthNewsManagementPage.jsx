@@ -4,6 +4,7 @@ import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/Layou
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { getHealthNewsPage } from '../../services/healthNewsService';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
@@ -223,7 +224,6 @@ export const HealthNewsManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [healthNewsError, setHealthNewsError] = useState(null);
   const [selectedNews, setSelectedNews] = useState(null);
-  const [focusedNewsId, setFocusedNewsId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
@@ -236,9 +236,9 @@ export const HealthNewsManagementPage = () => {
   const pagination = usePagination(20);
   const canManageContent = false;
 
-  const focusedNews = useMemo(() => (
-    healthNews.find((item) => item.id === focusedNewsId) || healthNews[0] || null
-  ), [focusedNewsId, healthNews]);
+  // Shared focused-record store: most-urgent-at-rest fallback + consistent toggle.
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', healthNews);
+  const focusedNews = focusedRecord;
 
   useEffect(() => () => {
     if (actionFeedbackTimerRef.current) {
@@ -316,16 +316,6 @@ export const HealthNewsManagementPage = () => {
     fetchHealthNews();
   }, [fetchHealthNews, pagination.currentPage]);
 
-  useEffect(() => {
-    if (!healthNews.length) {
-      if (focusedNewsId !== null) setFocusedNewsId(null);
-      return;
-    }
-    if (!healthNews.some((item) => item.id === focusedNewsId)) {
-      setFocusedNewsId(healthNews[0].id);
-    }
-  }, [focusedNewsId, healthNews]);
-
   const handleCreateUnavailable = useCallback(() => {
     markActionFeedback('create-unavailable');
     toast.info('Content authoring is unavailable until the published feed writer is approved.');
@@ -333,10 +323,10 @@ export const HealthNewsManagementPage = () => {
 
   const handleView = useCallback((news) => {
     markActionFeedback(`view-${news?.id || 'unknown'}`);
-    if (news?.id) setFocusedNewsId(news.id);
+    if (news?.id) setFocused(news.id);
     setSelectedNews(news);
     setModalMode('view');
-  }, [markActionFeedback]);
+  }, [markActionFeedback, setFocused]);
 
   const handleSave = useCallback(async () => {
     throw new Error('Health news authoring is unavailable.');
@@ -624,8 +614,8 @@ export const HealthNewsManagementPage = () => {
                           key={news.id}
                           news={news}
                           index={index}
-                          selected={focusedNews?.id === news.id}
-                          onFocus={() => setFocusedNewsId(news.id)}
+                          selected={isFocused(news.id)}
+                          onFocus={() => setFocused(news.id)}
                           onView={handleView}
                           activeActionFeedback={activeActionFeedback}
                         />
