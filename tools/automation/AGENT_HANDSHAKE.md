@@ -36,7 +36,11 @@ revamped surface must match its vocabulary:
 - **No legacy chrome utilities:** no `glass-card` / `glass-card-premium`, `geo-*`, `squircle-{size}`,
   `hover-glow*`, `hover-lift`, `bg-orb`, `pulse-dot`, decorative `shadow-2xl` / `shadow-premium` /
   `shadow-glow`, `uppercase`, `tracking-{tighter,wide,widest}`. (Manual glass is the canonical way:
-  `bg-card/68 backdrop-blur-2xl`, not the `glass-card` class.)
+  `bg-card/68 backdrop-blur-2xl`, not the `glass-card` class.) **One exception:** the gold-standard
+  "eyebrow" micro-label — tiny tracked caps `text-[10–11px] font-semibold uppercase tracking-[0.14em]`
+  (arbitrary tracking, not the banned `tracking-*` tokens) on `DetailLine` labels and grid headers,
+  used verbatim in `EmergencyRequestsPage` (lines 1087, 1512) — IS canonical. Do not strip it. This is
+  the only place `uppercase` is allowed; never on body text, headings, or buttons.
 - **Data-page shape** (match `EmergencyRequestsPage` `RequestSignalPanel` / `RequestKpiStrip` and its
   sheet): signal panel (`rounded-pill` label + big `text-6xl` headline + subhead) → state-chip strip
   (`rounded-inner` chips, `rounded-button` icon tiles) → the list inside a **handled sheet**

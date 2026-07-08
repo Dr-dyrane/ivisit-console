@@ -36,6 +36,10 @@ and the reference implementation
   `hover-glow*`, `hover-lift`, `bg-orb`, `pulse-dot`, `shadow-2xl` / `shadow-premium`
   / `shadow-glow`, `uppercase`, `tracking-{tighter,wide,widest}`. Glass is manual:
   `bg-card/68 backdrop-blur-2xl`.
+- **One `uppercase` exception:** the gold-standard "eyebrow" micro-label — tiny tracked caps
+  `text-[10–11px] font-semibold uppercase tracking-[0.14em]` on `DetailLine` labels and grid headers
+  (as in `EmergencyRequestsPage` lines 1087 / 1512) — IS canonical; do not strip it. That is the only
+  allowed use of `uppercase` — never on body text, headings, or buttons.
 
 Colors are **not** caught by the hardgate — only rendered proof catches a stray red.
 Verify visually on a data page.
