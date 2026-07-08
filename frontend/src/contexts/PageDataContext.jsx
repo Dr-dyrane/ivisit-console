@@ -171,7 +171,7 @@ export const PageDataProvider = ({ children }) => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [doctorsData, setDoctorsData] = useState(null);
   const [visitsData, setVisitsData] = useState(null);
-  const [verificationData, setVerificationData] = useState(mockVerificationData);
+  const [verificationData, setVerificationData] = useState(null);
   const [supportTicketsData, setSupportTicketsData] = useState(null);
   const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [insurancePageStats, setInsurancePageStats] = useState(null);

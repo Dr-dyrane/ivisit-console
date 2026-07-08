@@ -80,6 +80,11 @@ describe('PageDataContext role loading contract', () => {
     expect(pageDataSource).not.toContain('completionRate: 94');
     expect(pageDataSource).not.toContain('onRouteAmbulances: 4');
     expect(pageDataSource).not.toContain('Math.floor(fullAnalytics.totalAmbulances * 0.3)');
+
+    // Verification counts must not be seeded from a mock (was rendering invented 15/142/8/165
+    // pre-fetch). It initializes to null like every other domain and gates on the real fetch.
+    expect(pageDataSource).toContain('const [verificationData, setVerificationData] = useState(null);');
+    expect(pageDataSource).not.toContain('useState(mockVerificationData)');
   });
 
   it('keeps provider Today emergency failures as UI state instead of noisy console fallback', () => {
