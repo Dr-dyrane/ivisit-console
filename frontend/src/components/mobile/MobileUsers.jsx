@@ -4,6 +4,7 @@ import {
     Users,
     UserCheck,
     Shield,
+    ShieldCheck,
     Phone,
     Mail,
     Building,
@@ -12,16 +13,12 @@ import {
     Edit,
     Trash2,
     Activity,
-    Zap,
-    ZapOff,
     Search,
     SlidersHorizontal,
     Loader2,
     BarChart3,
-    BadgeCheck,
-    BadgeX
+    BadgeCheck
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { MobileKPIStrip } from './MobileKPIStrip';
@@ -31,6 +28,9 @@ import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { MobileDetailIslands } from './MobileDetailIslands';
+import { MobileSheetActions } from './MobileSheetActions';
+import { statusPill } from '../../constants/vitalTracks';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -50,6 +50,13 @@ const toOptionalDeltaBadge = (value) => {
             ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat')
             : 'flat',
     };
+};
+
+// Users is a directory (no modelled lifecycle): role is a categorical facet, so it
+// rides the row secondary line rather than a status axis.
+const roleLabel = (role) => {
+    const text = String(role || 'patient').replace(/_/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 /**
@@ -356,7 +363,10 @@ export const MobileUsers = ({
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {displayUsers.map((user) => (
+                        {displayUsers.map((user) => {
+                            const isActive = user.is_active !== false;
+                            const isVerified = Boolean(user.bvn_verified);
+                            return (
                             <MobileMetricRow
                                 key={user.id}
                                 color={getRoleColor(user.role)}
@@ -372,27 +382,16 @@ export const MobileUsers = ({
                                         </AvatarFallback>
                                     </Avatar>
                                 )}
-                                label={user.role?.replace('_', ' ').toUpperCase() || 'PATIENT'}
+                                label="User"
                                 value={user.full_name || user.username || 'Unknown User'}
-                                rightBlade={{
-                                    badge: user.bvn_verified ? 'KYC' : 'PENDING',
-                                    direction: user.bvn_verified ? 'up' : 'down',
-                                    label: user.is_active !== false ? 'Active' : 'Inactive',
-                                    value: (user.role || 'user').replace('_', ' ').toUpperCase(),
-                                    color: user.bvn_verified ? 'hsl(160 84% 39%)' : 'hsl(38 92% 50%)'
-                                }}
-                                statusIndicators={[
-                                    {
-                                        icon: user.bvn_verified ? BadgeCheck : BadgeX,
-                                        color: user.bvn_verified ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
-                                        label: user.bvn_verified ? 'Verified' : 'Unverified'
-                                    },
-                                    {
-                                        icon: user.is_active !== false ? Zap : ZapOff,
-                                        color: user.is_active !== false ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
-                                        label: user.is_active !== false ? 'Active' : 'Inactive'
-                                    }
-                                ]}
+                                // S2: role rides the secondary identity line (directory, not a lifecycle).
+                                secondary={user.organization_name ? `${roleLabel(user.role)} · ${user.organization_name}` : roleLabel(user.role)}
+                                // S3: the primary axis is the active/inactive state pill (Users has no
+                                // modelled lifecycle, so this uses the generic keyword statusPill).
+                                statusPill={statusPill(isActive ? 'active' : 'inactive')}
+                                // KYC is a secondary axis, surfaced as a small verified marker only
+                                // (never the main pill). Unverified shows nothing on the row.
+                                statusIndicators={isVerified ? [{ icon: ShieldCheck, color: 'hsl(160 84% 39%)', label: 'KYC verified' }] : []}
                                 isExpanded={expandedUserId === user.id}
                                 onExpand={(id) => setExpandedUserId(prev => prev === id ? null : id)}
                                 itemId={user.id}
@@ -400,68 +399,40 @@ export const MobileUsers = ({
                                 onSelect={onSelect}
                                 selectionMode={selectionMode}
                                 expandedContent={
-                                    <div className="space-y-4 py-3">
-                                        {/* Contact Info */}
-                                        <div className="grid grid-cols-1 gap-2">
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                                                <Mail size={14} className="text-muted-foreground/40" />
-                                                <span className="text-xs font-normal truncate opacity-80">{user.email || 'No email'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                                                <Phone size={14} className="text-muted-foreground/40" />
-                                                <span className="text-xs font-normal opacity-80">{user.phone || 'No phone'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
-                                                <Building size={14} className="text-muted-foreground/40" />
-                                                <span className="text-xs font-normal truncate opacity-80">{user.organization_name || 'No organization'}</span>
-                                            </div>
-                                        </div>
+                                    <div className="space-y-3 py-3">
+                                        {/* S6: identity-island detail (email, phone, org, role, KYC). */}
+                                        <MobileDetailIslands
+                                            items={[
+                                                { icon: Mail, label: 'Email', value: user.email || 'No email' },
+                                                { icon: Phone, label: 'Phone', value: user.phone || 'No phone' },
+                                                { icon: Building, label: 'Organization', value: user.organization_name || 'No organization' },
+                                                { icon: Shield, label: 'Role', value: roleLabel(user.role) },
+                                                { icon: isVerified ? ShieldCheck : Shield, label: 'KYC', value: isVerified ? 'Verified' : 'Pending' },
+                                            ]}
+                                        />
 
-                                        {/* Status Indicators */}
-                                        <div className="flex gap-2">
-                                            <span className={`inline-flex items-center rounded-pill font-semibold text-[9px] py-1 px-3 ${user.bvn_verified ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'
-                                                }`}>
-                                                {user.bvn_verified ? 'VERIFIED' : 'NOT VERIFIED'}
-                                            </span>
-                                            {user.is_active !== false && (
-                                                <span className="inline-flex items-center rounded-pill font-semibold text-[9px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-200">
-                                                    ACTIVE
-                                                </span>
-                                            )}
-                                        </div>
+                                        {/* S7: one primary state-CTA (Details, filled) + gated ghost Edit. */}
+                                        <MobileSheetActions
+                                            primary={{ label: 'Details', icon: Eye, onClick: () => onView(user) }}
+                                            secondary={(isAdmin || isOrgAdmin) ? { icon: Edit, onClick: () => onEdit(user), 'aria-label': `Edit ${user.full_name || user.username || 'user'}` } : undefined}
+                                        />
 
-                                        {/* Quick Actions */}
-                                        <div className="flex gap-2 pt-2">
-                                            <Button
-                                                variant="ghost"
-                                                className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                onClick={() => onView(user)}
+                                        {/* Delete is a demoted destructive control BELOW the CTA group. */}
+                                        {canDelete && isAdmin && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDelete(user)}
+                                                className="flex w-full items-center justify-center gap-2 rounded-button py-2.5 text-xs font-semibold text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-[0.98]"
                                             >
-                                                <Eye size={16} className="text-muted-foreground" />
-                                                <span className="text-[9px] font-semibold tracking-[0.2em]">Details</span>
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                onClick={() => onEdit(user)}
-                                            >
-                                                <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                                                <span className="text-[9px] font-semibold tracking-[0.2em]">Edit</span>
-                                            </Button>
-                                            {canDelete && isAdmin && (
-                                                <Button
-                                                    variant="ghost"
-                                                    className="w-12 h-12 rounded-button apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
-                                                    onClick={() => onDelete(user)}
-                                                >
-                                                    <Trash2 size={16} className="text-destructive/60" />
-                                                </Button>
-                                            )}
-                                        </div>
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                                Delete user
+                                            </button>
+                                        )}
                                     </div>
                                 }
                             />
-                        ))}
+                            );
+                        })}
                     </AnimatePresence>
 
                     {/* Infinite Scroll Sentinel */}
