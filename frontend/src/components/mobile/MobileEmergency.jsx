@@ -202,6 +202,7 @@ const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
 export const MobileEmergency = ({
     emergencies,
     loading,
+    isFetching = false,
     statistics,
     filters,
     setFilters,
@@ -226,7 +227,7 @@ export const MobileEmergency = ({
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
     const [warmingUp, setWarmingUp] = useState(true);
     const { triggerFromEvent } = useFeedback();
-    const { displayItems, isBuffering } = useStableList(emergencies, loading);
+    const { displayItems } = useStableList(emergencies, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
     // Skeleton while warming up OR while the first real fetch is still pending.
     // When it clears, the whole list swaps in a single commit — no top-to-bottom assemble.
@@ -346,9 +347,13 @@ export const MobileEmergency = ({
                             )}
                         </div>
 
+                        {/* Background-refetch feedback: React Query keeps placeholder data on
+                            screen while refetching (KPI switch, search, filter, pull-to-refresh,
+                            load-more), so `loading` stays false — `isFetching` is the only
+                            signal. Hidden under the skeleton, which already communicates load. */}
                         <div className="mt-4 flex items-center justify-end px-2">
-                            {isBuffering && (
-                                <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                            {isFetching && !showSkeleton && (
+                                <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                                     Updating
                                 </span>
                             )}

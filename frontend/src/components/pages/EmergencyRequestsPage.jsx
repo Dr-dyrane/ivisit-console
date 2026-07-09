@@ -1074,6 +1074,7 @@ export const EmergencyRequestsPage = () => {
         <MobileEmergency
           emergencies={requests}
           loading={loading}
+          isFetching={isFetching}
           statistics={requestStats}
           filters={filters}
           setFilters={setFilters}
