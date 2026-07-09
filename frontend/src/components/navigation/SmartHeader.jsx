@@ -113,7 +113,7 @@ export const SmartHeader = () => {
                             <motion.button
                                 whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate(-1)}
-                                className="-ml-1 max-w-[140px] inline-flex items-center gap-0.5 shrink-0 min-w-0 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
+                                className="max-w-[140px] inline-flex items-center gap-0.5 shrink-0 min-w-0 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
                                 aria-label="Go back"
                             >
                                 <ChevronLeft className="h-4 w-4 shrink-0" />
