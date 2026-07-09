@@ -357,16 +357,20 @@ const rankKpiOptions = ({ stats, requests }) =>
     )
     .map((entry) => entry.option);
 
-// The strip shows the 3 most significant chips (data-driven), always keeping the active
-// filter visible, displayed in canonical order so positions stay stable.
+// Pending + Active are PINNED — the actionable triage states can never be buried by a
+// big service-type count. Only the third slot is data-driven: the highest-count remaining
+// option, unless the user selected a non-pinned chip, which then owns the slot so the
+// selection stays visible. Rendered in canonical order for stable positions.
+const PINNED_KPI_IDS = ['pending', 'active'];
 const selectPrimaryKpis = ({ stats, requests, kpiFilter }) => {
-  const ranked = rankKpiOptions({ stats, requests });
-  const chosen = new Set(ranked.slice(0, 3).map((option) => option.id));
-  if (kpiFilter && !chosen.has(kpiFilter) && kpiOptions.some((option) => option.id === kpiFilter)) {
-    const dropped = ranked.slice(0, 3)[2];
-    if (dropped) chosen.delete(dropped.id);
-    chosen.add(kpiFilter);
-  }
+  const rest = rankKpiOptions({ stats, requests }).filter(
+    (option) => !PINNED_KPI_IDS.includes(option.id)
+  );
+  const third = (kpiFilter && !PINNED_KPI_IDS.includes(kpiFilter)
+    && kpiOptions.some((option) => option.id === kpiFilter))
+    ? kpiFilter
+    : rest[0]?.id;
+  const chosen = new Set([...PINNED_KPI_IDS, third].filter(Boolean));
   return kpiOptions.filter((option) => chosen.has(option.id));
 };
 
@@ -1384,22 +1388,23 @@ const RequestsDesktopWorkspace = ({
                   )}
                 </div>
               )}
+              {/* Replace-in-place (lessons #15): the skeleton holds the exact final layout and
+                  rows swap in instantly — no per-row stagger/translate entrance (that top-to-
+                  bottom cascade IS the "stacking" skew). layout="position" on the row keeps
+                  sort/removal reflow smooth without entrance motion. */}
               {!loading && requests.length > 0 && (
-                <AnimatePresence mode="popLayout">
-                  {requests.map((request, index) => (
-                    <RequestRow
-                      key={request.id}
-                      request={request}
-                      index={index}
-                      selected={focusedRequest?.id === request.id}
-                      onFocus={() => setFocusedRequestId(request.id)}
-                      onView={onView}
-                      selectable={selectable}
-                      checked={selectedIds.includes(request.id)}
-                      onToggleSelect={onToggleSelect}
-                    />
-                  ))}
-                </AnimatePresence>
+                requests.map((request) => (
+                  <RequestRow
+                    key={request.id}
+                    request={request}
+                    selected={focusedRequest?.id === request.id}
+                    onFocus={() => setFocusedRequestId(request.id)}
+                    onView={onView}
+                    selectable={selectable}
+                    checked={selectedIds.includes(request.id)}
+                    onToggleSelect={onToggleSelect}
+                  />
+                ))
               )}
             </div>
 
@@ -1605,8 +1610,10 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
   </div>
 );
 
-const REQUEST_GRID_COLS = 'grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
-const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
+// Person | Status | Service | Facility | Time | Action — status owns its own column
+// (it used to hide stacked inside the Facility cell, under a header that lied).
+const REQUEST_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_64px_72px]';
+const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_64px_72px]';
 
 // Clickable column header (VisitsPage/HospitalsPage idiom): a new key sorts ascending,
 // re-tapping the active key flips direction. Feeds setSortConfig via onSort.
@@ -1647,6 +1654,7 @@ const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll,
         patient_snapshot JSON). Only Time is a meaningful sort. Service/facility filtering
         belongs in the FilterSheet. */}
     <span>Person</span>
+    <span>Status</span>
     <span>Service</span>
     <span>Facility</span>
     <SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
@@ -1654,7 +1662,7 @@ const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll,
   </div>
 );
 
-const RequestRow = ({ request, index, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect }) => {
+const RequestRow = ({ request, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect }) => {
   const projection = getRequestProjection(request);
   const status = getStatusMeta(request);
   const ServiceIcon = serviceIconMap[request?.service_type] || ClipboardCheck;
@@ -1664,11 +1672,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
+      layout="position"
       className={`group mb-2 grid min-h-[80px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
       data-request-row={request.id}
       data-state={selected ? 'selected' : 'idle'}
@@ -1703,6 +1707,12 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
         </div>
       </div>
 
+      <div className="min-w-0">
+        <div className={`inline-flex max-w-full items-center rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
+          <span className="truncate">{status.label}</span>
+        </div>
+      </div>
+
       <div className="flex min-w-0 items-center gap-2">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
           <ServiceIcon className="h-4 w-4" />
@@ -1710,12 +1720,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
         <span className="truncate text-sm font-medium">{getServiceLabel(request)}</span>
       </div>
 
-      <div className="min-w-0">
-        <div className={`inline-flex max-w-full items-center rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
-          <span className="truncate">{status.label}</span>
-        </div>
-        <div className="mt-2 truncate text-xs text-muted-foreground">{facilityName}</div>
-      </div>
+      <div className="min-w-0 truncate text-sm text-muted-foreground">{facilityName}</div>
 
       <div className="text-sm font-medium text-muted-foreground">
         {formatRequestTime(request.created_at)}
@@ -2010,7 +2015,7 @@ const Shimmer = ({ className = '' }) => (
 const RequestSkeletonRows = () => (
   <div className="space-y-2">
     {Array.from({ length: 7 }).map((_, index) => (
-      <Shimmer key={index} className="h-[78px] rounded-card" />
+      <Shimmer key={index} className="h-[80px] rounded-card" />
     ))}
   </div>
 );

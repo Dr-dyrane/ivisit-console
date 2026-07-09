@@ -120,9 +120,11 @@ sets `kpiFilter` and filters the list (the chips ARE the quick filters — no se
 bordered KPI cards).
 
 **Max 3 chips (canon).** Render **at most 3** state chips — the page's **smart-context
-priority**, chosen **data-driven**: rank the options by live count and show the top 3, so a
-zero-count chip never outranks one with real numbers (always keep the active filter visible;
-display in canonical order for stable positions — see `rankKpiOptions` / `selectPrimaryKpis`).
+priority**: the page's **actionable triage states are PINNED** (Requests pins
+`pending` + `active` — "Needs attention" can never be buried by a big service-type count);
+only the remaining slot is **data-driven** (highest live count among the rest, unless the
+user selected a non-pinned chip, which then owns the slot so the selection stays visible).
+Display in canonical order for stable positions — see `PINNED_KPI_IDS` / `selectPrimaryKpis`.
 Only 3 keeps the strip simple and gives the wider, appealing "Today-length" tiles — **match
 the Today glance tile exactly**: `max-w-2xl grid-cols-2 sm:grid-cols-3`, tile `min-h-[66px]
 rounded-inner px-3 py-2.5 sm:px-4 md:py-3` with the soft resting lift
