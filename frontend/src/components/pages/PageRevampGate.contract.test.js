@@ -1046,9 +1046,9 @@ describe('Today/Requests revamp gate contract', () => {
     expect(appSource()).toContain('const RouteLoadingState = () => (');
     expect(appSource()).toContain('data-testid="route-loading-state"');
     expect(appSource()).toContain('Loading page');
-    expect(appSource()).toContain('rounded-card bg-card/70');
-    expect(appSource()).toContain('rounded-icon bg-primary/10');
-    expect(appSource()).toContain('h-20 rounded-inner');
+    expect(appSource()).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden');
+    expect(appSource()).toContain('h-7 w-7 rounded-icon');
+    expect(appSource()).toContain('animate-pulse bg-muted/38');
     expect(appSource()).toContain('rounded-pill shadow-2xl');
     expect(appSource()).toContain('fallback={<RouteLoadingState />}');
 

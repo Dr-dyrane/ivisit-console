@@ -155,12 +155,12 @@ const findings = [];
 
 const requiredSnippets = {
   'src/App.js': [
-    'className="flex items-center gap-3 rounded-card bg-card/70 px-4 py-4',
-    'className="flex h-10 w-10 items-center justify-center rounded-icon',
-    'className="h-20 rounded-inner bg-muted/35 animate-pulse"',
-    'className="rounded-card bg-card/55 p-3',
-    'className="mb-3 h-11 rounded-inner bg-muted/35 animate-pulse"',
-    'className="h-24 rounded-inner bg-muted/30 animate-pulse"',
+    'className="relative min-h-[calc(100dvh-3rem)] overflow-hidden"',
+    'lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28',
+    'rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)]',
+    'rounded-t-sheet bg-card/78 p-4 shadow-[0_12px_32px_rgb(0_0_0/0.10)]',
+    '<Pulse className="h-7 w-7 rounded-icon" />',
+    'animate-pulse bg-muted/38 dark:bg-white/[0.055]',
     'className="fixed bottom-1 left-1/2',
     'rounded-pill shadow-2xl',
   ],
