@@ -32,6 +32,19 @@ export const PaginationControls = ({
         const handleKeyDown = (e) => {
             if (loading) return;
 
+            // Keys typed into editable controls (search boxes, forms, selects)
+            // must move the caret/selection, not flip pages.
+            const target = e.target;
+            const tagName = target?.tagName;
+            if (
+                target?.isContentEditable ||
+                tagName === 'INPUT' ||
+                tagName === 'TEXTAREA' ||
+                tagName === 'SELECT'
+            ) {
+                return;
+            }
+
             if (e.key === 'ArrowLeft' && hasPrevPage) {
                 onPrevPage();
             } else if (e.key === 'ArrowRight' && hasNextPage) {

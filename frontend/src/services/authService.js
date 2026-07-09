@@ -9,6 +9,18 @@ const CURRENT_USER_CACHE_MS = 60000;
 let currentUserCache = { userId: null, value: null, expiresAt: 0 };
 let currentUserPromise = null;
 
+/**
+ * Sanitize a display name before embedding it in a PostgREST `.or()` filter
+ * list. Mirrors visitsService's sanitizeVisitSearchTerm: commas are the
+ * or-list delimiter and percent is the ilike wildcard, so both are stripped
+ * so a stored name can never widen or break the filter expression.
+ */
+const sanitizeNameForOrFilter = (value) => String(value || '')
+  .trim()
+  .replace(/[,%]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .slice(0, 80);
+
 function isSupabaseAuthLockAbort(errorLike) {
   const name = String(errorLike?.name || '');
   const message = String(errorLike?.message || errorLike || '');
@@ -219,10 +231,25 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
     // For visits and emergencies, prioritizing hospital-based scoping
     if (resourceType === 'visit') {
       // Visits: scope by hospital_ids when available, then doctor assignment.
+      // Interim per 2026-07-09 arbitration: visits key doctors by display name
+      // (doctor_name TEXT), so the match is case-insensitive on exact-name
+      // variants only — the bare profile name plus the common 'Dr.'/'Dr'
+      // prefix forms. ilike with NO wildcards = case-insensitive exact match;
+      // substring matching is deliberately excluded so two similarly named
+      // doctors never see each other's visits. Identity column
+      // (assigned_doctor_id) is queued app-side.
+      const safeDoctorName = providerIdField ? sanitizeNameForOrFilter(user?.full_name) : '';
       if (isHospitalScoped && hospitalIds?.length) {
         query = hospitalIds.length > 1 ? query.in(orgIdField, hospitalIds) : query.eq(orgIdField, hospitalIds[0]);
-      } else if (providerIdField && user?.full_name) {
-        query = query.eq(providerIdField, user.full_name);
+      } else if (providerIdField && safeDoctorName) {
+        const nameVariants = [...new Set([
+          safeDoctorName,
+          `Dr. ${safeDoctorName}`,
+          `Dr ${safeDoctorName}`,
+        ])];
+        query = query.or(
+          nameVariants.map((variant) => `${providerIdField}.ilike.${variant}`).join(',')
+        );
       } else if (userId) {
         query = query.eq(userIdField, userId);
       }

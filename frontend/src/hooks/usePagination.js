@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 
 /**
  * Reusable pagination hook for Supabase queries
@@ -14,12 +14,23 @@ export const usePagination = (itemsPerPage = 20) => {
         return Math.max(1, Math.ceil(totalCount / itemsPerPage));
     }, [totalCount, itemsPerPage]);
 
+    // Clamp: when totalCount shrinks (filters, deletions), never expose a page
+    // past the new last page ("Page 3 of 1"). The derived value keeps renders
+    // and ranges honest immediately; the effect re-syncs the stored state.
+    const clampedPage = Math.min(currentPage, totalPages);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
     // Calculate Supabase range (0-indexed)
     const paginationRange = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
+        const start = (clampedPage - 1) * itemsPerPage;
         const end = start + itemsPerPage - 1;
         return { start, end };
-    }, [currentPage, itemsPerPage]);
+    }, [clampedPage, itemsPerPage]);
 
     // Wrap setTotalCount in useCallback to ensure stable reference
     const setTotalCountStable = useCallback((count) => {
@@ -52,7 +63,7 @@ export const usePagination = (itemsPerPage = 20) => {
 
     // Memoize the return object to ensure stable reference
     return useMemo(() => ({
-        currentPage,
+        currentPage: clampedPage,
         totalPages,
         totalCount,
         itemsPerPage,
@@ -62,7 +73,7 @@ export const usePagination = (itemsPerPage = 20) => {
         nextPage,
         prevPage,
         resetPagination,
-        hasNextPage: currentPage < totalPages,
-        hasPrevPage: currentPage > 1,
-    }), [currentPage, totalPages, totalCount, itemsPerPage, paginationRange, setTotalCountStable, goToPage, nextPage, prevPage, resetPagination]);
+        hasNextPage: clampedPage < totalPages,
+        hasPrevPage: clampedPage > 1,
+    }), [clampedPage, totalPages, totalCount, itemsPerPage, paginationRange, setTotalCountStable, goToPage, nextPage, prevPage, resetPagination]);
 };

@@ -15,9 +15,13 @@ import {
   resolveVisitStatus,
   visitMatchesResolvedState,
 } from '../utils/visitStatus';
+import { getVisitPatientLabel } from '../utils/visitRowProjection';
 
 const TABLE_NAME = 'visits';
 const VISIT_RESOLUTION_ROW_LIMIT = 5000;
+// PostgREST .in() lists ride the request URL, which caps out far below the
+// 5000-row resolver limit — chunk enrichment lookups and merge the results.
+const ENRICHMENT_ID_CHUNK_SIZE = 200;
 
 const VISIT_PAGE_WRITE_COLUMNS = new Set([
   'user_id',
@@ -87,9 +91,10 @@ function buildVisitWritePayload(input = {}, { includeCreateDefaults = false } = 
   return payload;
 }
 
+// Sort honesty: 'room_number' (the Location column) used to silently remap to
+// hospital_name; it now sorts as itself.
 const mapVisitSortKey = (key) => {
   if (key === 'visit_type') return 'type';
-  if (key === 'room_number') return 'hospital_name';
   if (key === 'doctor') return 'doctor_name';
   return key || 'date';
 };
@@ -167,15 +172,38 @@ function getVisitPageStatsFromRows(visits = []) {
   };
 }
 
-const compareVisitValue = (left, right) => {
+// Only true timestamp columns may route through Date.parse; arbitrary strings
+// (statuses, display ids, names) must never be compared as dates.
+const VISIT_DATE_SORT_KEYS = new Set(['date', 'visit_date', 'created_at', 'updated_at']);
+
+// Costs are stored/rendered with currency formatting ("NGN 5,000", "$1,200.50");
+// strip formatting so the Cost column sorts numerically.
+const parseVisitCostValue = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (value === null || value === undefined) return null;
+  const numeric = Number.parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const compareVisitValue = (left, right, { isDateKey = false, isCostKey = false } = {}) => {
   if (left === right) return 0;
   if (left === null || left === undefined || left === '') return -1;
   if (right === null || right === undefined || right === '') return 1;
 
-  const leftDate = Date.parse(left);
-  const rightDate = Date.parse(right);
-  if (Number.isFinite(leftDate) && Number.isFinite(rightDate)) {
-    return leftDate - rightDate;
+  if (isCostKey) {
+    const leftCost = parseVisitCostValue(left);
+    const rightCost = parseVisitCostValue(right);
+    if (leftCost !== null && rightCost !== null && leftCost !== rightCost) {
+      return leftCost - rightCost;
+    }
+  }
+
+  if (isDateKey) {
+    const leftDate = Date.parse(left);
+    const rightDate = Date.parse(right);
+    if (Number.isFinite(leftDate) && Number.isFinite(rightDate)) {
+      return leftDate - rightDate;
+    }
   }
 
   if (typeof left === 'number' && typeof right === 'number') {
@@ -185,43 +213,71 @@ const compareVisitValue = (left, right) => {
   return String(left).localeCompare(String(right));
 };
 
+// Sort honesty: the Patient and Hospital columns display enriched names, so
+// sorting uses the same display values instead of the raw UUID foreign keys.
+const getVisitSortValue = (visit, sortKey, rawKey) => {
+  if (sortKey === 'user_id') {
+    return getVisitPatientLabel(visit);
+  }
+  if (sortKey === 'hospital_id') {
+    return visit?.hospital_name ?? null;
+  }
+  return visit?.[sortKey] ?? visit?.[rawKey];
+};
+
 const sortVisitsForPage = (visits = [], sortConfig = { key: 'status', direction: 'desc' }) => {
-  const sortKey = mapVisitSortKey(sortConfig.key || 'date');
+  const rawKey = sortConfig.key || 'date';
+  const sortKey = mapVisitSortKey(rawKey);
   const direction = sortConfig.direction === 'asc' ? 1 : -1;
+  const compareOptions = {
+    isDateKey: VISIT_DATE_SORT_KEYS.has(sortKey),
+    isCostKey: sortKey === 'cost',
+  };
 
   return [...(visits || [])].sort((left, right) => {
-    const leftValue = left?.[sortKey] ?? left?.[sortConfig.key];
-    const rightValue = right?.[sortKey] ?? right?.[sortConfig.key];
-    return compareVisitValue(leftValue, rightValue) * direction;
+    const leftValue = getVisitSortValue(left, sortKey, rawKey);
+    const rightValue = getVisitSortValue(right, sortKey, rawKey);
+    return compareVisitValue(leftValue, rightValue, compareOptions) * direction;
   });
 };
+
+const chunkIdList = (ids = [], size = ENRICHMENT_ID_CHUNK_SIZE) => {
+  const chunks = [];
+  for (let index = 0; index < ids.length; index += size) {
+    chunks.push(ids.slice(index, index + size));
+  }
+  return chunks;
+};
+
+// Enrichment reads tolerate partial failure exactly like the previous
+// destructured `{ data }` reads did: each chunk contributes `data || []`.
+async function fetchChunkedRows(ids, buildChunkQuery) {
+  if (!ids.length) return [];
+  const results = await Promise.all(
+    chunkIdList(ids).map((chunk) => buildChunkQuery(chunk))
+  );
+  return results.flatMap(({ data }) => data || []);
+}
 
 async function enrichVisitsForPage(visits = []) {
   if (!visits.length) return [];
 
   const userIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))];
-  const emergencyLookupIds = [
-    ...new Set(
-      visits
-        .map((v) => v.request_id || v.id)
-        .filter(Boolean)
-    )
-  ];
+  // Only visits that actually link an emergency (request_id) join the lookup;
+  // bare visit ids used to flood the .in() list with ids that are not
+  // emergency ids, pushing the request URL past PostgREST limits.
+  const emergencyLookupIds = [...new Set(visits.map((v) => v.request_id).filter(Boolean))];
   const directHospitalIds = [...new Set(visits.map(v => v.hospital_id).filter(Boolean))];
 
-  const [{ data: profiles }, { data: emergencyRows }] = await Promise.all([
-    userIds.length > 0
-      ? supabase
-        .from('profiles')
-        .select('id, username, email, full_name')
-        .in('id', userIds)
-      : Promise.resolve({ data: [] }),
-    emergencyLookupIds.length > 0
-      ? supabase
-        .from('emergency_requests')
-        .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
-        .in('id', emergencyLookupIds)
-      : Promise.resolve({ data: [] })
+  const [profiles, emergencyRows] = await Promise.all([
+    fetchChunkedRows(userIds, (chunk) => supabase
+      .from('profiles')
+      .select('id, username, email, full_name')
+      .in('id', chunk)),
+    fetchChunkedRows(emergencyLookupIds, (chunk) => supabase
+      .from('emergency_requests')
+      .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
+      .in('id', chunk))
   ]);
 
   const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
@@ -233,10 +289,10 @@ async function enrichVisitsForPage(visits = []) {
 
   let doctorsMap = {};
   if (doctorIds.length > 0) {
-    const { data: doctors } = await supabase
+    const doctors = await fetchChunkedRows(doctorIds, (chunk) => supabase
       .from('doctors')
       .select('id, name')
-      .in('id', doctorIds);
+      .in('id', chunk));
     doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
   }
 
@@ -249,18 +305,18 @@ async function enrichVisitsForPage(visits = []) {
 
   let hospitalsMap = {};
   if (hospitalIds.length > 0) {
-    const { data: hospitalRows } = await supabase
+    const hospitalRows = await fetchChunkedRows(hospitalIds, (chunk) => supabase
       .from('hospitals')
       .select('id, name, address')
-      .in('id', hospitalIds);
+      .in('id', chunk));
     hospitalsMap = (hospitalRows || []).reduce((acc, h) => ({ ...acc, [h.id]: h }), {});
   }
 
   return visits.map((visit) => {
+    // Lookup is request_id-keyed only; the legacy `emergencyByRequest[visit.id]`
+    // fallback could never resolve once bare visit ids left the lookup set.
     const emergency =
-      (visit.request_id ? emergencyByRequest[visit.request_id] : null) ||
-      emergencyByRequest[visit.id] ||
-      null;
+      (visit.request_id ? emergencyByRequest[visit.request_id] : null) || null;
     const linkedHospitalId = visit.hospital_id || emergency?.hospital_id || null;
     const linkedHospitalName =
       visit.hospital_name ||
