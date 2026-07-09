@@ -11,10 +11,14 @@ export const useNavigation = () => {
 };
 
 export const NavigationProvider = ({ children }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open
+  // Lazy-init from the real viewport so the FIRST frame is already correct.
+  // useState(false) + measure-in-effect gave every mobile mount one desktop-tree
+  // frame (desktop entrances started, then the isMobile fork replaced them — the
+  // "stacking/skew on mount" defect). typeof window guard keeps tests/SSR safe.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 768); // Open on desktop, closed on mobile from frame one
   const [currentPage, setCurrentPage] = useState('');
 
   useEffect(() => {

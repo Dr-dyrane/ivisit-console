@@ -25,7 +25,6 @@ import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { SEOHead } from '../common/SEOHead';
 import { MobileToday } from '../mobile/MobileToday';
 
-const appleEase = [0.21, 0.47, 0.32, 0.98];
 const routeFeedbackMs = 320;
 
 export const ROLE_COPY = {
@@ -576,10 +575,9 @@ const TodayCenter = ({ today, roleCopy, live, initialLoading, glanceItems, onAct
   const Icon = today.icon || Activity;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.48, ease: appleEase }}
+    // Data regions never entrance-animate (MOTION canon §3): the hero is
+    // count-derived data, so it is simply present once mounted.
+    <section
       className="relative z-10 flex min-h-[210px] min-w-0 flex-1 items-center px-6 pb-5 pt-7 md:min-h-[520px] md:px-12 md:py-10 lg:pl-24"
     >
       <div className="max-w-2xl">
@@ -619,7 +617,7 @@ const TodayCenter = ({ today, roleCopy, live, initialLoading, glanceItems, onAct
           ))}
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 };
 
@@ -686,10 +684,9 @@ const DetailRow = ({ row, expanded, onToggle, onAction, routingPath }) => {
 };
 
 const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAction, routingPath }) => (
-  <motion.aside
-    initial={{ opacity: 0, y: 18, scale: 0.98 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.46, delay: 0.08, ease: appleEase }}
+  // No entrance motion (MOTION canon §3): the delayed y+scale pop made the sheet
+  // arrive on a second clock after the hero — the banned stage-reveal/skew.
+  <aside
     className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-3 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]"
   >
     <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
@@ -732,7 +729,7 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
         />
       ))}
     </div>
-  </motion.aside>
+  </aside>
 );
 
 export const TodayHome = ({ role }) => {
