@@ -316,7 +316,7 @@ export const FilterSheet = ({
           : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
         }
       >
-        <div className={`bg-card/90 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_12px_32px_rgb(0_0_0/0.10)] px-2 md:px-6 py-6 dark:bg-card/85 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
+        <div className={`bg-card/95 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_12px_32px_rgb(0_0_0/0.10)] px-2 md:px-6 py-6 dark:bg-card/85 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (

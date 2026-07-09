@@ -221,7 +221,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           {formData.priority || 'medium'}
         </Badge>
       )}
-      size="xl"
+      size="lg"
       footer={(
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button

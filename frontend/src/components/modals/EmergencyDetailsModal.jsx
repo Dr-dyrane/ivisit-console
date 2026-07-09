@@ -234,7 +234,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           {request.priority?.toUpperCase()}
         </Badge>
       )}
-      size="xl"
+      size="lg"
       managed
     >
       <div className="flex-1 overflow-y-auto p-4 pt-1 sm:p-8 sm:pt-2 no-scrollbar">
