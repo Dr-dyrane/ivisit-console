@@ -14,12 +14,16 @@
  *
  * PALETTE NOTE: status hues are raw & distinct (cyan/amber/emerald/slate/sky) on
  * purpose. The semantic tokens collapse (--primary==--info, --success==--warning) and
- * would render status as brand-red, so status must NOT route through them.
+ * would render status as brand-red, so status must NOT route through them. The ONE
+ * deliberate semantic-token exception is `destructive`: needs-attention states are
+ * SUPPOSED to be alert-red, and desktop already renders them via bg-destructive/14
+ * text-destructive, so the destructive tone routes through that token by design.
  *
  * Public API:
  *   resolveVital(domain, status) -> { steps, currentKey, tone, cancelled, pill } | null
  *   statusPill(status, label?)   -> { label, className }   (generic keyword fallback)
  *   getVitalDomains()            -> string[]               (domains with a track)
+ *   EMERGENCY_STATUS_TONES       -> canonical emergency status -> tone map (shared truth)
  */
 
 import { LIFECYCLES } from './lifecycles';
@@ -36,7 +40,30 @@ const TONES = {
   emerald: { hex: '#047857', accent: 'hsl(162 94% 24%)', pill: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' },
   sky: { hex: '#0284C7', accent: 'hsl(200 98% 39%)', pill: 'bg-sky-500/10 text-sky-700 dark:text-sky-200' },
   slate: { hex: '#64748B', accent: 'hsl(215 16% 47%)', pill: 'bg-muted/34 text-muted-foreground' },
+  // Needs-attention red. hex/accent mirror the app's --destructive token (0 84% 60%,
+  // same value in light and dark); the pill matches desktop's canonical
+  // `bg-destructive/14 text-destructive` (statusStyles + getRequestAvatarClass in
+  // EmergencyRequestsPage). Added additively for the 2026-07-09 status-tone alignment;
+  // existing tones above are untouched.
+  destructive: { hex: '#EF4444', accent: 'hsl(0 84% 60%)', pill: 'bg-destructive/14 text-destructive' },
 };
+
+// Canonical emergency status -> tone map, agreed in the 2026-07-09 cross-lane
+// arbitration. Mirrors desktop's REQUEST_STAGE_FILL + getRequestAvatarClass
+// (EmergencyRequestsPage) and the mobile row-orb map, which all agree:
+// needs-attention (pending_approval, payment_declined) = destructive red,
+// accepted = cyan, arrived = sky, in_progress = amber, completed = emerald,
+// cancelled = muted slate. The emergency domain below consumes THIS map; desktop
+// will consume it next desktop batch - one source of truth, do not fork it.
+export const EMERGENCY_STATUS_TONES = Object.freeze({
+  pending_approval: 'destructive',
+  payment_declined: 'destructive',
+  accepted: 'cyan',
+  arrived: 'sky',
+  in_progress: 'amber',
+  completed: 'emerald',
+  cancelled: 'slate',
+});
 
 const norm = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -75,24 +102,27 @@ const DOMAINS = {
 
   // Grounded in EMERGENCY_LIFECYCLE. Display collapses 'accepted' into the
   // 'in_progress' node so the track stays four legible steps; payment_declined and
-  // cancelled render muted.
+  // cancelled render muted. Tones come from EMERGENCY_STATUS_TONES (canonical, shared
+  // with desktop) - labels are display-local. Step tones match desktop's
+  // REQUEST_STAGE_FILL: pending_approval renders destructive (needs attention), not a
+  // calm cyan, exactly like the desktop stage strip.
   emergency: {
     steps: [
-      { key: 'pending_approval', label: 'Requested', tone: 'cyan' },
-      { key: 'in_progress', label: 'Dispatched', tone: 'amber' },
-      { key: 'arrived', label: 'Arrived', tone: 'amber' },
-      { key: 'completed', label: 'Completed', tone: 'emerald' },
+      { key: 'pending_approval', label: 'Requested', tone: EMERGENCY_STATUS_TONES.pending_approval },
+      { key: 'in_progress', label: 'Dispatched', tone: EMERGENCY_STATUS_TONES.in_progress },
+      { key: 'arrived', label: 'Arrived', tone: EMERGENCY_STATUS_TONES.arrived },
+      { key: 'completed', label: 'Completed', tone: EMERGENCY_STATUS_TONES.completed },
     ],
     collapse: { accepted: 'in_progress' },
     muted: ['cancelled', 'payment_declined'],
     status: {
-      pending_approval: { label: 'Requested', tone: 'cyan' },
-      payment_declined: { label: 'Payment declined', tone: 'slate' },
-      in_progress: { label: 'In progress', tone: 'amber' },
-      accepted: { label: 'Dispatched', tone: 'amber' },
-      arrived: { label: 'Arrived', tone: 'amber' },
-      completed: { label: 'Completed', tone: 'emerald' },
-      cancelled: { label: 'Cancelled', tone: 'slate' },
+      pending_approval: { label: 'Requested', tone: EMERGENCY_STATUS_TONES.pending_approval },
+      payment_declined: { label: 'Payment declined', tone: EMERGENCY_STATUS_TONES.payment_declined },
+      in_progress: { label: 'In progress', tone: EMERGENCY_STATUS_TONES.in_progress },
+      accepted: { label: 'Dispatched', tone: EMERGENCY_STATUS_TONES.accepted },
+      arrived: { label: 'Arrived', tone: EMERGENCY_STATUS_TONES.arrived },
+      completed: { label: 'Completed', tone: EMERGENCY_STATUS_TONES.completed },
+      cancelled: { label: 'Cancelled', tone: EMERGENCY_STATUS_TONES.cancelled },
     },
     normalize: (s) => canonicalizeEmergencyStatus(s, s),
   },
