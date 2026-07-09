@@ -16,6 +16,7 @@ import {
     Search,
     Send,
     User,
+    X,
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
@@ -292,12 +293,23 @@ export const MobileEmergency = ({
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                                 <input
-                                    type="search"
+                                    type="text"
+                                    inputMode="search"
                                     placeholder="Search requests..."
                                     value={filters?.search || ''}
                                     onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
-                                    className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+                                    className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-10 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
                                 />
+                                {filters?.search && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFilters?.((prev) => ({ ...prev, search: '' }))}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-pill bg-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/15 active:scale-95"
+                                        aria-label="Clear search"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                )}
                             </div>
                             <motion.button
                                 type="button"
