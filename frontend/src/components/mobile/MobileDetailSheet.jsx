@@ -52,8 +52,12 @@ export const MobileDetailSheet = ({
       <div className="flex items-start gap-3">
         {Icon && (
           <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-icon bg-muted/40"
-            style={iconTone ? { color: iconTone } : undefined}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-muted/40"
+            style={
+              iconTone
+                ? { color: iconTone, backgroundColor: `color-mix(in srgb, ${iconTone} 12%, transparent)` }
+                : undefined
+            }
           >
             <Icon className="h-5 w-5" />
           </span>
@@ -62,7 +66,7 @@ export const MobileDetailSheet = ({
           {eyebrow && (
             <p className="eyebrow">{eyebrow}</p>
           )}
-          <h2 className="mt-0.5 text-xl font-semibold leading-tight text-foreground line-clamp-2 break-words">
+          <h2 className="mt-0.5 text-[17px] font-semibold leading-tight text-foreground line-clamp-2 break-words">
             {title}
           </h2>
           {statusPill && (

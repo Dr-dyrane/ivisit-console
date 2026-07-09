@@ -279,7 +279,7 @@ describe('DoctorsPage Staff contract', () => {
 
     expect(shell).toContain("document.querySelectorAll('[data-modal-chrome=\"true\"], #dynamic-bottom-bar')");
     expect(shell).toContain('z-[420]');
-    expect(shell).toContain('backdrop-blur-2xl');
+    expect(shell).toContain('backdrop-blur-sm');
     expect(shell).toContain("node.setAttribute('aria-hidden', 'true')");
     expect(header).toContain('data-modal-chrome="true"');
     expect(app).toContain('data-modal-chrome="true"');

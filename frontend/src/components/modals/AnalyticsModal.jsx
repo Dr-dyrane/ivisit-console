@@ -96,6 +96,11 @@ const SHARE_LABELS = {
   visit: 'Completed',
 };
 
+// Modal section-card canon (adapted to opaque-DOM tokens): translucent panel, borderless,
+// no inner shadow. Section label + tiles/rows grouped inside.
+const SECTION_CARD = 'rounded-card bg-foreground/[0.05] dark:bg-white/[0.07] p-4';
+const SECTION_LABEL = 'text-[13px] font-semibold text-muted-foreground';
+
 export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   const [phase, setPhase] = useState(0);
 
@@ -224,38 +229,41 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         exit={{ opacity: 0, scale: 0.98 }}
         className="space-y-4"
       >
-        <div className="grid grid-cols-2 gap-2">
-          {currentItems.map((item, i) => (
-            <StatNode
-              key={i}
-              label={item.label}
-              value={item.value}
-              trend={item.trend}
-              icon={item.icon}
-              color={item.color}
-            />
-          ))}
+        <div className={SECTION_CARD}>
+          <span className={`${SECTION_LABEL} mb-3 block`}>{TYPE_LABELS[type] || 'Overview'}</span>
+          <div className="grid grid-cols-2 gap-2">
+            {currentItems.map((item, i) => (
+              <StatNode
+                key={i}
+                label={item.label}
+                value={item.value}
+                trend={item.trend}
+                icon={item.icon}
+                color={item.color}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="p-4 bg-muted/15 backdrop-blur-md rounded-card flex items-center justify-around text-center mt-2 group">
+        <div className={`${SECTION_CARD} flex items-center justify-around text-center group`}>
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-normal">
+            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">
               {getSafePercentage(
                 analytics.active || analytics.published || analytics.verifiedUsers || analytics.resolved || analytics.completed,
                 analytics.total || analytics.totalUsers
               )}
             </span>
-            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">{SHARE_LABELS[type] || 'Share'}</span>
+            <span className="eyebrow mt-1 text-muted-foreground/55">{SHARE_LABELS[type] || 'Share'}</span>
           </div>
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-normal">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
-            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Recent</span>
+            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
+            <span className="eyebrow mt-1 text-muted-foreground/55">Recent</span>
           </div>
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-normal">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
-            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Groups</span>
+            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
+            <span className="eyebrow mt-1 text-muted-foreground/55">Groups</span>
           </div>
         </div>
       </motion.div>
@@ -277,13 +285,13 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         exit={{ opacity: 0, x: -10 }}
         className="space-y-2"
       >
-        <div className="bg-muted/15 backdrop-blur-md rounded-card p-4">
+        <div className={SECTION_CARD}>
           <div className="flex items-center gap-2 mb-4">
             <div className="h-1.5 w-1.5 rounded-pill bg-sky-500/55" />
-            <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
+            <span className={SECTION_LABEL}>{phases[phase].label}</span>
           </div>
           {isVisibleScopedDistribution && (
-            <p className="mb-4 rounded-inner bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <p className="mb-4 rounded-inner bg-foreground/[0.04] dark:bg-white/[0.05] px-3 py-2 text-xs font-semibold text-muted-foreground">
               {analytics.distributionLabel || 'Visible page only'}
             </p>
           )}
@@ -295,7 +303,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
                 <div key={key} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-end px-1">
                     <span className="text-[11px] font-normal tracking-normal capitalize opacity-80">{key.replace('_', ' ')}</span>
-                    <span className="text-[10px] font-medium tabular-nums opacity-40">{getPercentage(count, scopedTotal)}%</span>
+                    <span className="font-dashboard-numbers text-[10px] font-medium tabular-nums opacity-40">{getPercentage(count, scopedTotal)}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-muted/20 rounded-pill overflow-hidden">
                     <motion.div
@@ -329,13 +337,13 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -10 }}
       >
-        <div className="bg-muted/15 backdrop-blur-md rounded-card p-4">
+        <div className={SECTION_CARD}>
           <div className="flex items-center gap-2 mb-4">
             <div className="h-1.5 w-1.5 rounded-pill bg-emerald-500/55" />
-            <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
+            <span className={SECTION_LABEL}>{phases[phase].label}</span>
           </div>
           {isVisibleScopedDistribution && (
-            <p className="mb-4 rounded-inner bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <p className="mb-4 rounded-inner bg-foreground/[0.04] dark:bg-white/[0.05] px-3 py-2 text-xs font-semibold text-muted-foreground">
               {analytics.distributionLabel || 'Visible page only'}
             </p>
           )}
@@ -343,9 +351,9 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             {Object.entries(dataSet)
               .sort(([, a], [, b]) => b - a)
               .map(([key, count]) => (
-                <div key={key} className="p-3 rounded-inner bg-foreground/[0.03] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
+                <div key={key} className="p-3 rounded-inner bg-foreground/[0.03] dark:bg-white/[0.04] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
                   <span className="mb-1 w-full truncate px-1 text-xs font-semibold capitalize text-muted-foreground/65">{key.replace('_', ' ')}</span>
-                  <span className="text-[16px] font-normal tracking-normal tabular-nums">{count}</span>
+                  <span className="font-dashboard-numbers text-[16px] font-normal tracking-normal tabular-nums">{count}</span>
                   <span className="mt-0.5 text-[10px] font-semibold text-sky-600/70 dark:text-sky-300/80">
                     {getPercentage(count, scopedTotal)}%
                   </span>
@@ -443,12 +451,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
 const StatNode = ({ label, value, trend, icon: Icon, color }) => (
   <motion.div
     whileTap={{ scale: 0.98 }}
-    className="p-3.5 rounded-card bg-foreground/[0.04] dark:bg-transparent backdrop-blur-md relative overflow-hidden group active:bg-muted/40 transition-colors"
+    className="p-3.5 rounded-inner bg-foreground/[0.03] dark:bg-white/[0.04] relative overflow-hidden group active:bg-foreground/[0.06] transition-colors"
   >
-    {/* Raised Action Node (Canon #369) */}
+    {/* Action node — icon + optional trend */}
     <div className="flex justify-between items-start mb-2.5">
       <div
-        className="w-8 h-8 rounded-icon flex items-center justify-center relative z-10 shadow-sm"
+        className="w-8 h-8 rounded-icon flex items-center justify-center relative z-10"
         style={{ background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.15)')}, ${color.replace(/\)$/, ' / 0.05)')})` }}
       >
         <Icon size={14} className="opacity-80" style={{ color }} />
@@ -461,10 +469,10 @@ const StatNode = ({ label, value, trend, icon: Icon, color }) => (
     </div>
 
     <div className="flex flex-col">
-      <span className="mb-0.5 text-[10px] font-semibold text-muted-foreground/60 transition-opacity group-hover:text-muted-foreground/80">
+      <span className="eyebrow mb-0.5 text-muted-foreground/60 transition-opacity group-hover:text-muted-foreground/80">
         {label}
       </span>
-      <span className="text-[18px] font-normal tracking-normal tabular-nums leading-none">
+      <span className="font-dashboard-numbers text-[18px] font-normal tracking-normal tabular-nums leading-none">
         {value}
       </span>
     </div>
