@@ -97,8 +97,8 @@ export const searchService = {
   async searchAmbulances(query, limit) {
     const { data } = await supabase
       .from('ambulances')
-      .select('id, call_sign, type, status, hospital')
-      .or(`call_sign.ilike.%${query}%,type.ilike.%${query}%,hospital.ilike.%${query}%`)
+      .select('id, call_sign, type, status')
+      .or(`call_sign.ilike.%${query}%,type.ilike.%${query}%`)
       .limit(limit);
 
     return (data || []).map(a => ({

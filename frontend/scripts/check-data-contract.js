@@ -66,15 +66,11 @@ const MATCH_METHODS = new Set(['match']);
 //   - onboardingService verify/reject flow writes hospitals.verified_at / rejected_at /
 //     rejection_reason + profiles.verification_status (part of the not-yet-proved
 //     registration flow already held out of the hardgate).
-//   - searchService / staffSchedulingService read ambulances.hospital (should be
-//     hospital_id, or a hospitals join).
 const BASELINE = new Set([
   'onboardingService.js|hospitals|rejected_at',
   'onboardingService.js|hospitals|rejection_reason',
   'onboardingService.js|hospitals|verified_at',
   'onboardingService.js|profiles|verification_status',
-  'searchService.js|ambulances|hospital',
-  'staffSchedulingService.js|ambulances|hospital',
 ]);
 
 // ---------------------------------------------------------------------------

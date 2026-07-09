@@ -400,19 +400,12 @@ export async function getScheduleStats(hospitalId, dateFrom, dateTo) {
     // Get ambulance stats
     let ambulanceQuery = supabase
       .from('ambulances')
-      .select('status, hospital');
+      .select('status');
 
     if (hospitalId) {
-      // Filter by hospital name match
-      const { data: hospital } = await supabase
-        .from('hospitals')
-        .select('name')
-        .eq('id', hospitalId)
-        .single();
-
-      if (hospital) {
-        ambulanceQuery = ambulanceQuery.eq('hospital', hospital.name);
-      }
+      // Filter by the ambulance's hospital_id directly (ambulances has hospital_id,
+      // not a hospital-name column — no need to resolve the name first).
+      ambulanceQuery = ambulanceQuery.eq('hospital_id', hospitalId);
     }
 
     const { data: ambulances, error: ambulanceError } = await ambulanceQuery;
