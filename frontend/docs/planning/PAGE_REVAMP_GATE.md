@@ -73,10 +73,13 @@ recertified, or "revamp complete" — until every box below is checked with proo
 contract-test, per §7 QA Proof). The loading-motion model referenced here is canon in
 [`MOTION_AND_INTERACTION_CANON.md`](../design-system/MOTION_AND_INTERACTION_CANON.md) §3.
 
-- [ ] Skeleton-first on EVERY mount (forced warm-up pattern — `SKELETON_WARMUP_MS` in
-      `MobileEmergency.jsx`; cached navigation must look identical to a hard refresh); the
-      skeleton mirrors the final layout 1:1; content replaces in place — no translate/stagger
-      entrance, no fade-from-blank.
+- [ ] Loading is shape-stable and truthful: a skeleton is REQUIRED when content is unavailable
+      or still assembling (mirroring the final layout 1:1; content replaces in place — no
+      translate/stagger entrance, no fade-from-blank). If complete cached data is already
+      available, instant truthful paint is PREFERRED over artificial loading — desktop keeps
+      instant-render on warm cache; mobile keeps its forced warm-up (`SKELETON_WARMUP_MS` in
+      `MobileEmergency.jsx`) because it solves a real mount-cascade problem there. (Wording
+      arbitrated 2026-07-09.)
 - [ ] `isFetching` surfaced: active KPI chip spinner (desktop) / "Updating" pill (mobile) on
       every background refetch — no silent refetch.
 - [ ] KPI side-effect matrix walked: every selection (including `all` and unknown ids) ×
