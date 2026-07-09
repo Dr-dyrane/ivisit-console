@@ -160,7 +160,7 @@ export const FilterSheet = ({
                       </Label>
                     </div>
                     {index < (options || []).length - 1 && (
-                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)]" aria-hidden="true" />
+                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)]" aria-hidden="true" />
                     )}
                   </Fragment>
                 );
@@ -212,7 +212,7 @@ export const FilterSheet = ({
                       </Label>
                     </div>
                     {index < (options || []).length - 1 && (
-                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)]" aria-hidden="true" />
+                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)]" aria-hidden="true" />
                     )}
                   </Fragment>
                 );
