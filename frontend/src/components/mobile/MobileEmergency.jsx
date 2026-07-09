@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     AlertCircle,
     Ambulance,
@@ -20,7 +20,7 @@ import {
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -31,7 +31,7 @@ import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
-import { getMobilePageStageMotion } from './mobileMotion';
+import { mobileMotion } from './mobileMotion';
 
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
@@ -159,6 +159,40 @@ const MobileRequestsAtlasLayer = () => (
     </div>
 );
 
+// Group-shaped load scaffold: mirrors the real recency panel 1:1 (same header row,
+// frosted panel, row rhythm, and 62px hairline inset) so the list REPLACES it in place
+// with zero layout jump — no top-to-bottom entrance, the skeleton holds the layout and
+// content materializes where it already sat. Apple/iOS loading model.
+const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
+    <div className="space-y-[18px]" aria-hidden="true">
+        {Array.from({ length: groups }).map((_, groupIndex) => (
+            <div key={groupIndex}>
+                <div className="flex items-center justify-between px-1 pb-2.5">
+                    <span className="h-[13px] w-24 rounded-pill bg-muted/25 shimmer" />
+                    <span className="h-[13px] w-5 rounded-pill bg-muted/20 shimmer" />
+                </div>
+                <div className="rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
+                    {Array.from({ length: rowsPerGroup }).map((_, rowIndex) => (
+                        <React.Fragment key={rowIndex}>
+                            <div className="flex items-center gap-3 px-2 py-3">
+                                <span className="h-10 w-10 shrink-0 rounded-pill bg-muted/25 shimmer" />
+                                <div className="min-w-0 flex-1 space-y-2">
+                                    <span className="block h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer" />
+                                    <span className="block h-3 w-3/5 rounded-pill bg-muted/15 shimmer" />
+                                </div>
+                                <span className="ml-2 h-6 w-14 shrink-0 rounded-pill bg-muted/20 shimmer" />
+                            </div>
+                            {rowIndex < rowsPerGroup - 1 && (
+                                <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]" />
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 export const MobileEmergency = ({
     emergencies,
     loading,
@@ -181,7 +215,6 @@ export const MobileEmergency = ({
     setKpiFilter
 }) => {
     const observerTarget = useRef(null);
-    const reduceMotion = useReducedMotion();
     const [activeRequest, setActiveRequest] = useState(null);
     const { triggerFromEvent } = useFeedback();
     const { displayItems, isBuffering } = useStableList(emergencies, loading);
@@ -216,15 +249,15 @@ export const MobileEmergency = ({
             >
                 <MobileRequestsAtlasLayer />
                 <div className="relative z-10 space-y-3">
-                    <motion.section
-                        {...getMobilePageStageMotion({ index: 0, reduceMotion })}
-                        className="px-4"
-                    >
+                    {/* Chrome (title + summary) is always present — no entrance motion.
+                        Only DATA regions load; they scaffold with skeletons and replace
+                        in place, so nothing sweeps in top-to-bottom. */}
+                    <section className="px-4">
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {loading ? 'Loading requests...' : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
                         </p>
-                    </motion.section>
+                    </section>
 
                     <MobileKPIStrip
                         kpis={kpis}
@@ -237,10 +270,7 @@ export const MobileEmergency = ({
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
-                        <motion.div
-                            {...getMobilePageStageMotion({ index: 2, reduceMotion })}
-                            className="flex items-center gap-2"
-                        >
+                        <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                                 <input
@@ -284,7 +314,7 @@ export const MobileEmergency = ({
                                     <BarChart3 size={18} />
                                 </motion.button>
                             )}
-                        </motion.div>
+                        </div>
 
                         <div className="mt-4 flex items-center justify-end px-2">
                             {isBuffering && (
@@ -312,10 +342,19 @@ export const MobileEmergency = ({
                         {/* iOS-Settings grouped list (canon): one frosted PANEL per recency
                             bucket over the atlas; rows are transparent, separated by a slate
                             hairline — separation is fill/frost, never a border. Grouping is
-                            render-only; id-keyed state is unaffected. The whole list block
-                            reveals as ONE staged unit (index 3) — never per-row (that skews). */}
+                            render-only; id-keyed state is unaffected.
+
+                            Load model: the group-shaped skeleton holds the exact final
+                            layout, then the real list REPLACES it in place with an
+                            opacity-only materialize (no translate, no per-row stagger — that
+                            was the top-to-bottom skew). Nothing moves; content just appears. */}
+                        {showSkeleton ? (
+                            <MobileRequestsListSkeleton />
+                        ) : (
                         <motion.div
-                            {...getMobilePageStageMotion({ index: 3, reduceMotion })}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={mobileMotion.base}
                             className="space-y-[18px]"
                         >
                             {groupByRecency(
@@ -371,9 +410,9 @@ export const MobileEmergency = ({
                                 </div>
                             ))}
                         </motion.div>
+                        )}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
-                            {showSkeleton && <MobileListSkeletonRows />}
                             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayItems.length > 0 && (
                                 <MobileListEnd label="End of requests" />
