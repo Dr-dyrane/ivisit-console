@@ -178,9 +178,12 @@ present on desktop; it shows the currently focused record.
   backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5
   lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]
   ```
-- **Contents:** header + neutral status pill → identity block (icon/avatar tile +
-  name + secondary line) → `XDetailLine` rows (`rounded-inner bg-muted/20 p-2.5`, icon
-  tile `rounded-button bg-background/45`) → a primary full-width action
+- **Contents (Today-sheet surface recipe):** the hero block (header + status pill +
+  stage strip + identity) sits in a **recessed inset panel**
+  (`rounded-modal bg-background/55 p-3 dark:bg-white/[0.05]`) → `XDetailLine` rows are
+  **fill-film cards** over the pane (`rounded-inner bg-foreground/[0.045] p-2.5
+  dark:bg-white/[0.055]`, no per-card shadow; icon tile `rounded-button
+  bg-background/45`) → a primary full-width action
   (`rounded-button bg-foreground text-background`) → secondary `XRailButton` (ghost) →
   a `role="note"` read-only hint when writes are gated behind authority
   (`getXActionState`).

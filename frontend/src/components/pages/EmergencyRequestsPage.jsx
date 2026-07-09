@@ -2130,7 +2130,10 @@ const RequestDetailRail = ({
   return (
     <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
       <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-      <div className="mb-5 flex items-start justify-between gap-4">
+      {/* Today-sheet surface recipe: a recessed inset panel holds the hero block, and the
+          detail cards below read as fill-films over the pane (no per-card shadow). */}
+      <div className="mb-4 rounded-modal bg-background/55 p-3 dark:bg-white/[0.05] md:p-4">
+      <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold tracking-tight">Request details</h2>
           {displayId && (
@@ -2161,7 +2164,7 @@ const RequestDetailRail = ({
         </Button>
       </div>
 
-      <div className="mb-5 flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-pill text-lg font-semibold ${avatarClass}`}>
           <span aria-hidden="true">{getInitials(projection.patientDisplay.name)}</span>
           {projection.patientDisplay.avatar && (
@@ -2185,6 +2188,7 @@ const RequestDetailRail = ({
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{patientEmail}</p>
           )}
         </div>
+      </div>
       </div>
 
       <div className="space-y-2">
@@ -2280,7 +2284,7 @@ const RequestDetailRail = ({
 };
 
 const DetailLine = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.045] p-2.5 dark:bg-white/[0.055]">
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
       <Icon className="h-4 w-4" />
     </span>
