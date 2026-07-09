@@ -46,7 +46,7 @@ const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => {
   return STATUS_ALIAS_TO_DB[status] || status;
 };
 
-const requestFieldClassName = 'rounded-button bg-black/5 shadow-[0_12px_30px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
+const requestFieldClassName = 'h-11 rounded-inner bg-background/60 transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]';
 const requestSelectContentClassName = 'rounded-inner bg-background/95 shadow-2xl backdrop-blur-xl';
 
 export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
@@ -217,7 +217,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
       subtitle={modalSubtitle}
       icon={<Siren className={`h-4 w-4 ${getPriorityColor(formData.priority)}`} />}
       badge={(
-        <Badge className={`rounded-pill px-4 py-1 shadow-sm ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
+        <Badge className={`rounded-pill px-4 py-1 ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
           {formData.priority || 'medium'}
         </Badge>
       )}
@@ -228,7 +228,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
             type="button"
             variant="ghost"
             onClick={() => onClose(false)}
-            className="h-12 rounded-button px-8 font-semibold"
+            className="h-12 rounded-button bg-muted/60 px-8 font-semibold active:scale-[0.96]"
           >
             {isView ? 'Close' : 'Cancel'}
           </Button>
@@ -237,7 +237,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
               type="submit"
               form={formId}
               disabled={loading}
-              className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+              className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground active:scale-[0.96] hover:bg-primary/90"
             >
               {submitLabel}
             </Button>
@@ -248,7 +248,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
       <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-4 pb-4 pt-1 sm:px-8 sm:pb-8 sm:pt-2">
 
                 {/* Status Bar */}
-                <div className="flex items-center justify-between gap-2 rounded-inner bg-black/5 p-1.5 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-2 rounded-inner bg-foreground/[0.05] p-1.5 dark:bg-white/[0.07]">
                   {STATUS_STEPS.map((step, i) => {
                     const isCurrent = currentStatus === step;
                     const isPast = currentStepIndex > i;
@@ -259,7 +259,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                         disabled={isView}
                         aria-pressed={isCurrent}
                         onClick={!isView ? () => setFormData(prev => ({ ...prev, status: step })) : undefined}
-                        className={`min-w-0 flex-1 rounded-button px-1.5 py-2 text-[9px] font-semibold uppercase tracking-wide transition-all sm:px-3 sm:text-[10px] sm:tracking-wider ${isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' :
+                        className={`min-w-0 flex-1 rounded-button px-1.5 py-2 text-[9px] font-semibold uppercase tracking-wide transition-all active:scale-[0.96] sm:px-3 sm:text-[10px] sm:tracking-wider ${isCurrent ? 'bg-primary text-primary-foreground' :
                           isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
                           }`}
                       >
@@ -280,7 +280,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             value={formData.user_id}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
                           >
-                            <SelectTrigger className={`${requestFieldClassName} h-12`}>
+                            <SelectTrigger className={requestFieldClassName}>
                               <SelectValue placeholder="Select user" />
                             </SelectTrigger>
                             <SelectContent className={requestSelectContentClassName}>
@@ -426,12 +426,12 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
 /* Sub-components */
 
 const GlassCard = ({ children, title, icon, className }) => (
-  <div className={`rounded-card bg-black/5 p-4 shadow-[0_18px_55px_rgb(0_0_0/0.06)] dark:bg-white/5 sm:p-6 ${className}`}>
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="rounded-icon bg-white/5 p-1.5 sm:p-2">
+  <div className={`rounded-card bg-foreground/[0.05] p-4 dark:bg-white/[0.07] ${className}`}>
+    <div className="flex items-center gap-3 mb-4">
+      <div className="rounded-icon bg-foreground/[0.06] p-1.5 dark:bg-white/[0.08]">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="text-[13px] font-semibold text-muted-foreground">{title}</h3>
     </div>
     {children}
   </div>

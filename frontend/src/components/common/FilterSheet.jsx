@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useRef } from 'react';
+import { useState, useEffect, useId, useRef, Fragment } from 'react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const filterInputClassName = 'w-full rounded-button bg-black/5 px-3 py-2.5 text-sm shadow-[0_12px_28px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
+const filterInputClassName = 'w-full rounded-inner bg-background/60 px-3 py-2.5 text-sm transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]';
 const filterBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
 const filterSheetTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
 
@@ -110,7 +110,7 @@ export const FilterSheet = ({
       case 'text':
         return (
           <div key={key} className="hidden lg:block space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-[13px] font-semibold text-muted-foreground">{label}</p>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
               <input
@@ -137,26 +137,34 @@ export const FilterSheet = ({
       case 'multiselect':
         return (
           <div key={key} className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
-            <div className="space-y-2">
-              {(options || []).map(option => (
-                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-inner hover:bg-white/5 transition-colors cursor-pointer">
-                  <Checkbox
-                    id={`${key}-${option.value}`}
-                    checked={(currentValue || []).includes(option.value)}
-                    onCheckedChange={(checked) => {
-                      const newValues = checked
-                        ? [...(currentValue || []), option.value]
-                        : (currentValue || []).filter(v => v !== option.value);
-                      handleFilterChange(key, newValues);
-                    }}
-                    className="w-5 h-5"
-                  />
-                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
+            <p className="text-[13px] font-semibold text-muted-foreground px-3">{label}</p>
+            <div className="rounded-inner bg-foreground/[0.05] px-3 py-1.5 dark:bg-white/[0.07]">
+              {(options || []).map((option, index) => {
+                const isSelected = (currentValue || []).includes(option.value);
+                return (
+                  <Fragment key={option.value}>
+                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10 text-primary' : ''}`}>
+                      <Checkbox
+                        id={`${key}-${option.value}`}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          const newValues = checked
+                            ? [...(currentValue || []), option.value]
+                            : (currentValue || []).filter(v => v !== option.value);
+                          handleFilterChange(key, newValues);
+                        }}
+                        className="w-5 h-5"
+                      />
+                      <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
+                        {option.label}
+                      </Label>
+                    </div>
+                    {index < (options || []).length - 1 && (
+                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)]" aria-hidden="true" />
+                    )}
+                  </Fragment>
+                );
+              })}
             </div>
           </div>
         );
@@ -164,7 +172,7 @@ export const FilterSheet = ({
       case 'range':
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-[13px] font-semibold text-muted-foreground">{label}</p>
             <Slider
               min={min}
               max={max}
@@ -183,24 +191,32 @@ export const FilterSheet = ({
       case 'select':
         return (
           <div key={key} className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
-            <div className="space-y-2">
-              {(options || []).map(option => (
-                <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-inner hover:bg-white/5 transition-colors cursor-pointer">
-                  <input
-                    type="radio"
-                    id={`${key}-${option.value}`}
-                    name={key}
-                    value={option.value}
-                    checked={currentValue === option.value}
-                    onChange={(e) => handleFilterChange(key, e.target.value)}
-                    className="w-5 h-5 rounded-pill accent-primary"
-                  />
-                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
+            <p className="text-[13px] font-semibold text-muted-foreground px-3">{label}</p>
+            <div className="rounded-inner bg-foreground/[0.05] px-3 py-1.5 dark:bg-white/[0.07]">
+              {(options || []).map((option, index) => {
+                const isSelected = currentValue === option.value;
+                return (
+                  <Fragment key={option.value}>
+                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10 text-primary' : ''}`}>
+                      <input
+                        type="radio"
+                        id={`${key}-${option.value}`}
+                        name={key}
+                        value={option.value}
+                        checked={isSelected}
+                        onChange={(e) => handleFilterChange(key, e.target.value)}
+                        className="w-5 h-5 rounded-pill accent-primary"
+                      />
+                      <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
+                        {option.label}
+                      </Label>
+                    </div>
+                    {index < (options || []).length - 1 && (
+                      <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)]" aria-hidden="true" />
+                    )}
+                  </Fragment>
+                );
+              })}
             </div>
           </div>
         );
@@ -211,7 +227,7 @@ export const FilterSheet = ({
 
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-[13px] font-semibold text-muted-foreground">{label}</p>
             <div className="flex flex-col gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor={startDateId} className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Start date</Label>
@@ -246,7 +262,7 @@ export const FilterSheet = ({
                     key={preset.label}
                     variant="ghost"
                     size="sm"
-                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-button hover:bg-foreground hover:text-background dark:hover:bg-white dark:hover:text-black transition-all"
+                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-button hover:bg-foreground hover:text-background dark:hover:bg-white dark:hover:text-black transition-all active:scale-[0.96]"
                     onClick={() => {
                       const end = new Date();
                       const start = new Date();
@@ -281,7 +297,7 @@ export const FilterSheet = ({
         animate={{ opacity: 1 }}
         transition={filterBackdropTransition}
         onClick={() => onOpenChange(false)}
-        className="fixed inset-0 z-[60] bg-black/10 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[60] bg-black/[0.46] backdrop-blur-sm"
       />
 
       <motion.div
@@ -300,11 +316,11 @@ export const FilterSheet = ({
           : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
         }
       >
-        <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
+        <div className={`bg-card/88 backdrop-blur-xl shadow-2xl px-2 md:px-6 py-6 dark:bg-[#0b1220]/85 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (
-                <div className="w-12 h-1.5 bg-black/20 dark:bg-white/20 rounded-pill mx-auto mb-6 shrink-0" />
+                <div className="mx-auto mb-6 h-1.5 w-[44px] shrink-0 rounded-pill bg-[hsl(var(--muted-foreground)/0.35)]" />
               )}
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
@@ -366,14 +382,14 @@ export const FilterSheet = ({
                   type="button"
                   variant="ghost"
                   onClick={handleReset}
-                  className="flex-1 rounded-button bg-black/5 dark:bg-white/5 hover:bg-white/10"
+                  className="flex-1 rounded-button bg-muted/60 hover:bg-muted active:scale-[0.96]"
                 >
                   {resetLabel}
                 </Button>
                 <Button
                   type="button"
                   onClick={handleApply}
-                  className="flex-1 rounded-button bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  className="flex-1 rounded-button bg-foreground text-background font-semibold hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.96]"
                 >
                   Apply
                 </Button>
