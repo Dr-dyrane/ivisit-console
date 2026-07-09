@@ -86,8 +86,9 @@ export const SmartHeader = () => {
                 animate={{
                     y: isScrolledDown ? -100 : 0,
                     opacity: isScrolledDown ? 0 : 1,
-                    // Dynamic padding based on sidebar state
-                    paddingLeft: isMobile ? 12 : sidebarWidth,
+                    // Desktop offsets for the sidebar; mobile bar carries NO padding
+                    // (alignment comes purely from left-4/right-4 = the px-4 content gutter).
+                    paddingLeft: isMobile ? 0 : sidebarWidth,
                 }}
                 transition={{
                     type: "spring",
