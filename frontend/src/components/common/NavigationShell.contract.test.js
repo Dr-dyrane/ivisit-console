@@ -132,6 +132,8 @@ describe('Navigation shell contract', () => {
     // Dock slots rank by operational importance; Settings lives in the avatar sheet.
     expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Approvals', 'Map']);
     expect(getMobileNavigationItems('provider').map((item) => item.label)).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
+    // Responder providers (provider_type driver/paramedic/ambulance*) swap Visits for Map.
+    expect(getMobileNavigationItems('provider', 'driver').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Settings']);
     expect(mobileMenu).toContain("const [activeTab, setActiveTab] = useState('menu')");
     expect(mobileMenu).toContain('const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);');
     expect(mobileMenu).toContain("else if (isFinance) setActiveGroup('finance');");
@@ -150,7 +152,8 @@ describe('Navigation shell contract', () => {
     expect(smartHeader).toContain('<MobileNavMenu onClose={() => setMenuOpen(false)} />');
     expect(smartHeader).not.toContain('MenuIcon');
     expect(smartHeader).not.toContain('Hamburger');
-    expect(bottomBar).toContain('getMobileNavigationItems(userRole)');
+    // provider_type is the second arg so responder providers get the driver slate.
+    expect(bottomBar).toContain('getMobileNavigationItems(userRole, profile?.provider_type)');
     expect(bottomBar).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(bottomBar).toContain('data-state={isActive ? \'active\' : \'idle\'}');
     expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');

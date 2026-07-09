@@ -1,7 +1,7 @@
 import { getMobileNavigationItems, MOBILE_NAV_CHROME } from './mobileNavigation';
 
-const labelsFor = (role) => getMobileNavigationItems(role).map((item) => item.label);
-const pathsFor = (role) => getMobileNavigationItems(role).map((item) => item.path);
+const labelsFor = (role, providerType) => getMobileNavigationItems(role, providerType).map((item) => item.label);
+const pathsFor = (role, providerType) => getMobileNavigationItems(role, providerType).map((item) => item.path);
 
 describe('mobile navigation canonical contract', () => {
   it('keeps mobile chrome ownership simple', () => {
@@ -29,13 +29,27 @@ describe('mobile navigation canonical contract', () => {
     expect(pathsFor('provider')).toEqual(['/', '/emergencies', '/visits', '/settings']);
   });
 
+  it('gives responder providers a driver island with Map instead of Visits', () => {
+    // The driver Today lens promotes /map; /visits is a dead-end for responders.
+    for (const providerType of ['driver', 'paramedic', 'ambulance', 'ambulance_service']) {
+      expect(labelsFor('provider', providerType)).toEqual(['Today', 'Requests', 'Map', 'Settings']);
+      expect(pathsFor('provider', providerType)).toEqual(['/', '/emergencies', '/map', '/settings']);
+    }
+    expect(getMobileNavigationItems('provider', 'driver').map((item) => item.id))
+      .toEqual(['today', 'emergencies', 'map', 'settings']);
+    // Non-responder provider types keep the plain provider island.
+    expect(labelsFor('provider', 'doctor')).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
+  });
+
   it('keeps sponsor bottom island read-only and settings-safe', () => {
-    expect(labelsFor('sponsor')).toEqual(['Today', 'Statistics', 'Map', 'Settings']);
-    expect(pathsFor('sponsor')).toEqual(['/', '/analytics', '/map', '/settings']);
+    // No Map slot: routes.jsx excludes sponsor from /map (excludedRoles).
+    expect(labelsFor('sponsor')).toEqual(['Today', 'Statistics', 'Settings']);
+    expect(pathsFor('sponsor')).toEqual(['/', '/analytics', '/settings']);
   });
 
   it('keeps viewer bottom island limited to setup', () => {
-    expect(labelsFor('viewer')).toEqual(['Today', 'Map', 'Settings']);
-    expect(pathsFor('viewer')).toEqual(['/', '/map', '/settings']);
+    // No Map slot: routes.jsx gates /map at minRole provider.
+    expect(labelsFor('viewer')).toEqual(['Today', 'Settings']);
+    expect(pathsFor('viewer')).toEqual(['/', '/settings']);
   });
 });

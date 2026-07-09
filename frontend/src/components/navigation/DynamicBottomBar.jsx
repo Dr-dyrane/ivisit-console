@@ -71,7 +71,8 @@ const DynamicBottomBarContent = () => {
         : routeOwnedActionConfig;
     const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;
 
-    const navItems = getMobileNavigationItems(userRole);
+    // provider_type routes responder providers (driver/paramedic/ambulance) to the driver slate.
+    const navItems = getMobileNavigationItems(userRole, profile?.provider_type);
     const navIcons = {
         today: LayoutDashboard,
         emergencies: AlertTriangle,

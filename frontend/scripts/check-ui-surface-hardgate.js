@@ -213,7 +213,8 @@ const requiredSnippets = {
   'src/components/navigation/DynamicBottomBar.jsx': [
     'pageShellConfig?.hideFab',
     '!hideContextFab',
-    'getMobileNavigationItems(userRole)',
+    // provider_type is the second arg so responder providers get the driver slate.
+    'getMobileNavigationItems(userRole, profile?.provider_type)',
   ],
   'src/config/mobileNavigation.js': [
     "overflowOwner: 'avatar'",
