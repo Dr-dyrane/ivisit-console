@@ -411,7 +411,7 @@ export const ContextPanel = () => {
               const event = new CustomEvent('closeContextPanel');
               window.dispatchEvent(event);
             }}
-            className="hidden h-9 w-9 items-center justify-center rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95 md:flex"
+            className="hidden h-9 w-9 items-center justify-center rounded-pill surface-card text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 md:flex"
             type="button"
             aria-label="Close panel"
           >

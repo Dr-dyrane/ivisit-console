@@ -65,7 +65,7 @@ const getStatusLabel = (request) => {
 
 const getServiceTone = (request) => serviceTone[request?.service_type] || {
   icon: Radio,
-  className: 'bg-muted/34 text-muted-foreground',
+  className: 'surface-card text-muted-foreground',
 };
 
 export const EmergencyPanel = ({ requestContext }) => {
@@ -133,7 +133,7 @@ export const EmergencyPanel = ({ requestContext }) => {
                 {total === 1 ? 'Request in this view' : 'Requests in this view'}
               </p>
             </div>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-background/55 text-sky-700 transition-transform duration-200 group-hover:scale-105 dark:text-sky-200">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon surface-card text-sky-700 transition-transform duration-200 group-hover:scale-105 dark:text-sky-200">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Radio className="h-5 w-5" />}
             </span>
           </div>
@@ -142,7 +142,7 @@ export const EmergencyPanel = ({ requestContext }) => {
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-inner bg-destructive/10 p-3 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon surface-card">
                 <AlertCircle className="h-4 w-4" />
               </span>
               <span className="min-w-0">
@@ -158,7 +158,7 @@ export const EmergencyPanel = ({ requestContext }) => {
 
           <div className="rounded-inner bg-rose-500/10 p-3 text-rose-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon surface-card">
                 <ShieldCheck className="h-4 w-4" />
               </span>
               <span className="min-w-0">
@@ -185,7 +185,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileTap={{ scale: 0.97 }}
             onClick={handleCreateRequest}
             disabled={!canCreate}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-sky-500/10 px-3 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-primary px-3 text-primary-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-55"
             data-state={canCreate ? 'idle' : 'unavailable'}
             aria-disabled={!canCreate}
           >
@@ -198,7 +198,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-muted/30 px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Filter</span>
@@ -209,7 +209,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>
@@ -236,7 +236,7 @@ export const EmergencyPanel = ({ requestContext }) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className="group rounded-inner bg-card/60 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-card/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+                className="group rounded-inner surface-card p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -252,7 +252,7 @@ export const EmergencyPanel = ({ requestContext }) => {
                       </span>
                     </span>
                   </div>
-                  <span className="shrink-0 rounded-pill bg-muted/34 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <span className="shrink-0 rounded-pill surface-card px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {getStatusLabel(request)}
                   </span>
                 </div>
@@ -261,13 +261,13 @@ export const EmergencyPanel = ({ requestContext }) => {
           })}
 
           {!loading && recent.length === 0 && (
-            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            <div className="rounded-inner surface-card px-4 py-5 text-center text-xs font-medium text-muted-foreground">
               No requests in the current view.
             </div>
           )}
 
           {loading && recent.length === 0 && (
-            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            <div className="rounded-inner surface-card px-4 py-5 text-center text-xs font-medium text-muted-foreground">
               Loading requests.
             </div>
           )}
