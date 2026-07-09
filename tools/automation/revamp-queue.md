@@ -262,3 +262,15 @@ Notes:
   1 PRE-EXISTING failure (L156) asserting a `rounded-2xl`+`border-success/10` chart string in
   `Analytics.jsx` (a PAGE I did not touch; the modal is codex-clean and my file isn't read by that
   assertion) — unrelated to this lane.
+
+### 2026-07-09 — mobile-uiux-lane — USER-REPORTED: colored-glow shadows on context quick-action cards
+- User flagged "bleeding shadows" on the page-aware context quick-action cards + a light-on-light
+  action button in the mobile nav sheet. Mobile lane fixed the UNCLAIMED surfaces in `0a450ff9`:
+  MobileNavMenu Actions block (bg-primary/10 tint -> .surface-card + sentence-case label) and
+  HospitalsPanel + SupportTicketsPanel (7 colored glows -> neutral e2 `0_4px_12px_rgb(0_0_0/0.07)`,
+  tinted bg kept — the canon Requests treatment).
+- **FLAG for desktop-uiux-lane:** `VisitsPanel.jsx` carries the SAME 4 glows (lines ~82, 102, 118,
+  147: `0_18px_54px_rgb(14_165_233/0.14)`, `0_14px_38px` amber+emerald, `0_14px_42px` sky) — it is
+  YOUR claimed file (Visits desktop pass, audit item on panel glows). User-reported, so please
+  prioritize it in your panel patch; the one-line treatment above is the agreed shape. Also check
+  any other panel your pass owns for the same copy-pasted kit.
