@@ -39,6 +39,7 @@ import {
   Filter as FilterIcon,
   Hospital,
   Info,
+  LayoutGrid,
   MapPin,
   Minus,
   RefreshCw,
@@ -94,6 +95,14 @@ const buildRequestsServiceFilter = (filters = {}) => {
 };
 
 const kpiOptions = [
+  {
+    id: 'all',
+    label: 'All',
+    icon: LayoutGrid,
+    colorClass: 'text-foreground',
+    activeClass: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
+  },
   {
     id: 'pending',
     label: 'Needs attention',
@@ -224,6 +233,9 @@ const getServiceLabel = (request) => {
 };
 
 const getKpiCount = ({ id, stats, requests }) => {
+  if (id === 'all') {
+    return normalizeCount(stats?.total, requests.length);
+  }
   if (id === 'pending') {
     const rowCount = requests.filter((request) => request.status === 'pending_approval').length;
     return normalizeCount(stats?.pending, rowCount);
@@ -1394,7 +1406,7 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
 const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
   if (loading) {
     return (
-      <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {kpiOptions.map((item) => (
           <div
             key={item.id}
@@ -1414,7 +1426,7 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
   }
 
   return (
-    <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       {kpiOptions.map((item) => {
         const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
