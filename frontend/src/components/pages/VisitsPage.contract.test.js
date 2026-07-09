@@ -592,7 +592,8 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('aria-label="Open visit statistics"');
     expect(mobile).toContain('const MobileVisitRow = ({');
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} />');
+    // labelTone="plain" per Mobile DS v1.2 no-all-caps (donor parity with MobileEmergency).
+    expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />');
     expect(mobile).toContain('<MobileListEnd label="End of visits" />');
     expect(mobile).toContain('Details');
     expect(mobile).toContain('Edit');
@@ -661,10 +662,17 @@ describe('VisitsPage admission contract', () => {
     const files = { page: pageSource(), mobile: mobileSource(), list: listSource(), table: tableSource(), modal: modalSource() };
     for (const [name, src] of Object.entries(files)) {
       expect({ name, glass: src.includes('glass-card-premium') }).toEqual({ name, glass: false });
-      expect({ name, blur: src.includes('backdrop-blur') }).toEqual({ name, blur: false });
+      // Mobile is exempt from the blur ban for exactly ONE sanctioned use: the canon
+      // frosted recency panel (Mobile DS v1.2 LIST grammar, donor = MobileEmergency).
+      // The positive pin below locks it to that class string; page/list/table/modal
+      // stay blur-free.
+      if (name !== 'mobile') {
+        expect({ name, blur: src.includes('backdrop-blur') }).toEqual({ name, blur: false });
+      }
       expect({ name, inset: src.includes('shadow-[inset') }).toEqual({ name, inset: false });
       expect({ name, separator: src.includes('DropdownMenuSeparator') }).toEqual({ name, separator: false });
     }
+    expect(mobileSource()).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5');
     expect(listSource()).not.toContain('bg-white/');
     expect(tableSource()).not.toContain('bg-white/');
   });
