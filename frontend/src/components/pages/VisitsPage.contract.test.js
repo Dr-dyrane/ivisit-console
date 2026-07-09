@@ -264,9 +264,11 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("id: 'in_progress'");
     expect(page).toContain("id: 'completed'");
     expect(page).toContain("id: 'cancelled'");
-    expect(page).toContain('const getVisitSignal = ({ stats, visits, kpiFilter }) => {');
-    expect(page).toContain('const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => {');
-    expect(page).toContain('const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => (');
+    // Donor-parity signatures (Requests gold standard): signal carries loadError for
+    // the honest failed hero; panel/strip carry isFetching for the live-chip spinner.
+    expect(page).toContain('const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {');
+    expect(page).toContain('const VisitSignalPanel = ({ signal, stats, visits, kpiFilter, setKpiFilter, loading, isFetching }) => {');
+    expect(page).toContain('const VisitStateStrip = ({ stats, visits, loading, isFetching, kpiFilter, setKpiFilter }) => (');
     expect(page).toContain('<VisitSignalPanel');
     // KPI canon S1.2 (converted 2026-07-09): max-3 smart-context chips, actionable states
     // pinned only while they carry signal, re-tapping the active chip returns to All.
@@ -291,8 +293,13 @@ describe('VisitsPage admission contract', () => {
 
     expect(page).toContain('<VisitActivitySheet');
     expect(page).toContain('data-testid="visits-activity-sheet"');
-    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetching, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (');
-    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {');
+    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, filterSheetOpen, loading, isFetching, failedEmpty, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (');
+    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {');
+    // Donor-parity failure states: failed-empty owns the scroller with an honest
+    // destructive card; a partial failure keeps rows and shows the inline banner.
+    expect(page).toContain('const VisitLoadErrorState = ({ message, onRetry }) => (');
+    expect(page).toContain('{errorMessage && !failedEmpty && (');
+    expect(page).toContain("failedEmpty ? \"Couldn't load\" : `${pagination.totalCount} visits`");
     expect(page).toContain('data-testid="visits-sheet-search"');
     // Search placeholder names exactly what the service .or() can match; the input
     // edits a debounced draft (one refetch per pause, not per keystroke).
@@ -625,8 +632,13 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('const visitData = await getVisit(viewVisitId)');
     // Converted 2026-07-09: the responsive scan surface is the single canonical row
     // list inside the activity sheet (grid cards retired with the density variants).
+    // Donor-parity stage (Requests gold standard): atlas backdrop + shared wayfinding
+    // dock + fixed-width detail rail.
     expect(page).toContain("const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]'");
-    expect(page).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]');
+    expect(page).toContain('<VisitsAtlasLayer />');
+    expect(page).toContain('<ConsoleModuleRail');
+    expect(page).toContain('activePath="/visits"');
+    expect(page).toContain('lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]');
     expect(page).toContain('data-testid="visits-activity-sheet"');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
     expect(mobile).toContain('aria-label="Filter visits"');
@@ -672,15 +684,19 @@ describe('VisitsPage admission contract', () => {
       expect({ name, glass: src.includes('glass-card-premium') }).toEqual({ name, glass: false });
       // Mobile is exempt from the blur ban for exactly ONE sanctioned use: the canon
       // frosted recency panel (Mobile DS v1.2 LIST grammar, donor = MobileEmergency).
-      // The positive pin below locks it to that class string; page/list/table/modal
-      // stay blur-free.
-      if (name !== 'mobile') {
+      // The desktop page is exempt for exactly the DONOR-PARITY uses (Requests gold
+      // standard stage): frosted activity sheet, detail rail, and KPI tiles -- the
+      // positive pins below lock them to those class strings. list/table/modal stay
+      // blur-free.
+      if (name !== 'mobile' && name !== 'page') {
         expect({ name, blur: src.includes('backdrop-blur') }).toEqual({ name, blur: false });
       }
       expect({ name, inset: src.includes('shadow-[inset') }).toEqual({ name, inset: false });
       expect({ name, separator: src.includes('DropdownMenuSeparator') }).toEqual({ name, separator: false });
     }
     expect(mobileSource()).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5');
+    expect(pageSource()).toContain('rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet');
+    expect(pageSource()).toContain('backdrop-blur-2xl no-scrollbar dark:bg-card/55');
     expect(listSource()).not.toContain('bg-white/');
     expect(tableSource()).not.toContain('bg-white/');
   });

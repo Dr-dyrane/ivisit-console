@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { createVisit, updateVisit, getVisit, getVisitsPageData } from '../../services/visitsService';
 import { getHospitals } from '../../services/hospitalsService';
@@ -9,6 +9,8 @@ import { usePagination } from '../../hooks/usePagination';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { Button } from '../ui/button';
 import { PaginationControls } from '../ui/PaginationControls';
+import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import {
   AlertCircle,
   ArrowUpDown,
@@ -18,11 +20,14 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
+  Copy,
   Edit,
   Eye,
   Filter,
   Hospital,
+  Info,
   LayoutGrid,
+  Loader2,
   MapPin,
   PlayCircle,
   Plus,
@@ -42,6 +47,9 @@ import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
 import { formatVisitType, getVisitPatientLabel, getVisitFacilityLabel } from '../../utils/visitRowProjection';
+
+// Route-feedback window for the wayfinding dock (donor: EmergencyRequestsPage).
+const routeFeedbackMs = 320;
 
 const normalizeVisitCount = (value, fallback = 0) => {
   const numeric = Number(value);
@@ -171,14 +179,16 @@ const visitToneClass = {
   warning: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
   clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
   muted: 'bg-muted/30 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+  danger: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
 };
 
 // Canonical status pills (literal palette -- the theme's info/success/warning tokens
 // all render red): scheduled cyan, active amber, done emerald, cancelled muted.
+// Pill shadows mirror the Requests statusStyles (e2 on live states, none on muted).
 const visitStatusPillClass = {
-  scheduled: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  in_progress: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-  completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  scheduled: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+  in_progress: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+  completed: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
   cancelled: 'bg-muted/40 text-muted-foreground',
 };
 
@@ -189,10 +199,49 @@ const visitStatusLabel = {
   cancelled: 'Cancelled',
 };
 
-const getVisitSignal = ({ stats, visits, kpiFilter }) => {
+const visitStatusIcon = {
+  scheduled: Clock,
+  in_progress: PlayCircle,
+  completed: CheckCircle,
+  cancelled: AlertCircle,
+};
+
+// Status-toned avatar wells (donor: getRequestAvatarClass) so a row's identity
+// block carries the same tone as its status pill.
+const getVisitAvatarClass = (visit) => {
+  const status = visit?.status || 'scheduled';
+  if (status === 'completed') return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+  if (status === 'in_progress') return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
+  if (status === 'cancelled') return 'bg-muted/40 text-muted-foreground';
+  if (status === 'scheduled') return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
+  return 'bg-muted/34 text-muted-foreground';
+};
+
+// Compact lifecycle progression for the rail (donor: REQUEST_STAGE_ORDER):
+// [Scheduled, Active, Done]. Cancelled renders all-muted.
+const VISIT_STAGE_ORDER = ['scheduled', 'in_progress', 'completed'];
+const VISIT_STAGE_FILL = {
+  scheduled: 'bg-cyan-500',
+  in_progress: 'bg-amber-500',
+  completed: 'bg-emerald-500',
+};
+
+const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {
   const activeId = kpiFilter || 'all';
   const option = visitStateOptions.find((item) => item.id === activeId) || visitStateOptions[0];
   const count = getVisitStateCount({ id: option.id, stats, visits });
+
+  // A failed load with nothing cached must not render a reassuring zero-derived
+  // "all clear" hero above the list error state; surface the failure honestly.
+  if (loadError && count === 0 && visits.length === 0) {
+    return {
+      icon: AlertCircle,
+      tone: 'danger',
+      label: 'Load failed',
+      headline: 'Visits did not load',
+      subhead: 'Retry to load the schedule.',
+    };
+  }
 
   if (option.id === 'scheduled') {
     return {
@@ -250,7 +299,31 @@ const VISIT_EMPTY_HEADINGS = {
   cancelled: 'No cancelled visits',
 };
 
+// Ambient atlas backdrop (donor: RequestsAtlasLayer). Sanctioned ambient brand
+// tint -- backdrop-only, do NOT strip in canon audits (MANAGEMENT_PAGE_STANDARDS S0).
+const VisitsAtlasLayer = () => (
+  <div className="absolute inset-0 overflow-hidden bg-background">
+    <div
+      className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
+      style={{
+        backgroundImage:
+          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
+        backgroundSize: '260px 180px, 340px 240px, 420px 280px',
+        backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
+      }}
+    />
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
+      }}
+    />
+  </div>
+);
+
 export const VisitsPage = () => {
+  const navigate = useNavigate();
   const { user, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
@@ -293,6 +366,7 @@ export const VisitsPage = () => {
   const [visitPageError, setVisitPageError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [focusedVisitId, setFocusedVisitId] = useState(null);
+  const [routingPath, setRoutingPath] = useState(null);
 
   const [emergencyModal, setEmergencyModal] = useState({
     isOpen: false,
@@ -306,6 +380,7 @@ export const VisitsPage = () => {
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
   const hasLoadedRef = useRef(false);
+  const lastInsertToastAtRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   // KPI default resolves to a chip with live signal (S1.2); explicit taps override it.
@@ -316,6 +391,30 @@ export const VisitsPage = () => {
   const focusedVisit = React.useMemo(() => (
     visits.find((visit) => visit.id === focusedVisitId) || visits[0] || null
   ), [visits, focusedVisitId]);
+
+  // Wayfinding dock (donor: Requests): the shared module rail with the current
+  // page pill; roleKind mirrors TodayHome's useRoleKind responder fork.
+  const roleKind = React.useMemo(() => {
+    if (isAdmin()) return 'admin';
+    if (isOrgAdmin()) return 'org_admin';
+    if (isProvider()) return isDriver() ? 'driver' : 'provider';
+    return 'viewer';
+  }, [isAdmin, isOrgAdmin, isProvider, isDriver]);
+  const visibleModuleRail = React.useMemo(
+    () => getConsoleModuleRailItems(roleKind),
+    [roleKind]
+  );
+
+  const handleRailNavigate = useCallback((path) => {
+    if (!path) return;
+    setRoutingPath(path);
+    window.setTimeout(() => {
+      if (path !== window.location.pathname) {
+        navigate(path);
+      }
+      setRoutingPath(null);
+    }, routeFeedbackMs);
+  }, [navigate]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -413,6 +512,19 @@ export const VisitsPage = () => {
           if (active && isMountedRef.current) {
             fetchVisits();
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'visits' },
+        (payload) => {
+          // Arrival announcement (donor: Requests INSERT toast, 10s throttle).
+          if (!active || !isMountedRef.current || payload?.eventType !== 'INSERT') return;
+          const now = Date.now();
+          if (now - lastInsertToastAtRef.current < 10000) return;
+          lastInsertToastAtRef.current = now;
+          const typeLabel = payload?.new?.type || null;
+          toast('New visit scheduled', typeLabel ? { description: typeLabel } : undefined);
         }
       )
       .subscribe();
@@ -700,99 +812,36 @@ export const VisitsPage = () => {
   return (
     <div className="min-h-screen text-foreground">
       <SEOHead title="Visits" description="Schedule and manage visits." />
-      <div className="pt-2" />
 
-      <div className="grid min-h-[calc(100dvh-7rem)] grid-cols-1 gap-5 px-4 pb-8 pt-4 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
-        <section className="min-w-0">
-          <VisitSignalPanel
-            stats={visitPageStats}
-            visits={visits}
-            loading={loading}
-            kpiFilter={selectedKpiFilter}
-            setKpiFilter={setKpiFilter}
-          />
-
-          <VisitActivitySheet
-            filters={filters}
-            setFilters={setFilters}
-            openFilters={handleOpenFilters}
-            loading={loading}
-            isFetching={isFetching}
-            pagination={pagination}
-            errorMessage={visitPageError}
-            onRetry={fetchVisits}
-            onRefresh={fetchVisits}
-            onCreate={handleCreate}
-            canCreate={canCreateVisits}
-            activeActionFeedback={activeActionFeedback}
-          >
-            {loading ? (
-              <VisitSkeletonRows />
-            ) : (
-              <>
-                <VisitListHeader sortConfig={sortConfig} onSort={handleSort} />
-
-                {visits.length === 0 && !visitPageError && (
-                  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
-                    <Calendar className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                    <h3 className="text-xl font-semibold">
-                      {hasActiveVisitFilters(filters)
-                        ? 'No matching visits'
-                        : (VISIT_EMPTY_HEADINGS[selectedKpiFilter] || 'No visits yet')}
-                    </h3>
-                    <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                      {hasActiveVisitFilters(filters)
-                        ? 'Change filters or search again.'
-                        : 'Schedule the first visit when care is ready.'}
-                    </p>
-                    <div className="mt-5 flex items-center gap-2">
-                      {hasActiveVisitFilters(filters) && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => setFilters({})}
-                          className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 active:scale-95"
-                        >
-                          Show all visits
-                        </Button>
-                      )}
-                      {canCreateVisits && !hasActiveVisitFilters(filters) && (
-                        <Button
-                          onClick={handleCreate}
-                          data-testid="add-first-visit-btn"
-                          aria-label="Schedule your first visit"
-                          className="h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Schedule first visit
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {visits.map((visit) => (
-                  <VisitRow
-                    key={visit.id}
-                    visit={visit}
-                    selected={focusedVisit?.id === visit.id}
-                    onFocus={() => setFocusedVisitId(visit.id)}
-                    onView={handleView}
-                  />
-                ))}
-              </>
-            )}
-          </VisitActivitySheet>
-        </section>
-
-        <VisitsDetailRail
-          visit={focusedVisit}
-          loading={loading}
-          canEdit={canEditVisits}
-          onView={handleView}
-          onEdit={handleEdit}
-          activeActionFeedback={activeActionFeedback}
-        />
-      </div>
+      <VisitsDesktopWorkspace
+        visits={visits}
+        loading={loading}
+        isFetching={isFetching}
+        stats={visitPageStats}
+        filters={filters}
+        setFilters={setFilters}
+        kpiFilter={selectedKpiFilter}
+        setKpiFilter={setKpiFilter}
+        focusedVisit={focusedVisit}
+        setFocusedVisitId={setFocusedVisitId}
+        canEdit={canEditVisits}
+        canCreate={canCreateVisits}
+        onView={handleView}
+        onEdit={handleEdit}
+        onCreate={handleCreate}
+        pagination={pagination}
+        openFilters={handleOpenFilters}
+        filterSheetOpen={filterSheetOpen}
+        loadError={visitPageError}
+        onRetry={fetchVisits}
+        onRefresh={fetchVisits}
+        moduleRailItems={visibleModuleRail}
+        routingPath={routingPath}
+        onRailNavigate={handleRailNavigate}
+        sortConfig={sortConfig}
+        onSort={handleSort}
+        activeActionFeedback={activeActionFeedback}
+      />
 
       {
         modalMode && (
@@ -841,42 +890,243 @@ const hasActiveVisitFilters = (filters = {}) => Boolean(
   filters.date
 );
 
-// No entrance animation: the signal panel paints truthfully on first frame
-// (motion canon -- a frozen mid-flight entrance left this panel at 39% opacity).
-const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => {
-  const signal = getVisitSignal({ stats, visits, kpiFilter });
+// Full-bleed stage (donor: RequestsDesktopWorkspace): atlas backdrop + shared
+// wayfinding dock + signal-over-sheet content column + fixed-width detail rail.
+const VisitsDesktopWorkspace = ({
+  visits,
+  loading,
+  isFetching = false,
+  stats,
+  filters,
+  setFilters,
+  kpiFilter,
+  setKpiFilter,
+  focusedVisit,
+  setFocusedVisitId,
+  canEdit,
+  canCreate,
+  onView,
+  onEdit,
+  onCreate,
+  pagination,
+  openFilters,
+  filterSheetOpen,
+  loadError,
+  onRetry,
+  onRefresh,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+  sortConfig,
+  onSort,
+  activeActionFeedback,
+}) => {
+  const signal = getVisitSignal({ stats, visits, kpiFilter, loadError });
+  const hasFilter = hasActiveVisitFilters(filters);
+  const failedEmpty = Boolean(loadError) && visits.length === 0;
+  const listScrollRef = useRef(null);
+
+  // A page change resets the rows viewport to the top; otherwise the next page
+  // opens mid-scroll wherever the last one left off.
+  useEffect(() => {
+    listScrollRef.current?.scrollTo({ top: 0 });
+  }, [pagination.currentPage]);
+
+  // Keyboard list navigation on the rows viewport (donor: Requests): ArrowDown/ArrowUp
+  // move row focus, Enter opens details, Escape returns focus to the default. Typing
+  // surfaces and open dialogs are ignored.
+  const handleListKeyDown = useCallback((event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== 'Escape') return;
+    if (event.defaultPrevented) return;
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      const tag = target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+    }
+    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]')) return;
+
+    if (event.key === 'Escape') {
+      setFocusedVisitId(null);
+      return;
+    }
+    if (visits.length === 0) return;
+    if (event.key === 'Enter') {
+      if (focusedVisit) {
+        event.preventDefault();
+        onView(focusedVisit);
+      }
+      return;
+    }
+
+    event.preventDefault();
+    const delta = event.key === 'ArrowDown' ? 1 : -1;
+    const currentIndex = visits.findIndex((row) => row.id === focusedVisit?.id);
+    const nextIndex = currentIndex === -1
+      ? (delta > 0 ? 0 : visits.length - 1)
+      : Math.min(visits.length - 1, Math.max(0, currentIndex + delta));
+    const next = visits[nextIndex];
+    if (!next) return;
+    setFocusedVisitId(next.id);
+    listScrollRef.current?.querySelector(`[data-visit-row="${next.id}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [visits, focusedVisit, onView, setFocusedVisitId]);
+
+  return (
+    <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
+      <VisitsAtlasLayer />
+      <ConsoleModuleRail
+        items={moduleRailItems}
+        activePath="/visits"
+        routingPath={routingPath}
+        onNavigate={onRailNavigate}
+      />
+
+      <div className="relative z-10 flex min-h-[calc(100dvh-3rem)] w-full min-w-0 flex-col gap-5 px-4 pb-8 pt-20 sm:px-5 md:pt-24 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28">
+        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
+          <VisitSignalPanel
+            signal={signal}
+            stats={stats}
+            visits={visits}
+            kpiFilter={kpiFilter}
+            setKpiFilter={setKpiFilter}
+            loading={loading}
+            isFetching={isFetching}
+          />
+
+          <VisitActivitySheet
+            filters={filters}
+            setFilters={setFilters}
+            openFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            loading={loading}
+            isFetching={isFetching}
+            failedEmpty={failedEmpty}
+            pagination={pagination}
+            errorMessage={loadError}
+            onRetry={onRetry}
+            onRefresh={onRefresh}
+            onCreate={onCreate}
+            canCreate={canCreate}
+            activeActionFeedback={activeActionFeedback}
+          >
+            <div
+              ref={listScrollRef}
+              tabIndex={0}
+              onKeyDown={handleListKeyDown}
+              aria-label="Visits list"
+              style={{ outline: 'none' }}
+              className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+            >
+              {loading && <VisitSkeletonRows />}
+
+              {!loading && failedEmpty && (
+                <VisitLoadErrorState message={loadError} onRetry={onRetry} />
+              )}
+
+              {!loading && !failedEmpty && (
+                <>
+                  <VisitListHeader sortConfig={sortConfig} onSort={onSort} />
+
+                  {visits.length === 0 && !loadError && (
+                    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
+                      <Calendar className="mb-4 h-12 w-12 text-muted-foreground/65" />
+                      <h3 className="text-xl font-semibold">
+                        {hasFilter
+                          ? 'No matching visits'
+                          : (VISIT_EMPTY_HEADINGS[kpiFilter] || 'No visits yet')}
+                      </h3>
+                      <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                        {hasFilter
+                          ? 'Change filters or search again.'
+                          : 'Schedule the first visit when care is ready.'}
+                      </p>
+                      <div className="mt-5 flex items-center gap-2">
+                        {hasFilter && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => setFilters({})}
+                            className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 active:scale-95"
+                          >
+                            Show all visits
+                          </Button>
+                        )}
+                        {canCreate && !hasFilter && (
+                          <Button
+                            onClick={onCreate}
+                            data-testid="add-first-visit-btn"
+                            aria-label="Schedule your first visit"
+                            className="h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Schedule first visit
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {visits.map((visit) => (
+                    <VisitRow
+                      key={visit.id}
+                      visit={visit}
+                      selected={focusedVisit?.id === visit.id}
+                      onFocus={() => setFocusedVisitId(visit.id)}
+                      onView={onView}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </VisitActivitySheet>
+        </section>
+
+        <VisitsDetailRail
+          visit={focusedVisit}
+          loading={loading}
+          canEdit={canEdit}
+          onView={onView}
+          onEdit={onEdit}
+          activeActionFeedback={activeActionFeedback}
+        />
+      </div>
+    </section>
+  );
+};
+
+// No entrance animation: the skeleton holds this exact layout, so the panel gets no
+// entrance motion -- content swaps in where the skeleton stood (lessons #15; the old
+// motion entrance froze this panel at 39% opacity).
+const VisitSignalPanel = ({ signal, stats, visits, kpiFilter, setKpiFilter, loading, isFetching }) => {
   const SignalIcon = signal.icon;
 
   return (
-    <section className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]">
-      <div className="min-w-0">
-        <div className="max-w-2xl">
-          {loading ? (
-            <>
-              <Shimmer className="h-8 w-28 rounded-pill" />
-              <Shimmer className="mt-4 h-12 w-80 max-w-full rounded-card" />
-              <Shimmer className="mt-3 h-4 w-56 max-w-full rounded-pill" />
-            </>
-          ) : (
-            <>
-              <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${visitToneClass[signal.tone] || visitToneClass.muted}`}>
-                <SignalIcon className="h-4 w-4" />
-                {signal.label}
-              </div>
-              <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-                {signal.headline}
-              </h1>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-                {signal.subhead}
-              </p>
-            </>
-          )}
-        </div>
+    <section className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]">
+      <div className="w-full min-w-0">
+        {loading ? (
+          <div className="space-y-4">
+            <Shimmer className="h-8 w-36 rounded-pill" />
+            <Shimmer className="h-12 w-3/4 rounded-card md:h-[72px]" />
+            <Shimmer className="h-5 w-1/2 rounded-inner" />
+          </div>
+        ) : (
+          <div>
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${visitToneClass[signal.tone] || visitToneClass.muted}`}>
+              <SignalIcon className="h-4 w-4" />
+              {signal.label}
+            </div>
+            <h1 className="text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+              {signal.headline}
+            </h1>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+              {signal.subhead}
+            </p>
+          </div>
+        )}
 
         <VisitStateStrip
           stats={stats}
           visits={visits}
           loading={loading}
+          isFetching={isFetching}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
         />
@@ -885,13 +1135,13 @@ const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =
   );
 };
 
-const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => (
+const VisitStateStrip = ({ stats, visits, loading, isFetching, kpiFilter, setKpiFilter }) => (
   <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
     {loading ? (
       [0, 1, 2].map((i) => (
         <div
           key={i}
-          className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] sm:px-4 md:py-3 dark:bg-white/[0.055]"
+          className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl sm:px-4 md:py-3 dark:bg-white/[0.055]"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 space-y-2">
@@ -917,7 +1167,7 @@ const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =>
             onClick={() => setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)}
             data-visit-state={item.id}
             data-state={active ? 'selected' : 'idle'}
-            className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? item.activeClass : VISIT_KPI_REST}`}
+            className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? item.activeClass : VISIT_KPI_REST}`}
             aria-pressed={active}
             aria-label={`Show ${item.label.toLowerCase()} visits`}
           >
@@ -927,7 +1177,11 @@ const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =>
                 <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
               </span>
               <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
-                <Icon className="h-3.5 w-3.5" />
+                {active && isFetching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Icon className="h-3.5 w-3.5" />
+                )}
               </span>
             </span>
           </motion.button>
@@ -937,9 +1191,9 @@ const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =>
   </div>
 );
 
-const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetching, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (
+const VisitActivitySheet = ({ filters, setFilters, openFilters, filterSheetOpen, loading, isFetching, failedEmpty, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/50 md:rounded-sheet"
+    className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
     data-testid="visits-activity-sheet"
   >
     <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
@@ -947,6 +1201,7 @@ const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetch
       filters={filters}
       setFilters={setFilters}
       openFilters={openFilters}
+      filterSheetOpen={filterSheetOpen}
       onRefresh={onRefresh}
       refreshing={isFetching}
       onCreate={onCreate}
@@ -955,24 +1210,22 @@ const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetch
     />
 
     <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
-      <span>{loading ? 'Loading visits' : `${pagination.totalCount} visits`}</span>
+      <span>{loading ? 'Loading visits' : failedEmpty ? "Couldn't load" : `${pagination.totalCount} visits`}</span>
       <span className="flex items-center gap-2">
         {isFetching && !loading && (
           <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
             Updating
           </span>
         )}
-        <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+        <span>{loading ? 'One moment' : failedEmpty ? 'Retry below' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
       </span>
     </div>
 
-    {errorMessage && (
+    {errorMessage && !failedEmpty && (
       <VisitErrorBanner message={errorMessage} onRetry={onRetry} />
     )}
 
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
-      {children}
-    </div>
+    {children}
 
     <PaginationControls
       currentPage={pagination.currentPage}
@@ -988,6 +1241,28 @@ const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetch
   </section>
 );
 
+// Failed-empty state (donor: RequestLoadErrorState) -- the whole list failed with
+// nothing cached, so the scroller owns an honest destructive card with retry.
+const VisitLoadErrorState = ({ message, onRetry }) => (
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
+    <AlertCircle className="mb-4 h-12 w-12 text-destructive/75" />
+    <h3 className="text-xl font-semibold">Visits did not load</h3>
+    <p className="mt-2 max-w-md text-sm text-muted-foreground">
+      {message || 'Try again to refresh this list.'}
+    </p>
+    <Button
+      type="button"
+      onClick={onRetry}
+      className="mt-5 h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+    >
+      <RefreshCw className="mr-2 h-4 w-4" />
+      Retry
+    </Button>
+  </div>
+);
+
+// Partial-data notice (donor: RequestLoadNotice) -- rows are visible but the last
+// refetch failed; keep the rows and surface the failure inline.
 const VisitErrorBanner = ({ message, onRetry }) => (
   <div
     className="mt-3 flex flex-col gap-3 rounded-card bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -1012,7 +1287,7 @@ const VisitErrorBanner = ({ message, onRetry }) => (
   </div>
 );
 
-const VisitSheetToolbar = ({ filters, setFilters, openFilters, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {
+const VisitSheetToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {
   // Debounced search: the input edits a local draft; the query filter commits 300ms
   // after typing pauses -- one refetch per pause, not one per keystroke over the
   // full visit resolution read.
@@ -1061,6 +1336,8 @@ const VisitSheetToolbar = ({ filters, setFilters, openFilters, onRefresh, refres
         onClick={openFilters}
         className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-foreground/10 text-foreground scale-95' : ''}`}
         aria-busy={activeActionFeedback === 'filters'}
+        aria-haspopup="dialog"
+        aria-expanded={filterSheetOpen}
         data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
       >
         <Filter className="mr-2 h-4 w-4" />
@@ -1130,11 +1407,12 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
   const facilityName = visit?.hospital_name || (visit?.hospital_id ? getVisitFacilityLabel(visit) : 'Unknown facility');
   const statusKey = visit?.status || 'scheduled';
   const initial = String(patientName || '?').trim().charAt(0).toUpperCase() || '?';
+  const avatarClass = getVisitAvatarClass(visit);
 
   return (
     <motion.div
       layout="position"
-      className={`group mb-2 grid min-h-[72px] ${VISIT_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
+      className={`group mb-2 grid min-h-[80px] ${VISIT_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
       data-visit-row={visit.id}
       data-state={selected ? 'selected' : 'idle'}
       role="button"
@@ -1143,6 +1421,12 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
       onDoubleClick={(event) => {
         event.stopPropagation();
         onView(visit);
+      }}
+      onContextMenu={(event) => {
+        // Cheap context-menu stand-in (donor: Requests): right-click focuses the row
+        // so the rail (the action home) reflects it.
+        event.preventDefault();
+        onFocus();
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -1153,7 +1437,7 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
       aria-pressed={selected}
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-foreground/[0.06] text-sm font-semibold text-foreground dark:bg-white/[0.08]">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${avatarClass}`}>
           {initial}
         </span>
         <span className="min-w-0">
@@ -1204,9 +1488,30 @@ const Shimmer = ({ className = '' }) => (
 const VisitSkeletonRows = () => (
   <div className="space-y-2">
     {Array.from({ length: 7 }).map((_, index) => (
-      <Shimmer key={index} className="h-[72px] rounded-card" />
+      <Shimmer key={index} className="h-[80px] rounded-card" />
     ))}
   </div>
+);
+
+// Click-to-copy affordance for rail values the operator re-keys elsewhere (donor:
+// Requests CopyChip). Ghost pill; stopPropagation keeps the copy from bubbling.
+const CopyChip = ({ value, label }) => (
+  <button
+    type="button"
+    onClick={(event) => {
+      event.stopPropagation();
+      const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
+      if (clipboard?.writeText) {
+        clipboard.writeText(String(value)).catch(() => {});
+      }
+      toast('Copied');
+    }}
+    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground active:scale-95"
+    aria-label={label}
+    title={label}
+  >
+    <Copy className="h-3 w-3" />
+  </button>
 );
 
 const getVisitDoctorLabel = (visit) => (
@@ -1219,15 +1524,14 @@ const getVisitDoctorLabel = (visit) => (
 const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {
   if (loading) {
     return (
-      <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-card bg-card/70 p-5 shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
-          <Shimmer className="h-5 w-28 rounded-pill" />
-          <Shimmer className="mt-6 h-24 rounded-card" />
-          <div className="mt-4 space-y-3">
-            <Shimmer className="h-14 rounded-card" />
-            <Shimmer className="h-14 rounded-card" />
-            <Shimmer className="h-14 rounded-card" />
-          </div>
+      <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <Shimmer className="h-5 w-28 rounded-pill" />
+        <Shimmer className="mt-6 h-24 rounded-card" />
+        <div className="mt-4 space-y-3">
+          <Shimmer className="h-14 rounded-card" />
+          <Shimmer className="h-14 rounded-card" />
+          <Shimmer className="h-14 rounded-card" />
         </div>
       </aside>
     );
@@ -1235,9 +1539,9 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
 
   if (!visit) {
     return (
-      <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-card bg-card/70 p-6 text-center shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
-          <Calendar className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
+      <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No visit selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Visits will appear here when the list has results.</p>
         </div>
@@ -1246,94 +1550,121 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   }
 
   const statusKey = visit.status || 'scheduled';
+  const StatusIcon = visitStatusIcon[statusKey] || Clock;
+  const railCancelled = statusKey === 'cancelled';
+  const railStageIndex = Math.max(0, VISIT_STAGE_ORDER.indexOf(statusKey));
+  const railStageFill = VISIT_STAGE_FILL[statusKey] || 'bg-foreground/60';
+  const displayId = visit.display_id || null;
+  const avatarClass = getVisitAvatarClass(visit);
+  const patientName = getVisitPatientLabel(visit);
+  const patientEmail = visit?.patient?.email || null;
   const roomLabel = visit.room_number ? `Room ${visit.room_number}` : 'No room';
   const dateLabel = formatVisitDayTime(visit.date || visit.created_at);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
+  const initial = String(patientName || '?').trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <aside className="hidden min-h-0 lg:flex lg:flex-col">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-card bg-card/70 p-5 shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
-        <div className="flex items-center justify-between gap-3">
-          <span className={`rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
-            {visitStatusLabel[statusKey] || statusKey}
-          </span>
-          <span className="rounded-pill bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Focus
-          </span>
-        </div>
-
-        {/* Today-sheet surface recipe (S1.4): recessed inset hero + fill-film rows. */}
-        <div className="mt-6 rounded-card bg-background/55 p-5 dark:bg-white/[0.05]">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-foreground/[0.06] text-foreground dark:bg-white/[0.08]">
-              <Calendar className="h-5 w-5" />
+    <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      {/* Today-sheet surface recipe (S1.4): a recessed inset panel holds the hero block,
+          and the detail cards below read as fill-films over the pane. */}
+      <div className="mb-4 rounded-modal bg-background/55 p-3 dark:bg-white/[0.05] md:p-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold tracking-tight">Visit details</h2>
+            {displayId && (
+              <div className="mt-1 flex min-w-0 items-center gap-1">
+                <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={displayId}>{displayId}</p>
+                <CopyChip value={displayId} label="Copy record ID" />
+              </div>
+            )}
+            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
+              <StatusIcon className="h-3.5 w-3.5" />
+              {visitStatusLabel[statusKey] || statusKey}
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Current visit</p>
-              <h2 className="mt-1 line-clamp-2 text-2xl font-semibold tracking-tight">
-                {formatVisitType(visit)}
-              </h2>
-              <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                {dateLabel}
-              </p>
+            {/* Compact lifecycle progression: filled to the current stage; cancelled all-muted. */}
+            <div className="mt-3 flex w-[200px] max-w-full gap-1" aria-hidden="true">
+              {VISIT_STAGE_ORDER.map((stage, index) => (
+                <span key={stage} className={`h-1 flex-1 rounded-pill ${!railCancelled && index <= railStageIndex ? railStageFill : 'bg-muted/40'}`} />
+              ))}
             </div>
           </div>
-        </div>
-
-        <div className="mt-5 flex-1 space-y-3 overflow-y-auto pr-1 no-scrollbar">
-          <VisitFocusRow icon={User} label="Patient" value={getVisitPatientLabel(visit)} />
-          <VisitFocusRow icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
-          <VisitFocusRow icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
-          <VisitFocusRow icon={MapPin} label="Location" value={roomLabel} />
-
-          <div className="rounded-card bg-foreground/[0.045] p-4 dark:bg-white/[0.055]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Record</p>
-            <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{visit.display_id || visit.id}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-2">
           <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
             onClick={() => onView(visit)}
-            className={`h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
-            aria-busy={viewOpening}
-            data-state={viewOpening ? 'opening' : 'idle'}
+            aria-label="Open full visit details"
           >
-            <Eye className="mr-2 h-4 w-4" />
-            {viewOpening ? 'Opening...' : 'View'}
-            <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
+            <Info className="h-4 w-4" />
           </Button>
-          {canEdit && (
-            <Button
-              variant="ghost"
-              onClick={() => onEdit(visit)}
-              className={`h-12 w-full rounded-card bg-muted/26 text-sm font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${editOpening ? 'bg-foreground/10 scale-95' : ''}`}
-              aria-busy={editOpening}
-              data-state={editOpening ? 'opening' : 'idle'}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              {editOpening ? 'Opening...' : 'Edit'}
-            </Button>
-          )}
-          <p className="px-2 pt-1 text-center text-[11px] leading-relaxed text-muted-foreground">
-            Outcome and delete actions are locked for now.
-          </p>
         </div>
+
+        <div className="flex items-center gap-4">
+          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-pill text-lg font-semibold ${avatarClass}`}>
+            <span aria-hidden="true">{initial}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold tracking-tight">{patientName}</p>
+            <p className="mt-0.5 flex items-center gap-2 truncate text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 shrink-0" />
+              {dateLabel}
+            </p>
+            {patientEmail && (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{patientEmail}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <VisitFocusRow icon={Calendar} label="Type" value={formatVisitType(visit)} />
+        <VisitFocusRow icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
+        <VisitFocusRow icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
+        <VisitFocusRow icon={MapPin} label="Location" value={roomLabel} />
+        <VisitFocusRow icon={User} label="Patient" value={patientName} />
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <Button
+          onClick={() => onView(visit)}
+          className={`h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
+          aria-busy={viewOpening}
+          data-state={viewOpening ? 'opening' : 'idle'}
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          {viewOpening ? 'Opening...' : 'View'}
+          <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
+        </Button>
+        {canEdit && (
+          <Button
+            variant="ghost"
+            onClick={() => onEdit(visit)}
+            className={`h-12 w-full rounded-card bg-muted/26 text-sm font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${editOpening ? 'bg-foreground/10 scale-95' : ''}`}
+            aria-busy={editOpening}
+            data-state={editOpening ? 'opening' : 'idle'}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            {editOpening ? 'Opening...' : 'Edit'}
+          </Button>
+        )}
+        <p className="px-2 pt-1 text-center text-[11px] leading-relaxed text-muted-foreground">
+          Outcome and delete actions are locked for now.
+        </p>
       </div>
     </aside>
   );
 };
 
 const VisitFocusRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-card bg-foreground/[0.045] p-3 dark:bg-white/[0.055]">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-background/45 text-muted-foreground">
+  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.045] p-2.5 dark:bg-white/[0.055]">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
       <Icon className="h-4 w-4" />
-    </div>
+    </span>
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-semibold">{value}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</p>
     </div>
   </div>
 );
