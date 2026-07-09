@@ -98,12 +98,16 @@ sets `kpiFilter` and filters the list (the chips ARE the quick filters — no se
 bordered KPI cards).
 
 **Max 3 chips (canon).** Render **at most 3** state chips — the page's **smart-context
-priority** (its 3 most important). Only 3 keeps the strip simple and gives the wider,
-appealing "Today-length" tiles (`grid-cols-3`, not 4–5 narrow ones). Declare the priority
-explicitly (e.g. `PRIMARY_KPI_IDS = ['all', 'pending', 'active']` → `primaryKpiOptions`,
-sliced to 3) so it reads as intent, not accident. Secondary breakdowns (service type,
-sub-status) belong in the **FilterSheet**, not the strip. The `kpiFilter` **default must
-resolve to one of the rendered 3**, never to a hidden chip.
+priority**, chosen **data-driven**: rank the options by live count and show the top 3, so a
+zero-count chip never outranks one with real numbers (always keep the active filter visible;
+display in canonical order for stable positions — see `rankKpiOptions` / `selectPrimaryKpis`).
+Only 3 keeps the strip simple and gives the wider, appealing "Today-length" tiles — **match
+the Today glance tile exactly**: `max-w-2xl grid-cols-2 sm:grid-cols-3`, tile `min-h-[66px]
+rounded-inner px-3 py-2.5 sm:px-4 md:py-3` with the soft resting lift
+`shadow-[0_16px_38px_rgb(0_0_0/0.08)]`, `bg-card/65` (dark `bg-white/[0.055]`), neutral at
+rest — colour appears only when selected. Secondary breakdowns (service type, sub-status)
+belong in the **FilterSheet**, not the strip. The `kpiFilter` **default must resolve to a
+rendered chip** (fall back to `all`), never a hidden or zero-count chip.
 
 ### 1.3 Handled sheet
 **ONE canonical render** lives inside the glass sheet above (`rounded-t-sheet bg-card/68 …

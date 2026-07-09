@@ -137,14 +137,13 @@ const kpiOptions = [
   },
 ];
 
-// Canon: a KPI/state strip renders AT MOST 3 chips — the page's smart-context priority
-// (its 3 most important). Only 3 keeps the strip simple and gives the wider "Today-length"
-// tiles. For Requests the priority is All / Needs attention / Active; the service-type
-// breakdowns (Beds, Ambulance) live in the FilterSheet, not the strip.
-const PRIMARY_KPI_IDS = ['all', 'pending', 'active'];
-const primaryKpiOptions = kpiOptions
-  .filter((option) => PRIMARY_KPI_IDS.includes(option.id))
-  .slice(0, 3);
+// Canon: a KPI/state strip renders AT MOST 3 chips — the page's smart-context priority.
+// Selection is DATA-DRIVEN (see selectPrimaryKpis): rank by live count so a zero-count
+// chip never outranks one with real numbers, then display in canonical order for stable
+// positions. Tiles match the Today glance tile exactly (soft resting lift, py-2.5,
+// max-w-2xl grid-cols-2 sm:grid-cols-3). Neutral at rest; colour only when selected.
+const KPI_REST = 'bg-card/65 text-muted-foreground shadow-[0_16px_38px_rgb(0_0_0/0.08)] hover:bg-card/82 dark:bg-white/[0.055] dark:hover:bg-white/[0.085]';
+const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, bed: 3, ambulance: 4 };
 
 const statusStyles = {
   pending_approval: {
@@ -313,14 +312,39 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
   };
 };
 
+// Rank all KPIs by live significance (count desc), stable importance tiebreak.
+const rankKpiOptions = ({ stats, requests }) =>
+  kpiOptions
+    .map((option) => ({ option, count: getKpiCount({ id: option.id, stats, requests }) }))
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        (KPI_IMPORTANCE[a.option.id] ?? 9) - (KPI_IMPORTANCE[b.option.id] ?? 9)
+    )
+    .map((entry) => entry.option);
+
+// The strip shows the 3 most significant chips (data-driven), always keeping the active
+// filter visible, displayed in canonical order so positions stay stable.
+const selectPrimaryKpis = ({ stats, requests, kpiFilter }) => {
+  const ranked = rankKpiOptions({ stats, requests });
+  const chosen = new Set(ranked.slice(0, 3).map((option) => option.id));
+  if (kpiFilter && !chosen.has(kpiFilter) && kpiOptions.some((option) => option.id === kpiFilter)) {
+    const dropped = ranked.slice(0, 3)[2];
+    if (dropped) chosen.delete(dropped.id);
+    chosen.add(kpiFilter);
+  }
+  return kpiOptions.filter((option) => chosen.has(option.id));
+};
+
 const getDefaultRequestKpi = (stats) => {
   const pending = normalizeCount(stats?.pending_approval ?? stats?.pending, 0);
   const active = normalizeCount(stats?.active, 0);
 
-  // Default must be one of the rendered primary KPIs (all/pending/active).
+  // Default resolves to a chip that will actually render; falls back to All, never a
+  // zero-count actionable chip.
   if (pending > 0) return 'pending';
   if (active > 0) return 'active';
-  return 'pending';
+  return 'all';
 };
 
 const requestToneClass = {
@@ -1411,18 +1435,18 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
 const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
   if (loading) {
     return (
-      <div className="mt-5 grid max-w-3xl grid-cols-3 gap-2">
-        {primaryKpiOptions.map((item) => (
+      <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
           <div
-            key={item.id}
-            className="min-h-[66px] rounded-inner bg-card/65 px-3 py-3 backdrop-blur-xl"
+            key={i}
+            className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl sm:px-4 md:py-3"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-2">
                 <Shimmer className="h-3 w-16 rounded-pill" />
                 <Shimmer className="h-6 w-9 rounded-inner" />
               </div>
-              <Shimmer className="h-8 w-8 rounded-button" />
+              <Shimmer className="h-7 w-7 rounded-pill" />
             </div>
           </div>
         ))}
@@ -1431,14 +1455,14 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
   }
 
   return (
-    <div className="mt-5 grid max-w-3xl grid-cols-3 gap-2">
-      {primaryKpiOptions.map((item) => {
+    <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
+      {selectPrimaryKpis({ stats, requests, kpiFilter }).map((item) => {
         const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
       const count = getKpiCount({ id: item.id, stats, requests });
       const clearPending = item.id === 'pending' && count === 0;
       const activeClass = clearPending
-        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200'
+        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
         : item.activeClass;
       const colorClass = clearPending ? 'text-emerald-700 dark:text-emerald-200' : item.colorClass;
       return (
@@ -1450,17 +1474,17 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
           onClick={() => setKpiFilter(item.id)}
           data-request-kpi={item.id}
           data-state={active ? 'selected' : 'idle'}
-          className={`group min-h-[66px] rounded-inner px-3 py-3 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 ${active ? activeClass : item.restClass}`}
+          className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? activeClass : KPI_REST}`}
           aria-pressed={active}
           aria-label={`${item.label}: ${count}`}
         >
           <span className="flex items-start justify-between gap-2">
             <span className="min-w-0">
-              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="block text-[10px] font-medium leading-tight sm:text-[11px]">{item.label}</span>
               <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
             </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? colorClass : ''}`}>
-              <Icon className="h-4 w-4" />
+            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? colorClass : ''}`}>
+              <Icon className="h-3.5 w-3.5" />
             </span>
           </span>
         </motion.button>
@@ -1582,9 +1606,13 @@ const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll,
         label={allSelected ? 'Clear selection' : 'Select all cancellable requests'}
       />
     )}
-    <SortableColumnHeader label="Person" sortKey="requester_name" sortConfig={sortConfig} onSort={onSort} />
-    <SortableColumnHeader label="Service" sortKey="service_type" sortConfig={sortConfig} onSort={onSort} />
-    <SortableColumnHeader label="Facility" sortKey="hospital_name" sortConfig={sortConfig} onSort={onSort} />
+    {/* Person / Service / Facility are plain labels — sorting them alphabetically isn't
+        practical operationally, and Person has no scalar column to sort on (name lives in
+        patient_snapshot JSON). Only Time is a meaningful sort. Service/facility filtering
+        belongs in the FilterSheet. */}
+    <span>Person</span>
+    <span>Service</span>
+    <span>Facility</span>
     <SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
     <span className="justify-self-end text-right">Action</span>
   </div>
