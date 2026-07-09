@@ -446,7 +446,6 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
     expect(mobileSource).toContain('onClick={() => onOpen(request)}');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
-    expect(mobileSource).toContain('px-5');
     expect(mobileSource).toContain('>Requests</h1>');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain('text-2xl font-semibold leading-tight');

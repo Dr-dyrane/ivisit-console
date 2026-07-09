@@ -214,7 +214,7 @@ export const MobileEmergency = ({
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35 }}
-                        className="px-5"
+                        className="px-2"
                     >
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -229,7 +229,7 @@ export const MobileEmergency = ({
                         loading={loading}
                     />
 
-                    <section className="px-4">
+                    <section className="px-2">
                         {/* Rows on the ground (canon): no wrapping frosted sheet, no fake
                             drag-handle. The list rows are opaque cards on the page surface;
                             the toolbar below groups search + filters. */}

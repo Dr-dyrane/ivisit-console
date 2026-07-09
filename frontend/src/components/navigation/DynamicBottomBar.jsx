@@ -83,7 +83,7 @@ const DynamicBottomBarContent = () => {
                 className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
                 style={{ bottom: 'calc(var(--safe-bottom, 0px) + 14px)' }}
             >
-                <div className={`w-full px-6 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
+                <div className={`w-full px-2 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
                     {/* CORE NAVIGATION PILL - Lucid Design */}
                     <motion.nav
                         initial={{ x: -50, opacity: 0 }}
