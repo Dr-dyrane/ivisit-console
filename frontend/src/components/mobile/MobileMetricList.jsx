@@ -61,7 +61,7 @@ export const MobileSectionHeader = ({
                 {onSelectAll && (
                     <button
                         onClick={handleSelectAll}
-                        className="w-8 h-8 flex items-center justify-center rounded-button apple-glass-heavy active:scale-90 transition-all text-foreground/60 hover:text-foreground"
+                        className="w-8 h-8 flex items-center justify-center rounded-button bg-muted/40 active:scale-90 transition-all text-foreground/60 hover:text-foreground"
                         aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                     >
                         {isAllSelected ? (
@@ -274,7 +274,7 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_3px_hsl(var(--foreground)/0.14)]' : isCurrentlyExpanded ? 'rounded-t-button bg-muted/80 shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'rounded-button bg-muted/50 active:bg-muted/70'
+                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_3px_hsl(var(--foreground)/0.14)]' : isCurrentlyExpanded ? 'rounded-t-button bg-muted/80 shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'rounded-button bg-muted/50 active:bg-muted/70'
                     }`}
                 style={{
                     WebkitTapHighlightColor: 'transparent',
@@ -330,7 +330,7 @@ export const MobileMetricRow = ({
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-[8px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/85">
+                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/85">
                         {label}
                     </p>
                     <div className="flex items-center gap-2 min-w-0">
@@ -414,7 +414,7 @@ export const MobileMetricRow = ({
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{
-                            height: { type: 'spring', stiffness: 300, damping: 30 },
+                            height: mobileMotion.spring,
                             opacity: mobileMotion.quick
                         }}
                         className="bg-foreground/[0.025] overflow-hidden rounded-b-button -mt-2 pt-2"
