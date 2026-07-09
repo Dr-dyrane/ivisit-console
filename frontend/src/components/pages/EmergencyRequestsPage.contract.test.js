@@ -97,7 +97,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('<RequestRow');
     expect(pageSource).toContain('<RequestDetailRail');
     expect(pageSource).toContain('viewToggle={null}');
-    expect(mobileSource).toContain('const MobileRequestRow = ({');
+    // Mobile Requests now renders the iOS-Settings grouped list (recency panels) instead
+    // of the flat MobileRequestRow feed.
+    expect(mobileSource).toContain('groupByRecency(');
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
 
     expect(activeRequestsSource).not.toContain('EmergencyRequestListView');
@@ -132,7 +134,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
     expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
     expect(pageSource).toContain('const RequestDetailRail = ({');
-    expect(mobileSource).toContain('const MobileRequestRow = ({');
+    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
     expect(pageSource).toContain('usePageHeader(');
     expect(pageSource).toContain("'Requests',");
     expect(pageSource).toContain("usePageFooter(null, 'status', false);");
@@ -444,7 +446,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain("onKpiClick={(id) => setKpiFilter?.(id)}");
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
-    expect(mobileSource).toContain('onClick={() => onOpen(request)}');
+    // Grouped-list row: taps open the detail sheet directly via setActiveRequest, rendered
+    // inside a frosted recency PANEL with slate hairlines between transparent rows.
+    expect(mobileSource).toContain('onClick={() => setActiveRequest(request)}');
+    expect(mobileSource).toContain("import { groupByRecency } from '../../utils/groupByRecency';");
+    expect(mobileSource).toContain('rounded-inner bg-card/72 dark:bg-white/[0.08] backdrop-blur-xl');
+    expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('>Requests</h1>');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');

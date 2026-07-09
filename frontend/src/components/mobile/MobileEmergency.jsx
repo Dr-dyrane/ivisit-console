@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     AlertCircle,
     Ambulance,
+    BarChart3,
     BedDouble,
     Calendar,
     ChevronRight,
@@ -11,7 +12,6 @@ import {
     Eye,
     Filter,
     Hospital,
-    Info,
     MapPin,
     Search,
     Send,
@@ -30,7 +30,7 @@ import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
-import { groupByMonth } from '../../utils/groupByMonth';
+import { groupByRecency } from '../../utils/groupByRecency';
 
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
@@ -47,11 +47,6 @@ const mobileKpis = [
 const countNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const getInitials = (name = 'Request') => {
-    const parts = String(name).trim().split(/\s+/).filter(Boolean);
-    return `${parts[0]?.[0] || 'R'}${parts[1]?.[0] || ''}`.toUpperCase();
 };
 
 const formatRequestTime = (value) => {
@@ -94,6 +89,15 @@ const getMobileRequestAvatarClass = (request) => {
         return 'bg-sky-500/10 text-sky-700 dark:text-sky-200';
     }
     return 'bg-muted/34 text-muted-foreground';
+};
+
+// Orb glyph by service type: ambulance/bed get their literal icon, everything else the
+// generic facility mark. Mirrors the app's inferRequestType icon mapping.
+const getMobileRequestTypeIcon = (request) => {
+    const type = String(request?.service_type || '').toLowerCase();
+    if (type === 'ambulance') return Ambulance;
+    if (type === 'bed') return BedDouble;
+    return Hospital;
 };
 
 const hasMobileRequestFilters = (filters = {}) => Boolean(
@@ -209,7 +213,7 @@ export const MobileEmergency = ({
                 contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-12 text-foreground"
             >
                 <MobileRequestsAtlasLayer />
-                <div className="relative z-10 space-y-5">
+                <div className="relative z-10 space-y-3">
                     <motion.section
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -230,10 +234,10 @@ export const MobileEmergency = ({
                     />
 
                     <section className="px-2">
-                        {/* Rows on the ground (canon): no wrapping frosted sheet, no fake
-                            drag-handle. The list rows are opaque cards on the page surface;
-                            the toolbar below groups search + filters. */}
-                        <div className="flex items-center gap-2 rounded-modal bg-background/42 p-2 dark:bg-black/[0.10]">
+                        {/* Flat search row (canon Apple search bar): no wrapping surface,
+                            no drag-handle. The input + filter + stats controls sit directly
+                            on the page over the atlas; the grouped list follows below. */}
+                        <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                                 <input
@@ -241,7 +245,7 @@ export const MobileEmergency = ({
                                     placeholder="Search requests..."
                                     value={filters?.search || ''}
                                     onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
-                                    className="h-11 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+                                    className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
                                 />
                             </div>
                             <motion.button
@@ -252,7 +256,7 @@ export const MobileEmergency = ({
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
                                 }}
                                 data-state={filterTriggerState}
-                                className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
+                                className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
                                 aria-label="Filter requests"
                                 aria-haspopup="dialog"
                                 aria-expanded={filterSheetOpen}
@@ -269,12 +273,12 @@ export const MobileEmergency = ({
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
                                     }}
                                     data-state={analyticsTriggerState}
-                                    className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
+                                    className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
                                     aria-label="Open request statistics"
                                     aria-haspopup="dialog"
                                     aria-expanded={analyticsOpen}
                                 >
-                                    <Info size={18} />
+                                    <BarChart3 size={18} />
                                 </motion.button>
                             )}
                         </div>
@@ -302,23 +306,64 @@ export const MobileEmergency = ({
                             </div>
                         )}
 
-                        <AnimatePresence mode="popLayout">
-                            {/* Date-grouped feed (rollout S5): newest-first, a month header at each
-                                boundary. Grouping is render-only; id-keyed state is unaffected. */}
-                            {groupByMonth(displayItems, (request) => request?.created_at).map(({ item: request, header }) => (
-                                <React.Fragment key={request.id}>
-                                    {header && (
-                                        <div className="px-2 pb-1 pt-3 eyebrow">
-                                            {header}
-                                        </div>
-                                    )}
-                                    <MobileRequestRow
-                                        request={request}
-                                        onOpen={setActiveRequest}
-                                    />
-                                </React.Fragment>
+                        {/* iOS-Settings grouped list (canon): one frosted PANEL per recency
+                            bucket over the atlas; rows are transparent, separated by a slate
+                            hairline — separation is fill/frost, never a border. Grouping is
+                            render-only; id-keyed state is unaffected. */}
+                        <div className="space-y-[18px]">
+                            {groupByRecency(
+                                displayItems,
+                                (request) => request.created_at,
+                                (request) => canonicalizeEmergencyStatus(request.status, null),
+                            ).map(({ key, label, items }) => (
+                                <div key={key}>
+                                    <div className="flex items-center justify-between px-1 pb-2.5">
+                                        <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{label}</span>
+                                        <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{items.length}</span>
+                                    </div>
+                                    <div className="rounded-inner bg-card/72 dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
+                                        {items.map((request, index) => {
+                                            const projection = buildEmergencyRenderProjection(request);
+                                            const vital = resolveVital('emergency', request.status);
+                                            const pill = vital?.pill;
+                                            const name = projection.patientDisplay.name;
+                                            const avatarClass = getMobileRequestAvatarClass(request);
+                                            const TypeIcon = getMobileRequestTypeIcon(request);
+                                            return (
+                                                <React.Fragment key={request.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setActiveRequest(request)}
+                                                        className="group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]"
+                                                        data-mobile-request-row={request.id}
+                                                        aria-haspopup="dialog"
+                                                        aria-label={`Open ${name}`}
+                                                    >
+                                                        <span className={`h-10 w-10 shrink-0 rounded-pill flex items-center justify-center ${avatarClass}`}>
+                                                            <TypeIcon size={20} />
+                                                        </span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[15px] leading-5 font-medium text-foreground truncate">{name}</p>
+                                                            <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{serviceLabel(request)} · {createdDateLabel(request.created_at)}</p>
+                                                        </div>
+                                                        <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
+                                                            <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{formatRequestTime(request.created_at)}</span>
+                                                            <span className="flex items-center gap-2">
+                                                                <span className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{pill?.label || 'New'}</span>
+                                                                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                    {index < items.length - 1 && (
+                                                        <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]" aria-hidden="true" />
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             ))}
-                        </AnimatePresence>
+                        </div>
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
                             {showSkeleton && <MobileListSkeletonRows />}
@@ -398,49 +443,5 @@ export const MobileEmergency = ({
                 })()}
             </MobilePageShell>
         </PullToRefresh>
-    );
-};
-
-const MobileRequestRow = ({
-    request,
-    onOpen,
-}) => {
-    const projection = buildEmergencyRenderProjection(request);
-    const vital = resolveVital('emergency', request.status);
-    const avatarClass = getMobileRequestAvatarClass(request);
-    const name = projection.patientDisplay.name;
-
-    return (
-        <motion.div
-            layout
-            data-mobile-request-row={request.id}
-            className="overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all"
-        >
-            {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved design +
-                desktop rail behaviour — not an inline dropdown. */}
-            <button
-                type="button"
-                onClick={() => onOpen(request)}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-                className="flex w-full items-start gap-3 p-4 text-left transition-transform duration-100 active:scale-[0.988]"
-                aria-label={`Open ${name}`}
-                aria-haspopup="dialog"
-            >
-                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-sm font-semibold ${avatarClass}`}>
-                    {getInitials(name)}
-                </span>
-                {/* Readable identity: patient name is the primary line (2-line clamp); the request
-                    time drops to its own line so it never steals width. See canon §2.1. */}
-                <span className="min-w-0 flex-1">
-                    <span className="text-[15px] font-semibold leading-tight text-foreground line-clamp-2 break-words">{name}</span>
-                    <span className="mt-1 block truncate text-sm text-muted-foreground">{serviceLabel(request)}</span>
-                    <span className="mt-1 block truncate text-xs font-medium text-muted-foreground">{formatRequestTime(request.created_at)}</span>
-                </span>
-                <span className="flex shrink-0 flex-col items-end gap-2 pl-1">
-                    <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${vital?.pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{vital?.pill?.label || 'New'}</span>
-                    <ChevronRight size={18} className="text-muted-foreground" />
-                </span>
-            </button>
-        </motion.div>
     );
 };
