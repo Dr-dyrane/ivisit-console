@@ -1089,6 +1089,9 @@ export const EmergencyRequestsPage = () => {
           setFilters={setFilters}
           onView={handleViewDetails}
           onDispatch={handleDispatch}
+          onComplete={handleComplete}
+          onProcessCash={handleProcessCash}
+          onRetryPayment={handleRetryPayment}
           onRefresh={fetchRequests}
           onViewAnalytics={() => setAnalyticsModalOpen(true)}
           isAdmin={isAdmin() || isOrgAdmin()}
