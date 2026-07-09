@@ -35,7 +35,9 @@ When this doc and the canon disagree, the canon wins.
   content; heavy diffuse shadows do not). Three neutral tiers only: **e1 resting**
   `shadow-[0_1px_3px_rgb(0_0_0/0.05)]` (small tiles), **e2 raised**
   `shadow-[0_4px_12px_rgb(0_0_0/0.07)]` (cards, chips, KPI, hovered rows) with
-  `shadow-[0_6px_16px_rgb(0_0_0/0.12)]` for a prominent solid CTA, and **e3 floating**
+  `shadow-[0_6px_16px_rgb(0_0_0/0.12)]` for a prominent solid CTA, **e2-lift**
+  `shadow-[0_16px_38px_rgb(0_0_0/0.08)]` (glance/KPI tiles ONLY — the sanctioned
+  "Today tile" soft resting lift §1.2 references), and **e3 floating**
   `shadow-[0_12px_32px_rgb(0_0_0/0.10)]` (sheets, rails, panels, modals). No colored
   glows; no `0_24px_70px`-class diffuse shadows.
 - **Canonical squircle radius only.** `rounded-{sheet,card,inner,icon,button,pill,modal,squircle}`

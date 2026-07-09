@@ -44,32 +44,42 @@ const normalizeTodayActions = ({ today, glanceItems, rows }) => {
   return actions.slice(0, 3);
 };
 
-const CurrentListRow = ({ row }) => {
-  const StatusIcon = row.loading ? Loader2 : row.disabled ? LockKeyhole : row.done ? CheckCircle2 : CircleDashed;
-  const state = row.disabled ? 'unavailable' : row.loading ? 'loading' : row.done ? 'ready' : 'open';
+const CurrentListRow = ({ row, onOpen, routingPath }) => {
+  const canOpen = Boolean(row.path) && !row.disabled && typeof onOpen === 'function';
+  const isOpening = canOpen && routingPath === row.path;
+  const StatusIcon = row.loading || isOpening ? Loader2 : row.disabled ? LockKeyhole : row.done ? CheckCircle2 : CircleDashed;
+  const state = row.disabled ? 'unavailable' : isOpening ? 'opening' : row.loading ? 'loading' : row.done ? 'ready' : 'open';
+  // Interactive affordances (hover lift, icon scale) render ONLY when the row actually
+  // navigates — a styled-pressable dead click is a canon defect.
+  const Wrapper = canOpen ? motion.button : motion.div;
 
   return (
-    <motion.div
+    <Wrapper
+      {...(canOpen
+        ? { type: 'button', onClick: () => onOpen(row.path), whileTap: { scale: 0.99 }, 'aria-label': `Open ${row.label || 'Today item'}` }
+        : {})}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       data-state={state}
-      className="group rounded-inner bg-card/60 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-card/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+      className={`group w-full rounded-inner bg-card/60 p-3 text-left shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 dark:bg-white/[0.05] ${
+        canOpen ? 'hover:-translate-y-0.5 hover:bg-card/80 focus-visible:bg-foreground/10 dark:hover:bg-white/[0.08]' : ''
+      }`}
     >
       <div className="flex items-start gap-3">
-        <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-button transition-transform duration-200 group-hover:scale-105 ${getToneClass(row.tone)}`}>
-          <StatusIcon className={`h-4 w-4 ${row.loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+        <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-button transition-transform duration-200 ${canOpen ? 'group-hover:scale-105' : ''} ${getToneClass(row.tone)}`}>
+          <StatusIcon className={`h-4 w-4 ${row.loading || isOpening ? 'animate-spin' : ''}`} aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-foreground">
+          <span className="block truncate text-sm font-semibold text-foreground" title={row.label}>
             {row.label || 'Today item'}
           </span>
-          <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
+          <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground" title={row.meta || row.detail}>
             {row.meta || row.detail || 'Open Today for details'}
           </span>
         </span>
       </div>
-    </motion.div>
+    </Wrapper>
   );
 };
 
@@ -126,7 +136,7 @@ export const DashboardPanel = ({ todayContext }) => {
         className="space-y-3"
         aria-label="Today overview"
       >
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Today overview
         </p>
 
@@ -137,7 +147,7 @@ export const DashboardPanel = ({ todayContext }) => {
                 Current route scope
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-normal text-foreground [overflow-wrap:anywhere]">
-                {loading ? '...' : roleLabel}
+                {loading ? <span className="block h-7 w-28 animate-pulse rounded-inner bg-muted/40" /> : roleLabel}
               </p>
               <p className="mt-1 text-xs font-medium text-muted-foreground">
                 {routeStatus}
@@ -158,8 +168,8 @@ export const DashboardPanel = ({ todayContext }) => {
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
                 {item.label}
               </p>
-              <p className="mt-1 truncate text-sm font-semibold text-foreground">
-                {loading ? '...' : item.value}
+              <p className="mt-1 truncate text-sm font-semibold text-foreground" title={item.value}>
+                {loading ? <span className="block h-4 w-16 animate-pulse rounded-inner bg-muted/40" /> : item.value}
               </p>
             </div>
           ))}
@@ -167,7 +177,7 @@ export const DashboardPanel = ({ todayContext }) => {
       </motion.section>
 
       <section className="space-y-2" aria-label="Panel actions">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Panel actions
         </p>
         <div className="grid grid-cols-1 gap-2">
@@ -183,7 +193,7 @@ export const DashboardPanel = ({ todayContext }) => {
               aria-disabled={action.disabled ? 'true' : undefined}
               className={`group flex min-h-[58px] items-center justify-between gap-3 rounded-inner px-4 text-left shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 disabled:cursor-not-allowed disabled:opacity-55 ${getToneClass(action.tone)}`}
             >
-              <span className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <span className="min-w-0 truncate text-sm font-semibold">
                 {action.label}
               </span>
               {context.routingPath === action.path ? (
@@ -200,13 +210,18 @@ export const DashboardPanel = ({ todayContext }) => {
       </section>
 
       <section className="space-y-2" aria-label="Current list">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Current list
         </p>
 
         <div className="space-y-2">
           {rows.slice(0, 4).map((row) => (
-            <CurrentListRow key={row.id || row.label} row={row} />
+            <CurrentListRow
+              key={row.id || row.label}
+              row={row}
+              onOpen={context.onNavigate}
+              routingPath={context.routingPath}
+            />
           ))}
 
           {!loading && rows.length === 0 && (

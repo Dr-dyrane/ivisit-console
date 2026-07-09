@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +12,7 @@ import {
   FileText,
   Loader2,
   LockKeyhole,
+  RefreshCw,
   ShieldCheck,
   Stethoscope,
 } from 'lucide-react';
@@ -148,7 +149,9 @@ export function buildToday({
       primaryAction: 'Review approvals',
       path: '/verification',
       icon: ShieldCheck,
-      tone: 'warning',
+      // Canonical colour coding: the "Needs attention" state is destructive red on
+      // every surface (same state, same colour — matches Requests).
+      tone: 'danger',
     };
   }
 
@@ -257,7 +260,7 @@ export function buildGlanceItems({
     return [
       { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
-      { label: 'Staff', value: providerCount > 0 ? `${providerCount} records` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
+      { label: 'Staff', value: providerCount > 0 ? `${providerCount} ${pluralize(providerCount, 'record')}` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
     ];
   }
 
@@ -265,7 +268,7 @@ export function buildGlanceItems({
     return [
       { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
-      { label: 'Staff', value: providerCount > 0 ? `${providerCount} records` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
+      { label: 'Staff', value: providerCount > 0 ? `${providerCount} ${pluralize(providerCount, 'record')}` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
     ];
   }
 
@@ -495,19 +498,19 @@ export function buildActionRows({
 }
 
 const statusClass = {
-  danger: 'bg-primary/10 text-primary dark:bg-primary/25 dark:text-red-100',
+  danger: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
   warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
   primary: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
-  muted: 'bg-foreground/[0.05] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
+  muted: 'bg-foreground/[0.05] text-muted-foreground dark:bg-white/[0.06] dark:text-foreground/80',
 };
 
 const rowToneClass = {
-  danger: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-red-100',
+  danger: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
   warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
   primary: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
-  muted: 'bg-foreground/[0.05] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
+  muted: 'bg-foreground/[0.05] text-muted-foreground dark:bg-white/[0.06] dark:text-foreground/80',
 };
 
 const AtlasLayer = () => (
@@ -516,7 +519,7 @@ const AtlasLayer = () => (
       className="absolute inset-0 opacity-[0.34] dark:opacity-[0.28]"
       style={{
         backgroundImage:
-          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.07) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.055) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--primary) / 0.08) 64% 67%, transparent 67%)',
+          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.07) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.055) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--foreground) / 0.06) 64% 67%, transparent 67%)',
         backgroundSize: '260px 180px, 340px 240px, 420px 280px',
         backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
       }}
@@ -525,7 +528,7 @@ const AtlasLayer = () => (
       className="absolute inset-0"
       style={{
         background:
-          'radial-gradient(circle at 35% 35%, hsl(var(--primary) / 0.13), transparent 30%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.20), hsl(var(--background)) 92%)',
+          'radial-gradient(circle at 35% 35%, hsl(var(--foreground) / 0.07), transparent 30%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.20), hsl(var(--background)) 92%)',
       }}
     />
   </div>
@@ -546,7 +549,7 @@ const GlanceCard = ({ item, onAction, routingPath }) => {
       data-today-glance={item.label.toLowerCase()}
       data-state={isOpening ? 'opening' : 'idle'}
       style={{ outline: 'none' }}
-      className="group min-h-[66px] cursor-pointer rounded-inner bg-card/65 px-3 py-2.5 text-left shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 hover:bg-card/82 focus-visible:-translate-y-0.5 focus-visible:bg-foreground/10 focus-visible:shadow-[0_24px_58px_rgb(0_0_0/0.18)] active:bg-card/90 disabled:pointer-events-none disabled:opacity-70 dark:bg-white/[0.055] dark:hover:bg-white/[0.085] dark:focus-visible:bg-white/[0.12] sm:px-4 md:py-3"
+      className="group min-h-[66px] cursor-pointer rounded-inner bg-card/65 px-3 py-2.5 text-left shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 hover:bg-card/82 focus-visible:-translate-y-0.5 focus-visible:bg-foreground/10 focus-visible:shadow-[0_12px_32px_rgb(0_0_0/0.10)] active:bg-card/90 disabled:pointer-events-none disabled:opacity-70 dark:bg-white/[0.055] dark:hover:bg-white/[0.085] dark:focus-visible:bg-white/[0.12] sm:px-4 md:py-3"
     >
       <span className="flex items-start justify-between gap-2">
         <span className="min-w-0">
@@ -576,7 +579,11 @@ const TodayCenter = ({ today, roleCopy, live, glanceItems, onAction, routingPath
       className="relative z-10 flex min-h-[210px] min-w-0 flex-1 items-center px-6 pb-5 pt-7 md:min-h-[520px] md:px-12 md:py-10 lg:pl-24"
     >
       <div className="max-w-2xl">
-        <div className={`mb-4 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold md:mb-5 ${rowToneClass[today.tone] || rowToneClass.muted}`}>
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mb-4 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold md:mb-5 ${rowToneClass[today.tone] || rowToneClass.muted}`}
+        >
           <Icon className="h-4 w-4" />
           {today.status}
         </div>
@@ -633,14 +640,14 @@ const DetailRow = ({ row, expanded, onToggle, onAction, routingPath }) => {
         aria-expanded={expanded}
         aria-label={`${row.label}: ${row.meta}${row.disabledReason ? `. ${row.disabledReason}` : ''}`}
         data-state={rowState}
-        className="flex w-full items-center gap-2.5 text-left md:gap-3"
+        className="flex w-full items-center gap-2.5 rounded-inner text-left focus-visible:bg-foreground/10 md:gap-3"
       >
         <span className={`flex h-6 w-6 items-center justify-center rounded-pill md:h-9 md:w-9 ${rowToneClass[row.tone] || rowToneClass.muted}`}>
           <StatusIcon className={`h-3 w-3 md:h-4 md:w-4 ${row.loading ? 'animate-spin' : ''}`} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold md:text-sm">{row.label}</span>
-          <span className="block truncate text-[11px] text-muted-foreground md:text-xs">{row.meta}</span>
+          <span className="block truncate text-[11px] text-muted-foreground md:text-xs" title={row.meta}>{row.meta}</span>
         </span>
         <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : 'group-hover:translate-x-0.5'}`} />
       </button>
@@ -661,7 +668,7 @@ const DetailRow = ({ row, expanded, onToggle, onAction, routingPath }) => {
               onClick={() => onAction(row.path)}
               data-state={isOpening ? 'opening' : 'idle'}
               aria-label={`${row.actionLabel}${isOpening ? ', opening' : ''}`}
-              className="mt-3 inline-flex items-center gap-2 rounded-pill bg-foreground/[0.18] px-3 py-2 text-xs font-semibold text-foreground shadow-[0_8px_18px_rgb(0_0_0/0.10)] transition-[background,transform] active:scale-[0.98] hover:bg-foreground/[0.22] dark:bg-white/[0.24] dark:hover:bg-white/[0.30]"
+              className="mt-3 inline-flex items-center gap-2 rounded-pill bg-foreground/[0.18] px-3 py-2 text-xs font-semibold text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,transform] active:scale-[0.98] hover:bg-foreground/[0.22] focus-visible:bg-foreground/[0.26] dark:bg-white/[0.24] dark:hover:bg-white/[0.30]"
             >
               {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
               {isOpening ? 'Opening...' : row.actionLabel}
@@ -678,7 +685,7 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
     initial={{ opacity: 0, y: 18, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: 0.46, delay: 0.08, ease: appleEase }}
-    className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-3 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]"
+    className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-3 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]"
   >
     <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
@@ -701,7 +708,7 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
         onClick={onPrimary}
         data-state={routingPath === today.path ? 'opening' : 'idle'}
         aria-label={`${today.primaryAction}${routingPath === today.path ? ', opening' : ''}`}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button bg-foreground px-4 py-2.5 text-sm font-semibold text-background shadow-[0_16px_36px_rgb(0_0_0/0.16)] transition-[background,transform] hover:bg-foreground/90 active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-white/90 md:mt-5 md:py-3.5"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button bg-foreground px-4 py-2.5 text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-[background,box-shadow,transform] hover:bg-foreground/90 focus-visible:shadow-[0_12px_32px_rgb(0_0_0/0.10)] active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-white/90 md:mt-5 md:py-3.5"
       >
         {routingPath === today.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
         {routingPath === today.path ? 'Opening...' : today.primaryAction}
@@ -735,9 +742,22 @@ export const TodayHome = ({ role }) => {
     loading,
     useMockData,
     domainErrors,
+    refreshAllData,
   } = usePageData();
   const [expandedRow, setExpandedRow] = useState(null);
   const [routingPath, setRoutingPath] = useState(null);
+  // Manual refresh state: navigation-only stays intact — refreshAllData is the
+  // PageDataContext owner re-running its own fetchers, not a page-owned read.
+  const [pageRefreshing, setPageRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    if (pageRefreshing) return;
+    setPageRefreshing(true);
+    try {
+      await refreshAllData?.();
+    } finally {
+      setPageRefreshing(false);
+    }
+  }, [pageRefreshing, refreshAllData]);
 
   const todayDomainErrors = {
     admin: ['emergency', 'verification', 'doctors', 'users'],
@@ -784,10 +804,22 @@ export const TodayHome = ({ role }) => {
   }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, providerCount, roleKind, visitCount]);
 
   const headerAction = useMemo(() => (
-    <span className="hidden md:inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-      {roleCopy.label}
+    <span className="hidden md:inline-flex items-center gap-2">
+      {/* Manual refresh (§1.6 loading truth): every data page gets a refresh affordance. */}
+      <button
+        type="button"
+        onClick={handleRefresh}
+        disabled={pageRefreshing}
+        aria-label={pageRefreshing ? 'Refreshing today' : 'Refresh today'}
+        className="flex h-7 w-7 items-center justify-center rounded-pill bg-card/70 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
+      >
+        <RefreshCw className={`h-3.5 w-3.5 ${pageRefreshing ? 'animate-spin' : ''}`} />
+      </button>
+      <span className="inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {roleCopy.label}
+      </span>
     </span>
-  ), [roleCopy.label]);
+  ), [roleCopy.label, handleRefresh, pageRefreshing]);
 
   usePageHeader('Today', headerAction);
   usePageFooter(null, 'status', false);
@@ -815,13 +847,23 @@ export const TodayHome = ({ role }) => {
     setExpandedRow((current) => (current === rowId ? '__collapsed__' : rowId));
   }, []);
 
+  const routeTimerRef = useRef(null);
   const handleAction = useCallback((path) => {
     if (!path) return;
+    // First click wins: ignore while a route transition is already acknowledged, so a
+    // double-click (or a second target) can never queue two navigations.
+    if (routingPath) return;
     setRoutingPath(path);
-    window.setTimeout(() => {
+    routeTimerRef.current = window.setTimeout(() => {
       navigate(path);
+      // Same-route navigations don't unmount us — reset so the spinner never sticks.
+      setRoutingPath(null);
     }, routeFeedbackMs);
-  }, [navigate]);
+  }, [navigate, routingPath]);
+
+  useEffect(() => () => {
+    if (routeTimerRef.current) window.clearTimeout(routeTimerRef.current);
+  }, []);
 
   const handlePrimary = useCallback(() => {
     handleAction(today.path);
