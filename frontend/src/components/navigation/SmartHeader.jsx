@@ -97,11 +97,11 @@ export const SmartHeader = () => {
                 }}
                 // Shared header chrome for route title, shell actions, and mobile account access.
                 className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-2 left-2 right-2 h-11 rounded-pill pointer-events-auto bg-transparent backdrop-blur-sm'
+                    ? 'top-2 left-3 right-3 h-11 rounded-pill pointer-events-auto bg-transparent backdrop-blur-sm'
                     : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
-                    paddingRight: isMobile ? '8px' : '32px',
+                    paddingRight: isMobile ? '0px' : '32px',
                     paddingTop: isMobile ? '0' : '0',
                 }}
             >
@@ -136,8 +136,8 @@ export const SmartHeader = () => {
                             null
                         )}
 
-                        {/* RIGHT - search and notifications */}
-                        <div className="flex items-center gap-1.5 rounded-pill px-1.5 py-1 bg-white/[0.03] shrink-0">
+                        {/* RIGHT - search, notifications, account */}
+                        <div className="flex items-center gap-1.5 shrink-0">
                             <button
                                 onClick={() => setSearchOpen(true)}
                                 className="w-8 h-8 rounded-pill flex items-center justify-center transition-[color,background] duration-200 ease-out text-muted-foreground/75 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
