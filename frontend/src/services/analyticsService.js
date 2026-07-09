@@ -16,6 +16,10 @@ import { supabase } from '../lib/supabase';
 const cache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+// Matches no row; used to scope provider reads to nothing instead of filtering
+// on a column the table does not have (Postgres 42703).
+const ANALYTICS_EMPTY_SCOPE_UUID = '00000000-0000-0000-0000-000000000000';
+
 export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {
   total: 0,
   active: 0,
@@ -95,9 +99,15 @@ export const getAnalyticsIntakePage = async ({
   let hospitalsQuery = supabase.from('hospitals').select('*', { count: 'exact' });
   let ambulancesQuery = supabase.from('ambulances').select('*', { count: 'exact' });
 
+  const isProviderScoped = user?.role === 'provider';
+  const providerHospitalIds = isProviderScoped && Array.isArray(user?.hospital_ids)
+    ? user.hospital_ids.filter(Boolean)
+    : [];
+
   requestsQuery = applyAuthFilter(requestsQuery, user, {
     userIdField: 'user_id',
     orgIdField: 'hospital_id',
+    providerIdField: 'responder_id',
     resourceType: 'emergency'
   });
 
@@ -107,15 +117,35 @@ export const getAnalyticsIntakePage = async ({
     resourceType: 'users'
   });
 
-  hospitalsQuery = applyAuthFilter(hospitalsQuery, user, {
-    orgIdField: 'organization_id',
-    resourceType: 'hospitals'
-  });
+  if (isProviderScoped) {
+    // hospitals and ambulances have no user_id column, so applyAuthFilter's
+    // provider fallback would filter on a missing column (42703). Scope by the
+    // provider's hospitals when resolved, otherwise by assignment
+    // (ambulances.profile_id) or an empty scope (hospitals).
+    if (providerHospitalIds.length) {
+      hospitalsQuery = providerHospitalIds.length > 1
+        ? hospitalsQuery.in('id', providerHospitalIds)
+        : hospitalsQuery.eq('id', providerHospitalIds[0]);
+      ambulancesQuery = providerHospitalIds.length > 1
+        ? ambulancesQuery.in('hospital_id', providerHospitalIds)
+        : ambulancesQuery.eq('hospital_id', providerHospitalIds[0]);
+    } else {
+      hospitalsQuery = hospitalsQuery.eq('id', ANALYTICS_EMPTY_SCOPE_UUID);
+      ambulancesQuery = user?.id
+        ? ambulancesQuery.eq('profile_id', user.id)
+        : ambulancesQuery.eq('id', ANALYTICS_EMPTY_SCOPE_UUID);
+    }
+  } else {
+    hospitalsQuery = applyAuthFilter(hospitalsQuery, user, {
+      orgIdField: 'organization_id',
+      resourceType: 'hospitals'
+    });
 
-  ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
-    orgIdField: 'organization_id',
-    resourceType: 'ambulances'
-  });
+    ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
+      orgIdField: 'organization_id',
+      resourceType: 'ambulances'
+    });
+  }
 
   const subscriptionAnalyticsRequest = canReadSubscriptionAnalytics
     ? resolveAnalyticsSource(getSubscriptionAnalytics({ quiet: true }).then((data) => ({ data })))

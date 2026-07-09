@@ -202,14 +202,17 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
       } else {
         query = query.eq(orgIdField, hospitalIds[0]);
       }
+    } else if (isHospitalScoped && Array.isArray(hospitalIds)) {
+      // Contract: null/undefined hospital_ids = unresolved (trust RLS); resolved [] = org has no hospitals, scope to nothing.
+      query = query.in(orgIdField, ['00000000-0000-0000-0000-000000000000']);
     } else if (isHospitalScoped) {
       // hospital_ids not resolved - skip client-side filter, RLS handles visibility
     } else {
       // orgIdField is 'organization_id' or similar - orgId matches directly
       query = query.eq(orgIdField, orgId);
     }
-  } else if (role === 'provider' || role === 'doctor') {
-    // Provider/Doctor sees only records assigned to them
+  } else if (role === 'provider') {
+    // Provider sees only records assigned to them
     const hospitalIds = user?.hospital_ids;
     const isHospitalScoped = orgIdField === 'hospital_id';
 

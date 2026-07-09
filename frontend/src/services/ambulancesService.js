@@ -61,7 +61,30 @@ function normalizeAmbulanceStatusValues(value) {
     ));
 }
 
+// Persona matrix 6.5: the fleet page projection and getAmbulances must scope the
+// same rows or list/KPIs disagree with dispatch. Backend truth (ambulances RLS,
+// docs/database/backend-research/03_RLS_REALTIME_TRIGGERS.md, security.sql:296-315)
+// owns a unit through EITHER edge: organization_id directly OR hospital_id under
+// the org. Pure hospital_id .in() would drop org-owned units with no station yet
+// (createAmbulance/AmbulanceModal allow organization_id without hospital_id), so
+// org admins get the composite OR of both ownership edges. When the org has no
+// hospitals (getCurrentUser always resolves hospital_ids to an array for org
+// admins), the org-direct edge is the only possible one.
+function applyAmbulanceOrgAdminScope(query, user) {
+  const orgId = user.organization_id;
+  const hospitalIds = (Array.isArray(user.hospital_ids) ? user.hospital_ids : [])
+    .filter(isValidUUID);
+
+  if (hospitalIds.length > 0) {
+    return query.or(`organization_id.eq.${orgId},hospital_id.in.(${hospitalIds.join(',')})`);
+  }
+  return query.eq('organization_id', orgId);
+}
+
 function applyAmbulancePageAuth(query, user) {
+  if (user?.role === 'org_admin' && user?.organization_id) {
+    return applyAmbulanceOrgAdminScope(query, user);
+  }
   return applyAuthFilter(query, user, {
     userIdField: 'profile_id',
     orgIdField: 'organization_id',
@@ -256,6 +279,11 @@ export async function getAmbulances(filter = {}) {
       if (user?.role === 'provider' && user?.provider_type === 'driver') {
         // Drivers see only their assigned ambulance
         query = query.eq('profile_id', user.id);
+      } else if (user?.role === 'org_admin' && user?.organization_id) {
+        // Same composite scope as the page projection (persona matrix 6.5):
+        // organization_id direct OR hospital_id under the org, matching RLS
+        // ownership, so dispatch and fleet list/KPIs agree.
+        query = applyAmbulanceOrgAdminScope(query, user);
       } else {
         // Apply standard RBAC for other roles
         query = applyAuthFilter(query, user, {

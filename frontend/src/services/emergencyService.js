@@ -307,7 +307,10 @@ async function getEmergencyPageExactCount(filter = {}, user) {
 export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = false) {
   try {
     const scopedUser = user || await getCurrentUser();
-    const baseFilter = { ...filter, kpiFilter: undefined };
+    // Stats contract: the KPI chips ARE the status dimension, so chip counts ignore the
+    // sheet status filter (search/date/service filters still apply). Each count below
+    // sets its own status/kpi scope on this one consistent base.
+    const baseFilter = { ...filter, kpiFilter: undefined, status: undefined };
 
     const [
       total,
