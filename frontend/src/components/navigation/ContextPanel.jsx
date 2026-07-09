@@ -383,80 +383,44 @@ export const ContextPanel = () => {
     </div>
   );
 
-  const getPageContextHeader = () => {
-    const headers = {
-      '/': { title: 'Today', subtitle: 'What needs attention' },
-      '/emergencies': { title: 'Requests', subtitle: 'Active care requests' },
-      '/users': { title: 'Users', subtitle: 'Access' },
-      '/verification': { title: 'Approvals', subtitle: 'Provider and facility review' },
-      '/analytics': { title: 'Statistics', subtitle: 'Trends' },
-      '/doctors': { title: 'Staff', subtitle: 'Care team' },
-      '/visits': { title: 'Visits', subtitle: 'Appointments' },
-      '/hospitals': { title: 'Facilities', subtitle: 'Hospitals and clinics' },
-      '/ambulances': { title: 'Ambulances', subtitle: 'Vehicles and crews' },
-      '/health-news': { title: 'Health news', subtitle: 'Content' },
-      '/support-tickets': { title: 'Support', subtitle: 'Help requests' },
-      '/insurance': { title: 'Insurance', subtitle: 'Policies' },
-      '/map': { title: 'Map', subtitle: 'Locations' },
-      '/settings': { title: 'Settings', subtitle: 'Account and app' },
-      '/subscriptions': { title: 'Subscriptions', subtitle: 'Emails' },
-      '/wallet': { title: 'Payments', subtitle: 'Balance and cards' },
-      '/pricing': { title: 'Pricing', subtitle: 'Costs' },
-      '/organizations': { title: 'Organizations', subtitle: 'Network' }
-    };
-
-    const currentHeaderKey = Object.keys(headers).find(key =>
-      currentPath === key || currentPath.startsWith(key + '/')
-    );
-
-    return currentHeaderKey ? headers[currentHeaderKey] : { title: 'Context', subtitle: 'Page details' };
-  };
-
-  const renderPanelHeader = () => {
-    const { title, subtitle } = getPageContextHeader();
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="relative"
-      >
-        <div className="px-0 pt-4 pb-3 md:px-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
-              <p className="text-xs text-muted-foreground font-normal uppercase tracking-wider">{subtitle}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Live indicator */}
-              {!useMockData && (
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="h-2 w-2 rounded-pill bg-emerald-500"
-                  aria-hidden="true"
-                />
-              )}
-              {/* Close button - Hidden on mobile. md:flex (not md:block) so the icon centers. */}
-              <button
-                onClick={() => {
-                  // Close context panel
-                  const event = new CustomEvent('closeContextPanel');
-                  window.dispatchEvent(event);
-                }}
-                className="hidden h-9 w-9 items-center justify-center rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95 md:flex"
-                type="button"
-                aria-label="Close panel"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+  // Shared header is slimmed to just the control row (live dot + close). Each inner
+  // panel owns its own heading (its `X overview` eyebrow), so the pane no longer
+  // renders a duplicate route title above it. See ContextPanelShell contract.
+  const renderPanelHeader = () => (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      className="relative"
+    >
+      <div className="px-0 pt-4 pb-2 md:px-6">
+        <div className="flex items-center justify-end gap-3">
+          {/* Live indicator */}
+          {!useMockData && (
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="h-2 w-2 rounded-pill bg-emerald-500"
+              aria-hidden="true"
+            />
+          )}
+          {/* Close button - Hidden on mobile. md:flex (not md:block) so the icon centers. */}
+          <button
+            onClick={() => {
+              // Close context panel
+              const event = new CustomEvent('closeContextPanel');
+              window.dispatchEvent(event);
+            }}
+            className="hidden h-9 w-9 items-center justify-center rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95 md:flex"
+            type="button"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </motion.div>
-    );
-  };
+      </div>
+    </motion.div>
+  );
 
   const renderPanelWithHeader = (panelContent) => (
     <div className="h-full flex flex-col rounded-card" data-context-panel-content="true">

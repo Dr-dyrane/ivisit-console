@@ -35,8 +35,12 @@ describe('ContextPanel shell contract', () => {
     const panel = panelSource();
     const hardgate = hardgateSource();
 
-    expect(panel).toContain("'/': { title: 'Today', subtitle: 'What needs attention' }");
-    expect(panel).toContain("'/emergencies': { title: 'Requests', subtitle: 'Active care requests' }");
+    // Slimmed shared header (dedup): the pane no longer renders a duplicate route
+    // title/subtitle; each inner panel owns its own 'X overview' heading, and the
+    // shared header is just the control row (live dot + close).
+    expect(panel).not.toContain('getPageContextHeader');
+    expect(panel).not.toContain("subtitle: 'Active care requests'");
+    expect(panel).toContain('flex items-center justify-end gap-3');
     expect(panel).toContain('data-context-panel-content="true"');
     expect(panel).toContain('aria-label="Close panel"');
     expect(panel).toContain('type="button"');

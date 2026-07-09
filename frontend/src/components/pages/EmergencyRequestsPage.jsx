@@ -1589,7 +1589,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-      className={`mb-2 grid min-h-[78px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)]'}`}
+      className={`group mb-2 grid min-h-[80px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
       data-request-row={request.id}
       data-state={selected ? 'selected' : 'idle'}
       role="button"
@@ -1650,7 +1650,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
           event.stopPropagation();
           onView(request);
         }}
-        className="justify-self-end rounded-pill bg-background/45 px-3 text-xs font-semibold shadow-sm transition-all hover:bg-foreground hover:text-background active:scale-95"
+        className="justify-self-end rounded-pill bg-background/45 px-3 text-xs font-semibold transition-all duration-200 hover:bg-foreground hover:text-background active:scale-95"
       >
         Details
       </Button>
