@@ -29,7 +29,6 @@ import {
   Ambulance,
   ArrowUpDown,
   BedDouble,
-  Check,
   CheckCheck,
   ChevronDown,
   ChevronRight,
@@ -41,7 +40,6 @@ import {
   Info,
   LayoutGrid,
   MapPin,
-  Minus,
   RefreshCw,
   Search,
   Send,
@@ -52,6 +50,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { FilterSheet } from '../common/FilterSheet';
 import { BulkActionBar } from '../common/BulkActionBar';
+import { Checkbox } from '../ui/checkbox';
 import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { MobileEmergency } from '../mobile/MobileEmergency';
 import { SEOHead } from '../common/SEOHead';
@@ -783,22 +782,18 @@ export const EmergencyRequestsPage = () => {
 
   const clearSelection = useCallback(() => setSelectedIds([]), []);
 
-  const handleToggleSelect = useCallback((id) => {
+  const handleToggleSelect = useCallback((id, checked) => {
     setSelectedIds((prev) => (
-      prev.includes(id) ? prev.filter((selectedId) => selectedId !== id) : [...prev, id]
+      checked
+        ? (prev.includes(id) ? prev : [...prev, id])
+        : prev.filter((selectedId) => selectedId !== id)
     ));
   }, []);
 
-  // Select-all targets only the cancellable rows in the current list, mirroring the
-  // per-row cancel legality (getEmergencyActionState.canCancel). Re-tapping clears.
-  const handleSelectAll = useCallback(() => {
-    setSelectedIds((prev) => {
-      const cancellableIds = requests
-        .filter((row) => getEmergencyActionState(row).canCancel)
-        .map((row) => row.id);
-      const allSelected = cancellableIds.length > 0 && cancellableIds.every((id) => prev.includes(id));
-      return allSelected ? [] : cancellableIds;
-    });
+  // Select-all covers EVERY visible row (Users-page parity). Bulk cancel then acts only on
+  // the cancellable (non-terminal) subset — see executeBulkCancel / cancellableSelectedCount.
+  const handleSelectAll = useCallback((checked) => {
+    setSelectedIds(checked ? requests.map((row) => row.id) : []);
   }, [requests]);
 
   // Bulk cancel loops the SAME reused console_cancel_emergency RPC path as the single
@@ -843,18 +838,24 @@ export const EmergencyRequestsPage = () => {
     }
   }, [requests, selectedIds, cancelMutation.mutateAsync, clearSelection]);
 
+  // Of the selected rows, how many are actually cancellable (non-terminal). Select-all
+  // selects everything, but only these get cancelled.
+  const cancellableSelectedCount = useMemo(
+    () => requests.filter((row) => selectedIds.includes(row.id) && getEmergencyActionState(row).canCancel).length,
+    [requests, selectedIds]
+  );
+
   const handleBulkCancel = useCallback(() => {
-    const count = selectedIds.length;
-    if (count === 0) return;
+    if (cancellableSelectedCount === 0) return;
     setConfirmationModal({
       isOpen: true,
       title: 'Cancel requests',
-      description: `Cancel ${count} selected request${count === 1 ? '' : 's'}? This cannot be undone.`,
+      description: `Cancel ${cancellableSelectedCount} cancellable request${cancellableSelectedCount === 1 ? '' : 's'}? Completed and cancelled ones are skipped. This cannot be undone.`,
       onConfirm: executeBulkCancel,
       variant: 'destructive',
       confirmLabel: 'Cancel requests',
     });
-  }, [selectedIds.length, executeBulkCancel]);
+  }, [cancellableSelectedCount, executeBulkCancel]);
 
   const handleViewDetails = useCallback((request) => {
     setFocusedRequestId(request?.id || null);
@@ -1097,10 +1098,10 @@ export const EmergencyRequestsPage = () => {
             variant="ghost"
             size="icon"
             onClick={handleBulkCancel}
-            disabled={cancelMutation.isPending}
-            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96]"
-            title="Cancel selected requests"
-            aria-label="Cancel selected requests"
+            disabled={cancelMutation.isPending || cancellableSelectedCount === 0}
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96] disabled:opacity-40"
+            title={cancellableSelectedCount === 0 ? 'No cancellable requests selected' : `Cancel ${cancellableSelectedCount} cancellable request${cancellableSelectedCount === 1 ? '' : 's'}`}
+            aria-label={cancellableSelectedCount === 0 ? 'No cancellable requests selected' : `Cancel ${cancellableSelectedCount} cancellable requests`}
           >
             <Trash2 className="h-5 w-5" />
           </Button>
@@ -1259,12 +1260,8 @@ const RequestsDesktopWorkspace = ({
   onSort,
 }) => {
   const signal = getRequestSignal({ stats, requests, kpiFilter });
-  const cancellableIds = useMemo(
-    () => requests.filter((row) => getEmergencyActionState(row).canCancel).map((row) => row.id),
-    [requests]
-  );
-  const allSelected = selectable && cancellableIds.length > 0
-    && cancellableIds.every((id) => selectedIds.includes(id));
+  const allSelected = selectable && requests.length > 0
+    && requests.every((row) => selectedIds.includes(row.id));
   const someSelected = selectable && !allSelected && selectedIds.length > 0;
 
   return (
@@ -1555,24 +1552,6 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
 const REQUEST_GRID_COLS = 'grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
 const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
 
-// Borderless selection affordance (no native checkbox border/ring): a canon rounded-icon
-// square that fills on select. Used per-row and for select-all in the list header.
-const RequestSelectToggle = ({ checked, indeterminate = false, onToggle, label }) => (
-  <button
-    type="button"
-    role="checkbox"
-    aria-checked={indeterminate ? 'mixed' : checked}
-    aria-label={label}
-    onClick={(event) => {
-      event.stopPropagation();
-      onToggle?.();
-    }}
-    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-all active:scale-[0.96] ${checked || indeterminate ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground/40 hover:bg-muted/80 hover:text-muted-foreground/80'}`}
-  >
-    {indeterminate ? <Minus className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-  </button>
-);
-
 // Clickable column header (VisitsPage/HospitalsPage idiom): a new key sorts ascending,
 // re-tapping the active key flips direction. Feeds setSortConfig via onSort.
 const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => {
@@ -1599,11 +1578,12 @@ const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = 
 const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
   <div className={`grid ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
     {selectable && (
-      <RequestSelectToggle
-        checked={allSelected}
-        indeterminate={someSelected}
-        onToggle={onSelectAll}
-        label={allSelected ? 'Clear selection' : 'Select all cancellable requests'}
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all requests'}
+        className="h-4 w-4"
       />
     )}
     {/* Person / Service / Facility are plain labels — sorting them alphabetically isn't
@@ -1625,7 +1605,6 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
   const patientName = projection.patientDisplay.name;
   const facilityName = projection.facilityDisplay.name;
   const rowAvatarClass = getRequestAvatarClass(request);
-  const canSelect = selectable && getEmergencyActionState(request).canCancel;
 
   return (
     <motion.div
@@ -1650,15 +1629,13 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
       aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}
     >
       {selectable && (
-        canSelect ? (
-          <RequestSelectToggle
-            checked={checked}
-            onToggle={() => onToggleSelect?.(request.id)}
-            label={checked ? `Deselect request from ${patientName}` : `Add request from ${patientName} to selection`}
-          />
-        ) : (
-          <span aria-hidden="true" />
-        )
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(request.id, value)}
+          onClick={(event) => event.stopPropagation()}
+          aria-label={checked ? `Deselect request from ${patientName}` : `Select request from ${patientName}`}
+          className="h-4 w-4"
+        />
       )}
       <div className="flex min-w-0 items-center gap-3">
         <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${rowAvatarClass}`}>
