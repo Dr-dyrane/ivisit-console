@@ -201,9 +201,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
 
     expect(mobileSource).toContain('<PullToRefresh onRefresh={onRefresh}>');
-    expect(mobileSource).toContain('const showSkeleton = loading && displayItems.length === 0;');
-    // Load model: a group-shaped skeleton holds the exact final layout, then the real
-    // list REPLACES it in place (no fade-from-blank, no top-to-bottom reveal).
+    // Skeleton-first on EVERY mount: a forced warm-up guarantees the skeleton shows on
+    // cached bottom-nav navigation too (not just refresh), so content never assembles
+    // top-to-bottom. When it clears, the group-shaped skeleton is REPLACED in place.
+    expect(mobileSource).toContain('const SKELETON_WARMUP_MS =');
+    expect(mobileSource).toContain('setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS)');
+    expect(mobileSource).toContain('const showSkeleton = warmingUp || (loading && displayItems.length === 0);');
     expect(mobileSource).toContain('const MobileRequestsListSkeleton = (');
     expect(mobileSource).toContain('{showSkeleton ? (');
     expect(mobileSource).toContain('<MobileRequestsListSkeleton />');

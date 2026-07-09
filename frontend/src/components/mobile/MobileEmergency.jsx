@@ -32,6 +32,12 @@ import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapp
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
 
+// Minimum skeleton time on every mount. Bottom-nav navigation mounts with cached
+// data (loading already false), so without this the page would skip the skeleton and
+// assemble cached content top-to-bottom. A short forced warm-up makes navigation load
+// skeleton-first then reveal in one commit — identical to a hard refresh. Tunable.
+const SKELETON_WARMUP_MS = 400;
+
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
 // avatars/pills and the desktop RequestKpiStrip: attention=destructive, active=amber,
@@ -215,12 +221,22 @@ export const MobileEmergency = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeRequest, setActiveRequest] = useState(null);
+    // Forced skeleton on every mount (see SKELETON_WARMUP_MS): guarantees a
+    // skeleton-first load on cached bottom-nav navigation, not just on refresh.
+    const [warmingUp, setWarmingUp] = useState(true);
     const { triggerFromEvent } = useFeedback();
     const { displayItems, isBuffering } = useStableList(emergencies, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
-    const showSkeleton = loading && displayItems.length === 0;
+    // Skeleton while warming up OR while the first real fetch is still pending.
+    // When it clears, the whole list swaps in a single commit — no top-to-bottom assemble.
+    const showSkeleton = warmingUp || (loading && displayItems.length === 0);
     const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';
     const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';
+
+    useEffect(() => {
+        const timer = setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (!hasMore) return;
@@ -254,7 +270,7 @@ export const MobileEmergency = ({
                     <section className="px-4">
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            {loading ? 'Loading requests...' : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
+                            {showSkeleton ? 'Loading requests...' : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
                         </p>
                     </section>
 
@@ -262,7 +278,7 @@ export const MobileEmergency = ({
                         kpis={kpis}
                         activeKpi={kpiFilter || 'pending'}
                         onKpiClick={(id) => setKpiFilter?.(id)}
-                        loading={loading}
+                        loading={showSkeleton}
                     />
 
                     <section className="px-4">
