@@ -357,21 +357,26 @@ const rankKpiOptions = ({ stats, requests }) =>
     )
     .map((entry) => entry.option);
 
-// Pending + Active are PINNED — the actionable triage states can never be buried by a
-// big service-type count. Only the third slot is data-driven: the highest-count remaining
-// option, unless the user selected a non-pinned chip, which then owns the slot so the
-// selection stays visible. Rendered in canonical order for stable positions.
+// Smart-context selection: the actionable triage states (pending/active) are pinned
+// ONLY while they carry signal (count > 0) — an actionable 5 outranks a service-type 145,
+// but a ZERO-count chip never occupies a slot another option could fill with real data
+// (that dead-chip state is exactly what data-driven selection exists to prevent). Empty
+// slots fill data-driven (count desc); the user's selected chip always stays visible.
+// Rendered in canonical order for stable positions.
 const PINNED_KPI_IDS = ['pending', 'active'];
 const selectPrimaryKpis = ({ stats, requests, kpiFilter }) => {
-  const rest = rankKpiOptions({ stats, requests }).filter(
-    (option) => !PINNED_KPI_IDS.includes(option.id)
+  const pinned = PINNED_KPI_IDS.filter(
+    (id) => getKpiCount({ id, stats, requests }) > 0
   );
-  const third = (kpiFilter && !PINNED_KPI_IDS.includes(kpiFilter)
-    && kpiOptions.some((option) => option.id === kpiFilter))
-    ? kpiFilter
-    : rest[0]?.id;
-  const chosen = new Set([...PINNED_KPI_IDS, third].filter(Boolean));
-  return kpiOptions.filter((option) => chosen.has(option.id));
+  const chosen = new Set(pinned);
+  if (kpiFilter && !chosen.has(kpiFilter) && kpiOptions.some((option) => option.id === kpiFilter)) {
+    chosen.add(kpiFilter);
+  }
+  for (const option of rankKpiOptions({ stats, requests })) {
+    if (chosen.size >= 3) break;
+    chosen.add(option.id);
+  }
+  return kpiOptions.filter((option) => chosen.has(option.id)).slice(0, 3);
 };
 
 const getDefaultRequestKpi = (stats) => {
