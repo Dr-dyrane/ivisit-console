@@ -125,6 +125,16 @@ const kpiOptions = [
     restClass: 'bg-card/65 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
   },
   {
+    // Responder persona chip (drivers): requests where responder_id = me. Only
+    // rendered when includeMine (isDriver) — see selectPrimaryKpis.
+    id: 'mine',
+    label: 'Mine',
+    icon: UserRound,
+    colorClass: 'text-violet-600 dark:text-violet-200',
+    activeClass: 'bg-violet-500/10 text-violet-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-violet-200',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700 dark:hover:text-violet-200',
+  },
+  {
     id: 'bed',
     label: 'Beds',
     icon: BedDouble,
@@ -148,7 +158,7 @@ const kpiOptions = [
 // positions. Tiles match the Today glance tile exactly (soft resting lift, py-2.5,
 // max-w-2xl grid-cols-2 sm:grid-cols-3). Neutral at rest; colour only when selected.
 const KPI_REST = 'bg-card/65 text-muted-foreground shadow-[0_16px_38px_rgb(0_0_0/0.08)] hover:bg-card/82 dark:bg-white/[0.055] dark:hover:bg-white/[0.085]';
-const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, bed: 3, ambulance: 4 };
+const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, mine: 3, bed: 4, ambulance: 5 };
 
 const statusStyles = {
   pending_approval: {
@@ -253,6 +263,7 @@ const REQUEST_EMPTY_HEADINGS = {
   active: 'No active requests',
   bed: 'No bed requests',
   ambulance: 'No ambulance requests',
+  mine: 'Nothing assigned to you',
 };
 
 const getStatusMeta = (request) => {
@@ -296,6 +307,9 @@ const getServiceLabel = (request) => {
 const getKpiCount = ({ id, stats, requests }) => {
   if (id === 'all') {
     return normalizeCount(stats?.total, requests.length);
+  }
+  if (id === 'mine') {
+    return normalizeCount(stats?.mine, 0);
   }
   if (id === 'pending') {
     const rowCount = requests.filter((request) => request.status === 'pending_approval').length;
@@ -378,6 +392,16 @@ const getRequestSignal = ({ stats, requests, kpiFilter, loadError }) => {
     };
   }
 
+  if (activeOption.id === 'mine') {
+    return {
+      icon: UserRound,
+      tone: count > 0 ? 'primary' : 'muted',
+      label: 'Mine',
+      headline: count > 0 ? `${count} request${count === 1 ? '' : 's'} assigned to you` : 'Nothing assigned to you',
+      subhead: count > 0 ? 'Start with your active run.' : 'Dispatches assigned to you will appear here.',
+    };
+  }
+
   if (activeOption.id === 'ambulance') {
     return {
       icon: Ambulance,
@@ -399,9 +423,9 @@ const getRequestSignal = ({ stats, requests, kpiFilter, loadError }) => {
   };
 };
 
-// Rank all KPIs by live significance (count desc), stable importance tiebreak.
-const rankKpiOptions = ({ stats, requests }) =>
-  kpiOptions
+// Rank KPIs by live significance (count desc), stable importance tiebreak.
+const rankKpiOptions = ({ stats, requests, options = kpiOptions }) =>
+  options
     .map((option) => ({ option, count: getKpiCount({ id: option.id, stats, requests }) }))
     .sort(
       (a, b) =>
@@ -417,19 +441,21 @@ const rankKpiOptions = ({ stats, requests }) =>
 // slots fill data-driven (count desc); the user's selected chip always stays visible.
 // Rendered in canonical order for stable positions.
 const PINNED_KPI_IDS = ['pending', 'active'];
-const selectPrimaryKpis = ({ stats, requests, kpiFilter }) => {
+const selectPrimaryKpis = ({ stats, requests, kpiFilter, includeMine = false }) => {
+  // 'Mine' (responder_id = me) only exists for responder personas (drivers).
+  const pool = includeMine ? kpiOptions : kpiOptions.filter((option) => option.id !== 'mine');
   const pinned = PINNED_KPI_IDS.filter(
     (id) => getKpiCount({ id, stats, requests }) > 0
   );
   const chosen = new Set(pinned);
-  if (kpiFilter && !chosen.has(kpiFilter) && kpiOptions.some((option) => option.id === kpiFilter)) {
+  if (kpiFilter && !chosen.has(kpiFilter) && pool.some((option) => option.id === kpiFilter)) {
     chosen.add(kpiFilter);
   }
-  for (const option of rankKpiOptions({ stats, requests })) {
+  for (const option of rankKpiOptions({ stats, requests, options: pool })) {
     if (chosen.size >= 3) break;
     chosen.add(option.id);
   }
-  return kpiOptions.filter((option) => chosen.has(option.id)).slice(0, 3);
+  return pool.filter((option) => chosen.has(option.id)).slice(0, 3);
 };
 
 const getDefaultRequestKpi = (stats) => {
@@ -484,7 +510,7 @@ const RequestsAtlasLayer = () => (
 
 export const EmergencyRequestsPage = () => {
   const navigate = useNavigate();
-  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, user, loading: authLoading } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId, profile, user, loading: authLoading } = useAuth();
   const { isMobile } = useNavigation();
 
   const currentUser = useMemo(() => ({
@@ -1215,6 +1241,7 @@ export const EmergencyRequestsPage = () => {
           requests={requests}
           loading={loading}
           isFetching={isFetching}
+          includeMine={isDriver()}
           dispatchPending={dispatchMutation.isPending}
           completePending={completeMutation.isPending}
           retryPending={retryPending}
@@ -1389,6 +1416,7 @@ const RequestsDesktopWorkspace = ({
   requests,
   loading,
   isFetching = false,
+  includeMine = false,
   dispatchPending = false,
   completePending = false,
   retryPending = false,
@@ -1496,6 +1524,7 @@ const RequestsDesktopWorkspace = ({
             setKpiFilter={setKpiFilter}
             loading={loading}
             isFetching={isFetching}
+            includeMine={includeMine}
           />
 
           <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
@@ -1628,7 +1657,7 @@ const RequestsDesktopWorkspace = ({
   );
 };
 
-const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading, isFetching }) => {
+const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading, isFetching, includeMine = false }) => {
   const SignalIcon = signal.icon;
 
   return (
@@ -1664,13 +1693,14 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
           setKpiFilter={setKpiFilter}
           loading={loading}
           isFetching={isFetching}
+          includeMine={includeMine}
         />
       </div>
     </section>
   );
 };
 
-const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, isFetching }) => {
+const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, isFetching, includeMine = false }) => {
   if (loading) {
     return (
       <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1694,7 +1724,7 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, is
 
   return (
     <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
-      {selectPrimaryKpis({ stats, requests, kpiFilter }).map((item) => {
+      {selectPrimaryKpis({ stats, requests, kpiFilter, includeMine }).map((item) => {
         const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
       const count = getKpiCount({ id: item.id, stats, requests });

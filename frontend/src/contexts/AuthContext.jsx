@@ -253,6 +253,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isSponsor = useCallback(() => hasRole('sponsor'), [hasRole]);
   const isOrgAdmin = useCallback(() => hasRole('org_admin'), [hasRole]);
   const isProvider = useCallback(() => hasRole('provider'), [hasRole]);
+  // Persona derivation — no schema change: a driver is a provider whose existing
+  // profiles.provider_type is 'driver' (the same signal ambulancesService uses).
+  const isDriver = useCallback(() => hasRole('provider') && profile?.provider_type === 'driver', [hasRole, profile]);
   const isViewer = useCallback(() => hasRole('viewer'), [hasRole]);
   const isPatient = useCallback(() => hasRole('patient'), [hasRole]);
 
@@ -364,6 +367,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isSponsor,
     isOrgAdmin,
     isProvider,
+    isDriver,
     isViewer,
     isPatient,
     isOnboarding,
@@ -386,6 +390,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isSponsor,
     isOrgAdmin,
     isProvider,
+    isDriver,
     isViewer,
     isPatient,
     isOnboarding,

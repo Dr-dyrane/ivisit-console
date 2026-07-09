@@ -20,6 +20,7 @@ export const consoleModuleRailSlots = {
   admin: ['today', 'requests', 'staff', 'payments', 'help'],
   org_admin: ['today', 'requests', 'staff', 'payments', 'help'],
   provider: ['today', 'requests', 'help'],
+  driver: ['today', 'requests', 'help'],
   sponsor: ['today', 'statistics'],
   viewer: ['today'],
 };

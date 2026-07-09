@@ -219,6 +219,16 @@ For **every page** we finish designing, before calling it done:
     the audit as M1/T4 but on neither lane's completed list; an "already flagged" finding is not a
     fixed finding). Debug heuristic: when a mount animation appears on a surface whose own code has
     no entrance motion, suspect the FORK rendering the other platform's tree for a frame.
+23. **Persona passes are part of the page loop — and derive persona signals from EXISTING data
+    before reaching for schema.** The user's driver test ("a provider with driver status") exposed
+    Today serving drivers a visits-first hero ("No visits · Clear") during live dispatches. Two
+    rules: (a) walk every page AS each role *and sub-persona* (driver, dispatcher, unattached
+    responder…) — their hero, first action, data scope, dead ends; (b) the persona signal usually
+    already exists — `profiles.provider_type === 'driver'` was live in ambulancesService/GodModeMap;
+    promoting it (AuthContext `isDriver()`, roleKind `driver`, the Requests "Mine" chip via
+    `responder_id = me`) needed ZERO schema change. Grep services/utils for the signal before
+    queueing a migration. Convergence note: both lanes independently built the driver Today lens
+    within the hour — persona gaps are that visible once you look.
 
 ---
 

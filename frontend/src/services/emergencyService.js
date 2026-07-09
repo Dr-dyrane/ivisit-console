@@ -236,6 +236,10 @@ function applyEmergencyListFilters(query, filter = {}) {
     query = query.eq('status', filter.status);
   }
 
+  if (filter.responder_id) {
+    query = query.eq('responder_id', filter.responder_id);
+  }
+
   if (filter.user_id) {
     query = query.eq('user_id', filter.user_id);
   }
@@ -317,6 +321,7 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       arrived,
       completed,
       cancelled,
+      mine,
     ] = await Promise.all([
       getEmergencyPageExactCount(baseFilter, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'pending_approval' }, scopedUser),
@@ -330,6 +335,9 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       getEmergencyPageExactCount({ ...baseFilter, status: 'arrived' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'completed' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'cancelled' }, scopedUser),
+      scopedUser?.id
+        ? getEmergencyPageExactCount({ ...baseFilter, responder_id: scopedUser.id }, scopedUser)
+        : Promise.resolve(0),
     ]);
 
     return {
@@ -346,6 +354,7 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       arrived,
       completed,
       cancelled,
+      mine,
     };
   } catch (error) {
     if (!quiet) {
@@ -420,7 +429,14 @@ export async function getEmergencyRequestsPage(filter = {}) {
   try {
     const user = await getCurrentUser();
 
-    const statsFilter = filter.statsFilter || { ...filter, kpiFilter: undefined };
+    // 'mine' is the responder-persona chip (drivers): resolve it to a concrete
+    // responder_id filter here so count/stats/list all inherit it without the
+    // KPI applier needing user context.
+    if (filter.kpiFilter === 'mine') {
+      filter = { ...filter, responder_id: user?.id, kpiFilter: undefined };
+    }
+
+    const statsFilter = filter.statsFilter || { ...filter, kpiFilter: undefined, responder_id: undefined };
     const countPromise = getEmergencyPageExactCount(filter, user);
     const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);
 
