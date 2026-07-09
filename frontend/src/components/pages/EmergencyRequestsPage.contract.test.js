@@ -202,7 +202,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
     expect(mobileSource).toContain('<PullToRefresh onRefresh={onRefresh}>');
     expect(mobileSource).toContain('const showSkeleton = loading && displayItems.length === 0;');
-    expect(mobileSource).toContain('{showSkeleton && <MobileListSkeletonRows />}');
+    // Load model: a group-shaped skeleton holds the exact final layout, then the real
+    // list REPLACES it in place (no fade-from-blank, no top-to-bottom reveal).
+    expect(mobileSource).toContain('const MobileRequestsListSkeleton = (');
+    expect(mobileSource).toContain('{showSkeleton ? (');
+    expect(mobileSource).toContain('<MobileRequestsListSkeleton />');
     expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
     expect(mobileSource).toContain('label="Requests did not load"');
     expect(mobileSource).toContain('label="No requests found"');
@@ -451,7 +455,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('onClick={() => setActiveRequest(request)}');
     expect(mobileSource).toContain("import { groupByRecency } from '../../utils/groupByRecency';");
     expect(mobileSource).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl');
-    expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]');
+    expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('>Requests</h1>');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');

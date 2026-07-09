@@ -495,7 +495,8 @@ code {
 	                      tint), so it reads with the same delta over any ground.
 	     • GLASS       = chrome-glass / chrome-glass-strong — floating chrome only
 	                      (nav bar, bottom dock).
-	     • HAIRLINE    = hsl(var(--muted-foreground)/0.18) — intra-group row separators.
+	     • HAIRLINE    = hsl(var(--muted-foreground)/0.08) — intra-group row separators
+	                      (a whisper, not a border — borderless-first).
 	   Rules: borderless; shadow only on floating chrome; the one loud action = --primary. */
 	.surface-card {
 		background-color: hsl(var(--foreground) / 0.05);

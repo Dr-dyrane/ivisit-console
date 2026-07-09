@@ -167,7 +167,7 @@ export const NotificationCard = ({
           {/* iOS grouped-list separator: the one sanctioned hairline (a tinted */}
           {/* fill div, never a drawn rule), indented past the icon well. */}
           {showDivider && (
-            <div className="h-px bg-[hsl(var(--muted-foreground)/0.14)] ml-[60px]" aria-hidden="true" />
+            <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[60px]" aria-hidden="true" />
           )}
           {row}
         </>
