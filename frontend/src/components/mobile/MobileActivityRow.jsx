@@ -16,7 +16,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
             layout
             transition={mobileMotion.spring}
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex flex-col apple-glass relative overflow-hidden mb-0.5 last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
+            className={`flex flex-col relative overflow-hidden mb-0.5 last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
                 }`}
         >
             <div className="flex items-center gap-4 p-4 rounded-inner">

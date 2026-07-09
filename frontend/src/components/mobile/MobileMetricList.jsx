@@ -61,7 +61,7 @@ export const MobileSectionHeader = ({
                 {onSelectAll && (
                     <button
                         onClick={handleSelectAll}
-                        className="w-8 h-8 flex items-center justify-center rounded-button bg-muted/40 active:scale-90 transition-all text-foreground/60 hover:text-foreground"
+                        className="w-8 h-8 flex items-center justify-center rounded-button bg-muted/40 active:scale-[0.96] transition-all text-foreground/60 hover:text-foreground"
                         aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                     >
                         {isAllSelected ? (

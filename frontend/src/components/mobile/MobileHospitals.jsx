@@ -330,7 +330,7 @@ export const MobileHospitals = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                    className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(hospital)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -340,7 +340,7 @@ export const MobileHospitals = ({
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                            className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                             onClick={() => onEdit(hospital)}
                                                         >
                                                             <Edit size={16} className="text-warning/60" />
@@ -349,7 +349,7 @@ export const MobileHospitals = ({
                                                         {onSchedule && (
                                                             <Button
                                                                 variant="ghost"
-                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                                 onClick={() => onSchedule(hospital)}
                                                             >
                                                                 <CalendarDays size={16} className="text-info/60" />
@@ -358,7 +358,7 @@ export const MobileHospitals = ({
                                                         {canDelete && onDelete && (
                                                             <Button
                                                                 variant="ghost"
-                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
+                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
                                                                 onClick={() => onDelete(hospital)}
                                                             >
                                                                 <Trash2 size={16} className="text-destructive/60" />

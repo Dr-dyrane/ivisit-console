@@ -45,7 +45,7 @@ export const MobileFeaturedMetricSkeleton = () => (
         transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
         className="mx-2 mb-6"
     >
-        <div className="apple-glass-heavy rounded-card p-6 h-40 flex flex-col justify-between">
+        <div className="bg-muted/40 rounded-card p-6 h-40 flex flex-col justify-between">
             <div className="flex justify-between items-start">
                 <div className="space-y-2">
                     <SkeletonPulse className="h-3 w-20" delay={0.15} />
@@ -154,7 +154,7 @@ export const MobileAnalyticsSkeleton = () => (
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.4, ease: 'easeOut' }}
-                className="mx-2 mb-8 apple-glass-heavy rounded-card p-6 h-64 overflow-hidden"
+                className="mx-2 mb-8 bg-muted/40 rounded-card p-6 h-64 overflow-hidden"
             >
                 <div className="flex justify-between items-center mb-6">
                     <SkeletonPulse className="h-4 w-32" delay={0.45} />

@@ -25,7 +25,7 @@ export const MobileQuickNavPill = ({ items }) => {
             >
                 <motion.div
                     whileTap={mobileMotion.press.card}
-                    className="flex items-center gap-4 p-4 rounded-button apple-glass-heavy active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
+                    className="flex items-center gap-4 p-4 rounded-button bg-muted/40 active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
                 >
                 {/* Background Analytical Glow */}
                 <div

@@ -30,7 +30,7 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
 
     return (
         <div className={`mb-3 px-1 ${className}`}>
-            <div className="relative apple-glass-heavy rounded-inner p-2 flex items-center gap-2 overflow-x-auto no-scrollbar" {...bind}>
+            <div className="relative bg-muted/40 rounded-inner p-2 flex items-center gap-2 overflow-x-auto no-scrollbar" {...bind}>
                 {actions.map((action) => {
                     const Icon = action.icon;
                     const tone = action.tone || 'neutral';

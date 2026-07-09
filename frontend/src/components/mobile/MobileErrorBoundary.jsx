@@ -29,7 +29,7 @@ export class MobileErrorBoundary extends React.Component {
 
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 py-10">
-                <div className="apple-glass-heavy rounded-card p-6 max-w-sm w-full">
+                <div className="bg-muted/40 rounded-card p-6 max-w-sm w-full">
                     <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground/60">Mobile Recovery</p>
                     <h2 className="text-xl font-semibold tracking-tight mt-2">Something slipped.</h2>
                     <p className="text-meta text-muted-foreground mt-2">
@@ -37,7 +37,7 @@ export class MobileErrorBoundary extends React.Component {
                     </p>
                     <button
                         onClick={this.handleReload}
-                        className="mt-5 w-full h-11 rounded-button apple-glass-heavy text-sm font-semibold text-foreground/90 hover:bg-white/[0.04] active:scale-95 transition-[transform,background] duration-200"
+                        className="mt-5 w-full h-11 rounded-button bg-muted/40 text-sm font-semibold text-foreground/90 hover:bg-white/[0.04] active:scale-[0.96] transition-[transform,background] duration-200"
                     >
                         Reload View
                     </button>

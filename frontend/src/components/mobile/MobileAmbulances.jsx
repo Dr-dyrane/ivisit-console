@@ -334,7 +334,7 @@ export const MobileAmbulances = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
+                                                    className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                     onClick={() => onView(ambulance)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -344,7 +344,7 @@ export const MobileAmbulances = ({
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
+                                                            className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                             onClick={() => onEdit(ambulance)}
                                                         >
                                                             <Edit size={16} className="text-amber-500/60" />

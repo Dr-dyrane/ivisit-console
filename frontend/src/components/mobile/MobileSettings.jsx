@@ -45,7 +45,7 @@ export const MobileSettings = ({
     <MobilePageShell contentClassName="pt-4 pb-4 text-foreground">
       <section className="mb-3 px-1">
         {loading ? (
-          <div className="apple-glass-heavy rounded-card p-4">
+          <div className="bg-muted/40 rounded-card p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-16 w-16 rounded-icon bg-muted/20 shimmer" />
               <div className="min-w-0 flex-1 space-y-2">
@@ -57,7 +57,7 @@ export const MobileSettings = ({
             <div className="h-8 w-full rounded-inner bg-muted/15 shimmer" />
           </div>
         ) : (
-        <div className="apple-glass-heavy rounded-card p-4 shadow-sm">
+        <div className="bg-muted/40 rounded-card p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-16 w-16 rounded-icon">
               <AvatarImage src={avatarUrl} className="object-cover" />
@@ -116,7 +116,7 @@ export const MobileSettings = ({
       </div>
 
       <MobileSectionHeader label="Preferences" color="hsl(var(--secondary))" labelTone="plain" />
-      <div className="apple-glass-heavy mb-2 flex items-center justify-between rounded-inner p-3 shadow-sm">
+      <div className="bg-muted/40 mb-2 flex items-center justify-between rounded-inner p-3 shadow-sm">
         <div className="min-w-0">
           <p className="text-meta font-semibold text-muted-foreground/70">Theme</p>
           <p className="text-sm font-semibold">Dark Mode</p>
