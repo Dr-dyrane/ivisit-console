@@ -1,5 +1,8 @@
 # Management Page & Context Panel Standards
-**Version 2.0** — supersedes v1.0 (the pre-revamp standard).
+**Version 2.1** — supersedes v1.0 (the pre-revamp standard). v2.1 folds in the
+Requests-proven behavioral canon: refetch feedback (§1.6), the KPI side-effect
+matrix (§1.7), text/empty/error canon (§1.8), mutation safety (§3.1),
+accessibility (§6).
 
 > ⚠️ **v1.0 is retired.** The old version prescribed drawn borders (`border-*`,
 > `ring-2`), `uppercase tracking-widest`, `geo-*` / `squircle-{size}` shapes,
@@ -13,7 +16,10 @@ The single source of truth is the **Design System Canon** in
 [`tools/automation/AGENT_HANDSHAKE.md`](../../../tools/automation/AGENT_HANDSHAKE.md)
 and the reference implementation
 [`frontend/src/components/pages/EmergencyRequestsPage.jsx`](../../src/components/pages/EmergencyRequestsPage.jsx)
-(the Requests canon). When this doc and the canon disagree, the canon wins.
+(the Requests canon) together with its data pair
+[`useEmergencyQuery.js`](../../src/hooks/useEmergencyQuery.js) /
+[`useEmergencyMutations.js`](../../src/hooks/useEmergencyMutations.js).
+When this doc and the canon disagree, the canon wins.
 
 ---
 
@@ -114,6 +120,13 @@ Top-level wrapper:
 `rounded-pill` label chip → big `text-5xl`/`text-6xl` headline (the primary number or
 state) → one-line subhead. No borders, no uppercase.
 
+The hero (icon / tone / label / headline / subhead) is **derived from the active KPI
+selection** and must enumerate **every** selection — including `all` and unknown ids —
+with a NEUTRAL fallback; see the side-effect matrix (§1.7) and `getRequestSignal` in
+the reference. A failed load with nothing cached must surface the failure honestly —
+never a reassuring zero-derived "all clear" hero above a list error state
+(`getRequestSignal`'s `loadError` branch).
+
 ### 1.2 State-chip strip
 `rounded-inner` chips for state filters, `rounded-button` icon tiles. Clicking a chip
 sets `kpiFilter` and filters the list (the chips ARE the quick filters — no separate
@@ -132,6 +145,11 @@ rounded-inner px-3 py-2.5 sm:px-4 md:py-3` with the soft resting lift
 rest — colour appears only when selected. Secondary breakdowns (service type, sub-status)
 belong in the **FilterSheet**, not the strip. The `kpiFilter` **default must resolve to a
 rendered chip** (fall back to `all`), never a hidden or zero-count chip.
+
+Chips expose `aria-pressed={active}` plus an `aria-label` of `` `${label}: ${count}` ``
+(§6). While a refetch is in flight, the **ACTIVE chip swaps its icon glyph to
+`Loader2 animate-spin`** — see `{active && isFetching ?` in `RequestKpiStrip` and the
+refetch canon (§1.6). A chip that filters silently is a defect.
 
 ### 1.3 Handled sheet
 **ONE canonical render** lives inside the glass sheet above (`rounded-t-sheet bg-card/68 …
@@ -209,6 +227,86 @@ at a time, contract test stays green.
 
 ---
 
+## 1.6 Refetch feedback canon — a silent refetch is a defect
+
+Page queries follow the Requests read path (`useEmergencyQuery.js`):
+`placeholderData: (previous) => previous` keeps the last page on screen while the next
+one loads. Consequence: on KPI / search / sort / page changes **`isLoading` stays
+`false`** — the skeleton never re-appears — so **`isFetching` is the ONLY refetch
+signal, and it MUST be surfaced**. A refetch with no visible indicator is a defect,
+not a nicety: the operator must be able to tell "current" from "updating".
+
+- **Desktop:** the **ACTIVE KPI chip swaps its icon to `Loader2 animate-spin`** while
+  fetching — the Today-parity **glyph swap** (the original benchmark is the Today
+  glance tile in `components/context/DashboardPanel.jsx`, which swaps
+  `Sparkles → Loader2` while loading). Reference: `{active && isFetching ?` in
+  `RequestKpiStrip` (`EmergencyRequestsPage.jsx`). Swap the glyph **in place** — no
+  second spinner element, no overlay, no layout shift.
+- **Mobile:** the counterpart is the **"Updating" pill** —
+  `role="status" aria-live="polite"`, `rounded-pill bg-muted/28`, rendered when
+  `isFetching && !showSkeleton` (see `MobileEmergency.jsx`; hidden under the
+  first-load skeleton, which already communicates load).
+- **Plumbing:** the query hook must expose `isFetching` alongside `loading` (as
+  `useEmergencyQuery` does) and the page must thread it to the strip / pill;
+  pagination controls disable on `loading || isFetching`.
+
+---
+
+## 1.7 KPI selection side-effect matrix — the airtight rule
+
+A KPI/state filter is never "just a chip": every selection fans out to **every
+dependent surface**. When adding or changing a KPI, enumerate **EVERY selection —
+including `all` and unknown/unmapped ids** — across **EVERY** row of this matrix:
+
+| Dependent surface | Must react to the selection |
+|---|---|
+| Signal hero (§1.1) | icon / tone / label / headline / subhead (`getRequestSignal`) |
+| Header count | = the **filtered visible scope** — the server count for the active selection (`${pagination.totalCount}`), never the unfiltered total |
+| Server list filter | the selection composes into the query filter (`kpiFilter` inside `queryFilter`; stats stay KPI-agnostic so chip counts hold while the list narrows) |
+| Empty-state copy + recovery action | the zero state names the narrowing and offers the reset **for that control** (§1.8) |
+| Context panel / analytics | any surface that echoes counts or state |
+
+**Fallback branches must be NEUTRAL or derived from the option definition — never a
+hardcoded specific entity.** The archetype bug: `all` fell through to a hardcoded
+**Ambulance** hero, so the total count was mislabeled "ambulance". The fix, now canon
+in the reference: the final branch of `getRequestSignal` is the neutral muted "All"
+hero (`LayoutGrid`, tone `muted`, "Every request across services.").
+
+**Before shipping a KPI, walk the full matrix:** every selection × each of
+{count = 0, count > 0, loading, refetching}. If any combination renders copy, tone,
+or counts belonging to a different selection, the KPI is not done.
+
+---
+
+## 1.8 Text, empty-state & error canon
+
+- **Never render raw DB/PostgREST error text.** Map failures to friendly copy at the
+  surface ("Requests did not load", "Requests could not refresh") and log the raw
+  error to the console (`console.error`) for diagnosis. A `.message` pass-through is
+  at most a fallback detail line, never the headline; PostgREST codes / SQL fragments
+  must never reach the operator.
+- **Two degraded states, both with Retry** (reference `RequestLoadErrorState` /
+  `RequestLoadNotice`): failed + nothing cached → full-height error state; failed +
+  stale rows still on screen → inline notice ABOVE the stale list ("Showing the last
+  loaded requests. Try again."). Never silently show stale data after a failed
+  refresh.
+- **Pluralize every count:** `` `${n} request${n === 1 ? '' : 's'}` `` — hero
+  headlines, toasts, bulk-action labels, header counts. "1 requests" is a defect.
+- **Empty states must name their cause.** Distinguish at minimum: empty-system
+  ("No requests yet" / "New requests will appear here."), sheet-filter or search
+  ("No matching requests" / "Change filters or search again."), and KPI-narrowed
+  zero (the hero carries the per-KPI zero copy — "No active requests").
+- **The recovery CTA targets the control that caused the narrowing.** Search zero →
+  clear the search; sheet-filter zero → open the FilterSheet ("Change filters");
+  a **KPI-narrowed zero must offer the KPI reset** (select `all`), **not** the
+  filter sheet. Mobile reference: `MobileListEmpty`'s `reason` / `onRecover` pair in
+  `MobileEmergency.jsx` (search → Clear Search, filtered → Adjust Filters). Wiring
+  recovery to the wrong control is a matrix failure (§1.7).
+- **Labels must match value semantics.** "Ambulance" over a total count, or
+  "requests" over a bed-only count, is the §1.7 archetype bug in copy form.
+
+---
+
 ## 2. Context Panel (right slideout) — separate from the DetailRail
 
 The **Context Panel** (`components/context/XPanel.jsx`, toggled) is a quick-access
@@ -229,11 +327,39 @@ Context Panel is the toggled slideout.
 
 - **kpiFilter** drives the state-chip strip (§1.2). **FilterSheet** handles detailed /
   multi-select filters. **Search** debounced across the record's key fields.
-- **Data** via the domain hook (`useInsurance`, `useSubscription`, …). **Pagination**
-  via `usePagination`. **Real-time** via Supabase `on('postgres_changes')`.
+- **Data** via the domain hook (`useInsurance`, `useSubscription`, …) — and the
+  **canon read path is the Requests React Query pair**: a route-owned page projection
+  behind `useXQuery` (`useEmergencyQuery.js`) where one `['x', filter]` cache is the
+  single store the page reads, mutations settle, and realtime invalidates — no
+  parallel list store. Queries set `placeholderData: (previous) => previous` and
+  expose `isFetching` (§1.6). **Pagination** via `usePagination`. **Real-time**
+  (Supabase `on('postgres_changes')`) converges by **invalidating the same query
+  key family**, never by writing a second store.
 - **Authority-gated writes:** if a surface cannot yet mutate backend truth, disable the
   command, show the reason (`role="note"` / `title=`), and never enable a write path
   the app can't reconcile. No parallel truth.
+
+### 3.1 Mutation safety — pending state + optimistic contract
+
+Every mutating CTA (dispatch / complete / cancel / retry / save) follows the Requests
+mutation canon (`useEmergencyMutations.js`):
+
+- **Thread `isPending` to the button.** The page passes each mutation's `isPending`
+  down (`dispatchPending={dispatchMutation.isPending}` …) and the button renders
+  **disabled + the spinner glyph swap** (`Loader2 animate-spin` in place of the
+  action icon — see the DetailRail primary action and `RequestRailButton`).
+  **Double-submit must be impossible** — the disabled pending state is the
+  guarantee, not debouncing or hope.
+- **Toasts with stable ids.** Long-running flows use `toast.loading(…, { id })` →
+  `toast.success/error(…, { id })` with the SAME id (reference: `'bulk-cancel'` in
+  `EmergencyRequestsPage.jsx`), so progress collapses into its outcome instead of
+  stacking.
+- **Optimistic writes go through the shared mutation wrapper** — the
+  `buildEmergencyMutationOptions` contract: `onMutate` cancels in-flight refetches,
+  snapshots the cache (rollback token), and optionally writes the optimistic value
+  with `setQueryData`; `onError` restores the exact snapshot; `onSettled`
+  invalidates the key root so the cache converges to server truth. No hand-rolled
+  optimistic state, no local mirrors.
 
 ---
 
@@ -248,7 +374,9 @@ data page, bring these to the same canon:
   CSS-grid header/rows (`rounded-inner px-3 py-3 hover:bg-muted/30`) + `rounded-pill` tone badges.
   Any `XListView` / `*GridView` / card-view file is **legacy-inactive** (kept as the preservation
   anchor, not imported by the active route). No `ViewToggle`.
-- **Mobile** (`components/mobile/MobileX`) — same tone/radius/no-border canon.
+- **Mobile** (`components/mobile/MobileX`) — same tone/radius/no-border canon, plus
+  the "Updating" refetch pill (§1.6) and cause-targeted empty states
+  (`MobileListEmpty` `reason` / `onRecover`, §1.8).
 - **Context panel** (`components/context/XPanel`) — §2.
 - **Modals** (`components/modals/XModal`) — `ModalShell`, `rounded-modal`, no borders.
 
@@ -263,6 +391,26 @@ Verify each with the hardgate; verify **color** by rendering (the gate does not 
 
 ---
 
+## 6. Accessibility canon
+
+- **Dialogs always have an accessible name.** `ModalShell`
+  (`components/ui/ModalShell.jsx`) applies `role="dialog" aria-modal="true"` with
+  `aria-labelledby` pointing at the title; headerless sheets MUST pass the
+  `ariaLabel` prop instead. A dialog with neither is a defect.
+- **KPI chips are toggles:** `aria-pressed={active}` plus an `aria-label` of
+  `` `${label}: ${count}` `` (`RequestKpiStrip`). Selectable rows expose
+  `aria-pressed` the same way (`RequestRow`).
+- **Refetch indicators are live regions:** `role="status" aria-live="polite"` — the
+  mobile "Updating" pill ships this; apply it to any textual refetch indicator.
+- **Sortable headers must convey `aria-sort`** (`ascending` / `descending` / `none`
+  on the active column). **Required by this canon; not yet implemented anywhere in
+  the tree** — add it whenever you touch a sortable header.
+- Triggers that open sheets/dialogs carry `aria-haspopup="dialog"` +
+  `aria-expanded` (see the filter trigger and the empty-state "Change filters"
+  button in the reference).
+
+---
+
 **Implementation checklist**
 1. [ ] `--strict-radius` hardgate passes on the page.
 2. [ ] Rendered: zero red outside `--destructive`; zero horizontal overflow.
@@ -273,3 +421,18 @@ Verify each with the hardgate; verify **color** by rendering (the gate does not 
 5. [ ] Writes gated behind authority show a reason, never a dead button.
 6. [ ] Views + mobile + context panel + modal brought to the same canon.
 7. [ ] Contract test still green.
+8. [ ] Refetch surfaced (§1.6): query uses `placeholderData: previous` + exposes `isFetching`;
+    active KPI chip glyph-swaps to `Loader2 animate-spin` (desktop) / "Updating" pill (mobile).
+    No silent refetch.
+9. [ ] KPI side-effect matrix walked (§1.7): every selection incl. `all` / unknown ids ×
+    {count=0, count>0, loading, refetching} across hero, header count, list filter,
+    empty state + recovery, context panel. Fallback branches neutral, never a
+    hardcoded entity.
+10. [ ] Every mutating CTA threads `isPending` — disabled + spinner glyph swap; toasts use
+    stable ids; optimistic writes via the shared wrapper (snapshot → optimistic →
+    rollback → invalidate) (§3.1).
+11. [ ] Copy canon (§1.8): no raw DB error text rendered; every count pluralized;
+    empty-state variant matches its cause and the recovery CTA targets the control
+    that narrowed the list (KPI-narrowed zero offers the KPI reset).
+12. [ ] A11y (§6): dialog accessible name; chips `aria-pressed`; refetch indicator
+    `role="status" aria-live="polite"`; `aria-sort` on sortable headers.
