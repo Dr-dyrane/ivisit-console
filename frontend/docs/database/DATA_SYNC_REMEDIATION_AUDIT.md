@@ -211,3 +211,16 @@ Evidence: `emergencyService.js:221`, `EmergencyRequestsPage.jsx:1568`, `database
 3. **[DATA-SYNC · sort whitelist lists non-existent / non-sortable columns]** Symptom: none today — latent footgun. Root cause: `EMERGENCY_REQUEST_SORT_FIELDS` (`emergencyService.js:218-228`) whitelists `requester_name` (`:221`) and `requester_phone` (`:224`), which do not exist on `emergency_requests` (`database.ts:698-742`; same class as §9.1), plus `patient_location` (`:225`), which is PostGIS geography (`database.ts:721`) and not meaningfully `.order()`-able. Currently unreachable from the UI — only the `created_at` sort is exposed (`EmergencyRequestsPage.jsx:1652`; the §9 `requester_name` sortKey has since been removed) — but wiring any of the three throws a raw PostgREST column-does-not-exist error that surfaces to the user (the §9.2 leak). Fix direction: prune `requester_name`, `requester_phone`, and `patient_location` from the whitelist. Companion to §9.1.
 
 Evidence: `emergencyService.js:218-228, 251-256, 302-333`, `EmergencyRequestsPage.jsx:626-646, 1590, 1652, 1701`, `MobileEmergency.jsx:299`, `patientUtils.js:12-31`, `database.ts:698-742`.
+
+**Status update (2026-07-09, dedicated fix wave):**
+- §9.1 + §10.3 **FIXED** — `requester_name`, `requester_phone`, `patient_location` pruned from
+  `EMERGENCY_REQUEST_SORT_FIELDS` (commit `b3da13ee`); Person column already non-sortable.
+- §9.2 **FIXED (Requests)** — the Requests load error now renders generic copy ("Check your
+  connection and try again."); the raw error object goes to `console.error` only. Other pages
+  still owe the same treatment (pattern established).
+- §10.1 **FIXED** — decided contract: **the KPI chips are the status dimension** —
+  `getEmergencyRequestsPageStats` strips the sheet `status` from its base filter (search/date/
+  service still apply), so every chip count computes on one consistent base.
+- §10.2 **console side FIXED** — toolbar placeholder now matches the FilterSheet's accurate
+  wording ("Search by request ID, facility, responder, or type..."). Server-side patient-name
+  search remains an ivisit-app schema decision (generated column over `patient_snapshot`).

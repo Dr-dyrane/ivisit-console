@@ -141,3 +141,43 @@ Backend-flagged (ivisit-app side, already-known class): visits RLS org/admin SEL
 profiles org-scoped SELECT for org_admin Users/verification, `console_complete_emergency` provider
 authority (UI shows drivers a Complete button whose RPC gate is unproven), and #2's RPC derivation.
 Full raw findings: desktop-lane session workflow `wf_36b9e5db-1e7` (66 findings, 6 lenses).
+
+### §6 status — fix wave landed 2026-07-09 (same day)
+
+- **#1 FIXED** — `providerIdField: 'responder_id'` + provider-safe hospitals/ambulances count
+  scoping (`analyticsService.js`); no more 42703 on Statistics for providers/drivers.
+- **#2 VERIFIED SAFE (live DB introspection)** — the live `console_dispatch_emergency` DOES derive
+  `responder_id` from `ambulances.profile_id` server-side (`responder_id = COALESCE(v_amb_profile_id,
+  er.responder_id)`); 98/168 live requests carry `responder_id`, 321/326 ambulances have
+  `profile_id`. The client-side `void responderId` is correct — no change needed.
+  **EDGE:** dispatching one of the 5 ambulances with NULL `profile_id` leaves `responder_id` NULL —
+  that run is invisible to the driver lens and un-completable by the provider role (data-hygiene
+  item, not code).
+  **⚠️ PRODUCTION DRIFT FLAG:** the live function predates repo migration
+  `20260219010000_core_rpcs.sql` — the migration's **cash-approval dispatch gate**
+  (`payment_status` pending/requires-approval check) is **not enforced in production**. Needs a
+  backend redeploy decision (ivisit-app side).
+- **`console_complete_emergency` PROVEN server-backed** (was backend-flagged above): admin bypass;
+  org_admin/dispatcher org-scoped; provider accepted ONLY when `responder_id = auth.uid()` — the
+  driver Complete button's promise matches the live gate exactly.
+- **#3 FIXED** — skipped-onboarding viewer lens (TodayHome hero "Finish your organization setup" →
+  `/onboarding`; plain viewers keep the ask-admin lens).
+- **#4 FIXED** — `authService` null-vs-[] contract: resolved-empty `hospital_ids` scopes to nothing
+  (zero-UUID `.in()`); org_admin null-org honesty lens in TodayHome ("No organization linked").
+  NOTE: the ambulances org_admin scope intentionally supersedes the sentinel with a composite
+  `.or(organization_id.eq, hospital_id.in)` so org-direct, station-less units stay visible.
+- **#5 FIXED** — both ambulance read paths share `applyAmbulanceOrgAdminScope` (composite `.or`
+  mirroring the RLS ownership definition: org direct OR via hospital).
+- **#6 FIXED** — `submitOnboarding` idempotent (reuses the pending hospital via
+  `resumeOrganizationId` / name+phone match) and honest: `PROFILE_LINK_FAILED` surfaces with a
+  retry that re-runs only the profile link — no false success navigation, no duplicate hospitals.
+- **#7 FIXED** — `role === 'doctor'` alias removed (authService + the analyticsService guard);
+  Requests page roleKind memo gained the driver arm mirroring `useRoleKind`.
+- **#8 FIXED** — UnauthorizedPage: "Go to Today" hidden whenever the persona cannot reach `/`
+  (loop-proof); patients get hand-off copy pointing to the iVisit app.
+- **#9 FIXED** — `fetchEmergencyData` uses exact head-counts (`getEmergencyRequestsPageStats`) +
+  a limit-10 recent slice; exposed consumer shape preserved byte-identical.
+- **Requests §9/§10 companions closed:** sort whitelist pruned (lane commit `b3da13ee`); KPI stats
+  now strip the sheet status — the chips ARE the status dimension (contract comment at the strip
+  site); raw Postgres text no longer reaches the UI (console-only); search placeholder now names
+  exactly what is searchable (ID / facility / responder / type).
