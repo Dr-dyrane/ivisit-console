@@ -121,7 +121,7 @@ export const EmergencyPanel = ({ requestContext }) => {
           Requests overview
         </p>
 
-        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -141,7 +141,7 @@ export const EmergencyPanel = ({ requestContext }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_10px_28px_rgb(0_0_0/0.10)] dark:text-amber-200">
+          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <Clock className="h-4 w-4" />
@@ -157,7 +157,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             </div>
           </div>
 
-          <div className="rounded-inner bg-rose-500/10 p-3 text-rose-800 shadow-[0_10px_28px_rgb(0_0_0/0.10)] dark:text-rose-200">
+          <div className="rounded-inner bg-rose-500/10 p-3 text-rose-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <AlertCircle className="h-4 w-4" />
@@ -186,7 +186,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileTap={{ scale: 0.97 }}
             onClick={handleCreateRequest}
             disabled={!canCreate}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-sky-500/10 px-3 text-sky-700 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-sky-500/10 px-3 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
             data-state={canCreate ? 'idle' : 'unavailable'}
             aria-disabled={!canCreate}
           >
@@ -199,7 +199,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-muted/30 px-3 text-muted-foreground shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-muted/30 px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Filter</span>
@@ -210,7 +210,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>
@@ -237,7 +237,7 @@ export const EmergencyPanel = ({ requestContext }) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className="group rounded-inner bg-background/46 p-3 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+                className="group rounded-inner bg-background/46 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">

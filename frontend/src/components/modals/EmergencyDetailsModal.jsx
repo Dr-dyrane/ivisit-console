@@ -236,7 +236,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       : step;
 
                   return (
-                    <div key={step} className={`rounded-inner p-3 text-center transition-all ${isCurrent ? 'bg-sky-500/10 text-sky-500 shadow-[0_10px_28px_rgb(0_0_0/0.10)]' :
+                    <div key={step} className={`rounded-inner p-3 text-center transition-all ${isCurrent ? 'bg-sky-500/10 text-sky-500 shadow-[0_4px_12px_rgb(0_0_0/0.07)]' :
                       isPast ? 'bg-green-500/5 text-green-500 opacity-60' :
                         'bg-white/5 text-muted-foreground opacity-30'
                       }`}>
@@ -248,7 +248,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
               {/* Cash Payment Approval Action */}
               {showCashApprovalCard && (
-                <div className="space-y-4 rounded-card bg-orange-500/10 p-6 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
+                <div className="space-y-4 rounded-card bg-orange-500/10 p-6 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
                   <div className="flex items-center gap-3">
                     <div className="rounded-icon bg-orange-500/20 p-2">
                       <Shield className="w-5 h-5 text-orange-500" />
@@ -297,7 +297,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
               )}
 
               {isPaymentDeclined && (
-                <div className="space-y-4 rounded-card bg-amber-500/10 p-6 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
+                <div className="space-y-4 rounded-card bg-amber-500/10 p-6 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
                   <div className="flex items-center gap-3">
                     <div className="rounded-icon bg-amber-500/20 p-2">
                       <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -323,7 +323,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
               {/* Dispatch Source Indicator */}
               {request.ambulance_id && (
-                <div className="flex items-center justify-center gap-2 rounded-inner bg-blue-500/10 p-3 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
+                <div className="flex items-center justify-center gap-2 rounded-inner bg-blue-500/10 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
                   <Ambulance className="w-4 h-4 text-blue-500" />
                   <span className="text-sm font-medium text-blue-500">Auto-dispatched from mobile app</span>
                 </div>
@@ -594,7 +594,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 /* Sub-components */
 
 const GlassCard = ({ children, title, icon, className }) => (
-  <div className={`rounded-card bg-white/5 p-4 shadow-[0_10px_28px_rgb(0_0_0/0.10)] sm:p-6 ${className}`}>
+  <div className={`rounded-card bg-white/5 p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)] sm:p-6 ${className}`}>
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="rounded-icon bg-white/5 p-1.5 sm:p-2">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}

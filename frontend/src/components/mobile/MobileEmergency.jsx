@@ -37,7 +37,7 @@ import { groupByMonth } from '../../utils/groupByMonth';
 // avatars/pills and the desktop RequestKpiStrip: attention=destructive, active=amber,
 // bed=cyan, ambulance=sky. `icon` feeds the compact signal header.
 const mobileKpis = [
-    { id: 'all', label: 'All', color: 'hsl(var(--primary))' },
+    { id: 'all', label: 'All', color: 'hsl(var(--muted-foreground))' },
     { id: 'pending', label: 'Needs attention', icon: AlertCircle, color: 'hsl(var(--destructive))' },
     { id: 'active', label: 'Active', icon: Clock, color: '#f59e0b' },
     { id: 'bed', label: 'Beds', icon: BedDouble, color: '#06b6d4' },

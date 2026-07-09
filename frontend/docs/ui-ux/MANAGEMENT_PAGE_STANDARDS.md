@@ -22,8 +22,16 @@ and the reference implementation
 - **No borders. No rings. No hairlines. Ever.** Zero `border` / `border-*` /
   `ring-*` / `outline-*` / `divide-*` / `*-px` / `0.5px` / `1px`. Depth comes from
   **tone** (`bg-card/NN`, `bg-muted/NN`), **soft arbitrary shadows**
-  (`shadow-[0_24px_70px_rgb(0_0_0/0.16)]`), **`backdrop-blur*`**, and **spacing** —
+  (`shadow-[0_12px_32px_rgb(0_0_0/0.10)]`), **`backdrop-blur*`**, and **spacing** —
   never a drawn line.
+- **Reduced HIG elevation scale.** Depth is short and low-opacity — the glass
+  (`backdrop-blur*`) carries most of it (per Apple HIG: translucent material elevates
+  content; heavy diffuse shadows do not). Three neutral tiers only: **e1 resting**
+  `shadow-[0_1px_3px_rgb(0_0_0/0.05)]` (small tiles), **e2 raised**
+  `shadow-[0_4px_12px_rgb(0_0_0/0.07)]` (cards, chips, KPI, hovered rows) with
+  `shadow-[0_6px_16px_rgb(0_0_0/0.12)]` for a prominent solid CTA, and **e3 floating**
+  `shadow-[0_12px_32px_rgb(0_0_0/0.10)]` (sheets, rails, panels, modals). No colored
+  glows; no `0_24px_70px`-class diffuse shadows.
 - **Canonical squircle radius only.** `rounded-{sheet,card,inner,icon,button,pill,modal,squircle}`
   (and directional `rounded-t-<token>` etc.). NEVER `rounded-2xl` / `xl` / `lg` /
   `3xl` / `full` / `rounded-[Npx]`. Every management page must pass
@@ -68,7 +76,7 @@ Top-level wrapper:
     <XSignalPanel … />
     {/* state chips */}
     <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3
-                    shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl
+                    shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl
                     dark:bg-card/50 md:rounded-sheet">
       {/* drag handle */}
       <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
@@ -107,7 +115,7 @@ present on desktop; it shows the currently focused record.
 - **Shell (copy verbatim, don't restyle):**
   ```
   relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet
-  bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)]
+  bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)]
   backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5
   lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]
   ```

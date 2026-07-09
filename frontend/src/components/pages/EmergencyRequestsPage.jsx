@@ -99,7 +99,7 @@ const kpiOptions = [
     label: 'Needs attention',
     icon: AlertCircle,
     colorClass: 'text-destructive',
-    activeClass: 'bg-destructive/16 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
+    activeClass: 'bg-destructive/16 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
   },
   {
@@ -107,7 +107,7 @@ const kpiOptions = [
     label: 'Active',
     icon: Clock,
     colorClass: 'text-amber-700 dark:text-amber-200',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
   },
   {
@@ -115,7 +115,7 @@ const kpiOptions = [
     label: 'Beds',
     icon: BedDouble,
     colorClass: 'text-cyan-600 dark:text-cyan-200',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-200',
   },
   {
@@ -123,7 +123,7 @@ const kpiOptions = [
     label: 'Ambulance',
     icon: Ambulance,
     colorClass: 'text-sky-600 dark:text-sky-200',
-    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
+    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
   },
 ];
@@ -131,24 +131,24 @@ const kpiOptions = [
 const statusStyles = {
   pending_approval: {
     label: 'Needs attention',
-    className: 'bg-destructive/14 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
+    className: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
   },
   in_progress: {
     label: 'Active',
-    className: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
+    className: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
   },
   accepted: {
     label: 'Accepted',
-    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
+    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
   },
   arrived: {
     label: 'Arrived',
-    className: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
+    className: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
   },
   completed: {
     label: 'Completed',
     icon: CheckCheck,
-    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200',
+    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
   },
   cancelled: {
     label: 'Cancelled',
@@ -156,7 +156,7 @@ const statusStyles = {
   },
   payment_declined: {
     label: 'Payment issue',
-    className: 'bg-destructive/14 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
+    className: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
   },
 };
 
@@ -307,21 +307,21 @@ const getDefaultRequestKpi = (stats) => {
 };
 
 const requestToneClass = {
-  danger: 'bg-destructive/12 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
-  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-rose-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
+  danger: 'bg-destructive/12 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
 
 const railPrimaryActionClass = {
-  review: 'bg-destructive text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-destructive/90',
-  dispatch: 'bg-sky-600 text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-sky-500',
-  complete: 'bg-emerald-600 text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-emerald-500',
-  retry: 'bg-amber-500 text-slate-950 shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-amber-400',
-  details: 'bg-foreground text-background shadow-[0_18px_56px_rgba(0,0,0,0.24)] hover:bg-foreground/90',
+  review: 'bg-destructive text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-destructive/90',
+  dispatch: 'bg-sky-600 text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-sky-500',
+  complete: 'bg-emerald-600 text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-emerald-500',
+  retry: 'bg-amber-500 text-slate-950 shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-amber-400',
+  details: 'bg-foreground text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-foreground/90',
 };
 
 const RequestsAtlasLayer = () => (
@@ -609,7 +609,7 @@ export const EmergencyRequestsPage = () => {
         <Button
           onClick={handleCreateEmergency}
           data-state={isEmergencyModalOpen ? 'open' : 'idle'}
-          className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+          className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
           aria-label="Create new request"
           aria-haspopup="dialog"
           aria-expanded={isEmergencyModalOpen}
@@ -1247,7 +1247,7 @@ const RequestsDesktopWorkspace = ({
             loading={loading}
           />
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+          <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
             <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
             <RequestToolbar
               filters={filters}
@@ -1394,7 +1394,7 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
 const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
   if (loading) {
     return (
-      <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
         {kpiOptions.map((item) => (
           <div
             key={item.id}
@@ -1414,14 +1414,14 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
   }
 
   return (
-    <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
       {kpiOptions.map((item) => {
         const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
       const count = getKpiCount({ id: item.id, stats, requests });
       const clearPending = item.id === 'pending' && count === 0;
       const activeClass = clearPending
-        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200'
+        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200'
         : item.activeClass;
       const colorClass = clearPending ? 'text-emerald-700 dark:text-emerald-200' : item.colorClass;
       return (
@@ -1454,7 +1454,7 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
 };
 
 const RequestLoadErrorState = ({ message, onRetry }) => (
-  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_20px_64px_rgba(239,68,68,0.12)]">
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
     <AlertCircle className="mb-4 h-12 w-12 text-destructive/75" />
     <h3 className="text-xl font-semibold">Requests did not load</h3>
     <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -1472,7 +1472,7 @@ const RequestLoadErrorState = ({ message, onRetry }) => (
 );
 
 const RequestLoadNotice = ({ message, onRetry }) => (
-  <div className="mb-3 flex flex-col gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)] sm:flex-row sm:items-center sm:justify-between">
+  <div className="mb-3 flex flex-col gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)] sm:flex-row sm:items-center sm:justify-between">
     <span className="font-medium">{message || 'Requests could not refresh.'}</span>
     <Button
       type="button"
@@ -1494,7 +1494,7 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
         value={filters.search || ''}
         onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
         placeholder="Search requests..."
-        className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+        className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
       />
     </div>
     <Button
@@ -1589,7 +1589,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-      className={`mb-2 grid min-h-[78px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+      className={`mb-2 grid min-h-[78px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)]'}`}
       data-request-row={request.id}
       data-state={selected ? 'selected' : 'idle'}
       role="button"
@@ -1671,7 +1671,7 @@ const RequestDetailRail = ({
 }) => {
   if (loading) {
     return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
         <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="space-y-3">
@@ -1705,7 +1705,7 @@ const RequestDetailRail = ({
 
   if (!request) {
     return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
         <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
@@ -1739,7 +1739,7 @@ const RequestDetailRail = ({
   const primaryClass = railPrimaryActionClass[primaryAction.kind] || railPrimaryActionClass.details;
 
   return (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
       <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
