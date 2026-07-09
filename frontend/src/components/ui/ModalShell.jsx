@@ -256,7 +256,7 @@ export const ModalShell = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={modalBackdropTransition}
-                className="absolute inset-0 bg-background/88 backdrop-blur-2xl dark:bg-black/80"
+                className="absolute inset-0 bg-black/[0.46] backdrop-blur-sm"
                 onClick={() => onClose()}
             />
 
