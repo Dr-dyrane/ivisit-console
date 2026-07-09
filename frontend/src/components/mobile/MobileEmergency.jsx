@@ -31,6 +31,7 @@ import { MobileDetailSheet } from './MobileDetailSheet';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
+import { useReverseGeocode } from '../../hooks/useReverseGeocode';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
@@ -242,6 +243,16 @@ export const MobileEmergency = ({
     const showSkeleton = warmingUp || (loading && displayItems.length === 0);
     const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';
     const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';
+    // Transcribe the active request's coordinates into a place label (same
+    // Google -> Nominatim chain the desktop rail uses). Lives at the top level
+    // because the detail-sheet render below is an inline IIFE (no hooks there);
+    // the hook caches by rounded coords, so reopening a sheet never re-fetches.
+    const activeCoordinates = useMemo(() => (
+        activeRequest
+            ? buildEmergencyRenderProjection(activeRequest).locationDisplay.coordinates
+            : null
+    ), [activeRequest]);
+    const { place: activePlace } = useReverseGeocode(activeCoordinates);
 
     useEffect(() => {
         const timer = setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS);
@@ -569,7 +580,9 @@ export const MobileEmergency = ({
                                 {
                                     icon: MapPin,
                                     label: 'Location',
-                                    value: location,
+                                    // Transcribed place label when the reverse geocode resolves;
+                                    // raw coords stay as the honest fallback while loading/unresolved.
+                                    value: activePlace?.shortLabel || location,
                                     // Reuses the EmergencyDetailsModal external-map URL shape.
                                     href: projection.locationDisplay.canOpenExternalMap && coordinates
                                         ? `https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
