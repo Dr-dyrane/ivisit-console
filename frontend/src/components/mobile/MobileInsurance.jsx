@@ -139,6 +139,7 @@ export const MobileInsurance = ({
             label="Coverage Dynamics"
             count={counts.total}
             color="hsl(var(--foreground))"
+            labelTone="plain"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
@@ -220,22 +221,23 @@ export const MobileInsurance = ({
           label="Insurance policies"
           count={displayPolicies.length}
           color="hsl(var(--foreground))"
+          labelTone="plain"
         />
 
         {error && displayPolicies.length > 0 && (
           <div
-            className="mb-3 rounded-card bg-amber-500/15 p-4 text-amber-700 dark:text-amber-200"
+            className="mb-3 rounded-card bg-destructive/10 p-4 text-destructive"
             data-testid="mobile-insurance-degraded-state"
           >
             <p className="text-sm font-semibold">Insurance did not refresh</p>
-            <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-200/80">
+            <p className="mt-1 text-xs text-destructive/75">
               Showing the last loaded policy rows.
             </p>
             {onRetry && (
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-3 h-9 rounded-inner bg-amber-500/15 px-4 text-xs font-semibold text-amber-700 dark:text-amber-200 hover:bg-amber-500/20"
+                className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive hover:bg-destructive/15 hover:text-destructive"
                 onClick={onRetry}
               >
                 Try again
@@ -266,11 +268,11 @@ export const MobileInsurance = ({
             })}
           </AnimatePresence>
 
-          {displayPolicies.length === 0 && <MobileListEmpty icon={Shield} label="No policies found" />}
+          {displayPolicies.length === 0 && <MobileListEmpty icon={Shield} label="No policies found" labelTone="plain" />}
 
           <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
             {loading && <MobileListSkeletonRows />}
-            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
           </div>
         </div>

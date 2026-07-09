@@ -45,7 +45,7 @@ export const MobileSettings = ({
     <MobilePageShell contentClassName="pt-4 pb-4 text-foreground">
       <section className="mb-3 px-1">
         {loading ? (
-          <div className="bg-muted/40 rounded-card p-4">
+          <div className="surface-card rounded-card p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-16 w-16 rounded-icon bg-muted/20 shimmer" />
               <div className="min-w-0 flex-1 space-y-2">
@@ -57,7 +57,7 @@ export const MobileSettings = ({
             <div className="h-8 w-full rounded-inner bg-muted/15 shimmer" />
           </div>
         ) : (
-        <div className="bg-muted/40 rounded-card p-4 shadow-sm">
+        <div className="surface-card rounded-card p-4">
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-16 w-16 rounded-icon">
               <AvatarImage src={avatarUrl} className="object-cover" />
@@ -69,9 +69,9 @@ export const MobileSettings = ({
               <h2 className="truncate text-lg font-black">{profile?.username || 'User Profile'}</h2>
               <p className="text-[11px] text-muted-foreground truncate">{user?.email || profile?.email || 'No email'}</p>
               <div className="flex items-center gap-2 mt-1.5">
-                <Badge className="rounded-pill bg-primary/20 text-primary text-[10px] font-semibold">{roleLabel}</Badge>
+                <Badge className="rounded-pill bg-muted/40 text-muted-foreground text-[11px] font-semibold">{roleLabel}</Badge>
                 {profile?.bvn_verified && (
-                  <Badge className="rounded-pill bg-success/20 text-success text-[10px] font-semibold">
+                  <Badge className="rounded-pill bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 text-[11px] font-semibold">
                     <BadgeCheck className="h-3 w-3 mr-1" />
                     Verified
                   </Badge>
@@ -81,7 +81,7 @@ export const MobileSettings = ({
           </div>
 
           {displayId && (
-            <div className="rounded-pill bg-white/[0.03] px-3 py-2 font-mono text-[10px] text-muted-foreground/80">
+            <div className="surface-card rounded-pill px-3 py-2 font-mono text-[11px] text-muted-foreground/80">
               ID: {displayId}
             </div>
           )}
@@ -89,34 +89,36 @@ export const MobileSettings = ({
         )}
       </section>
 
-      <MobileSectionHeader label="Account" color="hsl(var(--primary))" />
+      {/* Non-danger rows use literal palette/neutral hues — the semantic --primary/--info/
+          --warning/--success/--secondary tokens all collapse to crimson (red-token trap). */}
+      <MobileSectionHeader label="Account" color="hsl(var(--foreground))" labelTone="plain" />
       <div className="space-y-1">
         <MobileMetricRow
           icon={User}
           label="Profile"
           value="Edit Profile"
           onClick={onEditProfile}
-          color="hsl(var(--primary))"
-          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Profile', color: 'hsl(var(--primary))' }}
+          color="hsl(var(--foreground))"
+          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Profile', color: 'hsl(var(--foreground))' }}
         />
         <MobileMetricRow
           icon={Mail}
           label="Email"
           value={user?.email || profile?.email || 'No email'}
-          color="hsl(var(--info))"
-          rightBlade={{ badge: 'Bound', direction: 'flat', label: 'Status', value: 'Active', color: 'hsl(var(--info))' }}
+          color="hsl(199 89% 48%)"
+          rightBlade={{ badge: 'Bound', direction: 'flat', label: 'Status', value: 'Active', color: 'hsl(199 89% 48%)' }}
         />
         <MobileMetricRow
           icon={Smartphone}
           label="Phone"
           value={profile?.phone || 'Not linked'}
-          color="hsl(var(--warning))"
-          rightBlade={{ badge: profile?.phone ? 'Verified' : 'Missing', direction: profile?.phone ? 'up' : 'down', label: 'Contact', value: profile?.phone ? 'Ready' : 'Required', color: profile?.phone ? 'hsl(var(--success))' : 'hsl(var(--warning))' }}
+          color="hsl(38 92% 50%)"
+          rightBlade={{ badge: profile?.phone ? 'Verified' : 'Missing', direction: profile?.phone ? 'up' : 'down', label: 'Contact', value: profile?.phone ? 'Ready' : 'Required', color: profile?.phone ? 'hsl(160 84% 39%)' : 'hsl(38 92% 50%)' }}
         />
       </div>
 
-      <MobileSectionHeader label="Preferences" color="hsl(var(--secondary))" labelTone="plain" />
-      <div className="bg-muted/40 mb-2 flex items-center justify-between rounded-inner p-3 shadow-sm">
+      <MobileSectionHeader label="Preferences" color="hsl(var(--foreground))" labelTone="plain" />
+      <div className="surface-card mb-2 flex items-center justify-between rounded-inner p-3">
         <div className="min-w-0">
           <p className="text-meta font-semibold text-muted-foreground/70">Theme</p>
           <p className="text-sm font-semibold">Dark Mode</p>
@@ -124,23 +126,23 @@ export const MobileSettings = ({
         <Switch checked={darkMode} onCheckedChange={onToggleDarkMode} aria-label="Toggle dark mode" />
       </div>
 
-      <MobileSectionHeader label="Security" color="hsl(var(--info))" />
+      <MobileSectionHeader label="Security" color="hsl(199 89% 48%)" labelTone="plain" />
       <div className="space-y-1">
         <MobileMetricRow
           icon={Key}
           label="Access"
           value="Change Password"
           onClick={onOpenSecurity}
-          color="hsl(var(--info))"
-          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Security', color: 'hsl(var(--info))' }}
+          color="hsl(199 89% 48%)"
+          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Security', color: 'hsl(199 89% 48%)' }}
         />
         <MobileMetricRow
           icon={HelpCircle}
           label="Support"
           value="Help Center"
           onClick={onOpenSupport}
-          color="hsl(var(--secondary))"
-          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Support', color: 'hsl(var(--secondary))' }}
+          color="hsl(var(--foreground))"
+          rightBlade={{ badge: 'Open', direction: 'flat', label: 'Action', value: 'Support', color: 'hsl(var(--foreground))' }}
         />
         {isProvider && (
           <MobileMetricRow

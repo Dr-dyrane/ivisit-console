@@ -245,6 +245,7 @@ export const MobileSubscriptions = ({
           label="Subscriber Registry"
           count={displaySubscribers.length}
           color="hsl(var(--foreground))"
+          labelTone="plain"
           onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displaySubscribers.length) : null}
           isAllSelected={displaySubscribers.length > 0 && selectedIds.length === displaySubscribers.length}
         />
@@ -282,11 +283,11 @@ export const MobileSubscriptions = ({
             })}
           </AnimatePresence>
 
-          {displaySubscribers.length === 0 && <MobileListEmpty icon={Users} label="No subscribers found" />}
+          {displaySubscribers.length === 0 && <MobileListEmpty icon={Users} label="No subscribers found" labelTone="plain" />}
 
           <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
             {loading && <MobileListSkeletonRows />}
-            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
           </div>
         </div>

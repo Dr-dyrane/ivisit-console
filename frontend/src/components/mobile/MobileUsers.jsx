@@ -250,6 +250,7 @@ export const MobileUsers = ({
                             label="User Summary"
                             count={recentSignups}
                             color="hsl(199 89% 48%)"
+                            labelTone="plain"
                         />
                     )}
                     <MobileSecondaryMetricRail
@@ -327,7 +328,7 @@ export const MobileUsers = ({
                                 onOpenFilters?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
                             }}
-                            className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
+                            className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
                         >
                             <SlidersHorizontal size={18} />
                         </motion.button>
@@ -339,7 +340,7 @@ export const MobileUsers = ({
                                     onViewAnalytics?.();
                                     triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
                                 }}
-                                className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out shadow-sm"
+                                className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
                             >
                                 <BarChart3 size={18} />
                             </motion.button>
@@ -353,6 +354,7 @@ export const MobileUsers = ({
                     label="User Directory"
                     count={displayUsers.length}
                     color="hsl(var(--foreground))"
+                    labelTone="plain"
                 />
 
                 <div className="space-y-1">
@@ -371,7 +373,7 @@ export const MobileUsers = ({
                                             src={getAvatarUrl(user)}
                                             className="object-cover"
                                         />
-                                        <AvatarFallback className="bg-muted text-[10px] font-medium">
+                                        <AvatarFallback className="bg-muted text-[11px] font-medium">
                                             {getAvatarFallback(user)}
                                         </AvatarFallback>
                                     </Avatar>
@@ -398,14 +400,14 @@ export const MobileUsers = ({
                     {/* Infinite Scroll Sentinel */}
                     <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
                         {loading && <MobileListSkeletonRows />}
-                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                         {!loading && !hasMore && displayUsers.length > 0 && (
                             <MobileListEnd label="End of user list" />
                         )}
                     </div>
 
                     {displayUsers.length === 0 && !loading && (
-                        <MobileListEmpty icon={Users} label="No users found" />
+                        <MobileListEmpty icon={Users} label="No users found" labelTone="plain" />
                     )}
                 </div>
 

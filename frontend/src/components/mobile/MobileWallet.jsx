@@ -34,11 +34,11 @@ const mobilePaymentTone = {
 
 const mobileMetricTone = {
   success: {
-    active: 'bg-emerald-500/14 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.18)] dark:text-emerald-100',
+    active: 'bg-emerald-500/14 text-emerald-700 dark:text-emerald-100',
     rest: 'bg-muted/30 text-muted-foreground',
   },
   info: {
-    active: 'bg-sky-500/14 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.18)] dark:text-sky-100',
+    active: 'bg-sky-500/14 text-sky-700 dark:text-sky-100',
     rest: 'bg-muted/30 text-muted-foreground',
   },
   muted: {
@@ -222,12 +222,8 @@ export const MobileWallet = ({
         contentClassName="pt-4 pb-32 text-foreground"
       >
         <div className="space-y-5">
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="space-y-4 px-5"
-          >
+          {/* Data region: no entrance motion (MOTION canon §3) — content is simply present. */}
+          <section className="space-y-4 px-5">
             <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobilePaymentTone[signal.tone] || mobilePaymentTone.muted}`}>
               <SignalIcon size={15} className={signal.spin ? 'animate-spin' : ''} />
               {signal.label}
@@ -285,9 +281,9 @@ export const MobileWallet = ({
               <TrendingUp className="h-3.5 w-3.5" />
               Next 30 days {showBalance ? formatCurrency(projection || 0) : '****'}
             </div>
-          </motion.section>
+          </section>
 
-          <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
+          <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] backdrop-blur-2xl dark:bg-card/55">
             <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
             {showTopSectionLoading ? (
@@ -357,7 +353,7 @@ export const MobileWallet = ({
                   return (
                     <React.Fragment key={item.id}>
                       {header && (
-                        <div className="px-2 pb-1 pt-3 eyebrow">
+                        <div className="px-2 pb-1 pt-3 text-[11px] font-semibold text-muted-foreground/70">
                           {header}
                         </div>
                       )}
@@ -379,7 +375,7 @@ export const MobileWallet = ({
               </AnimatePresence>
 
               {!loading && items.length === 0 && (
-                <MobileListEmpty icon={activeTab === 'ledger' ? History : ShieldCheck} label={activeTab === 'ledger' ? 'No transactions yet' : 'No patient payments yet'} />
+                <MobileListEmpty icon={activeTab === 'ledger' ? History : ShieldCheck} label={activeTab === 'ledger' ? 'No transactions yet' : 'No patient payments yet'} labelTone="plain" />
               )}
             </div>
           </section>

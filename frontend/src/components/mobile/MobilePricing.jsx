@@ -24,6 +24,7 @@ import { MobileListEmpty } from './MobileListStates';
 import { statusPill } from '../../constants/vitalTracks';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { mobileSpring } from './mobileMotion';
 
 const formatLabel = (value, fallback = 'Unknown') => {
   const text = String(value || fallback).replace(/_/g, ' ').trim();
@@ -235,7 +236,7 @@ export const MobilePricing = ({
                 left: activeTab === 'services' ? 'calc(33.333% + 2px)' : activeTab === 'rooms' ? 'calc(66.666% + 0px)' : '4px',
                 width: 'calc(33.333% - 4px)',
               }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              transition={mobileSpring}
             />
             <button
               onClick={() => setActiveTab('all')}
@@ -297,6 +298,7 @@ export const MobilePricing = ({
           label={getSectionLabel()}
           count={pricing.length}
           color="hsl(var(--foreground))"
+          labelTone="plain"
           onSelectAll={selectionEnabled && onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
           isAllSelected={selectionEnabled && pricing.length > 0 && selectedIds.length === pricing.length}
           selectionMode={selectionMode}
@@ -328,7 +330,7 @@ export const MobilePricing = ({
                 <MobileMetricRow
                   key={item.id}
                   icon={BadgeDollarSign}
-                  color="hsl(var(--primary))"
+                  color="hsl(var(--foreground))"
                   label={formatLabel(getItemType(item))}
                   value={getItemName(item)}
                   secondary={`${rate.value} / ${rate.label} · ${formatLabel(sourceLabel)}`}
@@ -343,6 +345,7 @@ export const MobilePricing = ({
             <MobileListEmpty
               icon={BadgeDollarSign}
               label="No pricing rules found"
+              labelTone="plain"
               reason={searchTerm ? 'search' : hasActiveRecovery ? 'filtered' : 'empty'}
               hint={searchTerm
                 ? `No pricing matches "${searchTerm}".`
@@ -379,7 +382,7 @@ export const MobilePricing = ({
               isOpen
               onClose={() => setActiveItem(null)}
               icon={BadgeDollarSign}
-              iconTone="hsl(var(--primary))"
+              iconTone="hsl(var(--foreground))"
               eyebrow={formatLabel(getItemType(item))}
               title={getItemName(item)}
               statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
@@ -399,7 +402,7 @@ export const MobilePricing = ({
               </div>
 
               {noteText ? (
-                <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                <div className="surface-card rounded-inner p-3 text-xs leading-5 text-muted-foreground">
                   {noteText}
                 </div>
               ) : null}
