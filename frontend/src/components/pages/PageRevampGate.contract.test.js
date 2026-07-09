@@ -910,7 +910,8 @@ describe('Today/Requests revamp gate contract', () => {
     expect(fab).toContain("location.pathname === '/'");
     expect(fab).toContain("location.pathname.startsWith('/emergencies')");
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
-    expect(bottomBar).toContain('const routeOwnedAction = getRouteOwnedMobileAction(location.pathname, userRole);');
+    // Config resolved first, wrapped when it declares a locally hosted `modal` (Today FAB parity).
+    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);');
     expect(bottomBar).toContain("label: 'New request'");
     expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
   });

@@ -171,7 +171,9 @@ describe('Navigation shell contract', () => {
     expect(bottomBar).toContain("location.pathname === '/'");
     expect(bottomBar).toContain("location.pathname.startsWith('/emergencies')");
     expect(bottomBar).toContain('const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;');
-    expect(bottomBar).toContain('const routeOwnedAction = getRouteOwnedMobileAction(location.pathname, userRole);');
+    // Route-owned actions may open a locally hosted modal (routeModal) — the config
+    // is resolved first, then wrapped when it declares `modal` (Today-home FAB parity).
+    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);');
     expect(bottomBar).toContain('const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;');
     expect(bottomBar).toContain("if (pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin'))");
     expect(bottomBar).toContain("label: 'New request'");
