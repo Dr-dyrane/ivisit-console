@@ -84,19 +84,46 @@ For **every page** we finish designing, before calling it done:
     over the map holding transparent rows, and row anatomy: orb (type-tint) · title 15–16/500 ·
     `{type} · {date}` 12/500 · trailing time 12/700 + status pill (by status, 11/700) + chevron. Read
     the sibling repo (`../ivisit-app`) *before* designing a surface — don't invent one.
-11. **Deterministic mobile gutter.** `MobilePageShell` shipped a `px-1` that fought pages' `px-0`
-    contentClassName (equal specificity → ambiguous cascade), so the nav sat at a different edge than
-    the content. Removed `px-1`; horizontal padding is now per-page (`px-2` sections = 8px) and chrome
-    aligns to it (nav bar `left-2/right-2`, dock `px-2`, KPI rail `px-2`). Promote to one gutter token
-    in the joint token pass.
+11. **Deterministic mobile gutter = ONE value, shared by content AND chrome.** The gutter is the app's
+    page content padding: **`px-4` (16px)** — header, KPI/chips rail, search, group panels, nav bar
+    (`left-4/right-4`), dock. Rows nest to **`px-2` (8px) INSIDE** the group panel (the app's model:
+    page 16 → panel → row 8). Two traps that cost rounds: (a) `MobilePageShell` shipped a `px-1` that
+    fought pages' `px-0` contentClassName (equal specificity → ambiguous cascade) — removed it so the
+    gutter is per-page/deterministic; (b) fixed chrome **stacked two insets** — the header had `left-4`
+    (position) *and* an `animate paddingLeft: 12` (padding) → the left section landed at 28px while
+    content sat at 16px. Flat chrome = position to the gutter, **ZERO padding**; grep the `animate`/`style`
+    for padding, not just `className`. (Promote the gutter to one token in the joint token pass.)
 12. **Flatten single-child wrappers; top padding = nav-row height.** Redundant container divs (the nav
     back-button LEFT group once the avatar moved right; the frosted search-toolbar wrapper) add DOM +
-    inset for nothing — remove them and let elements sit directly (`-ml-1` on the back chevron optically
-    aligns it with the page heading). Page top padding is the *nav-row height* (~`pt-8`), not more.
+    inset for nothing — remove them and let elements sit directly. Skip micro `-ml` optical nudges on
+    the chevron — one made it *worse* (reversed); fix the real inset instead. Page top padding = the
+    *nav-row height* (~`pt-8`), not more.
 13. **Motion + icons.** Entrance = opacity fade + `layout="position"` (position-only reflow) — **never
     scale**: full framer `layout` and a `staggerFadeIn` `scale(0.95)` cause the ugly card "skew" on
     load/reorder. Press 0.96 controls / 0.988 cards; tap ripple only. Icons must match intent + the app
     set: stats/analytics = `BarChart3` (not `Info`); a "new-X" FAB = `Plus` (not `ClipboardCheck`).
+
+### Mobile debugging — when you can't render, MEASURE (this page cost many rounds)
+
+14. **Struggle:** Emergency's nav alignment + card surface-diff took ~8 iterations of guess-and-check.
+    Root cause of the thrash: **I cannot screenshot a true mobile viewport** (the browser clamps to
+    ~1500px), so I kept *inferring* pixel geometry from source and getting it wrong (px-2 vs px-3 vs
+    px-4; left-2 vs left-3 vs left-4; a `-ml-1` chevron nudge that pulled the *wrong* way; a page-bg
+    recolor the user rejected; light cards that looked identical to the bg). **Approach that actually
+    worked — three tools, use them FIRST next time:**
+    - **Debug outlines + a user screenshot.** Add `outline outline-1 outline-<distinct-color>` to each
+      element of the suspect region (uncommitted), ask the user to screenshot, read the geometry off the
+      colored boxes, then revert. This exposed the nav **double-padding** (`left-4` + `animate paddingLeft:12`)
+      in one shot — after rounds of blind guessing. A screenshot from the user is worth 5 guessed edits.
+    - **Read the source app for exact values, don't intuit.** `../ivisit-app` gave the real grouped-list
+      structure and the token/spacing scale (4px grid; page content 16–24px; rows 8px). Guessing ended
+      the moment I read `MapHistoryGroup`/`history.theme.js`.
+    - **Numeric contrast diff for surface tokens.** Compute L (lightness) of card-vs-ground per mode
+      before picking a fill. Dark card = white film → +7% lift (visible); a white light card over a 98%
+      ground = +1.4% (invisible). You can't lift above a near-white ground, so match dark's delta with a
+      *recessing* film (`bg-foreground/[0.06]`, ~−6%). Measure, don't eyeball.
+    - **Meta:** when a fix needs a value you can't see, escalate to the user with a screenshot + concrete
+      options, or read the source — do NOT ship successive blind tweaks. Each blind round burns a turn.
 
 ---
 
