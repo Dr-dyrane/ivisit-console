@@ -6,8 +6,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   it('keeps Requests list/count/payment reads owned by emergencyService', () => {
     const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
     const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
 
-    expect(pageSource).toContain('getEmergencyRequestsPage({');
+    // S3 migration: the route-owned page read now flows through useEmergencyQuery,
+    // the only caller of the service projection. The page reads the ['emergency']
+    // cache, never the raw table, and never invokes the service read directly.
+    expect(pageSource).toContain('useEmergencyQuery(queryFilter');
+    expect(queryHookSource).toContain('getEmergencyRequestsPage(filter)');
+    expect(pageSource).not.toContain('getEmergencyRequestsPage({');
     expect(pageSource).not.toContain("supabase.from('emergency_requests')");
     expect(pageSource).not.toContain("supabase.from('payments')");
     expect(pageSource).not.toContain('applyAuthFilter(query');
@@ -37,13 +43,19 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('search: filters.search');
     expect(pageSource).toContain('date_from: dateRange.start ?');
     expect(pageSource).toContain('date_to: dateRange.end ?');
-    expect(pageSource).toContain('const serviceFilter = buildRequestsServiceFilter(filters);');
-    expect(pageSource).toContain('getEmergencyRequestsPage({');
-    expect(pageSource).toContain('kpiFilter,');
+    expect(pageSource).toContain('...buildRequestsServiceFilter(filters)');
+    expect(pageSource).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
+    expect(pageSource).toContain('kpiFilter: selectedKpiFilter,');
     expect(pageSource).toContain('limit: pagination.itemsPerPage');
     expect(pageSource).toContain('offset: pagination.paginationRange.start');
     expect(pageSource).toContain('sortKey: sortConfig.key');
     expect(pageSource).toContain('sortDirection: sortConfig.direction');
+    // Sort UI: clickable column headers toggle setSortConfig (VisitsPage/HospitalsPage
+    // idiom), feeding the sortKey/sortDirection plumbing above into the service filter.
+    expect(pageSource).toContain('const handleSort = useCallback((key) =>');
+    expect(pageSource).toContain('setSortConfig((current) => ({');
+    expect(pageSource).toContain('const SortableColumnHeader = ({');
+    expect(pageSource).toContain('onSort={handleSort}');
     expect(pageSource).toContain('pagination.setTotalCount(count || 0);');
     expect(pageSource).toContain('<PaginationControls');
     expect(pageSource).toContain('totalCount={pagination.totalCount}');
@@ -132,24 +144,21 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const addListeners = pageSource.match(/window\.addEventListener\('/g) || [];
     const removeListeners = pageSource.match(/window\.removeEventListener\('/g) || [];
 
-    expect(pageSource).toContain('const requestSeqRef = useRef(0)');
-    expect(pageSource).toContain('const fetchRequests = useCallback(async () => {');
-    expect(pageSource).toContain('const requestSeq = requestSeqRef.current + 1;');
-    expect(pageSource).toContain('requestSeqRef.current = requestSeq;');
-    expect(pageSource).toContain('if (requestSeq !== requestSeqRef.current) return;');
-    expect(pageSource).toContain('if (isTransientRequestRefreshError(error)) return;');
-    expect(pageSource.indexOf('if (requestSeq !== requestSeqRef.current) return;'))
-      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
-    expect(pageSource.indexOf('if (isTransientRequestRefreshError(error)) return;'))
-      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
-    expect(pageSource).toContain('if (requestSeq === requestSeqRef.current) {');
-    expect(pageSource).toContain('setLoading(false);');
+    // S3 migration: the manual useState/requestSeqRef/withTimeout fetch loop is gone.
+    // The page reads via React Query; the realtime channel invalidates the cache.
+    expect(pageSource).not.toContain('requestSeqRef');
+    expect(pageSource).not.toContain('const fetchRequests = useCallback(async () => {');
+    expect(pageSource).not.toContain('isTransientRequestRefreshError');
+    expect(pageSource).not.toContain("console.error('Error fetching requests:', error);");
+    expect(pageSource).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
+    expect(pageSource).toContain('const fetchRequests = refetch;');
 
-    expect(pageSource).toContain(".channel('emergency_changes')");
-    expect(pageSource).toContain(".on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)");
-    expect(pageSource).toContain(".on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchRequests)");
+    expect(pageSource).toContain(".channel('emergency_requests_page_changes')");
+    expect(pageSource).toContain("table: 'emergency_requests' }, () => {");
+    expect(pageSource).toContain("table: 'payments' }, () => {");
+    expect(pageSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] })");
     expect(pageSource).toContain('.subscribe();');
-    expect(pageSource).toContain('return () => supabase.removeChannel(channel);');
+    expect(pageSource).toContain('supabase.removeChannel(channel);');
 
     expect(addListeners).toHaveLength(4);
     expect(removeListeners).toHaveLength(4);
@@ -247,9 +256,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('data-state={filterTriggerState}');
     expect(pageSource).toContain('aria-haspopup="dialog"');
     expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
-    expect(pageSource).toContain('const [loadError, setLoadError] = useState(null)');
-    expect(pageSource).toContain('setLoadError(null)');
-    expect(pageSource).toContain('setLoadError(message)');
+    // loadError is derived from the React Query error object now (no setLoadError state).
+    expect(pageSource).toContain('const loadError = queryError ?');
+    expect(pageSource).not.toContain('setLoadError(');
     expect(pageSource).toContain('resetValues={EMPTY_REQUEST_FILTERS}');
     expect(pageSource).toContain('resetLabel="Clear"');
     expect(pageSource).toContain('<RequestLoadErrorState message={loadError} onRetry={onRetry} />');
@@ -323,15 +332,13 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(installPromptSource).toContain('isVisible && !hasBlockingSurface');
     expect(installPromptSource).toContain('bottom-24 left-4 right-4');
     expect(installPromptSource).toContain('md:bottom-4');
-    expect(pageSource).toContain('const requestSeqRef = useRef(0)');
     expect(pageSource).toContain('const [kpiFilter, setKpiFilter] = useState(null);');
     expect(pageSource).toContain('const selectedKpiFilter = useMemo(');
     expect(pageSource).toContain('kpiFilter || getDefaultRequestKpi(requestStats)');
-    expect(pageSource).toContain('const isTransientRequestRefreshError = (error) =>');
-    expect(pageSource.indexOf('if (requestSeq !== requestSeqRef.current) return;'))
-      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
-    expect(pageSource.indexOf('if (isTransientRequestRefreshError(error)) return;'))
-      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
+    expect(pageSource).toContain('useEmergencyMutations({');
+    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'accepted')");
+    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'completed')");
+    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'cancelled')");
     expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(pageSource).toContain("usePageFooter(null, 'status', false)");
     expect(pageSource).toContain('const RequestsAtlasLayer = () => (');
@@ -546,8 +553,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const responseServiceSource = fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
     const emergencyServiceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
 
-    expect(pageSource).toContain('dispatchEmergency(request.id, request)');
-    expect(pageSource).toContain('completeEmergency(request.id)');
+    // Dispatch/complete/cancel now route through useEmergencyMutations.mutateAsync,
+    // whose mutationFn is the SAME reused RPC service fn (never bypassed).
+    expect(pageSource).toContain('dispatchEmergency(id, request)');
+    expect(pageSource).toContain('dispatchMutation.mutateAsync({ id: request.id, request })');
+    expect(pageSource).toContain('completeEmergency(id)');
+    expect(pageSource).toContain('completeMutation.mutateAsync({ id: request.id })');
     expect(pageSource).toContain('retryPaymentWithDifferentMethod(requestId');
     expect(pageSource).toContain("if (currentUser.isAdmin() || currentUser.isOrgAdmin())");
     expect(pageSource).toContain('const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();');
@@ -558,7 +569,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
     expect(pageSource).toContain("toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });");
     expect(pageSource).toContain('setCompleteModal({ open: true, request });');
-    expect(pageSource).toContain('await completeEmergency(request.id);');
+    expect(pageSource).toContain('await completeMutation.mutateAsync({ id: request.id });');
     expect(pageSource).toContain("toast.success('Request completed');");
     expect(pageSource).toContain("toast.error('Failed to complete request');");
     expect(pageSource).toContain("toast.info('Cash settlement is not ready here yet'");
@@ -574,9 +585,18 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('title="Select payment method"');
     expect(pageSource).toContain('onClick={executeRetryPayment}');
     expect(pageSource).toContain('onClose={closeRetryModal}');
-    expect(pageSource).toContain("cancelEmergencyRequest(request.id, 'cancelled_from_console')");
+    expect(pageSource).toContain('cancelEmergencyRequest(id, reason)');
+    expect(pageSource).toContain("cancelMutation.mutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
     expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
     expect(pageSource).toContain('currentUser.isAdmin() && actionState.canCancel');
+    // Desktop bulk cancel: admin-gated multi-select routed through the SAME reused cancel
+    // path (cancelMutation.mutateAsync in a loop), confirmed via the shared ConfirmationModal.
+    // No parallel cancel service call is introduced.
+    expect(pageSource).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
+    expect(pageSource).toContain('const [selectedIds, setSelectedIds] = useState([]);');
+    expect(pageSource).toContain('const executeBulkCancel = useCallback');
+    expect(pageSource).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(pageSource).toContain('selectable={currentUser.isAdmin()}');
     expect(pageSource).not.toContain(".from('emergency_requests').update");
     expect(pageSource).not.toContain(".from(TABLE_NAME).update");
     expect(pageSource).not.toContain('fixed inset-0');
@@ -623,8 +643,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(actionSource).toContain('canCancel,');
 
     expect(mobileSource).not.toContain('Cancel request');
-    expect(mobileSource).not.toContain('Dispatch');
-    expect(mobileSource).not.toContain('onEdit');
+    // Mobile dispatch is restored (non-destructive): the detail sheet exposes a Dispatch
+    // CTA wired to onDispatch -> the desktop handleDispatch mutation path. Destructive
+    // shortcuts (cancel/delete) stay off mobile.
+    expect(mobileSource).toContain("label: 'Dispatch'");
+    expect(mobileSource).toContain('onDispatch');
     expect(mobileSource).not.toContain('Trash2');
   });
 
@@ -666,5 +689,43 @@ describe('EmergencyRequestsPage service ownership contract', () => {
       expect(listSource).not.toContain(token);
       expect(tableSource).not.toContain(token);
     }
+  });
+
+  it('reads Requests via useEmergencyQuery and writes via reused-RPC optimistic mutations', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
+    const mutationsHookSource = fs.readFileSync('src/hooks/useEmergencyMutations.js', 'utf8');
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    // Read path: a single ['emergency', filter] React Query store, no parallel list state.
+    expect(pageSource).toContain("import { useEmergencyQuery } from '../../hooks/useEmergencyQuery';");
+    expect(pageSource).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
+    expect(pageSource).not.toContain('const [requests, setRequests]');
+    expect(pageSource).not.toContain('getEmergencyRequestsPage({');
+    expect(queryHookSource).toContain("queryKey: ['emergency', filter]");
+    expect(queryHookSource).toContain('getEmergencyRequestsPage(filter)');
+    expect(queryHookSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] })");
+
+    // Write path: mutations wrap the EXISTING reused RPC service fns; onMutate
+    // snapshot -> optimistic status -> onError rollback -> onSettled invalidate(['emergency']).
+    expect(pageSource).toContain("import { useEmergencyMutations, applyOptimisticStatus } from '../../hooks/useEmergencyMutations';");
+    expect(pageSource).toContain('dispatchMutation.mutateAsync(');
+    expect(pageSource).toContain('completeMutation.mutateAsync(');
+    expect(pageSource).toContain('cancelMutation.mutateAsync(');
+    expect(mutationsHookSource).toContain("export const EMERGENCY_KEY_ROOT = ['emergency'];");
+    expect(mutationsHookSource).toContain('export function applyOptimisticStatus(');
+    expect(mutationsHookSource).toContain('queryClient.cancelQueries({ queryKey: EMERGENCY_KEY_ROOT })');
+    expect(mutationsHookSource).toContain('queryClient.setQueryData(context.listKey, context.previous)');
+
+    // Gating: illegal transitions stay non-renderable via the L4 action state
+    // (getEmergencyActionState -> canTransition).
+    expect(pageSource).toContain('const actionState = getEmergencyActionState(request);');
+    expect(pageSource).toContain('if (!actionState.canDispatch)');
+    expect(pageSource).toContain('if (!actionState.canRetryPayment)');
+
+    // PageDataContext emergency realtime now invalidates the cache; dashboards keep
+    // their slice hydration via fetchEmergencyData on mount.
+    expect(pageDataSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] })");
+    expect(pageDataSource).toContain('const fetchEmergencyData = useCallback(');
   });
 });

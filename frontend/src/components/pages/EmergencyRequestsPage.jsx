@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useEmergencyQuery } from '../../hooks/useEmergencyQuery';
+import { useEmergencyMutations, applyOptimisticStatus } from '../../hooks/useEmergencyMutations';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import {
   cancelEmergencyRequest,
-  getEmergencyRequestsPage,
   getUserActivePaymentMethods,
   retryPaymentWithDifferentMethod,
 } from '../../services/emergencyService';
@@ -20,15 +22,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import {
   AlertCircle,
   Ambulance,
+  ArrowUpDown,
   BedDouble,
+  Check,
   CheckCheck,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   ClipboardCheck,
   Clock,
   Filter as FilterIcon,
@@ -36,6 +41,7 @@ import {
   Info,
   Loader2,
   MapPin,
+  Minus,
   RefreshCw,
   Search,
   Send,
@@ -45,6 +51,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { MobileEmergency } from '../mobile/MobileEmergency';
 import { SEOHead } from '../common/SEOHead';
@@ -286,11 +293,6 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
   };
 };
 
-const isTransientRequestRefreshError = (error) => {
-  const message = String(error?.message || error?.details || error || '');
-  return error?.name === 'AbortError' || /failed to fetch|abort/i.test(message);
-};
-
 const getDefaultRequestKpi = (stats) => {
   const pending = normalizeCount(stats?.pending_approval ?? stats?.pending, 0);
   const active = normalizeCount(stats?.active, 0);
@@ -357,10 +359,11 @@ export const EmergencyRequestsPage = () => {
     profile
   }), [isAdmin, isOrgAdmin, isProvider, user, profile]);
 
-  const [requests, setRequests] = useState([]);
+  // Requests stats are mirrored from the React Query page projection (below) ONLY
+  // to seed the KPI default (getDefaultRequestKpi) and the analytics/signal panels.
+  // The Requests LIST + count are read straight from the ['emergency', filter]
+  // cache via useEmergencyQuery - there is no parallel list store any more.
   const [requestStats, setRequestStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [focusedRequestId, setFocusedRequestId] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -370,6 +373,7 @@ export const EmergencyRequestsPage = () => {
   const [kpiFilter, setKpiFilter] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [selectedIds, setSelectedIds] = useState([]);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -381,8 +385,8 @@ export const EmergencyRequestsPage = () => {
   const [completeModal, setCompleteModal] = useState({ open: false, request: null });
   const [retryModal, setRetryModal] = useState({ open: false, request: null, methods: [], selectedId: null });
   const [routingPath, setRoutingPath] = useState(null);
-  const requestSeqRef = useRef(0);
 
+  const queryClient = useQueryClient();
   const pagination = usePagination(20);
   const authReady = Boolean(user?.id && profile?.role) && !authLoading;
   const selectedKpiFilter = useMemo(
@@ -418,78 +422,110 @@ export const EmergencyRequestsPage = () => {
     'selected request'
   ), []);
 
-  const fetchRequests = useCallback(async () => {
-    if (!authReady) {
-      setLoading(true);
-      return;
-    }
-
-    const requestSeq = requestSeqRef.current + 1;
-    requestSeqRef.current = requestSeq;
-
-    try {
-      setLoading(true);
-      const serviceFilter = buildRequestsServiceFilter(filters);
-
-      const { data, count, stats } = await withTimeout(
-        getEmergencyRequestsPage({
-          ...serviceFilter,
-          kpiFilter: selectedKpiFilter,
-          limit: pagination.itemsPerPage,
-          offset: pagination.paginationRange.start,
-          sortKey: sortConfig.key,
-          sortDirection: sortConfig.direction,
-          quiet: true,
-        }),
-        15000,
-        'Failed to load requests - timeout'
-      );
-
-      if (requestSeq !== requestSeqRef.current) return;
-
-      pagination.setTotalCount(count || 0);
-
-      const normalizedRows = data || [];
-      setRequests(normalizedRows);
-      setRequestStats(stats || null);
-      setLoadError(null);
-      setSelectedRequest((prev) => {
-        if (!prev?.id) return prev;
-        return normalizedRows.find((row) => row.id === prev.id) || prev;
-      });
-    } catch (error) {
-      if (requestSeq !== requestSeqRef.current) return;
-      if (isTransientRequestRefreshError(error)) return;
-      console.error('Error fetching requests:', error);
-      const message = error.message || 'Failed to load requests';
-      setLoadError(message);
-      toast.error(message);
-    } finally {
-      if (requestSeq === requestSeqRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [
+  // Read path: React Query (S3 migration; mirrors DoctorsPage/SupportTicketsPage).
+  // The route-owned page projection (getEmergencyRequestsPage) now flows through
+  // useEmergencyQuery, so the ['emergency', queryFilter] cache is the single store:
+  // this page reads it, the dispatch/complete/cancel mutations settle it, and
+  // realtime invalidates it. The KPI pill and sheet filters compose into one server
+  // filter; stats stay KPI-agnostic (getEmergencyRequestsPage strips kpiFilter for
+  // its stats query) so the KPI counts stay stable while the list narrows.
+  const queryFilter = useMemo(() => ({
+    ...buildRequestsServiceFilter(filters),
+    kpiFilter: selectedKpiFilter,
+    limit: pagination.itemsPerPage,
+    offset: pagination.paginationRange.start,
+    sortKey: sortConfig.key,
+    sortDirection: sortConfig.direction,
+    quiet: true,
+  }), [
     filters,
-    authReady,
     selectedKpiFilter,
     pagination.itemsPerPage,
     pagination.paginationRange.start,
-    pagination.setTotalCount,
-    sortConfig,
+    sortConfig.key,
+    sortConfig.direction,
   ]);
 
+  const {
+    requests,
+    count,
+    stats,
+    loading: queryLoading,
+    error: queryError,
+    refetch,
+  } = useEmergencyQuery(queryFilter, { enabled: authReady });
+
+  // Hold the shell in its loading state until auth resolves, so the disabled query
+  // (enabled: authReady) does not flash an empty list before the first real fetch.
+  const loading = !authReady || queryLoading;
+  // RQ error object -> the page's existing degraded-state copy.
+  const loadError = queryError ? (queryError.message || 'Failed to load requests') : null;
+  // fetchRequests is now the RQ refetch (Retry on desktop, pull-to-refresh on
+  // mobile, modal-close reconcile, and the not-ready action guards).
+  const fetchRequests = refetch;
+
+  // Mirror the RQ page stats into local state to seed the KPI default and feed the
+  // analytics/signal panels. Stats are KPI-agnostic, so this feedback converges to
+  // a stable default without a fetch loop.
   useEffect(() => {
-    fetchRequests();
+    setRequestStats(stats || null);
+  }, [stats]);
+
+  // Keep the shared pagination store's total in sync with the RQ count.
+  useEffect(() => {
+    pagination.setTotalCount(count || 0);
+  }, [count, pagination.setTotalCount]);
+
+  // Keep the open detail/selection pointer fresh as the cache updates, without
+  // storing a second copy of the row (derived via useMemo, never stored).
+  const activeDetailRequest = useMemo(() => {
+    if (!selectedRequest?.id) return selectedRequest;
+    return requests.find((row) => row.id === selectedRequest.id) || selectedRequest;
+  }, [requests, selectedRequest]);
+
+  // Write path: dispatch/complete/cancel route through their EXISTING reused RPC
+  // service fns wrapped by useEmergencyMutations (onMutate snapshot -> optimistic
+  // status setQueryData -> onError rollback -> onSettled invalidateQueries(['emergency'])).
+  // The page never bypasses these service fns and never writes the table directly.
+  const dispatchMutation = useEmergencyMutations({
+    mutationFn: ({ id, request }) => dispatchEmergency(id, request),
+    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'accepted'),
+    filter: queryFilter,
+  });
+  const completeMutation = useEmergencyMutations({
+    mutationFn: ({ id }) => completeEmergency(id),
+    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'completed'),
+    filter: queryFilter,
+  });
+  const cancelMutation = useEmergencyMutations({
+    mutationFn: ({ id, reason }) => cancelEmergencyRequest(id, reason),
+    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'cancelled'),
+    filter: queryFilter,
+  });
+
+  // Realtime: an emergency_requests / payments change invalidates the ['emergency']
+  // cache (the single Requests store) instead of a manual refetch. Any mounted
+  // useEmergencyQuery observer converges on the next fetch. This page channel is
+  // additive to PageDataContext (which also invalidates on emergency_requests); it
+  // additionally covers the payments table for the retry-payment flow.
+  useEffect(() => {
+    let active = true;
 
     const channel = supabase
-      .channel('emergency_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchRequests)
+      .channel('emergency_requests_page_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, () => {
+        if (active) queryClient.invalidateQueries({ queryKey: ['emergency'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        if (active) queryClient.invalidateQueries({ queryKey: ['emergency'] });
+      })
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
-  }, [fetchRequests]);
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const handleCreateEmergency = useCallback(() => {
     setSelectedRequest(null);
@@ -655,12 +691,14 @@ export const EmergencyRequestsPage = () => {
       description: `Cancel ${getEmergencyLabel(request)}? This cannot be undone.`,
       onConfirm: async () => {
         // The cancel is authoritative. Only a cancel failure may report failure.
+        // Routed through the reused console_cancel_emergency RPC (cancelEmergencyRequest)
+        // wrapped by the mutation, whose onSettled invalidates ['emergency'].
         try {
-          await cancelEmergencyRequest(request.id, 'cancelled_from_console');
+          await cancelMutation.mutateAsync({ id: request.id, reason: 'cancelled_from_console' });
         } catch (error) {
           console.error('Error cancelling request:', error);
           toast.error(error.message || 'Failed to cancel request');
-          return; // genuinely failed — keep the modal open, do not refresh
+          return; // genuinely failed - keep the modal open, do not refresh
         }
         // Cancel committed. The notification is best-effort: a notification failure
         // must NOT report a committed cancel as failed (the false-negative bug).
@@ -675,13 +713,108 @@ export const EmergencyRequestsPage = () => {
           console.warn('Cancel succeeded but notification failed:', notifyError);
         }
         toast.success('Request cancelled');
-        fetchRequests();
         setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       },
       variant: 'destructive',
       confirmLabel: 'Cancel request'
     });
-  }, [fetchRequests, getEmergencyLabel]);
+  }, [cancelMutation.mutateAsync, fetchRequests, getEmergencyLabel]);
+
+  // Column-sort toggle for the list header. Same idiom as VisitsPage/HospitalsPage:
+  // a new key sorts ascending; re-tapping the active key flips direction. The plumbing
+  // (sortConfig -> queryFilter.sortKey/sortDirection) already feeds the service.
+  const handleSort = useCallback((key) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
+
+  // Drop any selected id that has left the current list (e.g. after a cancel settles
+  // and the row disappears). Returning the same reference when nothing changed keeps
+  // this from looping.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter((id) => requests.some((row) => row.id === id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [requests]);
+
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+  const handleToggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => (
+      prev.includes(id) ? prev.filter((selectedId) => selectedId !== id) : [...prev, id]
+    ));
+  }, []);
+
+  // Select-all targets only the cancellable rows in the current list, mirroring the
+  // per-row cancel legality (getEmergencyActionState.canCancel). Re-tapping clears.
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const cancellableIds = requests
+        .filter((row) => getEmergencyActionState(row).canCancel)
+        .map((row) => row.id);
+      const allSelected = cancellableIds.length > 0 && cancellableIds.every((id) => prev.includes(id));
+      return allSelected ? [] : cancellableIds;
+    });
+  }, [requests]);
+
+  // Bulk cancel loops the SAME reused console_cancel_emergency RPC path as the single
+  // cancel (cancelMutation.mutateAsync); it never introduces a parallel service call.
+  // Each cancel is authoritative and best-effort notified, exactly like handleDelete.
+  const executeBulkCancel = useCallback(async () => {
+    setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
+    const targets = requests.filter(
+      (row) => selectedIds.includes(row.id) && getEmergencyActionState(row).canCancel
+    );
+    if (targets.length === 0) {
+      clearSelection();
+      return;
+    }
+
+    toast.loading(`Cancelling ${targets.length} request${targets.length === 1 ? '' : 's'}...`, { id: 'bulk-cancel' });
+    let failed = 0;
+    for (const request of targets) {
+      try {
+        await cancelMutation.mutateAsync({ id: request.id, reason: 'cancelled_from_console' });
+        try {
+          await createNotification(
+            NotificationTypes.EMERGENCY,
+            NotificationActions.CANCELLED,
+            request.id,
+            { message: 'Request has been cancelled' }
+          );
+        } catch (notifyError) {
+          console.warn('Cancel succeeded but notification failed:', notifyError);
+        }
+      } catch (error) {
+        console.error('Bulk cancel failed for request:', request.id, error);
+        failed += 1;
+      }
+    }
+
+    clearSelection();
+    if (failed > 0) {
+      toast.error(`${failed} cancel${failed === 1 ? '' : 's'} failed`, { id: 'bulk-cancel' });
+    } else {
+      toast.success(`${targets.length} request${targets.length === 1 ? '' : 's'} cancelled`, { id: 'bulk-cancel' });
+    }
+  }, [requests, selectedIds, cancelMutation.mutateAsync, clearSelection]);
+
+  const handleBulkCancel = useCallback(() => {
+    const count = selectedIds.length;
+    if (count === 0) return;
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Cancel requests',
+      description: `Cancel ${count} selected request${count === 1 ? '' : 's'}? This cannot be undone.`,
+      onConfirm: executeBulkCancel,
+      variant: 'destructive',
+      confirmLabel: 'Cancel requests',
+    });
+  }, [selectedIds.length, executeBulkCancel]);
 
   const handleViewDetails = useCallback((request) => {
     setFocusedRequestId(request?.id || null);
@@ -719,11 +852,11 @@ export const EmergencyRequestsPage = () => {
       }
 
       toast.loading('Dispatching request...', { id: 'dispatch' });
-      const result = await dispatchEmergency(request.id, request);
+      // Reused console_dispatch_emergency RPC (dispatchEmergency) wrapped by the
+      // mutation; onSettled invalidates ['emergency'] so no manual refetch here.
+      const result = await dispatchMutation.mutateAsync({ id: request.id, request });
       toast.success('Request dispatched', { id: 'dispatch' });
       toast.info(`Responder: ${result.assignments.ambulance?.type || 'Assigned'}`, { duration: 3000 });
-
-      fetchRequests();
     } catch (error) {
       console.error('Dispatch failed:', error);
       const message = String(error?.message || '');
@@ -740,7 +873,7 @@ export const EmergencyRequestsPage = () => {
       // operator knows why and does not retry blindly into the same collision.
       toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });
     }
-  }, [fetchRequests, isAdmin, isOrgAdmin, orgId]);
+  }, [dispatchMutation.mutateAsync, fetchRequests, isAdmin, isOrgAdmin, orgId]);
 
   const handleComplete = useCallback((request) => {
     setCompleteModal({ open: true, request });
@@ -749,7 +882,9 @@ export const EmergencyRequestsPage = () => {
   const executeComplete = useCallback(async (request) => {
     setCompleteModal({ open: false, request: null });
     try {
-      await completeEmergency(request.id);
+      // Reused console_complete_emergency RPC (completeEmergency) wrapped by the
+      // mutation; onSettled invalidates ['emergency'] so no manual refetch here.
+      await completeMutation.mutateAsync({ id: request.id });
 
       if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
         toast.warning('Cash follow-up needed', {
@@ -758,13 +893,11 @@ export const EmergencyRequestsPage = () => {
       } else {
         toast.success('Request completed');
       }
-
-      fetchRequests();
     } catch (error) {
       console.error('Complete failed:', error);
       toast.error('Failed to complete request');
     }
-  }, [fetchRequests]);
+  }, [completeMutation.mutateAsync]);
 
   const handleProcessCash = useCallback(() => {
     toast.info('Cash settlement is not ready here yet', {
@@ -868,6 +1001,7 @@ export const EmergencyRequestsPage = () => {
           filters={filters}
           setFilters={setFilters}
           onView={handleViewDetails}
+          onDispatch={handleDispatch}
           onRefresh={fetchRequests}
           onViewAnalytics={() => setAnalyticsModalOpen(true)}
           isAdmin={isAdmin() || isOrgAdmin()}
@@ -908,7 +1042,29 @@ export const EmergencyRequestsPage = () => {
           moduleRailItems={visibleModuleRail}
           routingPath={routingPath}
           onRailNavigate={handleRailNavigate}
+          selectable={currentUser.isAdmin()}
+          selectedIds={selectedIds}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          sortConfig={sortConfig}
+          onSort={handleSort}
         />
+      )}
+
+      {!isMobile && currentUser.isAdmin() && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkCancel}
+            disabled={cancelMutation.isPending}
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96]"
+            title="Cancel selected requests"
+            aria-label="Cancel selected requests"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
       )}
 
       <EmergencyDetailsModal
@@ -920,7 +1076,7 @@ export const EmergencyRequestsPage = () => {
             fetchRequests();
           }
         }}
-        request={selectedRequest}
+        request={activeDetailRequest}
         onRetryPayment={handleRetryPayment}
       />
 
@@ -1055,8 +1211,21 @@ const RequestsDesktopWorkspace = ({
   moduleRailItems,
   routingPath,
   onRailNavigate,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
+  onSelectAll,
+  sortConfig,
+  onSort,
 }) => {
   const signal = getRequestSignal({ stats, requests, kpiFilter });
+  const cancellableIds = useMemo(
+    () => requests.filter((row) => getEmergencyActionState(row).canCancel).map((row) => row.id),
+    [requests]
+  );
+  const allSelected = selectable && cancellableIds.length > 0
+    && cancellableIds.every((id) => selectedIds.includes(id));
+  const someSelected = selectable && !allSelected && selectedIds.length > 0;
 
   return (
     <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
@@ -1094,13 +1263,14 @@ const RequestsDesktopWorkspace = ({
             </div>
 
             <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
-              <div className="grid grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px] gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                <span>Person</span>
-                <span>Service</span>
-                <span>Facility</span>
-                <span>Time</span>
-                <span className="text-right">Action</span>
-              </div>
+              <RequestListHeader
+                selectable={selectable}
+                allSelected={allSelected}
+                someSelected={someSelected}
+                onSelectAll={onSelectAll}
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
 
               {loading && <RequestSkeletonRows />}
               {!loading && loadError && requests.length === 0 && (
@@ -1138,6 +1308,9 @@ const RequestsDesktopWorkspace = ({
                       selected={focusedRequest?.id === request.id}
                       onFocus={() => setFocusedRequestId(request.id)}
                       onView={onView}
+                      selectable={selectable}
+                      checked={selectedIds.includes(request.id)}
+                      onToggleSelect={onToggleSelect}
                     />
                   ))}
                 </AnimatePresence>
@@ -1305,13 +1478,76 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
   </div>
 );
 
-const RequestRow = ({ request, index, selected, onFocus, onView }) => {
+const REQUEST_GRID_COLS = 'grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
+const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px]';
+
+// Borderless selection affordance (no native checkbox border/ring): a canon rounded-icon
+// square that fills on select. Used per-row and for select-all in the list header.
+const RequestSelectToggle = ({ checked, indeterminate = false, onToggle, label }) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={indeterminate ? 'mixed' : checked}
+    aria-label={label}
+    onClick={(event) => {
+      event.stopPropagation();
+      onToggle?.();
+    }}
+    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-all active:scale-[0.96] ${checked || indeterminate ? 'bg-foreground text-background' : 'bg-muted/45 text-transparent hover:bg-muted/65'}`}
+  >
+    {indeterminate ? <Minus className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+  </button>
+);
+
+// Clickable column header (VisitsPage/HospitalsPage idiom): a new key sorts ascending,
+// re-tapping the active key flips direction. Feeds setSortConfig via onSort.
+const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => {
+  const isSorted = sortConfig?.key === sortKey;
+  const direction = isSorted ? sortConfig.direction : null;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort?.(sortKey)}
+      data-state={isSorted ? 'sorted' : 'idle'}
+      className={`flex items-center gap-1 transition-colors hover:text-foreground active:scale-[0.96] ${className}`}
+      aria-label={`Sort by ${label}`}
+    >
+      {label}
+      {isSorted ? (
+        direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-40" />
+      )}
+    </button>
+  );
+};
+
+const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
+  <div className={`grid ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <RequestSelectToggle
+        checked={allSelected}
+        indeterminate={someSelected}
+        onToggle={onSelectAll}
+        label={allSelected ? 'Clear selection' : 'Select all cancellable requests'}
+      />
+    )}
+    <SortableColumnHeader label="Person" sortKey="requester_name" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Service" sortKey="service_type" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Facility" sortKey="hospital_name" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
+    <span className="justify-self-end text-right">Action</span>
+  </div>
+);
+
+const RequestRow = ({ request, index, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect }) => {
   const projection = getRequestProjection(request);
   const status = getStatusMeta(request);
   const ServiceIcon = serviceIconMap[request?.service_type] || ClipboardCheck;
   const patientName = projection.patientDisplay.name;
   const facilityName = projection.facilityDisplay.name;
   const rowAvatarClass = getRequestAvatarClass(request);
+  const canSelect = selectable && getEmergencyActionState(request).canCancel;
 
   return (
     <motion.div
@@ -1320,7 +1556,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-      className={`mb-2 grid min-h-[78px] grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px] items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+      className={`mb-2 grid min-h-[78px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
       data-request-row={request.id}
       data-state={selected ? 'selected' : 'idle'}
       role="button"
@@ -1335,6 +1571,17 @@ const RequestRow = ({ request, index, selected, onFocus, onView }) => {
       aria-pressed={selected}
       aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}
     >
+      {selectable && (
+        canSelect ? (
+          <RequestSelectToggle
+            checked={checked}
+            onToggle={() => onToggleSelect?.(request.id)}
+            label={checked ? `Deselect request from ${patientName}` : `Add request from ${patientName} to selection`}
+          />
+        ) : (
+          <span aria-hidden="true" />
+        )
+      )}
       <div className="flex min-w-0 items-center gap-3">
         <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${rowAvatarClass}`}>
           {getInitials(patientName)}

@@ -15,6 +15,7 @@ import {
     Info,
     MapPin,
     Search,
+    Send,
     User,
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
@@ -27,6 +28,7 @@ import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
@@ -204,6 +206,7 @@ export const MobileEmergency = ({
     filters,
     setFilters,
     onView,
+    onDispatch,
     onRefresh,
     onViewAnalytics,
     isAdmin,
@@ -408,10 +411,25 @@ export const MobileEmergency = ({
                     const facility = projection.facilityDisplay.name;
                     const location = projection.locationDisplay.label;
                     const responder = projection.responderDisplay.label;
-                    // For an admin reviewing a request that needs attention, Review is the filled
-                    // primary and Details is demoted; otherwise Details is the single action. Both
-                    // route to the existing onView receiver — no new mutation is introduced here.
-                    const canAct = isAdmin && canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval';
+                    const actionState = getEmergencyActionState(activeRequest);
+                    // Dispatch is non-destructive and gated exactly like the desktop dispatch
+                    // (canManage && actionState.canDispatch - here isAdmin already folds
+                    // admin + org_admin). It reuses onDispatch -> handleDispatch, the same
+                    // console_dispatch_emergency mutation path; no new mutation is introduced.
+                    const canDispatch = isAdmin && actionState.canDispatch;
+                    // For a request that needs attention, Review is the filled primary; Details
+                    // is otherwise the single action. Both route to the existing onView receiver.
+                    const canReview = isAdmin && canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval';
+                    const detailsAction = { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
+                    let primaryAction = detailsAction;
+                    let secondaryAction;
+                    if (canDispatch) {
+                        primaryAction = { label: 'Dispatch', icon: Send, tone: 'hsl(200 98% 39%)', onClick: () => { setActiveRequest(null); onDispatch?.(activeRequest); } };
+                        secondaryAction = detailsAction;
+                    } else if (canReview) {
+                        primaryAction = { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
+                        secondaryAction = detailsAction;
+                    }
                     // Islands render through MobileDetailSheet -> MobileDetailIslands (canon tiles).
                     return (
                         <MobileDetailSheet
@@ -431,12 +449,8 @@ export const MobileEmergency = ({
                                 { icon: MapPin, label: 'Location', value: location },
                                 { icon: Calendar, label: 'Created', value: createdDateLabel(activeRequest.created_at) },
                             ]}
-                            primary={canAct
-                                ? { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }
-                                : { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }}
-                            secondary={canAct
-                                ? { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } }
-                                : undefined}
+                            primary={primaryAction}
+                            secondary={secondaryAction}
                         />
                     );
                 })()}
