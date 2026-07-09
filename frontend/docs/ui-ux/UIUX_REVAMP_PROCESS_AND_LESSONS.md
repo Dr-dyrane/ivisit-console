@@ -64,7 +64,39 @@ For **every page** we finish designing, before calling it done:
    assertion (the `PAGE_REVAMP_GATE.md` + `PageRevampGate.contract.test.js` pattern).
 8. **Parallelize with agents on isolated files.** Independent UI work (e.g. NotificationCenter vs
    the Requests KPI strip) fans out cleanly to subagents; keep commits in the parent (sequential) to
-   avoid `.git/index.lock` races with the concurrent lane.
+   avoid `.git/index.lock` races with the concurrent lane. For a study/redesign: fan out *read-only*
+   study agents (e.g. one on the app's card component, one on its tokens) in parallel, then a build
+   agent per isolated file — the parent verifies + commits.
+
+### Mobile lessons
+
+9. **Surface differentiation is FILL/elevation, never shadow (Apple HIG).** iOS grouped lists make the
+   *group container* the surface (rounded, translucent/elevated); rows are **transparent**, separated
+   only by a slate **hairline** (`bg-[hsl(var(--muted-foreground)/0.18)]`, indented `ml-[62px]` past
+   the orb) — not per-row cards, borders, or shadows. Root trap: our `--card` is **inverted in dark**
+   (`0 0% 3%` is *darker* than `--background` `224 41% 7%`) and only ~2% off in light, so cards can't
+   separate by fill → we leaned on shadows. Fix at the token (elevated surface must be *lighter than
+   the ground in both modes*); until then use mode-aware fills (`bg-card` light / `dark:bg-white/[0.06–0.08]`
+   film). **Do NOT recolor the page background to fake separation** (that was explicitly rejected).
+10. **Match the app's real components, not a re-interpretation.** The mobile list-card canon comes
+    from ivisit-app `components/map/history` (`MapHistoryGroup`/`MapHistoryRow`): **recency-bucket**
+    grouping (Active now → Upcoming → Today → Yesterday → This week → … → Older), a frosted group panel
+    over the map holding transparent rows, and row anatomy: orb (type-tint) · title 15–16/500 ·
+    `{type} · {date}` 12/500 · trailing time 12/700 + status pill (by status, 11/700) + chevron. Read
+    the sibling repo (`../ivisit-app`) *before* designing a surface — don't invent one.
+11. **Deterministic mobile gutter.** `MobilePageShell` shipped a `px-1` that fought pages' `px-0`
+    contentClassName (equal specificity → ambiguous cascade), so the nav sat at a different edge than
+    the content. Removed `px-1`; horizontal padding is now per-page (`px-2` sections = 8px) and chrome
+    aligns to it (nav bar `left-2/right-2`, dock `px-2`, KPI rail `px-2`). Promote to one gutter token
+    in the joint token pass.
+12. **Flatten single-child wrappers; top padding = nav-row height.** Redundant container divs (the nav
+    back-button LEFT group once the avatar moved right; the frosted search-toolbar wrapper) add DOM +
+    inset for nothing — remove them and let elements sit directly (`-ml-1` on the back chevron optically
+    aligns it with the page heading). Page top padding is the *nav-row height* (~`pt-8`), not more.
+13. **Motion + icons.** Entrance = opacity fade + `layout="position"` (position-only reflow) — **never
+    scale**: full framer `layout` and a `staggerFadeIn` `scale(0.95)` cause the ugly card "skew" on
+    load/reorder. Press 0.96 controls / 0.988 cards; tap ripple only. Icons must match intent + the app
+    set: stats/analytics = `BarChart3` (not `Info`); a "new-X" FAB = `Plus` (not `ClipboardCheck`).
 
 ---
 
