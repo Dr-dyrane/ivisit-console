@@ -519,7 +519,7 @@ const AtlasLayer = () => (
       className="absolute inset-0 opacity-[0.34] dark:opacity-[0.28]"
       style={{
         backgroundImage:
-          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.07) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.055) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--foreground) / 0.06) 64% 67%, transparent 67%)',
+          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.07) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.055) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--primary) / 0.08) 64% 67%, transparent 67%)',
         backgroundSize: '260px 180px, 340px 240px, 420px 280px',
         backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
       }}
@@ -528,7 +528,9 @@ const AtlasLayer = () => (
       className="absolute inset-0"
       style={{
         background:
-          'radial-gradient(circle at 35% 35%, hsl(var(--foreground) / 0.07), transparent 30%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.20), hsl(var(--background)) 92%)',
+          // Sanctioned ambient brand tint (canon): the low-opacity brand glow is the
+          // page's atmosphere — decorative brand expression, not a state colour.
+          'radial-gradient(circle at 35% 35%, hsl(var(--primary) / 0.13), transparent 30%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.20), hsl(var(--background)) 92%)',
       }}
     />
   </div>

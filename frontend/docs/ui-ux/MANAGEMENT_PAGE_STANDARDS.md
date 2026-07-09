@@ -82,6 +82,14 @@ Rule: the SAME state uses the SAME colour on every surface — the `pending` KPI
 amber on one and red on another. `pending_approval` labels are "Needs attention" / "to review"
 (canonical synonyms). Colour is context-aware only where documented (clear-at-zero → emerald).
 
+**Sanctioned ambient brand tint (user canon, 2026-07-09).** Page ATLAS/backdrop layers may
+carry a **low-opacity brand glow** (`hsl(var(--primary)/0.08–0.13)` or the page's stage tint,
+e.g. Requests' `--destructive` stripes) as ambient atmosphere — it is **decorative brand
+expression, not a state colour**, and is exempt from the no-red rule. It gives the page its
+life; do NOT strip it in canon audits (that was tried on Today and reverted). The exemption is
+strictly for backdrop atlas layers — UI elements (chips, pills, tiles, buttons, text) remain
+governed by the state-colour table above.
+
 ---
 
 ## 1. The data-page "story" (desktop workspace)
