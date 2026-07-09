@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const toneClass = {
-  danger: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-red-100',
+  danger: 'bg-destructive/10 text-destructive',
   warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
   primary: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
@@ -54,7 +54,7 @@ const CurrentListRow = ({ row }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       data-state={state}
-      className="group rounded-inner bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+      className="group rounded-inner bg-card/60 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-card/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
     >
       <div className="flex items-start gap-3">
         <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-button transition-transform duration-200 group-hover:scale-105 ${getToneClass(row.tone)}`}>
@@ -130,7 +130,7 @@ export const DashboardPanel = ({ todayContext }) => {
           Today overview
         </p>
 
-        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -153,7 +153,7 @@ export const DashboardPanel = ({ todayContext }) => {
           {glanceItems.slice(0, 2).map((item) => (
             <div
               key={item.label}
-              className={`rounded-inner p-3 shadow-[0_14px_38px_rgb(0_0_0/0.10)] ${getToneClass(item.tone)}`}
+              className={`rounded-inner p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] ${getToneClass(item.tone)}`}
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
                 {item.label}
@@ -181,7 +181,7 @@ export const DashboardPanel = ({ todayContext }) => {
               disabled={action.disabled}
               data-state={action.disabled ? 'unavailable' : context.routingPath === action.path ? 'opening' : 'idle'}
               aria-disabled={action.disabled ? 'true' : undefined}
-              className={`group flex min-h-[58px] items-center justify-between gap-3 rounded-inner px-4 text-left shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 disabled:cursor-not-allowed disabled:opacity-55 ${getToneClass(action.tone)}`}
+              className={`group flex min-h-[58px] items-center justify-between gap-3 rounded-inner px-4 text-left shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 disabled:cursor-not-allowed disabled:opacity-55 ${getToneClass(action.tone)}`}
             >
               <span className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 {action.label}
