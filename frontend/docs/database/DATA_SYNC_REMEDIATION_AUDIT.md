@@ -182,3 +182,16 @@ Read after the initial audit; it **overrides** several earlier recommendations. 
 5. **[VALIDATION] The reuse-RPC strategy is the sanctioned pattern.** §9 "SECURITY DEFINER bypasses RLS for internal logic"; §11 RPC index lists `update_profile_by_admin` + `delete_user_by_admin` as Core-RPCs "used by console profilesService.js" (exactly the verify-provider reuse). `wallet_ledger` append-only + "financial ops log synchronously" (§9) matches `console_record_wallet_fee_debit`.
 
 6. **[PROCESS] Any schema change runs the ivisit-app testing/hardening gate** — `test_runner.js`, the Zero-Side-Effect Cleanup Gate, `hardening:contract-drift-guard` — before the console sync (`TESTING.md`). Migration test artifacts must be cleaned every time (hard gate).
+
+---
+
+## 9. Queued from the UI/UX lane (2026-07-08)
+
+Found live while doing the UI/UX pass on the Requests page. **Queued, not fixed** — per user direction we finish the visual pass first, then close data-sync in a dedicated pass. Two defects, one interaction:
+
+**Symptom (user-facing):** clicking to sort the Requests list by the **Person** column → the whole list fails with `Requests did not load` and the raw Postgres error `column emergency_requests.requester_name does not exist` is shown in the UI.
+
+1. **[DATA-SYNC · invalid sort column]** `emergency_requests` has **no `requester_name` scalar column** — the requester name lives inside `patient_snapshot` (`Json`, `database.ts:722`). But `emergencyService.js:221` lists `'requester_name'` in the sort-field allowlist (`EMERGENCY_REQUEST_SORT_FIELDS`), and `EmergencyRequestsPage.jsx:1568` sorts the Person column by `sortKey="requester_name"`. The service then runs `.order('requester_name')` → Postgres 42703. Fix direction: drop `requester_name` from the sort allowlist and point the Person column at a real sortable scalar (e.g. `created_at`) or make Person non-sortable — a JSON sub-field can't be `.order()`ed directly. Also audit the legacy `EmergencyRequestTableView.jsx:79` (same `columnKey`, currently inactive). NOTE: `patientUtils.js:23` and `EmergencyPanel.jsx:51` only *read* `request?.requester_name` defensively (undefined-safe) — those are fine.
+2. **[UX · raw error leak]** the load-error state surfaces the raw Postgres message to the user. Every route data owner should show a friendly, generic message (`Requests did not load. Try again.`) and log the raw error to the console only — never leak DB internals / SQL to end users. This applies to every page's error state, not just Requests.
+
+Evidence: `emergencyService.js:221`, `EmergencyRequestsPage.jsx:1568`, `database.ts:722`, `views/EmergencyRequestTableView.jsx:79`.
