@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Building2,
   Wallet,
@@ -199,6 +199,7 @@ export const MobileOrganizations = ({
             label="Network Dynamics"
             count={organizations.length}
             color="hsl(var(--foreground))"
+            labelTone="plain"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
@@ -294,23 +295,23 @@ export const MobileOrganizations = ({
           label="Organization Registry"
           count={displayOrganizations.length}
           color="hsl(var(--foreground))"
+          labelTone="plain"
           onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayOrganizations.length) : null}
           isAllSelected={displayOrganizations.length > 0 && selectedIds.length === displayOrganizations.length}
         />
 
         <div className="space-y-1">
-          <AnimatePresence mode="popLayout">
-            {displayOrganizations.map((org) => {
+          {displayOrganizations.map((org) => {
               const isActive = !!org.is_active;
               return (
                 <MobileMetricRow
                   key={org.id}
                   icon={Building2}
                   color={isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
-                  label={isActive ? 'ACTIVE' : 'INACTIVE'}
+                  label={isActive ? 'Active' : 'Inactive'}
                   value={org.name || 'Unnamed Organization'}
                   rightBlade={{
-                    badge: isActive ? 'ONLINE' : 'OFFLINE',
+                    badge: isActive ? 'Online' : 'Offline',
                     direction: isActive ? 'up' : 'flat',
                     label: 'Wallet',
                     value: `$${Number(org.wallet_balance || 0).toLocaleString()}`,
@@ -362,7 +363,7 @@ export const MobileOrganizations = ({
                           onClick={() => onView(org)}
                         >
                           <Eye size={16} className="text-muted-foreground" />
-                          <span className="eyebrow">Details</span>
+                          <span className="text-[11px] font-semibold">Details</span>
                         </Button>
                         {canManage && (
                           <>
@@ -372,7 +373,7 @@ export const MobileOrganizations = ({
                               onClick={() => onEdit(org)}
                             >
                               <Edit size={16} className="text-amber-700 dark:text-amber-200" />
-                              <span className="eyebrow">Edit</span>
+                              <span className="text-[11px] font-semibold">Edit</span>
                             </Button>
                             <Button
                               variant="ghost"
@@ -388,16 +389,15 @@ export const MobileOrganizations = ({
                   )}
                 />
               );
-            })}
-          </AnimatePresence>
+          })}
 
           {displayOrganizations.length === 0 && (
-            <MobileListEmpty icon={Building2} label="No organizations found" />
+            <MobileListEmpty icon={Building2} label="No organizations found" labelTone="plain" />
           )}
 
           <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
             {loading && <MobileListSkeletonRows />}
-            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displayOrganizations.length > 0 && <MobileListEnd label="End of organization list" />}
           </div>
         </div>

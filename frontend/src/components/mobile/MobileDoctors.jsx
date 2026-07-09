@@ -32,28 +32,28 @@ const mobileStaffFilters = [
         id: 'all',
         label: 'Staff',
         icon: Users,
-        activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.16)]',
+        activeClass: 'bg-sky-400/12 text-sky-700 dark:text-sky-300',
         restClass: 'bg-muted/28 text-muted-foreground',
     },
     {
         id: 'available',
         label: 'Available',
         icon: CheckCircle2,
-        activeClass: 'bg-emerald-400/12 text-emerald-300 shadow-[0_18px_54px_rgba(16,185,129,0.14)]',
+        activeClass: 'bg-emerald-400/12 text-emerald-700 dark:text-emerald-300',
         restClass: 'bg-muted/28 text-muted-foreground',
     },
     {
         id: 'on_call',
         label: 'On call',
         icon: Phone,
-        activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.14)]',
+        activeClass: 'bg-sky-400/12 text-sky-700 dark:text-sky-300',
         restClass: 'bg-muted/28 text-muted-foreground',
     },
     {
         id: 'busy',
         label: 'Busy',
         icon: Clock,
-        activeClass: 'bg-amber-400/12 text-amber-300 shadow-[0_18px_54px_rgba(245,158,11,0.14)]',
+        activeClass: 'bg-amber-400/12 text-amber-700 dark:text-amber-300',
         restClass: 'bg-muted/28 text-muted-foreground',
     },
 ];
@@ -172,7 +172,7 @@ export const MobileDoctors = ({
                                 onOpenFilters?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
                             }}
-                            className="flex h-11 w-11 items-center justify-center rounded-button bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300"
+                            className="flex h-11 w-11 items-center justify-center rounded-button bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground"
                             aria-label="Filter staff"
                         >
                             <Filter size={18} />
@@ -212,7 +212,7 @@ export const MobileDoctors = ({
                                 <MobileMetricRow
                                     key={doctor.id}
                                     icon={Stethoscope}
-                                    color="hsl(var(--primary))"
+                                    color="hsl(199 89% 48%)"
                                     label="Staff member"
                                     value={name}
                                     secondary={`${specialty} · ${facility}`}
@@ -228,12 +228,12 @@ export const MobileDoctors = ({
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
                             {showSkeleton && <MobileListSkeletonRows />}
-                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayDoctors.length > 0 && <MobileListEnd label="End of staff list" />}
                         </div>
 
                         {displayDoctors.length === 0 && !loading && (
-                            <MobileListEmpty icon={Stethoscope} label="No staff found" />
+                            <MobileListEmpty icon={Stethoscope} label="No staff found" labelTone="plain" />
                         )}
                     </div>
                 </div>
@@ -249,7 +249,7 @@ export const MobileDoctors = ({
                             isOpen={!!activeDoctor}
                             onClose={() => setActiveDoctor(null)}
                             icon={Stethoscope}
-                            iconTone="hsl(var(--primary))"
+                            iconTone="hsl(199 89% 48%)"
                             eyebrow="Staff member"
                             title={name}
                             statusPill={statusPill(getStatus(activeDoctor))}

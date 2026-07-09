@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Ambulance,
     Activity,
@@ -87,30 +87,32 @@ export const MobileAmbulances = ({
         maintenance: metricValue(statistics?.maintenance, sourceAmbulances.filter(a => getStatus(a) === 'maintenance').length)
     };
 
+    // Literal status hues (emerald/amber/cyan) — the semantic tokens (--primary/--success/
+    // --warning/--info) all resolve to brand red in this theme and are reserved for danger.
     const ambulanceKPIs = [
         {
             id: 'all',
             label: 'Fleet',
             value: totals.all,
-            color: 'hsl(var(--primary))'
+            color: 'hsl(var(--muted-foreground))'
         },
         {
             id: 'available',
             label: 'Ready',
             value: totals.available,
-            color: 'hsl(var(--success))'
+            color: 'hsl(160 84% 39%)'
         },
         {
             id: 'on_route',
             label: 'En route',
             value: totals.onRoute,
-            color: 'hsl(var(--warning))'
+            color: 'hsl(38 92% 50%)'
         },
         {
             id: 'busy',
             label: 'Active',
             value: totals.busy,
-            color: 'hsl(var(--info))'
+            color: 'hsl(189 94% 43%)'
         }
     ];
 
@@ -118,9 +120,9 @@ export const MobileAmbulances = ({
   const showTopSectionLoading = loading && displayAmbulances.length === 0;
 
     const getStatusColor = (status) => {
-        if (status === 'available') return 'hsl(var(--success))';
-        if (status === 'on_route' || status === 'en_route') return 'hsl(var(--warning))';
-        if (ACTIVE_FLEET_STATUSES.has(status)) return 'hsl(var(--info))';
+        if (status === 'available') return 'hsl(160 84% 39%)';
+        if (status === 'on_route' || status === 'en_route') return 'hsl(38 92% 50%)';
+        if (ACTIVE_FLEET_STATUSES.has(status)) return 'hsl(189 94% 43%)';
         if (status === 'maintenance' || status === 'offline') return 'hsl(var(--muted-foreground))';
         return 'hsl(var(--muted-foreground))';
     };
@@ -155,7 +157,7 @@ export const MobileAmbulances = ({
                     <MobileSectionHeader
                         label="Fleet signals"
                         count={totals.onRoute}
-                        color="hsl(var(--warning))"
+                        color="hsl(38 92% 50%)"
                         labelTone="plain"
                     />
                     <MobileSecondaryMetricRail
@@ -167,9 +169,9 @@ export const MobileAmbulances = ({
                                 title: 'On Route',
                                 subtitle: null,
                                 value: totals.onRoute,
-                                color: 'hsl(var(--warning))',
-                                iconColorClass: 'text-warning',
-                                iconBgClass: 'bg-warning/5',
+                                color: 'hsl(38 92% 50%)',
+                                iconColorClass: 'text-amber-600 dark:text-amber-300',
+                                iconBgClass: 'bg-amber-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -177,9 +179,9 @@ export const MobileAmbulances = ({
                                 title: 'Active',
                                 subtitle: null,
                                 value: totals.busy,
-                                color: 'hsl(var(--info))',
-                                iconColorClass: 'text-info',
-                                iconBgClass: 'bg-info/5',
+                                color: 'hsl(189 94% 43%)',
+                                iconColorClass: 'text-cyan-700 dark:text-cyan-300',
+                                iconBgClass: 'bg-cyan-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -187,9 +189,9 @@ export const MobileAmbulances = ({
                                 title: 'Available',
                                 subtitle: null,
                                 value: totals.available,
-                                color: 'hsl(var(--success))',
-                                iconColorClass: 'text-success',
-                                iconBgClass: 'bg-success/5',
+                                color: 'hsl(160 84% 39%)',
+                                iconColorClass: 'text-emerald-600 dark:text-emerald-300',
+                                iconBgClass: 'bg-emerald-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -208,7 +210,7 @@ export const MobileAmbulances = ({
 
                 <div className="flex items-center gap-2 mb-3 px-1">
                     <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
                         <input
                             type="text"
                             placeholder="Search ambulances..."
@@ -247,24 +249,24 @@ export const MobileAmbulances = ({
                 <MobileSectionHeader
                     label="Fleet directory"
                     count={displayAmbulances.length}
-                    color="hsl(var(--primary))"
+                    color="hsl(var(--muted-foreground))"
                     labelTone="plain"
                     onSelectAll={selectionEnabled && displayAmbulances.length > 0 ? () => onSelectAll?.(displayAmbulances) : null}
                     isAllSelected={selectionEnabled && displayAmbulances.length > 0 && selectedIds.length === displayAmbulances.length}
                 />
 
                 <div className="space-y-1">
-                    <AnimatePresence mode="popLayout">
-                        {displayAmbulances.map((ambulance) => {
+                    {displayAmbulances.map((ambulance) => {
                             const status = getStatus(ambulance);
                             const color = getStatusColor(status);
                             const station = ambulance.station_name || ambulance.hospital || 'No station';
+                            const typeLabel = String(ambulance.type || 'Standard');
                             return (
                                 <MobileMetricRow
                                     key={ambulance.id}
                                     icon={Ambulance}
                                     color={color}
-                                    label={String(ambulance.type || 'Standard').toUpperCase()}
+                                    label={typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}
                                     value={ambulance.call_sign || 'Unknown Unit'}
                                     rightBlade={{
                                         badge: getAvailabilityLabel(status),
@@ -278,12 +280,12 @@ export const MobileAmbulances = ({
                                     statusIndicators={[
                                         {
                                             icon: status === 'available' ? BadgeCheck : BadgeX,
-                                            color: status === 'available' ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground)/0.4)',
+                                            color: status === 'available' ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
                                             label: status
                                         },
                                         {
                                             icon: MapPin,
-                                            color: 'hsl(var(--info))',
+                                            color: 'hsl(189 94% 43%)',
                                             label: station
                                         }
                                     ]}
@@ -324,10 +326,10 @@ export const MobileAmbulances = ({
                                             <div className="flex items-center justify-between px-1">
                                                 <div className="flex flex-col">
                                                     <span className="eyebrow">Vehicle</span>
-                                                    <span className="text-[10px] font-mono text-foreground/40 font-normal">{ambulance.vehicle_number || 'N/A'}</span>
+                                                    <span className="text-[11px] font-mono text-foreground/40 font-normal">{ambulance.vehicle_number || 'N/A'}</span>
                                                 </div>
-                                                <Badge className="rounded-pill font-semibold text-[9px] py-1 px-3 bg-primary/20 text-primary">
-                                                    {String(ambulance.type || 'Standard').toUpperCase()}
+                                                <Badge className="rounded-pill font-semibold text-[11px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                                                    {typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}
                                                 </Badge>
                                             </div>
 
@@ -337,8 +339,8 @@ export const MobileAmbulances = ({
                                                     className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                     onClick={() => onView(ambulance)}
                                                 >
-                                                    <Eye size={16} className="text-primary/60" />
-                                                    <span className="text-[10px] uppercase font-semibold tracking-[0.14em]">Details</span>
+                                                    <Eye size={16} className="text-muted-foreground" />
+                                                    <span className="text-[11px] font-semibold">Details</span>
                                                 </Button>
                                                 {canManage && (
                                                     <>
@@ -347,8 +349,8 @@ export const MobileAmbulances = ({
                                                             className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
                                                             onClick={() => onEdit(ambulance)}
                                                         >
-                                                            <Edit size={16} className="text-amber-500/60" />
-                                                            <span className="text-[10px] uppercase font-semibold tracking-[0.14em]">Edit</span>
+                                                            <Edit size={16} className="text-amber-700 dark:text-amber-300" />
+                                                            <span className="text-[11px] font-semibold">Edit</span>
                                                         </Button>
                                                     </>
                                                 )}
@@ -357,8 +359,7 @@ export const MobileAmbulances = ({
                                     )}
                                 />
                             );
-                        })}
-                    </AnimatePresence>
+                    })}
 
                     <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
                         {loading && <MobileListSkeletonRows />}
@@ -367,7 +368,7 @@ export const MobileAmbulances = ({
                     </div>
 
                     {displayAmbulances.length === 0 && !loading && (
-                        <MobileListEmpty icon={Ambulance} label="No ambulances found" />
+                        <MobileListEmpty icon={Ambulance} label="No ambulances found" labelTone="plain" />
                     )}
                 </div>
             </MobilePageShell>

@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Hospital,
     Bed,
@@ -87,24 +87,26 @@ export const MobileHospitals = ({
         fleet: metricValue(statistics?.visibleAmbulances, sourceHospitals.reduce((sum, h) => sum + (Number(h.ambulances_count) || 0), 0))
     };
 
+    // Literal status hues (sky/emerald/amber) — the semantic tokens (--primary/--success/
+    // --warning/--info) all resolve to brand red in this theme and are reserved for danger.
     const kpis = [
         {
             id: 'all',
             label: 'Hospitals',
             value: hospitalTotals.total,
-            color: 'hsl(var(--primary))'
+            color: 'hsl(var(--muted-foreground))'
         },
         {
             id: 'available',
             label: 'Available',
             value: hospitalTotals.available,
-            color: 'hsl(var(--success))'
+            color: 'hsl(160 84% 39%)'
         },
         {
             id: 'busy',
             label: 'Busy',
             value: hospitalTotals.busy,
-            color: 'hsl(var(--warning))'
+            color: 'hsl(38 92% 50%)'
         },
         {
             id: 'full',
@@ -151,7 +153,8 @@ export const MobileHospitals = ({
                     <MobileSectionHeader
                         label="Facility Signals"
                         count={hospitalTotals.available}
-                        color="hsl(var(--success))"
+                        color="hsl(160 84% 39%)"
+                        labelTone="plain"
                     />
                     <MobileSecondaryMetricRail
                         loading={showTopSectionLoading}
@@ -162,9 +165,9 @@ export const MobileHospitals = ({
                                 title: 'Available Sites',
                                 subtitle: 'Current status',
                                 value: hospitalTotals.available,
-                                color: 'hsl(var(--success))',
-                                iconColorClass: 'text-success',
-                                iconBgClass: 'bg-success/5',
+                                color: 'hsl(160 84% 39%)',
+                                iconColorClass: 'text-emerald-600 dark:text-emerald-300',
+                                iconBgClass: 'bg-emerald-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -172,9 +175,9 @@ export const MobileHospitals = ({
                                 title: 'Verified',
                                 subtitle: 'Approved sites',
                                 value: hospitalTotals.verified,
-                                color: 'hsl(var(--warning))',
-                                iconColorClass: 'text-warning',
-                                iconBgClass: 'bg-warning/5',
+                                color: 'hsl(38 92% 50%)',
+                                iconColorClass: 'text-amber-600 dark:text-amber-300',
+                                iconBgClass: 'bg-amber-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -182,9 +185,9 @@ export const MobileHospitals = ({
                                 title: 'Visible Beds',
                                 subtitle: 'This page',
                                 value: hospitalTotals.beds,
-                                color: 'hsl(var(--info))',
-                                iconColorClass: 'text-info',
-                                iconBgClass: 'bg-info/5',
+                                color: 'hsl(189 94% 43%)',
+                                iconColorClass: 'text-cyan-700 dark:text-cyan-300',
+                                iconBgClass: 'bg-cyan-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -192,9 +195,9 @@ export const MobileHospitals = ({
                                 title: 'Visible Fleet',
                                 subtitle: 'This page',
                                 value: hospitalTotals.fleet,
-                                color: 'hsl(var(--primary))',
-                                iconColorClass: 'text-primary',
-                                iconBgClass: 'bg-primary/5',
+                                color: 'hsl(199 89% 48%)',
+                                iconColorClass: 'text-sky-700 dark:text-sky-300',
+                                iconBgClass: 'bg-sky-500/10',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -203,7 +206,7 @@ export const MobileHospitals = ({
 
                 <div className="flex items-center gap-2 mb-3 px-1">
                     <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
                         <input
                             type="text"
                             placeholder="Search hospitals..."
@@ -239,19 +242,19 @@ export const MobileHospitals = ({
                 <MobileSectionHeader
                     label="Facility Directory"
                     count={displayHospitals.length}
-                    color="hsl(var(--primary))"
+                    color="hsl(var(--muted-foreground))"
+                    labelTone="plain"
                     onSelectAll={selectionEnabled && displayHospitals.length > 0 ? () => onSelectAll?.(displayHospitals) : null}
                     isAllSelected={selectionEnabled && displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
                 />
 
                 <div className="space-y-1">
-                    <AnimatePresence mode="popLayout">
-                        {displayHospitals.map((hospital) => {
+                    {displayHospitals.map((hospital) => {
                             const status = getHospitalStatus(hospital);
                             const statusColor = status === 'available' || status === 'verified'
-                                ? 'hsl(var(--success))'
+                                ? 'hsl(160 84% 39%)'
                                 : status === 'full' || status === 'pending'
-                                    ? 'hsl(var(--warning))'
+                                    ? 'hsl(38 92% 50%)'
                                     : 'hsl(var(--muted-foreground))';
                             const fleet = Number(hospital.ambulances_count) || 0;
                             const beds = Number(hospital.available_beds) || 0;
@@ -261,10 +264,10 @@ export const MobileHospitals = ({
                                     key={hospital.id}
                                     icon={Hospital}
                                     color={statusColor}
-                                    label={status.toUpperCase()}
+                                    label={status.charAt(0).toUpperCase() + status.slice(1)}
                                     value={hospital.name || 'Unnamed Hospital'}
                                     rightBlade={{
-                                        badge: hospital.verified ? 'VERIFIED' : 'UNVERIFIED',
+                                        badge: hospital.verified ? 'Verified' : 'Unverified',
                                         direction: hospital.verified ? 'up' : 'flat',
                                         label: 'Fleet',
                                         value: `${fleet} units`,
@@ -273,12 +276,12 @@ export const MobileHospitals = ({
                                     statusIndicators={[
                                         {
                                             icon: hospital.verified ? BadgeCheck : BadgeX,
-                                            color: hospital.verified ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground)/0.4)',
+                                            color: hospital.verified ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
                                             label: hospital.verified ? 'Verified' : 'Unverified'
                                         },
                                         {
                                             icon: Ambulance,
-                                            color: fleet > 0 ? 'hsl(var(--info))' : 'hsl(var(--muted-foreground)/0.35)',
+                                            color: fleet > 0 ? 'hsl(189 94% 43%)' : 'hsl(var(--muted-foreground)/0.35)',
                                             label: `${fleet} ambulances`
                                         }
                                     ]}
@@ -319,9 +322,9 @@ export const MobileHospitals = ({
                                             <div className="flex items-center justify-between px-1">
                                                 <div className="flex flex-col">
                                                     <span className="eyebrow">Hospital ID</span>
-                                                    <span className="text-[10px] font-mono text-foreground/40 font-normal">#{(hospital.id || '').slice(0, 12).toUpperCase()}</span>
+                                                    <span className="text-[11px] font-mono text-foreground/40 font-normal">#{(hospital.id || '').slice(0, 12).toUpperCase()}</span>
                                                 </div>
-                                                <span className="inline-flex items-center rounded-pill font-semibold tracking-tight text-[10px] py-1 px-3 bg-sky-500/20 text-sky-600 dark:text-sky-300">
+                                                <span className="inline-flex items-center rounded-pill font-semibold tracking-tight text-[11px] py-1 px-3 bg-sky-500/20 text-sky-600 dark:text-sky-300">
                                                     <Star className="w-3 h-3 mr-1" />
                                                     {Number(hospital.rating || 0).toFixed(1)}
                                                 </span>
@@ -333,8 +336,8 @@ export const MobileHospitals = ({
                                                     className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(hospital)}
                                                 >
-                                                    <Eye size={16} className="text-primary/60" />
-                                                    <span className="text-[10px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                                                    <Eye size={16} className="text-muted-foreground" />
+                                                    <span className="text-[11px] font-semibold">Details</span>
                                                 </Button>
                                                 {canManage && (
                                                     <>
@@ -343,8 +346,8 @@ export const MobileHospitals = ({
                                                             className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                             onClick={() => onEdit(hospital)}
                                                         >
-                                                            <Edit size={16} className="text-warning/60" />
-                                                            <span className="text-[10px] uppercase font-semibold tracking-[0.2em]">Edit</span>
+                                                            <Edit size={16} className="text-amber-700 dark:text-amber-300" />
+                                                            <span className="text-[11px] font-semibold">Edit</span>
                                                         </Button>
                                                         {onSchedule && (
                                                             <Button
@@ -352,7 +355,7 @@ export const MobileHospitals = ({
                                                                 className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                                 onClick={() => onSchedule(hospital)}
                                                             >
-                                                                <CalendarDays size={16} className="text-info/60" />
+                                                                <CalendarDays size={16} className="text-cyan-700 dark:text-cyan-300" />
                                                             </Button>
                                                         )}
                                                         {canDelete && onDelete && (
@@ -371,17 +374,16 @@ export const MobileHospitals = ({
                                     )}
                                 />
                             );
-                        })}
-                    </AnimatePresence>
+                    })}
 
                     <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
                         {loading && <MobileListSkeletonRows />}
-                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                         {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
                     </div>
 
                     {displayHospitals.length === 0 && !loading && (
-                        <MobileListEmpty icon={Hospital} label="No hospitals found" />
+                        <MobileListEmpty icon={Hospital} label="No hospitals found" labelTone="plain" />
                     )}
                 </div>
             </MobilePageShell>
