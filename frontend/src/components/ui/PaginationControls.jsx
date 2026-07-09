@@ -49,44 +49,36 @@ export const PaginationControls = ({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-4 mt-8"
+            className="mt-8 flex items-center justify-center gap-3"
         >
-            {/* Previous Button */}
+            {/* Previous Button — explicit text-foreground so it reads in light mode */}
             <Button
                 onClick={onPrevPage}
                 disabled={!hasPrevPage || loading}
-                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-bold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
+                className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground shadow-[0_2px_8px_rgb(0_0_0/0.06)] backdrop-blur-xl transition-all hover:bg-foreground/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35"
                 aria-label="Previous page"
             >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <ChevronLeft className="mr-1 h-4 w-4" />
                 Previous
             </Button>
 
             {/* Page Indicator */}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/50 backdrop-blur-xs  shadow-lg backdrop-blur-md">
-                <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
-                    Page
-                </span>
-                <span className="text-sm font-bold text-foreground">
-                    {currentPage}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                    of
-                </span>
-                <span className="text-sm font-bold text-foreground">
-                    {totalPages}
-                </span>
+            <div className="flex items-center gap-2 rounded-pill bg-muted/20 px-4 py-2 backdrop-blur-xl">
+                <span className="text-xs font-semibold text-muted-foreground">Page</span>
+                <span className="text-sm font-semibold text-foreground">{currentPage}</span>
+                <span className="text-xs text-muted-foreground">of</span>
+                <span className="text-sm font-semibold text-foreground">{totalPages}</span>
             </div>
 
             {/* Next Button */}
             <Button
                 onClick={onNextPage}
                 disabled={!hasNextPage || loading}
-                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-bold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
+                className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground shadow-[0_2px_8px_rgb(0_0_0/0.06)] backdrop-blur-xl transition-all hover:bg-foreground/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35"
                 aria-label="Next page"
             >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
         </motion.div>
     );

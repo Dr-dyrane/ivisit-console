@@ -434,22 +434,22 @@ export const ContextPanel = () => {
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="w-2 h-2 bg-success rounded-pill"
+                  className="h-2 w-2 rounded-pill bg-emerald-500"
                   aria-hidden="true"
                 />
               )}
-              {/* Close button - Hidden on mobile */}
+              {/* Close button - Hidden on mobile. md:flex (not md:block) so the icon centers. */}
               <button
                 onClick={() => {
                   // Close context panel
                   const event = new CustomEvent('closeContextPanel');
                   window.dispatchEvent(event);
                 }}
-                className="hidden md:block w-8 h-8 rounded-button bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group"
+                className="hidden h-9 w-9 items-center justify-center rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95 md:flex"
                 type="button"
                 aria-label="Close panel"
               >
-                <X className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>

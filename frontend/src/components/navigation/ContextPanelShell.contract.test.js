@@ -20,7 +20,7 @@ describe('ContextPanel shell contract', () => {
     expect(shell).toContain('aria-label="Quick actions panel"');
     expect(shell).toContain('data-context-panel-shell="true"');
     expect(shell).toContain('bg-background/92');
-    expect(shell).toContain('shadow-[0_28px_80px_rgb(0_0_0/0.22)]');
+    expect(shell).toContain('shadow-[0_12px_32px_rgb(0_0_0/0.12)]');
     expect(shell).toContain("actionTarget?.getAttribute('aria-disabled') === 'true'");
     expect(shell).toContain("actionTarget?.getAttribute('data-state') === 'unavailable'");
     expect(shell).toContain('if (actionTarget && !isUnavailableAction)');
