@@ -260,12 +260,15 @@ export const MobileMetricRow = ({
 
     return (
         <motion.div
-            layout={layoutEnabled}
-            initial={false}
+            layout={layoutEnabled ? 'position' : false}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={mobileMotion.reveal}
             className="w-full flex flex-col mb-2 last:mb-0"
         >
             <motion.div
-                whileTap={{ scale: 0.986 }}
+                whileTap={{ scale: 0.988 }}
                 transition={mobileMotion.base}
                 onClick={handleInteraction}
                 onContextMenu={handleLongPress}
