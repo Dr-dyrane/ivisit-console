@@ -439,7 +439,7 @@ export const OrganizationsPage = () => {
             {isAdmin() && (
                 <Button
                     onClick={handleCreate}
-                    className="bg-card/70 h-9 px-4 text-[10px] font-bold"
+                    className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
                     aria-label="Add organization unavailable"
                     aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
                     data-state="unavailable"

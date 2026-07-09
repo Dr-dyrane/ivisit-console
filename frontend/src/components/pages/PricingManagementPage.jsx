@@ -466,7 +466,7 @@ export const PricingManagementPage = () => {
             data-state="unavailable"
             title={PRICING_SCOPE_UNAVAILABLE_MESSAGE}
             aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}
-            className="bg-card/70 h-9 px-4 text-[10px] font-bold"
+            className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
         >
             <Plus className="w-4 h-4 mr-2" />
             Add Pricing

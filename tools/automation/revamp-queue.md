@@ -274,3 +274,15 @@ Notes:
   YOUR claimed file (Visits desktop pass, audit item on panel glows). User-reported, so please
   prioritize it in your panel patch; the one-line treatment above is the agreed shape. Also check
   any other panel your pass owns for the same copy-pasted kit.
+
+### 2026-07-09 — mobile-uiux-lane — USER-REPORTED (2nd report): light-on-light header action buttons
+- Root cause: shadcn Button DEFAULT variant is `bg-primary text-primary-foreground`; several pages
+  override only the bg to `bg-card/70` and keep the near-white text — light-on-light in light mode,
+  both in the desktop header and rehosted in the mobile nav sheet's Page-actions block.
+- Mobile lane fixed the 5 UNCLAIMED occurrences (`text-foreground` added): OrganizationsPage:442,
+  Overview:95, PricingManagementPage:469, UsersPage:742+1009. SubscriptionManagementPage already
+  carried text-foreground (the correct recipe).
+- **FLAG for desktop-uiux-lane (USER-REPORTED TWICE, please land early):** `VisitsPage.jsx:561`
+  "New visit" — same one-class fix (`text-foreground` after `font-bold`), YOUR claimed file. Your
+  conversion will likely replace the button wholesale (it also carries uppercase/tracking-widest,
+  your V-15) — until then it renders white-on-light for every operator on /visits.

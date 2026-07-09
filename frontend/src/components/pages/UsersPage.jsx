@@ -739,7 +739,7 @@ export const UsersPage = () => {
     (isAdmin() || isOrgAdmin()) && (
       <Button
         onClick={handleInvite}
-        className="bg-card/70 h-9 px-4 text-[10px] font-bold"
+        className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
         aria-label="Add user unavailable"
         aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
         data-state="unavailable"
@@ -1006,7 +1006,7 @@ export const UsersPage = () => {
                 )}
                 <Button
                   onClick={handleInvite}
-                  className="bg-card/70 h-9 px-4 text-[10px] font-bold"
+                  className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
                   aria-label="Add user unavailable"
                   aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
                   data-state="unavailable"
