@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetDescription, SheetOverlay, SheetTitle } from '../ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { MobileNavMenu } from './MobileNavMenu';
+import { getAvatarUrl } from '../../lib/avatarUtils';
 
 const HeaderDivider = () => (
     <div className="mx-2 h-6 w-[2px] rounded-pill bg-foreground/[0.06]" aria-hidden="true" />
@@ -53,6 +54,7 @@ export const SmartHeader = () => {
         .trim()
         .charAt(0)
         .toUpperCase();
+    const avatarUrl = getAvatarUrl(profile, user);
     const isHome = location.pathname === '/';
 
     const getRouteLabel = (pathname) => {
@@ -151,11 +153,19 @@ export const SmartHeader = () => {
                             <NotificationCenter />
                             <button
                                 onClick={() => setMenuOpen(true)}
-                                className="flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
+                                className="relative flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
                                 aria-label="Open account menu"
                                 aria-expanded={menuOpen}
                                 aria-haspopup="dialog"
                             >
+                                {avatarUrl && (
+                                    <img
+                                        src={avatarUrl}
+                                        alt=""
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                )}
                                 <span aria-hidden="true">{avatarInitial}</span>
                             </button>
                         </div>

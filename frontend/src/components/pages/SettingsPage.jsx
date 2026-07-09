@@ -218,7 +218,10 @@ export const SettingsPage = () => {
                                         {/* Primary Identity - Full Name (No Truncation) */}
                                         <div className="space-y-1">
                                             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight break-words">
-                                                {profile?.username || 'User Profile'}
+                                                {profile?.full_name
+                                                    || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
+                                                    || profile?.username
+                                                    || 'User Profile'}
                                             </h2>
                                         </div>
 

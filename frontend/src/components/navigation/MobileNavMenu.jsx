@@ -13,14 +13,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { getAvatarUrl } from '../../lib/avatarUtils';
 import { getAccessibleNav } from '../../config/navigation';
 import { ContextPanel } from './ContextPanel';
 
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signOut, can, profile } = useAuth();
+    const { signOut, can, profile, user } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { headerConfig } = useLayout();
     const isNotHome = location.pathname !== '/';
@@ -243,7 +244,8 @@ export const MobileNavMenu = ({ onClose }) => {
                     aria-label="Open account settings"
                 >
                     <Avatar className="h-10 w-10 rounded-icon">
-                        <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                        <AvatarImage src={getAvatarUrl(profile, user)} className="object-cover" />
+                        <AvatarFallback className="bg-muted/50 text-muted-foreground text-xs">
                             {avatarInitial}
                         </AvatarFallback>
                     </Avatar>

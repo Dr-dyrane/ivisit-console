@@ -10,10 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { getAvatarFallback } from '../../lib/avatarUtils';
+import { getAvatarFallback, getAvatarUrl } from '../../lib/avatarUtils';
 
 
 import { getAccessibleNav } from '../../config/navigation';
@@ -410,6 +410,7 @@ export const IslandNavigation = () => {
           >
             <div className="relative">
               <Avatar className={`h-9 w-9 rounded-icon flex-shrink-0 ${avatarToneClass}`}>
+                <AvatarImage src={getAvatarUrl(profile, user)} className="object-cover" />
                 <AvatarFallback className="bg-transparent text-xs font-semibold">
                   {getAvatarFallback(profile, user)}
                 </AvatarFallback>
