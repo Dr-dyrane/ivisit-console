@@ -22,7 +22,7 @@ import { MobileSheetActions } from './MobileSheetActions';
  * @param {React.ReactNode} title
  * @param {{label:string, className:string}} [statusPill]
  * @param {{steps,currentKey,tone,cancelled,label?}} [vital]  omit for non-lifecycle records
- * @param {Array}     [islands]     MobileDetailIslands items
+ * @param {Array}     [islands]     MobileDetailIslands items (optional href/onPress per item makes that tile interactive)
  * @param {object}    [primary]     MobileSheetActions primary
  * @param {object}    [secondary]   MobileSheetActions secondary
  * @param {React.ReactNode} [children]  extra body content (e.g. a message block)
