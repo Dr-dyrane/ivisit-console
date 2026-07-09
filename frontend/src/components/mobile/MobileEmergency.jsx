@@ -346,7 +346,7 @@ export const MobileEmergency = ({
                         {!loading && loadError && displayItems.length > 0 && (
                             <div className="rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)]">
                                 <p className="font-semibold">Requests could not refresh</p>
-                                <p className="mt-1 text-xs text-destructive/75">{loadError}</p>
+                                <p className="mt-1 text-xs text-destructive/75">Showing the last loaded requests. Try again.</p>
                                 <button
                                     type="button"
                                     onClick={() => onRetry?.()}
@@ -438,7 +438,7 @@ export const MobileEmergency = ({
                             <MobileListEmpty
                                 icon={AlertCircle}
                                 label="Requests did not load"
-                                hint={loadError}
+                                hint="Something went wrong loading requests."
                                 onRecover={onRetry}
                                 recoverLabel="Retry"
                                 labelTone="plain"
@@ -446,7 +446,20 @@ export const MobileEmergency = ({
                         )}
 
                         {displayItems.length === 0 && !loading && !loadError && (
-                            <MobileListEmpty icon={ClipboardCheck} label="No requests found" />
+                            <MobileListEmpty
+                                icon={ClipboardCheck}
+                                label="No requests found"
+                                reason={filters?.search ? 'search' : hasMobileRequestFilters(filters) ? 'filtered' : 'empty'}
+                                onRecover={
+                                    filters?.search
+                                        ? () => setFilters?.((prev) => ({ ...prev, search: '' }))
+                                        : hasMobileRequestFilters(filters)
+                                            ? () => onOpenFilters?.()
+                                            : undefined
+                                }
+                                recoverLabel={filters?.search ? 'Clear Search' : hasMobileRequestFilters(filters) ? 'Adjust Filters' : undefined}
+                                labelTone="plain"
+                            />
                         )}
                         </div>
                     </section>
