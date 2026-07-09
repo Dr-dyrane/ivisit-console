@@ -253,15 +253,6 @@ const STATS_CACHE_DURATION = 10 * 1000; // 10 seconds
 export async function getVerificationStats() {
   const now = Date.now();
 
-  // Check cache first
-  if (verificationStatsCache.has('stats')) {
-    const cached = verificationStatsCache.get('stats');
-    if (now - cached.timestamp < STATS_CACHE_DURATION) {
-      logAuthorizationEvent('verification', 'getStats', null, true, 'Cache hit');
-      return cached.data;
-    }
-  }
-
   try {
     const user = await getCurrentUser();
     const role = user?.role || 'viewer';
@@ -274,10 +265,34 @@ export async function getVerificationStats() {
       throw new AuthorizationError('Admin access required for verification stats', 'verification', 'getStats');
     }
 
-    const { data, error } = await supabase
+    // Org-admin honesty: scope pending/provider counts to their own organization
+    // (same client-side organization_id scoping getProfiles applies via
+    // applyAuthFilter's org_admin arm). Admin stays platform-wide; an org_admin
+    // with no organization_id falls back to the current global behaviour.
+    const orgScopeId = role === 'org_admin' ? (user?.organization_id || null) : null;
+    // Scope-keyed cache: within the 10s window an admin-global result must never
+    // be served to an org_admin (or across organizations), so the key carries the scope.
+    const cacheKey = orgScopeId ? `stats:org:${orgScopeId}` : 'stats:global';
+
+    // Check cache first (after resolving the caller's scope)
+    if (verificationStatsCache.has(cacheKey)) {
+      const cached = verificationStatsCache.get(cacheKey);
+      if (now - cached.timestamp < STATS_CACHE_DURATION) {
+        logAuthorizationEvent('verification', 'getStats', null, true, 'Cache hit');
+        return cached.data;
+      }
+    }
+
+    let statsQuery = supabase
       .from(TABLE_NAME)
       .select('role, bvn_verified, created_at')
       .eq('role', 'provider');
+
+    if (orgScopeId) {
+      statsQuery = statsQuery.eq('organization_id', orgScopeId);
+    }
+
+    const { data, error } = await statsQuery;
 
     if (error) throw error;
 
@@ -293,8 +308,8 @@ export async function getVerificationStats() {
       }).length || 0
     };
 
-    // Cache the result
-    verificationStatsCache.set('stats', {
+    // Cache the result under the caller's scope
+    verificationStatsCache.set(cacheKey, {
       data: stats,
       timestamp: now
     });

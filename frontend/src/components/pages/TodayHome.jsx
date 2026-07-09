@@ -97,9 +97,12 @@ function useRoleKind(explicitRole) {
 
   return useMemo(() => {
     // Driver lens: the profile-level identity rule GodModeMap already uses
-    // (isDriverMode). It UPGRADES the explicit 'provider' role BentoHome passes;
-    // any other explicit role wins untouched.
-    const isDriver = profile?.role === 'provider' && profile?.provider_type === 'driver';
+    // (isDriverMode), widened to the responder set (driver/paramedic/ambulance/
+    // ambulance_service — same RESPONDER_PROVIDER_TYPES canon as mobileNavigation;
+    // user-blessed equivalence 2026-07-09). roleKind stays 'driver' and the label
+    // stays 'Driver' — drivers are 367 of 367 live responders. It UPGRADES the
+    // explicit 'provider' role BentoHome passes; any other explicit role wins untouched.
+    const isDriver = profile?.role === 'provider' && ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type);
     if (isDriver && (!explicitRole || explicitRole === 'provider')) return 'driver';
     if (explicitRole) return explicitRole;
     if (isAdmin()) return 'admin';
@@ -154,11 +157,21 @@ export function buildToday({
   }
 
   if ((roleKind === 'admin' || roleKind === 'org_admin') && approvalCount > 0) {
+    // Review honesty: org_admin can open Approvals but cannot approve
+    // (VerificationQueue: canApprove = isAdmin() only), so their copy reviews and
+    // tracks instead of promising to "clear" records. The count itself is
+    // org-scoped for org_admin (verificationService.getVerificationStats), so the
+    // headline is true for their organization. Admin keeps the clear-it voice.
+    const canClearApprovals = roleKind === 'admin';
     return {
       headline: `${approvalCount} pending ${pluralize(approvalCount, 'approval')}`,
-      subhead: 'Open approvals and clear the first waiting record.',
+      subhead: canClearApprovals
+        ? 'Open approvals and clear the first waiting record.'
+        : 'Review your providers awaiting platform approval.',
       sheetTitle: 'Pending approvals',
-      sheetHint: 'Clear the oldest approval first.',
+      sheetHint: canClearApprovals
+        ? 'Clear the oldest approval first.'
+        : 'Review the oldest first; an admin completes approval.',
       status: 'Needs attention',
       primaryAction: 'Review approvals',
       path: '/verification',
