@@ -17,6 +17,14 @@ import {
     Settings,
     ClipboardCheck,
     Plus,
+    Hospital,
+    Ambulance,
+    Wallet,
+    ShieldCheck,
+    Users,
+    Building2,
+    Newspaper,
+    LifeBuoy,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -71,8 +79,10 @@ const DynamicBottomBarContent = () => {
         : routeOwnedActionConfig;
     const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;
 
-    // provider_type routes responder providers (driver/paramedic/ambulance) to the driver slate.
-    const navItems = getMobileNavigationItems(userRole, profile?.provider_type);
+    // provider_type routes responder providers (driver/paramedic/ambulance) to the
+    // driver slate; the current path lets the LAST slot morph into the current page
+    // when off-slate (wayfinding rule, 2026-07-09).
+    const navItems = getMobileNavigationItems(userRole, profile?.provider_type, location.pathname);
     const navIcons = {
         today: LayoutDashboard,
         emergencies: AlertTriangle,
@@ -82,6 +92,14 @@ const DynamicBottomBarContent = () => {
         statistics: BarChart3,
         settings: Settings,
         visits: Calendar,
+        hospitals: Hospital,
+        ambulances: Ambulance,
+        payments: Wallet,
+        insurance: ShieldCheck,
+        users: Users,
+        organizations: Building2,
+        news: Newspaper,
+        support: LifeBuoy,
     };
 
     return (

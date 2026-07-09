@@ -214,7 +214,7 @@ const requiredSnippets = {
     'pageShellConfig?.hideFab',
     '!hideContextFab',
     // provider_type is the second arg so responder providers get the driver slate.
-    'getMobileNavigationItems(userRole, profile?.provider_type)',
+    'getMobileNavigationItems(userRole, profile?.provider_type, location.pathname)',
   ],
   'src/config/mobileNavigation.js': [
     "overflowOwner: 'avatar'",

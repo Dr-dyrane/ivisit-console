@@ -129,8 +129,8 @@ describe('Navigation shell contract', () => {
       bottomMenuButton: false,
       contextualFab: 'page-action',
     });
-    // Dock slots rank by operational importance; Settings lives in the avatar sheet.
-    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Approvals', 'Map']);
+    // Golden three fixed + morph slot last (Approvals at rest); Settings lives in the avatar sheet.
+    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
     expect(getMobileNavigationItems('provider').map((item) => item.label)).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
     // Responder providers (provider_type driver/paramedic/ambulance*) swap Visits for Map.
     expect(getMobileNavigationItems('provider', 'driver').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Settings']);
@@ -153,7 +153,7 @@ describe('Navigation shell contract', () => {
     expect(smartHeader).not.toContain('MenuIcon');
     expect(smartHeader).not.toContain('Hamburger');
     // provider_type is the second arg so responder providers get the driver slate.
-    expect(bottomBar).toContain('getMobileNavigationItems(userRole, profile?.provider_type)');
+    expect(bottomBar).toContain('getMobileNavigationItems(userRole, profile?.provider_type, location.pathname)');
     expect(bottomBar).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(bottomBar).toContain('data-state={isActive ? \'active\' : \'idle\'}');
     expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
