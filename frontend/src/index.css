@@ -261,8 +261,8 @@ code {
 		/* #0B0F1A - Deep Navy Blue-Black */
 		--foreground: 0 0% 100%;
 		/* Pure white text */
-		--card: 0 0% 3%;
-		/* Subtle raised surface */
+		--card: 224 41% 12%;
+		/* Elevated surface — LIGHTER than --background (7%) so cards LIFT, not recede (Apple dark elevation). Was 0 0% 3% (inverted). */
 		--card-foreground: 0 0% 100%;
 		/* Pure white text */
 		--popover: 0 0% 3%;
@@ -484,6 +484,24 @@ code {
 		text-transform: uppercase;
 		letter-spacing: var(--tracking-eyebrow);
 		color: hsl(var(--muted-foreground));
+	}
+
+	/* ── Mobile surface system (agreed token set) ──────────────────────────────
+	   Every mobile surface differentiates using ONE relationship, not ad-hoc bg-*:
+	     • GROUND      = bg-background (page + sheet + modal base)
+	     • RAISED      = .surface-card (below) — list cards, KPI chips, modal section
+	                      cards, sheet islands, context-panel cards. A recessing film
+	                      on light (foreground tint) + a lifting film on dark (white
+	                      tint), so it reads with the same delta over any ground.
+	     • GLASS       = chrome-glass / chrome-glass-strong — floating chrome only
+	                      (nav bar, bottom dock).
+	     • HAIRLINE    = hsl(var(--muted-foreground)/0.18) — intra-group row separators.
+	   Rules: borderless; shadow only on floating chrome; the one loud action = --primary. */
+	.surface-card {
+		background-color: hsl(var(--foreground) / 0.05);
+	}
+	.dark .surface-card {
+		background-color: hsl(0 0% 100% / 0.07);
 	}
 
 	/* Body type tokens (Mobile DS Layer 1 — size only; weight/color composed at call site).

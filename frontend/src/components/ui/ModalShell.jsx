@@ -353,7 +353,7 @@ export const ModalShell = ({
                         </div>
                         {/* Optional sticky footer */}
                         {footer && (
-                            <div className="shrink-0 bg-foreground/[0.035] p-4 shadow-[inset_0_18px_32px_-30px_rgb(0_0_0/0.30)] dark:bg-white/[0.045] md:p-6 pt-3 md:pt-4">
+                            <div className="shrink-0 p-4 md:p-6 pt-3 md:pt-4">
                                 {footer}
                             </div>
                         )}

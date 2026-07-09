@@ -25,8 +25,9 @@ describe('ModalShell chrome contract', () => {
     expect(modalShell).toContain('aria-label="Close"');
     expect(modalShell).toContain('maxHeight: \'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)\'');
     expect(modalShell).toContain('text-xs leading-snug text-muted-foreground whitespace-normal md:text-sm md:truncate');
-    expect(modalShell).toContain('bg-foreground/[0.035]');
-    expect(modalShell).toContain('shadow-[inset_0_18px_32px_-30px_rgb(0_0_0/0.30)]');
+    // Footer blends with the sheet surface (no bg band / inset-shadow seam) — matches the app mock.
+    expect(modalShell).not.toContain('bg-foreground/[0.035]');
+    expect(modalShell).not.toContain('shadow-[inset_0_18px_32px_-30px_rgb(0_0_0/0.30)]');
     expect(modalShell).not.toContain('border-t');
     expect(modalShell).not.toContain('border-border');
     expect(modalShell).not.toContain('fixed inset-0 z-50');
