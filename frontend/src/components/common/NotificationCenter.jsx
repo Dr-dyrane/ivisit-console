@@ -284,16 +284,16 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[88%] max-w-[385px] px-3 bg-card/68 dark:bg-card/55 backdrop-blur-2xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
+            className="flex flex-col w-[88%] max-w-[385px] px-2 pt-4 pb-0 bg-card/68 dark:bg-card/55 backdrop-blur-2xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
           >
-            <div className="px-2 pt-1 pb-3">
+            <div className="shrink-0 px-1 pb-3">
               <h3 className="text-lg font-bold tracking-tight text-foreground">Notifications</h3>
               {unreadCount > 0 && (
                 <p className="mt-0.5 text-sm text-muted-foreground">{unreadCount} new</p>
               )}
             </div>
 
-            <div className="max-h-[68vh] overflow-y-auto px-2 pb-24 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-1 pb-3 no-scrollbar">
               {loading ? (
                 <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
@@ -320,7 +320,7 @@ export const NotificationCenter = () => {
             </div>
 
             {notifications.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 px-3 py-3 bg-card/60 backdrop-blur-xl">
+              <div className="shrink-0 px-1 py-2.5 bg-card/40 backdrop-blur-xl">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -352,7 +352,7 @@ export const NotificationCenter = () => {
                 className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"
               >
                 <div className="flex flex-col overflow-hidden rounded-card bg-card/68 backdrop-blur-2xl shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/55">
-                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                  <div className="flex items-center justify-between px-3 pt-4 pb-3">
                     <div>
                       <h3 className="text-base font-bold tracking-tight text-foreground">Notifications</h3>
                       {unreadCount > 0 && (
@@ -370,7 +370,7 @@ export const NotificationCenter = () => {
                     </Button>
                   </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto px-5 pb-5">
+                  <div className="max-h-[50vh] overflow-y-auto px-3 pb-3">
                     {loading ? (
                       <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (
@@ -397,7 +397,7 @@ export const NotificationCenter = () => {
                   </div>
 
                   {notifications.length > 0 && (
-                    <div className="px-5 py-3 bg-card/40 backdrop-blur-xl">
+                    <div className="px-3 py-3 bg-card/40 backdrop-blur-xl">
                       <Button
                         variant="ghost"
                         size="sm"
