@@ -254,7 +254,10 @@ export const MobileEmergency = ({
         ...item,
         value: getKpiValue({ id: item.id, statistics, emergencies }),
     })), [statistics, emergencies]);
-    const totalRequests = countNumber(statistics?.total, emergencies.length);
+    // Header count tracks the ACTIVE KPI, not the raw total — otherwise "40 requests"
+    // sits above a 3-row Ambulance-filtered list (the count must equal the visible scope,
+    // matching the desktop filtered count). KPI-agnostic stats give the right per-KPI total.
+    const totalRequests = getKpiValue({ id: kpiFilter || 'pending', statistics, emergencies });
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
@@ -490,7 +493,7 @@ export const MobileEmergency = ({
                                 { icon: User, label: 'Patient', value: name },
                                 { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(activeRequest) },
                                 { icon: Hospital, label: 'Facility', value: facility },
-                                { icon: Ambulance, label: 'Ambulance', value: responder },
+                                { icon: Ambulance, label: 'Responder', value: responder },
                                 { icon: MapPin, label: 'Location', value: location },
                                 { icon: Calendar, label: 'Created', value: createdDateLabel(activeRequest.created_at) },
                             ]}
