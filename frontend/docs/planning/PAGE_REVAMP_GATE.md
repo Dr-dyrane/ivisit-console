@@ -37,6 +37,36 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 - No page admission status changed from this re-anchor. It is a proof-mechanism repair only: the default UI hardgate, the strict-radius revamp hardgate for the Today/Requests pair, and the full contract suite pass against the now-committed source.
 - Future rule: if the preservation baseline is ever re-pinned to a newer pre-change commit, update this note and the contract-test baseline constant together, and never let a preservation proof read the moving `HEAD` ref again.
 
+## Today Canon Profile And Completion - 2026-07-09
+
+Which canon sections bind a FIRST-GLANCE HOME (Today) vs the two-rail workspace —
+recorded so audits stop re-litigating it:
+
+- **BINDING:** §0 non-negotiables (borders/radius/elevation incl. e2-lift/red-only-danger/
+  uppercase), the canonical status colour table + the sanctioned ambient brand tint,
+  §1.1 signal language (status chip → big headline → subhead, selection-derived, honest),
+  §1.6 refetch feedback + loading truth + per-domain loading, §1.8 text/empty/error canon,
+  §3.1 mutation safety (n/a while navigation-only, binds if writes ever land), §6 a11y.
+- **NOT BINDING (workspace-only):** §1.2 max-3 filter chips (glance tiles navigate, they
+  don't filter), §1.3 handled sheet, §1.4 detail rail anatomy (TodaySheet is its own
+  canonical shape and the SOURCE of the inset+film-card surface recipe), §1.5 data-render
+  (no table), §1.7 KPI side-effect matrix (no kpiFilter).
+
+Today desktop completion state (2026-07-09, live-verified via connected browser):
+- Landed: ambient brand glow restored + canonized (backdrop-only exemption); canonical
+  colour alignment (Needs attention = destructive red on hero + sheet + panel); elevation
+  to scale (e2-lift admitted for glance/KPI tiles); handleAction hardened (first-click-wins,
+  timer cleanup, same-route spinner reset); manual refresh in the header (refreshAllData);
+  a11y (role=status hero chip, focus-visible across the sheet, tooltips); DashboardPanel
+  dead-click rows now navigate; eyebrows normalized; pulse placeholders.
+- Landing via the mobile/Today lane (in-flight as of this entry): per-domain loading
+  consumer wiring (isTodayInitialLoading into buildToday/glance/rows) on top of the
+  additive PageDataContext domainFetching contract; MobileToday presentation layer.
+- Remaining after the lane lands: assembling-state page-shaped skeleton + failure-Retry
+  wiring per §1.6 per-domain loading truth; BentoHome route-level bento-skeleton third
+  shape (BentoHome is lane-owned); entrance single-clock (TodayCenter/TodaySheet still
+  stage-reveal on two clocks).
+
 ## Desktop Data-Render Canon - 2026-07-08
 
 This globalizes the Requests-scoped "Active Requests handled-sheet lock" (below) into a

@@ -276,6 +276,29 @@ paint-cascade problem; desktop keeps instant-render on a warm cache. A manual
 refresh affordance must exist on every data page (desktop: toolbar refresh control
 spinning on `isFetching`; mobile: pull-to-refresh).
 
+**Per-domain loading truth (PageData-fed pages — the Today pattern).** A page fed by
+`PageDataContext` must never gate on the legacy boolean `loading` (13 fetchers race
+it; `loading?.[domain]` on a boolean is silently always-undefined — the Today bug).
+The context now exposes a **`domainFetching` map** (`markDomainFetchStart/Settled`
+around every fetcher, keys mirroring `domainErrors`). The page derives its
+**role-critical domain list** and splits THREE states — never conflate them:
+1. **Assembling** (role domain fetching, no data yet, no error) → the page-shaped
+   skeleton. **NEVER failure copy for an ordinary load** ("Retry needed" while
+   loading is a defect).
+2. **Failed** (`domainErrors[domain]`) → honest not-ready copy ("Live details are
+   not ready") **plus a working Retry** wired to the data owner's refresh
+   (`refreshAllData`) — copy that promises retry must actually retry, never just
+   navigate.
+3. **Background refetch** (warm data + `domainFetching`) → surface it (spin the
+   header refresh control / row glyphs); a silent refetch is a defect (§ above).
+
+**Skeleton holds the page's OWN layout.** The shared route fallback replicates the
+two-rail workspace — correct for data pages, WRONG for hero-shaped pages (Today).
+A page whose layout differs from the two-rail canon must ship its own skeleton
+holding its exact shape (hero pill → headline → glance tiles → sheet), or cold-load
+renders three different silhouettes before content (route fallback → page loading →
+real layout).
+
 ---
 
 ## 1.7 KPI selection side-effect matrix — the airtight rule

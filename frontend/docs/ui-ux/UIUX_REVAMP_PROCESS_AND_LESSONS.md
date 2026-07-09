@@ -171,6 +171,36 @@ For **every page** we finish designing, before calling it done:
     - **Meta:** when a load "feels different depending on how you got to the page," suspect the cache/auth
       gating and which loading branch each path hits — not the motion curve.
 
+### Desktop — live verification & canon maturity (2026-07-09)
+
+17. **The live-verification loop catches what code review can't — connect the browser BEFORE
+    calling a page done.** Chrome-MCP loop: edit → hot-reload → screenshot → commit. One session
+    caught: a page mid-entrance looking broken (sheet at opacity-0 for 3+ seconds — the code read
+    said 0.4s), a **renderer freeze** (30s CDP timeout on the main thread), theme-flip repaint
+    transients (the rail "stuck dark" for a beat — NOT a bug), and colour-in-context misses (the
+    "Needs attention" chip rendered amber because the HERO'S TONE was 'warning' — the danger CLASS
+    fix alone changed nothing; you only see the tone-vs-class distinction rendered). Timing rule:
+    screenshot at t≈0 AND settled — the t≈0 frame is the loading-truth evidence.
+18. **Brand expression ≠ state colour — audits must not strip atlas glows.** "No red except
+    danger" governs UI ELEMENTS (chips/pills/buttons/text). Page ATLAS/backdrop brand tints
+    (`--primary/0.08–0.13`, Requests' `--destructive` stage stripes) are sanctioned ambient brand
+    expression — stripping Today's glow "took the life out of the page" (user) and was reverted +
+    canonized (MANAGEMENT_PAGE_STANDARDS colour section). State colours sit ON TOP of the
+    atmosphere; both rules coexist.
+19. **Scout the lane's live position before reworking ANYTHING shared** — `git status` the target
+    + its test, `git log -3 -- <file>`, and read the working-tree state, in the SAME turn you plan.
+    A planned "big rework" (Today load-sequence) turned out to be the other lane's in-flight work:
+    the upstream contract had just landed (additive `domainFetching`), the consumer wiring was
+    appearing in the working tree mid-conversation. The right move was pivoting to docs + letting
+    convergence happen — not diff-fighting a file that changes under you. Corollary: a file that
+    was clean an hour ago is not clean now until re-checked.
+20. **A reviewer's canon-purity finding can be a user's brand feature — surface, don't auto-fix,
+    taste calls.** The atlas de-red was applied as an approved batch item and still got reverted on
+    sight. For anything that changes a page's FEELING (atmosphere, signature shadows like e2-lift,
+    motion character), ship it behind a rendered before/after for the user, or expect the revert.
+    The canon now encodes both user overrides (e2-lift tier, ambient brand tint) so future audits
+    inherit the taste decisions instead of re-fighting them.
+
 ---
 
 ## Data-sync issues found while doing UI/UX (queue pointer)
