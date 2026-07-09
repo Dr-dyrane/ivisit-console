@@ -207,6 +207,18 @@ For **every page** we finish designing, before calling it done:
     style). Audit found exactly one miss (SmartHeader mobile account button, circle → squircle).
     Full rule in MANAGEMENT_PAGE_STANDARDS §0. When implementing, don't pattern-match "avatar =
     circle" — pattern-match the ROLE.
+22. **A responsive fork that measures in an effect ships a wrong first frame — lazy-init from the
+    real viewport.** `NavigationContext` held `isMobile` as `useState(false)` and measured in a
+    `useEffect`, so EVERY mobile mount rendered one frame of the DESKTOP tree first — its entrance
+    animations *started*, then the `isMobile` fork swapped in the mobile surface mid-animation.
+    The user saw it as "stacking/skew as the skeleton mounts" on Today, and it silently affected
+    every `isMobile`-forked page (Requests included). Two compounding fixes, both needed: (a)
+    lazy-init the breakpoint state from `window.innerWidth` (`useState(() => ...)`, `typeof window`
+    guard for tests/SSR) so frame one is correct; (b) the desktop tree must ALSO obey motion canon
+    §3 (TodayHome still carried the banned `y:12` + delayed `y:18+scale` stage-reveal — flagged in
+    the audit as M1/T4 but on neither lane's completed list; an "already flagged" finding is not a
+    fixed finding). Debug heuristic: when a mount animation appears on a surface whose own code has
+    no entrance motion, suspect the FORK rendering the other platform's tree for a frame.
 
 ---
 
