@@ -6,12 +6,16 @@ export const MOBILE_NAV_CHROME = {
   contextualFab: 'page-action',
 };
 
+// Dock slots rank by OPERATIONAL importance for the role — Settings does not claim
+// a slot by right (the avatar sheet owns overflow, see MOBILE_NAV_CHROME above).
+// Admin's daily work is requests + approvals (the Today hero's own signals), then map;
+// Settings stays reachable via the avatar sheet.
 const roleSlots = {
   admin: [
     { id: 'today', path: '/', label: 'Today' },
     { id: 'emergencies', path: '/emergencies', label: 'Requests' },
+    { id: 'approvals', path: '/verification', label: 'Approvals' },
     { id: 'map', path: '/map', label: 'Map' },
-    { id: 'settings', path: '/settings', label: 'Settings' },
   ],
   org_admin: [
     { id: 'today', path: '/', label: 'Today' },

@@ -129,7 +129,8 @@ describe('Navigation shell contract', () => {
       bottomMenuButton: false,
       contextualFab: 'page-action',
     });
-    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Settings']);
+    // Dock slots rank by operational importance; Settings lives in the avatar sheet.
+    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Approvals', 'Map']);
     expect(getMobileNavigationItems('provider').map((item) => item.label)).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
     expect(mobileMenu).toContain("const [activeTab, setActiveTab] = useState('menu')");
     expect(mobileMenu).toContain('const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);');

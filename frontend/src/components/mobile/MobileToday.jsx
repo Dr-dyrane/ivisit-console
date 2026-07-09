@@ -97,27 +97,26 @@ const MobileTodayAtlasLayer = () => (
 // REPLACES it in place with zero layout jump — no entrance motion, the skeleton holds
 // the layout and content materializes where it already sat. Apple/iOS loading model.
 const MobileTodaySkeleton = ({ rows = 4 }) => (
-    <div className="space-y-5" aria-hidden="true">
+    <div className="space-y-8" aria-hidden="true">
         {/* Hero: status pill row, two headline lines, subcopy, role pill */}
         <div className="px-4">
             <span className="inline-block h-8 w-32 rounded-pill bg-muted/25 shimmer" />
-            <span className="mt-3 block h-7 w-4/5 rounded-pill bg-muted/25 shimmer" />
+            <span className="mt-4 block h-7 w-4/5 rounded-pill bg-muted/25 shimmer" />
             <span className="mt-2 block h-7 w-3/5 rounded-pill bg-muted/25 shimmer" />
             <span className="mt-2 block h-4 w-11/12 rounded-pill bg-muted/15 shimmer" />
-            <span className="mt-3 inline-block h-7 w-24 rounded-pill bg-muted/20 shimmer" />
+            <span className="mt-4 inline-block h-7 w-24 rounded-pill bg-muted/20 shimmer" />
         </div>
 
-        {/* Glance: eyebrow + 3-up tile grid */}
+        {/* Glance: 2-up tile grid (label over value, trailing orb) */}
         <div className="px-4">
-            <span className="block h-3 w-20 rounded-pill bg-muted/20 shimmer" />
-            <div className="mt-3 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((tile) => (
-                    <div key={tile} className="surface-card min-h-[92px] rounded-inner px-3 py-3">
-                        <div className="flex items-start justify-between gap-1">
-                            <span className="h-3 w-12 rounded-pill bg-muted/25 shimmer" />
-                            <span className="h-6 w-6 rounded-pill bg-muted/20 shimmer" />
+            <div className="grid grid-cols-2 gap-3">
+                {[0, 1].map((tile) => (
+                    <div key={tile} className="surface-card flex min-h-[72px] items-start justify-between gap-2 rounded-inner px-4 py-3">
+                        <div className="min-w-0 flex-1">
+                            <span className="block h-3 w-14 rounded-pill bg-muted/25 shimmer" />
+                            <span className="mt-2 block h-4 w-4/5 rounded-pill bg-muted/25 shimmer" />
                         </div>
-                        <span className="mt-4 block h-4 w-4/5 rounded-pill bg-muted/25 shimmer" />
+                        <span className="h-7 w-7 shrink-0 rounded-pill bg-muted/20 shimmer" />
                     </div>
                 ))}
             </div>
@@ -173,16 +172,18 @@ const GlanceTile = ({ item, onPress, routingPath }) => {
             data-mobile-today-glance={String(item.label || '').toLowerCase()}
             data-state={isOpening ? 'opening' : 'idle'}
             aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}
-            className="surface-card flex min-h-[92px] flex-col justify-between rounded-inner px-3 py-3 text-left transition-colors active:bg-foreground/[0.08] disabled:pointer-events-none disabled:opacity-70 dark:active:bg-white/[0.10]"
+            className="surface-card flex min-h-[72px] items-start justify-between gap-2 rounded-inner px-4 py-3 text-left transition-colors active:bg-foreground/[0.08] disabled:pointer-events-none disabled:opacity-70 dark:active:bg-white/[0.10]"
         >
-            <span className="flex w-full items-start justify-between gap-1">
-                <span className="eyebrow min-w-0 truncate">{item.label}</span>
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill ${tone}`}>
-                    {isOpening ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
+            {/* Desktop GlanceCard anatomy in mobile scale: sentence-case label over the
+                value (never all-caps subheadings), tone-tinted arrow orb trailing. */}
+            <span className="min-w-0">
+                <span className="block text-[11px] font-medium text-muted-foreground">{item.label}</span>
+                <span className="mt-1 block text-[15px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
+                    {item.value}
                 </span>
             </span>
-            <span className="mt-2 block text-[13px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
-                {item.value}
+            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill ${tone}`}>
+                {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
             </span>
         </motion.button>
     );
@@ -315,7 +316,7 @@ export const MobileToday = ({
                     {showSkeleton ? (
                         <MobileTodaySkeleton rows={skeletonRows} />
                     ) : (
-                        <div className="space-y-5">
+                        <div className="space-y-8">
                             {/* HERO — signal first: status pill as the eyebrow, the model's
                                 headline as the page voice, role pill grounding who this is
                                 for. No entrance motion; content is simply there once mounted. */}
@@ -336,11 +337,11 @@ export const MobileToday = ({
                                         </span>
                                     )}
                                 </div>
-                                <h1 className="mt-3 text-2xl font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]">
+                                <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]">
                                     {hero.headline}
                                 </h1>
-                                <p className="mt-1 text-sm leading-6 text-muted-foreground">{hero.subhead}</p>
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <p className="mt-2 text-sm leading-6 text-muted-foreground">{hero.subhead}</p>
+                                <div className="mt-4 flex flex-wrap gap-2">
                                     {role?.label && (
                                         <span className="surface-card rounded-pill px-3 py-1.5 text-xs font-medium text-muted-foreground">
                                             {role.label}
@@ -356,10 +357,10 @@ export const MobileToday = ({
 
                             {/* GLANCE — the 2-3 role-scoped counts as tappable navigation
                                 cards. Tiles NAVIGATE (with opening feedback); they never
-                                filter this page. */}
+                                filter this page. No section label — the tiles read as the
+                                glance themselves (desktop parity; whitespace does the guiding). */}
                             <section className="px-4">
-                                <p className="eyebrow">At a glance</p>
-                                <div className="mt-3 grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                     {glanceItems.map((item) => (
                                         <GlanceTile
                                             key={item.label}

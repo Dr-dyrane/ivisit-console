@@ -13,8 +13,10 @@ describe('mobile navigation canonical contract', () => {
   });
 
   it('keeps admin bottom island focused on urgent movement', () => {
-    expect(labelsFor('admin')).toEqual(['Today', 'Requests', 'Map', 'Settings']);
-    expect(pathsFor('admin')).toEqual(['/', '/emergencies', '/map', '/settings']);
+    // Slots rank by operational importance: requests + approvals (the Today hero's
+    // own signals) beat Settings, which lives in the avatar sheet (overflowOwner).
+    expect(labelsFor('admin')).toEqual(['Today', 'Requests', 'Approvals', 'Map']);
+    expect(pathsFor('admin')).toEqual(['/', '/emergencies', '/verification', '/map']);
   });
 
   it('keeps org admin bottom island on approvals and staff', () => {
