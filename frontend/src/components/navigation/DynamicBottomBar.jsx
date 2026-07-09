@@ -107,7 +107,7 @@ const DynamicBottomBarContent = () => {
                                     className="group"
                                 >
                                     <motion.div
-                                        whileTap={{ scale: 0.9 }}
+                                        whileTap={{ scale: 0.96 }}
                                         className={`w-10 h-10 rounded-button flex items-center justify-center transition-all duration-300 ${isActive
                                             ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] shadow-inner'
                                             : 'text-foreground/45 hover:text-foreground'
@@ -179,7 +179,7 @@ const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
                 x: isScrolledDown ? 100 : 0,
                 opacity: isScrolledDown ? 0 : 1,
             }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.96 }}
             onClick={actionConfig.action}
             className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-button"
             style={{
@@ -191,7 +191,6 @@ const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
             }}
             aria-label={actionConfig.label || 'Open action'}
         >
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent pointer-events-none" />
             <actionConfig.icon className="w-6 h-6 text-white relative z-10" />
         </motion.button>
     );
