@@ -52,10 +52,20 @@ For **every page** we finish designing, before calling it done:
    lane-owned **uncommitted** file (`git status` shows `M`) — including test files. Transient
    contract-test failures come from the lane rewriting a file *mid-run*; re-run to confirm before
    diagnosing. Commit only your own scoped files. Check the claim log: `tools/automation/revamp-queue.md`.
+   The lane also **commits interleaved** onto the shared branch (its commits land *between* yours —
+   e.g. its `413f17cf` filter-sheet fix appeared mid-session). Before committing a shared file,
+   `git status` it: if the lane already committed its change the file reads clean, so path-limit
+   `git add <file>` (**never `git add -A`**) and verify `git show --stat HEAD` lists only *your* files.
+   If the lane's change is still uncommitted and tangled with yours in one file, stash *just that path*
+   (`git stash push -- <file>`), make your edit, commit, `git stash pop`. Leave foreign stashes alone.
 5. **Contract-pin discipline.** When you legitimately change a pinned string (a class, a signature),
    update the pin — but ONLY in a test file that is clean/yours, never a lane-owned (`M`) test. If a
    lane-owned test pins something your source change breaks, make the source compatible or report;
-   do not edit their test.
+   do not edit their test. **Run the contract suite after touching ANY pinned file** — a value change
+   (`/0.18 → /0.08`) or removing an element a pin references silently reds a `toContain`, and
+   parse/mojibake/hardgate do NOT catch it. Update the pin in the **same commit** as the source change:
+   this session left the Emergency contract red across *two* commits by verifying only parse+mojibake+
+   hardgate and skipping `--testPathPattern="contract.test"`.
 6. **Never leak raw DB errors to users.** Route error states show a friendly generic message
    ("… did not load. Try again.") and log the raw error to console only. Surfacing Postgres/SQL text
    is both a UX defect and an info leak.
@@ -72,8 +82,10 @@ For **every page** we finish designing, before calling it done:
 
 9. **Surface differentiation is FILL/elevation, never shadow (Apple HIG).** iOS grouped lists make the
    *group container* the surface (rounded, translucent/elevated); rows are **transparent**, separated
-   only by a slate **hairline** (`bg-[hsl(var(--muted-foreground)/0.18)]`, indented `ml-[62px]` past
-   the orb) — not per-row cards, borders, or shadows. Root trap: our `--card` is **inverted in dark**
+   only by a slate **hairline** (`bg-[hsl(var(--muted-foreground)/0.08)]`, indented `ml-[62px]` past
+   the orb) — not per-row cards, borders, or shadows. (Hairline alpha is canon `/0.08` — a whisper;
+   see lesson 16. Its *size* is `h-px` = 1px, already the thinnest real line — obviousness is the
+   alpha, never the height.) Root trap: our `--card` is **inverted in dark**
    (`0 0% 3%` is *darker* than `--background` `224 41% 7%`) and only ~2% off in light, so cards can't
    separate by fill → we leaned on shadows. Fix at the token (elevated surface must be *lighter than
    the ground in both modes*); until then use mode-aware fills (`bg-card` light / `dark:bg-white/[0.06–0.08]`
@@ -124,6 +136,40 @@ For **every page** we finish designing, before calling it done:
       *recessing* film (`bg-foreground/[0.06]`, ~−6%). Measure, don't eyeball.
     - **Meta:** when a fix needs a value you can't see, escalate to the user with a screenshot + concrete
       options, or read the source — do NOT ship successive blind tweaks. Each blind round burns a turn.
+
+### Mobile — loading & mount motion (the skeleton saga, 2026-07-09)
+
+15. **A top-to-bottom entrance IS the "skew" — go skeleton-first, replace-in-place; never fade from blank.**
+    We chased a "skew on load" for several commits. It was not a transform bug (that was lesson 13); it
+    was the **entrance model itself**. Progression that finally converged:
+    - A staggered *translate* reveal (title → KPI → search → list rising in on an index delay) is, by
+      definition, motion **sweeping down the page** — so even a clean canon stagger (`getMobilePageStageMotion`)
+      reads as the cascade. **Don't stage-reveal a data page.**
+    - Native/iOS model instead: a **skeleton holds the EXACT final layout**, then content **replaces it in
+      place** — no translate, no per-row stagger. Mirror the real component **1:1** so the swap has *zero*
+      layout jump (`MobileRequestsListSkeleton` clones the recency panel — same frosted panel, row rhythm,
+      hairline, `ml-[62px]` inset). Animate the *container in*, **never the rows** (per-row is the skew).
+    - **Fade-from-blank is a trap.** An `initial:{opacity:0}` on the list runs *from nothing* when the data
+      is already present (cached mounts), hiding then revealing it → looks like a load/cascade. On a
+      skeleton→content swap the *same* fade is invisible. Resolution: **no fade at all** — an instant swap
+      is seamless when the skeleton layout is identical. If you want a materialize, cross-fade *from the
+      skeleton*, not from blank.
+16. **Navigation ≠ reload: it's the cache/auth branch, not the animation — force skeleton-first on every
+    mount + gate the whole page on ONE flag.** Symptom the user nailed: "skews when I navigate via the
+    bottom pill, but a hard refresh is fine." Same page, two load paths:
+    - **Reload** = `authReady` false + empty React Query cache → `loading` true, query disabled → `showSkeleton`
+      true → skeleton path (looked fine). **Bottom-nav navigation** = auth already resolved (context persists)
+      + list **cached** → `loading` false *with data present* → `showSkeleton` false → skeleton **skipped** →
+      cached content assembles top-to-bottom. `loading = !authReady || queryLoading` is the tell.
+    - Fix (a): a short forced **mount warm-up** — `const [warmingUp,setWarmingUp]=useState(true)` +
+      `setTimeout(()=>setWarmingUp(false), SKELETON_WARMUP_MS≈400)`, and `showSkeleton = warmingUp || (loading
+      && !items)`. Now EVERY entry shows the skeleton first, then reveals in one commit → navigation matches
+      refresh. (Named, tunable constant — don't bury a magic number.)
+    - Fix (b): gate the **whole page's** loading on that one `showSkeleton`, **not raw `loading`** — pass
+      `loading={showSkeleton}` to the KPI strip and gate the summary text on it too. Otherwise you get real
+      KPI chips + a live "5 requests" count sitting *over* a skeleton list (chips-over-skeleton mismatch).
+    - **Meta:** when a load "feels different depending on how you got to the page," suspect the cache/auth
+      gating and which loading branch each path hits — not the motion curve.
 
 ---
 
