@@ -28,6 +28,22 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
   NOT a 2-col stats-grid and NOT the `rounded-icon` KPI strip. It takes one line, frees vertical
   space for the list (the mock's energy). Big number/stat cards are reserved **only** for the
   Home/dashboard billboard, where the number *is* the content. New primitive: `MobileStateChips`.
+- **2026-07-08 · Chips are uniformly plain (one voice)** — the recycled `MobileKPIStrip` chip row
+  renders labels plainly on every page; the vestigial `labelTone` caps/plain prop was removed so no
+  page can diverge. `labelTone` still lives on `MobileSectionHeader`/`MobileListStates` (section
+  copy), not on the chip strip.
+- **2026-07-08 · Glass collapse complete** — `apple-glass*` removed from all clean mobile components
+  (content → `bg-muted/40` / `bg-background/85`; only genuine floating chrome uses `chrome-glass`).
+  Where the alias sat on a row with conditional `bg-*` state classes it was *masking* the
+  expand/select background (cascade win) — removing it restored the intended state shift
+  (`MobileMetricList` row, `MobileActivityRow`). Only `MobileDashboard`/`MobileVerification` (other
+  lane, dirty) still carry the alias.
+- **2026-07-08 · Graduated press canon everywhere** — controls (buttons/chips/icon buttons)
+  `scale 0.96` (`whileTap` or `active:scale-[0.96]`); cards/rows `0.988`. All off-canon presses
+  (`0.9`/`0.95`/`0.97`/`0.98`) collapsed; ad-hoc springs → `mobileMotion.spring` (168/30/0.9).
+- **2026-07-08 · Tracking is tokenized** — eyebrow tracking is `var(--tracking-eyebrow)` (0.14em),
+  not a raw value. Both the PageRevampGate contract and the UI hardgate ban raw non-zero
+  `letter-spacing` but exempt `var(...)`, mirroring the `border-radius` token rule.
 
 ## 0. Principles (the feel)
 
