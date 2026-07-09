@@ -31,7 +31,6 @@ import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
-import { mobileMotion } from './mobileMotion';
 
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
@@ -183,7 +182,7 @@ const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
                                 <span className="ml-2 h-6 w-14 shrink-0 rounded-pill bg-muted/20 shimmer" />
                             </div>
                             {rowIndex < rowsPerGroup - 1 && (
-                                <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]" />
+                                <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" />
                             )}
                         </React.Fragment>
                     ))}
@@ -345,18 +344,15 @@ export const MobileEmergency = ({
                             render-only; id-keyed state is unaffected.
 
                             Load model: the group-shaped skeleton holds the exact final
-                            layout, then the real list REPLACES it in place with an
-                            opacity-only materialize (no translate, no per-row stagger — that
-                            was the top-to-bottom skew). Nothing moves; content just appears. */}
+                            layout, then the real list REPLACES it in place — no entrance
+                            motion at all. A fade here would run FROM BLANK on cached (bottom-
+                            nav) mounts where the data is already present, which reads as a
+                            top-to-bottom load; instant replace keeps reload and navigation
+                            identical. Nothing moves; content is simply there once mounted. */}
                         {showSkeleton ? (
                             <MobileRequestsListSkeleton />
                         ) : (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={mobileMotion.base}
-                            className="space-y-[18px]"
-                        >
+                        <div className="space-y-[18px]">
                             {groupByRecency(
                                 displayItems,
                                 (request) => request.created_at,
@@ -401,7 +397,7 @@ export const MobileEmergency = ({
                                                         </span>
                                                     </button>
                                                     {index < items.length - 1 && (
-                                                        <div className="h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]" aria-hidden="true" />
+                                                        <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" aria-hidden="true" />
                                                     )}
                                                 </React.Fragment>
                                             );
@@ -409,7 +405,7 @@ export const MobileEmergency = ({
                                     </div>
                                 </div>
                             ))}
-                        </motion.div>
+                        </div>
                         )}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
