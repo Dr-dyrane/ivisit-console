@@ -134,9 +134,9 @@ const getKpiValue = ({ id, statistics, emergencies }) => {
 };
 
 const MobileRequestsAtlasLayer = () => (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-muted">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
         <div
-            className="absolute inset-0 opacity-[0.10] dark:opacity-[0.12]"
+            className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
             style={{
                 backgroundImage:
                     'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
@@ -148,7 +148,7 @@ const MobileRequestsAtlasLayer = () => (
             className="absolute inset-0"
             style={{
                 background:
-                    'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.08), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.05), transparent 26%), linear-gradient(180deg, hsl(var(--muted) / 0.55), hsl(var(--muted)) 92%)',
+                    'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
             }}
         />
     </div>
