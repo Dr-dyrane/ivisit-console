@@ -17,11 +17,13 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { SEOHead } from '../common/SEOHead';
+import { MobileToday } from '../mobile/MobileToday';
 
 const appleEase = [0.21, 0.47, 0.32, 0.98];
 const routeFeedbackMs = 320;
@@ -570,7 +572,7 @@ const GlanceCard = ({ item, onAction, routingPath }) => {
   );
 };
 
-const TodayCenter = ({ today, roleCopy, live, glanceItems, onAction, routingPath }) => {
+const TodayCenter = ({ today, roleCopy, live, initialLoading, glanceItems, onAction, routingPath }) => {
   const Icon = today.icon || Activity;
 
   return (
@@ -599,7 +601,8 @@ const TodayCenter = ({ today, roleCopy, live, glanceItems, onAction, routingPath
           <span className="rounded-pill bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
             {roleCopy.label}
           </span>
-          {!live && (
+          {/* T3: a genuine first load is loading, not a failure -- no retry voice yet. */}
+          {!live && !initialLoading && (
             <span className="rounded-pill bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
               Retry needed
             </span>
@@ -742,10 +745,15 @@ export const TodayHome = ({ role }) => {
     visitsStats,
     userData,
     loading,
+    domainLoading,
+    domainFetching,
     useMockData,
     domainErrors,
     refreshAllData,
   } = usePageData();
+  // Presentation fork only: no provider (contract test's bare render) resolves to the
+  // context default {} -> isMobile undefined -> desktop render.
+  const { isMobile } = useNavigation();
   const [expandedRow, setExpandedRow] = useState(null);
   const [routingPath, setRoutingPath] = useState(null);
   // Manual refresh state: navigation-only stays intact — refreshAllData is the
@@ -768,11 +776,23 @@ export const TodayHome = ({ role }) => {
     sponsor: ['analytics'],
     viewer: [],
   };
-  const hasTodayDataError = (todayDomainErrors[roleKind] || todayDomainErrors.viewer)
+  const todayDomains = todayDomainErrors[roleKind] || todayDomainErrors.viewer;
+  const hasTodayDataError = todayDomains
     .some((domain) => Boolean(domainErrors?.[domain]));
-  const hasTodayLoading = (todayDomainErrors[roleKind] || todayDomainErrors.viewer)
-    .some((domain) => Boolean(loading?.[domain]));
+  // C1 loading truth: domainLoading is PageData's per-domain first-load map (fetching
+  // with nothing renderable yet). The legacy coarse loading-map clause stays alive so
+  // existing consumers of that map keep driving the same not-live fold.
+  const hasTodayInitialLoading = todayDomains
+    .some((domain) => Boolean(domainLoading?.[domain]));
+  const hasTodayLoading = hasTodayInitialLoading
+    || todayDomains.some((domain) => Boolean(loading?.[domain]));
   const live = !useMockData && !hasTodayDataError && !hasTodayLoading;
+  // T3 gate: honest loading presentation only during a true first load -- never over
+  // an error, mock data, or a background refetch (those keep their own voices).
+  const isTodayInitialLoading = hasTodayInitialLoading && !hasTodayDataError && !useMockData;
+  // Background refetch signal (drives the mobile Updating pill; desktop adds no new
+  // chrome for it -- the header refresh affordance already owns that surface).
+  const isFetching = !hasTodayLoading && todayDomains.some((domain) => Boolean(domainFetching?.[domain]));
   const roleCopy = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
   const visibleModuleRail = useMemo(
     () => getTodayModuleRailItems(roleKind),
@@ -785,25 +805,36 @@ export const TodayHome = ({ role }) => {
   const visitCount = countOrNull(visitsStats?.today, live) ?? 0;
   const providerCount = resolveTodayProviderCount({ doctorsStats, userData, live });
 
-  const today = useMemo(() => buildToday({
-    roleKind,
-    live,
-    emergencyReviewCount,
-    emergencyActiveCount,
-    approvalCount,
-    visitCount,
-    providerCount,
-  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, providerCount, roleKind, visitCount]);
+  const today = useMemo(() => {
+    const built = buildToday({
+      roleKind,
+      live,
+      emergencyReviewCount,
+      emergencyActiveCount,
+      approvalCount,
+      visitCount,
+      providerCount,
+    });
+    // T3 honest first load: keep the not-live layout, speak "loading" not "retry".
+    if (!isTodayInitialLoading) return built;
+    return { ...built, status: 'Loading today', tone: 'muted' };
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, providerCount, roleKind, visitCount]);
 
-  const glanceItems = useMemo(() => buildGlanceItems({
-    roleKind,
-    live,
-    emergencyReviewCount,
-    emergencyActiveCount,
-    approvalCount,
-    visitCount,
-    providerCount,
-  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, providerCount, roleKind, visitCount]);
+  const glanceItems = useMemo(() => {
+    const built = buildGlanceItems({
+      roleKind,
+      live,
+      emergencyReviewCount,
+      emergencyActiveCount,
+      approvalCount,
+      visitCount,
+      providerCount,
+    });
+    // T3 honest first load: counts are unknown, so say so -- em-dash placeholders in a
+    // muted tone instead of the retry voice.
+    if (!isTodayInitialLoading) return built;
+    return built.map((item) => ({ ...item, value: '\u2014', tone: 'muted' }));
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, providerCount, roleKind, visitCount]);
 
   const headerAction = useMemo(() => (
     <span className="hidden md:inline-flex items-center gap-2">
@@ -827,17 +858,23 @@ export const TodayHome = ({ role }) => {
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
-  const rows = useMemo(() => buildActionRows({
-    roleKind,
-    live,
-    emergencyReviewCount,
-    emergencyActiveCount,
-    approvalCount,
-    visitCount,
-    providerCount,
-    roleCopy,
-    loading,
-  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, loading, providerCount, roleCopy, roleKind, visitCount]);
+  const rows = useMemo(() => {
+    const built = buildActionRows({
+      roleKind,
+      live,
+      emergencyReviewCount,
+      emergencyActiveCount,
+      approvalCount,
+      visitCount,
+      providerCount,
+      roleCopy,
+      loading,
+    });
+    // T3 honest first load: the open-role-page row spins (DetailRow's Loader2 path)
+    // while the first fetch is genuinely still in flight.
+    if (!isTodayInitialLoading) return built;
+    return built.map((row) => (row.id === 'open-role-page' ? { ...row, loading: true } : row));
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, loading, providerCount, roleCopy, roleKind, visitCount]);
 
   const activeExpandedRow = useMemo(() => {
     if (expandedRow === '__collapsed__') return null;
@@ -940,6 +977,27 @@ export const TodayHome = ({ role }) => {
     };
   }, [todayPanelContext]);
 
+  // MOBILE FORK -- return-only, after every hook and effect (incl. the route-context
+  // publisher) so mobile and desktop share one identical model and effect surface.
+  // MobileToday is pure presentation; handleRefresh is async, so PullToRefresh can
+  // await it (a re-entrant pull while pageRefreshing resolves immediately and settles).
+  if (isMobile) {
+    return (
+      <MobileToday
+        today={today}
+        glanceItems={glanceItems}
+        rows={rows}
+        live={live}
+        role={roleCopy}
+        loading={hasTodayInitialLoading}
+        isFetching={isFetching}
+        routingPath={routingPath}
+        onAction={handleAction}
+        onRefresh={handleRefresh}
+      />
+    );
+  }
+
   return (
     <div className="min-h-[calc(100dvh-3rem)]">
       <SEOHead title="Today" description="Role-scoped home for iVisit Console." />
@@ -958,6 +1016,7 @@ export const TodayHome = ({ role }) => {
             today={today}
             roleCopy={roleCopy}
             live={live}
+            initialLoading={isTodayInitialLoading}
             glanceItems={glanceItems}
             onAction={handleAction}
             routingPath={routingPath}
