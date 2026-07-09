@@ -108,20 +108,20 @@ export const SmartHeader = () => {
                 {/* MOBILE: 3-column flex - left / center / right */}
                 {isMobile ? (
                     <>
-                        {/* LEFT - back button */}
-                        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-                            {!isHome && (
-                                <motion.button
-                                    whileTap={{ scale: 0.97 }}
-                                    onClick={() => navigate(-1)}
-                                    className="-ml-1 max-w-[140px] inline-flex items-center gap-0.5 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
-                                    aria-label="Go back"
-                                >
-                                    <ChevronLeft className="h-4 w-4 shrink-0" />
-                                    <span className="truncate">{getRouteLabel(previousPath)}</span>
-                                </motion.button>
-                            )}
-                        </div>
+                        {/* LEFT - back button (flat: no wrapper container, sits directly in the bar) */}
+                        {!isHome ? (
+                            <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => navigate(-1)}
+                                className="-ml-1 max-w-[140px] inline-flex items-center gap-0.5 shrink-0 min-w-0 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
+                                aria-label="Go back"
+                            >
+                                <ChevronLeft className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{getRouteLabel(previousPath)}</span>
+                            </motion.button>
+                        ) : (
+                            <span className="shrink-0" aria-hidden="true" />
+                        )}
 
                         {/* CENTER - logo or page title */}
                         {isHome ? (
