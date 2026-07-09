@@ -181,7 +181,7 @@ const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
             }}
             whileTap={{ scale: 0.96 }}
             onClick={actionConfig.action}
-            className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-button"
+            className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-pill"
             style={{
                 background: actionConfig.color === 'staff'
                     ? 'linear-gradient(135deg, rgb(56 189 248) 0%, rgb(14 165 233) 100%)'
@@ -242,7 +242,7 @@ const DynamicBottomAction = ({ isScrolledDown }) => {
                 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={actionConfig.action}
-                className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-button"
+                className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-pill"
                 style={{
                     background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.86) 100%)`,
                 }}

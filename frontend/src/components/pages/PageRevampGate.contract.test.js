@@ -54,7 +54,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('The active Today pair (`TodayHome.jsx`, `DashboardPanel.jsx`) and active Requests slice (`EmergencyRequestsPage.jsx`, `MobileEmergency.jsx`, `EmergencyPanel.jsx`, `EmergencyDetailsModal.jsx`, `EmergencyRequestModal.jsx`) now pass `node scripts/check-ui-surface-hardgate.js --strict-radius ...`.');
     expect(gate).toContain('`App.js` route loading fallback uses `rounded-card`, `rounded-inner`, `rounded-icon`, and `rounded-pill` and is part of default hardgate coverage.');
     expect(gate).toContain('`ContextAwareFAB.jsx` uses `rounded-button` for the icon surface and `rounded-pill` for its tooltip');
-    expect(gate).toContain('`DynamicBottomBar.jsx` uses `rounded-pill` for the island and `rounded-button` for nav/action controls');
+    expect(gate).toContain('`DynamicBottomBar.jsx` uses `rounded-pill` for the island and action FAB, and `rounded-button` for nav item controls');
     expect(gate).toContain('Global voice lock: `.bg-orb` is retired.');
     expect(gate).toContain('Global typography lock: `CONSOLE_DESIGN_SYSTEM_FROM_APP.md` examples now use plain readable labels, normal letter spacing, and role-based squircle tokens.');
     expect(gate).toContain('Global chrome lock: active design-system examples avoid decorative Tailwind border, ring, outline, divider, and hairline utilities.');

@@ -288,8 +288,10 @@ export const MobileEmergency = ({
                         loading={loading}
                     />
 
-                    <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
-                        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+                    <section className="px-4">
+                        {/* Rows on the ground (canon): no wrapping frosted sheet, no fake
+                            drag-handle. The list rows are opaque cards on the page surface;
+                            the toolbar below groups search + filters. */}
                         <div className="flex items-center gap-2 rounded-modal bg-background/42 p-2 dark:bg-black/[0.10]">
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />

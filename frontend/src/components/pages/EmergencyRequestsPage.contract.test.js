@@ -451,14 +451,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('onClick={() => onOpen(request)}');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('className="space-y-4 px-5"');
-    expect(mobileSource).toContain('rounded-t-sheet bg-card/78');
+    expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain('text-2xl font-semibold leading-tight');
     // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button
     // tiles), replacing the old inline `rounded-inner bg-background/30 p-3` tiles.
     expect(mobileSource).toContain('MobileDetailIslands');
     expect(mobileSource).not.toContain('rounded-t-[44px] bg-card/78');
     expect(mobileSource).not.toContain('rounded-[28px]');
-    expect(mobileSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
+    expect(mobileSource).not.toContain('mx-auto mb-3 h-1.5 w-[42px]');
     expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
     expect(mobileSource).not.toContain('overflow-x-auto');
     expect(fabSource).toContain("location.pathname === '/'");
