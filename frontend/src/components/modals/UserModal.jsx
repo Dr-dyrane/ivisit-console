@@ -330,10 +330,10 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent className="rounded-card shadow-sm bg-background/95">
-                            <SelectItem value="ambulance">Ambulance</SelectItem>
                             <SelectItem value="doctor">Doctor</SelectItem>
-                            <SelectItem value="nurse">Nurse</SelectItem>
+                            <SelectItem value="driver">Driver</SelectItem>
                             <SelectItem value="paramedic">Paramedic</SelectItem>
+                            <SelectItem value="ambulance_service">Ambulance service</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -307,12 +307,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         'medical_profiles'
       ];
       if (action === 'view' && viewable.includes(normalizedResource)) return true;
-
-      // Dispatchers (special provider type) have more operational control
-      if (profile?.provider_type === 'dispatcher' || profile?.role === 'dispatcher') {
-        const dispatchable = ['ambulances', 'emergency_requests', 'drivers'];
-        if (dispatchable.includes(normalizedResource)) return true;
-      }
     }
 
     // Viewers are read-only across the system
