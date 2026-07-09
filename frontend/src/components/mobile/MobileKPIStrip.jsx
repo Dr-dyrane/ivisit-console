@@ -49,7 +49,7 @@ export const MobileKPIStrip = ({
 
     if (loading) {
         return (
-            <div className="sticky top-0 z-40 w-full px-2 py-3 shadow-none relative overflow-hidden">
+            <div className="sticky top-0 z-40 w-full px-4 py-3 shadow-none relative overflow-hidden">
                 <div className="flex gap-2 overflow-hidden">
                     {Array.from({ length: Math.max(1, loadingCount) }).map((_, idx) => (
                         <div key={idx} className="h-9 w-24 rounded-pill bg-muted/20 shrink-0" />
@@ -64,7 +64,7 @@ export const MobileKPIStrip = ({
             initial={mountMotion.initial}
             animate={mountMotion.animate}
             transition={mountMotion.transition}
-            className="sticky top-0 z-40 w-full px-2 py-3 shadow-none relative overflow-hidden"
+            className="sticky top-0 z-40 w-full px-4 py-3 shadow-none relative overflow-hidden"
         >
             {/* Rail: overflow-x, hidden scrollbars, same height */}
             <div
@@ -86,7 +86,7 @@ export const MobileKPIStrip = ({
                             data-state={isActive ? 'selected' : 'idle'}
                             className={`shrink-0 flex items-center gap-2 rounded-pill px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition-[background,transform] duration-200 ease-out ${isActive
                                 ? 'bg-primary text-primary-foreground'
-                                : 'bg-background/60 text-muted-foreground backdrop-blur-sm active:bg-background/80'
+                                : 'bg-foreground/[0.06] dark:bg-white/[0.08] text-muted-foreground backdrop-blur-xl active:bg-foreground/[0.1]'
                                 }`}
                             style={{ WebkitTapHighlightColor: 'transparent' }}
                         >

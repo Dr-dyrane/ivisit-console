@@ -450,7 +450,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // inside a frosted recency PANEL with slate hairlines between transparent rows.
     expect(mobileSource).toContain('onClick={() => setActiveRequest(request)}');
     expect(mobileSource).toContain("import { groupByRecency } from '../../utils/groupByRecency';");
-    expect(mobileSource).toContain('rounded-inner bg-card/72 dark:bg-white/[0.08] backdrop-blur-xl');
+    expect(mobileSource).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl');
     expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.18)] ml-[62px]');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
     expect(mobileSource).toContain('>Requests</h1>');

@@ -218,7 +218,7 @@ export const MobileEmergency = ({
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35 }}
-                        className="px-2"
+                        className="px-4"
                     >
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -233,7 +233,7 @@ export const MobileEmergency = ({
                         loading={loading}
                     />
 
-                    <section className="px-2">
+                    <section className="px-4">
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
@@ -321,7 +321,7 @@ export const MobileEmergency = ({
                                         <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{label}</span>
                                         <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{items.length}</span>
                                     </div>
-                                    <div className="rounded-inner bg-card/72 dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
+                                    <div className="rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
                                         {items.map((request, index) => {
                                             const projection = buildEmergencyRenderProjection(request);
                                             const vital = resolveVital('emergency', request.status);
