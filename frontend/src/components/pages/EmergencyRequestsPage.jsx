@@ -1494,6 +1494,8 @@ const RequestsDesktopWorkspace = ({
               openFilters={openFilters}
               filterSheetOpen={filterSheetOpen}
               filterTriggerState={filterTriggerState}
+              onRefresh={onRetry}
+              refreshing={isFetching}
             />
 
             <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
@@ -1617,12 +1619,9 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
   const SignalIcon = signal.icon;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.42 }}
-      className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]"
-    >
+    // Replace-in-place: the skeleton holds this exact layout, so the panel gets no
+    // entrance motion — content swaps in where the skeleton stood (lessons #15).
+    <section className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]">
       <div className="w-full min-w-0">
         {loading ? (
           <div className="space-y-4">
@@ -1654,7 +1653,7 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
           isFetching={isFetching}
         />
       </div>
-    </motion.section>
+    </section>
   );
 };
 
@@ -1697,7 +1696,7 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, is
           type="button"
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setKpiFilter(item.id)}
+          onClick={() => setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)}
           data-request-kpi={item.id}
           data-state={active ? 'selected' : 'idle'}
           className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? activeClass : KPI_REST}`}
@@ -1756,7 +1755,7 @@ const RequestLoadNotice = ({ message, onRetry }) => (
   </div>
 );
 
-const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState }) => (
+const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState, onRefresh, refreshing = false }) => (
   <div className="flex items-center gap-3">
     <div className="relative flex-1">
       <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
@@ -1768,6 +1767,19 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
         className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
       />
     </div>
+    {/* Manual refresh — realtime usually covers it, but operators on flaky channels
+        need an explicit affordance (desktop equivalent of mobile pull-to-refresh). */}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onRefresh}
+      disabled={refreshing}
+      className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
+      aria-label={refreshing ? 'Refreshing requests' : 'Refresh requests'}
+      title={refreshing ? 'Refreshing...' : 'Refresh'}
+    >
+      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+    </Button>
     <Button
       variant="ghost"
       onClick={openFilters}

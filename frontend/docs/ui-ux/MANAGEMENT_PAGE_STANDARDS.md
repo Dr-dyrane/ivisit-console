@@ -132,6 +132,10 @@ never a reassuring zero-derived "all clear" hero above a list error state
 sets `kpiFilter` and filters the list (the chips ARE the quick filters — no separate
 bordered KPI cards).
 
+**Toggle-to-All (canon, both platforms).** Re-tapping the ACTIVE chip clears the
+filter back to `all` — a filter chip is a toggle, never a dead re-set. (Mobile
+pioneered this; desktop adopted. One canonical answer.)
+
 **Max 3 chips (canon).** Render **at most 3** state chips — the page's **smart-context
 priority**: the page's **actionable triage states are pinned while they carry signal**
 (Requests pins `pending` + `active` when their count > 0 — an actionable 5 outranks a
@@ -250,6 +254,14 @@ not a nicety: the operator must be able to tell "current" from "updating".
 - **Plumbing:** the query hook must expose `isFetching` alongside `loading` (as
   `useEmergencyQuery` does) and the page must thread it to the strip / pill;
   pagination controls disable on `loading || isFetching`.
+
+**Loading truth (skeleton vs warm cache).** Skeleton is required when content is
+unavailable or assembling. **If complete cached data is already available, instant
+truthful paint is preferred over artificial loading** — never force a skeleton over
+warm data. Platform note: mobile may keep its mount warm-up where it solves a real
+paint-cascade problem; desktop keeps instant-render on a warm cache. A manual
+refresh affordance must exist on every data page (desktop: toolbar refresh control
+spinning on `isFetching`; mobile: pull-to-refresh).
 
 ---
 
