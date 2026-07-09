@@ -183,26 +183,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
   if (!request) return null;
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'critical': return 'text-red-500';
-      case 'high': return 'text-orange-500';
-      case 'medium': return 'text-yellow-500';
-      case 'low': return 'text-blue-500';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const getPriorityBg = (priority) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-500/10';
-      case 'high': return 'bg-orange-500/10';
-      case 'medium': return 'bg-yellow-500/10';
-      case 'low': return 'bg-blue-500/10';
-      default: return 'bg-muted/10';
-    }
-  };
-
+  // SCHEMA NOTE: emergency_requests has NO `priority` column (see types/database.ts Row).
+  // The old priority colour/badge branches were dead code that always fell to the
+  // defaults — the icon now wears the neutral default directly. Priority levels are
+  // an ivisit-app schema decision, not a console patch.
   const getEmergencyIcon = (type) => {
     switch (type) {
       case 'cardiac': return <Heart className="w-5 h-5" />;
@@ -228,12 +212,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
       onClose={() => onClose(false)}
       title={modalTitle}
       subtitle={modalSubtitle}
-      icon={<span className={getPriorityColor(request.priority)}>{getEmergencyIcon(request.service_type)}</span>}
-      badge={(
-        <Badge className={`rounded-pill px-4 py-1 ${getPriorityBg(request.priority)} ${getPriorityColor(request.priority)}`}>
-          {request.priority?.toUpperCase()}
-        </Badge>
-      )}
+      icon={<span className="text-muted-foreground">{getEmergencyIcon(request.service_type)}</span>}
       size="lg"
       managed
     >
@@ -344,8 +323,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
           {/* Situation Report */}
           <SectionCard title="Situation Report" bodyClassName="space-y-4">
+            {/* SCHEMA NOTE: emergency_requests has NO `description`/notes column (see
+                types/database.ts Row) — the old `request.description` read was a phantom
+                that always fell through to this copy. If situation reports become a
+                product need, that is an ivisit-app schema/pillar decision. */}
             <p className="text-[15px] leading-relaxed text-foreground/90">
-              {request.description || 'No detailed description provided for this emergency incident.'}
+              No detailed description provided for this emergency incident.
             </p>
 
             {/* Clinical Outcome Bridge */}

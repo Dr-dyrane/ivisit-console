@@ -196,6 +196,10 @@ Found live while doing the UI/UX pass on the Requests page. **Queued, not fixed*
 
 Evidence: `emergencyService.js:221`, `EmergencyRequestsPage.jsx:1568`, `database.ts:722`, `views/EmergencyRequestTableView.jsx:79`.
 
+**Addendum (2026-07-09) — phantom fields in the emergency details modal (console side CLEANED):**
+
+3. **[DATA-SYNC · phantom columns rendered]** `EmergencyDetailsModal.jsx` rendered `request.description` as the "Situation Report" body and `request.priority` as the header badge / icon tint — but **neither `description` nor `priority` exists** on the `emergency_requests` Row type (evidence: `database.ts:698-742`; no notes/summary-ish column exists either). The description read therefore always fell through to the fallback copy, and priority was always `undefined` (empty badge, default colours; the dead branches also carried non-canon `text-red-500`/`text-orange-500` classes). **Console cleaned the dead reads** (fallback copy is now the only path; priority badge/colour branches removed, neutral defaults kept). IF the product wants situation reports or priority levels on emergency requests, that is an **ivisit-app schema/pillar decision** (new columns authored app-side per §8), not a console patch.
+
 ---
 
 ## 10. Queued from the Requests page UX audit (2026-07-09)

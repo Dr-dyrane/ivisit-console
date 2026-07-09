@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -35,6 +35,8 @@ import {
   ChevronUp,
   ClipboardCheck,
   Clock,
+  Copy,
+  CreditCard,
   Filter as FilterIcon,
   Hospital,
   Info,
@@ -46,7 +48,8 @@ import {
   Send,
   ShieldCheck,
   Trash2,
-  UserRound
+  UserRound,
+  Wallet
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FilterSheet } from '../common/FilterSheet';
@@ -57,8 +60,10 @@ import { MobileEmergency } from '../mobile/MobileEmergency';
 import { SEOHead } from '../common/SEOHead';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
+import { useReverseGeocode } from '../../hooks/useReverseGeocode';
 import {
   buildEmergencyRenderProjection,
+  formatEmergencyServiceToken,
   isCashPaymentMethod,
 } from '../../utils/emergencyRequestMapper';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
@@ -200,6 +205,54 @@ const formatRequestTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'No time';
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+// Day-aware timestamp: clock-time alone made a 3-week-old request read like today's.
+// today -> "2:14 PM"; yesterday -> "Yesterday, 2:14 PM"; this year -> "Jun 18, 2:14 PM";
+// older -> "Jun 18, 2025".
+const formatRequestDayTime = (value) => {
+  if (!value) return 'No time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No time';
+  const now = new Date();
+  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dayDelta = Math.round((startOfDay(now) - startOfDay(date)) / 86400000);
+  if (dayDelta === 0) return time;
+  if (dayDelta === 1) return `Yesterday, ${time}`;
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+// Canonical lifecycle stages for the rail's compact progression strip:
+// [Needs attention, Accepted, Arrived, Active, Completed]. Cancelled renders all-muted.
+const REQUEST_STAGE_ORDER = ['pending_approval', 'accepted', 'arrived', 'in_progress', 'completed'];
+const REQUEST_STAGE_FILL = {
+  pending_approval: 'bg-destructive',
+  payment_declined: 'bg-destructive',
+  accepted: 'bg-cyan-500',
+  arrived: 'bg-sky-500',
+  in_progress: 'bg-amber-500',
+  completed: 'bg-emerald-500',
+};
+
+// Payment states that mean cash has been settled — anything else on a cash request
+// stays visibly flagged for the operator.
+const SETTLED_PAYMENT_STATUSES = new Set(['settled', 'succeeded', 'completed', 'paid']);
+const isUnsettledCashRequest = (request) => (
+  isCashPaymentMethod(request?.payment_method) &&
+  !SETTLED_PAYMENT_STATUSES.has(String(request?.payment_status || '').toLowerCase())
+);
+
+// Filter-aware empty headings: the generic line only fits when no KPI narrows the list.
+const REQUEST_EMPTY_HEADINGS = {
+  all: 'No requests yet',
+  pending: 'Nothing needs attention',
+  active: 'No active requests',
+  bed: 'No bed requests',
+  ambulance: 'No ambulance requests',
 };
 
 const getStatusMeta = (request) => {
@@ -592,6 +645,11 @@ export const EmergencyRequestsPage = () => {
   // useEmergencyQuery observer converges on the next fetch. This page channel is
   // additive to PageDataContext (which also invalidates on emergency_requests); it
   // additionally covers the payments table for the retry-payment flow.
+  // A brand-new request also announces itself (a fresh pending emergency used to land
+  // silently); the toast is throttled to at most one per 10s so an insert burst
+  // cannot stack toasts over the operator.
+  const lastInsertToastAtRef = useRef(0);
+
   useEffect(() => {
     let active = true;
 
@@ -599,6 +657,14 @@ export const EmergencyRequestsPage = () => {
       .channel('emergency_requests_page_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, () => {
         if (active) queryClient.invalidateQueries({ queryKey: ['emergency'] });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emergency_requests' }, (payload) => {
+        if (!active || payload?.eventType !== 'INSERT') return;
+        const now = Date.now();
+        if (now - lastInsertToastAtRef.current < 10000) return;
+        lastInsertToastAtRef.current = now;
+        const serviceLabel = payload?.new?.service_type ? getServiceLabel(payload.new) : '';
+        toast('New request received', serviceLabel ? { description: serviceLabel } : undefined);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
         if (active) queryClient.invalidateQueries({ queryKey: ['emergency'] });
@@ -827,13 +893,42 @@ export const EmergencyRequestsPage = () => {
 
   const clearSelection = useCallback(() => setSelectedIds([]), []);
 
+  // Shift-click range select: Checkbox onCheckedChange has no native event, so the
+  // checkbox onClick (which fires first) stashes shiftKey in a ref; the toggle then
+  // reads it together with the last-toggled index anchor to expand over the range.
+  const shiftSelectRef = useRef({ shiftKey: false, lastIndex: -1 });
+
+  const handleSelectClick = useCallback((event) => {
+    shiftSelectRef.current.shiftKey = Boolean(event?.shiftKey);
+    event?.stopPropagation?.();
+  }, []);
+
   const handleToggleSelect = useCallback((id, checked) => {
+    const index = requests.findIndex((row) => row.id === id);
+    const { shiftKey, lastIndex } = shiftSelectRef.current;
+    shiftSelectRef.current = { shiftKey: false, lastIndex: index };
+
+    if (shiftKey && index !== -1 && lastIndex !== -1 && lastIndex !== index) {
+      const start = Math.min(lastIndex, index);
+      const end = Math.max(lastIndex, index);
+      const rangeIds = requests.slice(start, end + 1).map((row) => row.id);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        rangeIds.forEach((rangeId) => {
+          if (checked) next.add(rangeId);
+          else next.delete(rangeId);
+        });
+        return Array.from(next);
+      });
+      return;
+    }
+
     setSelectedIds((prev) => (
       checked
         ? (prev.includes(id) ? prev : [...prev, id])
         : prev.filter((selectedId) => selectedId !== id)
     ));
-  }, []);
+  }, [requests]);
 
   // Select-all covers EVERY visible row (Users-page parity). Bulk cancel then acts only on
   // the cancellable (non-terminal) subset — see executeBulkCancel / cancellableSelectedCount.
@@ -1138,6 +1233,7 @@ export const EmergencyRequestsPage = () => {
           selectable={currentUser.isAdmin()}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
+          onSelectClick={handleSelectClick}
           onSelectAll={handleSelectAll}
           sortConfig={sortConfig}
           onSort={handleSort}
@@ -1310,6 +1406,7 @@ const RequestsDesktopWorkspace = ({
   selectable = false,
   selectedIds = [],
   onToggleSelect,
+  onSelectClick,
   onSelectAll,
   sortConfig,
   onSort,
@@ -1320,6 +1417,52 @@ const RequestsDesktopWorkspace = ({
   const allSelected = selectable && requests.length > 0
     && requests.every((row) => selectedIds.includes(row.id));
   const someSelected = selectable && !allSelected && selectedIds.length > 0;
+  const listScrollRef = useRef(null);
+
+  // A page change resets the rows viewport to the top; otherwise the next page
+  // opens mid-scroll wherever the last one left off.
+  useEffect(() => {
+    listScrollRef.current?.scrollTo({ top: 0 });
+  }, [pagination.currentPage]);
+
+  // Keyboard list navigation on the rows viewport: ArrowDown/ArrowUp move row focus
+  // (clamped to the current page), Enter opens details for the focused row, Escape
+  // returns focus to the default (first row). Typing surfaces and open dialogs are
+  // ignored so the shortcuts never steal keys from inputs or modals.
+  const handleListKeyDown = useCallback((event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== 'Escape') return;
+    if (event.defaultPrevented) return;
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      const tag = target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+    }
+    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]')) return;
+
+    if (event.key === 'Escape') {
+      setFocusedRequestId(null);
+      return;
+    }
+    if (requests.length === 0) return;
+    if (event.key === 'Enter') {
+      if (focusedRequest) {
+        event.preventDefault();
+        onView(focusedRequest);
+      }
+      return;
+    }
+
+    event.preventDefault();
+    const delta = event.key === 'ArrowDown' ? 1 : -1;
+    const currentIndex = requests.findIndex((row) => row.id === focusedRequest?.id);
+    const nextIndex = currentIndex === -1
+      ? (delta > 0 ? 0 : requests.length - 1)
+      : Math.min(requests.length - 1, Math.max(0, currentIndex + delta));
+    const next = requests[nextIndex];
+    if (!next) return;
+    setFocusedRequestId(next.id);
+    listScrollRef.current?.querySelector(`[data-request-row="${next.id}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [requests, focusedRequest, onView, setFocusedRequestId]);
 
   return (
     <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
@@ -1358,7 +1501,14 @@ const RequestsDesktopWorkspace = ({
               <span>{loading ? 'One moment' : failedEmpty ? 'Retry below' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
             </div>
 
-            <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+            <div
+              ref={listScrollRef}
+              tabIndex={0}
+              onKeyDown={handleListKeyDown}
+              aria-label="Requests list"
+              style={{ outline: 'none' }}
+              className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+            >
               <RequestListHeader
                 selectable={selectable}
                 allSelected={allSelected}
@@ -1378,22 +1528,35 @@ const RequestsDesktopWorkspace = ({
               {!loading && !loadError && Number(pagination.totalCount) === 0 && (
                 <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
                   <ClipboardCheck className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                  <h3 className="text-xl font-semibold">{hasFilter ? 'No matching requests' : 'No requests yet'}</h3>
+                  <h3 className="text-xl font-semibold">
+                    {hasFilter ? 'No matching requests' : (REQUEST_EMPTY_HEADINGS[kpiFilter] || 'No requests yet')}
+                  </h3>
                   <p className="mt-2 max-w-md text-sm text-muted-foreground">
                     {hasFilter ? 'Change filters or search again.' : 'New requests will appear here.'}
                   </p>
-                  {hasFilter && (
-                    <Button
-                      variant="ghost"
-                      onClick={openFilters}
-                      data-state={filterTriggerState}
-                      className="mt-5 rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-                      aria-haspopup="dialog"
-                      aria-expanded={filterSheetOpen}
-                    >
-                      Change filters
-                    </Button>
-                  )}
+                  <div className="mt-5 flex items-center gap-2">
+                    {hasFilter && (
+                      <Button
+                        variant="ghost"
+                        onClick={openFilters}
+                        data-state={filterTriggerState}
+                        className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                        aria-haspopup="dialog"
+                        aria-expanded={filterSheetOpen}
+                      >
+                        Change filters
+                      </Button>
+                    )}
+                    {!hasFilter && kpiFilter && kpiFilter !== 'all' && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setKpiFilter('all')}
+                        className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                      >
+                        Show all requests
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
               {/* Replace-in-place (lessons #15): the skeleton holds the exact final layout and
@@ -1411,6 +1574,7 @@ const RequestsDesktopWorkspace = ({
                     selectable={selectable}
                     checked={selectedIds.includes(request.id)}
                     onToggleSelect={onToggleSelect}
+                    onSelectClick={onSelectClick}
                   />
                 ))
               )}
@@ -1620,8 +1784,8 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
 
 // Person | Status | Service | Facility | Time | Action — status owns its own column
 // (it used to hide stacked inside the Facility cell, under a header that lied).
-const REQUEST_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_64px_72px]';
-const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_64px_72px]';
+const REQUEST_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
+const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
 
 // Clickable column header (VisitsPage/HospitalsPage idiom): a new key sorts ascending,
 // re-tapping the active key flips direction. Feeds setSortConfig via onSort.
@@ -1670,13 +1834,21 @@ const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll,
   </div>
 );
 
-const RequestRow = ({ request, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect }) => {
+const RequestRow = ({ request, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect, onSelectClick }) => {
   const projection = getRequestProjection(request);
   const status = getStatusMeta(request);
   const ServiceIcon = serviceIconMap[request?.service_type] || ClipboardCheck;
   const patientName = projection.patientDisplay.name;
+  const patientPhone = projection.patientDisplay.phone;
   const facilityName = projection.facilityDisplay.name;
+  const serviceLabel = getServiceLabel(request);
   const rowAvatarClass = getRequestAvatarClass(request);
+  const canonicalStatus = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+  const showResponderHint = (
+    (canonicalStatus === 'accepted' || canonicalStatus === 'arrived' || canonicalStatus === 'in_progress') &&
+    projection.responderDisplay.hasResponder
+  );
+  const showCashChip = isUnsettledCashRequest(request);
 
   return (
     <motion.div
@@ -1687,6 +1859,17 @@ const RequestRow = ({ request, selected, onFocus, onView, selectable = false, ch
       role="button"
       tabIndex={0}
       onClick={onFocus}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onView(request);
+      }}
+      onContextMenu={(event) => {
+        // Cheap context-menu stand-in: right-click focuses the row so the rail (the
+        // action home) reflects it. Full shadcn ContextMenu integration is deferred
+        // to keep the row's button semantics intact.
+        event.preventDefault();
+        onFocus();
+      }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -1700,38 +1883,55 @@ const RequestRow = ({ request, selected, onFocus, onView, selectable = false, ch
         <Checkbox
           checked={checked}
           onCheckedChange={(value) => onToggleSelect?.(request.id, value)}
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
           aria-label={checked ? `Deselect request from ${patientName}` : `Select request from ${patientName}`}
           className="h-4 w-4"
         />
       )}
       <div className="flex min-w-0 items-center gap-3">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${rowAvatarClass}`}>
-          {getInitials(patientName)}
+        <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-pill text-sm font-semibold ${rowAvatarClass}`}>
+          <span aria-hidden="true">{getInitials(patientName)}</span>
+          {projection.patientDisplay.avatar && (
+            <img
+              src={projection.patientDisplay.avatar}
+              alt=""
+              className="absolute inset-0 h-full w-full rounded-pill object-cover"
+              onError={(event) => { event.currentTarget.style.display = 'none'; }}
+            />
+          )}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold text-foreground">{patientName}</div>
-          <div className="mt-1 truncate text-xs text-muted-foreground">{projection.patientDisplay.phone}</div>
+          <div className="truncate text-[15px] font-semibold text-foreground" title={patientName}>{patientName}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground" title={patientPhone}>{patientPhone}</div>
         </div>
       </div>
 
-      <div className="min-w-0">
-        <div className={`inline-flex max-w-full items-center rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
-          <span className="truncate">{status.label}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <div className={`inline-flex max-w-full items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
+          <span className="truncate" title={status.label}>{status.label}</span>
+          {showResponderHint && (
+            <Ambulance className="h-3 w-3 shrink-0 opacity-70" aria-label="Responder assigned" />
+          )}
         </div>
+        {showCashChip && (
+          <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Cash</span>
+        )}
       </div>
 
       <div className="flex min-w-0 items-center gap-2">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
           <ServiceIcon className="h-4 w-4" />
         </span>
-        <span className="truncate text-sm font-medium">{getServiceLabel(request)}</span>
+        <span className="truncate text-sm font-medium" title={serviceLabel}>{serviceLabel}</span>
       </div>
 
-      <div className="min-w-0 truncate text-sm text-muted-foreground">{facilityName}</div>
+      <div className="min-w-0 truncate text-sm text-muted-foreground" title={facilityName}>{facilityName}</div>
 
       <div className="text-sm font-medium text-muted-foreground">
-        {formatRequestTime(request.created_at)}
+        {formatRequestDayTime(request.created_at)}
       </div>
 
       <Button
@@ -1763,6 +1963,16 @@ const RequestDetailRail = ({
   onProcessCash,
   onRetryPayment,
 }) => {
+  // Hooks must run unconditionally — derive the projection before the early returns.
+  const railProjection = request ? getRequestProjection(request) : null;
+  // Transcribe raw coordinates into a readable place (ivisit-app provider chain:
+  // Google when keyed → keyless OpenStreetMap → coords fallback), cached per spot.
+  const { place: railPlace } = useReverseGeocode(
+    railProjection?.locationDisplay?.canOpenExternalMap
+      ? railProjection.locationDisplay.coordinates
+      : null
+  );
+
   if (loading) {
     return (
       <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
@@ -1814,10 +2024,36 @@ const RequestDetailRail = ({
     );
   }
 
-  const projection = getRequestProjection(request);
+  const projection = railProjection;
   const status = getStatusMeta(request);
   const avatarClass = getRequestAvatarClass(request);
   const actionState = getEmergencyActionState(request);
+  const railStatus = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+  const railCancelled = railStatus === 'cancelled';
+  const railStageIndex = Math.max(0, REQUEST_STAGE_ORDER.indexOf(railStatus));
+  const railStageFill = REQUEST_STAGE_FILL[railStatus] || 'bg-foreground/60';
+  const displayId = projection.identity.displayId;
+  const patientEmail = projection.patientDisplay.email;
+  const hasEmail = Boolean(patientEmail) && patientEmail !== 'No email';
+  const railPhone = projection.patientDisplay.phone;
+  const canCopyPhone = Boolean(railPhone) && !/^no\s/i.test(String(railPhone));
+  const location = projection.locationDisplay;
+  const responder = projection.responderDisplay;
+  const payment = projection.paymentDisplay;
+  const paymentAmount = payment.amountLabel && payment.amountLabel !== 'Unavailable' ? payment.amountLabel : '';
+  const hasPaymentInfo = Boolean(payment.method || payment.status || paymentAmount);
+  const paymentValue = [payment.methodLabel, paymentAmount, payment.status].filter(Boolean).join(' · ');
+  const railCost = request?.confirmed_cost ?? request?.total_cost;
+  const showAmount = railStatus === 'completed' && railCost !== null && railCost !== undefined && Boolean(paymentAmount);
+  const bedDetail = request?.service_type === 'bed'
+    ? [
+        request?.bed_number ? `Bed ${request.bed_number}` : null,
+        (request?.bed_type || request?.bed_category)
+          ? formatEmergencyServiceToken(request.bed_type || request.bed_category, '')
+          : null,
+        request?.specialty ? formatEmergencyServiceToken(request.specialty, '') : null,
+      ].filter(Boolean).join(' · ')
+    : '';
   const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();
   const canCompleteAsProvider = currentUser.isProvider() && actionState.canComplete;
   const primaryAction = getPrimaryRailAction({
@@ -1843,11 +2079,23 @@ const RequestDetailRail = ({
     <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
       <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
       <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-semibold tracking-tight">Request details</h2>
+          {displayId && (
+            <div className="mt-1 flex min-w-0 items-center gap-1">
+              <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={displayId}>{displayId}</p>
+              <CopyChip value={displayId} label="Copy case ID" />
+            </div>
+          )}
           <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
+          </div>
+          {/* Compact lifecycle progression: filled to the current canonical stage; cancelled all-muted. */}
+          <div className="mt-3 flex w-[200px] max-w-full gap-1" aria-hidden="true">
+            {REQUEST_STAGE_ORDER.map((stage, index) => (
+              <span key={stage} className={`h-1 flex-1 rounded-pill ${!railCancelled && index <= railStageIndex ? railStageFill : 'bg-muted/40'}`} />
+            ))}
           </div>
         </div>
         <Button
@@ -1862,22 +2110,66 @@ const RequestDetailRail = ({
       </div>
 
       <div className="mb-5 flex items-center gap-4">
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-pill text-lg font-semibold ${avatarClass}`}>
-          {getInitials(projection.patientDisplay.name)}
+        <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-pill text-lg font-semibold ${avatarClass}`}>
+          <span aria-hidden="true">{getInitials(projection.patientDisplay.name)}</span>
+          {projection.patientDisplay.avatar && (
+            <img
+              src={projection.patientDisplay.avatar}
+              alt=""
+              className="absolute inset-0 h-full w-full rounded-pill object-cover"
+              onError={(event) => { event.currentTarget.style.display = 'none'; }}
+            />
+          )}
         </div>
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">{projection.patientDisplay.name}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {formatRequestTime(request.created_at)} - {projection.patientDisplay.phone}
-          </p>
+          <h3 className="truncate text-lg font-semibold" title={projection.patientDisplay.name}>{projection.patientDisplay.name}</h3>
+          <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+            <span className="truncate" title={`${formatRequestTime(request.created_at)} - ${railPhone}${displayId ? ` · ${displayId}` : ''}`}>
+              {formatRequestTime(request.created_at)} - {railPhone}{displayId ? ` · ${displayId}` : ''}
+            </span>
+            {canCopyPhone && <CopyChip value={railPhone} label="Copy phone number" />}
+          </div>
+          {hasEmail && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{patientEmail}</p>
+          )}
         </div>
       </div>
 
       <div className="space-y-2">
         <DetailLine icon={Hospital} label="Facility" value={projection.facilityDisplay.name} />
-        <DetailLine icon={MapPin} label="Location" value={projection.locationDisplay.label} />
+        <DetailLine
+          icon={MapPin}
+          label="Location"
+          value={location.canOpenExternalMap && location.coordinates ? (
+            <a
+              href={`https://maps.google.com/?q=${location.coordinates.lat},${location.coordinates.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline-offset-2 hover:underline"
+              title={railPlace?.formattedAddress || location.label}
+            >
+              {railPlace?.shortLabel || location.label}
+            </a>
+          ) : location.label}
+        />
         <DetailLine icon={ClipboardCheck} label="Service" value={getServiceLabel(request)} />
-        <DetailLine icon={Clock} label="Requested" value={formatRequestTime(request.created_at)} />
+        {bedDetail && <DetailLine icon={BedDouble} label="Bed" value={bedDetail} />}
+        {responder.hasResponder && (
+          <DetailLine
+            icon={Ambulance}
+            label="Responder"
+            value={`${responder.label}${responder.etaLabel ? ` · ${responder.etaLabel}` : ''}`}
+          />
+        )}
+        {hasPaymentInfo && <DetailLine icon={Wallet} label="Payment" value={paymentValue} />}
+        {showAmount && <DetailLine icon={CreditCard} label="Amount" value={paymentAmount} />}
+        <DetailLine icon={Clock} label="Requested" value={formatRequestDayTime(request.created_at)} />
+        {request?.completed_at && (
+          <DetailLine icon={CheckCheck} label="Completed" value={formatRequestDayTime(request.completed_at)} />
+        )}
+        {request?.cancelled_at && (
+          <DetailLine icon={Clock} label="Cancelled" value={formatRequestDayTime(request.cancelled_at)} />
+        )}
       </div>
 
       <div className="mt-5 space-y-2.5">
@@ -1942,9 +2234,36 @@ const DetailLine = ({ icon: Icon, label, value }) => (
     </span>
     <div className="min-w-0">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+      <div
+        className="mt-1 truncate text-sm font-semibold text-foreground"
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value || 'Not set'}
+      </div>
     </div>
   </div>
+);
+
+// Click-to-copy affordance for rail values the operator re-keys elsewhere (phone,
+// case id). Ghost pill; stopPropagation keeps the copy from bubbling into row/rail
+// click handlers.
+const CopyChip = ({ value, label }) => (
+  <button
+    type="button"
+    onClick={(event) => {
+      event.stopPropagation();
+      const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
+      if (clipboard?.writeText) {
+        clipboard.writeText(String(value)).catch(() => {});
+      }
+      toast('Copied');
+    }}
+    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground active:scale-95"
+    aria-label={label}
+    title={label}
+  >
+    <Copy className="h-3 w-3" />
+  </button>
 );
 
 const RailActionButton = ({ icon: Icon, label, onClick, pending = false }) => (

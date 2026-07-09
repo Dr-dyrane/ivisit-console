@@ -39,6 +39,25 @@ export const SmartHeader = () => {
         };
     }, []);
 
+    // Global type-to-search shortcut: Cmd/Ctrl+K anywhere, '/' outside text fields.
+    useEffect(() => {
+        const handleShortcut = (event) => {
+            const key = typeof event.key === 'string' ? event.key.toLowerCase() : '';
+            const isCommandK = (event.metaKey || event.ctrlKey) && key === 'k';
+            const isSlash = key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey;
+            if (!isCommandK && !isSlash) return;
+            if (isSlash) {
+                // Never steal '/' while the user is typing or another dialog is open.
+                if (event.target?.closest?.('input,textarea,[contenteditable="true"]')) return;
+                if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+            }
+            event.preventDefault();
+            setSearchOpen(true);
+        };
+        window.addEventListener('keydown', handleShortcut);
+        return () => window.removeEventListener('keydown', handleShortcut);
+    }, []);
+
     useEffect(() => {
         const path = location.pathname;
         if (!path) return;
@@ -56,6 +75,8 @@ export const SmartHeader = () => {
         .toUpperCase();
     const avatarUrl = getAvatarUrl(profile, user);
     const isHome = location.pathname === '/';
+    const isMacLike = typeof navigator !== 'undefined' && /mac|iphone|ipad|ipod/i.test(navigator.platform || '');
+    const searchShortcutLabel = isMacLike ? '⌘K' : 'Ctrl K';
 
     const getRouteLabel = (pathname) => {
         if (!pathname) return 'Home';
@@ -217,6 +238,7 @@ export const SmartHeader = () => {
                             >
                                 <Search className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                                 <span className="text-sm text-muted-foreground font-medium group-hover:text-foreground hidden lg:inline-block transition-colors">Search...</span>
+                                <kbd className="ml-auto hidden lg:inline-flex items-center rounded-button bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{searchShortcutLabel}</kbd>
                             </button>
                             <HeaderDivider />
                             <NotificationCenter />
