@@ -224,3 +224,81 @@ Evidence: `emergencyService.js:218-228, 251-256, 302-333`, `EmergencyRequestsPag
 - §10.2 **console side FIXED** — toolbar placeholder now matches the FilterSheet's accurate
   wording ("Search by request ID, facility, responder, or type..."). Server-side patient-name
   search remains an ivisit-app schema decision (generated column over `patient_snapshot`).
+
+---
+
+## 11. Visits desktop audit (2026-07-09) — structure + data-sync + live click test
+
+**Source:** desktop-lane Visits pass (handshake row in `tools/automation/revamp-queue.md`; contracts
+set before fixes). Live click test ran as admin on localhost:3000/visits (177 records). **Queued —
+fixes need the user's go.** Lane ownership per handshake: (M) = mobile-lane file, request via ledger.
+
+### Data-sync (chain proven in code, live-confirmed where noted)
+
+1. **[grid patient label never renders]** `VisitsPage.jsx:764` — `visit.patient?.username ||
+   visit.user_id ? 'Linked' : 'Unknown'` parses as `(a || b) ? 'Linked' : 'Unknown'`; the name is
+   unreachable. LIVE: every grid card shows literal "Linked". (Rail/table use the shared
+   projection and are correct.)
+2. **[modal vs row identity mismatch]** (M) The SAME record renders patient
+   `umehchioma01@gmail.com` in row + rail but **"Demo Driver 6"** in `VisitModal`, and row date
+   "May 18, 05:00 PM" vs modal "5/19/2026, 12:00:00 AM" (date/time composition drift + a
+   different patient source). LIVE-confirmed. `VisitModal.jsx` is mobile-lane; flagged in ledger.
+3. **[operator written as patient]** `VisitsPage.jsx:455` — `createVisit({ user_id:
+   formData.user_id || user.id })`: when no patient is picked the CURRENT OPERATOR becomes the
+   visit's patient. LIVE evidence: dozens of visits list the admin as patient. Drop the fallback;
+   require explicit patient.
+4. **[stats scope mixes sheet status]** (M) `visitsService.getVisitsPageData` keeps
+   `filters.status` in `statsRows`, so state-chip counts intersect the sheet Status filter — the
+   exact §10.1 class fixed on Requests. Contract decided there: chips ARE the status dimension.
+   One-line fix in the service (mobile-lane); requested via ledger.
+5. **[no search debounce over a heavy resolver]** every keystroke re-runs the FULL resolution read
+   (up to the row limit + 4-table enrichment). Page-side 300ms debounce (Requests pattern) needed;
+   service weight noted for the projection owner.
+6. **[UTC day boundary]** (M) `getVisitPageStatsFromRows` computes `today` via
+   `toISOString().split('T')[0]` — UTC, not local; the count flips at 1am WAT, not midnight.
+7. **[raw-id title]** grid card title `Visit #${id.slice(-6)}` while the footer shows the
+   display_id — display-IDs-are-labels canon; one card shows two different identifiers. LIVE.
+8. **[org_admin patient dropdown empty]** create/edit fetches `getProfiles({ role: 'patient' })`;
+   profiles RLS is owner-or-admin, so org_admin gets an empty patient list in the modal
+   (backend-flagged class, same as Users page).
+9. **[RLS truth update]** LIVE: the signed-in ADMIN sees 177 visits — the backend-research doc's
+   "visits RLS owner-only, no admin clause" is stale for admin. org_admin visibility remains
+   UNVERIFIED; the honest-empty operator state ships only if org_admin proves empty.
+10. Cross-refs already queued: `providerIdField: 'doctor_name'` fragile string scope (persona
+    matrix §6); driver nav dead-end (desktop `navigation.js`, mine per handshake).
+
+### UI/UX canon (live-verified)
+
+11. **[signal panel frozen at 39% opacity]** the hero + chips sit permanently dimmed after load
+    (`initial={{opacity:0,y:12}}` entrance never completes; measured 0.393 opacity minutes in;
+    later interaction completes it). Same family as the TodayHome M1/T4 motion-canon defect.
+12. **[FilterSheet body ghost-renders]** (shared `FilterSheet` used by admitted pages — verify
+    before touching) sheet opens with fields at near-zero opacity and the page bleeding through;
+    only title + Reset/Apply are solid. LIVE screenshot evidence.
+13. **[primary command invisible]** "New visit" lives in the auto-hiding header (off-screen at
+    load — the conversion contract says it is the FIRST visible command) and when visible renders
+    `color: rgb(255,255,255)` on `rgba(255,255,255,0.7)` — white on white; in another state it
+    flips to a solid red pill (red-token trap).
+14. **[stagger re-runs on every refetch]** chip clicks/refetches leave rows semi-transparent
+    mid-stagger (`initial opacity:0 scale:0.9, delay: index*0.03`) — replace-in-place canon says
+    rows never re-enter on refetch.
+15. **[red tokens live]** `getStatusBadge` (info/warning/success + destructive-for-cancelled),
+    rail status Badge map, `hover:bg-primary/10 hover:text-primary` on toolbar/cards/buttons,
+    focused-card `bg-primary/6` + `0_24px_80px` primary glow, search focus ring primary.
+16. **[structure vs Requests canon]** ViewToggle + 3 density variants vs one canonical render;
+    5-wide state strip vs KPI §1.2 (max-3, pinned-while-signal, toggle-to-All — All-tap re-tap
+    semantics absent); generic `TableSkeleton` instead of page-shaped skeleton; single `loading`
+    boolean (no isFetching refetch pill, §1.6); mega-shadows `0_24px_70px`/`0_18px_54px` and
+    arbitrary radii `rounded-[24px]/[40px]/[44px]`; legacy `squircle`/`hover-lift`/`hover-glow`
+    chrome in the grid; no `aria-sort`; no Requests-style keyboard list nav; `formatDate` without
+    the day-aware pattern; empty state not filter-aware; fallback vocabulary split ("Unlinked
+    visit" in Hospital column vs "Unknown Facility" in Location); Cost column always "-"
+    (dormant-column decision needed).
+
+### Click-test coverage
+
+PASSED live: state chips filter coherently (hero + list + counts agree); search-scoped stats stay
+coherent (Requests contract semantics); View modal opens via ModalShell; rail selection survives
+filter changes; pagination indicator honest (Page 1 of 9). NOT yet exercised: dark-mode parity,
+Edit/create submit paths (no live writes during audit), pagination navigation, sort correctness
+per column, keyboard-only walk.
