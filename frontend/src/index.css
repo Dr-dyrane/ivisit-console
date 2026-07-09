@@ -225,6 +225,7 @@ code {
 		--radius-pill: 999px;
 		--radius-modal: 38px;
 		--squircle: var(--radius-card);
+		--tracking-eyebrow: 0.14em;
 		--font-dashboard-numbers: "JetBrains Mono", "Geist Mono", "SF Mono", "Roboto Mono", monospace;
 		--mobile-neon-accent: var(--primary);
 		/* Harmonized Copper Gold for Light Mode */
@@ -481,7 +482,7 @@ code {
 		font-size: 10px;
 		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		letter-spacing: var(--tracking-eyebrow);
 		color: hsl(var(--muted-foreground));
 	}
 

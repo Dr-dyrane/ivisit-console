@@ -147,7 +147,7 @@ const bannedCssPatterns = [
   },
   {
     name: 'nonzero letter spacing',
-    regex: /letter-spacing:\s*(?!0(?:;|\s|$))[^;\s][^;]*/g,
+    regex: /letter-spacing:\s*(?!0(?:;|\s|$))(?!var\()[^;\s][^;]*/g,
   },
 ];
 

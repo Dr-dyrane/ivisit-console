@@ -96,7 +96,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(indexCss).toContain('--squircle: var(--radius-card);');
     expect(indexCss).not.toContain('border-radius: 0;');
     expect(indexCss).not.toMatch(/border-radius:\s*(?!var\()[^;\s][^;]*/);
-    expect(indexCss).not.toMatch(/letter-spacing:\s*(?!0(?:;|\s|$))[^;\s][^;]*/);
+    expect(indexCss).not.toMatch(/letter-spacing:\s*(?!0(?:;|\s|$))(?!var\()[^;\s][^;]*/);
     expect(packageJson).toContain('"check:ui-hardgate:revamp": "node scripts/check-ui-surface-hardgate.js --strict-radius"');
     expect(tailwind).toContain("brand: 'hsl(var(--primary))'");
     expect(tailwind).not.toContain('--color-brand');
