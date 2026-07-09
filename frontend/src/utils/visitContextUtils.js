@@ -118,9 +118,12 @@ export const fetchEmergencyContext = async (requestId) => {
  */
 export const formatVisitDateTime = (visit) => {
   if (!visit) return '';
-  
-  // Use created_at as primary source, fallback to date fields
-  const dateSource = visit.created_at || visit.date;
+
+  // Prefer the clinical `date` field: this value pre-fills the edit form and is
+  // written back into `payload.date` on save, so preferring `created_at` here
+  // corrupted the scheduled visit date with the row-creation timestamp.
+  // `created_at` is only a fallback for legacy rows that never got a date.
+  const dateSource = visit.date || visit.created_at;
   if (!dateSource) return '';
   
   // Handle ISO dates directly

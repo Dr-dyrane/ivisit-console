@@ -7,8 +7,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { Calendar, User, Hospital, Clock, FileText, Siren } from 'lucide-react';
+import { Calendar, User, Hospital, Clock, FileText, Siren, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
@@ -99,7 +98,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
         user_id: visit.user_id || prev.user_id,
         hospital_id: visit.hospital_id || prev.hospital_id,
         visit_type: visit.visit_type || visit.type || 'checkup',
-        status: visit.status || 'scheduled',
+        // 'upcoming' is a legacy alias of 'scheduled' (canonicalizeVisitStatus);
+        // map it here so the status Select (which only offers 'Scheduled') stays coherent.
+        status: String(visit.status || '').toLowerCase() === 'upcoming'
+          ? 'scheduled'
+          : (visit.status || 'scheduled'),
         date: formattedDate,
         room_number: visit.room_number || prev.room_number || '',
         cost: visit.cost || prev.cost || '',
@@ -152,7 +155,6 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       delete submitData.profiles;
       delete submitData.hospitals;
       delete submitData.user_email;
-      delete submitData.user_email;
       delete submitData.hospital_name;
       delete submitData.hospital; // Remove hospital text field to prevent UUID conflicts
 
@@ -162,11 +164,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       }
 
       await onSave(submitData);
-      toast.success(isCreate ? 'Visit scheduled successfully' : 'Visit updated successfully');
+      // Single toast owner is the page (VisitsPage.handleSaveVisit toasts
+      // success and error itself, then re-throws) -- toasting here duplicated
+      // every notification (V-16). The modal only closes on success and
+      // stays open on failure so edits are not lost.
       onClose(true);
     } catch (error) {
       console.error('Error saving visit:', error);
-      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }
@@ -228,7 +232,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           <SelectTrigger className="rounded-2xl bg-muted/30 h-14 font-normal">
                             <SelectValue placeholder="Select patient" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
                             {users.map(u => (
                               <SelectItem key={u.id} value={u.id}>
                                 <div className="flex items-center gap-2">
@@ -279,7 +283,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           <SelectTrigger className="rounded-2xl bg-muted/30 h-12 md:h-14 font-normal">
                             <SelectValue placeholder="Select facility" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
                             {hospitals.map(h => (
                               <SelectItem key={h.id} value={h.id}>
                                 <div className="flex items-center gap-2">
@@ -310,7 +314,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
                             <SelectItem value="checkup">Checkup</SelectItem>
                             <SelectItem value="Regular Checkup">Regular Checkup</SelectItem>
                             <SelectItem value="emergency">Emergency</SelectItem>
@@ -339,9 +343,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
+                            {/* 'upcoming' canonicalizes to 'scheduled' (visitStatus.js), so offering
+                                both was a vocabulary leak; prefill maps upcoming -> scheduled. */}
                             <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="upcoming">Upcoming</SelectItem>
                             <SelectItem value="in_progress">In Progress</SelectItem>
                             <SelectItem value="completed" disabled>Completed</SelectItem>
                             <SelectItem value="cancelled" disabled>Cancelled</SelectItem>
@@ -373,18 +378,19 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="reason" className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.reason || 'No reason recorded'} icon={<FileText className="h-4 w-4" />} />
-                      ) : (
-                        <Input
-                          id="reason"
-                          name="reason"
-                          value={formData.reason || ''}
-                          onChange={handleChange}
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-normal"
-                          placeholder="e.g., Annual checkup"
-                        />
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
+                      {/* Read-only until command authority is proved (2026-07-09 arbitration):
+                          the visits write whitelist is contract-locked by design and silently
+                          drops `reason`, so an editable field here would lie about what saving
+                          does. Reason is owned by the care flow that created the visit. */}
+                      <ReadOnlyField
+                        value={formData.reason || (isCreate ? 'Not set' : 'No reason recorded')}
+                        icon={<FileText className="h-4 w-4" />}
+                      />
+                      {!isView && (
+                        <p className="text-xs text-muted-foreground">
+                          Reason is set by the care flow.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -498,13 +504,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 {loadingContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Loading Incident Context">
                     <div className="flex items-center justify-center py-8">
-                      <div className="animate-pulse rounded-full h-6 w-6 bg-red-500/20 shadow-[inset_0_0_0_4px_rgba(239,68,68,0.32)]"></div>
+                      <div className="animate-pulse rounded-full h-6 w-6 bg-red-500/20 "></div>
                     </div>
                   </GlassCard>
                 ) : emergencyContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
                     <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-red-500/5 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.10)]">
+                      <div className="p-4 rounded-2xl bg-red-500/5 ">
                         <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Original Situation Report</p>
                         <p className="text-sm leading-relaxed italic">"{emergencyContext.emergency?.description || 'No description provided'}"</p>
                       </div>
@@ -564,7 +570,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8"
                         disabled={loading}
                       >
-                        {loading ? 'Saving...' : (isCreate ? 'Schedule Visit' : 'Save Changes')}
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                            Saving...
+                          </>
+                        ) : (isCreate ? 'Schedule Visit' : 'Save Changes')}
                       </Button>
                     </>
                   ) : (
@@ -602,7 +613,7 @@ const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
     : String(value || 'Not set');
 
   return (
-    <div className={`flex gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-sm shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.05)] ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
+    <div className={`flex gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-sm ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
       {icon && (
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background/50 text-muted-foreground">
           {icon}
