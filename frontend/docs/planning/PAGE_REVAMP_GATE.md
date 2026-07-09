@@ -3052,6 +3052,25 @@ on create (the old `|| user.id` fallback silently wrote the operator as the pati
 audit S11.3). Mobile interface request honored: `MobileVisits` now receives `isFetching`, `count`,
 and `viewerIsDoctor`. Contract pins for the retired view modes moved same-commit.
 
+Donor-parity pass, 2026-07-09 (same day, after the conversion): full side-by-side against
+`EmergencyRequestsPage` (the gold standard) per the user's compare-everything direction. Adopted:
+the full-bleed stage (`VisitsAtlasLayer` with the donor's sanctioned ambient tint verbatim,
+`ConsoleModuleRail` wayfinding dock with `activePath="/visits"`, full-height flex), the donor rail
+spec (frosted `rounded-sheet` 380/440px aside, drag handle, heading + display_id + `CopyChip`,
+status pill with icon, lifecycle stage strip scheduled->active->done, S1.4 inset hero with toned
+avatar, `DetailLine`-parity film rows), keyboard list navigation + page-change scroll reset +
+right-click row focus, honest failure triplet (loadError signal hero, failed-empty destructive
+card, partial-failure banner, Couldn't-load count row), status-toned row avatars + e2 pill
+shadows + 80px rows, live-chip refetch spinner, realtime INSERT arrival toast (10s throttle),
+`aria-haspopup`/`aria-expanded` on Filters, and the donor's frosted surfaces (blur re-sanctioned
+via positive contract pins for exactly the sheet/rail/tile strings). **Intentional divergences
+(all domain-argued):** no bulk select/cancel (Visits is fail-closed on destructive/terminal
+actions), no 'Mine' chip (responder providers are excluded from Visits entirely), no payment/cash
+chips and no reverse-geocoded location (visits carry neither payments nor coordinates), rail
+actions are View/Edit only (outcomes locked pending receiver proof), row sub-line is email not
+phone (the enriched profile carries email). Lesson 25 (donor-parity checklist) distilled from
+this pass in `docs/ui-ux/UIUX_REVAMP_PROCESS_AND_LESSONS.md`.
+
 Remaining guarded constraints after Page 7 admission:
 
 - Prove a delete receiver/RLS/app consequence before reintroducing single delete or bulk delete; no clinical/history-adjacent destructive action can ship on UI visibility alone.

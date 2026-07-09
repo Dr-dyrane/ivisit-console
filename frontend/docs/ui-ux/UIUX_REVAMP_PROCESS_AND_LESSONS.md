@@ -251,6 +251,30 @@ For **every page** we finish designing, before calling it done:
     (f) **Per-role nav slates live in config with dead-tap prevention** — every slate slot must
     survive the routes.jsx gate (sponsor/viewer lost Map slots that landed on /unauthorized);
     each exclusion carries a comment citing the gate that would bounce it.
+25. **DONOR PARITY IS THE DEFAULT — converting a page to the gold standard means adopting the
+    donor's ENTIRE anatomy, then writing the intentional-divergence list.** The Visits conversion
+    shipped canon-clean innards (chips, rows, rail recipe) but missed the STAGE — no atlas
+    backdrop, no wayfinding dock, wrong rail width/radius, no keyboard nav, no failed-empty
+    states, no CopyChip/stage-strip, no arrival toast. The user had to say "there is a reason we
+    use the Requests page as an example — compare everything so I don't microinstruct." The rule:
+    before calling a conversion done, diff it against the donor across this checklist and either
+    ADOPT (copy the donor's classes/structure verbatim) or RECORD the divergence with its reason
+    in the gate ledger. **Checklist:** (1) macro stage — atlas layer, ConsoleModuleRail dock,
+    full-bleed flex, content column, rail width/height/radius; (2) signal panel — signature,
+    shimmer skeleton, loadError honest hero, min-heights; (3) KPI strip — smart-select, tile
+    classes, live-chip refetch spinner; (4) toolbar — debounced search, refresh, Filters
+    (aria-haspopup/expanded), primary command; (5) count row — loading/failed/normal triplet +
+    Updating pill; (6) list container — scroll ref, tabIndex, aria-label, keyboard nav
+    (arrows/Enter/Escape), page-change scroll reset; (7) rows — grid cols, min-height, toned
+    avatar, pill shadows, hover/selected states, double-click, right-click focus, aria-pressed;
+    (8) states — page-shaped skeleton, filter-aware empty, failed-empty card, partial-failure
+    banner; (9) rail — container spec, drag handle, heading + id + CopyChip, status pill + icon,
+    lifecycle stage strip, S1.4 inset hero + film rows, action button classes, locked-actions
+    line; (10) realtime — refetch wiring + INSERT arrival toast (throttled); (11) a11y sweep of
+    every aria the donor carries. Divergences must be *arguable from the domain* (Visits: no
+    bulk-select/cancel — fail-closed; no Mine chip — responders excluded from Visits entirely;
+    no payment/cash chips or reverse geocode — visits carry neither; View/Edit-only rail —
+    terminal outcomes locked), never from omission.
 
 ---
 
