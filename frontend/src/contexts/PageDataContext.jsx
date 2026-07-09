@@ -189,6 +189,11 @@ export const PageDataProvider = ({ children }) => {
   const [servicePricing, setServicePricing] = useState([]);
   const [roomPricing, setRoomPricing] = useState([]);
   const [domainErrors, setDomainErrors] = useState({});
+  // Per-domain in-flight map ({ [domain]: boolean }) - true while that domain's
+  // fetch is running (initial load OR background refetch), false once it settles
+  // (success or error). Keys mirror the markDomainError/domainErrors domain names
+  // so consumers can correlate loading, error, and data per slice.
+  const [domainFetching, setDomainFetching] = useState({});
 
   const clearDomainError = useCallback((domain) => {
     setDomainErrors((current) => {
@@ -206,11 +211,26 @@ export const PageDataProvider = ({ children }) => {
     }));
   }, []);
 
+  const markDomainFetchStart = useCallback((domain) => {
+    setDomainFetching((current) => {
+      if (current[domain] === true) return current;
+      return { ...current, [domain]: true };
+    });
+  }, []);
+
+  const markDomainFetchSettled = useCallback((domain) => {
+    setDomainFetching((current) => {
+      if (!current[domain]) return current;
+      return { ...current, [domain]: false };
+    });
+  }, []);
+
   // Fetch emergency data
   // Fetch emergency data
   const fetchEmergencyData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('emergency');
 
       if (useMockData) {
         setEmergencyData(mockEmergencyData);
@@ -255,13 +275,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('emergency', error);
       setEmergencyData({ stats: null, recent: [] });
     } finally {
+      markDomainFetchSettled('emergency');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchVerificationData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('verification');
 
       if (useMockData) {
         setVerificationData(mockVerificationData);
@@ -281,13 +303,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('verification', error);
       setVerificationData(null);
     } finally {
+      markDomainFetchSettled('verification');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchDoctorsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('doctors');
 
       if (useMockData) {
         setDoctorsData(mockDoctorsData);
@@ -320,13 +344,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('doctors', error);
       setDoctorsData(null);
     } finally {
+      markDomainFetchSettled('doctors');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchVisitsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('visits');
 
       if (useMockData) {
         setVisitsData(mockVisitsData);
@@ -349,13 +375,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('visits', error);
       setVisitsData(null);
     } finally {
+      markDomainFetchSettled('visits');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchAnalyticsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('analytics');
 
       if (useMockData) {
         setAnalyticsData(mockAnalyticsData);
@@ -384,13 +412,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('analytics', error);
       setAnalyticsData(null);
     } finally {
+      markDomainFetchSettled('analytics');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchHospitalsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('hospitals');
 
       if (useMockData) return;
 
@@ -416,13 +446,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('hospitals', error);
       setHospitalsData({ stats: null, recent: [] });
     } finally {
+      markDomainFetchSettled('hospitals');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchAmbulancesData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('ambulances');
 
       if (useMockData) return;
 
@@ -455,13 +487,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('ambulances', error);
       setAmbulancesData({ stats: null, recent: [] });
     } finally {
+      markDomainFetchSettled('ambulances');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchUsersData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('users');
 
       if (useMockData) {
         setUserData({ users: [], statistics: null });
@@ -504,13 +538,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('users', error);
       setUserData({ users: [], statistics: null });
     } finally {
+      markDomainFetchSettled('users');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchSupportTicketsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('supportTickets');
 
       if (useMockData) {
         setSupportTicketsData(mockSupportTicketsData);
@@ -554,13 +590,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('supportTickets', error);
       setSupportTicketsData(null);
     } finally {
+      markDomainFetchSettled('supportTickets');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchInsurancePolicies = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('insurance');
 
       if (useMockData) {
         setInsurancePolicies([]);
@@ -578,14 +616,16 @@ export const PageDataProvider = ({ children }) => {
       setInsurancePolicies([]);
       setInsurancePageStats(null);
     } finally {
+      markDomainFetchSettled('insurance');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchWalletData = useCallback(async () => {
     try {
       if (!user || !profile) return;
       setPageLoading(true);
+      markDomainFetchStart('wallet');
 
       const data = await getWalletContextData({
         profile,
@@ -599,13 +639,15 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('wallet', error);
       setWalletData({ wallet: null, ledger: [], projection: 0 });
     } finally {
+      markDomainFetchSettled('wallet');
       setPageLoading(false);
     }
-  }, [clearDomainError, isAdmin, markDomainError, profile, user]);
+  }, [clearDomainError, isAdmin, markDomainError, markDomainFetchSettled, markDomainFetchStart, profile, user]);
 
   const fetchActivityData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('activity');
       if (useMockData) {
         setActivityData([]);
         return;
@@ -616,13 +658,15 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching activity data:', error);
       setActivityData([]);
     } finally {
+      markDomainFetchSettled('activity');
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchPricingData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('pricing');
       if (useMockData) return;
 
       const [services, rooms] = await Promise.all([
@@ -638,13 +682,15 @@ export const PageDataProvider = ({ children }) => {
       setServicePricing([]);
       setRoomPricing([]);
     } finally {
+      markDomainFetchSettled('pricing');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   const fetchOrganizationsData = useCallback(async () => {
     try {
       setPageLoading(true);
+      markDomainFetchStart('organizations');
       if (useMockData) return;
 
       const data = await getOrganizations({ quiet: true });
@@ -660,9 +706,10 @@ export const PageDataProvider = ({ children }) => {
       markDomainError('organizations', error);
       setOrganizationsData({ organizations: [], stats: null });
     } finally {
+      markDomainFetchSettled('organizations');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
 
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
@@ -1064,6 +1111,46 @@ export const PageDataProvider = ({ children }) => {
   const getEmergencyStats = useCallback(() => emergencyStats, [emergencyStats]);
   const getInsuranceStats = useCallback(() => insuranceStats, [insuranceStats]);
 
+  // Per-domain initial-load map ({ [domain]: boolean }) - true only while a
+  // domain's fetch is in flight AND its slice still holds the initial no-data
+  // state. The slices have no cache layer, so "initial load" is derived from
+  // each slice's initial state shape; background refetches over existing data
+  // stay visible on domainFetching only. Same domain keys as domainErrors.
+  const domainLoading = useMemo(() => ({
+    emergency: Boolean(domainFetching.emergency) && emergencyData?.stats == null && (emergencyData?.recent?.length || 0) === 0,
+    verification: Boolean(domainFetching.verification) && verificationData == null,
+    doctors: Boolean(domainFetching.doctors) && doctorsData == null,
+    visits: Boolean(domainFetching.visits) && visitsData == null,
+    analytics: Boolean(domainFetching.analytics) && analyticsData == null,
+    supportTickets: Boolean(domainFetching.supportTickets) && supportTicketsData == null,
+    hospitals: Boolean(domainFetching.hospitals) && hospitalsData?.stats == null && (hospitalsData?.recent?.length || 0) === 0,
+    ambulances: Boolean(domainFetching.ambulances) && ambulancesData?.stats == null && (ambulancesData?.recent?.length || 0) === 0,
+    users: Boolean(domainFetching.users) && userData?.statistics == null && (userData?.users?.length || 0) === 0,
+    wallet: Boolean(domainFetching.wallet) && walletData?.wallet == null && (walletData?.ledger?.length || 0) === 0,
+    pricing: Boolean(domainFetching.pricing) && (servicePricing?.length || 0) === 0 && (roomPricing?.length || 0) === 0,
+    insurance: Boolean(domainFetching.insurance) && insurancePageStats == null && (insurancePolicies?.length || 0) === 0,
+    organizations: Boolean(domainFetching.organizations) && organizationsData?.stats == null && (organizationsData?.organizations?.length || 0) === 0,
+    activity: Boolean(domainFetching.activity) && (activityData?.length || 0) === 0,
+  }), [
+    domainFetching,
+    emergencyData,
+    verificationData,
+    doctorsData,
+    visitsData,
+    analyticsData,
+    supportTicketsData,
+    hospitalsData,
+    ambulancesData,
+    userData,
+    walletData,
+    servicePricing,
+    roomPricing,
+    insurancePageStats,
+    insurancePolicies,
+    organizationsData,
+    activityData,
+  ]);
+
   // PULLBACK NOTE: Optimized context value to prevent excessive re-renders
   // OLD: useMemo with 30+ dependencies causing constant re-creation
   // NEW: Split into stable data and methods to minimize dependency churn
@@ -1095,6 +1182,10 @@ export const PageDataProvider = ({ children }) => {
 
     // Loading states
     loading: pageLoading,
+    // Per-domain loading (initial load only) and fetching (any in-flight fetch,
+    // incl. background refetches) maps; additive next to the legacy boolean.
+    domainLoading,
+    domainFetching,
     useMockData,
 
     // Mock data for reference
@@ -1127,6 +1218,8 @@ export const PageDataProvider = ({ children }) => {
     servicePricing,
     roomPricing,
     domainErrors,
+    domainLoading,
+    domainFetching,
     pageLoading,
     useMockData
   ]);
