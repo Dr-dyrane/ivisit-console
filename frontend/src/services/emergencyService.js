@@ -215,14 +215,15 @@ function calculateResponseTime(createdAt) {
   return Math.round(diffMs / 60000); // Convert to minutes
 }
 
+// Only real, meaningfully-orderable scalar columns (database.ts truth). Pruned per
+// the data-sync audit (S10.3): requester_name/requester_phone do not exist on
+// emergency_requests, and patient_location is PostGIS geography — wiring any of
+// them into a sort would throw a raw PostgREST column error at the user.
 const EMERGENCY_REQUEST_SORT_FIELDS = new Set([
   'created_at',
   'display_id',
-  'requester_name',
   'service_type',
   'status',
-  'requester_phone',
-  'patient_location',
   'hospital_name',
   'payment_status',
 ]);

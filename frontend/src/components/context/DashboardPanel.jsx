@@ -58,9 +58,6 @@ const CurrentListRow = ({ row, onOpen, routingPath }) => {
       {...(canOpen
         ? { type: 'button', onClick: () => onOpen(row.path), whileTap: { scale: 0.99 }, 'aria-label': `Open ${row.label || 'Today item'}` }
         : {})}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
       data-state={state}
       className={`group w-full rounded-inner bg-card/60 p-3 text-left shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 dark:bg-white/[0.05] ${
         canOpen ? 'hover:-translate-y-0.5 hover:bg-card/80 focus-visible:bg-foreground/10 dark:hover:bg-white/[0.08]' : ''
@@ -129,10 +126,8 @@ export const DashboardPanel = ({ todayContext }) => {
 
   return (
     <div className="space-y-3">
+      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
       <motion.section
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.22 }}
         className="space-y-3"
         aria-label="Today overview"
       >
@@ -186,7 +181,7 @@ export const DashboardPanel = ({ todayContext }) => {
               key={action.path}
               type="button"
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handlePanelAction(action)}
               disabled={action.disabled}
               data-state={action.disabled ? 'unavailable' : context.routingPath === action.path ? 'opening' : 'idle'}

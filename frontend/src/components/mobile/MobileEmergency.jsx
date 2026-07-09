@@ -238,6 +238,23 @@ export const MobileEmergency = ({
     const showSkeleton = warmingUp || (loading && displayItems.length === 0);
     const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';
     const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';
+    // Search debounce: typing edits a local draft; the server filter (and its
+    // network refetch) commits 300ms after the last keystroke instead of per
+    // character. External writes (Clear Search recovery) sync back into the draft.
+    const [searchDraft, setSearchDraft] = useState(filters?.search || '');
+    useEffect(() => {
+        setSearchDraft(filters?.search || '');
+    }, [filters?.search]);
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setFilters?.((prev) => {
+                if ((prev?.search || '') === searchDraft) return prev;
+                return { ...prev, search: searchDraft };
+            });
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [searchDraft, setFilters]);
+
     // Transcribe the active request's coordinates into a place label (same
     // Google -> Nominatim chain the desktop rail uses). Lives at the top level
     // because the detail-sheet render below is an inline IIFE (no hooks there);
@@ -322,14 +339,18 @@ export const MobileEmergency = ({
                                     type="text"
                                     inputMode="search"
                                     placeholder="Search requests..."
-                                    value={filters?.search || ''}
-                                    onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
+                                    value={searchDraft}
+                                    onChange={(event) => setSearchDraft(event.target.value)}
                                     className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-10 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
                                 />
-                                {filters?.search && (
+                                {searchDraft && (
                                     <button
                                         type="button"
-                                        onClick={() => setFilters?.((prev) => ({ ...prev, search: '' }))}
+                                        onClick={() => {
+                                            // Clear commits immediately (no debounce wait).
+                                            setSearchDraft('');
+                                            setFilters?.((prev) => ({ ...prev, search: '' }));
+                                        }}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-pill bg-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/15 active:scale-95"
                                         aria-label="Clear search"
                                     >
