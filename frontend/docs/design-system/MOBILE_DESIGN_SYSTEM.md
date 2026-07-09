@@ -12,11 +12,14 @@
 > **Authority:** where the older `APPLE_GLASS_DESIGN_SYSTEM.md` / `DYRANE_UI_DESIGN_SYSTEM.md`
 > disagree with this doc, **this doc wins** for mobile. They are kept for history.
 
-Status: **DRAFT v1.1 — 2026-07-09.** Layers 4 (components) largely ✅ from the rollout;
+Status: **DRAFT v1.2 — 2026-07-09.** Layers 4 (components) largely ✅ from the rollout;
 Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation work.
-**2026-07-09:** the Requests-proven canon is folded in — surface token system (§2), loading &
+**v1.1 (2026-07-09):** the Requests-proven canon is folded in — surface token system (§2), loading &
 refetch model (§5), KPI-scope + empty/error rules (§5), search field + Updating pill (§3),
 dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.jsx`.
+**v1.2 (2026-07-09):** the Today-proven dashboard canon — page-type grammar LIST vs DASHBOARD (§5),
+no-all-caps typography (§3), prop-driven mobile presentation (§8), dock-slot ranking +
+context-aware top bar (§6). Second reference page: `src/components/mobile/MobileToday.jsx`.
 
 ---
 
@@ -60,6 +63,31 @@ dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.j
   mounts); content replaces it in place with zero layout jump; NO entrance
   translate/stagger/fade-from-blank. Background refetches surface as the "Updating" pill
   (`isFetching`), never a re-skeleton. Full model in §5.
+- **2026-07-09 · No all-caps subtext or subheadings** — mobile renders no uppercase subtext or
+  section subheadings, anywhere. The first question for a section label is whether to render it
+  at all: whitespace + grouping guide first (Today's 'AT A GLANCE' label was **removed**, not
+  recased). Data-tile labels are sentence-case (`text-[11px] font-medium text-muted-foreground`
+  over the value); list group headers are sentence-case **bold** (`text-[13px] font-bold`,
+  Requests' recency labels). `.eyebrow` (the uppercase micro-label) survives ONLY as established
+  detail furniture (sheet captions, fact-tile labels) — never as a section subheading.
+  Supersedes the earlier "eyebrow for captions everywhere" reading of §1/§3. Full vocabulary in §3.
+- **2026-07-09 · Page-type grammar (LIST vs DASHBOARD)** — the mobile canon has TWO reference
+  implementations, chosen by page identity and never mixed. LIST (`MobileEmergency.jsx`): KPI
+  chip rail + search + grouped recency list + detail sheets. DASHBOARD (`MobileToday.jsx`):
+  signal-first hero + 2-up glance NAVIGATION tiles + action-row sheet with in-place expansion +
+  generous `space-y-8` rhythm. Dashboard tiles NAVIGATE — they never filter; no KPI filter
+  strips on dashboards, no glance tiles on lists. Full grammar in §5.
+- **2026-07-09 · Mobile surfaces are prop-driven presentation** — the mobile surface of a
+  desktop page holds ZERO data logic; the desktop page stays the single model owner (counts,
+  signal copy, context-panel publishing) and passes the computed model down (anti-drift: one
+  model, two renders). Contract documented in `MobileToday.jsx`'s header JSDoc; fork lives in
+  `TodayHome.jsx` (return-only, after every hook). Full rule in §8.
+- **2026-07-09 · Dock slots rank by operational importance; top bar is context-aware** —
+  Settings never holds a dock slot by right (the avatar sheet owns overflow —
+  `MOBILE_NAV_CHROME.overflowOwner: 'avatar'`, `src/config/mobileNavigation.js`); admin dock =
+  Today / Requests / Approvals / Map. Top bar (`SmartHeader.jsx`): on home ('/') the avatar
+  owns the LEFT section (no history to render); on subpages it yields left to the back +
+  previous-route chip and sits right. Details in §6.
 
 ## 0. Principles (the feel)
 
@@ -94,7 +122,7 @@ dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.j
 | **Glass** | ONE recipe: `chrome-glass` (0.68 / blur 24 / sat 180%) + `chrome-glass-strong` (0.80 / blur 36). Frosted, borderless, `+ chrome-float` shadow. Content/controls = opaque (no blur). | ✅ collapsed 2026-07-08 — `apple-glass*` stripped of blur → opaque aliases; `chrome-glass` is the sole frosted recipe (legacy unused `glass-surface` remains, out of mobile scope) |
 | **Surfaces** | GROUND `bg-background` · RAISED `.surface-card` (fg/0.05 light · white/0.07 dark) · GLASS `chrome-glass` (chrome only) · HAIRLINE `--muted-foreground/0.08` · backdrop scrim `bg-black/[0.46] backdrop-blur-sm`. Full system → §2. | ✅ tokenized (`index.css` "Mobile surface system" block, 2026-07-09) · ◐ adoption sweep (Requests panels/chips still inline the film) |
 | **Spacing** | 4px grid (ivisit-app `SPACING xs4 sm8 md16 lg24 xl32`); mobile section rhythm 20/12/8. | ☐ not tokenized (inline) |
-| **Typography** | scale: title 27–34 / h2 20 / body 15 / meta 12 / caption(eyebrow) 10–11 uppercase `tracking-[0.14em]`. | ☐ not tokenized (inline per component) |
+| **Typography** | scale: title 27–34 / h2 20 / body 15 / meta 12 / caption 10–11. **Casing (2026-07-09):** no all-caps subtext/subheadings — the uppercase `.eyebrow` caption survives only as established detail furniture (§3); section labels are sentence-case or not rendered at all. | ◐ `.eyebrow`/`.text-identity`/`.text-meta` tokenized; scale otherwise inline per component |
 | **Elevation** | soft: row `0 4px 10px /0.03`, card `0 22px 64px /0.14`, float `chrome-float`. app web shadow `0 18px 36px /0.18`. | ◐ inline; not tokenized |
 | **Motion** | **spring `{stiffness:168, damping:30, mass:0.9}`**, ease `[0.21,0.47,0.32,0.98]`, sheet-snap `[0.21,0.47,0.32,0.98]`, press controls `0.96` / cards `0.988`. | ⚠️ **`mobileMotion.js` uses ease `[0.22,1,0.36,1]` + durations — NOT the canon. Align.** |
 
@@ -140,7 +168,9 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 
 | Element | Canon | Status |
 |---|---|---|
-| **Eyebrow / caption** | `text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground` | ☐ used everywhere inline → make `.eyebrow` utility |
+| **Eyebrow / caption** | `.eyebrow` utility (`index.css`): `text-[10px] font-semibold uppercase tracking-[var(--tracking-eyebrow)] text-muted-foreground`. **Demoted 2026-07-09:** survives ONLY where it is already established detail furniture — `MobileDetailSheet` caption, `MobileDetailIslands` fact labels, `MobileListStates` copy — NEVER a section subheading or new subtext. | ✅ utility exists · scope frozen (no new call sites); pages still using it as a list group header (HealthNews, SupportTickets) are off-canon → migrate to the group header below on their next pass |
+| **Data-tile label** | sentence-case `text-[11px] font-medium text-muted-foreground`, sitting OVER the value (glance tiles — desktop `GlanceCard` parity) | ✅ (Today) |
+| **Group / section header** | sentence-case bold `text-[13px] font-bold text-muted-foreground` + tabular count (Requests' recency labels); where whitespace + grouping already guide, render NO label at all (Today's glance grid carries none) | ✅ (Requests · Today) |
 | **Identity text** | primary `text-[15px] font-semibold line-clamp-2`; secondary/meta `text-sm/text-xs text-muted-foreground` | ◐ (row-level, not a shared text primitive) |
 | **Button** | filled-primary (brand + `0 8px 18px tone/0.30` glow), ghost, destructive; h≥44, `rounded-button`, graduated press | ◐ `ui/button` + `MobileSheetActions` (CTA group) — no documented mobile button set |
 | **Status pill** | `rounded-pill px-2.5 py-1 text-[11px] font-semibold` + `resolveVital().pill` tone | ✅ (`statusPill` prop) |
@@ -190,9 +220,25 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
   (count, empty copy, hero); fallbacks are neutral, never a specific entity. ✅ (Requests) —
   apply per page
 
+### Page-type grammar — LIST vs DASHBOARD (canon, locked 2026-07-09)
+
+Every mobile page speaks ONE of two grammars, chosen by page identity — never mixed.
+
+| | **LIST-type** | **DASHBOARD-type** |
+|---|---|---|
+| Reference | `src/components/mobile/MobileEmergency.jsx` (Requests) | `src/components/mobile/MobileToday.jsx` (Today) |
+| Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) |
+| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page |
+| Disclosure | detail bottom sheet per record (`MobileDetailSheet`) | action rows expand **in place** (chevron rotate + revealed action pill); a dashboard never opens record sheets |
+| Rhythm | grouped panels, `space-y-[18px]` | generous `space-y-8` — welcoming, easy on the eye, guiding |
+
+No KPI filter strips on dashboards; no glance tiles on lists. A page that seems to want both
+is two pages. (Both grammars share the same loading model below — Today's skeleton mirrors
+its hero/tiles/sheet 1:1 exactly as Requests' mirrors its grouped list.)
+
 ### Loading & refetch model (canon)
 
-Reference: `src/components/mobile/MobileEmergency.jsx`.
+Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components/mobile/MobileToday.jsx` (dashboard).
 
 1. **Skeleton-first on EVERY mount.** A forced warm-up guarantees the skeleton on cached
    bottom-nav mounts too, not just hard refresh — without it, a page mounting with cached
@@ -216,7 +262,17 @@ Reference: `src/components/mobile/MobileEmergency.jsx`.
 ## 6. Navigation
 
 - **Mobile:** frosted **island** (nav pill) + route **FAB** (`DynamicBottomBar`) — the app's split. ✅
+- **Dock slots rank by OPERATIONAL importance per role** (locked 2026-07-09;
+  `src/config/mobileNavigation.js`). Settings never holds a slot by right — the avatar sheet
+  owns overflow (`MOBILE_NAV_CHROME.overflowOwner: 'avatar'`; no bottom menu button). Admin
+  (re-ranked) = **Today / Requests / Approvals / Map** — the Today hero's own signals, then map;
+  Settings stays reachable via the avatar sheet. ✅ admin · ◐ the other role slates still seat
+  Settings in their fourth slot — re-rank each as its role home lands.
 - **Header:** shell `SmartHeader` (frosted, scroll-hide); back + avatar + route actions. ◐ (mobile header glass parity)
+- **Context-aware top bar** (locked 2026-07-09; `SmartHeader.jsx`): on home (`/`) the avatar
+  (account-menu trigger) owns the **LEFT** section — there is no history to render; on subpages
+  it yields left to the back + previous-route chip (`getRouteLabel(previousPath)`) and joins the
+  right cluster (search · notifications · avatar). ✅
 - **Detents (future):** app-style peek/half/full for the map/large sheets. ☐
 
 ---
@@ -240,6 +296,13 @@ Reference: `src/components/mobile/MobileEmergency.jsx`.
 ## 8. Modularity & reusability rules
 
 - A page **composes** shell + primitives; it does not re-inline eyebrows/buttons/cards/tones.
+- **A mobile surface of a desktop page is a PROP-DRIVEN presentation component** (locked
+  2026-07-09). The desktop page stays mounted as the **single model owner**: it computes the
+  model ONCE (counts, signal copy, action rows), publishes the context-panel event, and passes
+  everything down as props; the mobile component duplicates **zero** data logic and never reads
+  PageData/Auth itself (anti-drift: one model, two renders). The `isMobile` fork is
+  return-only, after every hook and effect. Reference: `TodayHome.jsx` (owner) →
+  `MobileToday.jsx` (presentation; the prop contract lives in its header JSDoc).
 - Status/lifecycle presentation comes **only** from `constants/vitalTracks.js`.
 - Date grouping comes **only** from `utils/groupByMonth.js`.
 - Detail comes **only** through `MobileDetailSheet` (mobile) / detail rail (desktop).
@@ -258,6 +321,8 @@ Reference: `src/components/mobile/MobileEmergency.jsx`.
 ## 10. Parity checklist (Apple HIG / ivisit-app) — per new surface
 
 - [ ] ≥44pt tap targets · safe-area insets honored
+- [ ] ONE page grammar, matching page identity (LIST vs DASHBOARD, §5) — chips filter, tiles navigate, never mixed
+- [ ] no all-caps subtext/subheadings — section labels sentence-case or omitted; `.eyebrow` only in established detail furniture (§3)
 - [ ] GROUND/RAISED/GLASS surfaces (§2) · no borders / outlines / accent bars · hairline `/0.08` intra-group only
 - [ ] readable `line-clamp-2` identity · status = raw-hue pill
 - [ ] tap → bottom sheet (not dropdown) · grab handle + swipe-dismiss · accessible dialog name (`aria-labelledby` / `ariaLabel`)

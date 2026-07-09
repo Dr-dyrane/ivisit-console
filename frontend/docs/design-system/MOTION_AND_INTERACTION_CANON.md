@@ -78,6 +78,13 @@ never data. If a prior mockup or page staged its regions in on load, it is now o
   data (`loading` already false), so without a floor the page skips the skeleton and assembles
   cached content top-to-bottom. `SKELETON_WARMUP_MS` (400ms, `MobileEmergency.jsx`) forces
   skeleton-first-then-reveal so cached navigation is identical to a hard refresh.
+- **A responsive `isMobile` fork must be viewport-correct on the FIRST frame** (settled
+  2026-07-09, Today). Breakpoint state **lazy-inits from the real viewport** —
+  `useState(() => typeof window !== 'undefined' && window.innerWidth < 768)`
+  (`NavigationContext.jsx`) — never `useState(false)` + measure-in-effect. The false default
+  renders one desktop-tree frame on every mobile mount: desktop entrances start, then the fork
+  flips and replaces the tree mid-motion — the "stacking/skew on mount" defect. The `typeof
+  window` guard keeps tests/SSR safe; the resize listener still updates after mount.
 - **Refetch = glyph-swap, not overlay.** Background refetch (`isFetching`) swaps the glyph on the
   control that triggered the work for a spinner in place — `Loader2` + `animate-spin`, the
   Today/DashboardPanel pattern (`{busy ? <Loader2 className="animate-spin" /> : <Glyph />}`); on
@@ -104,6 +111,12 @@ Every interaction/visual fix must end with ONE of:
 
 No fix is "done" on parse+hardgate alone. And every decision here gets **visualized** (a mockup/spec) before build, and **written back into this canon** when settled.
 
+**Flagged ≠ fixed** (2026-07-09). An audit finding stays OPEN until a lane actually closes it —
+naming a defect in a doc or checklist changes nothing on screen. TodayHome's banned staged
+entrances were flagged and still survived **two** motion passes before the Today lane removed
+them (its hero now carries the §3 comment "Data regions never entrance-animate"). Track findings
+in the gate/checklist with an owner lane, and re-verify on the running surface when the lane lands.
+
 ---
 
 ## 5. Anti-patterns (the "sucks" list — do not ship)
@@ -111,6 +124,8 @@ No fix is "done" on parse+hardgate alone. And every decision here gets **visuali
 - A tappable element with no press response.
 - A data page that stage-reveals on load (top-to-bottom staggered/translated region entrances).
 - A fade-from-blank over cached data; a mount that skips the skeleton because data was cached.
+- A breakpoint fork initialized `useState(false)` + measure-in-effect — one wrong-viewport
+  desktop frame on every mobile mount whose entrances start before the swap (mount-skew).
 - A skeleton whose shape does not match the layout it is holding for.
 - A silent background refetch — no spinner on the triggering control, no "Updating" pill.
 - ease-in-out / linear UI motion; overshooting bouncy springs.
