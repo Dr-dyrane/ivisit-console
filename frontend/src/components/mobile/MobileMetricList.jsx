@@ -277,7 +277,7 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_3px_hsl(var(--foreground)/0.14)]' : isCurrentlyExpanded ? 'rounded-t-button bg-muted/80 shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'rounded-button bg-muted/50 active:bg-muted/70'
+                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_2px_hsl(var(--foreground)/0.12)]' : isCurrentlyExpanded ? 'rounded-t-button bg-card shadow-[0_6px_16px_rgb(0_0_0/0.05)] -translate-y-0.5' : 'rounded-button bg-card shadow-[0_4px_10px_rgb(0_0_0/0.03)] active:bg-muted/40'
                     }`}
                 style={{
                     WebkitTapHighlightColor: 'transparent',
@@ -309,10 +309,9 @@ export const MobileMetricRow = ({
                 {/* Borderless canon: status is carried by the icon tone + status pill,
                     never a left-side accent bar (CONSOLE_DESIGN_SYSTEM_FROM_APP.md). */}
                 <div
-                    className={`w-9 h-9 rounded-icon flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
+                    className={`w-9 h-9 rounded-icon flex items-center justify-center shrink-0 relative z-10 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
                     style={{
-                        background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
-                        boxShadow: isSelected ? `0 0 15px ${color.replace(/\)$/, ' / 0.4)')}` : 'none',
+                        background: `${color.replace(/\)$/, ' / 0.12)')}`,
                         boxShadow: isSelected ? `0 0 0 3px ${color.replace(/\)$/, ' / 0.16)')}` : 'none'
                     }}
                 >

@@ -84,9 +84,9 @@ export const MobileKPIStrip = ({
                             onClick={isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
                             aria-pressed={isActive}
                             data-state={isActive ? 'selected' : 'idle'}
-                            className={`shrink-0 flex items-center gap-2 rounded-pill px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition-[background,transform,box-shadow] duration-200 ease-out ${isActive
-                                ? 'bg-primary text-primary-foreground shadow-[0_8px_18px_hsl(var(--primary)/0.28)]'
-                                : 'bg-background/60 text-muted-foreground backdrop-blur-sm shadow-sm active:bg-background/80'
+                            className={`shrink-0 flex items-center gap-2 rounded-pill px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition-[background,transform] duration-200 ease-out ${isActive
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-background/60 text-muted-foreground backdrop-blur-sm active:bg-background/80'
                                 }`}
                             style={{ WebkitTapHighlightColor: 'transparent' }}
                         >

@@ -5,7 +5,6 @@ import {
     Ambulance,
     BedDouble,
     Calendar,
-    CheckCheck,
     ChevronRight,
     ClipboardCheck,
     Clock,
@@ -130,14 +129,6 @@ const getKpiValue = ({ id, statistics, emergencies }) => {
     return countNumber(statistics?.total, emergencies.length);
 };
 
-const mobileSignalTone = {
-    pending: 'bg-destructive/14 text-destructive shadow-[0_16px_42px_rgba(239,68,68,0.16)]',
-    clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-    active: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-    bed: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-    ambulance: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
-};
-
 const MobileRequestsAtlasLayer = () => (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
         <div
@@ -158,46 +149,6 @@ const MobileRequestsAtlasLayer = () => (
         />
     </div>
 );
-
-const getMobileRequestSignal = ({ kpis, kpiFilter }) => {
-    const activeId = kpiFilter || 'pending';
-    const active = kpis.find((item) => item.id === activeId) || kpis[0];
-    const count = countNumber(active?.value, 0);
-
-    if (active?.id === 'active') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} active request${count === 1 ? '' : 's'}` : 'No active requests',
-            subhead: count > 0 ? 'Check current care activity.' : 'Active requests will appear here.',
-        };
-    }
-
-    if (active?.id === 'bed') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} bed request${count === 1 ? '' : 's'}` : 'No bed requests',
-            subhead: count > 0 ? 'Review facility needs first.' : 'Bed requests will appear here.',
-        };
-    }
-
-    if (active?.id === 'ambulance') {
-        return {
-            ...active,
-            headline: count > 0 ? `${count} ambulance request${count === 1 ? '' : 's'}` : 'No ambulance requests',
-            subhead: count > 0 ? 'Check response state before acting.' : 'Ambulance requests will appear here.',
-        };
-    }
-
-    const hasPending = count > 0;
-    return {
-        ...active,
-        id: hasPending ? active.id : 'clear',
-        label: hasPending ? active.label : 'Clear',
-        icon: hasPending ? active.icon : CheckCheck,
-        headline: hasPending ? `${count} request${count === 1 ? '' : 's'} to review` : 'No requests need review',
-        subhead: hasPending ? 'Start with the newest request.' : 'Keep Requests open for new care needs.',
-    };
-};
 
 export const MobileEmergency = ({
     emergencies,
@@ -245,8 +196,7 @@ export const MobileEmergency = ({
         ...item,
         value: getKpiValue({ id: item.id, statistics, emergencies }),
     })), [statistics, emergencies]);
-    const signal = useMemo(() => getMobileRequestSignal({ kpis, kpiFilter }), [kpis, kpiFilter]);
-    const SignalIcon = signal.icon || AlertCircle;
+    const totalRequests = countNumber(statistics?.total, emergencies.length);
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
@@ -256,29 +206,16 @@ export const MobileEmergency = ({
             >
                 <MobileRequestsAtlasLayer />
                 <div className="relative z-10 space-y-5">
-                    {/* Compact signal header (title + subtitle). Replaces the old big 34px
-                        headline; the state filter now lives in the MobileKPIStrip chip row
-                        below, recycled from the shared mobile DS (see MobileSupportTickets). */}
                     <motion.section
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35 }}
-                        className="space-y-4 px-5"
+                        className="px-5"
                     >
-                        <div className="flex items-start gap-3">
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-button ${mobileSignalTone[signal.id] || mobileSignalTone.pending}`}>
-                                <SignalIcon size={18} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground">Requests</p>
-                                <h2 className="mt-1 text-2xl font-semibold leading-tight text-foreground">
-                                    {signal.headline}
-                                </h2>
-                                <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                                    {signal.subhead}
-                                </p>
-                            </div>
-                        </div>
+                        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {loading ? 'Loading requests...' : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
+                        </p>
                     </motion.section>
 
                     <MobileKPIStrip
@@ -338,8 +275,7 @@ export const MobileEmergency = ({
                             )}
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between px-2">
-                            <h2 className="text-lg font-semibold tracking-tight">Requests</h2>
+                        <div className="mt-4 flex items-center justify-end px-2">
                             {isBuffering && (
                                 <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                                     Updating

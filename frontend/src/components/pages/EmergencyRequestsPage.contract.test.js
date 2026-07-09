@@ -417,16 +417,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('aria-label={`Select ${patientName}`}');
     expect(pageSource).not.toContain('container mx-auto');
     expect(pageSource).not.toContain('inset_0_1px');
-    expect(mobileSource).toContain('getMobileRequestSignal');
     expect(mobileSource).toContain('return countNumber(statistics?.pending, rowCount);');
     expect(mobileSource).toContain("id: 'active'");
     expect(mobileSource).toContain("label: 'Active'");
     expect(mobileSource).toContain('return countNumber(statistics?.active, rowCount);');
-    expect(mobileSource).toContain("headline: count > 0 ? `${count} active request");
     expect(mobileSource).not.toContain("label: 'Critical care'");
     expect(mobileSource).not.toContain('emergencies.length > 0 ? rowCount : countNumber(statistics?.pending, rowCount)');
-    expect(mobileSource).toContain("id: hasPending ? active.id : 'clear'");
-    expect(mobileSource).toContain("label: hasPending ? active.label : 'Clear'");
     expect(mobileSource).toContain('const getMobileRequestAvatarClass = (request) =>');
     expect(mobileSource).toContain('const avatarClass = getMobileRequestAvatarClass(request);');
     expect(mobileSource).toContain('bg-emerald-500/10 text-emerald-700');
@@ -450,7 +446,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('data-mobile-request-row={request.id}');
     expect(mobileSource).toContain('onClick={() => onOpen(request)}');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
-    expect(mobileSource).toContain('className="space-y-4 px-5"');
+    expect(mobileSource).toContain('px-5');
+    expect(mobileSource).toContain('>Requests</h1>');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain('text-2xl font-semibold leading-tight');
     // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button

@@ -77,7 +77,6 @@ export const SmartHeader = () => {
         if (pathname.startsWith('/pricing')) return 'Pricing';
         return 'Back';
     };
-    const currentPageLabel = headerConfig?.title || getRouteLabel(location.pathname);
 
     return (
         <>
@@ -143,14 +142,7 @@ export const SmartHeader = () => {
                                 </span>
                             </div>
                         ) : (
-                            <div className="flex-1 flex items-center justify-center min-w-0 px-2">
-                                <div className="flex items-center px-2.5 py-1 rounded-pill backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] select-none min-w-0 max-w-full">
-                                    <span className="text-[12px] font-semibold tracking-tight text-foreground/85 inline-flex items-center min-w-0">
-                                        <span className="truncate">{currentPageLabel}</span>
-                                        <span className="text-primary leading-none shrink-0">.</span>
-                                    </span>
-                                </div>
-                            </div>
+                            null
                         )}
 
                         {/* RIGHT - search and notifications */}
