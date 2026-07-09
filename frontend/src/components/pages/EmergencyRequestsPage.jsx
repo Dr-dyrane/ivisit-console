@@ -520,6 +520,9 @@ export const EmergencyRequestsPage = () => {
   });
   const [completeModal, setCompleteModal] = useState({ open: false, request: null });
   const [retryModal, setRetryModal] = useState({ open: false, request: null, methods: [], selectedId: null });
+  // Retry is a direct service call (not a mutation hook), so pending is tracked
+  // manually — mirrors dispatchMutation.isPending / completeMutation.isPending.
+  const [retryPending, setRetryPending] = useState(false);
   const [routingPath, setRoutingPath] = useState(null);
 
   const queryClient = useQueryClient();
@@ -1098,6 +1101,7 @@ export const EmergencyRequestsPage = () => {
   }, []);
 
   const handleRetryPayment = useCallback(async (request, preferredPaymentMethodId = null) => {
+    if (retryPending) return false;
     const actionState = getEmergencyActionState(request);
     if (!actionState.canRetryPayment) {
       toast.info('This request is not ready for payment retry. Refreshing list...');
@@ -1113,6 +1117,7 @@ export const EmergencyRequestsPage = () => {
     }
 
     try {
+      setRetryPending(true);
       toast.loading('Preparing payment retry...', { id: 'retry-pay' });
 
       if (preferredPaymentMethodId) {
@@ -1148,8 +1153,10 @@ export const EmergencyRequestsPage = () => {
       console.error('Payment retry failed:', error);
       toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
       return false;
+    } finally {
+      setRetryPending(false);
     }
-  }, [fetchRequests]);
+  }, [fetchRequests, retryPending]);
 
   const closeRetryModal = useCallback(() => {
     setRetryModal({ open: false, request: null, methods: [], selectedId: null });
@@ -1160,6 +1167,7 @@ export const EmergencyRequestsPage = () => {
     closeRetryModal();
     if (!request?.id || !selectedId) return;
     try {
+      setRetryPending(true);
       toast.loading('Retrying payment...', { id: 'retry-pay' });
       await retryPaymentWithDifferentMethod(request.id, selectedId, request.user_id);
       toast.success('Payment retry created', { id: 'retry-pay' });
@@ -1167,6 +1175,8 @@ export const EmergencyRequestsPage = () => {
     } catch (error) {
       console.error('Payment retry failed:', error);
       toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
+    } finally {
+      setRetryPending(false);
     }
   }, [retryModal, fetchRequests, closeRetryModal]);
 
@@ -1207,6 +1217,7 @@ export const EmergencyRequestsPage = () => {
           isFetching={isFetching}
           dispatchPending={dispatchMutation.isPending}
           completePending={completeMutation.isPending}
+          retryPending={retryPending}
           stats={requestStats}
           filters={filters}
           setFilters={setFilters}
@@ -1344,7 +1355,7 @@ export const EmergencyRequestsPage = () => {
               type="button"
               className="flex-1 rounded-button font-bold"
               onClick={executeRetryPayment}
-              disabled={!retryModal.selectedId}
+              disabled={!retryModal.selectedId || retryPending}
             >
               Retry
             </Button>
@@ -1355,7 +1366,7 @@ export const EmergencyRequestsPage = () => {
           {retryModal.methods.map((method, index) => (
             <label
               key={method.id}
-              className={`flex cursor-pointer items-center gap-3 rounded-inner p-3 transition-colors ${retryModal.selectedId === method.id ? 'bg-primary/12 text-primary' : 'bg-muted/25 hover:bg-muted/40'}`}
+              className={`flex cursor-pointer items-center gap-3 rounded-inner p-3 transition-colors ${retryModal.selectedId === method.id ? 'bg-foreground/[0.06] text-foreground' : 'bg-muted/25 hover:bg-muted/40'}`}
             >
               <input
                 type="radio"
@@ -1380,6 +1391,7 @@ const RequestsDesktopWorkspace = ({
   isFetching = false,
   dispatchPending = false,
   completePending = false,
+  retryPending = false,
   stats,
   filters,
   setFilters,
@@ -1603,6 +1615,7 @@ const RequestsDesktopWorkspace = ({
           hasFilter={hasFilter}
           dispatchPending={dispatchPending}
           completePending={completePending}
+          retryPending={retryPending}
           onView={onView}
           onDelete={onDelete}
           onDispatch={onDispatch}
@@ -1755,14 +1768,32 @@ const RequestLoadNotice = ({ message, onRetry }) => (
   </div>
 );
 
-const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState, onRefresh, refreshing = false }) => (
+const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState, onRefresh, refreshing = false }) => {
+  // Debounced search: the input edits a local draft; the query filter (filters.search)
+  // commits 300ms after typing pauses — one refetch per pause, not per keystroke.
+  const [searchDraft, setSearchDraft] = useState(filters.search || '');
+
+  // Follow external changes (FilterSheet Clear, "Show all requests") into the draft.
+  useEffect(() => {
+    setSearchDraft(filters.search || '');
+  }, [filters.search]);
+
+  useEffect(() => {
+    if ((filters.search || '') === searchDraft) return undefined;
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchDraft }));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchDraft, filters.search, setFilters]);
+
+  return (
   <div className="flex items-center gap-3">
     <div className="relative flex-1">
       <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
       <input
         type="search"
-        value={filters.search || ''}
-        onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
+        value={searchDraft}
+        onChange={(event) => setSearchDraft(event.target.value)}
         placeholder="Search requests..."
         className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
       />
@@ -1792,7 +1823,8 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
       Filters
     </Button>
   </div>
-);
+  );
+};
 
 // Person | Status | Service | Facility | Time | Action — status owns its own column
 // (it used to hide stacked inside the Facility cell, under a header that lied).
@@ -1805,6 +1837,11 @@ const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = 
   const isSorted = sortConfig?.key === sortKey;
   const direction = isSorted ? sortConfig.direction : null;
   return (
+    // aria-sort lives on a columnheader-roled wrapper (§6 accessibility canon).
+    <span
+      role="columnheader"
+      aria-sort={isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
     <button
       type="button"
       onClick={() => onSort?.(sortKey)}
@@ -1819,6 +1856,7 @@ const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = 
         <ArrowUpDown className="h-3 w-3 opacity-40" />
       )}
     </button>
+    </span>
   );
 };
 
@@ -1968,6 +2006,7 @@ const RequestDetailRail = ({
   hasFilter = false,
   dispatchPending = false,
   completePending = false,
+  retryPending = false,
   onView,
   onDelete,
   onDispatch,
@@ -2085,7 +2124,8 @@ const RequestDetailRail = ({
   // toast) acknowledges the round-trip and a double-tap cannot fire two RPCs.
   const primaryPending =
     (primaryAction.kind === 'dispatch' && dispatchPending) ||
-    (primaryAction.kind === 'complete' && completePending);
+    (primaryAction.kind === 'complete' && completePending) ||
+    (primaryAction.kind === 'retry' && retryPending);
 
   return (
     <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
@@ -2207,7 +2247,7 @@ const RequestDetailRail = ({
             <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} pending={completePending} />
           )}
           {actionState.canRetryPayment && primaryAction.kind !== 'retry' && (
-            <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} />
+            <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} pending={retryPending} />
           )}
           {primaryAction.kind !== 'details' && (
             <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
