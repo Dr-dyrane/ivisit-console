@@ -6,13 +6,18 @@ import {
     BarChart3,
     BedDouble,
     Calendar,
+    CheckCheck,
     ChevronRight,
     ClipboardCheck,
     Clock,
+    CreditCard,
     Eye,
     Filter,
+    Hash,
     Hospital,
     MapPin,
+    Phone,
+    RefreshCw,
     Search,
     Send,
     User,
@@ -29,7 +34,7 @@ import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
-import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
+import { buildEmergencyRenderProjection, formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
 
@@ -208,6 +213,9 @@ export const MobileEmergency = ({
     setFilters,
     onView,
     onDispatch,
+    onComplete,
+    onProcessCash,
+    onRetryPayment,
     onRefresh,
     onViewAnalytics,
     isAdmin,
@@ -409,9 +417,11 @@ export const MobileEmergency = ({
                                             const TypeIcon = getMobileRequestTypeIcon(request);
                                             return (
                                                 <React.Fragment key={request.id}>
-                                                    <button
+                                                    <motion.button
                                                         type="button"
+                                                        whileTap={{ scale: 0.988 }}
                                                         onClick={() => setActiveRequest(request)}
+                                                        onPointerDown={(event) => triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, haptic: true, sound: true })}
                                                         className="group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]"
                                                         data-mobile-request-row={request.id}
                                                         aria-haspopup="dialog"
@@ -431,7 +441,7 @@ export const MobileEmergency = ({
                                                                 <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                                                             </span>
                                                         </span>
-                                                    </button>
+                                                    </motion.button>
                                                     {index < items.length - 1 && (
                                                         <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" aria-hidden="true" />
                                                     )}
@@ -490,25 +500,52 @@ export const MobileEmergency = ({
                     const location = projection.locationDisplay.label;
                     const responder = projection.responderDisplay.label;
                     const actionState = getEmergencyActionState(activeRequest);
-                    // Dispatch is non-destructive and gated exactly like the desktop dispatch
-                    // (canManage && actionState.canDispatch - here isAdmin already folds
-                    // admin + org_admin). It reuses onDispatch -> handleDispatch, the same
-                    // console_dispatch_emergency mutation path; no new mutation is introduced.
-                    const canDispatch = isAdmin && actionState.canDispatch;
-                    // For a request that needs attention, Review is the filled primary; Details
-                    // is otherwise the single action. Both route to the existing onView receiver.
-                    const canReview = isAdmin && canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval';
+                    const terminal = projection.statusDisplay.terminal;
+                    const phone = projection.patientDisplay.phone;
+                    const coordinates = projection.locationDisplay.coordinates;
+                    const displayId = projection.identity.displayId;
+                    const isAmbulanceService = String(activeRequest.service_type || '').toLowerCase() === 'ambulance';
+                    // Payment line composes only the parts that actually exist; the island is
+                    // skipped entirely when neither a real method nor a status is present.
+                    const paymentParts = [
+                        projection.paymentDisplay.amountLabel !== 'Unavailable' ? projection.paymentDisplay.amountLabel : null,
+                        projection.paymentDisplay.method ? projection.paymentDisplay.methodLabel : null,
+                        projection.paymentDisplay.status ? formatEmergencyServiceToken(projection.paymentDisplay.status) : null,
+                    ].filter(Boolean);
+                    const hasPayment = Boolean(projection.paymentDisplay.method || projection.paymentDisplay.status) && paymentParts.length > 0;
+                    const vehicleParts = [
+                        activeRequest.responder_vehicle_plate || null,
+                        activeRequest.responder_vehicle_type ? formatEmergencyServiceToken(activeRequest.responder_vehicle_type, '') : null,
+                    ].filter(Boolean);
+                    const bedParts = [
+                        projection.serviceDisplay.specialtyLabel !== 'N/A' ? projection.serviceDisplay.specialtyLabel : null,
+                        activeRequest.bed_number ? `Bed ${activeRequest.bed_number}` : null,
+                    ].filter(Boolean);
+                    // Primary CTA mirrors the desktop getPrimaryRailAction priority 1:1
+                    // (review > dispatch > complete > retry payment > details) with the same
+                    // gating. `isAdmin` here is the page's admin + org_admin fold (desktop
+                    // canManage). Desktop's provider complete (canCompleteAsProvider) reduces
+                    // to actionState.canComplete alone because this route only admits
+                    // provider-and-above, so canComplete is the effective gate for every
+                    // reachable role. Every receiver is an existing page handler (onView /
+                    // onDispatch -> console_dispatch_emergency / onComplete -> the page-level
+                    // completion modal / onRetryPayment, which re-checks canRetryPayment
+                    // itself); no new mutation is introduced. Tones reuse the vitalTracks
+                    // accent palette (sky/emerald/amber) - no new colors.
                     const detailsAction = { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
                     let primaryAction = detailsAction;
-                    let secondaryAction;
-                    if (canDispatch) {
-                        primaryAction = { label: 'Dispatch', icon: Send, tone: 'hsl(200 98% 39%)', onClick: () => { setActiveRequest(null); onDispatch?.(activeRequest); } };
-                        secondaryAction = detailsAction;
-                    } else if (canReview) {
+                    if (canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval') {
                         primaryAction = { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
-                        secondaryAction = detailsAction;
+                    } else if (isAdmin && actionState.canDispatch) {
+                        primaryAction = { label: 'Dispatch', icon: Send, tone: 'hsl(200 98% 39%)', onClick: () => { setActiveRequest(null); onDispatch?.(activeRequest); } };
+                    } else if (actionState.canComplete) {
+                        primaryAction = { label: 'Complete', icon: CheckCheck, tone: 'hsl(162 94% 24%)', onClick: () => { setActiveRequest(null); onComplete?.(activeRequest); } };
+                    } else if (actionState.canRetryPayment) {
+                        primaryAction = { label: 'Retry payment', icon: RefreshCw, tone: 'hsl(26 90% 37%)', onClick: () => { setActiveRequest(null); onRetryPayment?.(activeRequest); } };
                     }
-                    // Islands render through MobileDetailSheet -> MobileDetailIslands (canon tiles).
+                    const secondaryAction = primaryAction === detailsAction ? undefined : detailsAction;
+                    // Islands render through MobileDetailSheet -> MobileDetailIslands (canon
+                    // tiles); falsy entries are skipped, so conditional facts drop out cleanly.
                     return (
                         <MobileDetailSheet
                             isOpen
@@ -521,15 +558,54 @@ export const MobileEmergency = ({
                             vital={vital ? { ...vital, label: 'Request status' } : null}
                             islands={[
                                 { icon: User, label: 'Patient', value: name },
+                                phone && { icon: Phone, label: 'Phone', value: phone, href: `tel:${String(phone).replace(/[\s-]/g, '')}` },
                                 { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(activeRequest) },
                                 { icon: Hospital, label: 'Facility', value: facility },
                                 { icon: Ambulance, label: 'Responder', value: responder },
-                                { icon: MapPin, label: 'Location', value: location },
+                                !terminal && projection.responderDisplay.hasResponder && { icon: Clock, label: 'ETA', value: projection.responderDisplay.etaLabel },
+                                isAmbulanceService && projection.serviceDisplay.hasAmbulanceType && { icon: Ambulance, label: 'Ambulance type', value: projection.serviceDisplay.ambulanceTypeLabel },
+                                isAmbulanceService && vehicleParts.length > 0 && { icon: Ambulance, label: 'Vehicle', value: vehicleParts.join(' · ') },
+                                actionState.isBedFlow && bedParts.length > 0 && { icon: BedDouble, label: 'Bed', value: bedParts.join(' · ') },
+                                {
+                                    icon: MapPin,
+                                    label: 'Location',
+                                    value: location,
+                                    // Reuses the EmergencyDetailsModal external-map URL shape.
+                                    href: projection.locationDisplay.canOpenExternalMap && coordinates
+                                        ? `https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
+                                        : undefined,
+                                },
+                                hasPayment && { icon: CreditCard, label: 'Payment', value: paymentParts.join(' · ') },
+                                displayId && {
+                                    icon: Hash,
+                                    label: 'Reference',
+                                    value: displayId,
+                                    onPress: (event) => {
+                                        navigator.clipboard?.writeText(String(displayId))?.catch(() => {});
+                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.SUCCESS, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                                    },
+                                },
                                 { icon: Calendar, label: 'Created', value: createdDateLabel(activeRequest.created_at) },
+                                terminal && activeRequest.completed_at && { icon: CheckCheck, label: 'Completed', value: createdDateLabel(activeRequest.completed_at) },
+                                terminal && activeRequest.cancelled_at && { icon: X, label: 'Cancelled', value: createdDateLabel(activeRequest.cancelled_at) },
                             ]}
                             primary={primaryAction}
                             secondary={secondaryAction}
-                        />
+                        >
+                            {/* Cash settlement stays fail-closed BY DESIGN (canProcessCash is
+                                hardwired false until the finance receiver pass lands). Same
+                                gated branch as the desktop rail: it never renders today, and
+                                when the flag opens it routes to the same onProcessCash stub. */}
+                            {actionState.canProcessCash && (
+                                <button
+                                    type="button"
+                                    onClick={() => onProcessCash?.(activeRequest)}
+                                    className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.96]"
+                                >
+                                    Cash settlement handled in Finance
+                                </button>
+                            )}
+                        </MobileDetailSheet>
                     );
                 })()}
             </MobilePageShell>
