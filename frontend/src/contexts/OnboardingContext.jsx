@@ -96,6 +96,10 @@ const INITIAL_FORM_DATA = {
     selectedHospitalId: null,      // ID of claimed hospital (if any)
     isClaimingExisting: false,     // Whether claiming an existing hospital
 
+    // Submit recovery state: organization created by a failed submit attempt
+    // (profile link did not complete); retry reuses this id instead of re-creating
+    resumeOrganizationId: null,
+
     // Step 4: Initial Setup (type-specific)
     departments: [],      // Hospital only
     specialties: [],      // Hospital/Clinic
@@ -370,12 +374,17 @@ export const OnboardingProvider = ({ children }) => {
             return result;
         } catch (error) {
             console.error('Onboarding submission failed:', error);
+            if (error?.code === 'PROFILE_LINK_FAILED' && error?.organizationId) {
+                // The organization row already exists; remember its id so pressing
+                // Submit again re-runs only the profile link instead of re-creating it.
+                updateFormData({ resumeOrganizationId: error.organizationId });
+            }
             toast.error(error.message || 'Registration failed. Please try again.');
             return { success: false, error };
         } finally {
             endSubmitting();
         }
-    }, [beginSubmitting, endSubmitting, formData, navigate]);
+    }, [beginSubmitting, endSubmitting, formData, navigate, updateFormData]);
 
     /**
      * Skip onboarding and go to dashboard

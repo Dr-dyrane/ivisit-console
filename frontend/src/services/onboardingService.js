@@ -197,7 +197,13 @@ export const onboardingService = {
     /**
      * Step 5: Submit complete onboarding - creates organization and links to user
      * User must be authenticated and have onboarding_status = 'pending'
-     * 
+     *
+     * Idempotent on resubmit: reuses the pending organization created by a prior
+     * attempt (via formData.resumeOrganizationId, or a pending unverified match on
+     * the wizard's own name + phone) instead of inserting a duplicate. If the
+     * profile link fails, throws an error with code 'PROFILE_LINK_FAILED' and the
+     * created organizationId so the wizard can retry without re-creating.
+     *
      * @param {Object} formData - Complete onboarding form data
      * @returns {Object} - { success: boolean, organization: object }
      */
@@ -216,35 +222,96 @@ export const onboardingService = {
                 formData.state
             ].filter(Boolean).join(', ');
 
-            // Step 1: Create organization record in hospitals table
-            const orgData = {
-                name: formData.organizationName,
-                address: fullAddress,
-                phone: formData.phone,
-                type: formData.organizationType || 'standard',
-                specialties: formData.specialties || [],
-                service_types: formData.serviceTypes || [],
-                features: formData.features || [],
-                available_beds: formData.bedCapacity || 0,
-                ambulances_count: formData.fleetSize || 0,
-                latitude: formData.location?.lat || null,
-                longitude: formData.location?.lng || null,
-                verification_status: 'pending',
-                verified: false,
-                status: 'available',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
+            // Step 1: Reuse the organization from a prior attempt, or create it.
+            // Retry path: a previous submit already created the organization but
+            // failed on the profile link; the wizard threads the id back through
+            // formData.resumeOrganizationId so retry skips re-creation.
+            let organization = null;
 
-            const { data: organization, error: orgError } = await supabase
-                .from('hospitals')
-                .insert(orgData)
-                .select()
-                .single();
+            if (formData.resumeOrganizationId) {
+                const { data: resumedOrg, error: resumeError } = await supabase
+                    .from('hospitals')
+                    .select('*')
+                    .eq('id', formData.resumeOrganizationId)
+                    .maybeSingle();
 
-            if (orgError) {
-                console.error('Organization creation failed:', orgError);
-                throw new Error('Failed to create organization: ' + orgError.message);
+                if (resumeError) {
+                    console.error('Organization resume lookup failed:', resumeError);
+                } else if (resumedOrg) {
+                    organization = resumedOrg;
+                }
+            }
+
+            // Idempotent resubmit: if an earlier attempt from this wizard already
+            // created a pending, unverified organization with the wizard's own
+            // name + phone, reuse it instead of inserting a duplicate row.
+            if (!organization && formData.organizationName) {
+                let duplicateQuery = supabase
+                    .from('hospitals')
+                    .select('*')
+                    .eq('name', formData.organizationName)
+                    .eq('verification_status', 'pending')
+                    .eq('verified', false)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (formData.phone) {
+                    duplicateQuery = duplicateQuery.eq('phone', formData.phone);
+                }
+
+                const { data: priorOrgs, error: priorError } = await duplicateQuery;
+
+                if (priorError) {
+                    console.error('Duplicate organization check failed:', priorError);
+                } else if (priorOrgs?.length > 0) {
+                    // Never adopt a pending organization another account is linked to
+                    const { data: linkedProfiles } = await supabase
+                        .from('profiles')
+                        .select('id, organization_id')
+                        .in('organization_id', priorOrgs.map(org => org.id));
+
+                    const claimedByOthers = new Set(
+                        (linkedProfiles || [])
+                            .filter(profile => profile.id !== session.user.id)
+                            .map(profile => profile.organization_id)
+                    );
+
+                    organization = priorOrgs.find(org => !claimedByOthers.has(org.id)) || null;
+                }
+            }
+
+            if (!organization) {
+                const orgData = {
+                    name: formData.organizationName,
+                    address: fullAddress,
+                    phone: formData.phone,
+                    type: formData.organizationType || 'standard',
+                    specialties: formData.specialties || [],
+                    service_types: formData.serviceTypes || [],
+                    features: formData.features || [],
+                    available_beds: formData.bedCapacity || 0,
+                    ambulances_count: formData.fleetSize || 0,
+                    latitude: formData.location?.lat || null,
+                    longitude: formData.location?.lng || null,
+                    verification_status: 'pending',
+                    verified: false,
+                    status: 'available',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+
+                const { data: createdOrg, error: orgError } = await supabase
+                    .from('hospitals')
+                    .insert(orgData)
+                    .select()
+                    .single();
+
+                if (orgError) {
+                    console.error('Organization creation failed:', orgError);
+                    throw new Error('Failed to create organization: ' + orgError.message);
+                }
+
+                organization = createdOrg;
             }
 
             // Step 2: Update profile with org_admin role and link to organization
@@ -260,7 +327,16 @@ export const onboardingService = {
 
             if (profileError) {
                 console.error('Profile update failed:', profileError);
-                // Don't delete hospital - admin can fix profile later
+                // Keep the created hospital, but do not report success: without the
+                // profile link the user stays 'pending' and every protected route
+                // bounces back to the wizard. Surface the failure so the wizard can
+                // retry the profile link against the same organization id.
+                const linkError = new Error(
+                    'Your organization was saved, but we could not finish linking your admin account. Please submit again to retry.'
+                );
+                linkError.code = 'PROFILE_LINK_FAILED';
+                linkError.organizationId = organization.id;
+                throw linkError;
             }
 
             // Step 3: Upload verification documents (if any)
