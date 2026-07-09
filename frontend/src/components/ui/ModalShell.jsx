@@ -200,10 +200,12 @@ export const ModalShell = ({
         };
     }, [isOpen]);
 
+    // Desktop widths run one tier more generous than mobile-derived sizing so desktop
+    // dialogs aren't cramped (the small/medium modals were the tight ones).
     const maxWidthClass = {
-        sm:  'max-w-sm',
-        md:  'max-w-md',
-        lg:  'max-w-2xl',
+        sm:  'max-w-md',
+        md:  'max-w-lg',
+        lg:  'max-w-3xl',
         xl:  'max-w-5xl',
         '2xl': 'max-w-7xl',
     }[size] ?? 'max-w-5xl';
@@ -273,7 +275,7 @@ export const ModalShell = ({
                 animate={surfaceAnimate}
                 transition={modalShellTransition}
                 {...dragProps}
-                className={`relative z-10 flex flex-col overflow-hidden bg-background shadow-2xl ${
+                className={`relative z-10 flex flex-col overflow-hidden bg-card/68 backdrop-blur-2xl dark:bg-card/55 shadow-[0_12px_32px_rgb(0_0_0/0.10)] ${
                     isMobile
                         ? 'w-full rounded-t-sheet'
                         : `w-full ${maxWidthClass} rounded-modal`

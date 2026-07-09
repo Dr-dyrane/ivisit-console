@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const filterInputClassName = 'w-full rounded-inner bg-background/60 px-3 py-2.5 text-sm transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]';
+const filterInputClassName = 'w-full rounded-inner bg-background/60 px-3 py-2.5 text-sm transition-[background,box-shadow] focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)] dark:bg-white/[0.06]';
 const filterBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
 const filterSheetTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
 
@@ -143,7 +143,7 @@ export const FilterSheet = ({
                 const isSelected = (currentValue || []).includes(option.value);
                 return (
                   <Fragment key={option.value}>
-                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10 text-primary' : ''}`}>
+                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-foreground/[0.06] text-foreground' : ''}`}>
                       <Checkbox
                         id={`${key}-${option.value}`}
                         checked={isSelected}
@@ -197,7 +197,7 @@ export const FilterSheet = ({
                 const isSelected = currentValue === option.value;
                 return (
                   <Fragment key={option.value}>
-                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-primary/10 text-primary' : ''}`}>
+                    <div className={`flex items-center gap-3 rounded-inner px-2 py-2.5 transition-colors cursor-pointer ${isSelected ? 'bg-foreground/[0.06] text-foreground' : ''}`}>
                       <input
                         type="radio"
                         id={`${key}-${option.value}`}
@@ -316,7 +316,7 @@ export const FilterSheet = ({
           : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
         }
       >
-        <div className={`bg-card/88 backdrop-blur-xl shadow-2xl px-2 md:px-6 py-6 dark:bg-[#0b1220]/85 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
+        <div className={`bg-card/68 backdrop-blur-2xl shadow-[0_12px_32px_rgb(0_0_0/0.10)] px-2 md:px-6 py-6 dark:bg-card/55 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (

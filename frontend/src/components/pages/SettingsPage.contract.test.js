@@ -438,7 +438,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(routes).toContain("minRole: 'viewer'");
     expect(navigation).toContain("minRole: 'viewer'");
     expect(contextPanel).toContain("'/settings': true, // Own-user settings");
-    expect(contextPanel).toContain("'/settings': { title: 'Settings', subtitle: 'Account and app' }");
+    expect(contextPanel).not.toContain('getPageContextHeader'); // header slimmed — each panel owns its heading (see ContextPanelShell contract)
     expect(contextPanel).toContain('<SettingsPanel />');
     expect(contextFab).toContain("location.pathname.startsWith('/settings')");
     expect(bottomBar).toContain("location.pathname.startsWith('/settings')");
