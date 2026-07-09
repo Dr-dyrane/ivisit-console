@@ -15,6 +15,7 @@ import {
     Filter,
     Hash,
     Hospital,
+    Mail,
     MapPin,
     Phone,
     RefreshCw,
@@ -26,7 +27,7 @@ import {
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileListEnd, MobileListEmpty, MobileListLoadMore } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -36,6 +37,7 @@ import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection, formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
+import { formatRequestDayTime, isUnsettledCashRequest } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
 
@@ -60,13 +62,6 @@ const mobileKpis = [
 const countNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const formatRequestTime = (value) => {
-    if (!value) return 'No time';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'No time';
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 };
 
 const serviceLabel = (request) => {
@@ -279,6 +274,11 @@ export const MobileEmergency = ({
     // sits above a 3-row Ambulance-filtered list (the count must equal the visible scope,
     // matching the desktop filtered count). KPI-agnostic stats give the right per-KPI total.
     const totalRequests = getKpiValue({ id: kpiFilter || 'pending', statistics, emergencies });
+    // Empty-state cause priority mirrors desktop: search > sheet filters > KPI > true-empty.
+    // The KPI cause only fires when it is the sole narrowing scope, and recovery resets the
+    // chip to All (the list itself may be non-empty under a different KPI).
+    const kpiEmptyCause = Boolean(kpiFilter && kpiFilter !== 'all') && !filters?.search && !hasMobileRequestFilters(filters);
+    const kpiEmptyLabel = mobileKpis.find((item) => item.id === kpiFilter)?.label || 'selected';
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
@@ -294,7 +294,13 @@ export const MobileEmergency = ({
                     <section className="px-4">
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            {showSkeleton ? 'Loading requests...' : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
+                            {showSkeleton
+                                ? 'Loading requests...'
+                                // A failed load must not report a confident "0 requests" —
+                                // the summary stays honest about what actually happened.
+                                : loadError && displayItems.length === 0
+                                    ? 'Requests did not load'
+                                    : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
                         </p>
                     </section>
 
@@ -426,6 +432,9 @@ export const MobileEmergency = ({
                                             const name = projection.patientDisplay.name;
                                             const avatarClass = getMobileRequestAvatarClass(request);
                                             const TypeIcon = getMobileRequestTypeIcon(request);
+                                            // Same quiet muted marker the desktop RequestRow shows next to
+                                            // its status pill: cash requests stay flagged until settled.
+                                            const showCashChip = isUnsettledCashRequest(request);
                                             return (
                                                 <React.Fragment key={request.id}>
                                                     <motion.button
@@ -446,8 +455,11 @@ export const MobileEmergency = ({
                                                             <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{serviceLabel(request)} · {createdDateLabel(request.created_at)}</p>
                                                         </div>
                                                         <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
-                                                            <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{formatRequestTime(request.created_at)}</span>
+                                                            <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{formatRequestDayTime(request.created_at)}</span>
                                                             <span className="flex items-center gap-2">
+                                                                {showCashChip && (
+                                                                    <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Cash</span>
+                                                                )}
                                                                 <span className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{pill?.label || 'New'}</span>
                                                                 <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                                                             </span>
@@ -466,7 +478,11 @@ export const MobileEmergency = ({
                         )}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
-                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                            {/* While the next page is in flight the sentinel swaps the load-more
+                                button for a local spinner; the top "Updating" pill may show at the
+                                same time (global signal), the spinner is the local one. */}
+                            {isFetching && !showSkeleton && hasMore && displayItems.length > 0 && <MobileListLoadingMore />}
+                            {!loading && !isFetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayItems.length > 0 && (
                                 <MobileListEnd label="End of requests" />
                             )}
@@ -487,15 +503,18 @@ export const MobileEmergency = ({
                             <MobileListEmpty
                                 icon={ClipboardCheck}
                                 label="No requests found"
-                                reason={filters?.search ? 'search' : hasMobileRequestFilters(filters) ? 'filtered' : 'empty'}
+                                reason={filters?.search ? 'search' : hasMobileRequestFilters(filters) ? 'filtered' : kpiEmptyCause ? 'filtered' : 'empty'}
+                                hint={kpiEmptyCause ? `No requests in the ${kpiEmptyLabel} scope.` : undefined}
                                 onRecover={
                                     filters?.search
                                         ? () => setFilters?.((prev) => ({ ...prev, search: '' }))
                                         : hasMobileRequestFilters(filters)
                                             ? () => onOpenFilters?.()
-                                            : undefined
+                                            : kpiEmptyCause
+                                                ? () => setKpiFilter?.('all')
+                                                : undefined
                                 }
-                                recoverLabel={filters?.search ? 'Clear Search' : hasMobileRequestFilters(filters) ? 'Adjust Filters' : undefined}
+                                recoverLabel={filters?.search ? 'Clear Search' : hasMobileRequestFilters(filters) ? 'Adjust Filters' : kpiEmptyCause ? 'Show all requests' : undefined}
                                 labelTone="plain"
                             />
                         )}
@@ -513,14 +532,24 @@ export const MobileEmergency = ({
                     const actionState = getEmergencyActionState(activeRequest);
                     const terminal = projection.statusDisplay.terminal;
                     const phone = projection.patientDisplay.phone;
+                    // Same placeholder guard as the desktop rail's hasEmail: the mapper emits
+                    // the literal 'No email' fallback, which must never become a mailto link.
+                    const patientEmail = projection.patientDisplay.email && projection.patientDisplay.email !== 'No email'
+                        ? projection.patientDisplay.email
+                        : null;
                     const coordinates = projection.locationDisplay.coordinates;
                     const displayId = projection.identity.displayId;
                     const isAmbulanceService = String(activeRequest.service_type || '').toLowerCase() === 'ambulance';
+                    // Unsettled cash stays visibly flagged (desktop marks these rows with a quiet
+                    // 'Cash' chip). Here the Payment island leads with 'Cash owed', replacing the
+                    // redundant 'Cash' method token; amount + status still follow.
+                    const unsettledCash = isUnsettledCashRequest(activeRequest);
                     // Payment line composes only the parts that actually exist; the island is
                     // skipped entirely when neither a real method nor a status is present.
                     const paymentParts = [
+                        unsettledCash ? 'Cash owed' : null,
                         projection.paymentDisplay.amountLabel !== 'Unavailable' ? projection.paymentDisplay.amountLabel : null,
-                        projection.paymentDisplay.method ? projection.paymentDisplay.methodLabel : null,
+                        !unsettledCash && projection.paymentDisplay.method ? projection.paymentDisplay.methodLabel : null,
                         projection.paymentDisplay.status ? formatEmergencyServiceToken(projection.paymentDisplay.status) : null,
                     ].filter(Boolean);
                     const hasPayment = Boolean(projection.paymentDisplay.method || projection.paymentDisplay.status) && paymentParts.length > 0;
@@ -545,16 +574,37 @@ export const MobileEmergency = ({
                     // accent palette (sky/emerald/amber) - no new colors.
                     const detailsAction = { label: 'Details', icon: Eye, onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
                     let primaryAction = detailsAction;
+                    let primaryKind = 'details';
                     if (canonicalizeEmergencyStatus(activeRequest.status, null) === 'pending_approval') {
+                        primaryKind = 'review';
                         primaryAction = { label: 'Review', icon: ClipboardCheck, tone: 'hsl(var(--destructive))', onClick: () => { setActiveRequest(null); onView?.(activeRequest); } };
                     } else if (isAdmin && actionState.canDispatch) {
+                        primaryKind = 'dispatch';
                         primaryAction = { label: 'Dispatch', icon: Send, tone: 'hsl(200 98% 39%)', onClick: () => { setActiveRequest(null); onDispatch?.(activeRequest); } };
                     } else if (actionState.canComplete) {
+                        primaryKind = 'complete';
                         primaryAction = { label: 'Complete', icon: CheckCheck, tone: 'hsl(162 94% 24%)', onClick: () => { setActiveRequest(null); onComplete?.(activeRequest); } };
                     } else if (actionState.canRetryPayment) {
+                        primaryKind = 'retry';
                         primaryAction = { label: 'Retry payment', icon: RefreshCw, tone: 'hsl(26 90% 37%)', onClick: () => { setActiveRequest(null); onRetryPayment?.(activeRequest); } };
                     }
-                    const secondaryAction = primaryAction === detailsAction ? undefined : detailsAction;
+                    const secondaryAction = primaryKind === 'details' ? undefined : detailsAction;
+                    // Every OTHER eligible action lands in the quiet 2-col grid below the CTA
+                    // row — the desktop RequestDetailRail grid, gate for gate (Dispatch when
+                    // canManage && canDispatch, Complete when canComplete under the same
+                    // provider-route fold as the primary chain, Retry when canRetryPayment),
+                    // each minus whatever the primary already claims. Details is the sheet's
+                    // secondary CTA above, so it never repeats here. Icons + tones reuse the
+                    // primary chain's exact values; each extra closes the sheet then routes to
+                    // the same page receiver — no new mutation path.
+                    const extraActions = [
+                        isAdmin && actionState.canDispatch && primaryKind !== 'dispatch' &&
+                            { label: 'Dispatch', icon: Send, tone: 'hsl(200 98% 39%)', onClick: () => { setActiveRequest(null); onDispatch?.(activeRequest); } },
+                        actionState.canComplete && primaryKind !== 'complete' &&
+                            { label: 'Complete', icon: CheckCheck, tone: 'hsl(162 94% 24%)', onClick: () => { setActiveRequest(null); onComplete?.(activeRequest); } },
+                        actionState.canRetryPayment && primaryKind !== 'retry' &&
+                            { label: 'Retry', icon: RefreshCw, tone: 'hsl(26 90% 37%)', onClick: () => { setActiveRequest(null); onRetryPayment?.(activeRequest); } },
+                    ].filter(Boolean);
                     // Islands render through MobileDetailSheet -> MobileDetailIslands (canon
                     // tiles); falsy entries are skipped, so conditional facts drop out cleanly.
                     return (
@@ -563,6 +613,8 @@ export const MobileEmergency = ({
                             onClose={() => setActiveRequest(null)}
                             icon={ClipboardCheck}
                             iconTone={vital?.tone}
+                            avatarUrl={projection.patientDisplay.avatar}
+                            avatarInitials={projection.patientDisplay.initials}
                             eyebrow={serviceLabel(activeRequest)}
                             title={name}
                             statusPill={vital?.pill}
@@ -570,6 +622,7 @@ export const MobileEmergency = ({
                             islands={[
                                 { icon: User, label: 'Patient', value: name },
                                 phone && { icon: Phone, label: 'Phone', value: phone, href: `tel:${String(phone).replace(/[\s-]/g, '')}` },
+                                patientEmail && { icon: Mail, label: 'Email', value: patientEmail, href: `mailto:${patientEmail}` },
                                 { icon: ClipboardCheck, label: 'Service type', value: serviceLabel(activeRequest) },
                                 { icon: Hospital, label: 'Facility', value: facility },
                                 { icon: Ambulance, label: 'Responder', value: responder },
@@ -598,12 +651,15 @@ export const MobileEmergency = ({
                                         triggerFromEvent(event, { variant: FEEDBACK_TYPES.SUCCESS, color: 'hsl(var(--spark))', haptic: true, sound: true });
                                     },
                                 },
-                                { icon: Calendar, label: 'Created', value: createdDateLabel(activeRequest.created_at) },
-                                terminal && activeRequest.completed_at && { icon: CheckCheck, label: 'Completed', value: createdDateLabel(activeRequest.completed_at) },
-                                terminal && activeRequest.cancelled_at && { icon: X, label: 'Cancelled', value: createdDateLabel(activeRequest.cancelled_at) },
+                                // Day-aware stamps (desktop DetailLine parity): date-only labels
+                                // dropped the clock time these lifecycle facts hinge on.
+                                { icon: Calendar, label: 'Created', value: formatRequestDayTime(activeRequest.created_at) },
+                                terminal && activeRequest.completed_at && { icon: CheckCheck, label: 'Completed', value: formatRequestDayTime(activeRequest.completed_at) },
+                                terminal && activeRequest.cancelled_at && { icon: X, label: 'Cancelled', value: formatRequestDayTime(activeRequest.cancelled_at) },
                             ]}
                             primary={primaryAction}
                             secondary={secondaryAction}
+                            extras={extraActions}
                         >
                             {/* Cash settlement stays fail-closed BY DESIGN (canProcessCash is
                                 hardwired false until the finance receiver pass lands). Same
