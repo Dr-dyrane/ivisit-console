@@ -6,10 +6,14 @@ import {
   ChevronUp,
   Edit,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Checkbox } from '../ui/checkbox';
 
-const rowGridClass = 'grid grid-cols-[100px_minmax(170px,1.15fr)_minmax(140px,1fr)_minmax(140px,1fr)_74px_100px_96px_116px] items-center gap-3';
+// Two column templates: with a leading 40px selection column, and without.
+const ROW_GRID_NO_SELECT = 'grid grid-cols-[100px_minmax(170px,1.15fr)_minmax(140px,1fr)_minmax(140px,1fr)_74px_100px_96px_116px] items-center gap-3';
+const ROW_GRID_WITH_SELECT = 'grid grid-cols-[40px_100px_minmax(170px,1.15fr)_minmax(140px,1fr)_minmax(140px,1fr)_74px_100px_96px_116px] items-center gap-3';
 
 const normalizeStatusLabel = (status) => String(status || 'available').replace(/_/g, ' ');
 
@@ -18,13 +22,21 @@ export const DoctorTableView = ({
   onView,
   onEdit,
   onFocus,
+  onDelete,
   getStatusBadge,
   sortConfig,
   onSort,
   isMobile = false,
   canManage = false,
+  canDelete = false,
+  selectionEnabled = false,
+  selectedIds = [],
+  onSelect,
+  onSelectAll,
 }) => {
-  const gridClass = rowGridClass;
+  const canSelect = selectionEnabled && canManage && Boolean(onSelect);
+  const canDeleteRow = canDelete && canManage && Boolean(onDelete);
+  const gridClass = canSelect ? ROW_GRID_WITH_SELECT : ROW_GRID_NO_SELECT;
 
   const SortIcon = ({ columnKey }) => {
     if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/35" />;
@@ -51,6 +63,15 @@ export const DoctorTableView = ({
       className="overflow-hidden rounded-sheet bg-background/45 p-3 shadow-[0_24px_80px_rgb(0_0_0/0.16)] backdrop-blur-xl dark:bg-white/[0.035]"
     >
       <div className={`${gridClass} px-4 pb-3 pt-2`}>
+        {canSelect && (
+          <div className="flex items-center">
+            <Checkbox
+              checked={doctors.length > 0 && selectedIds.length === doctors.length}
+              onCheckedChange={onSelectAll}
+              aria-label="Select all staff"
+            />
+          </div>
+        )}
         <SortableHead label="ID" columnKey="display_id" />
         <SortableHead label="Name" columnKey="name" />
         <SortableHead label="Specialty" columnKey="specialization" />
@@ -64,6 +85,7 @@ export const DoctorTableView = ({
       <div className="space-y-2">
         {doctors.map((doctor, index) => {
           const name = doctor.name || 'Unknown staff';
+          const selected = canSelect && selectedIds.includes(doctor.id);
 
           return (
             <motion.div
@@ -72,8 +94,17 @@ export const DoctorTableView = ({
               animate={{ opacity: 1 }}
               transition={{ delay: index * 0.02 }}
               onClick={() => onFocus?.(doctor)}
-              className={`${gridClass} cursor-pointer rounded-inner px-4 py-3 transition-colors hover:bg-muted/28`}
+              className={`${gridClass} cursor-pointer rounded-inner px-4 py-3 transition-colors ${selected ? 'bg-muted/50' : 'hover:bg-muted/28'}`}
             >
+              {canSelect && (
+                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedIds.includes(doctor.id)}
+                    onCheckedChange={() => onSelect(doctor.id)}
+                    aria-label={`Select ${name}`}
+                  />
+                </div>
+              )}
               <span className="truncate font-mono text-[11px] font-semibold text-sky-300/80">
                 {doctor.display_id || '-'}
               </span>
@@ -111,6 +142,17 @@ export const DoctorTableView = ({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                    {canDeleteRow && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(doctor)}
+                        className="h-8 w-8 rounded-pill bg-muted/24 text-muted-foreground transition-all hover:bg-destructive/12 hover:text-destructive active:scale-[0.96]"
+                        aria-label={`Delete ${name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </>
                 )}
               </span>

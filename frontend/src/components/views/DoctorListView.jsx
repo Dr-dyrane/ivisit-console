@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../ui/button';
-import { Edit, Eye, Hospital, Phone, UserRound } from 'lucide-react';
+import { Edit, Eye, Hospital, Phone, Trash2, UserRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const normalizeStatusLabel = (status) => String(status || 'available').replace(/_/g, ' ');
@@ -10,9 +10,11 @@ export const DoctorListView = ({
   onView,
   onEdit,
   onFocus,
+  onDelete,
   getStatusBadge,
   isMobile = false,
   canManage = false,
+  canDelete = false,
 }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -84,6 +86,17 @@ export const DoctorListView = ({
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {canDelete && onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(doctor)}
+                      className="h-9 w-9 rounded-pill bg-muted/24 text-muted-foreground shadow-sm transition-all hover:bg-destructive/12 hover:text-destructive active:scale-[0.96]"
+                      aria-label={`Delete ${name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </>
               )}
             </div>

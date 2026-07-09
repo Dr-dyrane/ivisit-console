@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useDoctorsQuery } from '../../hooks/useDoctorsQuery';
+import { useDoctorsMutations, applyOptimisticRemove } from '../../hooks/useDoctorsMutations';
+import { deleteDoctor } from '../../services/doctorsService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
@@ -20,6 +23,7 @@ import {
   Phone,
   Plus,
   Stethoscope,
+  Trash2,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -32,6 +36,8 @@ import { DoctorListView } from '../views/DoctorListView';
 import { DoctorTableView } from '../views/DoctorTableView';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { MobileDoctors } from '../mobile/MobileDoctors';
 
 const staffStatusMeta = {
@@ -164,6 +170,15 @@ export const DoctorsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    variant: 'default',
+    confirmLabel: 'Confirm',
+    onConfirm: () => { },
+  });
 
   const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
@@ -233,9 +248,84 @@ export const DoctorsPage = () => {
 
   useEffect(() => {
     pagination.resetPagination();
+    setSelectedIds([]);
   }, [filters, pagination.resetPagination, sortConfig]);
 
   const fetchDoctors = refetch;
+
+  // --- Delete path: React Query optimistic mutation (mirrors DoctorModal's
+  // create/edit wiring). deleteDoctor stays imported from doctorsService and is
+  // handed in as the mutationFn; useDoctorsMutations snapshots the
+  // ['doctors', queryFilter] cache, applies applyOptimisticRemove, rolls back on
+  // error, and invalidates on settle. No direct service call, no second store.
+  const deleteDoctorMutation = useDoctorsMutations({
+    mutationFn: (id) => deleteDoctor(id),
+    applyOptimistic: applyOptimisticRemove,
+    filter: queryFilter,
+  });
+
+  const handleDelete = useCallback(async (doctor) => {
+    if (!canManageStaff || !doctor?.id) return;
+    try {
+      await deleteDoctorMutation.mutateAsync(doctor.id);
+      toast.success('Staff member deleted.');
+    } catch (error) {
+      toast.error('Failed to delete staff member.');
+    } finally {
+      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+    }
+  }, [canManageStaff, deleteDoctorMutation]);
+
+  const confirmDelete = useCallback((doctor) => {
+    if (!canManageStaff) return;
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Doctor',
+      description: `Delete ${doctor?.name || 'this staff member'}? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(doctor),
+    });
+  }, [canManageStaff, handleDelete]);
+
+  const handleSelect = useCallback((id, checked) => {
+    setSelectedIds(prev => {
+      if (checked === undefined) {
+        return prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      }
+      return checked
+        ? (prev.includes(id) ? prev : [...prev, id])
+        : prev.filter(x => x !== id);
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((checked, source = staffRows) => {
+    const ids = Array.isArray(source) ? source.map(d => d.id) : [];
+    setSelectedIds(checked ? ids : []);
+  }, [staffRows]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (!canManageStaff || selectedIds.length === 0) return;
+    const ids = [...selectedIds];
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete selected staff',
+      description: `Delete ${ids.length} staff member${ids.length === 1 ? '' : 's'}? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await Promise.all(ids.map(id => deleteDoctorMutation.mutateAsync(id)));
+          toast.success(`${ids.length} staff member${ids.length === 1 ? '' : 's'} deleted.`);
+          setSelectedIds([]);
+        } catch (error) {
+          toast.error('Failed to delete selected staff.');
+        } finally {
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  }, [canManageStaff, selectedIds, deleteDoctorMutation]);
 
   const handleCreate = useCallback(() => {
     if (!canManageStaff) return;
@@ -421,11 +511,17 @@ export const DoctorsPage = () => {
           setFilters={setFilters}
           onView={handleView}
           onEdit={handleEdit}
+          onDelete={confirmDelete}
           onRefresh={fetchDoctors}
           onViewAnalytics={() => setAnalyticsModalOpen(true)}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
           canManage={canManageStaff}
+          canDelete={canManageStaff}
+          selectionEnabled={canManageStaff}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
           onOpenFilters={() => setFilterSheetOpen(true)}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
@@ -457,6 +553,34 @@ export const DoctorsPage = () => {
           analytics={derivedStats}
           type="doctor"
         />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        <BulkActionBar
+          selectedCount={selectedIds.length}
+          onClear={() => setSelectedIds([])}
+        >
+          {canManageStaff && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-pill bg-destructive/20 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96]"
+              title="Delete selected"
+              aria-label="Delete selected staff"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+        </BulkActionBar>
       </div>
     );
   }
@@ -518,9 +642,11 @@ export const DoctorsPage = () => {
                       onView={handleView}
                       onEdit={handleEdit}
                       onFocus={handleFocusStaff}
+                      onDelete={confirmDelete}
                       getStatusBadge={getStatusBadge}
                       isMobile={isMobile}
                       canManage={canManageStaff}
+                      canDelete={canManageStaff}
                     />
                   )}
 
@@ -530,9 +656,15 @@ export const DoctorsPage = () => {
                       onView={handleView}
                       onEdit={handleEdit}
                       onFocus={handleFocusStaff}
+                      onDelete={confirmDelete}
                       getStatusBadge={getStatusBadge}
                       isMobile={isMobile}
                       canManage={canManageStaff}
+                      canDelete={canManageStaff}
+                      selectionEnabled={canManageStaff}
+                      selectedIds={selectedIds}
+                      onSelect={handleSelect}
+                      onSelectAll={handleSelectAll}
                       sortConfig={sortConfig}
                       onSort={handleSort}
                     />
@@ -586,6 +718,34 @@ export const DoctorsPage = () => {
         analytics={derivedStats}
         type="doctor"
       />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {canManageStaff && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-pill bg-destructive/20 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96]"
+            title="Delete selected"
+            aria-label="Delete selected staff"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
 
     </div>
   );

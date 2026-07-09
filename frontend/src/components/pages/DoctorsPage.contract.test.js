@@ -71,7 +71,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(contextPanel).not.toContain('<DoctorsPanel doctorsData={doctorsData} />');
   });
 
-  it('uses one manage capability for Staff create/edit and excludes unproved remove controls', () => {
+  it('wires Staff create/edit/delete + selection while excluding unproved schedule controls', () => {
     const page = pageSource();
     const list = listSource();
     const table = tableSource();
@@ -126,18 +126,34 @@ describe('DoctorsPage Staff contract', () => {
     expect(mobile).not.toContain('MobileDetailIslands');
     expect(mobile).not.toContain('MobileSheetActions');
 
+    // Restored capability: single delete + row-selection/bulk delete are wired
+    // through the current React Query mutation pattern (useDoctorsMutations +
+    // applyOptimisticRemove), NOT resurrected direct-service calls.
+    expect(page).toContain("import { deleteDoctor } from '../../services/doctorsService';");
+    expect(page).toContain("import { useDoctorsMutations, applyOptimisticRemove } from '../../hooks/useDoctorsMutations';");
+    expect(page).toContain("import { ConfirmationModal } from '../modals/ConfirmationModal';");
+    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
+    expect(page).toContain('const deleteDoctorMutation = useDoctorsMutations({');
+    expect(page).toContain('mutationFn: (id) => deleteDoctor(id),');
+    expect(page).toContain('applyOptimistic: applyOptimisticRemove,');
+    expect(page).toContain('const confirmDelete = useCallback');
+    expect(page).toContain('const handleBulkDelete = useCallback');
+    expect(page).toContain('onDelete={confirmDelete}');
+    expect(page).toContain('onSelect={handleSelect}');
+    expect(page).toContain('onSelectAll={handleSelectAll}');
+    expect(page).toContain('selectionEnabled={canManageStaff}');
+    expect(page).toContain('<ConfirmationModal');
+    expect(page).toContain('<BulkActionBar');
+
+    // Views + mobile expose the delete/selection UI behind the gated props.
+    expect(table).toContain('const canDeleteRow = canDelete && canManage && Boolean(onDelete)');
+    expect(table).toContain('<Checkbox');
+    expect(list).toContain('canDelete && onDelete && (');
+    expect(mobile).toContain('onSelect={canSelect ? onSelect : undefined}');
+
+    // Scheduling stays unproved for Staff, and the delete copy is "Delete"
+    // (never "Remove"), so these remain excluded from the active surface.
     [
-      'deleteDoctor',
-      'handleDelete',
-      'confirmDelete',
-      'handleBulkDelete',
-      'BulkActionBar',
-      'ConfirmationModal',
-      'selectedIds',
-      'onDelete={',
-      'onSelect={',
-      'onSelectAll={',
-      'Trash2',
       'Remove selected',
       'Remove staff',
       'aria-label={`Remove',

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
     BadgeCheck,
     CheckCircle2,
+    Circle,
     Clock,
     Edit,
     Eye,
@@ -12,6 +13,7 @@ import {
     Phone,
     Search,
     Stethoscope,
+    Trash2,
     Users
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
@@ -72,17 +74,25 @@ export const MobileDoctors = ({
     setFilters,
     onView,
     onEdit,
+    onDelete,
     onRefresh,
     isAdmin,
     isOrgAdmin,
     onOpenFilters,
     hasMore,
     onLoadMore,
-    canManage: canManageOverride
+    canManage: canManageOverride,
+    canDelete = false,
+    selectionEnabled = false,
+    selectedIds = [],
+    onSelect,
+    onSelectAll
 }) => {
     const observerTarget = useRef(null);
     const [activeDoctor, setActiveDoctor] = useState(null);
     const canManage = Boolean(canManageOverride ?? (isAdmin || isOrgAdmin));
+    const canSelect = selectionEnabled && canManage && Boolean(onSelect);
+    const selectionMode = canSelect && selectedIds.length > 0;
     const { triggerFromEvent } = useFeedback();
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
@@ -177,6 +187,18 @@ export const MobileDoctors = ({
                                     Updating
                                 </span>
                             )}
+                            {canSelect && displayDoctors.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => onSelectAll?.(!(selectedIds.length === displayDoctors.length), displayDoctors)}
+                                    className="flex h-8 w-8 items-center justify-center rounded-button bg-muted/40 text-foreground/60 transition-all hover:text-foreground active:scale-[0.96]"
+                                    aria-label={selectedIds.length === displayDoctors.length ? 'Deselect all staff' : 'Select all staff'}
+                                >
+                                    {selectedIds.length === displayDoctors.length
+                                        ? <CheckCircle2 size={16} className="text-foreground" />
+                                        : <Circle size={16} className="text-foreground/30" />}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -196,6 +218,10 @@ export const MobileDoctors = ({
                                     secondary={`${specialty} · ${facility}`}
                                     statusPill={statusPill(getStatus(doctor))}
                                     onClick={() => setActiveDoctor(doctor)}
+                                    itemId={doctor.id}
+                                    isSelected={canSelect && selectedIds.includes(doctor.id)}
+                                    onSelect={canSelect ? onSelect : undefined}
+                                    selectionMode={selectionMode}
                                 />
                             );
                         })}
@@ -237,7 +263,19 @@ export const MobileDoctors = ({
                             ]}
                             primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveDoctor(null); onView?.(activeDoctor); } }}
                             secondary={canManage ? { icon: Edit, onClick: () => { setActiveDoctor(null); onEdit?.(activeDoctor); }, 'aria-label': `Edit ${name}` } : undefined}
-                        />
+                        >
+                            {canManage && canDelete && onDelete && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveDoctor(null); onDelete(activeDoctor); }}
+                                    className="flex h-11 w-full items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform hover:bg-destructive/15 active:scale-[0.96]"
+                                    aria-label={`Delete ${name}`}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete staff member
+                                </button>
+                            )}
+                        </MobileDetailSheet>
                     );
                 })()}
             </MobilePageShell>
