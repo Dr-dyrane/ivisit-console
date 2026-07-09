@@ -75,6 +75,29 @@ export const SmartHeader = () => {
         .toUpperCase();
     const avatarUrl = getAvatarUrl(profile, user);
     const isHome = location.pathname === '/';
+
+    // Context-aware account trigger: on home ('/') there is no history to render,
+    // so the avatar owns the LEFT section (the app-home menu idiom); on every other
+    // page it yields the left to the back+history chip and sits RIGHT.
+    const accountButton = (
+        <button
+            onClick={() => setMenuOpen(true)}
+            className="relative flex h-9 w-9 items-center justify-center rounded-icon bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
+            aria-label="Open account menu"
+            aria-expanded={menuOpen}
+            aria-haspopup="dialog"
+        >
+            {avatarUrl && (
+                <img
+                    src={avatarUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+            )}
+            <span aria-hidden="true">{avatarInitial}</span>
+        </button>
+    );
     const isMacLike = typeof navigator !== 'undefined' && /mac|iphone|ipad|ipod/i.test(navigator.platform || '');
     const searchShortcutLabel = isMacLike ? '⌘K' : 'Ctrl K';
 
@@ -132,7 +155,8 @@ export const SmartHeader = () => {
                 {/* MOBILE: 3-column flex - left / center / right */}
                 {isMobile ? (
                     <>
-                        {/* LEFT - back button (flat: no wrapper container, sits directly in the bar) */}
+                        {/* LEFT - back button on subpages (flat: no wrapper container);
+                            on home the account trigger owns this slot (no history to render). */}
                         {!isHome ? (
                             <motion.button
                                 whileTap={{ scale: 0.97 }}
@@ -144,7 +168,7 @@ export const SmartHeader = () => {
                                 <span className="truncate">{getRouteLabel(previousPath)}</span>
                             </motion.button>
                         ) : (
-                            <span className="shrink-0" aria-hidden="true" />
+                            accountButton
                         )}
 
                         {/* CENTER - logo or page title */}
@@ -160,7 +184,8 @@ export const SmartHeader = () => {
                             null
                         )}
 
-                        {/* RIGHT - search, notifications, account */}
+                        {/* RIGHT - search, notifications; account joins only on subpages
+                            (on home it sits left). */}
                         <div className="flex items-center gap-1.5 shrink-0">
                             <button
                                 onClick={() => setSearchOpen(true)}
@@ -172,23 +197,7 @@ export const SmartHeader = () => {
                                 <Search className="h-4 w-4" />
                             </button>
                             <NotificationCenter />
-                            <button
-                                onClick={() => setMenuOpen(true)}
-                                className="relative flex h-9 w-9 items-center justify-center rounded-icon bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
-                                aria-label="Open account menu"
-                                aria-expanded={menuOpen}
-                                aria-haspopup="dialog"
-                            >
-                                {avatarUrl && (
-                                    <img
-                                        src={avatarUrl}
-                                        alt=""
-                                        className="absolute inset-0 h-full w-full object-cover"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                    />
-                                )}
-                                <span aria-hidden="true">{avatarInitial}</span>
-                            </button>
+                            {!isHome && accountButton}
                         </div>
                     </>
                 ) : (
