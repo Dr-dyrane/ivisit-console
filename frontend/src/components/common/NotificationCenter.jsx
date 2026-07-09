@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Bell, X } from 'lucide-react';
@@ -48,6 +48,100 @@ async function readNotificationsForUser(userId, options = {}) {
 
   return promise;
 }
+
+// Local day-bucket grouping — no shared mobile helper matches the per-calendar-day
+// Today / Yesterday / weekday+date / short-date shape, so we keep it here. Pure:
+// the caller passes `now`; we only build Dates from each row's own timestamp.
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const dayLabel = (date, now) => {
+  const diffDays = Math.round((startOfDay(now).getTime() - startOfDay(date).getTime()) / 86400000);
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString();
+};
+
+function groupNotificationsByDay(notifications, now = new Date()) {
+  const list = Array.isArray(notifications) ? notifications : [];
+  const buckets = new Map();
+
+  list.forEach((notification) => {
+    const raw = notification.timestamp || notification.created_at;
+    const date = raw ? new Date(raw) : null;
+    const valid = date && !Number.isNaN(date.getTime());
+    const key = valid ? startOfDay(date).getTime() : 0;
+
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        key,
+        label: valid ? dayLabel(date, now) : 'Earlier',
+        ts: key,
+        items: [],
+      });
+    }
+    buckets.get(key).items.push({ notification, ts: valid ? date.getTime() : 0 });
+  });
+
+  return [...buckets.values()]
+    .sort((a, b) => b.ts - a.ts)
+    .map((bucket) => ({
+      key: bucket.key,
+      label: bucket.label,
+      items: bucket.items.sort((a, b) => b.ts - a.ts).map((entry) => entry.notification),
+    }));
+}
+
+// Shared grouped renderer for both the desktop dropdown and the mobile Sheet.
+// One card per single-item day; one panel with hairline-separated rows otherwise.
+const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
+  const groups = useMemo(() => groupNotificationsByDay(notifications), [notifications]);
+
+  return (
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <section key={group.key} className="space-y-2">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <h4 className="text-sm font-semibold text-foreground">{group.label}</h4>
+            <button
+              type="button"
+              onClick={() => group.items.forEach((notification) => onDismiss(notification.id))}
+              className="rounded-pill px-1 text-xs font-semibold text-destructive transition-opacity hover:opacity-70"
+            >
+              Clear
+            </button>
+          </div>
+
+          {group.items.length === 1 ? (
+            <AnimatePresence initial={false} mode="popLayout">
+              <NotificationCard
+                key={group.items[0].id}
+                notification={group.items[0]}
+                onDismiss={onDismiss}
+                onMarkRead={onMarkRead}
+              />
+            </AnimatePresence>
+          ) : (
+            <div className="overflow-hidden rounded-card bg-card/70 shadow-[0_1px_3px_rgb(0_0_0/0.05)] dark:bg-card/55">
+              <AnimatePresence initial={false} mode="popLayout">
+                {group.items.map((notification, index) => (
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
+                    onDismiss={onDismiss}
+                    onMarkRead={onMarkRead}
+                    grouped
+                    showDivider={index > 0}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+};
 
 export const NotificationCenter = () => {
   const { user } = useAuth();
@@ -199,7 +293,7 @@ export const NotificationCenter = () => {
               )}
             </div>
 
-            <div className="max-h-[68vh] space-y-3 overflow-y-auto px-2 pb-24 no-scrollbar">
+            <div className="max-h-[68vh] overflow-y-auto px-2 pb-24 no-scrollbar">
               {loading ? (
                 <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
@@ -217,16 +311,11 @@ export const NotificationCenter = () => {
                   <p className="text-sm text-muted-foreground">No notifications</p>
                 </div>
               ) : (
-                <AnimatePresence mode="popLayout">
-                  {notifications.map(notification => (
-                    <NotificationCard
-                      key={notification.id}
-                      notification={notification}
-                      onDismiss={handleDismiss}
-                      onMarkRead={handleMarkRead}
-                    />
-                  ))}
-                </AnimatePresence>
+                <NotificationGroupList
+                  notifications={notifications}
+                  onDismiss={handleDismiss}
+                  onMarkRead={handleMarkRead}
+                />
               )}
             </div>
 
@@ -281,7 +370,7 @@ export const NotificationCenter = () => {
                     </Button>
                   </div>
 
-                  <div className="max-h-[50vh] space-y-3 overflow-y-auto px-5 pb-5">
+                  <div className="max-h-[50vh] overflow-y-auto px-5 pb-5">
                     {loading ? (
                       <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (
@@ -299,16 +388,11 @@ export const NotificationCenter = () => {
                         <p className="text-sm text-muted-foreground">No notifications</p>
                       </div>
                     ) : (
-                      <AnimatePresence mode="popLayout">
-                        {notifications.map(notification => (
-                          <NotificationCard
-                            key={notification.id}
-                            notification={notification}
-                            onDismiss={handleDismiss}
-                            onMarkRead={handleMarkRead}
-                          />
-                        ))}
-                      </AnimatePresence>
+                      <NotificationGroupList
+                        notifications={notifications}
+                        onDismiss={handleDismiss}
+                        onMarkRead={handleMarkRead}
+                      />
                     )}
                   </div>
 
