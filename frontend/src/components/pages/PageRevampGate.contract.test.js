@@ -35,6 +35,21 @@ describe('Today/Requests revamp gate contract', () => {
   const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
   const nonCanonicalRadiusPattern = /rounded-(?:\[[^\]]+\]|full|sm|md|lg|xl|2xl|3xl)(?=[\s"'`])/;
 
+  it('locks the desktop data-render canon — one row/table render, no ViewToggle (MANAGEMENT_PAGE_STANDARDS §1.5)', () => {
+    const gate = gateSource();
+    // The decision is contract-locked in the gate as an explicit user canon.
+    expect(gate).toContain('## Desktop Data-Render Canon - 2026-07-08');
+    expect(gate).toContain('ONE row/table projection inside the');
+    expect(gate).toContain('no `ViewToggle`, no `useViewMode`, and');
+    expect(gate).toContain('legacy-inactive');
+    expect(gate).toContain('Mobile keeps its recomposed card/row rhythm');
+
+    // Behavioral lock: the reference page actually ships one render, no toggle.
+    const requests = emergencyRequestsSource();
+    expect(requests).not.toMatch(/ViewToggle/);
+    expect(requests).not.toMatch(/useViewMode/);
+  });
+
   it('enforces the global squircle geometry canon through CSS, Tailwind, and hardgate', () => {
     const gate = gateSource();
     const designSystem = designSystemSource();

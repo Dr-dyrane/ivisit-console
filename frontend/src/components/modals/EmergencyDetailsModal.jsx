@@ -236,11 +236,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       : step;
 
                   return (
-                    <div key={step} className={`rounded-inner p-3 text-center transition-all ${isCurrent ? 'bg-primary/10 text-primary shadow-[0_18px_38px_hsl(var(--primary)/0.10)]' :
+                    <div key={step} className={`rounded-inner p-3 text-center transition-all ${isCurrent ? 'bg-sky-500/10 text-sky-500 shadow-[0_10px_28px_rgb(0_0_0/0.10)]' :
                       isPast ? 'bg-green-500/5 text-green-500 opacity-60' :
                         'bg-white/5 text-muted-foreground opacity-30'
                       }`}>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest">{stepLabel.replace('_', ' ')}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em]">{stepLabel.replace('_', ' ')}</p>
                     </div>
                   );
                 })}
@@ -248,7 +248,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
               {/* Cash Payment Approval Action */}
               {showCashApprovalCard && (
-                <div className="space-y-4 rounded-card bg-orange-500/10 p-6 shadow-[0_22px_60px_rgb(249_115_22/0.12)]">
+                <div className="space-y-4 rounded-card bg-orange-500/10 p-6 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
                   <div className="flex items-center gap-3">
                     <div className="rounded-icon bg-orange-500/20 p-2">
                       <Shield className="w-5 h-5 text-orange-500" />
@@ -261,7 +261,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
                   <div className="flex flex-col gap-4 rounded-inner bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Fee Amount</p>
                       <p className="text-xl font-bold">
                         {renderProjection.paymentDisplay.amountLabel}
                       </p>
@@ -297,13 +297,13 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
               )}
 
               {isPaymentDeclined && (
-                <div className="space-y-4 rounded-card bg-warning/10 p-6 shadow-[0_22px_60px_hsl(var(--warning)/0.10)]">
+                <div className="space-y-4 rounded-card bg-amber-500/10 p-6 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-icon bg-warning/20 p-2">
-                      <AlertTriangle className="w-5 h-5 text-warning" />
+                    <div className="rounded-icon bg-amber-500/20 p-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-warning">Payment Declined</h4>
+                      <h4 className="font-semibold text-amber-500">Payment Declined</h4>
                       <p className="text-sm text-muted-foreground">
                         Retry this request with a different saved payment method.
                       </p>
@@ -313,7 +313,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                     <Button
                       onClick={handleRetry}
                       disabled={isRetryingPayment}
-                      className="rounded-button bg-warning px-6 text-white hover:bg-warning/90"
+                      className="rounded-button bg-amber-500 px-6 text-slate-950 hover:bg-amber-500/90"
                     >
                       {isRetryingPayment ? 'Retrying...' : 'Retry Payment'}
                     </Button>
@@ -323,7 +323,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
               {/* Dispatch Source Indicator */}
               {request.ambulance_id && (
-                <div className="flex items-center justify-center gap-2 rounded-inner bg-blue-500/10 p-3 shadow-[0_16px_40px_rgb(59_130_246/0.10)]">
+                <div className="flex items-center justify-center gap-2 rounded-inner bg-blue-500/10 p-3 shadow-[0_10px_28px_rgb(0_0_0/0.10)]">
                   <Ambulance className="w-4 h-4 text-blue-500" />
                   <span className="text-sm font-medium text-blue-500">Auto-dispatched from mobile app</span>
                 </div>
@@ -453,12 +453,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-4">
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Hospital</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Hospital</p>
                         <p className="text-lg font-semibold">{renderProjection.facilityDisplay.name}</p>
                       </div>
                       {request.patient_location && (
                         <div className="rounded-inner bg-white/5 p-4">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Patient Location</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Patient Location</p>
                           <p className="font-mono text-sm font-semibold">
                             <LocationCell
                               location={request.patient_location}
@@ -470,11 +470,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       )}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="rounded-inner bg-white/5 p-4">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Request ID</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Request ID</p>
                           <p className="font-mono text-sm font-semibold">{renderProjection.identity.displayId || 'N/A'}</p>
                         </div>
                         <div className="rounded-inner bg-white/5 p-4">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Service Type</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Service Type</p>
                           <p className="font-mono text-sm font-semibold">{renderProjection.serviceDisplay.label}</p>
                         </div>
                       </div>
@@ -505,17 +505,17 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   <GlassCard icon={<Ambulance className="text-blue-500" />} title="Ambulance Details" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Type</p>
                         <p className="font-semibold">
                           {renderProjection.serviceDisplay.ambulanceTypeLabel}
                         </p>
                       </div>
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">ETA</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">ETA</p>
                         <p className="font-semibold">{renderProjection.responderDisplay.etaLabel || etaDisplay || 'N/A'}</p>
                       </div>
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Status</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Status</p>
                         <p className="font-semibold capitalize">{renderProjection.statusDisplay.label}</p>
                       </div>
                     </div>
@@ -526,15 +526,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   <GlassCard icon={<Calendar className="text-green-500" />} title="Bed Details" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Number</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Bed Number</p>
                         <p className="font-semibold">{request.bed_number || 'N/A'}</p>
                       </div>
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Type</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Bed Type</p>
                         <p className="font-semibold capitalize">{bedCategory || 'N/A'}</p>
                       </div>
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Specialty</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Specialty</p>
                         <p className="font-semibold">{renderProjection.serviceDisplay.specialtyLabel}</p>
                       </div>
                     </div>
@@ -546,22 +546,22 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   <GlassCard icon={<Shield className="text-orange-500" />} title="Responder Information" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Responder Name</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Responder Name</p>
                         <p className="font-semibold">{request.responder_name || 'N/A'}</p>
                       </div>
                       <div className="rounded-inner bg-white/5 p-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Contact</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Contact</p>
                         <p className="font-semibold">{request.responder_phone || 'N/A'}</p>
                       </div>
                       {request.responder_vehicle_plate && (
                         <div className="rounded-inner bg-white/5 p-4">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Plate</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Vehicle Plate</p>
                           <p className="font-semibold">{request.responder_vehicle_plate || 'N/A'}</p>
                         </div>
                       )}
                       {request.responder_vehicle_type && (
                         <div className="rounded-inner bg-white/5 p-4">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Type</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.14em] mb-1">Vehicle Type</p>
                           <p className="font-semibold capitalize">{request.responder_vehicle_type || 'N/A'}</p>
                         </div>
                       )}
@@ -594,7 +594,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 /* Sub-components */
 
 const GlassCard = ({ children, title, icon, className }) => (
-  <div className={`rounded-card bg-white/5 p-4 shadow-[0_18px_55px_rgb(0_0_0/0.06)] sm:p-6 ${className}`}>
+  <div className={`rounded-card bg-white/5 p-4 shadow-[0_10px_28px_rgb(0_0_0/0.10)] sm:p-6 ${className}`}>
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="rounded-icon bg-white/5 p-1.5 sm:p-2">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}

@@ -37,6 +37,32 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 - No page admission status changed from this re-anchor. It is a proof-mechanism repair only: the default UI hardgate, the strict-radius revamp hardgate for the Today/Requests pair, and the full contract suite pass against the now-committed source.
 - Future rule: if the preservation baseline is ever re-pinned to a newer pre-change commit, update this note and the contract-test baseline constant together, and never let a preservation proof read the moving `HEAD` ref again.
 
+## Desktop Data-Render Canon - 2026-07-08
+
+This globalizes the Requests-scoped "Active Requests handled-sheet lock" (below) into a
+cross-page canon and records it as an explicit user decision. The readable home is
+`MANAGEMENT_PAGE_STANDARDS.md` §1.5; this entry is the contract-locked statement.
+
+- Desktop management pages render records exactly one way: ONE row/table projection inside the
+  handled sheet (`RequestRow` in the reference). There is no `ViewToggle`, no `useViewMode`, and
+  no grid/card/list mode switching on desktop.
+- Card / grid / list view files (`XListView`, `*GridView`, card-view variants) are legacy-inactive:
+  kept in the tree as the preservation anchor, never imported by the active route. Reintroduction
+  is allowed only as a variant of the same route-owned projection after a page ledger records it —
+  never as a second source of truth (see §Requests-As-Multi-Data line "not as separate truth").
+- Why (grounded, not invented): one render proves "no second source of truth" once; the KPI/state
+  chips already own signal survey; the DetailRail already owns per-record focus; one projection is
+  one `service → hook → row → payload` contract to hardgate; reuse the canon, not the markup.
+- Scope is desktop only. Mobile keeps its recomposed card/row rhythm (`MobileX`, a separate design
+  system in `MOBILE_DESIGN_SYSTEM.md`) — that is not a desktop toggle.
+- Roll-out is per-page and gated, not a repo-wide rip: `ViewToggle`/`useViewMode` still remain on
+  Ambulances, Doctors, HealthNews, Hospitals, Insurance, Organizations, Pricing, Subscription,
+  Users, Verification, and Visits. Each page converts the canon way — old-behavior ledger, mark the
+  card/list variants `legacy inactive` (a preservation decision, not a silent drop), drop the toggle
+  from the active route, keep the one row/table render, contract test stays green.
+- The reference `EmergencyRequestsPage.jsx` already ships this: zero `ViewToggle`, one `RequestRow`
+  render. The gate contract test locks both this statement and that behavioral fact.
+
 ## Post-Checkpoint Canon And Intake Safety Recertification - 2026-07-07
 
 After the preservation baseline re-anchor above, the canon and the six unadmitted authenticated intake pages were re-verified against the now-committed source. This is a verified-state recertification, not a new admission.

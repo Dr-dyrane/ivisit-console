@@ -348,7 +348,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('setRoutingPath(path)');
     expect(railSource).toContain("admin: ['today', 'requests', 'staff', 'payments', 'help']");
     expect(railComponentSource).toContain('aria-current={isActive ? \'page\' : undefined}');
-    expect(pageSource).toContain('const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }) =>');
+    expect(pageSource).toContain('const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading }) =>');
     expect(pageSource).toContain('getRequestSignal({ stats, requests, kpiFilter })');
     expect(pageSource).toContain('return normalizeCount(stats?.pending, rowCount);');
     expect(pageSource).toContain("id: 'active'");

@@ -56,7 +56,8 @@ signal → filter → focus one record → see it and act on it.* Copy the shape
 ConsoleModuleRail │  LEFT column (flex-1)                 │  RIGHT column
    (left nav)     │    SignalPanel                        │    DetailRail
                   │    StateStrip (chips)                 │    (<aside>, focused record)
-                  │    Handled sheet → List/Table/Grid    │
+                  │    Handled sheet → ONE row/table      │
+                  │      render (no ViewToggle)           │
 ```
 
 Top-level wrapper:
@@ -89,8 +90,10 @@ sets `kpiFilter` and filters the list (the chips ARE the quick filters — no se
 bordered KPI cards).
 
 ### 1.3 Handled sheet
-The list/table/grid lives inside the glass sheet above (`rounded-t-sheet bg-card/68 …
-backdrop-blur-2xl`, `md:rounded-sheet`) with the `rounded-pill` drag handle.
+**ONE canonical render** lives inside the glass sheet above (`rounded-t-sheet bg-card/68 …
+backdrop-blur-2xl`, `md:rounded-sheet`) with the `rounded-pill` drag handle: the borderless
+**row/table projection** (`XRow` inside a CSS-grid, as `RequestRow` in the reference). **No
+`ViewToggle`. No `useViewMode`. No grid/card/list mode switching on desktop.** See §1.5 for why.
 
 ### 1.4 DetailRail — the focused record (this is the "story")
 A right-side `<aside>`, **separate from the Context Panel slideout** (§2). Always
@@ -121,6 +124,44 @@ present on desktop; it shows the currently focused record.
 
 Reference rails: `RequestDetailRail` (`EmergencyRequestsPage.jsx`), and the five data
 pages — Insurance, Users, Subscriptions, Organizations, Pricing.
+
+---
+
+## 1.5 Data-render canon — ONE render, no ViewToggle (why tables-only on desktop)
+
+**Decision (canon):** a desktop management page renders its records **exactly one way** — the
+borderless **row/table projection** inside the handled sheet (§1.3). There is **no `ViewToggle`,
+no `useViewMode`, no grid/card/list mode switching**. Card / grid / list view files
+(`XListView`, `X*GridView`, `Card` variants) are **legacy-inactive**: kept in the tree as the
+preservation anchor, never imported by the active route. The reference (`EmergencyRequestsPage`)
+already ships this — zero `ViewToggle`, one `RequestRow` render.
+
+**Why (grounded in the existing gate canon, not invented):**
+
+1. **No second source of truth.** Multiple view modes each re-shape the same rows; the gate
+   requires the handled sheet prove *"no second source of truth remains"* and render *"cards,
+   rows, or a table only as variants of the same data projection, not as separate truth."* One
+   render is the only way to prove that once, cheaply. (`PAGE_REVAMP_GATE.md` §Requests-As-Multi-Data,
+   §Pattern-Extraction Handled-sheet slot.)
+2. **The chips already own "survey the signal."** The KPI/state strip (§1.2) is the scan/summary
+   surface a card grid used to provide. Keeping a card view duplicates that job.
+3. **The DetailRail already owns per-record focus.** The always-present rail (§1.4) is the
+   expanded/detail affordance a card's hover-expand used to provide. A card view duplicates it.
+4. **One projection = one contract to prove.** The whole revamp thesis is quiet, route-owned data
+   with no parallel truth. One render means one place where `service → hook → row → payload` is
+   audited and hardgated — not three.
+5. **Reuse the canon, not the markup.** Every data page reading identically is the point of the
+   "Reuse Rule"; a per-page toggle re-introduces per-page divergence.
+
+**Scope:** desktop only. **Mobile keeps its recomposed card/row rhythm** (`MobileX`) — that is a
+separate design system (`MOBILE_DESIGN_SYSTEM.md`), recomposed for touch, not a desktop toggle.
+
+**Roll-out (per-page, gated):** `ViewToggle`/`useViewMode` currently remain on
+Ambulances, Doctors, HealthNews, Hospitals, Insurance, Organizations, Pricing, Subscription,
+Users, Verification, Visits. Each is converted the canon way — record the old-behavior ledger,
+mark the card/list variants `legacy inactive` (a **preservation decision**, not a silent drop),
+delete the toggle from the active route, keep the one row/table render. No repo-wide rip; one page
+at a time, contract test stays green.
 
 ---
 
@@ -157,10 +198,12 @@ Context Panel is the toggled slideout.
 The revamp is the **whole surface**, not just the page component. When you revamp a
 data page, bring these to the same canon:
 
-- **Views** (`components/views/XTableView`, `XListView`) — borderless custom grid rows,
-  not shadcn `Table`/`Badge` (those inject `border-b` and badge borders the page-source
-  hardgate cannot see). Pattern: `rounded-card bg-background/30 p-3` container + CSS-grid
-  header/rows (`rounded-inner px-3 py-3 hover:bg-muted/30`) + `rounded-pill` tone badges.
+- **Views** — ONE active render only (§1.5): the borderless row/table projection, borderless
+  custom grid rows, not shadcn `Table`/`Badge` (those inject `border-b` and badge borders the
+  page-source hardgate cannot see). Pattern: `rounded-card bg-background/30 p-3` container +
+  CSS-grid header/rows (`rounded-inner px-3 py-3 hover:bg-muted/30`) + `rounded-pill` tone badges.
+  Any `XListView` / `*GridView` / card-view file is **legacy-inactive** (kept as the preservation
+  anchor, not imported by the active route). No `ViewToggle`.
 - **Mobile** (`components/mobile/MobileX`) — same tone/radius/no-border canon.
 - **Context panel** (`components/context/XPanel`) — §2.
 - **Modals** (`components/modals/XModal`) — `ModalShell`, `rounded-modal`, no borders.
@@ -180,6 +223,8 @@ Verify each with the hardgate; verify **color** by rendering (the gate does not 
 1. [ ] `--strict-radius` hardgate passes on the page.
 2. [ ] Rendered: zero red outside `--destructive`; zero horizontal overflow.
 3. [ ] Two-rail workspace: SignalPanel + state chips + handled sheet (LEFT) │ DetailRail (RIGHT).
+3a. [ ] Handled sheet renders ONE row/table projection — no `ViewToggle`, no `useViewMode`, no
+    grid/card/list switching; card/list view files are legacy-inactive (§1.5).
 4. [ ] DetailRail defaults to first record and updates on row focus.
 5. [ ] Writes gated behind authority show a reason, never a dead button.
 6. [ ] Views + mobile + context panel + modal brought to the same canon.

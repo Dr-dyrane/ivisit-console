@@ -39,7 +39,6 @@ import {
   Filter as FilterIcon,
   Hospital,
   Info,
-  Loader2,
   MapPin,
   Minus,
   RefreshCw,
@@ -100,56 +99,56 @@ const kpiOptions = [
     label: 'Needs attention',
     icon: AlertCircle,
     colorClass: 'text-destructive',
-    activeClass: 'bg-destructive/16 text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.20)]',
-    restClass: 'bg-muted/30 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+    activeClass: 'bg-destructive/16 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
   },
   {
     id: 'active',
     label: 'Active',
     icon: Clock,
     colorClass: 'text-amber-700 dark:text-amber-200',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-200',
-    restClass: 'bg-muted/30 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
   },
   {
     id: 'bed',
     label: 'Beds',
     icon: BedDouble,
     colorClass: 'text-cyan-600 dark:text-cyan-200',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-    restClass: 'bg-muted/30 text-muted-foreground hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-200',
   },
   {
     id: 'ambulance',
     label: 'Ambulance',
     icon: Ambulance,
     colorClass: 'text-sky-600 dark:text-sky-200',
-    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.14)] dark:text-sky-200',
-    restClass: 'bg-muted/30 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
+    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
   },
 ];
 
 const statusStyles = {
   pending_approval: {
     label: 'Needs attention',
-    className: 'bg-destructive/14 text-destructive shadow-[0_12px_38px_rgba(239,68,68,0.14)]',
+    className: 'bg-destructive/14 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
   },
   in_progress: {
     label: 'Active',
-    className: 'bg-amber-500/10 text-amber-700 shadow-[0_12px_38px_rgba(245,158,11,0.12)] dark:text-amber-200',
+    className: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
   },
   accepted: {
     label: 'Accepted',
-    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_12px_38px_rgba(6,182,212,0.12)] dark:text-cyan-200',
+    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
   },
   arrived: {
     label: 'Arrived',
-    className: 'bg-sky-500/10 text-sky-700 shadow-[0_12px_38px_rgba(14,165,233,0.12)] dark:text-sky-200',
+    className: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
   },
   completed: {
     label: 'Completed',
     icon: CheckCheck,
-    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_12px_38px_rgba(16,185,129,0.12)] dark:text-emerald-200',
+    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200',
   },
   cancelled: {
     label: 'Cancelled',
@@ -157,7 +156,7 @@ const statusStyles = {
   },
   payment_declined: {
     label: 'Payment issue',
-    className: 'bg-destructive/14 text-destructive shadow-[0_12px_38px_rgba(239,68,68,0.14)]',
+    className: 'bg-destructive/14 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
   },
 };
 
@@ -308,20 +307,20 @@ const getDefaultRequestKpi = (stats) => {
 };
 
 const requestToneClass = {
-  danger: 'bg-destructive/12 text-destructive shadow-[0_16px_42px_rgba(239,68,68,0.16)]',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_16px_42px_rgba(244,63,94,0.14)] dark:text-rose-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+  danger: 'bg-destructive/12 text-destructive shadow-[0_10px_28px_rgba(0,0,0,0.10)]',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-amber-200',
+  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-rose-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-cyan-200',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-sky-200',
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
 
 const railPrimaryActionClass = {
-  review: 'bg-destructive text-white shadow-[0_18px_56px_rgba(239,68,68,0.28)] hover:bg-destructive/90',
-  dispatch: 'bg-sky-600 text-white shadow-[0_18px_56px_rgba(14,165,233,0.22)] hover:bg-sky-500',
-  complete: 'bg-emerald-600 text-white shadow-[0_18px_56px_rgba(16,185,129,0.22)] hover:bg-emerald-500',
-  retry: 'bg-amber-500 text-slate-950 shadow-[0_18px_56px_rgba(245,158,11,0.22)] hover:bg-amber-400',
+  review: 'bg-destructive text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-destructive/90',
+  dispatch: 'bg-sky-600 text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-sky-500',
+  complete: 'bg-emerald-600 text-white shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-emerald-500',
+  retry: 'bg-amber-500 text-slate-950 shadow-[0_18px_56px_rgba(0,0,0,0.20)] hover:bg-amber-400',
   details: 'bg-foreground text-background shadow-[0_18px_56px_rgba(0,0,0,0.24)] hover:bg-foreground/90',
 };
 
@@ -1245,6 +1244,7 @@ const RequestsDesktopWorkspace = ({
             requests={requests}
             kpiFilter={kpiFilter}
             setKpiFilter={setKpiFilter}
+            loading={loading}
           />
 
           <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
@@ -1334,6 +1334,7 @@ const RequestsDesktopWorkspace = ({
         <RequestDetailRail
           request={focusedRequest}
           currentUser={currentUser}
+          loading={loading}
           onView={onView}
           onDelete={onDelete}
           onDispatch={onDispatch}
@@ -1346,7 +1347,7 @@ const RequestsDesktopWorkspace = ({
   );
 };
 
-const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }) => {
+const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading }) => {
   const SignalIcon = signal.icon;
 
   return (
@@ -1356,40 +1357,71 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }
       transition={{ duration: 0.42 }}
       className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]"
     >
-      <div className="min-w-0">
-        <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${requestToneClass[signal.tone] || requestToneClass.muted}`}>
-            <SignalIcon className="h-4 w-4" />
-            {signal.label}
+      <div className="w-full min-w-0">
+        {loading ? (
+          <div className="space-y-4">
+            <Shimmer className="h-8 w-36 rounded-pill" />
+            <Shimmer className="h-12 w-3/4 rounded-card md:h-[72px]" />
+            <Shimmer className="h-5 w-1/2 rounded-inner" />
           </div>
-          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-            {signal.headline}
-          </h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-            {signal.subhead}
-          </p>
-        </div>
+        ) : (
+          <div>
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${requestToneClass[signal.tone] || requestToneClass.muted}`}>
+              <SignalIcon className="h-4 w-4" />
+              {signal.label}
+            </div>
+            <h1 className="text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+              {signal.headline}
+            </h1>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+              {signal.subhead}
+            </p>
+          </div>
+        )}
 
         <RequestKpiStrip
           stats={stats}
           requests={requests}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
+          loading={loading}
         />
       </div>
     </motion.section>
   );
 };
 
-const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter }) => (
-  <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
-    {kpiOptions.map((item) => {
-      const Icon = item.icon;
+const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
+  if (loading) {
+    return (
+      <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+        {kpiOptions.map((item) => (
+          <div
+            key={item.id}
+            className="min-h-[66px] rounded-inner bg-card/65 px-3 py-3 backdrop-blur-xl"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 space-y-2">
+                <Shimmer className="h-3 w-16 rounded-pill" />
+                <Shimmer className="h-6 w-9 rounded-inner" />
+              </div>
+              <Shimmer className="h-8 w-8 rounded-button" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+      {kpiOptions.map((item) => {
+        const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
       const count = getKpiCount({ id: item.id, stats, requests });
       const clearPending = item.id === 'pending' && count === 0;
       const activeClass = clearPending
-        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-200'
+        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_10px_28px_rgba(0,0,0,0.10)] dark:text-emerald-200'
         : item.activeClass;
       const colorClass = clearPending ? 'text-emerald-700 dark:text-emerald-200' : item.colorClass;
       return (
@@ -1401,7 +1433,7 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter }) => (
           onClick={() => setKpiFilter(item.id)}
           data-request-kpi={item.id}
           data-state={active ? 'selected' : 'idle'}
-          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? activeClass : item.restClass}`}
+          className={`group min-h-[66px] rounded-inner px-3 py-3 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 ${active ? activeClass : item.restClass}`}
           aria-pressed={active}
           aria-label={`${item.label}: ${count}`}
         >
@@ -1416,9 +1448,10 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter }) => (
           </span>
         </motion.button>
       );
-    })}
-  </div>
-);
+      })}
+      </div>
+    );
+};
 
 const RequestLoadErrorState = ({ message, onRetry }) => (
   <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_20px_64px_rgba(239,68,68,0.12)]">
@@ -1628,6 +1661,7 @@ const RequestRow = ({ request, index, selected, onFocus, onView, selectable = fa
 const RequestDetailRail = ({
   request,
   currentUser,
+  loading,
   onView,
   onDelete,
   onDispatch,
@@ -1635,6 +1669,40 @@ const RequestDetailRail = ({
   onProcessCash,
   onRetryPayment,
 }) => {
+  if (loading) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Shimmer className="h-6 w-36 rounded-inner" />
+            <Shimmer className="h-6 w-24 rounded-pill" />
+          </div>
+          <Shimmer className="h-9 w-9 rounded-pill" />
+        </div>
+        <div className="mb-5 flex items-center gap-4">
+          <Shimmer className="h-14 w-14 shrink-0 rounded-pill" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Shimmer className="h-5 w-2/3 rounded-inner" />
+            <Shimmer className="h-4 w-1/2 rounded-inner" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Shimmer key={i} className="h-[52px] w-full rounded-inner" />
+          ))}
+        </div>
+        <div className="mt-5 space-y-2.5">
+          <Shimmer className="h-12 w-full rounded-button" />
+          <div className="grid grid-cols-2 gap-3">
+            <Shimmer className="h-11 rounded-button" />
+            <Shimmer className="h-11 rounded-button" />
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   if (!request) {
     return (
       <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
@@ -1732,7 +1800,9 @@ const RequestDetailRail = ({
           {actionState.canRetryPayment && primaryAction.kind !== 'retry' && (
             <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} />
           )}
-          <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
+          {primaryAction.kind !== 'details' && (
+            <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
+          )}
         </div>
 
         {actionState.canProcessCash && (
@@ -1834,13 +1904,16 @@ const getPrimaryRailAction = ({
   };
 };
 
+// One skeleton primitive for the whole page: same pulse/tone as the row skeleton,
+// composed into signal, KPI, row, and rail variants so loading has no bare dots.
+const Shimmer = ({ className = '' }) => (
+  <span className={`block animate-pulse bg-muted/38 dark:bg-white/[0.055] ${className}`} />
+);
+
 const RequestSkeletonRows = () => (
   <div className="space-y-2">
     {Array.from({ length: 7 }).map((_, index) => (
-      <div
-        key={index}
-        className="h-[78px] animate-pulse rounded-card bg-muted/38 dark:bg-white/[0.055]"
-      />
+      <Shimmer key={index} className="h-[78px] rounded-card" />
     ))}
   </div>
 );
