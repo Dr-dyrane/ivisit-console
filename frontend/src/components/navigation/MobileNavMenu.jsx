@@ -115,7 +115,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 </div>
 
                 {/* TAB TOGGLE (Subtle Segmented Control) */}
-                <div className="p-1 rounded-inner bg-muted/20 backdrop-blur-md flex relative mb-4">
+                <div className="p-1 rounded-inner surface-card flex relative mb-4">
                     <motion.div
                         className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-button"
                         initial={false}
@@ -224,7 +224,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex-1 flex items-center justify-center h-12 rounded-button bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-out active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                        className="flex-1 flex items-center justify-center h-12 rounded-button surface-card text-muted-foreground transition-[background,color] duration-200 ease-out active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
                         aria-label="Toggle theme"
                     >
                         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -240,7 +240,7 @@ export const MobileNavMenu = ({ onClose }) => {
 
                 <button
                     onClick={() => handleNavigate('/settings')}
-                    className="w-full flex items-center gap-4 p-3 rounded-button apple-glass shadow-sm"
+                    className="w-full flex items-center gap-4 p-3 rounded-button surface-card"
                     aria-label="Open account settings"
                 >
                     <Avatar className="h-10 w-10 rounded-icon">

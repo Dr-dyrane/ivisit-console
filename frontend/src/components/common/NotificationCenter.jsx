@@ -122,7 +122,7 @@ const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
               />
             </AnimatePresence>
           ) : (
-            <div className="overflow-hidden rounded-card bg-card/70 shadow-[0_1px_3px_rgb(0_0_0/0.05)] dark:bg-card/55">
+            <div className="overflow-hidden rounded-card surface-card">
               <AnimatePresence initial={false} mode="popLayout">
                 {group.items.map((notification, index) => (
                   <NotificationCard
@@ -281,10 +281,10 @@ export const NotificationCenter = () => {
       {/* Mobile: Sheet */}
       {isMobile ? (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
+          <SheetOverlay className="bg-black/[0.46] backdrop-blur-sm" />
           <SheetContent
             side="right"
-            className="flex flex-col w-[88%] max-w-[385px] px-2 pt-4 pb-0 bg-card/68 dark:bg-card/55 backdrop-blur-2xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
+            className="flex flex-col w-[88%] max-w-[385px] px-2 pt-4 pb-0 bg-card/88 dark:bg-[#0b1220]/85 backdrop-blur-xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
           >
             <div className="shrink-0 px-1 pb-3">
               <h3 className="text-lg font-bold tracking-tight text-foreground">Notifications</h3>
