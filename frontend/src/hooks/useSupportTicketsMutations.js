@@ -4,10 +4,11 @@ import { useInvalidateSupportTickets } from './useSupportTicketsQuery';
 /**
  * useSupportTicketsMutations - the optimistic-mutation pattern for the Support
  * domain, copied from the console reference (useDoctorsMutations, Console
- * Layer-Model Plan step S2-4). Support has a genuine but narrow write path:
- * create + update of a ticket's subject/message/category/priority. Destructive
- * and workflow mutations (delete / assign / status) stay service-inventory only
- * and are intentionally NOT wired here.
+ * Layer-Model Plan step S2-4). Support wires create + update of a ticket's
+ * subject/message/category/priority, plus destructive delete (via
+ * applyOptimisticRemove) and provider self-assign (via applyOptimisticUpsert,
+ * since assignTicket returns the updated ticket). The status-transition mutation
+ * stays service-inventory only and is intentionally NOT wired here.
  *
  * The pattern (per CONSOLE_LAYER_MODEL_PLAN.md):
  *   onMutate   -> cancelQueries, snapshot the previous cache (rollback token),
@@ -60,6 +61,22 @@ export function applyOptimisticUpsert(cache, ticket) {
     ...base,
     data,
     count: exists ? base.count : (base.count ?? 0) + 1,
+  };
+}
+
+/**
+ * Remove a ticket by id from the cached list. Count shrinks only if the row was
+ * actually present, and never goes below zero. Mirrors useDoctorsMutations'
+ * applyOptimisticRemove (the console reference reducer) so the delete mutation
+ * gets the same optimistic-then-converge lifecycle as the reference domain.
+ */
+export function applyOptimisticRemove(cache, ticketId) {
+  if (!cache || !Array.isArray(cache.data)) return cache;
+  const existed = cache.data.some((row) => row.id === ticketId);
+  return {
+    ...cache,
+    data: cache.data.filter((row) => row.id !== ticketId),
+    count: existed ? Math.max(0, (cache.count ?? 0) - 1) : (cache.count ?? 0),
   };
 }
 

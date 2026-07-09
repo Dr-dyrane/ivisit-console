@@ -99,7 +99,8 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(gate).toContain('### Page 10 Admission - Support');
     expect(gate).toContain('Support at `/support-tickets` is admitted under the Today/Requests canon for this page only.');
     expect(gate).toContain('`supportTicketsService.js` now exposes `getSupportTicketsPage()` as the route projection owner');
-    expect(gate).toContain('Single delete, bulk delete, assignment, and status mutation remain service inventory only.');
+    expect(gate).toContain('Single delete, bulk delete, and provider self-assign are restored on the active Support surface');
+    expect(gate).toContain('Status transition remains service inventory only.');
     expect(gate).toContain('Support right-panel route-context proof, 2026-07-06:');
     expect(gate).toContain('`SupportTicketsPage.jsx` publishes a page-owned `supportPanelContext`');
     expect(gate).toContain('`ContextPanel.jsx` requests that context through `requestSupportTicketsRouteContext`');
@@ -147,12 +148,16 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(page).toContain('supportTicketsRouteContextUpdated');
     expect(page).toContain('requestSupportTicketsRouteContext');
     expect(page).not.toContain('if (isAdmin) {');
-    expect(page).not.toContain('<BulkActionBar');
-    expect(page).not.toContain('<ConfirmationModal');
-    expect(page).not.toContain('deleteSupportTicket');
-    expect(page).not.toContain('assignTicket');
+    // Restored capabilities (single delete, bulk delete, provider self-assign):
+    // the page imports the destructive/assign service calls, renders the confirm +
+    // bulk-action surfaces, and tracks row selection. The status-transition
+    // mutation stays service-inventory only and is still absent here.
+    expect(page).toContain('<BulkActionBar');
+    expect(page).toContain('<ConfirmationModal');
+    expect(page).toContain('deleteSupportTicket');
+    expect(page).toContain('assignTicket');
     expect(page).not.toContain('updateTicketStatus');
-    expect(page).not.toContain('selectedIds');
+    expect(page).toContain('selectedIds');
 
     expect(service).toContain('export async function getSupportTicketsPage(filter = {})');
     expect(service).toContain('function applySupportTicketScope(query, user)');
@@ -213,9 +218,12 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(updateFields).not.toContain("'status'");
     expect(updateFields).not.toContain("'assigned_to'");
 
-    expect(page).not.toContain('handleDelete');
-    expect(page).not.toContain('handleAssign');
-    expect(page).not.toContain('handleBulkDelete');
+    // Restored: single delete, bulk delete, and provider self-assign handlers are
+    // wired on the active surface. The service-inventory guardrails below (create/
+    // update field allowlists excluding status/assigned_to, modal shape) still hold.
+    expect(page).toContain('handleDelete');
+    expect(page).toContain('handleAssign');
+    expect(page).toContain('handleBulkDelete');
     expect(modal).toContain('ModalShell');
     expect(modal).not.toContain('className="fixed inset-0');
     expect(modal).not.toContain('name="status"');
@@ -243,10 +251,13 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(mobile).not.toContain('chartData');
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('LIVE');
+    // Bulk selection stays desktop-only, so mobile carries no selection state.
     expect(mobile).not.toContain('selectedIds');
-    expect(mobile).not.toContain('onDelete');
-    expect(mobile).not.toContain('onAssign');
-    expect(mobile).not.toContain('Trash2');
+    // Restored: the mobile detail sheet exposes provider self-assign + a gated
+    // delete affordance (single-record, confirmed on the page via ConfirmationModal).
+    expect(mobile).toContain('onDelete');
+    expect(mobile).toContain('onAssign');
+    expect(mobile).toContain('Trash2');
   });
 
   it('keeps the Support right panel route-owned and hardgate-clean', () => {

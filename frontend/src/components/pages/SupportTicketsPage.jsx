@@ -8,15 +8,19 @@ import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useSupportTicketsQuery } from '../../hooks/useSupportTicketsQuery';
-import { useSupportTicketsMutations, applyOptimisticUpsert } from '../../hooks/useSupportTicketsMutations';
+import { useSupportTicketsMutations, applyOptimisticUpsert, applyOptimisticRemove } from '../../hooks/useSupportTicketsMutations';
 import {
   createSupportTicket,
   updateSupportTicket,
+  deleteSupportTicket,
+  assignTicket,
 } from '../../services/supportTicketsService';
 import { handleApiError } from '../../utils/errorHandler';
 import { SEOHead } from '../common/SEOHead';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { Button } from '../ui/button';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -24,6 +28,7 @@ import { TableSkeleton } from '../ui/skeleton';
 import {
   AlertCircle,
   BarChart3,
+  Check,
   CheckCircle,
   ChevronRight,
   Edit,
@@ -35,6 +40,8 @@ import {
   RefreshCw,
   Search,
   Ticket,
+  Trash2,
+  UserPlus,
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -222,6 +229,16 @@ export const SupportTicketsPage = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
+  // Bulk-selection + destructive-confirm state (restored capability). Selection
+  // and BulkActionBar are admin/org-admin only; the ConfirmationModal gates every
+  // single/bulk delete behind an explicit "cannot be undone" confirm.
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+  });
   const pagination = usePagination(20);
   const isMountedRef = useRef(false);
   const actionFeedbackTimerRef = useRef(null);
@@ -421,6 +438,21 @@ export const SupportTicketsPage = () => {
     applyOptimistic: applyOptimisticUpsert,
     filter: queryFilter,
   });
+  // Delete removes the row optimistically (applyOptimisticRemove mirrors the
+  // Doctors reference); deleteSupportTicket(id) takes the raw id as its variable.
+  const deleteTicketMutation = useSupportTicketsMutations({
+    mutationFn: deleteSupportTicket,
+    applyOptimistic: applyOptimisticRemove,
+    filter: queryFilter,
+  });
+  // Assign is a status-carrying upsert: the optimistic merge sets assigned_to +
+  // status='in_progress' on the cached row, and the mutationFn strips the id back
+  // off for assignTicket(id, assignedTo) (which returns the updated ticket).
+  const assignTicketMutation = useSupportTicketsMutations({
+    mutationFn: ({ id, assigned_to }) => assignTicket(id, assigned_to),
+    applyOptimistic: applyOptimisticUpsert,
+    filter: queryFilter,
+  });
 
   const handleSave = useCallback(async (...args) => {
     try {
@@ -435,6 +467,91 @@ export const SupportTicketsPage = () => {
       throw error;
     }
   }, [createTicketMutation, updateTicketMutation]);
+
+  const closeConfirmation = useCallback(() => {
+    setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  // Single delete: admin/org-admin only, always behind an explicit confirm.
+  const handleDelete = useCallback((ticket) => {
+    if (!canManageSupport || !ticket?.id) {
+      toast.info('Delete is unavailable for this request');
+      return;
+    }
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete ticket',
+      description: `Delete "${ticket.subject || 'this request'}"? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteTicketMutation.mutateAsync(ticket.id);
+          setSelectedIds((prev) => prev.filter((id) => id !== ticket.id));
+          toast.success('Ticket deleted');
+        } catch (error) {
+          handleApiError(error, 'delete');
+        } finally {
+          closeConfirmation();
+        }
+      },
+    });
+  }, [canManageSupport, closeConfirmation, deleteTicketMutation]);
+
+  const handleSelect = useCallback((id, checked) => {
+    if (!id) return;
+    setSelectedIds((prev) => (
+      checked ? Array.from(new Set([...prev, id])) : prev.filter((selectedId) => selectedId !== id)
+    ));
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    setSelectedIds(checked ? tickets.map((ticket) => ticket.id).filter(Boolean) : []);
+  }, [tickets]);
+
+  // Bulk delete loops the same delete mutation over the current selection so each
+  // row leaves the cache optimistically; onSettled invalidation converges once.
+  const handleBulkDelete = useCallback(() => {
+    if (!canManageSupport || selectedIds.length === 0) return;
+    const ids = [...selectedIds];
+    const count = ids.length;
+    setConfirmationModal({
+      isOpen: true,
+      title: `Delete ${count} ticket${count === 1 ? '' : 's'}`,
+      description: `Delete ${count} selected request${count === 1 ? '' : 's'}? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          for (const id of ids) {
+            await deleteTicketMutation.mutateAsync(id);
+          }
+          setSelectedIds([]);
+          toast.success(`${count} ticket${count === 1 ? '' : 's'} deleted`);
+        } catch (error) {
+          handleApiError(error, 'delete');
+        } finally {
+          closeConfirmation();
+        }
+      },
+    });
+  }, [canManageSupport, closeConfirmation, deleteTicketMutation, selectedIds]);
+
+  // Provider self-assign ("Assign to me"): mirrors main's canAssign = isProvider().
+  const canAssign = isProvider();
+  const handleAssign = useCallback(async (ticket) => {
+    if (!ticket?.id || !profile?.id) {
+      toast.info('Assignment is unavailable for this request');
+      return;
+    }
+    markActionFeedback(`assign-${ticket.id}`);
+    try {
+      await assignTicketMutation.mutateAsync({
+        id: ticket.id,
+        assigned_to: profile.id,
+        status: 'in_progress',
+      });
+      toast.success('Ticket assigned to you');
+    } catch (error) {
+      handleApiError(error, 'update');
+    }
+  }, [assignTicketMutation, markActionFeedback, profile?.id]);
 
   const handleOpenFilters = useCallback(() => {
     markActionFeedback('filters');
@@ -597,6 +714,9 @@ export const SupportTicketsPage = () => {
           setFilters={handleMobileFiltersChange}
           onView={handleView}
           onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAssign={handleAssign}
+          canAssign={canAssign}
           onRefresh={fetchSupportTickets}
           canManage={canManageSupport}
           loading={loading}
@@ -623,6 +743,8 @@ export const SupportTicketsPage = () => {
           analyticsModalOpen={analyticsModalOpen}
           setAnalyticsModalOpen={setAnalyticsModalOpen}
           analytics={analytics}
+          confirmationModal={confirmationModal}
+          onCloseConfirmation={closeConfirmation}
           isMobile={isMobile}
         />
       </div>
@@ -675,6 +797,13 @@ export const SupportTicketsPage = () => {
               {tickets.length > 0 && (
                 <LayoutGroup>
                   <div className="space-y-2">
+                    {canManageSupport && (
+                      <SupportSelectAllBar
+                        allSelected={tickets.every((ticket) => selectedIds.includes(ticket.id))}
+                        selectedCount={selectedIds.length}
+                        onSelectAll={handleSelectAll}
+                      />
+                    )}
                     {tickets.map((ticket, index) => (
                       <SupportTicketRow
                         key={ticket.id}
@@ -682,9 +811,15 @@ export const SupportTicketsPage = () => {
                         selected={isFocused(ticket.id)}
                         index={index}
                         canEdit={canEditTicket(ticket)}
+                        canManage={canManageSupport}
+                        canAssign={canAssign}
+                        isChecked={selectedIds.includes(ticket.id)}
+                        onSelect={handleSelect}
                         onFocus={() => setFocused(ticket.id)}
                         onView={handleView}
                         onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onAssign={handleAssign}
                         activeActionFeedback={activeActionFeedback}
                       />
                     ))}
@@ -699,13 +834,33 @@ export const SupportTicketsPage = () => {
           ticket={focusedTicket}
           loading={loading}
           canEdit={focusedTicket ? canEditTicket(focusedTicket) : false}
+          canManage={canManageSupport}
+          canAssign={canAssign}
           onView={handleView}
           onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAssign={handleAssign}
           onCreate={handleCreate}
           canCreate={canCreate}
           activeActionFeedback={activeActionFeedback}
         />
       </div>
+
+      <BulkActionBar selectedCount={selectedIds.length} onClear={() => setSelectedIds([])}>
+        {canManageSupport && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-button bg-destructive/15 text-destructive transition-[background,color,transform] hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96]"
+            title="Delete selected"
+            aria-label={`Delete ${selectedIds.length} selected ticket${selectedIds.length === 1 ? '' : 's'}`}
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
 
       <SupportPageModals
         modalMode={modalMode}
@@ -723,6 +878,8 @@ export const SupportTicketsPage = () => {
         analyticsModalOpen={analyticsModalOpen}
           setAnalyticsModalOpen={setAnalyticsModalOpen}
           analytics={analytics}
+          confirmationModal={confirmationModal}
+          onCloseConfirmation={closeConfirmation}
           isMobile={isMobile}
         />
     </div>
@@ -885,7 +1042,44 @@ const SupportActivitySheet = ({
   );
 };
 
-const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, onEdit, activeActionFeedback }) => {
+const SupportSelectAllBar = ({ allSelected, selectedCount, onSelectAll }) => (
+  <div className="flex items-center justify-between px-2 py-1">
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={allSelected}
+      onClick={() => onSelectAll(!allSelected)}
+      className="flex items-center gap-2 rounded-button px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+    >
+      <span className={`flex h-5 w-5 items-center justify-center rounded-icon transition-colors ${allSelected ? 'bg-primary text-primary-foreground' : 'bg-muted/40 text-transparent'}`}>
+        <Check className="h-3 w-3" />
+      </span>
+      Select all
+    </button>
+    {selectedCount > 0 && (
+      <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+        {selectedCount} selected
+      </span>
+    )}
+  </div>
+);
+
+const SupportTicketRow = ({
+  ticket,
+  selected,
+  index,
+  canEdit,
+  canManage,
+  canAssign,
+  isChecked,
+  onSelect,
+  onFocus,
+  onView,
+  onEdit,
+  onDelete,
+  onAssign,
+  activeActionFeedback,
+}) => {
   const statusOption = STATUSES.find((item) => item.value === ticket.status) || STATUSES[0];
   const priority = PRIORITIES.find((item) => item.value === ticket.priority) || PRIORITIES[1];
   const rowTone = ticket.status === 'resolved' || ticket.status === 'closed'
@@ -910,10 +1104,25 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
         }
       }}
       data-state={selected ? 'selected' : 'idle'}
-      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_88px] items-center gap-3 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_auto] items-center gap-3 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-3">
+          {canManage && (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={isChecked}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect?.(ticket.id, !isChecked);
+              }}
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-colors ${isChecked ? 'bg-primary text-primary-foreground' : 'bg-muted/40 text-transparent hover:bg-muted/60'}`}
+              aria-label={isChecked ? `Deselect ${ticket.subject}` : `Select ${ticket.subject}`}
+            >
+              <Check className="h-3 w-3" />
+            </button>
+          )}
           <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-button ${rowTone}`}>
             <MessageSquare className="h-4 w-4" />
           </span>
@@ -942,6 +1151,20 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
         >
           <Eye className="h-4 w-4" />
         </button>
+        {canAssign && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAssign(ticket);
+            }}
+            data-state={activeActionFeedback === `assign-${ticket.id}` ? 'opening' : 'idle'}
+            className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
+            aria-label={`Assign ${ticket.subject} to me`}
+          >
+            <UserPlus className="h-4 w-4" />
+          </button>
+        )}
         {canEdit && (
           <button
             type="button"
@@ -956,12 +1179,25 @@ const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, o
             <Edit className="h-4 w-4" />
           </button>
         )}
+        {canManage && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(ticket);
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-[background,color,transform] hover:bg-destructive/20 active:scale-[0.96]"
+            aria-label={`Delete ${ticket.subject}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </motion.article>
   );
 };
 
-const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate, canCreate, activeActionFeedback }) => (
+const SupportDetailRail = ({ ticket, loading, canEdit, canManage, canAssign, onView, onEdit, onDelete, onAssign, onCreate, canCreate, activeActionFeedback }) => (
   <aside className="hidden w-[340px] shrink-0 2xl:block">
     <div className="sticky top-5 rounded-sheet bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.15)] backdrop-blur-2xl dark:bg-card/42">
       <p className="text-sm font-medium text-muted-foreground">Focused request</p>
@@ -999,9 +1235,32 @@ const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate,
                 Edit request
               </Button>
             )}
+            {canAssign && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onAssign(ticket)}
+                data-state={activeActionFeedback === `assign-${ticket.id}` ? 'opening' : 'idle'}
+                className="h-11 w-full rounded-button bg-primary/10 text-sm font-semibold text-primary hover:bg-primary/15"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Assign to me
+              </Button>
+            )}
+            {canManage && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onDelete(ticket)}
+                className="h-11 w-full rounded-button bg-destructive/10 text-sm font-semibold text-destructive hover:bg-destructive/20"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete request
+              </Button>
+            )}
           </div>
           <p className="mt-5 rounded-inner bg-muted/24 p-3 text-xs leading-5 text-muted-foreground">
-            Assignment, status changes, and deletion stay unavailable until support receiver proof is documented.
+            Status transitions stay backend-owned; the actions above are the proved support commands.
           </p>
         </>
       ) : (
@@ -1063,6 +1322,8 @@ const SupportPageModals = ({
   analyticsModalOpen,
   setAnalyticsModalOpen,
   analytics,
+  confirmationModal,
+  onCloseConfirmation,
   isMobile,
 }) => (
   <>
@@ -1089,6 +1350,15 @@ const SupportPageModals = ({
       onClose={() => setAnalyticsModalOpen(false)}
       analytics={analytics}
       type="support"
+    />
+    <ConfirmationModal
+      isOpen={confirmationModal?.isOpen || false}
+      onClose={onCloseConfirmation}
+      onConfirm={confirmationModal?.onConfirm || undefined}
+      title={confirmationModal?.title}
+      description={confirmationModal?.description}
+      confirmLabel="Delete"
+      variant="destructive"
     />
   </>
 );

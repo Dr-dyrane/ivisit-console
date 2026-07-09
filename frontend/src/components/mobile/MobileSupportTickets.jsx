@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle, BarChart3, CheckCircle, Clock, Edit, Eye, Headphones, Search, SlidersHorizontal, Tag, User } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle, Clock, Edit, Eye, Headphones, Search, SlidersHorizontal, Tag, Trash2, User, UserPlus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
@@ -41,6 +41,9 @@ export const MobileSupportTickets = ({
   setFilters,
   onView,
   onEdit,
+  onDelete,
+  onAssign,
+  canAssign = false,
   onRefresh,
   canManage = false,
   loading = false,
@@ -240,6 +243,31 @@ export const MobileSupportTickets = ({
               {activeTicket.message && (
                 <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
                   {activeTicket.message}
+                </div>
+              )}
+              {(canAssign || canManage) && (
+                <div className="flex gap-2 pt-1">
+                  {canAssign && (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTicket(null); onAssign?.(activeTicket); }}
+                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-primary/10 text-sm font-semibold text-primary transition-transform active:scale-[0.96] hover:bg-primary/15"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Assign to me
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTicket(null); onDelete?.(activeTicket); }}
+                      aria-label={`Delete ${activeTicket.subject || 'support request'}`}
+                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform active:scale-[0.96] hover:bg-destructive/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  )}
                 </div>
               )}
             </MobileDetailSheet>
