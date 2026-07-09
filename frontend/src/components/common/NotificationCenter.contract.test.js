@@ -48,7 +48,10 @@ describe('NotificationCenter quiet startup contract', () => {
 
     expect(cardSource).not.toContain("import { Card } from '../ui/card';");
     expect(cardSource).toContain('const signalConfig = {');
-    expect(cardSource).toContain('shadow-[inset_4px_0_0_hsl(var(--success)/0.72)]');
+    // Tone comes from the literal palette (emerald/sky/amber) + --destructive,
+    // never the red-resolving semantic tokens, and never a drawn left accent bar.
+    expect(cardSource).toContain('bg-emerald-500/15');
+    expect(cardSource).not.toContain('inset_4px_0_0');
     expect(cardSource).toContain('aria-label="Mark notification as read"');
     expect(cardSource).toContain('aria-label="Dismiss notification"');
     expect(cardSource).not.toContain('border-');

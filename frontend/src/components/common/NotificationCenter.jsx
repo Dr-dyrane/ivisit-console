@@ -173,12 +173,12 @@ export const NotificationCenter = () => {
         }}
         className={`${isMobile
           ? 'h-8 w-8 rounded-pill hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]'
-          : 'h-9 w-9 squircle hover:bg-primary/10 hover:text-primary'
+          : 'h-9 w-9 rounded-button hover:bg-muted/60 hover:text-foreground'
           } relative transition-[color,background] duration-200 ease-out`}
       >
         <Bell className={`h-4 w-4 ${isMobile ? 'text-foreground/80' : ''}`} />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-2 -right-2 squircle-full h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground">
+          <Badge className="absolute -top-2 -right-2 rounded-pill h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground">
             {unreadCount > 9 ? '9+' : unreadCount}
           </Badge>
         )}
@@ -190,31 +190,31 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[88%] max-w-[385px] px-2 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-sheet overflow-hidden shadow-2xl"
+            className="w-[88%] max-w-[385px] px-3 bg-card/68 dark:bg-card/55 backdrop-blur-2xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
           >
-            <div className="px-4 pt-3 pb-2">
-              <div>
-                <h3 className="font-normal text-lg tracking-tight">Notifications</h3>
-                {unreadCount > 0 && (
-                  <p className="text-sm text-muted-foreground">{unreadCount} new</p>
-                )}
-              </div>
+            <div className="px-2 pt-1 pb-3">
+              <h3 className="text-lg font-bold tracking-tight text-foreground">Notifications</h3>
+              {unreadCount > 0 && (
+                <p className="mt-0.5 text-sm text-muted-foreground">{unreadCount} new</p>
+              )}
             </div>
 
-            <div className="max-h-[68vh] overflow-y-auto px-2 pb-20 no-scrollbar">
+            <div className="max-h-[68vh] space-y-3 overflow-y-auto px-2 pb-24 no-scrollbar">
               {loading ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-20 rounded-inner bg-muted/10 animate-pulse"
+                      className="h-20 rounded-inner bg-muted/30 animate-pulse"
                     />
                   ))}
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-normal">No notifications</p>
+                <div className="py-14 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-muted/40">
+                    <Bell className="h-5 w-5 text-muted-foreground/60" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No notifications</p>
                 </div>
               ) : (
                 <AnimatePresence mode="popLayout">
@@ -231,11 +231,11 @@ export const NotificationCenter = () => {
             </div>
 
             {notifications.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-background/70 backdrop-blur-xl">
+              <div className="absolute bottom-0 left-0 right-0 px-3 py-3 bg-card/60 backdrop-blur-xl">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs rounded-button hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]"
+                  className="w-full rounded-button text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   onClick={handleMarkAllRead}
                 >
                   Mark all as read
@@ -262,12 +262,12 @@ export const NotificationCenter = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"
               >
-                <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-2xl overflow-hidden flex flex-col">
-                  <div className="p-4 bg-white/[0.04] flex items-center justify-between">
+                <div className="flex flex-col overflow-hidden rounded-card bg-card/68 backdrop-blur-2xl shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/55">
+                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
                     <div>
-                      <h3 className="font-bold">Notifications</h3>
+                      <h3 className="text-base font-bold tracking-tight text-foreground">Notifications</h3>
                       {unreadCount > 0 && (
-                        <p className="text-xs text-muted-foreground">{unreadCount} new</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{unreadCount} new</p>
                       )}
                     </div>
                     <Button
@@ -275,26 +275,28 @@ export const NotificationCenter = () => {
                       size="icon"
                       onClick={() => setIsOpen(false)}
                       aria-label="Close notifications"
-                      className="squircle h-7 w-7 p-0"
+                      className="h-8 w-8 rounded-pill p-0 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto space-y-2 p-4">
+                  <div className="max-h-[50vh] space-y-3 overflow-y-auto px-5 pb-5">
                     {loading ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (
                           <div
                             key={i}
-                            className="h-20 rounded-inner bg-muted/10 animate-pulse"
+                            className="h-20 rounded-inner bg-muted/30 animate-pulse"
                           />
                         ))}
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground font-normal">No notifications</p>
+                      <div className="py-14 text-center">
+                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-muted/40">
+                          <Bell className="h-5 w-5 text-muted-foreground/60" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">No notifications</p>
                       </div>
                     ) : (
                       <AnimatePresence mode="popLayout">
@@ -311,11 +313,11 @@ export const NotificationCenter = () => {
                   </div>
 
                   {notifications.length > 0 && (
-                    <div className="p-3 bg-white/5 shadow-[0_-14px_36px_-34px_hsl(var(--foreground)/0.45)]">
+                    <div className="px-5 py-3 bg-card/40 backdrop-blur-xl">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full text-xs"
+                        className="w-full rounded-button text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                         onClick={handleMarkAllRead}
                       >
                         Mark all as read
