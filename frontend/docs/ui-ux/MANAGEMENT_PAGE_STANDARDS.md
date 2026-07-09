@@ -44,6 +44,18 @@ When this doc and the canon disagree, the canon wins.
   (and directional `rounded-t-<token>` etc.). NEVER `rounded-2xl` / `xl` / `lg` /
   `3xl` / `full` / `rounded-[Npx]`. Every management page must pass
   `node scripts/check-ui-surface-hardgate.js --strict-radius <file>`.
+- **Squircle vs circle — the HIG identity rule (user canon, 2026-07-09).** The choice is
+  semantic, not decorative. Ask: *entry-point tile, or entity-marker in content?*
+  - **Squircle (`rounded-icon` / `rounded-card`)** = **tiles you act on**: the *account/"you"*
+    avatar in nav/footers (it's an app-icon-like entry point to Settings — sidebar footer,
+    mobile menu, header account button, Settings hero), brand/entity logo tiles, icon wells
+    that are part of a control.
+  - **Circle (`rounded-pill`)** = **entities and status inside content**: *other people's*
+    avatars in rows/rails (person-markers, Messages-style), notification glyph orbs, presence
+    dots, count badges, drag handles.
+  A circle where an account tile belongs reads as "just another person"; a squircle where a
+  person-marker belongs reads as an app icon. Both are mistakes — the sidebar-footer avatar
+  (squircle) is the reference for the first; the Requests row avatars (circles) for the second.
 - **No red except danger.** Ordinary/positive/informational state uses the **literal
   palette** (sky / emerald / amber / rose / violet / cyan) or neutral (`foreground` /
   `muted`). Only `--destructive` (bright danger red) is allowed, and only for genuine

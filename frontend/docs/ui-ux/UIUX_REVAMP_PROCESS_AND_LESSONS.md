@@ -200,6 +200,13 @@ For **every page** we finish designing, before calling it done:
     motion character), ship it behind a rendered before/after for the user, or expect the revert.
     The canon now encodes both user overrides (e2-lift tier, ambient brand tint) so future audits
     inherit the taste decisions instead of re-fighting them.
+21. **Squircle vs circle is semantic (HIG), not decorative — ask "tile or entity-marker?"**
+    The user flagged the sidebar-footer avatar as a *perfect* squircle where reflex says circle:
+    the "you" avatar in nav is an app-icon-like ENTRY POINT (→ `rounded-icon` squircle), while
+    other people's avatars in data rows are entity-markers (→ `rounded-pill` circle, Messages-
+    style). Audit found exactly one miss (SmartHeader mobile account button, circle → squircle).
+    Full rule in MANAGEMENT_PAGE_STANDARDS §0. When implementing, don't pattern-match "avatar =
+    circle" — pattern-match the ROLE.
 
 ---
 

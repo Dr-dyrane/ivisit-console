@@ -174,7 +174,7 @@ export const SmartHeader = () => {
                             <NotificationCenter />
                             <button
                                 onClick={() => setMenuOpen(true)}
-                                className="relative flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
+                                className="relative flex h-9 w-9 items-center justify-center rounded-icon bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
                                 aria-label="Open account menu"
                                 aria-expanded={menuOpen}
                                 aria-haspopup="dialog"
