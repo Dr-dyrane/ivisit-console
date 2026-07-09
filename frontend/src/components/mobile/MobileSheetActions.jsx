@@ -19,45 +19,84 @@ import { motion } from 'framer-motion';
  *        tone = a css color for the fill (default brand `hsl(var(--primary))`).
  * @param {{label?:string, icon?:Function, onClick:Function, ['aria-label']?:string}} [secondary]
  *        labelled (flex 1) or icon-only (fixed width) ghost.
+ * @param {Array<{label:string, icon?:Function, onClick:Function, tone?:string}>} [extras]
+ *        additional quiet secondary actions rendered BELOW the primary/secondary row as a
+ *        compact 2-column grid (mirrors the desktop detail-rail action grid). tone tints the
+ *        ICON only — the fill stays quiet so the primary remains the one loud action.
  * @param {string} [className]
  */
-export const MobileSheetActions = ({ primary, secondary, className = '' }) => {
-  if (!primary && !secondary) return null;
+export const MobileSheetActions = ({ primary, secondary, extras = [], className = '' }) => {
+  const hasExtras = Array.isArray(extras) && extras.length > 0;
+  if (!primary && !secondary && !hasExtras) return null;
   const tone = primary?.tone || 'hsl(var(--primary))';
   const glow = tone.replace(/\)$/, ' / 0.30)');
 
+  const secondaryButton = secondary && (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.96 }}
+      onClick={secondary.onClick}
+      aria-label={secondary['aria-label'] || secondary.label}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+      className={`flex h-12 items-center justify-center gap-2 rounded-button bg-muted/40 text-sm font-semibold text-foreground transition-colors hover:bg-muted/60 ${secondary.label ? 'flex-1' : 'w-12 shrink-0'}`}
+    >
+      {secondary.icon && <secondary.icon className="h-4 w-4" />}
+      {secondary.label}
+    </motion.button>
+  );
+
+  const primaryButton = primary && (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.96 }}
+      onClick={primary.onClick}
+      disabled={primary.disabled}
+      style={{
+        WebkitTapHighlightColor: 'transparent',
+        background: tone,
+        boxShadow: `0 8px 18px ${glow}`,
+      }}
+      className="flex h-12 flex-[1.2] items-center justify-center gap-2 rounded-button text-sm font-bold tracking-wide text-primary-foreground transition-transform disabled:opacity-50"
+    >
+      {primary.icon && <primary.icon className="h-4 w-4" />}
+      {primary.label}
+    </motion.button>
+  );
+
+  if (!hasExtras) {
+    return (
+      <div className={`flex gap-2 pt-1 ${className}`}>
+        {secondaryButton}
+        {primaryButton}
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex gap-2 pt-1 ${className}`}>
-      {secondary && (
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.96 }}
-          onClick={secondary.onClick}
-          aria-label={secondary['aria-label'] || secondary.label}
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-          className={`flex h-12 items-center justify-center gap-2 rounded-button bg-muted/40 text-sm font-semibold text-foreground transition-colors hover:bg-muted/60 ${secondary.label ? 'flex-1' : 'w-12 shrink-0'}`}
-        >
-          {secondary.icon && <secondary.icon className="h-4 w-4" />}
-          {secondary.label}
-        </motion.button>
+    <div className={`space-y-3 pt-1 ${className}`}>
+      {(primary || secondary) && (
+        <div className="flex gap-2">
+          {secondaryButton}
+          {primaryButton}
+        </div>
       )}
-      {primary && (
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.96 }}
-          onClick={primary.onClick}
-          disabled={primary.disabled}
-          style={{
-            WebkitTapHighlightColor: 'transparent',
-            background: tone,
-            boxShadow: `0 8px 18px ${glow}`,
-          }}
-          className="flex h-12 flex-[1.2] items-center justify-center gap-2 rounded-button text-sm font-bold tracking-wide text-primary-foreground transition-transform disabled:opacity-50"
-        >
-          {primary.icon && <primary.icon className="h-4 w-4" />}
-          {primary.label}
-        </motion.button>
-      )}
+      <div className="grid grid-cols-2 gap-3">
+        {extras.map((extra, index) => (
+          <motion.button
+            key={extra.label || index}
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            onClick={extra.onClick}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            className="flex h-11 items-center justify-center gap-2 rounded-button bg-foreground/[0.05] text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.08] dark:bg-white/[0.07] dark:hover:bg-white/[0.10]"
+          >
+            {extra.icon && (
+              <extra.icon className="h-4 w-4" style={extra.tone ? { color: extra.tone } : undefined} />
+            )}
+            {extra.label}
+          </motion.button>
+        ))}
+      </div>
     </div>
   );
 };
