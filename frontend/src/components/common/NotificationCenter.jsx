@@ -284,7 +284,7 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/[0.46] backdrop-blur-sm" />
           <SheetContent
             side="right"
-            className="flex flex-col w-[88%] max-w-[385px] px-2 pt-4 pb-0 bg-card/88 dark:bg-[#0b1220]/85 backdrop-blur-xl rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
+            className="flex flex-col w-[88%] max-w-[385px] px-2 pt-4 pb-0 bg-card/90 dark:bg-card/85 backdrop-blur-2xl backdrop-saturate-150 rounded-l-sheet overflow-hidden shadow-[0_12px_32px_rgb(0_0_0/0.10)]"
           >
             <div className="shrink-0 px-1 pb-3">
               <h3 className="text-lg font-bold tracking-tight text-foreground">Notifications</h3>
@@ -351,7 +351,7 @@ export const NotificationCenter = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"
               >
-                <div className="flex flex-col overflow-hidden rounded-card bg-card/68 backdrop-blur-2xl shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/55">
+                <div className="flex flex-col overflow-hidden rounded-card bg-card/90 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/85">
                   <div className="flex items-center justify-between px-3 pt-4 pb-3">
                     <div>
                       <h3 className="text-base font-bold tracking-tight text-foreground">Notifications</h3>

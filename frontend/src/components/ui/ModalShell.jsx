@@ -275,7 +275,7 @@ export const ModalShell = ({
                 animate={surfaceAnimate}
                 transition={modalShellTransition}
                 {...dragProps}
-                className={`relative z-10 flex flex-col overflow-hidden bg-card/68 backdrop-blur-2xl dark:bg-card/55 shadow-[0_12px_32px_rgb(0_0_0/0.10)] ${
+                className={`relative z-10 flex flex-col overflow-hidden bg-card/90 backdrop-blur-2xl backdrop-saturate-150 dark:bg-card/85 shadow-[0_12px_32px_rgb(0_0_0/0.10)] ${
                     isMobile
                         ? 'w-full rounded-t-sheet'
                         : `w-full ${maxWidthClass} rounded-modal`
