@@ -63,6 +63,36 @@ cross-page canon and records it as an explicit user decision. The readable home 
 - The reference `EmergencyRequestsPage.jsx` already ships this: zero `ViewToggle`, one `RequestRow`
   render. The gate contract test locks both this statement and that behavioral fact.
 
+## UX-Completeness Gate - 2026-07-09
+
+This globalizes the Requests full-UX pass into a cross-page gate, the same way the Desktop
+Data-Render Canon above globalized the handled-sheet lock. It closes the gap where a page could
+pass RBAC, layout, hardgate, and contract locks and still ship loading flashes, silent refetches,
+dead-end empty states, or double-submittable CTAs. No page may be declared done — admitted,
+recertified, or "revamp complete" — until every box below is checked with proof (rendered or
+contract-test, per §7 QA Proof). The loading-motion model referenced here is canon in
+[`MOTION_AND_INTERACTION_CANON.md`](../design-system/MOTION_AND_INTERACTION_CANON.md) §3.
+
+- [ ] Skeleton-first on EVERY mount (forced warm-up pattern — `SKELETON_WARMUP_MS` in
+      `MobileEmergency.jsx`; cached navigation must look identical to a hard refresh); the
+      skeleton mirrors the final layout 1:1; content replaces in place — no translate/stagger
+      entrance, no fade-from-blank.
+- [ ] `isFetching` surfaced: active KPI chip spinner (desktop) / "Updating" pill (mobile) on
+      every background refetch — no silent refetch.
+- [ ] KPI side-effect matrix walked: every selection (including `all` and unknown ids) ×
+      (0 / >0 / loading / refetching) is correct on the hero, the header count (= visible
+      scope), the list filter, the empty copy + recovery, and the context panel; fallbacks
+      stay neutral, never a hardcoded entity.
+- [ ] Every mutating CTA: `isPending` → disabled + spinner; double-submit impossible; stable
+      toast ids.
+- [ ] No raw DB/PostgREST text rendered; counts pluralized; empty states distinguish
+      empty/filtered/search with a recovery CTA targeting the narrowing control.
+- [ ] A11y: dialogs named (title or `ariaLabel`), chips `aria-pressed`, refetch indicators
+      `role="status" aria-live="polite"`.
+
+Reference implementation: Requests (`EmergencyRequestsPage.jsx` + `MobileEmergency.jsx`), full
+UX pass completed 2026-07-09.
+
 ## Post-Checkpoint Canon And Intake Safety Recertification - 2026-07-07
 
 After the preservation baseline re-anchor above, the canon and the six unadmitted authenticated intake pages were re-verified against the now-committed source. This is a verified-state recertification, not a new admission.
