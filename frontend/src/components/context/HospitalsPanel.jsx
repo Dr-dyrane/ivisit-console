@@ -96,7 +96,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
           Facilities overview
         </p>
 
-        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -116,7 +116,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-inner bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_14px_38px_rgb(16_185_129/0.12)] dark:text-emerald-200">
+          <div className="rounded-inner bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <MapPin className="h-4 w-4" />
@@ -132,7 +132,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             </div>
           </div>
 
-          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200">
+          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <Bed className="h-4 w-4" />
@@ -160,7 +160,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleAddFacility}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-[0_14px_42px_rgb(14_165_233/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
             title="Add facility"
             data-state="unavailable"
           >

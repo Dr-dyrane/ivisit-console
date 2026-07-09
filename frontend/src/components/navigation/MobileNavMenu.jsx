@@ -196,8 +196,11 @@ export const MobileNavMenu = ({ onClose }) => {
                             <div className="mx-4 py-1" aria-hidden="true" />
 
                             {showPageActions && (
-                                <div className="p-4 rounded-card bg-primary/10">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60 mb-3 ml-1">Actions</p>
+                                // Neutral ground for rehosted page actions: the old bg-primary/10
+                                // crimson tint put tinted-text buttons at light-on-light contrast
+                                // (and was the red-token trap). Sentence-case label per v1.2.
+                                <div className="p-4 rounded-card surface-card">
+                                    <p className="text-[11px] font-medium text-muted-foreground mb-3 ml-1">Page actions</p>
                                     <div className="flex flex-wrap gap-2">
                                         {headerConfig.actions}
                                     </div>
