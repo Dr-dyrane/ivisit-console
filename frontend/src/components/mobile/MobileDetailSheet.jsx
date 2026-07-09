@@ -46,6 +46,7 @@ export const MobileDetailSheet = ({
     onClose={onClose}
     size="lg"
     hideClose
+    ariaLabel={typeof title === 'string' ? title : (eyebrow || 'Details')}
     footer={(primary || secondary) ? <MobileSheetActions primary={primary} secondary={secondary} /> : null}
   >
     <div className="space-y-4 px-4 pt-1 pb-4 md:px-6">

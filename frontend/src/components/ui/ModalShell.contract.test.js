@@ -11,6 +11,8 @@ describe('ModalShell chrome contract', () => {
     expect(modalShell).toContain('role="dialog"');
     expect(modalShell).toContain('aria-modal="true"');
     expect(modalShell).toContain('aria-labelledby={title ? labelId : undefined}');
+    // Titleless dialogs (e.g. MobileDetailSheet draws its own header) still get an accessible name.
+    expect(modalShell).toContain('aria-label={!title && ariaLabel ? ariaLabel : undefined}');
     expect(modalShell).toContain('data-modal-shell="true"');
     expect(modalShell).toContain('const modalBackdropTransition = { duration: 0.18');
     expect(modalShell).toContain('const modalShellTransition = { duration: 0.22');

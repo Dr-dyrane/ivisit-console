@@ -127,6 +127,8 @@ export const useFocusTrap = (containerRef, active, onEscape) => {
  *   isOpen        {boolean}        Controls dialog visibility
  *   onClose       {function}       Called when backdrop is clicked or close button pressed
  *   title         {string}         Visible heading (used as aria-labelledby target)
+ *   ariaLabel     {string}         Accessible dialog name when no title is passed
+ *                                  (headerless sheets draw their own heading)
  *   subtitle      {string}         Optional subtitle below the title
  *   icon          {ReactNode}      Optional icon element rendered left of title
  *   badge         {ReactNode}      Optional badge rendered right of title (before close)
@@ -144,6 +146,7 @@ export const ModalShell = ({
     isOpen,
     onClose,
     title,
+    ariaLabel,
     subtitle,
     icon,
     badge,
@@ -270,6 +273,7 @@ export const ModalShell = ({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={title ? labelId : undefined}
+                aria-label={!title && ariaLabel ? ariaLabel : undefined}
                 data-modal-shell="true"
                 initial={surfaceInitial}
                 animate={surfaceAnimate}
