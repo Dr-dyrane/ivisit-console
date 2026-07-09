@@ -46,6 +46,14 @@ export const ROLE_COPY = {
     path: '/visits',
     icon: Stethoscope,
   },
+  // Driver = provider whose provider_type is 'driver' (GodModeMap's isDriverMode
+  // rule). Their day is dispatches, not visits — requests-first everything.
+  driver: {
+    label: 'Driver',
+    primaryAction: 'Open requests',
+    path: '/emergencies',
+    icon: Ambulance,
+  },
   sponsor: {
     label: 'Sponsor',
     primaryAction: 'View impact',
@@ -85,9 +93,14 @@ const pluralize = (count, singular, plural = `${singular}s`) => (
 );
 
 function useRoleKind(explicitRole) {
-  const { isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile } = useAuth();
 
   return useMemo(() => {
+    // Driver lens: the profile-level identity rule GodModeMap already uses
+    // (isDriverMode). It UPGRADES the explicit 'provider' role BentoHome passes;
+    // any other explicit role wins untouched.
+    const isDriver = profile?.role === 'provider' && profile?.provider_type === 'driver';
+    if (isDriver && (!explicitRole || explicitRole === 'provider')) return 'driver';
     if (explicitRole) return explicitRole;
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
@@ -95,7 +108,7 @@ function useRoleKind(explicitRole) {
     if (isSponsor()) return 'sponsor';
     if (isViewer()) return 'viewer';
     return 'viewer';
-  }, [explicitRole, isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer]);
+  }, [explicitRole, isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile]);
 }
 
 export function buildToday({
@@ -167,6 +180,22 @@ export function buildToday({
       path: '/emergencies',
       icon: Ambulance,
       tone: 'primary',
+    };
+  }
+
+  if (roleKind === 'driver') {
+    // The emergency slice is responder-scoped for providers (responder_id = their
+    // UUID), so requestActiveCount here means THEIR assigned runs.
+    return {
+      headline: requestActiveCount > 0 ? `${requestActiveCount} active ${pluralize(requestActiveCount, 'run')}` : 'No runs right now',
+      subhead: requestActiveCount > 0 ? 'Open requests and start with the current run.' : 'Keep Today open; assigned runs will appear here.',
+      sheetTitle: 'Your runs',
+      sheetHint: requestActiveCount > 0 ? 'Start with the active run.' : 'Check the live map or stay ready for dispatch.',
+      status: requestActiveCount > 0 ? 'On duty' : 'Clear',
+      primaryAction: 'Open requests',
+      path: '/emergencies',
+      icon: Ambulance,
+      tone: requestActiveCount > 0 ? 'warning' : 'muted',
     };
   }
 
@@ -270,6 +299,14 @@ export function buildGlanceItems({
       { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
       { label: 'Staff', value: providerCount > 0 ? `${providerCount} ${pluralize(providerCount, 'record')}` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
+    ];
+  }
+
+  if (roleKind === 'driver') {
+    return [
+      { label: 'Runs', value: requestValue, path: '/emergencies', tone: requestTone },
+      { label: 'Live map', value: 'Open', path: '/map', tone: 'primary' },
+      { label: 'Help', value: 'Available', path: '/support-tickets', tone: 'muted' },
     ];
   }
 
@@ -454,6 +491,27 @@ export function buildActionRows({
       done: true,
       tone: 'muted',
     }];
+  }
+
+  if (roleKind === 'driver') {
+    // Requests first (their runs), then the live map (GodModeMap has a dedicated
+    // driver mode: assigned ambulance + active run tracking). No visits row —
+    // drivers never appear in visits.doctor_name.
+    return [
+      requestsRow,
+      {
+        id: 'live-map',
+        label: 'Open the live map',
+        meta: 'Driver mode',
+        detail: 'Track your assigned ambulance and the active run on the live map.',
+        actionLabel: 'Open map',
+        path: '/map',
+        done: true,
+        tone: 'primary',
+      },
+      supportRow,
+      settingsRow,
+    ];
   }
 
   if (roleKind === 'provider') {
@@ -770,6 +828,7 @@ export const TodayHome = ({ role }) => {
     admin: ['emergency', 'verification', 'doctors', 'users'],
     org_admin: ['emergency', 'verification', 'doctors', 'users'],
     provider: ['emergency', 'visits'],
+    driver: ['emergency'],
     sponsor: ['analytics'],
     viewer: [],
   };
