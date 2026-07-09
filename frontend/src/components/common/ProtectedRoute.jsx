@@ -113,12 +113,16 @@ function checkPathAccess(path, accessibleNav) {
 }
 
 export const UnauthorizedPage = () => {
-	const { profile, signOut } = useAuth();
+	const { profile, signOut, can } = useAuth();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const reason = location.state?.reason;
 	const missingProfile = reason === 'profile_missing' || reason === 'profile_unavailable' || reason === 'session_unavailable';
 	const [pendingAction, setPendingAction] = React.useState(null);
+	// Personas whose accessible nav cannot reach '/' (e.g. patient resolves to
+	// level 0) must not get a Today CTA that bounces straight back here.
+	const isPatient = profile?.role === 'patient';
+	const canOpenToday = !profile || checkPathAccess('/', getAccessibleNav(profile, can));
 
 	const handleBack = () => {
 		setPendingAction('back');
@@ -168,7 +172,9 @@ export const UnauthorizedPage = () => {
 					<p className="text-sm text-muted-foreground font-normal mb-8">
 						{missingProfile
 							? 'Your console profile is not ready yet.'
-							: `Your current role (${profile?.role || "Guest"}) cannot open this page.`}
+							: isPatient
+								? 'This console is for providers and operators. Your care and requests live in the iVisit app.'
+								: `Your current role (${profile?.role || "Guest"}) cannot open this page.`}
 					</p>
 
 					{/* User Badge */}
@@ -205,23 +211,36 @@ export const UnauthorizedPage = () => {
 							{pendingAction === 'back' ? 'Opening previous page...' : 'Go back'}
 						</button>
 						<div className="flex flex-row w-full gap-2 justify-center items-center">
-							<button
-								onClick={handleToday}
-								disabled={Boolean(pendingAction)}
-								className="flex-1 h-12 rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold transition-colors active:scale-[0.98]"
-							>
-								{pendingAction === 'today' ? 'Opening Today...' : 'Go to Today'}
-							</button>
-							<Button
-								aria-label="Sign out"
-								aria-busy={pendingAction === 'signout'}
-								disabled={Boolean(pendingAction)}
-								onClick={handleSignOut}
-								variant="ghost"
-								className="h-12 w-12 rounded-button bg-muted hover:bg-muted/80 text-muted-foreground"
-							>
-								{pendingAction === 'signout' ? <Loader2 className="animate-spin" /> : <LogOut />}
-							</Button>
+							{canOpenToday ? (
+								<>
+									<button
+										onClick={handleToday}
+										disabled={Boolean(pendingAction)}
+										className="flex-1 h-12 rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold transition-colors active:scale-[0.98]"
+									>
+										{pendingAction === 'today' ? 'Opening Today...' : 'Go to Today'}
+									</button>
+									<Button
+										aria-label="Sign out"
+										aria-busy={pendingAction === 'signout'}
+										disabled={Boolean(pendingAction)}
+										onClick={handleSignOut}
+										variant="ghost"
+										className="h-12 w-12 rounded-button bg-muted hover:bg-muted/80 text-muted-foreground"
+									>
+										{pendingAction === 'signout' ? <Loader2 className="animate-spin" /> : <LogOut />}
+									</Button>
+								</>
+							) : (
+								<button
+									onClick={handleSignOut}
+									disabled={Boolean(pendingAction)}
+									aria-busy={pendingAction === 'signout'}
+									className="flex-1 h-12 rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold transition-colors active:scale-[0.98]"
+								>
+									{pendingAction === 'signout' ? 'Signing out...' : 'Sign out'}
+								</button>
+							)}
 						</div>
 					</div>
 				</div>

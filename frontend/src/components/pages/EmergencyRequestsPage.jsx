@@ -561,9 +561,10 @@ export const EmergencyRequestsPage = () => {
   const roleKind = useMemo(() => {
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
-    if (isProvider()) return 'provider';
+    // Mirror TodayHome's useRoleKind: responder providers resolve to the driver lens.
+    if (isProvider()) return isDriver() ? 'driver' : 'provider';
     return 'viewer';
-  }, [isAdmin, isOrgAdmin, isProvider]);
+  }, [isAdmin, isOrgAdmin, isProvider, isDriver]);
   const visibleModuleRail = useMemo(
     () => getConsoleModuleRailItems(roleKind),
     [roleKind]
@@ -624,8 +625,12 @@ export const EmergencyRequestsPage = () => {
   // Hold the shell in its loading state until auth resolves, so the disabled query
   // (enabled: authReady) does not flash an empty list before the first real fetch.
   const loading = !authReady || queryLoading;
-  // RQ error object -> the page's existing degraded-state copy.
-  const loadError = queryError ? (queryError.message || 'Failed to load requests') : null;
+  // RQ error object -> honest generic copy; the raw error (often Postgres/SQL text)
+  // goes to the console only and never reaches the UI (data-sync audit S9.2).
+  const loadError = queryError ? 'Check your connection and try again.' : null;
+  useEffect(() => {
+    if (queryError) console.error('[requests] load failed:', queryError);
+  }, [queryError]);
   // fetchRequests is now the RQ refetch (Retry on desktop, pull-to-refresh on
   // mobile, modal-close reconcile, and the not-ready action guards).
   const fetchRequests = refetch;
@@ -1824,7 +1829,7 @@ const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, fil
         type="search"
         value={searchDraft}
         onChange={(event) => setSearchDraft(event.target.value)}
-        placeholder="Search requests..."
+        placeholder="Search by request ID, facility, responder, or type..."
         className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
       />
     </div>

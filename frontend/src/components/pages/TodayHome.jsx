@@ -123,6 +123,8 @@ export function buildToday({
   approvalCount,
   visitCount,
   providerCount,
+  skippedOnboarding = false,
+  orgUnlinked = false,
 }) {
   const role = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
   const requestReviewCount = Number(emergencyReviewCount) || 0;
@@ -139,6 +141,22 @@ export function buildToday({
       path: role.path,
       icon: role.icon,
       tone: 'muted',
+    };
+  }
+
+  // Null-org honesty: an org_admin without organization_id self-scopes to empty
+  // lists everywhere, so the normal ops hero would read as a fake all-clear.
+  if (roleKind === 'org_admin' && orgUnlinked) {
+    return {
+      headline: 'No organization linked',
+      subhead: 'Your account is not linked to an organization. Ask a platform admin to link it.',
+      sheetTitle: 'Account setup',
+      sheetHint: 'A platform admin links your account to your organization.',
+      status: 'Not linked',
+      primaryAction: 'Open settings',
+      path: '/settings',
+      icon: LockKeyhole,
+      tone: 'warning',
     };
   }
 
@@ -241,6 +259,22 @@ export function buildToday({
   }
 
   if (roleKind === 'viewer') {
+    // Skipped-onboarding lens: skip sets role='viewer', but the skip toast promised
+    // "complete this later" -- their self-service move is resuming /onboarding,
+    // not waiting on an admin.
+    if (skippedOnboarding) {
+      return {
+        headline: 'Finish your organization setup',
+        subhead: 'Resume setup to finish your organization details and unlock your console.',
+        sheetTitle: 'Organization setup',
+        sheetHint: 'Resume where you left off.',
+        status: 'Setup incomplete',
+        primaryAction: 'Resume setup',
+        path: '/onboarding',
+        icon: CircleDashed,
+        tone: 'warning',
+      };
+    }
     return {
       headline: 'Activation needed',
       subhead: 'Open settings, confirm your profile, then ask an admin for access.',
@@ -276,6 +310,8 @@ export function buildGlanceItems({
   approvalCount,
   visitCount,
   providerCount,
+  skippedOnboarding = false,
+  orgUnlinked = false,
 }) {
   const role = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
   const requestReviewCount = Number(emergencyReviewCount) || 0;
@@ -308,6 +344,13 @@ export function buildGlanceItems({
   }
 
   if (roleKind === 'org_admin') {
+    if (orgUnlinked) {
+      return [
+        { label: 'Organization', value: 'Not linked', path: '/settings', tone: 'warning' },
+        { label: 'Role', value: role.label, path: '/settings', tone: 'muted' },
+        { label: 'Access', value: 'Ask admin', path: '/settings', tone: 'warning' },
+      ];
+    }
     return [
       { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
@@ -339,6 +382,14 @@ export function buildGlanceItems({
     ];
   }
 
+  if (skippedOnboarding) {
+    return [
+      { label: 'Setup', value: 'Resume', path: '/onboarding', tone: 'warning' },
+      { label: 'Role', value: 'Limited', path: '/settings', tone: 'muted' },
+      { label: 'Access', value: 'After setup', path: '/onboarding', tone: 'muted' },
+    ];
+  }
+
   return [
     { label: 'Setup', value: 'Settings', path: '/settings', tone: 'primary' },
     { label: 'Role', value: 'Limited', path: '/settings', tone: 'muted' },
@@ -357,6 +408,8 @@ export function buildActionRows({
   providerCount,
   roleCopy,
   loading,
+  skippedOnboarding = false,
+  orgUnlinked = false,
 }) {
   const requestReviewCount = Number(emergencyReviewCount) || 0;
   const requestActiveCount = Number(emergencyActiveCount) || 0;
@@ -493,6 +546,22 @@ export function buildActionRows({
     ];
   }
 
+  if (roleKind === 'org_admin' && orgUnlinked) {
+    return [
+      {
+        id: 'link-organization',
+        label: 'Ask admin to link your organization',
+        meta: 'Organization link needed',
+        detail: 'Hospital tools stay empty until a platform admin links your account to an organization.',
+        disabledReason: 'A platform admin needs to link your account to an organization before this action is available.',
+        disabled: true,
+        tone: 'warning',
+      },
+      settingsRow,
+      supportRow,
+    ];
+  }
+
   if (roleKind === 'org_admin') {
     return [approvalsRow, requestsRow, staffRow, {
       id: 'payments',
@@ -550,6 +619,21 @@ export function buildActionRows({
         detail: 'Request activity is visible in Impact without changing care work.',
         done: true,
         tone: 'primary',
+      },
+      settingsRow,
+    ];
+  }
+
+  if (skippedOnboarding) {
+    return [
+      {
+        id: 'resume-onboarding',
+        label: 'Resume organization setup',
+        meta: 'Setup incomplete',
+        detail: 'Resume onboarding to finish your organization details and submit them for review.',
+        actionLabel: 'Resume setup',
+        path: '/onboarding',
+        tone: 'warning',
       },
       settingsRow,
     ];
@@ -806,6 +890,12 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
 export const TodayHome = ({ role }) => {
   const navigate = useNavigate();
   const roleKind = useRoleKind(role);
+  // Profile-derived honesty signals (same flow as the driver lens: read the profile
+  // once here, hand the builders plain params). isSkippedOnboarding is optional so
+  // bare renders without an AuthContext provider stay on the plain-viewer copy.
+  const { profile, isSkippedOnboarding } = useAuth();
+  const skippedOnboarding = roleKind === 'viewer' && Boolean(isSkippedOnboarding?.());
+  const orgUnlinked = roleKind === 'org_admin' && Boolean(profile) && !profile.organization_id;
   const {
     emergencyStats,
     verificationData,
@@ -883,11 +973,13 @@ export const TodayHome = ({ role }) => {
       approvalCount,
       visitCount,
       providerCount,
+      skippedOnboarding,
+      orgUnlinked,
     });
     // T3 honest first load: keep the not-live layout, speak "loading" not "retry".
     if (!isTodayInitialLoading) return built;
     return { ...built, status: 'Loading today', tone: 'muted' };
-  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, providerCount, roleKind, visitCount]);
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, orgUnlinked, providerCount, roleKind, skippedOnboarding, visitCount]);
 
   const glanceItems = useMemo(() => {
     const built = buildGlanceItems({
@@ -898,12 +990,14 @@ export const TodayHome = ({ role }) => {
       approvalCount,
       visitCount,
       providerCount,
+      skippedOnboarding,
+      orgUnlinked,
     });
     // T3 honest first load: counts are unknown, so say so -- em-dash placeholders in a
     // muted tone instead of the retry voice.
     if (!isTodayInitialLoading) return built;
     return built.map((item) => ({ ...item, value: '\u2014', tone: 'muted' }));
-  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, providerCount, roleKind, visitCount]);
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, orgUnlinked, providerCount, roleKind, skippedOnboarding, visitCount]);
 
   const headerAction = useMemo(() => (
     <span className="hidden md:inline-flex items-center gap-2">
@@ -938,12 +1032,14 @@ export const TodayHome = ({ role }) => {
       providerCount,
       roleCopy,
       loading,
+      skippedOnboarding,
+      orgUnlinked,
     });
     // T3 honest first load: the open-role-page row spins (DetailRow's Loader2 path)
     // while the first fetch is genuinely still in flight.
     if (!isTodayInitialLoading) return built;
     return built.map((row) => (row.id === 'open-role-page' ? { ...row, loading: true } : row));
-  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, loading, providerCount, roleCopy, roleKind, visitCount]);
+  }, [approvalCount, emergencyActiveCount, emergencyReviewCount, isTodayInitialLoading, live, loading, orgUnlinked, providerCount, roleCopy, roleKind, skippedOnboarding, visitCount]);
 
   const activeExpandedRow = useMemo(() => {
     if (expandedRow === '__collapsed__') return null;
