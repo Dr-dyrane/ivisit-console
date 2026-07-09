@@ -116,3 +116,28 @@ The population is effectively two masses (doctors and drivers, 735 of 812) plus 
   `docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md`.
 - **Live derivation code:** `src/contexts/AuthContext.jsx` (`isDriver()`), `src/components/modals/UserModal.jsx`
   (assignable provider-type vocabulary).
+
+---
+
+## 6. Desktop-lane six-agent audit addenda (2026-07-09)
+
+A second, six-agent persona walk (desktop lane) ran the same day; findings below are the residuals
+that survive this document's arbitrations and population weighting (dispatcher/sponsor findings
+dropped as deferred personas). Ordered by population served. **None are fixed yet — queue entries.**
+
+| # | Finding | Population | Evidence | Fix direction (no schema) |
+|---|---|---|---|---|
+| 1 | **Statistics page degrades for every provider/driver**: `getAnalyticsIntakePage` omits `providerIdField`, so `applyAuthFilter`'s provider branch defaults to `doctor_id` — a column `emergency_requests` does not have → Postgres 42703 → source-issue fallbacks; the hospitals/ambulances count queries hit the same missing-`user_id` class. | 735 | `analyticsService.js:98-113`; `authService.js:176,226-236` | Pass `providerIdField: 'responder_id'` (exactly what `applyEmergencyRequestScope` already does); guard the count queries on tables lacking the field. |
+| 2 | **Console dispatch may never write the column the driver lens reads**: `acceptEmergencyRequest` discards `responderId` (`void responderId;`) and `console_dispatch_emergency` takes no responder profile id. Unless the RPC derives `responder_id` from `ambulances.profile_id` server-side, every console-dispatched run leaves the driver's Requests/Today/"Mine" permanently empty. | 367 | `emergencyService.js:782-788`; `authService.js:230-232` | **Verify the RPC first** (backend read). If it doesn't derive, pass the ambulance's existing `profile_id` through; FK already exists. |
+| 3 | **Skipped-onboarding dead-end**: skip sets `role='viewer'`, so Today serves the "ask an admin" activation lens — but a skipped user's correct self-service action is resuming `/onboarding` (still admits them). No surface routes back; the skip-time toast promise ("complete this later from your dashboard") is false. | funnel | `TodayHome.jsx` viewer branch; `onboardingService.js:318`; `OnboardingPage.jsx:50` | Fork the viewer lens on existing `isSkippedOnboarding()`: hero "Finish your organization setup" → `/onboarding`. Driver-precedent presentation fork. |
+| 4 | **org_admin with resolved-empty `hospital_ids` ([]) sees the whole platform** on doctors/ambulances/map: `applyAuthFilter` treats `[]` as "skip client filter, RLS handles it", but doctors/ambulances RLS SELECT is public. Also: org_admin with null `organization_id` silently self-scopes everywhere with no explanatory surface. | 55 | `authService.js:66-68,190,198-206` | Make resolved-`[]` scope to nothing (null-uuid `.in()`); keep `null` = trust RLS. Banner for the null-org state. |
+| 5 | **Ambulances fleet disagreement**: page projection scopes `.eq('organization_id', orgId)` while `getAmbulances` scopes `hospital_id .in(hospital_ids)`; hospital-linked rows with null `organization_id` appear in one and not the other. | 55 | `ambulancesService.js:64-70` vs `:261-265` | Unify both on the `hospital_id .in()` path (or `.or()` composite). |
+| 6 | **Onboarding resubmit duplicates hospitals**: `submitOnboarding` inserts the hospital first; if the profile update fails the error is swallowed, the user stays `pending`, bounces back to the wizard, and resubmit inserts a duplicate. | funnel | `onboardingService.js:261`; `OnboardingContext.jsx:356` | Reuse the earlier-created hospital (match name+phone already in wizard state); surface the profile-update failure with a retry of only that step. |
+| 7 | **Vocabulary residuals (joins §4 queue)**: `applyAuthFilter` accepts `role === 'doctor'` as a provider synonym (registered nowhere else — split-brain if such rows exist); `EmergencyRequestsPage`'s local roleKind memo lacks the driver arm (silent divergence when driver rail gets its own slot). | hygiene | `authService.js:211`; `EmergencyRequestsPage.jsx:561-566` | Remove the alias; fold page-local roleKind into one shared resolver. |
+| 8 | **Patient hand-off honesty**: locked-out patients get /unauthorized with a "Go to Today" button that loops right back — and no pointer to the product that serves them. | 17 | `ProtectedRoute.jsx:128-131` | Detect `role='patient'`, show "Open the iVisit app" copy; hide Go-to-Today when accessible nav is empty. Console stays not-for-patients per §2. |
+| 9 | **Admin Today counts drift at scale**: `fetchEmergencyData` counts client-side from an unbounded list read (Supabase caps at 1000 rows) while Requests uses exact head-counts for the same figures. | 2 | `PageDataContext.jsx:240-253` | Reuse `getEmergencyRequestsPageStats` for the stats slice; fetch only a small recent list. |
+
+Backend-flagged (ivisit-app side, already-known class): visits RLS org/admin SELECT (gap C1),
+profiles org-scoped SELECT for org_admin Users/verification, `console_complete_emergency` provider
+authority (UI shows drivers a Complete button whose RPC gate is unproven), and #2's RPC derivation.
+Full raw findings: desktop-lane session workflow `wf_36b9e5db-1e7` (66 findings, 6 lenses).

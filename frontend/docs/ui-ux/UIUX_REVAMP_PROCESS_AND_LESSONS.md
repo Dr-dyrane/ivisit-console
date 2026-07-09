@@ -229,6 +229,28 @@ For **every page** we finish designing, before calling it done:
     `responder_id = me`) needed ZERO schema change. Grep services/utils for the signal before
     queueing a migration. Convergence note: both lanes independently built the driver Today lens
     within the hour — persona gaps are that visible once you look.
+24. **RBAC UI method (noted from the mobile lane, 2026-07-09 — the canon for persona fixes).**
+    The mobile session's response to the persona findings, now the reference method
+    (`docs/rbac/PERSONA_MATRIX_2026-07-09.md` is the canonical matrix):
+    (a) **Census before fixes** — measure live population per persona and weight investment by it
+    (812 users = 368 doctors + 367 drivers + 57 operators; sponsor 0, dispatcher 0 → deferred, not
+    fixed). A critical-looking gap for a zero-population persona is a queue entry, not a fix.
+    (b) **Reframe > grant** — when the UI promises authority the backend denies (org_admin
+    approvals), fix the COPY to describe real capability; granting authority is a separate
+    command-authority decision argued against backend truth (INSURANCE_COMMAND_AUTHORITY pattern).
+    (c) **Delete dead permissions rather than "activating" them** — the dispatcher `can()` grant
+    was provably unreachable and `dispatcher` is not a legal role/provider_type; it was removed,
+    not wired up.
+    (d) **Fold sub-personas into shared lenses** — responder provider types (`driver`, `paramedic`,
+    `ambulance`, `ambulance_service`) share ONE dispatch-first lens; no per-type lenses. Keep every
+    resolver on the same equivalence list (TodayHome `useRoleKind`, mobile `RESPONDER_PROVIDER_TYPES`,
+    AuthContext `isDriver()`).
+    (e) **Fix vocabulary at the writer** — UserModal's provider-type dropdown offered illegal
+    (`nurse`, bounced off the DB CHECK) and mismatched (bare `ambulance` vs consumed
+    `ambulance_service`) values; the assignable set now matches what consumers query.
+    (f) **Per-role nav slates live in config with dead-tap prevention** — every slate slot must
+    survive the routes.jsx gate (sponsor/viewer lost Map slots that landed on /unauthorized);
+    each exclusion carries a comment citing the gate that would bounce it.
 
 ---
 

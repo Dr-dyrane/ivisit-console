@@ -253,9 +253,13 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isSponsor = useCallback(() => hasRole('sponsor'), [hasRole]);
   const isOrgAdmin = useCallback(() => hasRole('org_admin'), [hasRole]);
   const isProvider = useCallback(() => hasRole('provider'), [hasRole]);
-  // Persona derivation — no schema change: a driver is a provider whose existing
-  // profiles.provider_type is 'driver' (the same signal ambulancesService uses).
-  const isDriver = useCallback(() => hasRole('provider') && profile?.provider_type === 'driver', [hasRole, profile]);
+  // Persona derivation — no schema change: responder-shaped provider types share the
+  // driver lens (arbitration of record, docs/rbac/PERSONA_MATRIX_2026-07-09.md §3.3).
+  // Same equivalence set as TodayHome useRoleKind and mobileNavigation's responder slate.
+  const isDriver = useCallback(
+    () => hasRole('provider') && ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type),
+    [hasRole, profile]
+  );
   const isViewer = useCallback(() => hasRole('viewer'), [hasRole]);
   const isPatient = useCallback(() => hasRole('patient'), [hasRole]);
 
