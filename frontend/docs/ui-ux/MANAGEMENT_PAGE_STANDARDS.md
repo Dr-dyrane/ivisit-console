@@ -52,6 +52,28 @@ and the reference implementation
 Colors are **not** caught by the hardgate — only rendered proof catches a stray red.
 Verify visually on a data page.
 
+### Canonical status colour coding
+
+**One colour per state, on every surface** (KPI strip, status pills, context panel, mobile).
+Emergency ops is time-sensitive, so "needs attention" reads as **red** by deliberate domain
+choice — this is the one sanctioned use of red beyond destructive actions.
+
+| State | Colour | Meaning |
+|---|---|---|
+| `pending_approval` / needs attention · `payment_declined` / error | **`destructive` (red)** | requires immediate action |
+| `in_progress` / active | **amber** | care underway |
+| `accepted` | **cyan** | acknowledged |
+| `arrived` / en route | **sky** | on scene |
+| `completed` / clear (incl. a *needs-attention count of 0*) | **emerald** | done / all-clear |
+| `cancelled` · `all` / total · inactive | **muted / neutral** | no state emphasis |
+| `critical_care` (service severity) | **rose** | critical |
+| service type — ambulance → **sky**, bed → **cyan** | | |
+
+Rule: the SAME state uses the SAME colour on every surface — the `pending` KPI, the
+`pending_approval` status pill, and the panel's "Needs attention" tile are **all red**, never
+amber on one and red on another. `pending_approval` labels are "Needs attention" / "to review"
+(canonical synonyms). Colour is context-aware only where documented (clear-at-zero → emerald).
+
 ---
 
 ## 1. The data-page "story" (desktop workspace)

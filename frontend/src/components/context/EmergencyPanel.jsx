@@ -6,7 +6,6 @@ import {
   BarChart3,
   BedDouble,
   CheckCheck,
-  Clock,
   Filter,
   Loader2,
   Plus,
@@ -36,7 +35,7 @@ const serviceTone = {
 };
 
 const statusLabel = {
-  pending_approval: 'Needs review',
+  pending_approval: 'Needs attention',
   in_progress: 'Active',
   accepted: 'Accepted',
   arrived: 'Arrived',
@@ -141,17 +140,17 @@ export const EmergencyPanel = ({ requestContext }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200">
+          <div className="rounded-inner bg-destructive/10 p-3 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
-                <Clock className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4" />
               </span>
               <span className="min-w-0">
                 <span className="block text-lg font-semibold tracking-normal text-foreground">
                   {loading ? '...' : pending}
                 </span>
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Needs review
+                  Needs attention
                 </span>
               </span>
             </div>
@@ -160,7 +159,7 @@ export const EmergencyPanel = ({ requestContext }) => {
           <div className="rounded-inner bg-rose-500/10 p-3 text-rose-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
-                <AlertCircle className="h-4 w-4" />
+                <ShieldCheck className="h-4 w-4" />
               </span>
               <span className="min-w-0">
                 <span className="block text-lg font-semibold tracking-normal text-foreground">
@@ -237,7 +236,7 @@ export const EmergencyPanel = ({ requestContext }) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className="group rounded-inner bg-background/46 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+                className="group rounded-inner bg-card/60 p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-card/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">

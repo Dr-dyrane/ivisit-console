@@ -1567,7 +1567,7 @@ const RequestSelectToggle = ({ checked, indeterminate = false, onToggle, label }
       event.stopPropagation();
       onToggle?.();
     }}
-    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-all active:scale-[0.96] ${checked || indeterminate ? 'bg-foreground text-background' : 'bg-muted/45 text-transparent hover:bg-muted/65'}`}
+    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-all active:scale-[0.96] ${checked || indeterminate ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground/40 hover:bg-muted/80 hover:text-muted-foreground/80'}`}
   >
     {indeterminate ? <Minus className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
   </button>
