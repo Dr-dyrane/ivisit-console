@@ -224,11 +224,8 @@ export const ModalShell = ({
         : isMobile
             ? { opacity: 1, y: 0 }
             : { opacity: 1, scale: 1, y: 0 };
-    const surfaceExit = reduceMotion
-        ? { opacity: 0 }
-        : isMobile
-            ? { opacity: 1, y: '100%' }
-            : { opacity: 0, scale: 0.96, y: 16 };
+    // No exit animation: the shell has no framer presence wrapper, so it unmounts
+    // via `if (!isOpen) return null` — exit props would be dead code.
 
     // Swipe-down-to-dismiss (mobile only): close once dragged past a threshold or
     // released with enough downward velocity. Desktop never receives drag props.
@@ -258,7 +255,6 @@ export const ModalShell = ({
                 key="modal-shell-backdrop"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
                 transition={modalBackdropTransition}
                 className="absolute inset-0 bg-background/88 backdrop-blur-2xl dark:bg-black/80"
                 onClick={() => onClose()}
@@ -275,7 +271,6 @@ export const ModalShell = ({
                 data-modal-shell="true"
                 initial={surfaceInitial}
                 animate={surfaceAnimate}
-                exit={surfaceExit}
                 transition={modalShellTransition}
                 {...dragProps}
                 className={`relative z-10 flex flex-col overflow-hidden bg-background shadow-2xl ${
@@ -285,9 +280,9 @@ export const ModalShell = ({
                 } ${className}`}
                 style={{
                     outline: 'none',
-                    maxHeight: isMobile
-                        ? 'calc(100dvh - var(--safe-top, 0px) - 12px)'
-                        : 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)',
+                    // Apple-HIG safe-area cap (single value for sheet + dialog); keeps the
+                    // surface clear of the top notch and the bottom home-indicator.
+                    maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)',
                     // Keep the sheet body clear of the home-indicator / bottom safe inset.
                     paddingBottom: isMobile ? 'var(--safe-bottom, 0px)' : undefined,
                 }}
