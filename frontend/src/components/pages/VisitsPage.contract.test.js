@@ -95,13 +95,16 @@ describe('VisitsPage admission contract', () => {
     const service = serviceSource();
 
     expect(appSource()).toContain('<Route path="/visits" element={<ProtectedRoute minRole="provider"><VisitsPage /></ProtectedRoute>} />');
-    expect(page).toContain("useViewMode('visits-page', 'grid')");
-    expect(page).toContain('<ViewToggle value={viewMode} onChange={setViewMode} />');
-    expect(page).toContain("viewMode === 'grid'");
-    expect(page).toContain("viewMode === 'list'");
-    expect(page).toContain("viewMode === 'table'");
-    expect(page).toContain('<VisitListView');
-    expect(page).toContain('<VisitTableView');
+    // Explicitly converted 2026-07-09 (Requests gold standard): ONE canonical render.
+    // ViewToggle and the grid/list/table density variants are retired from the active
+    // route; the legacy view files stay unimported (chrome-lint targets only).
+    expect(page).not.toContain('useViewMode');
+    expect(page).not.toContain('<ViewToggle');
+    expect(page).not.toContain('<VisitListView');
+    expect(page).not.toContain('<VisitTableView');
+    expect(page).toContain('const VISIT_GRID_COLS');
+    expect(page).toContain('<VisitRow');
+    expect(page).toContain('<VisitListHeader');
     expect(page).toContain('<FilterSheet');
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
@@ -222,16 +225,16 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext'");
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
-    expect(page).toContain("useViewMode('visits-page', 'grid')");
-    expect(page).toContain("viewMode === 'grid'");
-    expect(page).toContain("viewMode === 'list'");
-    expect(page).toContain("viewMode === 'table'");
+    // One canonical render (converted 2026-07-09): sortable header + rows, no view modes.
+    expect(page).toContain('role="columnheader"');
+    expect(page).toContain('aria-sort={isSorted');
+    expect(page).not.toContain('viewMode');
 
     expect(gate).toContain('Visual implementation start proof, 2026-06-29');
     expect(gate).toContain('This starts the visual implementation but does not admit Visits.');
   });
 
-  it('adds a focused Visits detail rail while preserving old view modes', () => {
+  it('adds a focused Visits detail rail with a single canonical list', () => {
     const page = pageSource();
     const gate = gateSource();
 
@@ -242,13 +245,10 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('visit={focusedVisit}');
     expect(page).toContain('const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {');
     expect(page).toContain('const VisitFocusRow = ({ icon: Icon, label, value }) => (');
-    expect(page).toContain('onClick={() => setFocusedVisitId(visit.id)}');
-    expect(page).toContain('aria-pressed={focusedVisit?.id === visit.id}');
+    expect(page).toContain('onFocus={() => setFocusedVisitId(visit.id)}');
+    expect(page).toContain('aria-pressed={selected}');
     expect(page).toContain('event.stopPropagation();');
     expect(page).toContain('Outcome and delete actions are locked for now.');
-    expect(page).toContain("viewMode === 'grid'");
-    expect(page).toContain("viewMode === 'list'");
-    expect(page).toContain("viewMode === 'table'");
 
     expect(gate).toContain('Focused detail rail proof, 2026-06-29');
     expect(gate).toContain('The old grid, list, and table modes remain preserved during this pass.');
@@ -268,7 +268,11 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => {');
     expect(page).toContain('const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => (');
     expect(page).toContain('<VisitSignalPanel');
-    expect(page).toContain('setKpiFilter(item.id)');
+    // KPI canon S1.2 (converted 2026-07-09): max-3 smart-context chips, actionable states
+    // pinned only while they carry signal, re-tapping the active chip returns to All.
+    expect(page).toContain('const selectPrimaryVisitStates = ({ stats, visits, kpiFilter }) => {');
+    expect(page).toContain("const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];");
+    expect(page).toContain("setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)");
     expect(page).toContain('Loading visits');
     expect(page).toContain('Pick one record, then view details or edit scheduling.');
     expect(page).not.toContain('Bento Overview Cards');
@@ -276,9 +280,6 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('FILTERED');
     expect(page).not.toContain('UPCOMING');
     expect(page).not.toContain('VOID');
-    expect(page).toContain("viewMode === 'grid'");
-    expect(page).toContain("viewMode === 'list'");
-    expect(page).toContain("viewMode === 'table'");
 
     expect(gate).toContain('Signal and state-choice opener proof, 2026-06-29');
     expect(gate).toContain('The old five-card metric opener is converted into one signal field plus compact state choices.');
@@ -290,19 +291,21 @@ describe('VisitsPage admission contract', () => {
 
     expect(page).toContain('<VisitActivitySheet');
     expect(page).toContain('data-testid="visits-activity-sheet"');
-    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (');
-    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedback }) => {');
+    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetching, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (');
+    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {');
     expect(page).toContain('data-testid="visits-sheet-search"');
-    expect(page).toContain('placeholder="Search visits..."');
-    expect(page).toContain('onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}');
+    // Search placeholder names exactly what the service .or() can match; the input
+    // edits a debounced draft (one refetch per pause, not per keystroke).
+    expect(page).toContain('placeholder="Search by ID, type, facility, practitioner, or room..."');
+    expect(page).toContain('onChange={(event) => setSearchDraft(event.target.value)}');
+    // Background refetches surface via the Updating pill, never a re-skeleton (S1.6).
+    expect(page).toContain('{isFetching && !loading && (');
+    expect(page).toContain('role="status" aria-live="polite"');
     expect(page).toContain('`${pagination.totalCount} visits`');
     expect(page).toContain('`Page ${pagination.currentPage} of ${pagination.totalPages}`');
     expect(page).toContain('<PaginationControls');
     expect(page).toContain('totalCount={pagination.totalCount}');
     expect(page).toContain('itemsPerPage={pagination.itemsPerPage}');
-    expect(page).toContain("viewMode === 'grid'");
-    expect(page).toContain("viewMode === 'list'");
-    expect(page).toContain("viewMode === 'table'");
 
     expect(gate).toContain('Handled activity sheet proof, 2026-06-29');
     expect(gate).toContain('The old grid, list, and table scan modes now live inside one route-owned activity sheet with inline search');
@@ -552,9 +555,11 @@ describe('VisitsPage admission contract', () => {
     const mobile = mobileSource();
     const service = serviceSource();
 
-    expect(page).toContain('activeKpi={kpiFilter}');
+    // The mobile chip row receives the RESOLVED state (S1.2 smart default): explicit
+    // taps override, otherwise the default resolves to a chip with live signal.
+    expect(page).toContain('activeKpi={selectedKpiFilter}');
     expect(page).toContain('onKpiChange={setKpiFilter}');
-    expect(page).toContain("placeholder: 'Search visits...'");
+    expect(page).toContain("placeholder: 'Search by ID, type, facility, practitioner, or room...'");
 
     expect(mobile).not.toContain("const search = String(filters?.search");
     expect(mobile).not.toContain("const kpi = String(filters?.kpiFilter");
@@ -618,7 +623,10 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain('const viewVisitId = urlParams.get(\'view\')');
     expect(page).toContain('const visitData = await getVisit(viewVisitId)');
-    expect(page).toContain('className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"');
+    // Converted 2026-07-09: the responsive scan surface is the single canonical row
+    // list inside the activity sheet (grid cards retired with the density variants).
+    expect(page).toContain("const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]'");
+    expect(page).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]');
     expect(page).toContain('data-testid="visits-activity-sheet"');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
     expect(mobile).toContain('aria-label="Filter visits"');

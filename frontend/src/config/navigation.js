@@ -34,8 +34,11 @@ export const NAV_CONFIG = {
         label: 'Care',
         icon: Handshake,
         items: [
-            // Provider-accessible items (scoped to their own records)
-            { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider', excludedRoles: ['sponsor'] },
+            // Provider-accessible items (scoped to their own records). Responder
+            // providers never appear in visits (no doctor_name rows) -- Visits is a
+            // dead-end for them, so the responder set is excluded here exactly like
+            // the mobile dock's driver slate (persona canon, PERSONA_MATRIX S3.3).
+            { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider', excludedRoles: ['sponsor'], excludedProviderTypes: ['driver', 'paramedic', 'ambulance', 'ambulance_service'] },
             { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Requests', resource: 'emergency_requests', minRole: 'provider', excludedRoles: ['sponsor'] },
 
             // Org Admin+ items (fleet/network management)
@@ -89,6 +92,12 @@ export const getAccessibleNav = (userProfile, canHelper) => {
 
     const isItemAccessible = (item) => {
         if (item.excludedRoles?.includes(role)) {
+            return false;
+        }
+
+        // Sub-persona exclusion from the existing profiles.provider_type signal
+        // (driver-lens precedent) -- providers only; operators keep the full tree.
+        if (role === 'provider' && item.excludedProviderTypes?.includes(userProfile?.provider_type)) {
             return false;
         }
 

@@ -6,25 +6,38 @@ import { getHospitals } from '../../services/hospitalsService';
 import { getProfiles } from '../../services/profilesService';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Calendar, Plus, Edit, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin, Filter, AlertCircle, PlayCircle, Stethoscope, Search, RefreshCw } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
+import {
+  AlertCircle,
+  ArrowUpDown,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Edit,
+  Eye,
+  Filter,
+  Hospital,
+  LayoutGrid,
+  MapPin,
+  PlayCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  Stethoscope,
+  User,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { VisitModal } from '../modals/VisitModal';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
-import { formatDate } from '../../lib/utils';
-import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
-import { VisitListView } from '../views/VisitListView';
-import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
@@ -35,16 +48,34 @@ const normalizeVisitCount = (value, fallback = 0) => {
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
+// Day-aware time (Requests canon): today -> time, yesterday -> "Yesterday, time",
+// this year -> "Mon D, time", older -> full date. Local day boundaries, never UTC.
+// Swap for the shared request-time util once the mobile lane's extraction lands.
+const formatVisitDayTime = (value) => {
+  if (!value) return 'No time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No time';
+  const now = new Date();
+  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dayDelta = Math.round((startOfDay(now) - startOfDay(date)) / 86400000);
+  if (dayDelta === 0) return time;
+  if (dayDelta === 1) return `Yesterday, ${time}`;
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const visitStateOptions = [
   {
     id: 'all',
     label: 'All',
-    icon: Calendar,
+    icon: LayoutGrid,
     countKey: 'total',
     tone: 'primary',
-    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-sky-700 dark:text-sky-200',
+    colorClass: 'text-foreground',
+    activeClass: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
   },
   {
     id: 'scheduled',
@@ -52,9 +83,8 @@ const visitStateOptions = [
     icon: Clock,
     countKey: 'scheduled',
     tone: 'info',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
     colorClass: 'text-cyan-700 dark:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
   },
   {
     id: 'in_progress',
@@ -62,9 +92,8 @@ const visitStateOptions = [
     icon: PlayCircle,
     countKey: 'inProgress',
     tone: 'warning',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.14)] dark:text-amber-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
     colorClass: 'text-amber-700 dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
   },
   {
     id: 'completed',
@@ -72,9 +101,8 @@ const visitStateOptions = [
     icon: CheckCircle,
     countKey: 'completed',
     tone: 'clear',
-    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
     colorClass: 'text-emerald-700 dark:text-emerald-200',
+    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
   },
   {
     id: 'cancelled',
@@ -82,19 +110,18 @@ const visitStateOptions = [
     icon: AlertCircle,
     countKey: 'cancelled',
     tone: 'muted',
-    activeClass: 'bg-muted/36 text-foreground shadow-[0_18px_54px_rgb(0_0_0/0.10)]',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
     colorClass: 'text-muted-foreground',
+    activeClass: 'bg-muted/36 text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
   },
 ];
 
-const visitToneClass = {
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-  muted: 'bg-muted/30 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
-};
+// KPI canon (MANAGEMENT_PAGE_STANDARDS S1.2): at most 3 chips, smart-context selection.
+// Tiles match the Requests/Today glance tile exactly; neutral at rest, colour when selected.
+const VISIT_KPI_REST = 'bg-card/65 text-muted-foreground shadow-[0_16px_38px_rgb(0_0_0/0.08)] hover:bg-card/82 dark:bg-white/[0.055] dark:hover:bg-white/[0.085]';
+const VISIT_KPI_IMPORTANCE = { all: 0, scheduled: 1, in_progress: 2, completed: 3, cancelled: 4 };
+// Actionable states pin ONLY while they carry signal (count > 0); a zero-count chip
+// never occupies a slot another option could fill with real data.
+const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];
 
 const getVisitStateCount = ({ id, stats, visits }) => {
   const option = visitStateOptions.find((item) => item.id === id) || visitStateOptions[0];
@@ -103,6 +130,63 @@ const getVisitStateCount = ({ id, stats, visits }) => {
     : visits.filter((visit) => visit.status === id).length;
 
   return normalizeVisitCount(stats?.[option.countKey], fallback);
+};
+
+const rankVisitStateOptions = ({ stats, visits }) =>
+  visitStateOptions
+    .map((option) => ({ option, count: getVisitStateCount({ id: option.id, stats, visits }) }))
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        (VISIT_KPI_IMPORTANCE[a.option.id] ?? 9) - (VISIT_KPI_IMPORTANCE[b.option.id] ?? 9)
+    )
+    .map((entry) => entry.option);
+
+const selectPrimaryVisitStates = ({ stats, visits, kpiFilter }) => {
+  const pinned = PINNED_VISIT_STATE_IDS.filter(
+    (id) => getVisitStateCount({ id, stats, visits }) > 0
+  );
+  const chosen = new Set(pinned);
+  if (kpiFilter && !chosen.has(kpiFilter)) {
+    chosen.add(kpiFilter);
+  }
+  for (const option of rankVisitStateOptions({ stats, visits })) {
+    if (chosen.size >= 3) break;
+    chosen.add(option.id);
+  }
+  return visitStateOptions.filter((option) => chosen.has(option.id)).slice(0, 3);
+};
+
+// Default resolves to a chip that carries signal; falls back to All, never a
+// zero-count actionable chip.
+const getDefaultVisitKpi = (stats) => {
+  if (normalizeVisitCount(stats?.scheduled, 0) > 0) return 'scheduled';
+  if (normalizeVisitCount(stats?.inProgress, 0) > 0) return 'in_progress';
+  return 'all';
+};
+
+const visitToneClass = {
+  primary: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
+  muted: 'bg-muted/30 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+};
+
+// Canonical status pills (literal palette -- the theme's info/success/warning tokens
+// all render red): scheduled cyan, active amber, done emerald, cancelled muted.
+const visitStatusPillClass = {
+  scheduled: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  in_progress: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  cancelled: 'bg-muted/40 text-muted-foreground',
+};
+
+const visitStatusLabel = {
+  scheduled: 'Scheduled',
+  in_progress: 'Active',
+  completed: 'Done',
+  cancelled: 'Cancelled',
 };
 
 const getVisitSignal = ({ stats, visits, kpiFilter }) => {
@@ -159,8 +243,15 @@ const getVisitSignal = ({ stats, visits, kpiFilter }) => {
   };
 };
 
+const VISIT_EMPTY_HEADINGS = {
+  scheduled: 'No scheduled visits',
+  in_progress: 'No active visits',
+  completed: 'No completed visits',
+  cancelled: 'No cancelled visits',
+};
+
 export const VisitsPage = () => {
-  const { user, isAdmin, isOrgAdmin, isProvider } = useAuth();
+  const { user, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
 
@@ -180,7 +271,6 @@ export const VisitsPage = () => {
           }
         } catch (error) {
           console.error('Error fetching visit:', error);
-          // Show error notification
           toast.error('Failed to load clinical record');
         }
       };
@@ -190,17 +280,18 @@ export const VisitsPage = () => {
   }, [location.search]);
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filters, setFilters] = useState({});
-  const [kpiFilter, setKpiFilter] = useState('all');
+  const [kpiFilter, setKpiFilter] = useState(null);
   const [patients, setPatients] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [visitPageStats, setVisitPageStats] = useState(null);
   const [visitPageError, setVisitPageError] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: 'status', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [focusedVisitId, setFocusedVisitId] = useState(null);
 
   const [emergencyModal, setEmergencyModal] = useState({
@@ -208,15 +299,20 @@ export const VisitsPage = () => {
     request: null
   });
 
-  const { viewMode, setViewMode } = useViewMode('visits-page', 'grid');
   const pagination = usePagination(20);
   const { paginationRange, setTotalCount } = pagination;
   const canEditVisits = isAdmin() || isOrgAdmin();
   const canCreateVisits = isAdmin() || isOrgAdmin() || isProvider();
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
+  const hasLoadedRef = useRef(false);
   const actionFeedbackTimerRef = useRef(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
+  // KPI default resolves to a chip with live signal (S1.2); explicit taps override it.
+  const selectedKpiFilter = React.useMemo(
+    () => kpiFilter || getDefaultVisitKpi(visitPageStats),
+    [kpiFilter, visitPageStats]
+  );
   const focusedVisit = React.useMemo(() => (
     visits.find((visit) => visit.id === focusedVisitId) || visits[0] || null
   ), [visits, focusedVisitId]);
@@ -250,13 +346,17 @@ export const VisitsPage = () => {
 
     try {
       if (isMountedRef.current) {
-        setLoading(true);
+        // Replace-in-place loading truth (S1.6): the skeleton only holds the page
+        // while it assembles for the first time; every later fetch (realtime, chips,
+        // search, retry) is a background refetch surfaced by the Updating pill.
+        if (!hasLoadedRef.current) setLoading(true);
+        setIsFetching(true);
         setVisitPageError(null);
       }
 
       const pageData = await getVisitsPageData({
         filters,
-        kpiFilter,
+        kpiFilter: selectedKpiFilter,
         range: paginationRange,
         sortConfig,
         quiet: true,
@@ -280,10 +380,12 @@ export const VisitsPage = () => {
       handleApiError(error, 'fetch');
     } finally {
       if (isMountedRef.current && fetchRequestRef.current === requestId) {
+        hasLoadedRef.current = true;
         setLoading(false);
+        setIsFetching(false);
       }
     }
-  }, [filters, kpiFilter, paginationRange, setTotalCount, sortConfig]);
+  }, [filters, selectedKpiFilter, paginationRange, setTotalCount, sortConfig]);
 
   useEffect(() => {
     fetchVisits();
@@ -363,14 +465,14 @@ export const VisitsPage = () => {
     count: pagination.totalCount || visits.length,
     loading,
     errorMessage: visitPageError,
-    currentState: kpiFilter,
+    currentState: selectedKpiFilter,
     canCreate: canCreateVisits,
     canEdit: canEditVisits,
   }), [
     canCreateVisits,
     canEditVisits,
     focusedVisit,
-    kpiFilter,
+    selectedKpiFilter,
     loading,
     pagination.totalCount,
     visitPageError,
@@ -448,11 +550,17 @@ export const VisitsPage = () => {
   }, []);
 
   const handleSaveVisit = useCallback(async (formData) => {
+    // A visit's patient must be an explicit choice: the old `|| user.id` fallback
+    // silently wrote the OPERATOR as the patient (data-sync audit S11.3).
+    if (modalMode === 'create' && !formData.user_id) {
+      toast.error('Pick a patient before scheduling.');
+      throw new Error('patient_required');
+    }
+
     try {
       if (modalMode === 'create') {
         await createVisit({
           ...formData,
-          user_id: formData.user_id || user.id, // Fallback if not selected
         });
         toast.success('Visit scheduled successfully');
       } else if (modalMode === 'edit' && selectedVisit) {
@@ -466,7 +574,7 @@ export const VisitsPage = () => {
       handleApiError(error, 'create');
       throw error; // Re-throw for modal to handle loading state
     }
-  }, [modalMode, selectedVisit, fetchVisits, user.id]);
+  }, [modalMode, selectedVisit, fetchVisits]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -476,22 +584,12 @@ export const VisitsPage = () => {
     }
   }, [fetchVisits]);
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      scheduled: 'bg-info/20 text-info',
-      in_progress: 'bg-warning/20 text-warning',
-      completed: 'bg-success/20 text-success',
-      cancelled: 'bg-destructive/20 text-destructive',
-    };
-    return badges[status] || badges.scheduled;
-  };
-
   const filterSchema = React.useMemo(() => [
     {
       key: 'search',
       type: 'text',
       label: 'Search Visits',
-      placeholder: 'Search visits...'
+      placeholder: 'Search by ID, type, facility, practitioner, or room...'
     },
     {
       key: 'status',
@@ -531,52 +629,7 @@ export const VisitsPage = () => {
     }
   ], []);
 
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
-  ), [viewMode, setViewMode]);
-
-  const filterButtonComponent = React.useMemo(() => (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleOpenFilters}
-      className={`squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative transition-all ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
-      aria-label="Filter visits"
-      aria-busy={activeActionFeedback === 'filters'}
-      data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
-    >
-      <Filter className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || (filters.visit_type && filters.visit_type.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-      )}
-    </Button>
-  ), [activeActionFeedback, filters, handleOpenFilters]);
-
-  const headerActions = React.useMemo(() => {
-    // Only Admins, Org Admins, and Providers can create new visits
-    if (canCreateVisits) {
-      return (
-        <Button
-          onClick={handleCreate}
-          className={`bg-card/70 h-9 px-4 text-[10px] font-bold tracking-widest uppercase transition-all ${activeActionFeedback === 'create' ? 'scale-95 bg-primary/10 text-primary' : ''}`}
-          aria-busy={activeActionFeedback === 'create'}
-          data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {activeActionFeedback === 'create' ? 'Opening...' : 'New visit'}
-        </Button>
-      );
-    }
-    return null;
-  }, [activeActionFeedback, canCreateVisits, handleCreate]);
-
-  usePageHeader(
-    "Visits",
-    headerActions,
-    !isMobile ? viewToggleComponent : null,
-    filterButtonComponent
-  );
-
+  usePageHeader("Visits");
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -587,10 +640,12 @@ export const VisitsPage = () => {
         <MobileVisits
           visits={visits}
           loading={loading}
+          isFetching={isFetching}
+          count={pagination.totalCount || visits.length}
           statistics={visitPageStats}
           filters={filters}
           setFilters={setFilters}
-          activeKpi={kpiFilter}
+          activeKpi={selectedKpiFilter}
           onKpiChange={setKpiFilter}
           onView={handleView}
           onEdit={handleEdit}
@@ -600,6 +655,7 @@ export const VisitsPage = () => {
           onViewAnalytics={handleOpenAnalytics}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
+          viewerIsDoctor={isProvider() && !isDriver()}
           canEdit={canEditVisits}
           canDelete={false}
           selectionEnabled={false}
@@ -652,7 +708,7 @@ export const VisitsPage = () => {
             stats={visitPageStats}
             visits={visits}
             loading={loading}
-            kpiFilter={kpiFilter}
+            kpiFilter={selectedKpiFilter}
             setKpiFilter={setKpiFilter}
           />
 
@@ -661,206 +717,68 @@ export const VisitsPage = () => {
             setFilters={setFilters}
             openFilters={handleOpenFilters}
             loading={loading}
+            isFetching={isFetching}
             pagination={pagination}
             errorMessage={visitPageError}
             onRetry={fetchVisits}
+            onRefresh={fetchVisits}
+            onCreate={handleCreate}
+            canCreate={canCreateVisits}
             activeActionFeedback={activeActionFeedback}
           >
             {loading ? (
-              <TableSkeleton rows={8} />
+              <VisitSkeletonRows />
             ) : (
               <>
-                {viewMode === 'grid' && (
-                  visits.length === 0 ? (
-                    <Card className="squircle-lg bg-card/70 p-12 text-center">
-                      <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="font-bold text-xl mb-2">No visits yet</h3>
-                      <p className="text-muted-foreground mb-6">Schedule the first visit.</p>
-                      <Button onClick={handleCreate} className="bg-card/70" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Schedule first visit
-                      </Button>
-                    </Card>
-                  ) : (
-                    <LayoutGroup>
-                      <motion.div
-                        layout
-                        className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-                        data-testid="visits-list"
-                      >
-                        {visits.map((visit, index) => (
-                          <motion.div
-                            layout
-                            key={visit.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.03 }}
-                            className="col-span-1"
-                          >
-                            <Card
-                              className={`h-full squircle-xl bg-card/70 p-6 hover-lift group relative overflow-hidden flex flex-col cursor-pointer transition-[transform,box-shadow,background] duration-200 ${focusedVisit?.id === visit.id ? 'bg-primary/6 shadow-[0_24px_80px_hsl(var(--primary)/0.14)]' : ''}`}
-                              data-testid={`visit-card-${visit.id}`}
-                              role="button"
-                              tabIndex={0}
-                              aria-pressed={focusedVisit?.id === visit.id}
-                              onClick={() => setFocusedVisitId(visit.id)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  setFocusedVisitId(visit.id);
-                                }
-                              }}
-                            >
-                              <div className="hover-glow hover-glow-primary" />
+                <VisitListHeader sortConfig={sortConfig} onSort={handleSort} />
 
-                              <div className="absolute top-0 right-0 p-5 z-20">
-                                <div className="relative">
-                                  <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150" />
-                                  <div className="w-10 h-10 squircle-sm surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                    <Calendar className="h-5 w-5 text-info" />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 mb-4 relative z-10 flex-wrap mr-12">
-                                <Badge className={`squircle-sm ${getStatusBadge(visit.status)} font-bold editorial-subtitle px-3 py-1`}>
-                                  {visit.status || 'scheduled'}
-                                </Badge>
-                                {visit.visit_type && (
-                                  <Badge className="squircle-sm bg-primary/10 text-primary px-2 py-1 font-semibold">
-                                    {visit.visit_type}
-                                  </Badge>
-                                )}
-                                {visit.cost && (
-                                  <Badge className="squircle-sm font-mono text-xs bg-emerald-500/10 text-emerald-500">
-                                    {visit.cost}
-                                  </Badge>
-                                )}
-                              </div>
-
-                              <h3 className="font-bold text-lg mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10 pr-12">
-                                {visit.visit_type || `Visit #${visit.id?.slice(-6) || 'N/A'}`}
-                              </h3>
-
-                              <div className="flex flex-col gap-1 mb-6 relative z-10">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4 text-info" />
-                                  <span className="font-normal">{formatDate(visit.date || visit.created_at)}</span>
-                                </div>
-                                {visit.room_number && (
-                                  <div className="flex items-center gap-2 text-xs font-medium text-foreground/70 ml-6">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                                    <span>Room {visit.room_number}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-3 mb-6 relative z-10 text-xs">
-                                <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <User className="h-4 w-4 text-primary" />
-                                    <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Patient</p>
-                                  </div>
-                                  <p className="font-semibold truncate">{visit.patient?.username || visit.user_id ? 'Linked' : 'Unknown'}</p>
-                                </div>
-
-                                <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <User className="h-4 w-4 text-purple-500" />
-                                    <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Doctor</p>
-                                  </div>
-                                  <p className="font-semibold truncate">
-                                    {visit.doctor?.name || visit.doctor || (visit.doctor_name ? 'Linked' : 'Unassigned')}
-                                  </p>
-                                </div>
-
-                                <div className="col-span-2 p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Hospital className="h-4 w-4 text-success" />
-                                    <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Facility</p>
-                                  </div>
-                                  <p className="font-semibold truncate">
-                                    {visit.hospital?.name || visit.hospital || (visit.hospital_id ? 'Linked Facility' : 'None')}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-auto pt-4 relative z-10 px-2 ">
-                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                  #{visit.id?.slice(0, 8)}
-                                </div>
-
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      markActionFeedback(`view-${visit.id}`);
-                                      handleView(visit);
-                                    }}
-                                    className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `view-${visit.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
-                                    title="View Details"
-                                    aria-busy={activeActionFeedback === `view-${visit.id}`}
-                                    data-state={activeActionFeedback === `view-${visit.id}` ? 'opening' : 'idle'}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  {canEditVisits && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        markActionFeedback(`edit-${visit.id}`);
-                                        handleEdit(visit);
-                                      }}
-                                      className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${activeActionFeedback === `edit-${visit.id}` ? 'bg-primary/10 text-primary scale-95' : ''}`}
-                                      title="Edit"
-                                      aria-busy={activeActionFeedback === `edit-${visit.id}`}
-                                      data-state={activeActionFeedback === `edit-${visit.id}` ? 'opening' : 'idle'}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </Card>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    </LayoutGroup>
-                  )
+                {visits.length === 0 && !visitPageError && (
+                  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
+                    <Calendar className="mb-4 h-12 w-12 text-muted-foreground/65" />
+                    <h3 className="text-xl font-semibold">
+                      {hasActiveVisitFilters(filters)
+                        ? 'No matching visits'
+                        : (VISIT_EMPTY_HEADINGS[selectedKpiFilter] || 'No visits yet')}
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                      {hasActiveVisitFilters(filters)
+                        ? 'Change filters or search again.'
+                        : 'Schedule the first visit when care is ready.'}
+                    </p>
+                    <div className="mt-5 flex items-center gap-2">
+                      {hasActiveVisitFilters(filters) && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setFilters({})}
+                          className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 active:scale-95"
+                        >
+                          Show all visits
+                        </Button>
+                      )}
+                      {canCreateVisits && !hasActiveVisitFilters(filters) && (
+                        <Button
+                          onClick={handleCreate}
+                          data-testid="add-first-visit-btn"
+                          aria-label="Schedule your first visit"
+                          className="h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Schedule first visit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {viewMode === 'list' && (
-                  <VisitListView
-                    visits={visits}
+                {visits.map((visit) => (
+                  <VisitRow
+                    key={visit.id}
+                    visit={visit}
+                    selected={focusedVisit?.id === visit.id}
+                    onFocus={() => setFocusedVisitId(visit.id)}
                     onView={handleView}
-                    onEdit={handleEdit}
-                    onFocus={(v) => setFocusedVisitId(v?.id || null)}
-                    getStatusBadge={getStatusBadge}
-                    isMobile={isMobile}
-                    canEdit={canEditVisits}
-                    canDelete={false}
-                    selectionEnabled={false}
                   />
-                )}
-                {viewMode === 'table' && (
-                  <VisitTableView
-                    visits={visits}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                    onFocus={(v) => setFocusedVisitId(v?.id || null)}
-                    getStatusBadge={getStatusBadge}
-                    isMobile={isMobile}
-                    canEdit={canEditVisits}
-                    canDelete={false}
-                    selectionEnabled={false}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                  />
-                )}
+                ))}
               </>
             )}
           </VisitActivitySheet>
@@ -909,44 +827,50 @@ export const VisitsPage = () => {
         filterSchema={filterSchema}
         onApply={setFilters}
         initialValues={filters}
-        viewToggle={isMobile ? viewToggleComponent : null}
+        viewToggle={null}
         isMobile={isMobile}
       />
     </div >
   );
 };
 
+const hasActiveVisitFilters = (filters = {}) => Boolean(
+  filters.search ||
+  (filters.status && filters.status.length > 0) ||
+  (filters.visit_type && filters.visit_type.length > 0) ||
+  filters.date
+);
+
+// No entrance animation: the signal panel paints truthfully on first frame
+// (motion canon -- a frozen mid-flight entrance left this panel at 39% opacity).
 const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => {
-  const signal = loading
-    ? {
-      icon: Calendar,
-      tone: 'muted',
-      label: 'Loading',
-      headline: 'Loading visits',
-      subhead: 'One moment while the latest records come in.',
-    }
-    : getVisitSignal({ stats, visits, kpiFilter });
+  const signal = getVisitSignal({ stats, visits, kpiFilter });
   const SignalIcon = signal.icon;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.42 }}
-      className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]"
-    >
+    <section className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]">
       <div className="min-w-0">
         <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${visitToneClass[signal.tone] || visitToneClass.muted}`}>
-            <SignalIcon className="h-4 w-4" />
-            {signal.label}
-          </div>
-          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-            {signal.headline}
-          </h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-            {signal.subhead}
-          </p>
+          {loading ? (
+            <>
+              <Shimmer className="h-8 w-28 rounded-pill" />
+              <Shimmer className="mt-4 h-12 w-80 max-w-full rounded-card" />
+              <Shimmer className="mt-3 h-4 w-56 max-w-full rounded-pill" />
+            </>
+          ) : (
+            <>
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${visitToneClass[signal.tone] || visitToneClass.muted}`}>
+                <SignalIcon className="h-4 w-4" />
+                {signal.label}
+              </div>
+              <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+                {signal.headline}
+              </h1>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+                {signal.subhead}
+              </p>
+            </>
+          )}
         </div>
 
         <VisitStateStrip
@@ -957,67 +881,96 @@ const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) =
           setKpiFilter={setKpiFilter}
         />
       </div>
-    </motion.section>
+    </section>
   );
 };
 
 const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => (
-  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-5">
-    {visitStateOptions.map((item) => {
-      const Icon = item.icon;
-      const active = (kpiFilter || 'all') === item.id;
-      const count = loading ? '...' : getVisitStateCount({ id: item.id, stats, visits });
-
-      return (
-        <motion.button
-          key={item.id}
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
-          aria-pressed={active}
-          aria-label={`Show ${item.label.toLowerCase()} visits`}
-          data-state={active ? 'selected' : 'idle'}
+  <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
+    {loading ? (
+      [0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] sm:px-4 md:py-3 dark:bg-white/[0.055]"
         >
-          <span className="flex items-start justify-between gap-2">
-            <span className="min-w-0">
-              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
-              <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 space-y-2">
+              <Shimmer className="h-3 w-16 rounded-pill" />
+              <Shimmer className="h-6 w-9 rounded-inner" />
+            </div>
+            <Shimmer className="h-7 w-7 rounded-pill" />
+          </div>
+        </div>
+      ))
+    ) : (
+      selectPrimaryVisitStates({ stats, visits, kpiFilter }).map((item) => {
+        const Icon = item.icon;
+        const active = (kpiFilter || 'all') === item.id;
+        const count = getVisitStateCount({ id: item.id, stats, visits });
+
+        return (
+          <motion.button
+            key={item.id}
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)}
+            data-visit-state={item.id}
+            data-state={active ? 'selected' : 'idle'}
+            className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? item.activeClass : VISIT_KPI_REST}`}
+            aria-pressed={active}
+            aria-label={`Show ${item.label.toLowerCase()} visits`}
+          >
+            <span className="flex items-start justify-between gap-2">
+              <span className="min-w-0">
+                <span className="block text-[10px] font-medium leading-tight sm:text-[11px]">{item.label}</span>
+                <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
+              </span>
+              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
+                <Icon className="h-3.5 w-3.5" />
+              </span>
             </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
-              <Icon className="h-4 w-4" />
-            </span>
-          </span>
-        </motion.button>
-      );
-    })}
+          </motion.button>
+        );
+      })
+    )}
   </div>
 );
 
-const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (
+const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, isFetching, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (
   <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] dark:bg-card/50 md:rounded-[44px]"
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] dark:bg-card/50 md:rounded-sheet"
     data-testid="visits-activity-sheet"
   >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
     <VisitSheetToolbar
       filters={filters}
       setFilters={setFilters}
       openFilters={openFilters}
+      onRefresh={onRefresh}
+      refreshing={isFetching}
+      onCreate={onCreate}
+      canCreate={canCreate}
       activeActionFeedback={activeActionFeedback}
     />
 
     <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
       <span>{loading ? 'Loading visits' : `${pagination.totalCount} visits`}</span>
-      <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+      <span className="flex items-center gap-2">
+        {isFetching && !loading && (
+          <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+            Updating
+          </span>
+        )}
+        <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+      </span>
     </div>
 
     {errorMessage && (
       <VisitErrorBanner message={errorMessage} onRetry={onRetry} />
     )}
 
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
       {children}
     </div>
 
@@ -1037,21 +990,21 @@ const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, paginat
 
 const VisitErrorBanner = ({ message, onRetry }) => (
   <div
-    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    className="mt-3 flex flex-col gap-3 rounded-card bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between"
     data-testid="visits-error-state"
   >
     <div className="flex min-w-0 items-start gap-3">
-      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive/75" />
       <div className="min-w-0">
-        <p className="text-sm font-semibold">Visits could not load</p>
-        <p className="mt-1 text-xs leading-5 opacity-80">{message}</p>
+        <p className="text-sm font-semibold text-foreground">Visits could not load</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{message}</p>
       </div>
     </div>
     <Button
       type="button"
       variant="ghost"
       onClick={onRetry}
-      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
     >
       <RefreshCw className="mr-2 h-4 w-4" />
       Retry
@@ -1059,13 +1012,25 @@ const VisitErrorBanner = ({ message, onRetry }) => (
   </div>
 );
 
-const VisitSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedback }) => {
-  const hasFilter = Boolean(
-    filters.search ||
-    (filters.status && filters.status.length > 0) ||
-    (filters.visit_type && filters.visit_type.length > 0) ||
-    filters.date
-  );
+const VisitSheetToolbar = ({ filters, setFilters, openFilters, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {
+  // Debounced search: the input edits a local draft; the query filter commits 300ms
+  // after typing pauses -- one refetch per pause, not one per keystroke over the
+  // full visit resolution read.
+  const [searchDraft, setSearchDraft] = useState(filters.search || '');
+
+  useEffect(() => {
+    setSearchDraft(filters.search || '');
+  }, [filters.search]);
+
+  useEffect(() => {
+    if ((filters.search || '') === searchDraft) return undefined;
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchDraft }));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchDraft, filters.search, setFilters]);
+
+  const hasFilter = hasActiveVisitFilters(filters);
 
   return (
     <div className="flex items-center gap-3">
@@ -1073,31 +1038,177 @@ const VisitSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedb
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
         <input
           type="search"
-          value={filters.search || ''}
-          onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
-          placeholder="Search visits..."
-          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          value={searchDraft}
+          onChange={(event) => setSearchDraft(event.target.value)}
+          placeholder="Search by ID, type, facility, practitioner, or room..."
+          className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
           data-testid="visits-sheet-search"
         />
       </div>
       <Button
         variant="ghost"
+        size="icon"
+        onClick={onRefresh}
+        disabled={refreshing}
+        className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
+        aria-label={refreshing ? 'Refreshing visits' : 'Refresh visits'}
+        title={refreshing ? 'Refreshing...' : 'Refresh'}
+      >
+        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+      </Button>
+      <Button
+        variant="ghost"
         onClick={openFilters}
-        className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+        className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-foreground/10 text-foreground scale-95' : ''}`}
         aria-busy={activeActionFeedback === 'filters'}
         data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
       >
         <Filter className="mr-2 h-4 w-4" />
         {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-        {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+        {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-foreground/60" />}
       </Button>
+      {canCreate && (
+        <Button
+          onClick={onCreate}
+          className={`h-12 rounded-button bg-foreground px-4 text-sm font-semibold text-background shadow-sm transition-all hover:bg-foreground/90 active:scale-95 ${activeActionFeedback === 'create' ? 'scale-95' : ''}`}
+          aria-busy={activeActionFeedback === 'create'}
+          data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {activeActionFeedback === 'create' ? 'Opening...' : 'New visit'}
+        </Button>
+      )}
     </div>
   );
 };
 
-// formatVisitType / getVisitPatientLabel / getVisitFacilityLabel now come from the
-// shared visitRowProjection so record identity (full_name-first patient, facility-first
-// label) is decided in one place. Only the rail-specific doctor label stays local.
+// Patient | Status | Type | Facility | Time | Action -- one canonical render
+// (Requests table idiom). Cost cut per arbitration: live data never carries it.
+const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
+
+const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => {
+  const isSorted = sortConfig?.key === sortKey;
+  const direction = isSorted ? sortConfig.direction : null;
+  return (
+    // aria-sort lives on a columnheader-roled wrapper (accessibility canon).
+    <span
+      role="columnheader"
+      aria-sort={isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => onSort?.(sortKey)}
+        data-state={isSorted ? 'sorted' : 'idle'}
+        className={`flex items-center gap-1 transition-colors hover:text-foreground active:scale-[0.96] ${className}`}
+        aria-label={`Sort by ${label}`}
+      >
+        {label}
+        {isSorted ? (
+          direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </span>
+  );
+};
+
+const VisitListHeader = ({ sortConfig, onSort }) => (
+  <div className={`grid ${VISIT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    <SortableColumnHeader label="Patient" sortKey="user_id" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Type" sortKey="type" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Facility" sortKey="hospital_id" sortConfig={sortConfig} onSort={onSort} />
+    <SortableColumnHeader label="Time" sortKey="date" sortConfig={sortConfig} onSort={onSort} />
+    <span className="text-right">Action</span>
+  </div>
+);
+
+const VisitRow = ({ visit, selected, onFocus, onView }) => {
+  const patientName = getVisitPatientLabel(visit);
+  const patientEmail = visit?.patient?.email || null;
+  const facilityName = visit?.hospital_name || (visit?.hospital_id ? getVisitFacilityLabel(visit) : 'Unknown facility');
+  const statusKey = visit?.status || 'scheduled';
+  const initial = String(patientName || '?').trim().charAt(0).toUpperCase() || '?';
+
+  return (
+    <motion.div
+      layout="position"
+      className={`group mb-2 grid min-h-[72px] ${VISIT_GRID_COLS} items-center gap-2 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
+      data-visit-row={visit.id}
+      data-state={selected ? 'selected' : 'idle'}
+      role="button"
+      tabIndex={0}
+      onClick={onFocus}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onView(visit);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onFocus();
+        }
+      }}
+      aria-pressed={selected}
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-foreground/[0.06] text-sm font-semibold text-foreground dark:bg-white/[0.08]">
+          {initial}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-foreground">{patientName}</span>
+          {patientEmail && (
+            <span className="block truncate text-xs text-muted-foreground">{patientEmail}</span>
+          )}
+        </span>
+      </span>
+
+      <span>
+        <span className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
+          {visitStatusLabel[statusKey] || statusKey}
+        </span>
+      </span>
+
+      <span className="truncate text-sm text-foreground/85">{formatVisitType(visit)}</span>
+
+      <span className="truncate text-sm text-muted-foreground">{facilityName}</span>
+
+      <span className="text-sm tabular-nums text-muted-foreground">
+        {formatVisitDayTime(visit.date || visit.created_at)}
+      </span>
+
+      <span className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            onView(visit);
+          }}
+          className="h-8 w-8 rounded-pill p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+          title="View details"
+          aria-label={`View visit for ${patientName}`}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </span>
+    </motion.div>
+  );
+};
+
+const Shimmer = ({ className = '' }) => (
+  <span className={`block animate-pulse bg-muted/38 dark:bg-white/[0.055] ${className}`} />
+);
+
+const VisitSkeletonRows = () => (
+  <div className="space-y-2">
+    {Array.from({ length: 7 }).map((_, index) => (
+      <Shimmer key={index} className="h-[72px] rounded-card" />
+    ))}
+  </div>
+);
+
 const getVisitDoctorLabel = (visit) => (
   visit?.doctor?.name ||
   visit?.doctor ||
@@ -1109,13 +1220,13 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   if (loading) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
-          <div className="h-5 w-28 rounded-full bg-muted/40" />
-          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-card bg-card/70 p-5 shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
+          <Shimmer className="h-5 w-28 rounded-pill" />
+          <Shimmer className="mt-6 h-24 rounded-card" />
           <div className="mt-4 space-y-3">
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
-            <div className="h-14 rounded-2xl bg-muted/24" />
+            <Shimmer className="h-14 rounded-card" />
+            <Shimmer className="h-14 rounded-card" />
+            <Shimmer className="h-14 rounded-card" />
           </div>
         </div>
       </aside>
@@ -1125,7 +1236,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   if (!visit) {
     return (
       <aside className="hidden min-h-0 lg:flex lg:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-card bg-card/70 p-6 text-center shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
           <Calendar className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No visit selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Visits will appear here when the list has results.</p>
@@ -1134,27 +1245,28 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
     );
   }
 
-  const status = String(visit.status || 'scheduled').replace(/_/g, ' ');
+  const statusKey = visit.status || 'scheduled';
   const roomLabel = visit.room_number ? `Room ${visit.room_number}` : 'No room';
-  const dateLabel = formatDate(visit.date || visit.created_at);
+  const dateLabel = formatVisitDayTime(visit.date || visit.created_at);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
   return (
     <aside className="hidden min-h-0 lg:flex lg:flex-col">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] ">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-card bg-card/70 p-5 shadow-[0_12px_32px_rgb(0_0_0/0.10)]">
         <div className="flex items-center justify-between gap-3">
-          <Badge className={`${visit.status === 'completed' ? 'bg-success/16 text-success' : visit.status === 'cancelled' ? 'bg-destructive/14 text-destructive' : visit.status === 'in_progress' ? 'bg-warning/16 text-warning' : 'bg-info/16 text-info'} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
-            {status}
-          </Badge>
-          <span className="rounded-full bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className={`rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
+            {visitStatusLabel[statusKey] || statusKey}
+          </span>
+          <span className="rounded-pill bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Focus
           </span>
         </div>
 
-        <div className="mt-6 rounded-[32px] bg-background/42 p-5 ">
+        {/* Today-sheet surface recipe (S1.4): recessed inset hero + fill-film rows. */}
+        <div className="mt-6 rounded-card bg-background/55 p-5 dark:bg-white/[0.05]">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-foreground/[0.06] text-foreground dark:bg-white/[0.08]">
               <Calendar className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -1176,16 +1288,16 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           <VisitFocusRow icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
           <VisitFocusRow icon={MapPin} label="Location" value={roomLabel} />
 
-          <div className="rounded-[28px] bg-muted/22 p-4">
+          <div className="rounded-card bg-foreground/[0.045] p-4 dark:bg-white/[0.055]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Record</p>
-            <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{visit.id}</p>
+            <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{visit.display_id || visit.id}</p>
           </div>
         </div>
 
         <div className="mt-5 space-y-2">
           <Button
             onClick={() => onView(visit)}
-            className={`h-12 w-full rounded-2xl bg-foreground text-sm font-semibold text-background shadow-[0_18px_46px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.01] hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
+            className={`h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
             aria-busy={viewOpening}
             data-state={viewOpening ? 'opening' : 'idle'}
           >
@@ -1197,7 +1309,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
             <Button
               variant="ghost"
               onClick={() => onEdit(visit)}
-              className={`h-12 w-full rounded-2xl bg-muted/26 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${editOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+              className={`h-12 w-full rounded-card bg-muted/26 text-sm font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${editOpening ? 'bg-foreground/10 scale-95' : ''}`}
               aria-busy={editOpening}
               data-state={editOpening ? 'opening' : 'idle'}
             >
@@ -1215,8 +1327,8 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
 };
 
 const VisitFocusRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-[24px] bg-muted/24 p-3">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/45 text-muted-foreground">
+  <div className="flex items-center gap-3 rounded-card bg-foreground/[0.045] p-3 dark:bg-white/[0.055]">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-background/45 text-muted-foreground">
       <Icon className="h-4 w-4" />
     </div>
     <div className="min-w-0">
