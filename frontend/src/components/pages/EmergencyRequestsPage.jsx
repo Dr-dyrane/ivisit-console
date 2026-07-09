@@ -137,6 +137,15 @@ const kpiOptions = [
   },
 ];
 
+// Canon: a KPI/state strip renders AT MOST 3 chips — the page's smart-context priority
+// (its 3 most important). Only 3 keeps the strip simple and gives the wider "Today-length"
+// tiles. For Requests the priority is All / Needs attention / Active; the service-type
+// breakdowns (Beds, Ambulance) live in the FilterSheet, not the strip.
+const PRIMARY_KPI_IDS = ['all', 'pending', 'active'];
+const primaryKpiOptions = kpiOptions
+  .filter((option) => PRIMARY_KPI_IDS.includes(option.id))
+  .slice(0, 3);
+
 const statusStyles = {
   pending_approval: {
     label: 'Needs attention',
@@ -307,14 +316,10 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
 const getDefaultRequestKpi = (stats) => {
   const pending = normalizeCount(stats?.pending_approval ?? stats?.pending, 0);
   const active = normalizeCount(stats?.active, 0);
-  const bed = normalizeCount(stats?.bed, 0);
-  const ambulance = normalizeCount(stats?.ambulance, 0);
 
+  // Default must be one of the rendered primary KPIs (all/pending/active).
   if (pending > 0) return 'pending';
   if (active > 0) return 'active';
-  if (bed > 0 && bed >= ambulance) return 'bed';
-  if (ambulance > 0) return 'ambulance';
-  if (bed > 0) return 'bed';
   return 'pending';
 };
 
@@ -1406,8 +1411,8 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
 const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
   if (loading) {
     return (
-      <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {kpiOptions.map((item) => (
+      <div className="mt-5 grid max-w-3xl grid-cols-3 gap-2">
+        {primaryKpiOptions.map((item) => (
           <div
             key={item.id}
             className="min-h-[66px] rounded-inner bg-card/65 px-3 py-3 backdrop-blur-xl"
@@ -1426,8 +1431,8 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
   }
 
   return (
-    <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-      {kpiOptions.map((item) => {
+    <div className="mt-5 grid max-w-3xl grid-cols-3 gap-2">
+      {primaryKpiOptions.map((item) => {
         const Icon = item.icon;
       const active = (kpiFilter || 'pending') === item.id;
       const count = getKpiCount({ id: item.id, stats, requests });
