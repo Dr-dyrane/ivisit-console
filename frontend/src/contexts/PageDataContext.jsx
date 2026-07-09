@@ -717,7 +717,16 @@ export const PageDataProvider = ({ children }) => {
     fetchOrganizationsData
   ]);
 
-  // Real-time subscription for emergency data
+  // Real-time subscription for emergency data.
+  // S3 (CONSOLE_LAYER_MODEL_PLAN.md): a postgres_changes event now feeds
+  // queryClient.invalidateQueries(['emergency']) - the React Query cache is the
+  // single Requests store - instead of a full fetchEmergencyData() slice refetch.
+  // Any mounted useEmergencyQuery observer (EmergencyRequestsPage) converges on the
+  // next fetch. The subscription + removeChannel cleanup are unchanged. NOTE: the
+  // PageDataContext emergencyData slice (read by dashboards - BentoHome/OrgAdminHome/
+  // etc., a parallel lane) still hydrates via fetchEmergencyData on mount through the
+  // domain fetch registry; its in-place live refresh is deferred until those consumers
+  // move onto useEmergencyQuery (mirrors the doctors slice handling).
   useEffect(() => {
     if (!user || useMockData || !startupDomains.includes('emergency')) return;
 
@@ -725,12 +734,12 @@ export const PageDataProvider = ({ children }) => {
       .channel('emergency_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'emergency_requests' },
-        fetchEmergencyData
+        () => queryClient.invalidateQueries({ queryKey: ['emergency'] })
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchEmergencyData]);
+  }, [user, useMockData, startupDomains, queryClient]);
 
   // Real-time subscription for doctors data.
   // S3-1 (CONSOLE_LAYER_MODEL_PLAN.md:203): a postgres_changes event now feeds

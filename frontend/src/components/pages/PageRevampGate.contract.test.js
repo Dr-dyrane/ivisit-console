@@ -864,8 +864,11 @@ describe('Today/Requests revamp gate contract', () => {
     expect(dashboardPanel).not.toContain('usePageData');
     expect(dashboardPanel).not.toContain('/api/backup');
 
-    expect(requests).toContain('getEmergencyRequestsPage({');
-    expect(requests).toContain('const serviceFilter = buildRequestsServiceFilter(filters);');
+    // S3 migration: the route-owned getEmergencyRequestsPage read now flows through
+    // useEmergencyQuery (the ['emergency', filter] cache), which composes the same
+    // service filter. Ownership of the read is unchanged; only the caller moved.
+    expect(requests).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
+    expect(requests).toContain('...buildRequestsServiceFilter(filters)');
     expect(requests).toContain('pagination.setTotalCount(count || 0);');
     expect(requests).toContain('const requestPanelContext = useMemo(() => ({');
     expect(requests).toContain("window.addEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);");
