@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
     AlertCircle,
     Ambulance,
@@ -31,6 +31,7 @@ import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { resolveVital } from '../../constants/vitalTracks';
 import { groupByRecency } from '../../utils/groupByRecency';
+import { getMobilePageStageMotion } from './mobileMotion';
 
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
@@ -180,6 +181,7 @@ export const MobileEmergency = ({
     setKpiFilter
 }) => {
     const observerTarget = useRef(null);
+    const reduceMotion = useReducedMotion();
     const [activeRequest, setActiveRequest] = useState(null);
     const { triggerFromEvent } = useFeedback();
     const { displayItems, isBuffering } = useStableList(emergencies, loading);
@@ -215,9 +217,7 @@ export const MobileEmergency = ({
                 <MobileRequestsAtlasLayer />
                 <div className="relative z-10 space-y-3">
                     <motion.section
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35 }}
+                        {...getMobilePageStageMotion({ index: 0, reduceMotion })}
                         className="px-4"
                     >
                         <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
@@ -237,7 +237,10 @@ export const MobileEmergency = ({
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
-                        <div className="flex items-center gap-2">
+                        <motion.div
+                            {...getMobilePageStageMotion({ index: 2, reduceMotion })}
+                            className="flex items-center gap-2"
+                        >
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                                 <input
@@ -281,7 +284,7 @@ export const MobileEmergency = ({
                                     <BarChart3 size={18} />
                                 </motion.button>
                             )}
-                        </div>
+                        </motion.div>
 
                         <div className="mt-4 flex items-center justify-end px-2">
                             {isBuffering && (
@@ -309,8 +312,12 @@ export const MobileEmergency = ({
                         {/* iOS-Settings grouped list (canon): one frosted PANEL per recency
                             bucket over the atlas; rows are transparent, separated by a slate
                             hairline — separation is fill/frost, never a border. Grouping is
-                            render-only; id-keyed state is unaffected. */}
-                        <div className="space-y-[18px]">
+                            render-only; id-keyed state is unaffected. The whole list block
+                            reveals as ONE staged unit (index 3) — never per-row (that skews). */}
+                        <motion.div
+                            {...getMobilePageStageMotion({ index: 3, reduceMotion })}
+                            className="space-y-[18px]"
+                        >
                             {groupByRecency(
                                 displayItems,
                                 (request) => request.created_at,
@@ -363,7 +370,7 @@ export const MobileEmergency = ({
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </motion.div>
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
                             {showSkeleton && <MobileListSkeletonRows />}
