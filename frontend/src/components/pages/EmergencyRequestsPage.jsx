@@ -39,6 +39,7 @@ import {
   Hospital,
   Info,
   LayoutGrid,
+  Loader2,
   MapPin,
   RefreshCw,
   Search,
@@ -266,10 +267,22 @@ const getKpiCount = ({ id, stats, requests }) => {
   return normalizeCount(stats?.total, requests.length);
 };
 
-const getRequestSignal = ({ stats, requests, kpiFilter }) => {
+const getRequestSignal = ({ stats, requests, kpiFilter, loadError }) => {
   const activeId = kpiFilter || 'pending';
   const activeOption = kpiOptions.find((item) => item.id === activeId) || kpiOptions[0];
   const count = getKpiCount({ id: activeOption.id, stats, requests });
+
+  // A failed load with nothing cached must not render a reassuring zero-derived
+  // "all clear" hero above the list error state; surface the failure honestly.
+  if (loadError && count === 0 && requests.length === 0) {
+    return {
+      icon: AlertCircle,
+      tone: 'danger',
+      label: 'Load failed',
+      headline: 'Requests did not load',
+      subhead: 'Retry to load the queue.',
+    };
+  }
 
   if (activeOption.id === 'pending') {
     const hasPending = count > 0;
@@ -302,12 +315,34 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
     };
   }
 
+  if (activeOption.id === 'critical') {
+    return {
+      icon: ShieldCheck,
+      tone: 'critical',
+      label: 'Critical',
+      headline: count > 0 ? `${count} critical request${count === 1 ? '' : 's'}` : 'No critical requests',
+      subhead: count > 0 ? 'Prioritize critical care first.' : 'Critical requests will appear here.',
+    };
+  }
+
+  if (activeOption.id === 'ambulance') {
+    return {
+      icon: Ambulance,
+      tone: 'primary',
+      label: 'Ambulance',
+      headline: count > 0 ? `${count} ambulance request${count === 1 ? '' : 's'}` : 'No ambulance requests',
+      subhead: count > 0 ? 'Check response state before acting.' : 'Ambulance requests will appear here.',
+    };
+  }
+
+  // Neutral fallback for 'all' (and any unexpected id) — never silently the
+  // Ambulance signal. Count semantics stay the total across every service.
   return {
-    icon: Ambulance,
-    tone: 'primary',
-    label: 'Ambulance',
-    headline: count > 0 ? `${count} ambulance request${count === 1 ? '' : 's'}` : 'No ambulance requests',
-    subhead: count > 0 ? 'Check response state before acting.' : 'Ambulance requests will appear here.',
+    icon: LayoutGrid,
+    tone: 'muted',
+    label: 'All',
+    headline: count > 0 ? `${count} request${count === 1 ? '' : 's'}` : 'No requests yet',
+    subhead: count > 0 ? 'Every request across services.' : 'New requests will appear here.',
   };
 };
 
@@ -490,6 +525,7 @@ export const EmergencyRequestsPage = () => {
     count,
     stats,
     loading: queryLoading,
+    isFetching,
     error: queryError,
     refetch,
   } = useEmergencyQuery(queryFilter, { enabled: authReady });
@@ -929,7 +965,7 @@ export const EmergencyRequestsPage = () => {
 
       if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
         toast.warning('Cash follow-up needed', {
-          description: 'Completion was saved. Cash settlement stays with the finance receiver pass.'
+          description: 'Completion was saved. Cash settlement is handled in Finance.'
         });
       } else {
         toast.success('Request completed');
@@ -1060,6 +1096,9 @@ export const EmergencyRequestsPage = () => {
         <RequestsDesktopWorkspace
           requests={requests}
           loading={loading}
+          isFetching={isFetching}
+          dispatchPending={dispatchMutation.isPending}
+          completePending={completeMutation.isPending}
           stats={requestStats}
           filters={filters}
           setFilters={setFilters}
@@ -1229,6 +1268,9 @@ export const EmergencyRequestsPage = () => {
 const RequestsDesktopWorkspace = ({
   requests,
   loading,
+  isFetching = false,
+  dispatchPending = false,
+  completePending = false,
   stats,
   filters,
   setFilters,
@@ -1259,7 +1301,9 @@ const RequestsDesktopWorkspace = ({
   sortConfig,
   onSort,
 }) => {
-  const signal = getRequestSignal({ stats, requests, kpiFilter });
+  const signal = getRequestSignal({ stats, requests, kpiFilter, loadError });
+  const hasFilter = hasActiveRequestFilters(filters);
+  const failedEmpty = Boolean(loadError) && requests.length === 0;
   const allSelected = selectable && requests.length > 0
     && requests.every((row) => selectedIds.includes(row.id));
   const someSelected = selectable && !allSelected && selectedIds.length > 0;
@@ -1283,6 +1327,7 @@ const RequestsDesktopWorkspace = ({
             kpiFilter={kpiFilter}
             setKpiFilter={setKpiFilter}
             loading={loading}
+            isFetching={isFetching}
           />
 
           <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
@@ -1296,8 +1341,8 @@ const RequestsDesktopWorkspace = ({
             />
 
             <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
-              <span>{loading ? 'Loading requests' : `${pagination.totalCount} requests`}</span>
-              <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+              <span>{loading ? 'Loading requests' : failedEmpty ? "Couldn't load" : `${pagination.totalCount} requests`}</span>
+              <span>{loading ? 'One moment' : failedEmpty ? 'Retry below' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
             </div>
 
             <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
@@ -1320,20 +1365,22 @@ const RequestsDesktopWorkspace = ({
               {!loading && !loadError && Number(pagination.totalCount) === 0 && (
                 <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
                   <ClipboardCheck className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                  <h3 className="text-xl font-semibold">No matching requests</h3>
+                  <h3 className="text-xl font-semibold">{hasFilter ? 'No matching requests' : 'No requests yet'}</h3>
                   <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    Change filters or search again.
+                    {hasFilter ? 'Change filters or search again.' : 'New requests will appear here.'}
                   </p>
-                  <Button
-                    variant="ghost"
-                    onClick={openFilters}
-                    data-state={filterTriggerState}
-                    className="mt-5 rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-                    aria-haspopup="dialog"
-                    aria-expanded={filterSheetOpen}
-                  >
-                    Change filters
-                  </Button>
+                  {hasFilter && (
+                    <Button
+                      variant="ghost"
+                      onClick={openFilters}
+                      data-state={filterTriggerState}
+                      className="mt-5 rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                      aria-haspopup="dialog"
+                      aria-expanded={filterSheetOpen}
+                    >
+                      Change filters
+                    </Button>
+                  )}
                 </div>
               )}
               {!loading && requests.length > 0 && (
@@ -1364,7 +1411,7 @@ const RequestsDesktopWorkspace = ({
               onNextPage={pagination.nextPage}
               hasPrevPage={pagination.hasPrevPage}
               hasNextPage={pagination.hasNextPage}
-              loading={loading}
+              loading={loading || isFetching}
             />
           </div>
         </section>
@@ -1373,6 +1420,9 @@ const RequestsDesktopWorkspace = ({
           request={focusedRequest}
           currentUser={currentUser}
           loading={loading}
+          hasFilter={hasFilter}
+          dispatchPending={dispatchPending}
+          completePending={completePending}
           onView={onView}
           onDelete={onDelete}
           onDispatch={onDispatch}
@@ -1385,7 +1435,7 @@ const RequestsDesktopWorkspace = ({
   );
 };
 
-const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading }) => {
+const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading, isFetching }) => {
   const SignalIcon = signal.icon;
 
   return (
@@ -1423,13 +1473,14 @@ const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, 
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
           loading={loading}
+          isFetching={isFetching}
         />
       </div>
     </motion.section>
   );
 };
 
-const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) => {
+const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, isFetching }) => {
   if (loading) {
     return (
       <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1481,7 +1532,11 @@ const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading }) 
               <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
             </span>
             <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? colorClass : ''}`}>
-              <Icon className="h-3.5 w-3.5" />
+              {active && isFetching ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Icon className="h-3.5 w-3.5" />
+              )}
             </span>
           </span>
         </motion.button>
@@ -1684,6 +1739,9 @@ const RequestDetailRail = ({
   request,
   currentUser,
   loading,
+  hasFilter = false,
+  dispatchPending = false,
+  completePending = false,
   onView,
   onDelete,
   onDispatch,
@@ -1733,7 +1791,9 @@ const RequestDetailRail = ({
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No request selected</h2>
           <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
-            Requests that match your filters will appear here.
+            {hasFilter
+              ? 'Requests that match your filters will appear here.'
+              : 'Select a request to see its details here.'}
           </p>
         </div>
       </aside>
@@ -1759,6 +1819,11 @@ const RequestDetailRail = ({
   const PrimaryIcon = primaryAction.icon;
   const StatusIcon = status.icon || AlertCircle;
   const primaryClass = railPrimaryActionClass[primaryAction.kind] || railPrimaryActionClass.details;
+  // In-place pending state for the write actions so the button itself (not just the
+  // toast) acknowledges the round-trip and a double-tap cannot fire two RPCs.
+  const primaryPending =
+    (primaryAction.kind === 'dispatch' && dispatchPending) ||
+    (primaryAction.kind === 'complete' && completePending);
 
   return (
     <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
@@ -1805,19 +1870,23 @@ const RequestDetailRail = ({
         <Button
           className={`h-12 w-full rounded-button text-base font-semibold transition-all active:scale-[0.99] ${primaryClass}`}
           onClick={() => primaryAction.onClick(request)}
-          disabled={primaryAction.disabled}
+          disabled={primaryAction.disabled || primaryPending}
         >
-          <PrimaryIcon className="mr-2 h-5 w-5" />
+          {primaryPending ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <PrimaryIcon className="mr-2 h-5 w-5" />
+          )}
           {primaryAction.label}
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
 
         <div className="grid grid-cols-2 gap-3">
           {canManage && actionState.canDispatch && primaryAction.kind !== 'dispatch' && (
-            <RailActionButton icon={Send} label="Dispatch" onClick={() => onDispatch(request)} />
+            <RailActionButton icon={Send} label="Dispatch" onClick={() => onDispatch(request)} pending={dispatchPending} />
           )}
           {(canManage || canCompleteAsProvider) && actionState.canComplete && primaryAction.kind !== 'complete' && (
-            <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} />
+            <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} pending={completePending} />
           )}
           {actionState.canRetryPayment && primaryAction.kind !== 'retry' && (
             <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} />
@@ -1833,7 +1902,7 @@ const RequestDetailRail = ({
             className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.99]"
             onClick={() => onProcessCash(request)}
           >
-            Cash settlement not ready here
+            Cash settlement handled in Finance
           </Button>
         )}
 
@@ -1864,13 +1933,18 @@ const DetailLine = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-const RailActionButton = ({ icon: Icon, label, onClick }) => (
+const RailActionButton = ({ icon: Icon, label, onClick, pending = false }) => (
   <Button
     variant="ghost"
-    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98] disabled:opacity-50"
     onClick={onClick}
+    disabled={pending}
   >
-    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {pending ? (
+      <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
+    ) : (
+      <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    )}
     {label}
   </Button>
 );
