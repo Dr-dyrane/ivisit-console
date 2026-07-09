@@ -62,7 +62,13 @@ const DynamicBottomBarContent = () => {
         location.pathname.startsWith('/pricing') ||
         location.pathname.startsWith('/settings');
     const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
-    const routeOwnedAction = getRouteOwnedMobileAction(location.pathname, userRole);
+    // Route-owned actions may open a locally hosted modal (routeModal) instead of
+    // dispatching a window event — pages like '/' have no modal listener mounted.
+    const [routeModal, setRouteModal] = useState(null);
+    const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);
+    const routeOwnedAction = routeOwnedActionConfig?.modal
+        ? { ...routeOwnedActionConfig, action: () => setRouteModal(routeOwnedActionConfig.modal) }
+        : routeOwnedActionConfig;
     const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;
 
     const navItems = getMobileNavigationItems(userRole);
@@ -84,7 +90,7 @@ const DynamicBottomBarContent = () => {
                 className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
                 style={{ bottom: 'calc(var(--safe-bottom, 0px) + 14px)' }}
             >
-                <div className={`w-full px-2 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
+                <div className={`w-full px-4 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
                     {/* CORE NAVIGATION PILL - Lucid Design */}
                     <motion.nav
                         initial={{ x: -50, opacity: 0 }}
@@ -128,11 +134,31 @@ const DynamicBottomBarContent = () => {
                     )}
                 </div>
             </div>
+
+            {/* Locally hosted route-owned modal (same self-contained pattern as the
+                context FAB's modals below) — keeps the '/' New-request tap honest. */}
+            <AnimatePresence>
+                {routeModal === 'emergency' && (
+                    <EmergencyRequestModal isOpen onClose={() => setRouteModal(null)} />
+                )}
+            </AnimatePresence>
         </>
     );
 };
 
 const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
+    // Today home: dock parity with /emergencies — same New-request quick action,
+    // same roles. `modal` (not a window event) because the Requests page's
+    // openEmergencyModal listener is not mounted on '/'.
+    if (pathname === '/' && (userRole === 'admin' || userRole === 'org_admin')) {
+        return {
+            icon: Plus,
+            label: 'New request',
+            color: 'destructive',
+            modal: 'emergency',
+        };
+    }
+
     if (pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')) {
         return {
             icon: Plus,
