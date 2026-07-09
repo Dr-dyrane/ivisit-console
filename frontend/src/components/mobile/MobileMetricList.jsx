@@ -277,7 +277,7 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_2px_hsl(var(--foreground)/0.12)]' : isCurrentlyExpanded ? 'rounded-t-button bg-card shadow-[0_6px_16px_rgb(0_0_0/0.05)] -translate-y-0.5' : 'rounded-button bg-card shadow-[0_4px_10px_rgb(0_0_0/0.03)] active:bg-muted/40'
+                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_2px_hsl(var(--foreground)/0.12)]' : isCurrentlyExpanded ? 'rounded-t-button bg-card dark:bg-white/[0.08] -translate-y-0.5' : 'rounded-button bg-card dark:bg-white/[0.055] active:bg-black/[0.02] dark:active:bg-white/[0.09]'
                     }`}
                 style={{
                     WebkitTapHighlightColor: 'transparent',

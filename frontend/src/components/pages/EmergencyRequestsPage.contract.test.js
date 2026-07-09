@@ -438,7 +438,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).not.toContain("color: 'hsl(var(--primary))'");
     expect(mobileSource).not.toContain('hover:bg-primary/10 hover:text-primary');
     expect(mobileSource).toContain('const MobileRequestsAtlasLayer = () => (');
-    expect(mobileSource).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground');
+    expect(mobileSource).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-14 text-foreground');
     expect(mobileSource).toContain('MobileKPIStrip');
     expect(mobileSource).toContain('kpis={kpis}');
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");

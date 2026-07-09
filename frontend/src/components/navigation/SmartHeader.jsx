@@ -5,7 +5,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
-import { Search, PanelRightOpen, Play } from 'lucide-react';
+import { Search, PanelRightOpen, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetDescription, SheetOverlay, SheetTitle } from '../ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -108,28 +108,19 @@ export const SmartHeader = () => {
                 {/* MOBILE: 3-column flex - left / center / right */}
                 {isMobile ? (
                     <>
-                        {/* LEFT - back badge + avatar */}
+                        {/* LEFT - back button */}
                         <div className="flex items-center gap-1.5 shrink-0 min-w-0">
                             {!isHome && (
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => navigate(-1)}
-                                    className="h-6 max-w-[100px] px-1.5 rounded-pill inline-flex items-center gap-1 text-[8px] font-semibold tracking-[0.05em] text-foreground/75 truncate bg-[hsl(var(--spark)/0.12)] hover:bg-[hsl(var(--spark)/0.16)] transition-colors"
+                                    className="max-w-[140px] inline-flex items-center gap-0.5 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
                                     aria-label="Go back"
                                 >
-                                    <Play className="h-3 w-3 rotate-180 text-[hsl(var(--spark)/0.88)] fill-current stroke-0 shrink-0" />
+                                    <ChevronLeft className="h-4 w-4 shrink-0" />
                                     <span className="truncate">{getRouteLabel(previousPath)}</span>
                                 </motion.button>
                             )}
-                            <button
-                                onClick={() => setMenuOpen(true)}
-                                className="flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shadow-sm shrink-0"
-                                aria-label="Open account menu"
-                                aria-expanded={menuOpen}
-                                aria-haspopup="dialog"
-                            >
-                                <span aria-hidden="true">{avatarInitial}</span>
-                            </button>
                         </div>
 
                         {/* CENTER - logo or page title */}
@@ -157,6 +148,15 @@ export const SmartHeader = () => {
                                 <Search className="h-4 w-4" />
                             </button>
                             <NotificationCenter />
+                            <button
+                                onClick={() => setMenuOpen(true)}
+                                className="flex h-9 w-9 items-center justify-center rounded-pill bg-[hsl(var(--spark)/0.12)] text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] transition-transform active:scale-95 overflow-hidden shrink-0"
+                                aria-label="Open account menu"
+                                aria-expanded={menuOpen}
+                                aria-haspopup="dialog"
+                            >
+                                <span aria-hidden="true">{avatarInitial}</span>
+                            </button>
                         </div>
                     </>
                 ) : (

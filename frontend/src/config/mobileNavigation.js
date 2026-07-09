@@ -11,24 +11,29 @@ const roleSlots = {
     { id: 'today', path: '/', label: 'Today' },
     { id: 'emergencies', path: '/emergencies', label: 'Requests' },
     { id: 'map', path: '/map', label: 'Map' },
+    { id: 'settings', path: '/settings', label: 'Settings' },
   ],
   org_admin: [
     { id: 'today', path: '/', label: 'Today' },
     { id: 'approvals', path: '/verification', label: 'Approvals' },
     { id: 'staff', path: '/doctors', label: 'Staff' },
+    { id: 'settings', path: '/settings', label: 'Settings' },
   ],
   sponsor: [
     { id: 'today', path: '/', label: 'Today' },
     { id: 'statistics', path: '/analytics', label: 'Statistics' },
+    { id: 'map', path: '/map', label: 'Map' },
     { id: 'settings', path: '/settings', label: 'Settings' },
   ],
   provider: [
     { id: 'today', path: '/', label: 'Today' },
     { id: 'emergencies', path: '/emergencies', label: 'Requests' },
     { id: 'visits', path: '/visits', label: 'Visits' },
+    { id: 'settings', path: '/settings', label: 'Settings' },
   ],
   viewer: [
     { id: 'today', path: '/', label: 'Today' },
+    { id: 'map', path: '/map', label: 'Map' },
     { id: 'settings', path: '/settings', label: 'Settings' },
   ],
 };

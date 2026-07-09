@@ -37,6 +37,7 @@ import { groupByMonth } from '../../utils/groupByMonth';
 // avatars/pills and the desktop RequestKpiStrip: attention=destructive, active=amber,
 // bed=cyan, ambulance=sky. `icon` feeds the compact signal header.
 const mobileKpis = [
+    { id: 'all', label: 'All', color: 'hsl(var(--primary))' },
     { id: 'pending', label: 'Needs attention', icon: AlertCircle, color: 'hsl(var(--destructive))' },
     { id: 'active', label: 'Active', icon: Clock, color: '#f59e0b' },
     { id: 'bed', label: 'Beds', icon: BedDouble, color: '#06b6d4' },
@@ -103,6 +104,9 @@ const hasMobileRequestFilters = (filters = {}) => Boolean(
 );
 
 const getKpiValue = ({ id, statistics, emergencies }) => {
+    if (id === 'all') {
+        return countNumber(statistics?.total, emergencies.length);
+    }
     if (id === 'pending') {
         const rowCount = emergencies.filter((item) => item.status === 'pending_approval').length;
         return countNumber(statistics?.pending, rowCount);
@@ -202,7 +206,7 @@ export const MobileEmergency = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground"
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-14 text-foreground"
             >
                 <MobileRequestsAtlasLayer />
                 <div className="relative z-10 space-y-5">

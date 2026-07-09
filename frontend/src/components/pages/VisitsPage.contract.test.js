@@ -45,7 +45,7 @@ describe('VisitsPage admission contract', () => {
       .toBe('Visits');
     expect(getAccessibleNav({ role: 'sponsor' }).ops)
       .toBeNull();
-    expect(getMobileNavigationItems('provider').map((item) => item.path)).toEqual(['/', '/emergencies', '/visits']);
+    expect(getMobileNavigationItems('provider').map((item) => item.path)).toEqual(['/', '/emergencies', '/visits', '/settings']);
   });
 
   it('keeps Visits route-owned so PageData does not duplicate the page on /visits', () => {

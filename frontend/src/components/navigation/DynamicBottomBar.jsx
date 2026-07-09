@@ -109,7 +109,7 @@ const DynamicBottomBarContent = () => {
                                     <motion.div
                                         whileTap={{ scale: 0.96 }}
                                         className={`w-10 h-10 rounded-button flex items-center justify-center transition-all duration-300 ${isActive
-                                            ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] shadow-inner'
+                                            ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)]'
                                             : 'text-foreground/45 hover:text-foreground'
                                             }`}
                                     >
