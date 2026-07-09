@@ -12,15 +12,21 @@
 > **Authority:** where the older `APPLE_GLASS_DESIGN_SYSTEM.md` / `DYRANE_UI_DESIGN_SYSTEM.md`
 > disagree with this doc, **this doc wins** for mobile. They are kept for history.
 
-Status: **DRAFT v1 — 2026-07-08.** Layers 4 (components) largely ✅ from the rollout;
+Status: **DRAFT v1.1 — 2026-07-09.** Layers 4 (components) largely ✅ from the rollout;
 Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation work.
+**2026-07-09:** the Requests-proven canon is folded in — surface token system (§2), loading &
+refetch model (§5), KPI-scope + empty/error rules (§5), search field + Updating pill (§3),
+dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.jsx`.
 
 ---
 
 ## Decisions log (locked)
 
-- **2026-07-08 · Borderless** — no borders / hairlines / left-accent bars anywhere; separation is
+- **2026-07-08 · Borderless** — no borders / left-accent bars anywhere; separation is
   spacing + surface tint + soft shadow. Enforced by the strict-radius/no-border hardgate.
+  *Amended 2026-07-09:* the intra-group **HAIRLINE** (`--muted-foreground/0.08`, §2) is canon
+  inside grouped list panels — an alpha whisper of separation, not a border. Borders, outlines
+  and accent bars stay banned.
 - **2026-07-08 · One glass recipe** — chrome = `chrome-glass` / `chrome-glass-strong` (frosted,
   borderless); content = opaque cards. `apple-glass-heavy` is deprecated → migrate to `chrome-glass`.
 - **2026-07-08 · State filter = compact CHIP row (pills)** — the list-page state/KPI filter is a
@@ -44,12 +50,24 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 - **2026-07-08 · Tracking is tokenized** — eyebrow tracking is `var(--tracking-eyebrow)` (0.14em),
   not a raw value. Both the PageRevampGate contract and the UI hardgate ban raw non-zero
   `letter-spacing` but exempt `var(...)`, mirroring the `border-radius` token rule.
+- **2026-07-09 · Surface token system (GROUND / RAISED / GLASS / HAIRLINE)** — every mobile
+  surface differentiates through ONE relationship, not ad-hoc `bg-*`: GROUND `bg-background`,
+  RAISED `.surface-card`, GLASS `chrome-glass` (floating chrome only), HAIRLINE
+  `--muted-foreground/0.08` intra-group separators. Tokenized in `src/index.css` ("Mobile
+  surface system" block); proven on Requests. Full system in §2.
+- **2026-07-09 · Skeleton-first loading, replace-in-place** — every mount opens on a
+  group-shaped skeleton (forced `SKELETON_WARMUP_MS = 400` warm-up covers cached bottom-nav
+  mounts); content replaces it in place with zero layout jump; NO entrance
+  translate/stagger/fade-from-blank. Background refetches surface as the "Updating" pill
+  (`isFetching`), never a re-skeleton. Full model in §5.
 
 ## 0. Principles (the feel)
 
 1. **Chrome is frosted glass; content is opaque.** Header, chips, nav island, sheets float
    on `chrome-glass` (blur + translucency); rows/cards/badges are solid and readable.
    Depth = blur + soft shadow, **never borders**. (ivisit-app: "no borders — spacing + opacity".)
+   Inside a grouped panel, sibling rows separate with the `/0.08` HAIRLINE (§2) — an alpha
+   film, not a border.
 2. **One loud action per screen.** Crimson is the single action color; the route **FAB** is
    the one deliberately-loud element. Everything else is quiet.
 3. **Readable identity first.** The record's name/facility is the primary line, `line-clamp-2`,
@@ -60,6 +78,9 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
    appears twice, it's a named element or component.
 6. **Apple-HIG parity.** ≥44pt tap targets, graduated press, reduced-motion honored, haptics
    on meaningful actions, safe-area respected, sheets with grab handle + swipe-dismiss.
+7. **Loading is shape-stable.** Every mount is skeleton-first (forced warm-up); the skeleton
+   mirrors the real list 1:1 so content replaces it **in place**. Chrome (title/search) is
+   simply present — no entrance motion, no fade-from-blank. (Full model in §5.)
 
 ---
 
@@ -71,6 +92,7 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 | **Color / brand** | `--primary 357 74% 26%` crimson (one action); `--destructive` red for danger only. | ✅ |
 | **Status hues (raw)** | semantic tokens collapse to red, so status uses raw hues via `constants/vitalTracks.js`: cyan `#0891B2` / amber `#B45309` / emerald `#047857` / sky `#0284C7` / slate. | ✅ (`resolveVital`, `statusPill`) |
 | **Glass** | ONE recipe: `chrome-glass` (0.68 / blur 24 / sat 180%) + `chrome-glass-strong` (0.80 / blur 36). Frosted, borderless, `+ chrome-float` shadow. Content/controls = opaque (no blur). | ✅ collapsed 2026-07-08 — `apple-glass*` stripped of blur → opaque aliases; `chrome-glass` is the sole frosted recipe (legacy unused `glass-surface` remains, out of mobile scope) |
+| **Surfaces** | GROUND `bg-background` · RAISED `.surface-card` (fg/0.05 light · white/0.07 dark) · GLASS `chrome-glass` (chrome only) · HAIRLINE `--muted-foreground/0.08` · backdrop scrim `bg-black/[0.46] backdrop-blur-sm`. Full system → §2. | ✅ tokenized (`index.css` "Mobile surface system" block, 2026-07-09) · ◐ adoption sweep (Requests panels/chips still inline the film) |
 | **Spacing** | 4px grid (ivisit-app `SPACING xs4 sm8 md16 lg24 xl32`); mobile section rhythm 20/12/8. | ☐ not tokenized (inline) |
 | **Typography** | scale: title 27–34 / h2 20 / body 15 / meta 12 / caption(eyebrow) 10–11 uppercase `tracking-[0.14em]`. | ☐ not tokenized (inline per component) |
 | **Elevation** | soft: row `0 4px 10px /0.03`, card `0 22px 64px /0.14`, float `chrome-float`. app web shadow `0 18px 36px /0.18`. | ◐ inline; not tokenized |
@@ -89,12 +111,26 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 
 ## 2. Background & surfaces
 
-- **Page background:** app-frosted gradient wash (Visits `MobileVisitsAtlasLayer` is the
-  reference); default to a calm `bg-background` + optional subtle atlas layer. ☐ standardize one
+**The surface token system** (locked 2026-07-09; mirror of the `src/index.css` "Mobile surface
+system" comment block; reference page `src/components/mobile/MobileEmergency.jsx`). Every mobile
+surface differentiates using **ONE relationship, not ad-hoc `bg-*`:**
+
+| Tier | Token | Use |
+|---|---|---|
+| **GROUND** | `bg-background` | page atlas backing, sheet/modal base |
+| **RAISED** | `.surface-card` — foreground/0.05 film (light) · white/0.07 lift (dark) | list cards, KPI chips, section cards, sheet islands, context-panel cards. A flat alpha film that reads with the same delta over any ground; no blur (blur belongs to chrome) |
+| **GLASS** | `chrome-glass` / `chrome-glass-strong` | floating chrome ONLY (header, nav island, bottom dock, sheet chrome) |
+| **HAIRLINE** | `h-px bg-[hsl(var(--muted-foreground)/0.08)]`, inset `ml-[62px]` past the orb | intra-group row separators inside a grouped panel — a whisper, not a border. **Alpha is the lever**; `h-px` is already minimal |
+| **Scrim** | `bg-black/[0.46] backdrop-blur-sm` | sheet/modal backdrop (`ModalShell`) |
+
+Rules: **borderless** (no borders / outlines / left-accent bars — the hairline is an alpha film,
+not a border); **shadow only on floating chrome**; **one loud action per surface** = `bg-primary`.
+
+- **Page background:** calm `bg-background` GROUND + optional subtle atlas layer (Visits
+  `MobileVisitsAtlasLayer`, Requests `MobileRequestsAtlasLayer`). ☐ standardize one
   `MobilePageBackground`.
-- **Chrome surface:** `chrome-glass` / `chrome-glass-strong` (header, chips, island, sheet).
-- **Content surface:** opaque `bg-card` / `bg-muted/22–50`, rounded-card, soft shadow. Never glass.
-- **Separation:** spacing + surface tint + shadow. **No hairlines / borders / left-accent bars.**
+- **Superseded 2026-07-09:** content `bg-card` / `bg-muted/22–50` → RAISED `.surface-card`;
+  "no hairlines anywhere" → HAIRLINE is canon for intra-group separators (and only there).
 
 ---
 
@@ -111,7 +147,9 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 | **Icon well / tile** | `rounded-icon` tinted tile (status/neutral) | ◐ inline; make `MobileIconWell` |
 | **Chip (filter/state)** | `rounded-pill chrome-glass` + dot + count; `.on` = brand | ◐ (in KPI strip / per page) |
 | **Grab handle** | `h-1.5 w-[42px] rounded-pill bg-foreground/20` | ✅ (ModalShell / sheets) |
-| **Divider** | none — spacing only | ✅ (borderless) |
+| **Divider / hairline** | between sibling rows in a grouped panel ONLY: `h-px bg-[hsl(var(--muted-foreground)/0.08)]`, inset `ml-[62px]` past the orb (§2); everywhere else spacing only — never a border/outline | ✅ (Requests grouped list + skeleton) |
+| **Search field** | `type="text" inputMode="search"` (`text` avoids the duplicate native clear) + leading icon + trailing clear (×) button when non-empty, `aria-label="Clear search"` | ✅ (Requests) — roll out per page |
+| **Updating pill** | `rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground`, `role="status" aria-live="polite"` — background-refetch signal, hidden while the skeleton shows (§5) | ✅ (Requests) — roll out per page |
 
 ---
 
@@ -120,9 +158,9 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 | Component | Role | Status |
 |---|---|---|
 | `MobilePageShell` | sticky KPI slot + padded content + error boundary + safe-area | ✅ |
-| `MobileKPIStrip` | role-aware KPI/state chips | ✅ |
+| `MobileKPIStrip` | role-aware KPI/state chips — every chip exposes `aria-pressed`; tapping the active non-All chip toggles back to All | ✅ |
 | `MobileMetricRow` (`MobileMetricList`) | readable row: icon well + eyebrow + name(line-clamp-2) + secondary + status pill + chevron; tap → sheet | ✅ (statusPill + secondary props; left-accent removed) |
-| `MobileDetailSheet` | tap-opened bottom sheet: header + VitalTrack + islands + CTA | ✅ (new; on `ModalShell`) |
+| `MobileDetailSheet` | tap-opened bottom sheet: header + VitalTrack + islands + CTA; titleless (`hideClose`) so it passes `ariaLabel` (record name → eyebrow → 'Details') for the dialog name (§7) | ✅ (new; on `ModalShell`) |
 | `MobileDetailIslands` | labelled fact tiles | ✅ |
 | `MobileSheetActions` | CTA group (filled primary + glow, ghost secondary) | ✅ |
 | `VitalTrack` | stepped lifecycle (grounded in `lifecycles.js` via `vitalTracks`) | ✅ |
@@ -142,7 +180,36 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 - **Lifecycle context:** `VitalTrack` in the sheet for stateful records. ✅
 - **One state-CTA:** authority-gated primary via `MobileSheetActions`; extras demoted. ✅
 - **Filter:** `FilterSheet` mobile bottom sheet. ◐ (align chrome to `chrome-glass`)
-- **States:** empty / skeleton / error via `MobileListStates`. ✅
+- **States:** empty / skeleton / error via `MobileListStates`. The empty state derives a
+  `reason` (`search` / `filtered` / `empty`) and offers a recovery action (Clear Search /
+  Adjust Filters / Retry). **Never render raw DB/PostgREST error text** — friendly copy on
+  screen, raw error to the console only. ✅ (Requests) — roll out per page
+- **KPI scope (count integrity):** the header summary count tracks the **active KPI** (= the
+  visible scope), never the raw total — "40 requests" must not sit above a 3-row filtered
+  list. Every KPI selection **including `all`** is enumerated on every dependent surface
+  (count, empty copy, hero); fallbacks are neutral, never a specific entity. ✅ (Requests) —
+  apply per page
+
+### Loading & refetch model (canon)
+
+Reference: `src/components/mobile/MobileEmergency.jsx`.
+
+1. **Skeleton-first on EVERY mount.** A forced warm-up guarantees the skeleton on cached
+   bottom-nav mounts too, not just hard refresh — without it, a page mounting with cached
+   data skips the skeleton and assembles content top-to-bottom:
+   `SKELETON_WARMUP_MS = 400` · `showSkeleton = warmingUp || (loading && no items)`.
+2. **Group-shaped skeleton.** The skeleton mirrors the real list 1:1 (same panel, row
+   rhythm, hairline + `ml-[62px]` inset) so content **replaces it in place** with zero
+   layout jump.
+3. **No entrance motion.** No translate/stagger, no fade-from-blank — a fade runs from
+   blank on cached mounts and reads as a top-to-bottom load. When the skeleton clears, the
+   list swaps in a single commit; nothing moves.
+4. **Chrome is just present.** Title / summary / search / filter render immediately with no
+   entrance motion (`animatePageLoad={false}`) — only DATA regions load.
+5. **Background refetch = "Updating" pill.** React Query `placeholderData` keeps `isLoading`
+   false on KPI-switch / search / filter / load-more refetches — **`isFetching` is the only
+   signal.** The page passes it down and mobile shows the Updating pill (§3, `role="status"
+   aria-live="polite"`), hidden while the skeleton shows. Never a re-skeleton.
 
 ---
 
@@ -160,11 +227,13 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 |---|---|---|
 | Press | controls `scale 0.96`, cards `0.988` (graduated) | ◐ (varies: some `0.97/0.95/0.98`) → normalize |
 | Spring / ease | spring `168/30/0.9`; ease `[0.21,0.47,0.32,0.98]` | ⚠️ `mobileMotion` uses `[0.22,1,0.36,1]` + durations → align |
-| Sheet | slide-up spring + grab handle + swipe-to-dismiss + backdrop | ✅ (ModalShell) |
+| Entrance | none — skeleton-first, replace-in-place (§5); chrome present with no reveal sweep; no translate/stagger/fade-from-blank on mount | ✅ (Requests) — apply per page |
+| Sheet | slide-up spring + grab handle + swipe-to-dismiss + backdrop scrim `bg-black/[0.46] backdrop-blur-sm` | ✅ (ModalShell) |
 | Reduced motion | global `prefers-reduced-motion` → fade only | ✅ (index.css + ModalShell) |
 | Tap-flash | `-webkit-tap-highlight-color: transparent` global | ✅ |
 | Haptics / sound | `useFeedback().triggerFromEvent` on meaningful actions (haptic + iOS fallback) | ◐ applied in some rows/CTAs → make consistent + documented |
 | Focus | animates in place; keyboard focus trap in sheets/modals | ✅ (ModalShell focus trap) |
+| Dialog names | every sheet/dialog has an accessible name: titled `ModalShell` → `aria-labelledby`; titleless sheets pass `ariaLabel` (`MobileDetailSheet`: record name → eyebrow → 'Details') | ✅ (ModalShell + MobileDetailSheet) — verify per page |
 
 ---
 
@@ -189,11 +258,14 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 ## 10. Parity checklist (Apple HIG / ivisit-app) — per new surface
 
 - [ ] ≥44pt tap targets · safe-area insets honored
-- [ ] frosted chrome / opaque content · no borders / hairlines / accent bars
+- [ ] GROUND/RAISED/GLASS surfaces (§2) · no borders / outlines / accent bars · hairline `/0.08` intra-group only
 - [ ] readable `line-clamp-2` identity · status = raw-hue pill
-- [ ] tap → bottom sheet (not dropdown) · grab handle + swipe-dismiss
+- [ ] tap → bottom sheet (not dropdown) · grab handle + swipe-dismiss · accessible dialog name (`aria-labelledby` / `ariaLabel`)
 - [ ] VitalTrack for lifecycle · date groups for feeds · one state-CTA
 - [ ] graduated press · canon spring/ease · reduced-motion · haptic feedback
+- [ ] skeleton-first mount (400ms warm-up) · group-shaped skeleton · replace-in-place, no entrance motion
+- [ ] `isFetching` → Updating pill · header count = active-KPI scope · `all` enumerated on every dependent surface
+- [ ] empty `reason` + recovery action · no raw DB error text · chips `aria-pressed` · search `inputMode="search"` + clear (×)
 - [ ] strict-radius hardgate green · one `chrome-glass` recipe · tokens (no re-inline)
 
 ---
