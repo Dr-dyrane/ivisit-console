@@ -97,7 +97,7 @@ export const SmartHeader = () => {
                 }}
                 // Shared header chrome for route title, shell actions, and mobile account access.
                 className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-2 left-3 right-3 h-11 rounded-pill pointer-events-auto bg-transparent backdrop-blur-sm'
+                    ? 'top-2 left-2 right-2 h-11 pointer-events-auto bg-transparent'
                     : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
@@ -114,7 +114,7 @@ export const SmartHeader = () => {
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => navigate(-1)}
-                                    className="max-w-[140px] inline-flex items-center gap-0.5 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
+                                    className="-ml-1 max-w-[140px] inline-flex items-center gap-0.5 text-[13px] font-medium text-[hsl(var(--spark)/0.9)] truncate"
                                     aria-label="Go back"
                                 >
                                     <ChevronLeft className="h-4 w-4 shrink-0" />

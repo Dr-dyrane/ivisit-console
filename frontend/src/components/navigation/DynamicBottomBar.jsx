@@ -16,6 +16,7 @@ import {
     FileCheck,
     Settings,
     ClipboardCheck,
+    Plus,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -134,7 +135,7 @@ const DynamicBottomBarContent = () => {
 const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
     if (pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')) {
         return {
-            icon: ClipboardCheck,
+            icon: Plus,
             label: 'New request',
             color: 'destructive',
             action: () => window.dispatchEvent(new CustomEvent('openEmergencyModal'))

@@ -27,7 +27,7 @@ export const MobilePageShell = ({
     return (
         <div className="flex flex-col min-h-screen no-scrollbar">
             {kpiStrip}
-            <div className={`px-1 text-[13px] ${contentClassName}`}>
+            <div className={`text-[13px] ${contentClassName}`}>
                 <MobileErrorBoundary>
                     {animatePageLoad ? (
                         <motion.div
