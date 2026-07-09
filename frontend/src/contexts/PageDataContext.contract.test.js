@@ -91,7 +91,8 @@ describe('PageDataContext role loading contract', () => {
     const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
     const emergencySource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
 
-    expect(pageDataSource).toContain("getEmergencyRequests({ quiet: true })");
+    expect(pageDataSource).toContain("getEmergencyRequests({ quiet: true, limit: 10 })");
+    expect(pageDataSource).toContain("getEmergencyRequestsPageStats({}, undefined, true)");
     expect(pageDataSource).toContain("markDomainError('emergency', error)");
     expect(pageDataSource).toContain('domainErrors,');
     expect(emergencySource).toContain("if (!filter?.quiet) {");

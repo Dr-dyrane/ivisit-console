@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getSupportTickets } from '../services/supportTicketsService';
 import { getUserStatistics, getProfiles } from '../services/profilesService';
-import { getEmergencyRequests } from '../services/emergencyService';
+import { getEmergencyRequests, getEmergencyRequestsPageStats } from '../services/emergencyService';
 import { getDoctors } from '../services/doctorsService';
 import { getVisitsPageData } from '../services/visitsService';
 import { getHospitals } from '../services/hospitalsService';
@@ -237,37 +237,35 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const data = await getEmergencyRequests({ quiet: true });
-
-      const total = data?.length || 0;
-      const ambulance = data?.filter(r => r.service_type === 'ambulance').length || 0;
-      const bed = data?.filter(r => r.service_type === 'bed').length || 0;
-      const critical_care = data?.filter(r => r.service_type === 'critical_care').length || 0;
-      const emergency_room = data?.filter(r => r.service_type === 'emergency_room').length || 0;
-      const pending_approval = data?.filter(r => r.status === 'pending_approval').length || 0;
-      const inProgress = data?.filter(r => r.status === 'in_progress').length || 0;
-      const accepted = data?.filter(r => r.status === 'accepted').length || 0;
-      const arrived = data?.filter(r => r.status === 'arrived').length || 0;
-      const completed = data?.filter(r => r.status === 'completed').length || 0;
-      // Active = all non-terminal statuses (what matters for the dashboard)
-      const active = pending_approval + inProgress + accepted + arrived;
+      // Persona matrix 6.9: hero counts come from exact head-count queries
+      // (getEmergencyRequestsPageStats, auth-scoped via applyEmergencyRequestScope)
+      // instead of counting a client-side list fetch, which Supabase caps at 1000
+      // rows and therefore undercounts at platform scale and drifts from the
+      // Requests page. The list read only feeds the small recent slice.
+      const [stats, recent] = await Promise.all([
+        getEmergencyRequestsPageStats({}, undefined, true),
+        getEmergencyRequests({ quiet: true, limit: 10 }),
+      ]);
 
       setEmergencyData({
         stats: {
-          total,
-          ambulance,
-          bed,
-          critical_care,
-          emergency_room,
-          pending_approval,
-          pending: pending_approval, // Alias for backward compatibility
-          inProgress,
-          accepted,
-          arrived,
-          completed,
-          active
+          total: stats.total,
+          ambulance: stats.ambulance,
+          bed: stats.bed,
+          critical_care: stats.critical,
+          emergency_room: stats.emergency,
+          pending_approval: stats.pending_approval,
+          pending: stats.pending_approval, // Alias for backward compatibility
+          inProgress: stats.inProgress,
+          accepted: stats.accepted,
+          arrived: stats.arrived,
+          completed: stats.completed,
+          active: stats.active,
+          // Responder-persona count (driver Today) from the same exact-count
+          // stats read; additive next to the legacy keys.
+          mine: stats.mine
         },
-        recent: data?.slice(0, 10) || []
+        recent: recent || []
       });
       clearDomainError('emergency');
 
