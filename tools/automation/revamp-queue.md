@@ -507,3 +507,18 @@ Notes:
   pass `filterSheetOpen={filterSheetOpen}` and `analyticsOpen={analyticsModalOpen}` to
   <MobileHospitals> so the search-row triggers can show open-state truth (component
   defaults false — safe until wired).
+
+### 2026-07-09 — desktop-uiux-lane — NEW ESTATE LAW: selection mechanism on sortable lists (dc899e1b)
+- **User arbitration:** "the table lacks the multiple select triggers" — the Hospitals adoption
+  shipped without selection (third regression of this mechanism). Restored: admin-only checkbox
+  column + select-all/indeterminate + shift-range (useRowSelection, Visits recipe verbatim);
+  bulk WRITES stay fail-closed (BulkActionBar action disabled-with-reason).
+- **Structural fix, binding on ALL future adoptions:** ConsoleDesignSystem.contract now enforces
+  — any estate surface rendering a SortableColumnHeader list MUST contain `useRowSelection(` /
+  `handleToggleSelect` OR the literal marker `selection excluded by decision: <ref>`. Adopting a
+  page? Wire selection or write the marker with a citation; the sweep reds otherwise.
+- **Lesson (why the gates missed it):** per-page contract pins protect decisions a page has
+  already made; they cannot demand donor mechanisms a NEW adoption silently omitted. Estate laws
+  must state adoption-time REQUIREMENTS (presence-or-recorded-exclusion), not just bans.
+- Note: mobile lane's `ed9e852e` swept my staged contract-test pins in (selection pins landed
+  there); shared-index commits keep interleaving — verify at HEAD, not per-commit.
