@@ -4,10 +4,19 @@
 //
 // UsersPage.contract bans blur on its surfaces -> the frosted panel is a PROP
 // (frosted={false} drops backdrop-blur-xl), never a fork.
-import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useRef } from 'react';
+import { ChevronRight, Check } from 'lucide-react';
 import { groupByRecency } from '../../../utils/groupByRecency';
 import { TapCard } from './Tap';
+import { useFeedback } from '../../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../../contexts/FeedbackContext';
+
+// Long-press to enter multi-select — mirrored VERBATIM from the estate's selection
+// primitive (MobileMetricList) so the canon row feels identical to the live selection
+// pages (Organizations/Subscriptions/Doctors). Selection is OPT-IN (selectable=false by
+// default): the four gold-standard pages that don't wire it render exactly as before.
+const LONG_PRESS_MS = 420;
+const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
 
 export const GROUP_PANEL_FROSTED = 'rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5';
 export const GROUP_PANEL_FLAT = 'rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] px-3 py-1.5';
@@ -72,33 +81,112 @@ export const MobileListRow = ({
   time,
   markerChip = null,
   pill,
-}) => (
-  <TapCard
-    onClick={() => onOpen(item)}
-    className="group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]"
-    {...{ [dataAttr]: item.id }}
-    aria-haspopup="dialog"
-    aria-label={ariaLabel}
-  >
-    <span className={`h-10 w-10 shrink-0 rounded-pill flex items-center justify-center ${orbClass}`}>
-      <Icon size={iconSize} />
-    </span>
-    <div className="min-w-0 flex-1">
-      <p className="text-[15px] leading-5 font-medium text-foreground truncate">{title}</p>
-      <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{meta}</p>
-    </div>
-    <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
-      <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{time}</span>
-      <span className="flex items-center gap-2">
-        {markerChip && (
-          <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{markerChip}</span>
+  // Opt-in multi-select. Off by default -> the tap-only row is byte-identical for the
+  // pages that don't wire selection. When on: long-press ENTERS selection; in selection
+  // mode a tap toggles (instead of opening the sheet); the orb carries a check badge.
+  selectable = false,
+  selected = false,
+  selectionMode = false,
+  onToggleSelect,
+  onLongPress,
+}) => {
+  const { triggerFromEvent } = useFeedback();
+  const longPressTimerRef = useRef(null);
+  const longPressHandledRef = useRef(false);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+  };
+
+  const armLongPress = (event) => {
+    if (!selectable || selectionMode || !onLongPress) return; // long-press only ENTERS selection
+    clearLongPress();
+    longPressHandledRef.current = false;
+    const touch = event?.touches?.[0];
+    touchStartRef.current = { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 };
+    const target = event?.currentTarget;
+    const px = touch?.clientX ?? event?.clientX;
+    const py = touch?.clientY ?? event?.clientY;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressHandledRef.current = true;
+      onLongPress(item);
+      triggerFromEvent({ currentTarget: target, clientX: px, clientY: py }, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
+    }, LONG_PRESS_MS);
+  };
+
+  const trackLongPressMove = (event) => {
+    if (!longPressTimerRef.current) return;
+    const touch = event?.touches?.[0];
+    if (!touch) return;
+    if (Math.abs(touch.clientX - touchStartRef.current.x) > LONG_PRESS_MOVE_TOLERANCE_PX
+      || Math.abs(touch.clientY - touchStartRef.current.y) > LONG_PRESS_MOVE_TOLERANCE_PX) {
+      clearLongPress();
+    }
+  };
+
+  const handleClick = () => {
+    if (longPressHandledRef.current) { longPressHandledRef.current = false; return; } // swallow the click after a long-press
+    clearLongPress();
+    if (selectable && selectionMode) onToggleSelect?.(item);
+    else onOpen?.(item);
+  };
+
+  const handleContextMenu = (event) => {
+    if (!selectable) return;
+    event.preventDefault();
+    clearLongPress();
+    if (selectionMode) onToggleSelect?.(item);
+    else onLongPress?.(item);
+  };
+
+  const selectionHandlers = selectable ? {
+    onTouchStart: armLongPress,
+    onTouchMove: trackLongPressMove,
+    onTouchEnd: clearLongPress,
+    onTouchCancel: clearLongPress,
+    onMouseLeave: clearLongPress,
+    onContextMenu: handleContextMenu,
+    'aria-pressed': selected,
+  } : {};
+
+  return (
+    <TapCard
+      onClick={handleClick}
+      className={`group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]${selected ? ' bg-foreground/[0.06] dark:bg-white/[0.08]' : ''}`}
+      {...{ [dataAttr]: item.id }}
+      {...selectionHandlers}
+      style={selectable ? { WebkitTouchCallout: 'none' } : undefined}
+      aria-haspopup="dialog"
+      aria-label={ariaLabel}
+    >
+      <span className={`h-10 w-10 shrink-0 rounded-pill flex items-center justify-center relative ${orbClass}`}>
+        <Icon size={iconSize} />
+        {selectable && selected && (
+          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-pill bg-foreground shadow-[0_0_0_3px_hsl(var(--background))] z-20">
+            <Check size={10} className="text-background stroke-[4px]" />
+          </span>
         )}
-        <span
-          className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}
-          {...(pill?.dataStatus ? { 'data-status': pill.dataStatus } : {})}
-        >{pill?.label || 'New'}</span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
       </span>
-    </span>
-  </TapCard>
-);
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] leading-5 font-medium text-foreground truncate">{title}</p>
+        <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{meta}</p>
+      </div>
+      <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
+        <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{time}</span>
+        <span className="flex items-center gap-2">
+          {markerChip && (
+            <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{markerChip}</span>
+          )}
+          <span
+            className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}
+            {...(pill?.dataStatus ? { 'data-status': pill.dataStatus } : {})}
+          >{pill?.label || 'New'}</span>
+          {selectionMode
+            ? null
+            : <ChevronRight className="h-4 w-4 text-muted-foreground/60" />}
+        </span>
+      </span>
+    </TapCard>
+  );
+};

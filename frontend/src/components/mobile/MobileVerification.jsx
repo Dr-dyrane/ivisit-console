@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Shield, Eye, CheckCircle, Ban, Building2, User, Mail, MapPin, Clock, Hash, Tag } from 'lucide-react';
+import { Shield, Eye, CheckCircle, Ban, Building2, User, Mail, MapPin, Clock, Hash, Tag, X } from 'lucide-react';
 // LIST-type page, DUAL-QUEUE (providers + facilities). Composes the canon kit
 // (MOBILE_DESIGN_SYSTEM §5): heading -> KPI status chips -> queue switch -> search ->
 // grouped list -> tap opens MobileDetailSheet (Approve/Reject in the footer CTA group).
@@ -86,8 +86,12 @@ export const MobileVerification = ({
   onSelectAll,
 }) => {
   const [activeItem, setActiveItem] = useState(null);
-  // Selection props stay accepted as dormant inventory (fail-closed estate-wide); the
-  // kit MobileListRow carries no selection affordance until receiver proof.
+  // Multi-select (restored 2026-07-10). Uses the SHARED page selection — the desktop
+  // page's useRowSelection passes selectedIds/onSelect/onSelectAll — so mobile and
+  // desktop never hold divergent selection. Providers-only + admin-gated, mirroring the
+  // desktop `selectable = canApprove && queueType === 'providers'`; facilities keep
+  // per-row approve/reject with no bulk. Bulk-approve loops onVerifyProvider (the page
+  // passes no batch handler to mobile — a batched endpoint is the follow-up).
 
   // Dock FAB ("Review pending", DynamicBottomBar) dispatches here: the mobile surface
   // owns the queue filter state, so the dock stays decoupled from the desktop page file.
@@ -130,6 +134,18 @@ export const MobileVerification = ({
 
   const hasFilter = Boolean(filters?.search) || activeStatus !== 'all';
 
+  // Providers-only + admin-gated selection (facilities have per-row approve/reject, no
+  // bulk). selectionMode derives from the SHARED selectedIds, so the row affordance and
+  // the bulk bar can never disagree on whether we're selecting.
+  const selectionEnabled = canApprove && queueType === 'providers';
+  const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+  const selectionMode = selectionEnabled && selectedIdSet.size > 0;
+  const bulkApprove = () => {
+    if (!onVerifyProvider) return;
+    (selectedIds || []).forEach((id) => onVerifyProvider(id, true));
+    onSelectAll?.(false);
+  };
+
   // Grouped by application recency (adaptive, data-driven): the queue is a feed of
   // applications in time; coarse freshness never fragments into singleton panels.
   const { groups } = useMemo(() => resolveAdaptiveGroups(displayItems, [
@@ -164,6 +180,11 @@ export const MobileVerification = ({
         time={formatRelativeTime(item.created_at)}
         markerChip={!canApprove && pending ? 'Admin' : null}
         pill={resolveVital('verification', statusKey).pill}
+        selectable={selectionEnabled}
+        selected={selectedIdSet.has(item.id)}
+        selectionMode={selectionMode}
+        onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+        onLongPress={(it) => onSelect?.(it.id, true)}
       />
     );
   };
@@ -199,7 +220,7 @@ export const MobileVerification = ({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setQueueType(tab.id)}
+                  onClick={() => { if (queueType !== tab.id) onSelectAll?.(false); setQueueType(tab.id); }}
                   aria-pressed={queueType === tab.id}
                   className={`flex-1 rounded-[calc(theme(borderRadius.inner)-4px)] py-2 text-[13px] font-semibold transition-all active:scale-[0.97] ${queueType === tab.id ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground'}`}
                 >
@@ -226,6 +247,38 @@ export const MobileVerification = ({
             <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
             <div className="mt-3 space-y-2">
+              {/* Multi-select bar — appears only in selection mode (providers + admin).
+                  Sticky so it stays reachable while scrolling a long pending queue. */}
+              {selectionMode && (
+                <div className="sticky top-2 z-30 flex items-center gap-2 rounded-inner bg-background/85 px-3 py-2 shadow-sm backdrop-blur-xl">
+                  <span className="text-[13px] font-semibold text-foreground tabular-nums">{selectedIdSet.size} selected</span>
+                  <button
+                    type="button"
+                    onClick={() => onSelectAll?.(true)}
+                    className="text-[12px] font-semibold text-muted-foreground transition-transform active:scale-95"
+                  >
+                    Select all
+                  </button>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={bulkApprove}
+                      className="flex h-8 items-center gap-1.5 rounded-button bg-emerald-500/12 px-3 text-[12px] font-semibold text-emerald-700 transition-transform active:scale-95 dark:text-emerald-300"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Approve {selectedIdSet.size}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectAll?.(false)}
+                      aria-label="Clear selection"
+                      className="flex h-8 w-8 items-center justify-center rounded-button bg-foreground/[0.05] text-muted-foreground transition-transform active:scale-95 dark:bg-white/[0.06]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Group-shaped skeleton (§5.2): mirrors the panel 1:1 for replace-in-place. */}
               {showTopSectionLoading ? (
                 <SkeletonGroupPanel rows={6} />
