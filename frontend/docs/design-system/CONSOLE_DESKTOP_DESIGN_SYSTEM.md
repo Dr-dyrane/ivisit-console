@@ -104,7 +104,11 @@ Consult this BEFORE re-deciding an element; extend it when a decision lands. `gi
 
 | Page | Status |
 |---|---|
-| **Requests** | **THE CANONICAL SOURCE** — every component is its markup, lifted out. Next: it consumes the library itself (zero visual change, pins move). Known self-debt for that pass: the header filter-dot colored glow (`rgba(14,165,233,0.55)`) violates the neutral-shadow law. |
-| Visits | ADOPTED — first consumer of the library; measured against Requests, never the other way around |
-| Today | KPI tiles/glance share the spec; adopt `KpiStrip`/primitives on its next pass |
+| **Requests** | **ADOPTED (2026-07-09)** — the canonical source now composes the library it donated; zero visual change (live-verified), filter-dot glow debt paid, in the estate-law sweep. Fidelity-kept page-local: row shell (aria-label passthrough gap), rail shells (className passthrough gap), avatars (img-overlay gap), row status pill + error states (donor-divergent). |
+| Visits | ADOPTED — first consumer; measured against Requests, never the other way around |
+| Today | **ADOPTED (2026-07-09)** — `GlanceTile` (nav-variant) born from its GlanceCard; tokens throughout; estate-law swept. Page-local: brand-primary atlas variant (atlas param gap), handleAction (useWayfindingNav lacks first-click-wins + cleanup), hero/sheet (near-miss paddings recorded). |
+| Mobile gold three | ADOPTED — MobileVisits/MobileEmergency/MobileToday compose `mobile/canon/*` (zero-drift donor-diffs); mobile lane migrating the remaining estate |
 | Remaining pages | Adopt on their revamp pass; new pages MUST compose, not copy |
+
+### Consolidated kit-gap queue (one pass closes all)
+`useWayfindingNav`: first-click-wins + timer cleanup + same-path skip · `ListRowShell`: aria-label passthrough · `DetailRailShell`: className passthrough · `TonedAvatar`: img-overlay variant · `ConsoleAtlasLayer`: tint/position/opacity params (Today's brand-primary variant) · `RailInsetHero`/`StatusPill`: near-miss padding reconciliation · mobile `MobileHero`: live-region placement arbitration (mobile lane) · mobile loading kit: dashboard-shaped skeleton.
