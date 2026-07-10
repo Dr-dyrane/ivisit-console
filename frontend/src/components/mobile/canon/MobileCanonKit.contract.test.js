@@ -63,9 +63,12 @@ describe('Mobile canon kit contract', () => {
     // Scaffolds mirror the real layout 1:1 and stay aria-hidden.
     expect(src).toContain('h-10 w-10 shrink-0 rounded-pill bg-muted/25 shimmer');
     expect(src).toContain('h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer');
-    // Trailing time+pill scaffold column (donor MobileVisitsListSkeleton verbatim).
+    // Trailing scaffold variants, both donor-verbatim: 'timePill' (Visits: time bar
+    // over pill) and 'pill' (Emergency: single pill bar).
     expect(src).toContain('h-3 w-12 rounded-pill bg-muted/20 shimmer');
     expect(src).toContain('h-6 w-14 rounded-pill bg-muted/20 shimmer');
+    expect(src).toContain("trailing === 'pill'");
+    expect(src).toContain('ml-2 h-6 w-14 shrink-0 rounded-pill bg-muted/20 shimmer');
     expect(src).toContain('aria-hidden="true"');
     expect(src).not.toContain('initial={{');
   });
@@ -111,6 +114,9 @@ describe('Mobile canon kit contract', () => {
     expect(src).toContain("if (hasFilter) return 'filtered';");
     expect(src).toContain('data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter })}');
     expect(src).toContain('aria-expanded={filterSheetOpen}');
+    // Stats trigger is context-aware too (gap found by the MobileEmergency pass).
+    expect(src).toContain("data-state={statsOpen ? 'open' : 'idle'}");
+    expect(src).toContain('aria-expanded={statsOpen}');
   });
 
   it('locks the heading + hero: honest count line, anchored Updating pill, no entrance motion', () => {

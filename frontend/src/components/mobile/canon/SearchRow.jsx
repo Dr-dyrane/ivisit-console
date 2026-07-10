@@ -42,6 +42,10 @@ export const SearchRow = ({
   hasFilter = false,
   onOpenStats = null,
   statsLabel = 'Open statistics',
+  // Stats trigger context state (kit gap closed after the MobileEmergency
+  // re-composition): pages with an open analytics sheet wire statsOpen so the
+  // trigger tells the truth (data-state open/idle + aria-expanded).
+  statsOpen = false,
 }) => {
   const [searchDraft, setSearchDraft] = useSearchDraft(search, onSearchCommit);
 
@@ -85,11 +89,12 @@ export const SearchRow = ({
         <TapButton
           feedbackVariant={FEEDBACK_TYPES.CLICK}
           feedbackColor="hsl(var(--foreground))"
-          data-state="idle"
+          data-state={statsOpen ? 'open' : 'idle'}
           onClick={() => onOpenStats()}
           className={TRIGGER_CLASS}
           aria-label={statsLabel}
           aria-haspopup="dialog"
+          aria-expanded={statsOpen}
         >
           <BarChart3 size={18} />
         </TapButton>

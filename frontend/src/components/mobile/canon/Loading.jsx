@@ -37,9 +37,10 @@ const ORB_SKELETON = {
 };
 
 // One group-shaped scaffold: header bars + panel + rows + hairlines. Bar alphas
-// and the trailing time+pill column are VERBATIM from the freshest donor
-// (MobileVisitsListSkeleton) so content replaces the scaffold with zero jump.
-export const SkeletonGroupPanel = ({ rows = 3, orbSize = 40, frosted = true }) => (
+// and the trailing column are VERBATIM from the donors; trailing variants:
+// 'timePill' (Visits donor: time bar over pill) | 'pill' (Emergency donor:
+// single pill bar) -- the scaffold must mirror ITS page's real trailing column.
+export const SkeletonGroupPanel = ({ rows = 3, orbSize = 40, frosted = true, trailing = 'timePill' }) => (
   <div aria-hidden="true">
     <div className="flex items-center justify-between px-1 pb-2.5">
       <span className="h-[13px] w-24 rounded-pill bg-muted/25 shimmer" />
@@ -54,10 +55,14 @@ export const SkeletonGroupPanel = ({ rows = 3, orbSize = 40, frosted = true }) =
               <span className="block h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer" />
               <span className="block h-3 w-3/5 rounded-pill bg-muted/15 shimmer" />
             </div>
-            <div className="ml-2 flex shrink-0 flex-col items-end gap-2">
-              <span className="h-3 w-12 rounded-pill bg-muted/20 shimmer" />
-              <span className="h-6 w-14 rounded-pill bg-muted/20 shimmer" />
-            </div>
+            {trailing === 'pill' ? (
+              <span className="ml-2 h-6 w-14 shrink-0 rounded-pill bg-muted/20 shimmer" />
+            ) : (
+              <div className="ml-2 flex shrink-0 flex-col items-end gap-2">
+                <span className="h-3 w-12 rounded-pill bg-muted/20 shimmer" />
+                <span className="h-6 w-14 rounded-pill bg-muted/20 shimmer" />
+              </div>
+            )}
           </div>
           {index < rows - 1 && <Hairline inset={orbSize === 36 ? 56 : 62} />}
         </React.Fragment>
@@ -67,7 +72,7 @@ export const SkeletonGroupPanel = ({ rows = 3, orbSize = 40, frosted = true }) =
 );
 
 // Full list scaffold: N groups with a natural row distribution.
-export const SkeletonGroupList = ({ groups = 2, rowsPerGroup = [3, 2], orbSize = 40, frosted = true }) => (
+export const SkeletonGroupList = ({ groups = 2, rowsPerGroup = [3, 2], orbSize = 40, frosted = true, trailing = 'timePill' }) => (
   <div className="space-y-[18px]" aria-hidden="true">
     {Array.from({ length: groups }).map((_, index) => (
       <SkeletonGroupPanel
@@ -75,6 +80,7 @@ export const SkeletonGroupList = ({ groups = 2, rowsPerGroup = [3, 2], orbSize =
         rows={rowsPerGroup[index] ?? rowsPerGroup[rowsPerGroup.length - 1] ?? 3}
         orbSize={orbSize}
         frosted={frosted}
+        trailing={trailing}
       />
     ))}
   </div>
