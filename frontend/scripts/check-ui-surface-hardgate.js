@@ -35,8 +35,6 @@ const defaultFiles = [
   'src/components/pages/VerificationQueue.jsx',
   'src/components/mobile/MobileVerification.jsx',
   'src/components/context/VerificationPanel.jsx',
-  'src/components/views/VerificationQueueListView.jsx',
-  'src/components/views/VerificationQueueTableView.jsx',
   'src/components/modals/VerificationModal.jsx',
   'src/components/pages/DoctorsPage.jsx',
   'src/components/mobile/MobileDoctors.jsx',
