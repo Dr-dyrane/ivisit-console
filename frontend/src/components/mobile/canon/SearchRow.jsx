@@ -1,6 +1,8 @@
 // Mobile canon kit - flat search bar + filter/stats triggers (CANON_COMPONENT_SPECS
 // S5). 300ms draft-debounce; the clear-x commits immediately. The filter trigger is
-// context-aware: data-state open/filtered/idle.
+// context-aware: data-state open/filtered/idle. Both triggers render only when the
+// page wires a surface for them -- a trigger with no sheet is a dead tap (found by
+// the MobilePricing Wave-2 pass: tabs + KPI chips are its only filter grammar).
 import React, { useEffect, useState } from 'react';
 import { Search, X, Filter, BarChart3 } from 'lucide-react';
 import { FEEDBACK_TYPES } from '../../../contexts/FeedbackContext';
@@ -73,18 +75,20 @@ export const SearchRow = ({
           </button>
         )}
       </div>
-      <TapButton
-        feedbackVariant={FEEDBACK_TYPES.INFO}
-        feedbackColor="hsl(var(--foreground))"
-        data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter })}
-        onClick={() => onOpenFilters?.()}
-        className={TRIGGER_CLASS}
-        aria-label={`Filter ${entityLabel}`}
-        aria-haspopup="dialog"
-        aria-expanded={filterSheetOpen}
-      >
-        <Filter size={18} />
-      </TapButton>
+      {onOpenFilters && (
+        <TapButton
+          feedbackVariant={FEEDBACK_TYPES.INFO}
+          feedbackColor="hsl(var(--foreground))"
+          data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter })}
+          onClick={() => onOpenFilters()}
+          className={TRIGGER_CLASS}
+          aria-label={`Filter ${entityLabel}`}
+          aria-haspopup="dialog"
+          aria-expanded={filterSheetOpen}
+        >
+          <Filter size={18} />
+        </TapButton>
+      )}
       {onOpenStats && (
         <TapButton
           feedbackVariant={FEEDBACK_TYPES.CLICK}

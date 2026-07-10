@@ -114,6 +114,10 @@ describe('Mobile canon kit contract', () => {
     expect(src).toContain("if (hasFilter) return 'filtered';");
     expect(src).toContain('data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter })}');
     expect(src).toContain('aria-expanded={filterSheetOpen}');
+    // Both triggers render only when the page wires a surface for them -- a trigger
+    // with no sheet is a dead tap (MobilePricing Wave-2 pass: tabs + KPI chips are
+    // its only filter grammar, so it composes SearchRow without onOpenFilters).
+    expect(src).toContain('{onOpenFilters && (');
     // Stats trigger is context-aware too (gap found by the MobileEmergency pass).
     expect(src).toContain("data-state={statsOpen ? 'open' : 'idle'}");
     expect(src).toContain('aria-expanded={statsOpen}');
