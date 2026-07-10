@@ -160,16 +160,42 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain("kpiFilter === 'on_route'");
     expect(page).toContain('usePageFooter(null, \'status\', false);');
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
-    expect(page).toContain('AmbulanceSignalPanel');
-    expect(page).toContain('AmbulanceStateStrip');
-    expect(page).toContain('AmbulanceActivitySheet');
-    expect(page).toContain('AmbulanceDetailRail');
+    // Console DS composition (harness test, 2026-07-10): the bespoke local
+    // Ambulance* stage components were replaced by the shared console DS
+    // (constitution AMB-1..AMB-3). WorkspaceStage/SignalPanel/KpiStrip/
+    // ActivitySheet/DetailRailShell now own the architecture; the page provides
+    // only its fleet domain (vocabulary, columns, guards, data wiring).
+    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain("from '../console/SignalPanel'");
+    expect(page).toContain("from '../console/KpiStrip'");
+    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={ambulanceToneClass}>');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('<DetailRailShell>');
+    expect(page).not.toContain('const AmbulanceSignalPanel');
+    expect(page).not.toContain('const AmbulanceStateStrip');
+    expect(page).not.toContain('const AmbulanceActivitySheet');
+    // Mechanism registry (the completeness gate): the list-workspace mechanisms
+    // are wired, with selection + arrival-toast recorded-excluded (fleet has no
+    // console bulk-write receiver; a new-unit INSERT is not an attention event).
+    expect(page).toContain('useListKeyboardNav');
+    expect(page).toContain('useScrollResetOnPage');
+    expect(page).toContain('const loadError =');
+    expect(page).toContain('selection excluded by decision:');
+    expect(page).toContain('arrival-toast excluded by decision:');
+    expect(page).toContain("params.get('id')");
+    expect(page).toContain('SortableColumnHeader');
+    expect(page).toContain('<ListRowShell');
+    expect(page).not.toContain('useRowSelection');
+    expect(page).not.toContain('<BulkActionBar');
     expect(page).toContain("new CustomEvent('ambulancesRouteContextUpdated'");
     expect(page).toContain("requestAmbulancesRouteContext");
-    expect(page).toContain('data-testid="ambulances-activity-sheet"');
+    expect(page).toContain('itemNoun="ambulances"');
     expect(page).toContain('data-testid="ambulances-detail-rail"');
-    expect(page).toContain('data-testid="ambulances-sheet-search"');
-    expect(page).toContain('data-testid="ambulances-error-state"');
+    expect(page).toContain('searchTestId="ambulances-sheet-search"');
+    expect(page).toContain('testId="ambulances-error-state"');
     expect(page).not.toContain("|| 'HQ'");
     expect(page).not.toContain('Fleet Size');
     expect(page).not.toContain('FILTERED');
@@ -181,7 +207,9 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).not.toContain('<BulkActionBar');
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('onDelete={confirmDelete}');
-    expect(page).toContain('canDelete={false}');
+    // canDelete={false} lived on the retired List/Table density views; the one
+    // canonical render carries no delete affordance and selection is
+    // recorded-excluded (pinned above). The mobile branch keeps selectionEnabled.
     expect(page).toContain('selectionEnabled={false}');
 
     expect(mobile).not.toContain('MobileFeaturedMetric');
@@ -266,6 +294,20 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(modal).not.toContain('fixed inset-0');
     expect(modal).not.toContain('role="dialog"');
     expect(modal).not.toContain('aria-modal="true"');
+    // Modal canon + data-truth fixes (harness test, 2026-07-10):
+    // - sticky footer via ModalShell footer= + cross-boundary submit (form id).
+    expect(modal).toContain("const formId = 'ambulance-modal-form';");
+    expect(modal).toContain('form={formId}');
+    // - display_id + CopyChip (perk 10; a reference, never a write key).
+    expect(modal).toContain("import { CopyChip } from '../console/primitives';");
+    expect(modal).toContain('ambulance?.display_id ?');
+    // - AMB-4: crew persists as a Json ARRAY (rail reads .length), not a string.
+    expect(modal).toContain('crew: crewToArray(formData.crew)');
+    expect(modal).not.toContain('crew: formData.crew?.trim()');
+    // - AMB-6: current_call is a dispatch linkage -- read-only + OMITTED from the
+    //   write payload (hand-typing it would author parallel dispatch truth).
+    expect(modal).not.toContain("current_call: formData.current_call?.trim()");
+    expect(modal).not.toContain('name="current_call"');
 
     expect(service).toContain('export async function assignDriverToAmbulance(ambulanceId, driverId)');
     expect(service).toContain('export async function updateAmbulanceLocation(ambulanceId, location)');

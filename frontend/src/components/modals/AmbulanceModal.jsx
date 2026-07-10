@@ -7,6 +7,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ModalShell } from '../ui/ModalShell';
+import { CopyChip } from '../console/primitives';
 import { useAuth } from '../../contexts/AuthContext';
 import { handleApiError } from '../../utils/errorHandler';
 import { createNotification, NotificationActions, NotificationTypes } from '../../services/notificationService';
@@ -44,6 +45,14 @@ const TYPE_OPTIONS = [
 ];
 const modalFieldClassName = 'rounded-button bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
 const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl backdrop-blur-xl';
+const formId = 'ambulance-modal-form';
+
+// AMB-4: crew is a Json list column; the rail reads Array.isArray(crew).length,
+// so store it as an ARRAY (comma-separated in the input) instead of the raw
+// string the modal used to send -- otherwise it round-trips as a JSON string and
+// the rail always shows "Not listed".
+const crewToText = (value) => (Array.isArray(value) ? value.filter(Boolean).join(', ') : (value || ''));
+const crewToArray = (text) => String(text || '').split(',').map((entry) => entry.trim()).filter(Boolean);
 
 const normalizeFormData = (ambulance, orgId, isCreate, isOrgAdmin) => {
   const base = {
@@ -60,7 +69,7 @@ const normalizeFormData = (ambulance, orgId, isCreate, isOrgAdmin) => {
     license_plate: base.license_plate || '',
     hospital_id: base.hospital_id || '',
     eta: base.eta && base.eta !== 'N/A' ? base.eta : '',
-    crew: base.crew || '',
+    crew: crewToText(base.crew),
     current_call: base.current_call || '',
     base_price: base.base_price ?? '',
     organization_id: base.organization_id || (isCreate && isOrgAdmin && orgId ? orgId : ''),
@@ -97,8 +106,11 @@ const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
     license_plate: formData.license_plate?.trim(),
     hospital_id: formData.hospital_id || '',
     eta: formData.eta?.trim(),
-    crew: formData.crew?.trim(),
-    current_call: formData.current_call?.trim(),
+    // AMB-4: crew persists as a Json array (the rail reads .length).
+    crew: crewToArray(formData.crew),
+    // AMB-6: current_call is a dispatch linkage the console must NOT author --
+    // it is read-only evidence in the modal and is deliberately omitted from the
+    // write payload (hand-typing it would write parallel dispatch truth).
     base_price: formData.base_price === '' ? undefined : Number(formData.base_price),
   };
 
@@ -117,7 +129,6 @@ const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter }) => {
   const isView = mode === 'view';
-  const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
   const { isOrgAdmin, orgId } = useAuth();
 
@@ -189,7 +200,16 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
   const tripOwnedStatus = TRIP_OWNED_STATUSES.has(status);
   const canSubmit = !isView && formData.call_sign?.trim() && formData.type && !loading;
   const modalTitle = isCreate ? 'New unit' : formData.call_sign || 'Ambulance unit';
-  const modalSubtitle = stationName;
+  // display_id + CopyChip in the subtitle (perk 10; mirrors HospitalModal) -- a
+  // fleet-unit reference, never a write key.
+  const modalSubtitle = ambulance?.display_id ? (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <span className="truncate">{stationName}</span>
+      <span aria-hidden="true">·</span>
+      <span className="truncate font-mono text-[11px] font-medium tracking-wide" title={ambulance.display_id}>{ambulance.display_id}</span>
+      <CopyChip value={ambulance.display_id} label="Copy unit ID" />
+    </span>
+  ) : stationName;
 
   const statusBadge = (
     <Badge className={`rounded-pill px-3 py-0.5 text-xs font-semibold ${getStatusTone(status)}`}>
@@ -250,9 +270,34 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
       size="lg"
       managed
       className="bg-background"
+      footer={(
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onClose(false)}
+            className="h-11 rounded-button px-5 font-semibold text-muted-foreground hover:bg-muted"
+            disabled={loading}
+          >
+            {isView ? 'Close' : 'Cancel'}
+          </Button>
+          {!isView && (
+            <Button
+              type="submit"
+              form={formId}
+              className="h-11 rounded-button bg-primary px-6 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+              disabled={!canSubmit}
+              aria-busy={loading}
+              data-state={loading ? 'saving' : 'idle'}
+            >
+              {loading ? 'Saving...' : isCreate ? 'Add unit' : 'Save changes'}
+            </Button>
+          )}
+        </div>
+      )}
     >
       <div className="flex-1 min-h-0 overflow-y-auto p-2 pt-1 md:p-8 md:pt-2 no-scrollbar">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id={formId} onSubmit={handleSubmit} className="space-y-6">
           <GlassCard icon={<Activity />} title="Unit">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FieldGroup label="Call sign" htmlFor="ambulance-call-sign">
@@ -396,7 +441,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
                 )}
               </FieldGroup>
 
-              <FieldGroup label="Crew note" htmlFor="ambulance-crew">
+              <FieldGroup label="Crew (comma separated)" htmlFor="ambulance-crew">
                 {isView ? (
                   <ReadOnlyField value={formData.crew || 'Not listed'} icon={<UserCheck className="h-4 w-4" />} />
                 ) : (
@@ -406,24 +451,19 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
                     value={formData.crew}
                     onChange={handleChange}
                     className={`${modalFieldClassName} h-12`}
-                    placeholder="Crew note"
+                    placeholder="Ada N., Bola O."
                   />
                 )}
               </FieldGroup>
 
-              <FieldGroup label="Current call" htmlFor="ambulance-current-call">
-                {isView ? (
-                  <ReadOnlyField value={formData.current_call || 'No active call'} icon={<Activity className="h-4 w-4" />} />
-                ) : (
-                  <Input
-                    id="ambulance-current-call"
-                    name="current_call"
-                    value={formData.current_call}
-                    onChange={handleChange}
-                    className={`${modalFieldClassName} h-12`}
-                    placeholder="Linked request only"
-                  />
-                )}
+              {/* AMB-6: current call is a dispatch linkage, READ-ONLY here (like
+                  the trip statuses) -- the console never authors dispatch truth. */}
+              <FieldGroup label="Current call">
+                <ReadOnlyField
+                  value={formData.current_call || 'No active call'}
+                  subtext={isView ? '' : 'Set by dispatch in Requests.'}
+                  icon={<Activity className="h-4 w-4" />}
+                />
               </FieldGroup>
 
               <FieldGroup label="Updated">
@@ -449,28 +489,6 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
             </div>
           </GlassCard>
 
-          <div className="flex justify-end gap-3 rounded-card bg-muted/30 p-3 md:p-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onClose(false)}
-              className="h-11 rounded-button px-5 font-semibold text-muted-foreground hover:bg-muted"
-              disabled={loading}
-            >
-              {isView ? 'Close' : 'Cancel'}
-            </Button>
-            {!isView && (
-              <Button
-                type="submit"
-                className="h-11 rounded-button bg-primary px-6 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
-                disabled={!canSubmit}
-                aria-busy={loading}
-                data-state={loading ? 'saving' : 'idle'}
-              >
-                {loading ? 'Saving...' : isCreate ? 'Add unit' : 'Save changes'}
-              </Button>
-            )}
-          </div>
         </form>
       </div>
     </ModalShell>

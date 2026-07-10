@@ -162,6 +162,7 @@ describe('Console design system contract', () => {
       emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
       todayHome: read('src/components/pages/TodayHome.jsx'),
       hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
+      ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });
@@ -206,6 +207,7 @@ describe('Console design system contract', () => {
       emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
       todayHome: read('src/components/pages/TodayHome.jsx'),
       hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
+      ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       // Only list-workspace surfaces are in scope (TodayHome is a dashboard, not

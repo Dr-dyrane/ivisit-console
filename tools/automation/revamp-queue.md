@@ -678,3 +678,23 @@ Notes:
   heuristic. Hospitals live-appeared to append (timing-masked) — do NOT trust; re-verify.
 - Live mobile mount was env-blocked this session (innerWidth stuck 1920, Lesson 14); Gate-1
   deterministic invariants driven in Node instead, render-only ones cited to live Hospitals.
+
+### 2026-07-10 — desktop-uiux-lane — AMBULANCES DESKTOP LANDED (harness test PASSED)
+- Full hardened loop run end-to-end on Ambulances (user: "test harness if it works"). Result:
+  the harness WORKS. Sequence: 3-scout archaeology + live-DB verify -> constitution -> DS
+  composition -> full gate stack -> drop audit.
+- **Harness proof points (caught before/at each gate):** (1) live-DB verify stopped a blind
+  fail-closed-create copy (ambulances is write-capable, org_admin=ALL); (2) the mechanism
+  registry ACCEPTED the page green only after all 6 were wired/excluded (keyboard-nav+scroll-
+  reset+loadError wired; selection+arrival-toast recorded-excluded; deep-link ?add+?id) --
+  the completeness gate demonstrably covered the exact silent-drop class; (3) the fail-closed
+  `not.toContain('deleteAmbulance')` guard caught my own exclusion-marker comment naming it.
+- Composed console/* over the bespoke AmbulanceSignalPanel/StateStrip/ActivitySheet/DetailRail;
+  ONE canonical SortableColumnHeader render (ViewToggle/grid/list/table retired); create/edit
+  LIVE (the ambulances difference vs Hospitals), delete/dispatch/status/location/upload gated.
+  Data-truth fixes: AMB-4 crew Json-array, AMB-6 current_call read-only + omitted from payload.
+  Modal: sticky footer via ModalShell footer=, display_id + CopyChip.
+- Registered AmbulancesPage in BOTH ConsoleDesignSystem.contract estate lists (colored-shadow +
+  mechanism registry). 84/84 across six gold surfaces; hardgate ambulances-clean; donor-diff
+  deltas domain-owned; live compile clean; drop audit vs f31f29f clean. QUEUE: AMB-5 base_price,
+  AMB-8 location, AMB-9 double status narrowing. Constitution marked LANDED.

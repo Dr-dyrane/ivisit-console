@@ -88,6 +88,20 @@ On adoption AmbulancesPage renders `SortableColumnHeader` → enters the registr
 - crew/location DB types inferred from source (introspection denied `data_type`); the code-level shape bug (AMB-4) stands regardless.
 - ORG-scope of the UPDATE policy on `profile_id`/`organization_id` unverified live (predicate columns permission-denied) — confirm an org_admin cannot reassign `organization_id` across orgs (parallel-truth risk); client scoping is in `applyAmbulanceOrgAdminScope`.
 
-## 6. The plan (Visits/Requests/Hospitals precedent, one page at a time)
+## 6. The plan (Visits/Requests/Hospitals precedent, one page at a time) — **LANDED (2026-07-10)**
+
+> Executed as written. Console DS composed over the four bespoke locals; one canonical
+> `SortableColumnHeader` render; **create/edit kept LIVE** (the ambulances difference), delete/
+> dispatch/status/location/upload gated; mechanisms wired (keyboard-nav, scroll-reset,
+> loadError-signal, ?add + ?id) with `selection` + `arrival-toast` recorded-excluded; AMB-4 crew
+> Json-array fix + AMB-6 current_call read-only + modal footer/display_id/CopyChip. **Registered
+> in BOTH estate laws — the mechanism registry ACCEPTED the page green (all 6 present-or-excluded),
+> proving the archaeology named every mechanism and none was silently dropped.** Verified: 84/84
+> across all six gold surfaces, hardgate ambulances-clean, data-contract + mojibake clean,
+> donor-diff deltas all domain-owned, live compile clean, main-parity drop audit vs f31f29f clean
+> (window events superset; no functional drop). QUEUE remains: AMB-5 base_price, AMB-8 location,
+> AMB-9 double status narrowing.
+
+### Plan detail
 
 Compose `console/*` replacing the four bespoke locals: `AmbulanceSignalPanel`→`SignalPanel`(loadError-aware `signal` + `toneClassMap`); `AmbulanceStateStrip`(5-chip)→`KpiStrip`(max-3: `pinnedIds=['available','on_route']`, `importance {all:0,available:1,on_route:2,busy:3,maintenance:4}`, `data-ambulance-kpi`); `AmbulanceActivitySheet`→`ActivitySheet`+`SheetToolbar`(fixes the un-debounced search)+`getFilterTriggerState`; `AmbulanceDetailRail`→`DetailRailShell`+`RailInsetHero`+`DetailLine`+`StatusPill`+`CopyChip`(add display_id eyebrow; keep the Dispatch note). Wrap the desktop return in `WorkspaceStage`(`getConsoleModuleRailItems(roleKind)`, `activePath='/ambulances'`, `useWayfindingNav`). Retire ViewToggle/useViewMode/List+Table views → one `SortableColumnHeader` list: **Unit (call_sign + type eyebrow) | Status | Station | Vehicle/plate | ETA-or-Updated (sortable Time-equivalent) | Action**. Swap TableSkeleton/local empty/error → `SkeletonRows`/`EmptyState`/`LoadErrorState`/`ErrorBanner`. Wire the registry: `useListKeyboardNav` + `useScrollResetOnPage` + loadError-signal; record the `selection` + `arrival-toast` exclusion markers; wire `?id` focus. Modal: move footer to `ModalShell footer=`; add display_id + CopyChip; keep the fail-closed UnavailableNotes; fix AMB-4/AMB-6. **Register the page in BOTH `ConsoleDesignSystem.contract` surface lists** (colored-shadow estate-law + donor-mechanism registry) — the completeness gate then covers it. Service: narrow only (crew shape, current_call read-only) — coordinate via ledger. Verify: full gate stack (page suite + estate laws + hardgate --strict-radius + data-contract + mojibake + donor-diff vs Requests + live compile) + main-parity drop audit vs `f31f29f`.
