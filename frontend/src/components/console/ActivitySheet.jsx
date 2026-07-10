@@ -48,6 +48,15 @@ export const ActivitySheet = ({ loading, isFetching, failedEmpty, pagination, it
   </section>
 );
 
+// Context-aware filter trigger state (donor: Requests getFilterTriggerState):
+// the trigger tells the truth about the filter context -- open while the sheet
+// shows, filtered while any filter is applied, idle otherwise.
+export const getFilterTriggerState = ({ isOpen, hasFilter }) => {
+  if (isOpen) return 'open';
+  if (hasFilter) return 'filtered';
+  return 'idle';
+};
+
 export const SheetToolbar = ({
   searchValue,
   onSearchCommit,
@@ -59,7 +68,6 @@ export const SheetToolbar = ({
   onOpenFilters,
   filterSheetOpen = false,
   filtersActive = false,
-  filtersOpening = false,
   primarySlot = null,
 }) => {
   // Debounced search: the input edits a local draft; the committed filter follows
@@ -105,14 +113,13 @@ export const SheetToolbar = ({
       <Button
         variant="ghost"
         onClick={onOpenFilters}
-        className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${filtersOpening ? 'bg-foreground/10 text-foreground scale-95' : ''}`}
-        aria-busy={filtersOpening}
+        className="h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
         aria-haspopup="dialog"
         aria-expanded={filterSheetOpen}
-        data-state={filtersOpening ? 'opening' : 'idle'}
+        data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter: filtersActive })}
       >
         <Filter className="mr-2 h-4 w-4" />
-        {filtersOpening ? 'Opening' : 'Filters'}
+        Filters
         {filtersActive && <span className="ml-2 h-2 w-2 rounded-pill bg-foreground/60" />}
       </Button>
       {primarySlot}

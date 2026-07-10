@@ -81,6 +81,10 @@ describe('Console design system contract', () => {
     expect(src).toContain('}, 300)');
     expect(src).toContain('aria-haspopup="dialog"');
     expect(src).toContain('aria-expanded={filterSheetOpen}');
+    // Context-aware filter trigger (donor getFilterTriggerState): open/filtered/idle.
+    expect(src).toContain("if (isOpen) return 'open';");
+    expect(src).toContain("if (hasFilter) return 'filtered';");
+    expect(src).toContain('data-state={getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter: filtersActive })}');
     // Primary command: fg-on-bg pill with the opening feedback state.
     expect(src).toContain('bg-foreground px-4 text-sm font-semibold text-background');
     expect(src).toContain("data-state={opening ? 'opening' : 'idle'}");
@@ -103,6 +107,15 @@ describe('Console design system contract', () => {
     expect(src).toContain('rounded-modal bg-background/55 p-3 dark:bg-white/[0.05] md:p-4');
     // The ambient brand tint lives ONLY here (backdrop), never as a shadow.
     expect(src).toContain('hsl(var(--destructive) / 0.11)');
+  });
+
+  it('locks the shared row-selection mechanism (Requests/Users parity)', () => {
+    const src = read('src/hooks/useRowSelection.js');
+    // Shift-range via the click-stash idiom; select-all covers every visible row.
+    expect(src).toContain('shiftSelectRef');
+    expect(src).toContain('const rangeIds = items.slice(start, end + 1).map((row) => row.id)');
+    expect(src).toContain('setSelectedIds(checked ? items.map((row) => row.id) : [])');
+    expect(src).toContain('const someSelected = !allSelected && selectedIds.length > 0');
   });
 
   it('locks keyboard navigation and the shared day-aware time', () => {

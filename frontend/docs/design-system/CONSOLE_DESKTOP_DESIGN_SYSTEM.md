@@ -68,6 +68,8 @@ sky/cyan/emerald/amber/violet or neutral; `--destructive` only for danger + "Nee
 | `DetailRailShell` / `RailInsetHero` | rail container + S1.4 recessed inset | rail content |
 | `primitives` | `Shimmer` `SkeletonRows` `UpdatingPill` `CopyChip` `StatusPill` `TonedAvatar` `DetailLine` `StageStrip` `EmptyState` `ErrorBanner` `LoadErrorState` | domain values |
 | `useListKeyboardNav` / `useScrollResetOnPage` | Arrow/Enter/Escape list nav (input+dialog guarded), page-change scroll reset | items, refs |
+| `useRowSelection` | the Requests/Users selection mechanism: checkbox toggle + shift-range (click-stash idiom) + select-all over every visible row + indeterminate; pairs with `BulkActionBar` — bulk WRITES stay per-page fail-closed (disabled with reason until receiver proof) | items; page renders the 28px checkbox column + bar actions |
+| `getFilterTriggerState` | context-aware Filters trigger `data-state`: `open` / `filtered` / `idle` | `filterSheetOpen`, `filtersActive` |
 | `utils/dayTime.formatDayTime` | day-aware local-boundary timestamps | — |
 
 ### Composition recipe (see `VisitsPage.jsx` — the reference adoption)

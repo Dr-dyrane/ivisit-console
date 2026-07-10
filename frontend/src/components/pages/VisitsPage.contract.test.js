@@ -117,7 +117,14 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('selectionEnabled={false}');
     expect(page).not.toContain('selectedIds.map((id) => deleteVisit(id))');
     expect(page).not.toContain('deleteVisit(visit.id)');
-    expect(page).not.toContain('<BulkActionBar');
+    // Row selection ADOPTED (donor: Requests, user 2026-07-09): admin-only
+    // checkboxes + select-all with shift-range via the shared useRowSelection.
+    // Bulk OUTCOMES stay fail-closed: the bar's only action is disabled with the
+    // locked reason -- no write path exists on this page.
+    expect(page).toContain("from '../../hooks/useRowSelection'");
+    expect(page).toContain('selectable={isAdmin()}');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
     expect(page).not.toContain('<ConfirmationModal');
 
     expect(mobile).toContain('<PullToRefresh onRefresh={onRefresh}>');
@@ -365,7 +372,9 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('New visit');
     expect(page).toContain('aria-label="Schedule new visit"');
     expect(page).toContain('aria-label="Filter visits"');
-    expect(page).toContain("filtersOpening={activeActionFeedback === 'filters'}");
+    // The toolbar Filters trigger is context-aware (donor getFilterTriggerState:
+    // open/filtered/idle) -- locked in the DS contract; the page wires filtersActive.
+    expect(page).toContain('filtersActive={hasFilter}');
     expect(page).toContain("{viewOpening ? 'Opening...' : 'Details'}");
     expect(page).toContain("{editOpening ? 'Opening...' : 'Edit'}");
     expect(page).toContain('aria-busy={viewOpening}');
@@ -464,8 +473,9 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('deleteVisit');
     expect(page).not.toContain('handleBulkDelete');
     expect(page).not.toContain('handleDelete');
-    expect(page).not.toContain('<BulkActionBar');
-    expect(page).not.toContain('selectedIds');
+    // Selection UI is adopted (Requests parity) but carries NO write path: the
+    // bulk bar's single action is disabled with the locked reason.
+    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
     expect(page).toContain('canDelete={false}');
     expect(page).toContain('selectionEnabled={false}');
 
@@ -663,8 +673,11 @@ describe('VisitsPage admission contract', () => {
     expect(gate).toContain('Remaining guarded constraints after Page 7 admission:');
     expect(gate).toContain('Prove a delete receiver/RLS/app consequence before reintroducing single delete or bulk delete');
     expect(page).not.toContain('deleteVisit');
-    expect(page).not.toContain('<BulkActionBar');
     expect(page).not.toContain('<ConfirmationModal');
+    // The selection mechanism exists (Requests parity) but every bulk OUTCOME
+    // remains fail-closed until receiver/RLS/app-consequence proof.
+    expect(page).toContain('disabled');
+    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
   });
 
   it('keeps mobile Visits free of fake trend charts and stale live copy', () => {

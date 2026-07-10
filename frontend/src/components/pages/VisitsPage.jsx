@@ -16,7 +16,10 @@ import { KpiStrip } from '../console/KpiStrip';
 import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
 import { Shimmer, SkeletonRows, CopyChip, StatusPill, TonedAvatar, DetailLine, StageStrip, EmptyState, ErrorBanner, LoadErrorState } from '../console/primitives';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { formatDayTime } from '../../utils/dayTime';
+import { Checkbox } from '../ui/checkbox';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import {
   AlertCircle,
@@ -33,6 +36,7 @@ import {
   PlayCircle,
   Plus,
   Stethoscope,
+  Trash2,
 } from 'lucide-react';
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
@@ -287,6 +291,19 @@ export const VisitsPage = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [focusedVisitId, setFocusedVisitId] = useState(null);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
+  // Row selection (donor: Requests): admin-only checkboxes + select-all with
+  // shift-range. Bulk OUTCOMES stay fail-closed (terminal writes locked until
+  // receiver/RLS/app-consequence proof) -- the bar's action is disabled with the
+  // reason, never a dead click and never a parallel write.
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(visits);
 
   const [emergencyModal, setEmergencyModal] = useState({
     isOpen: false,
@@ -793,7 +810,29 @@ export const VisitsPage = () => {
         sortConfig={sortConfig}
         onSort={handleSort}
         activeActionFeedback={activeActionFeedback}
+        selectable={isAdmin()}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        allSelected={allSelected}
+        someSelected={someSelected}
       />
+
+      {isAdmin() && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
+            title="Bulk visit outcomes are locked until backend authority is proved"
+            aria-label="Bulk visit outcomes are locked until backend authority is proved"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
 
       {
         modalMode && (
@@ -870,6 +909,13 @@ const VisitsDesktopWorkspace = ({
   sortConfig,
   onSort,
   activeActionFeedback,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
+  allSelected = false,
+  someSelected = false,
 }) => {
   const signal = getVisitSignal({ stats, visits, kpiFilter, loadError });
   const hasFilter = hasActiveVisitFilters(filters);
@@ -935,7 +981,6 @@ const VisitsDesktopWorkspace = ({
             onOpenFilters={openFilters}
             filterSheetOpen={filterSheetOpen}
             filtersActive={hasFilter}
-            filtersOpening={activeActionFeedback === 'filters'}
           />
         )}
         errorBanner={loadError && !failedEmpty ? (
@@ -963,7 +1008,14 @@ const VisitsDesktopWorkspace = ({
 
           {!loading && !failedEmpty && (
             <>
-              <VisitListHeader sortConfig={sortConfig} onSort={onSort} />
+              <VisitListHeader
+                sortConfig={sortConfig}
+                onSort={onSort}
+                selectable={selectable}
+                allSelected={allSelected}
+                someSelected={someSelected}
+                onSelectAll={onSelectAll}
+              />
 
               {visits.length === 0 && !loadError && (
                 <EmptyState
@@ -1001,6 +1053,10 @@ const VisitsDesktopWorkspace = ({
                   selected={focusedVisit?.id === visit.id}
                   onFocus={() => setFocusedVisitId(visit.id)}
                   onView={onView}
+                  selectable={selectable}
+                  checked={selectedIds.includes(visit.id)}
+                  onToggleSelect={onToggleSelect}
+                  onSelectClick={onSelectClick}
                 />
               ))}
             </>
@@ -1014,9 +1070,19 @@ const VisitsDesktopWorkspace = ({
 // Patient | Status | Type | Facility | Time | Action -- one canonical render
 // (Requests table idiom). Cost cut per arbitration: live data never carries it.
 const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
+const VISIT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
 
-const VisitListHeader = ({ sortConfig, onSort }) => (
-  <div className={`grid ${VISIT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+const VisitListHeader = ({ sortConfig, onSort, selectable = false, allSelected = false, someSelected = false, onSelectAll }) => (
+  <div className={`grid ${selectable ? VISIT_GRID_COLS_SELECT : VISIT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all visits'}
+        className="h-4 w-4"
+      />
+    )}
     <SortableColumnHeader label="Patient" sortKey="user_id" sortConfig={sortConfig} onSort={onSort} />
     <SortableColumnHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={onSort} />
     <SortableColumnHeader label="Type" sortKey="type" sortConfig={sortConfig} onSort={onSort} />
@@ -1026,7 +1092,7 @@ const VisitListHeader = ({ sortConfig, onSort }) => (
   </div>
 );
 
-const VisitRow = ({ visit, selected, onFocus, onView }) => {
+const VisitRow = ({ visit, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect, onSelectClick }) => {
   const patientName = getVisitPatientLabel(visit);
   const patientEmail = visit?.patient?.email || null;
   const facilityName = visit?.hospital_name || (visit?.hospital_id ? getVisitFacilityLabel(visit) : 'Unknown facility');
@@ -1036,11 +1102,23 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
     <ListRowShell
       id={visit.id}
       dataAttrName="data-visit-row"
-      gridCols={VISIT_GRID_COLS}
+      gridCols={selectable ? VISIT_GRID_COLS_SELECT : VISIT_GRID_COLS}
       selected={selected}
       onFocus={onFocus}
       onOpen={() => onView(visit)}
     >
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(visit.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect visit for ${patientName}` : `Select visit for ${patientName}`}
+          className="h-4 w-4"
+        />
+      )}
       <span className="flex min-w-0 items-center gap-3">
         <TonedAvatar name={patientName} className={getVisitAvatarClass(visit)} />
         <span className="min-w-0">
