@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHospitals } from '../../services/hospitalsService';
@@ -392,7 +392,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         className="rounded-card bg-foreground text-background hover:bg-foreground/90 font-semibold px-8"
                         disabled={loading}
                       >
-                        {loading ? 'Saving...' : (isCreate ? 'Create Profile' : 'Save Changes')}
+                        {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>) : (isCreate ? 'Create Profile' : 'Save Changes')}
                       </Button>
                     </>
                   ) : (

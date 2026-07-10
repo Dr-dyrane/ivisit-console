@@ -1,551 +1,341 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfile } from '../../services/profilesService';
-import { getOrganizations } from '../../services/organizationsService';
-import { getDoctorByProfileId, createDoctor } from '../../services/doctorsService';
-import { createAmbulance } from '../../services/ambulancesService';
-import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
-import { PaginationControls } from '../ui/PaginationControls';
-import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter, BarChart3, Info, X } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from "sonner";
-import { handleApiError } from "../../utils/errorHandler";
-import { UserModal } from '../modals/UserModal';
-import { withTimeout } from '../../lib/utils';
-import { ViewToggle } from '../common/ViewToggle';
-import { FilterSheet } from '../common/FilterSheet';
-import { UserListView } from '../views/UserListView';
-import { UserTableView } from '../views/UserTableView';
-import { SEOHead } from '../common/SEOHead';
+import { useProfilesQuery } from '../../hooks/useProfilesQuery';
+import { createProfile, updateProfile } from '../../services/profilesService';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
-
+import { useRowSelection } from '../../hooks/useRowSelection';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
+// Console design system: Users COMPOSES the shared workspace grammar (donor: Requests;
+// closest analog: Doctors/Staff) instead of the bespoke signal/state-strip/rail look-alikes
+// + the 3-view density shell it used to inline. It reads the server-projection
+// useProfilesQuery (Phase A) instead of the old 1000-row client-side load.
+import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { KpiStrip } from '../console/KpiStrip';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { Shimmer, SkeletonRows, DetailLine, CopyChip, EmptyState, LoadErrorState, StatusPill } from '../console/primitives';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import { UserModal } from '../modals/UserModal';
 import { InviteUserModal } from '../modals/InviteUserModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
+import { SEOHead } from '../common/SEOHead';
 import { MobileUsers } from '../mobile/MobileUsers';
-import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
+import { toast } from 'sonner';
+import {
+  Building2,
+  ChevronRight,
+  Clock,
+  Edit,
+  Eye,
+  IdCard,
+  Info,
+  Mail,
+  Phone,
+  Plus,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Stethoscope,
+  Trash2,
+  Truck,
+  UserCheck,
+  UserRound,
+  Users,
+} from 'lucide-react';
 
 const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';
 const USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE = 'Invites are not ready until identity authority is verified.';
 
-const USERS_STATE_OPTIONS = [
-  { id: 'all', label: 'Users', icon: Users, tone: 'sky',
-    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-sky-600 dark:text-sky-200' },
-  { id: 'verified', label: 'Verified', icon: UserCheck, tone: 'emerald',
-    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-emerald-600 dark:text-emerald-200' },
-  { id: 'admin', label: 'Admins', icon: Shield, tone: 'violet',
-    activeClass: 'bg-violet-500/10 text-violet-800 shadow-[0_18px_54px_rgba(139,92,246,0.16)] dark:text-violet-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-violet-600 dark:text-violet-200' },
-  { id: 'provider', label: 'Providers', icon: Eye, tone: 'amber',
-    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-amber-600 dark:text-amber-200' },
-];
-
-const usersToneClass = {
-  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
-  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-  violet: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
-  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-  muted: 'bg-muted/30 text-muted-foreground',
+// Role vocabulary -> pill tone + label. Literal palette, NEUTRAL shadows only.
+const ROLE_META = {
+  admin: { label: 'Admin', tone: 'bg-violet-500/10 text-violet-700 dark:text-violet-200' },
+  org_admin: { label: 'Org admin', tone: 'bg-sky-500/10 text-sky-700 dark:text-sky-200' },
+  provider: { label: 'Provider', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200' },
+  patient: { label: 'Patient', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' },
+  sponsor: { label: 'Sponsor', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' },
+  viewer: { label: 'Viewer', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' },
+  dispatcher: { label: 'Dispatcher', tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200' },
 };
 
-const normalizeUsersCount = (value, fallback = 0) => {
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue : fallback;
+const titleCase = (value) => String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+const getRoleMeta = (role) => {
+  const key = String(role || '').toLowerCase();
+  return ROLE_META[key] || { label: titleCase(role) || 'Unknown', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' };
 };
 
-const getUsersStateCount = ({ id, stats, users }) => {
-  const rows = Array.isArray(users) ? users : [];
-  const dist = stats?.roleDistribution || {};
-  switch (id) {
-    case 'verified':
-      return normalizeUsersCount(stats?.bvnVerifiedUsers, rows.filter((u) => u.bvn_verified).length);
-    case 'admin':
-      return normalizeUsersCount((dist.admin || 0) + (dist.org_admin || 0), rows.filter((u) => ['admin', 'org_admin'].includes(u.role)).length);
-    case 'provider':
-      return normalizeUsersCount(dist.provider, rows.filter((u) => u.role === 'provider').length);
-    default:
-      return normalizeUsersCount(stats?.totalUsers, rows.length);
-  }
-};
-
-const getUsersSignal = ({ stats, users, kpiFilter }) => {
-  const activeId = kpiFilter || 'all';
-  const option = USERS_STATE_OPTIONS.find((item) => item.id === activeId) || USERS_STATE_OPTIONS[0];
-  const count = getUsersStateCount({ id: option.id, stats, users });
-  const nounMap = { all: 'user record', verified: 'verified user', admin: 'admin & manager', provider: 'provider' };
-  const emptyMap = { all: 'users', verified: 'verified users', admin: 'admins & managers', provider: 'providers' };
-  return {
-    icon: option.icon,
-    tone: option.tone,
-    label: option.label,
-    headline: count > 0 ? `${count} ${nounMap[option.id] || 'user'}${count === 1 ? '' : 's'}` : `No ${emptyMap[option.id] || 'users'}`,
-    subhead: count > 0
-      ? 'Review identity, role, and verification records. User commands stay disabled until identity authority is verified.'
-      : 'User records for this scope will appear here.',
-  };
-};
-
-const UsersStateStrip = ({ stats, users, loading, kpiFilter, setKpiFilter }) => (
-  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
-    {USERS_STATE_OPTIONS.map((item) => {
-      const Icon = item.icon;
-      const active = (kpiFilter || 'all') === item.id;
-      const count = loading ? '...' : getUsersStateCount({ id: item.id, stats, users });
-      return (
-        <motion.button key={item.id} type="button" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
-          onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
-          aria-pressed={active} aria-label={`Show ${item.label.toLowerCase()}`} data-state={active ? 'selected' : 'idle'}>
-          <span className="flex items-start justify-between gap-2">
-            <span className="min-w-0">
-              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
-              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
-            </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
-              <Icon className="h-4 w-4" />
-            </span>
-          </span>
-        </motion.button>
-      );
-    })}
-  </div>
-);
-
-const UsersSignalPanel = ({ stats, users, loading, kpiFilter, setKpiFilter }) => {
-  const signal = loading
-    ? { icon: Users, tone: 'muted', label: 'Loading', headline: 'Loading users', subhead: 'One moment while the identity list comes in.' }
-    : getUsersSignal({ stats, users, kpiFilter });
-  const SignalIcon = signal.icon;
-  return (
-    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42 }}
-      className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]" aria-live="polite">
-      <div className="min-w-0">
-        <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${usersToneClass[signal.tone] || usersToneClass.muted}`}>
-            <SignalIcon className="h-4 w-4" />
-            {signal.label}
-          </div>
-          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">{signal.headline}</h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{signal.subhead}</p>
-        </div>
-        <UsersStateStrip stats={stats} users={users} loading={loading} kpiFilter={kpiFilter} setKpiFilter={setKpiFilter} />
-      </div>
-    </motion.section>
-  );
+// provider_type persona icon (doctor vs driver) -- the split that legitimately lives on
+// Users (live-DB 2026-07-10: providers are ~50/50 doctor/driver), unlike Staff (all doctors).
+const getProviderTypeIcon = (providerType) => {
+  const type = String(providerType || '').toLowerCase();
+  if (type.includes('driver') || type.includes('ambulance')) return Truck;
+  if (type.includes('doctor') || type.includes('physician') || type.includes('nurse') || type.includes('specialist')) return Stethoscope;
+  return UserRound;
 };
 
 const getUserInitials = (name = 'User') => {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] || 'U';
-  const second = parts[1]?.[0] || '';
-  return `${first}${second}`.toUpperCase();
+  return `${parts[0]?.[0] || 'U'}${parts[1]?.[0] || ''}`.toUpperCase();
 };
 
-const UserDetailLine = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
-      <Icon className="h-4 w-4" />
-    </span>
-    <div className="min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
-    </div>
-  </div>
+// KPI/state strip: a ROLE PARTITION (the clean population split the smart-context strip is
+// built for). bvn_verified is a cross-cutting TRUST OVERLAY (signal subhead + row marker +
+// FilterSheet), NOT a chip; provider_type is a within-providers drill-down (row + rail +
+// FilterSheet). Neutral literal palette; the shared KpiStrip owns width/tile/smart-context.
+const USERS_KPI_OPTIONS = [
+  { id: 'all', label: 'All', icon: Users, colorClass: 'text-foreground', activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]' },
+  { id: 'provider', label: 'Providers', icon: Stethoscope, colorClass: 'text-amber-700 dark:text-amber-200', activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200' },
+  { id: 'org_admin', label: 'Org admins', icon: Shield, colorClass: 'text-sky-700 dark:text-sky-200', activeClass: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200' },
+  { id: 'patient', label: 'Patients', icon: UserRound, colorClass: 'text-muted-foreground', activeClass: 'bg-foreground/[0.055] text-muted-foreground shadow-e2 dark:bg-white/[0.06]' },
+];
+const USERS_KPI_IMPORTANCE = { all: 0, provider: 1, org_admin: 2, patient: 3 };
+const PINNED_USERS_KPI_IDS = ['provider', 'org_admin'];
+
+const usersToneClass = {
+  danger: 'bg-destructive/12 text-destructive shadow-e2',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+  info: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+};
+
+// Person | Role | Verified | Organization | Joined | Action
+const USERS_GRID_COLS = 'grid-cols-[minmax(160px,1.6fr)_minmax(96px,auto)_minmax(88px,auto)_minmax(120px,1fr)_minmax(92px,auto)_84px]';
+const USERS_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(160px,1.6fr)_minmax(96px,auto)_minmax(88px,auto)_minmax(120px,1fr)_minmax(92px,auto)_84px]';
+
+const USERS_EMPTY_HEADINGS = {
+  all: 'No users yet',
+  provider: 'No providers',
+  org_admin: 'No org admins',
+  patient: 'No patients',
+};
+
+const getUsersKpiCount = (id, stats) => {
+  if (id === 'all') return stats.total || 0;
+  return stats[id] || 0;
+};
+
+const formatJoinedDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const getUsersProjection = (user, organizationsMap = {}) => {
+  const displayName = user?.full_name || user?.name || user?.username || 'Unnamed user';
+  return {
+    name: displayName,
+    email: user?.email || '',
+    phone: user?.phone || '',
+    role: user?.role || 'unknown',
+    roleMeta: getRoleMeta(user?.role),
+    providerType: user?.provider_type || '',
+    verified: Boolean(user?.bvn_verified),
+    organization: user?.organization_name || (user?.organization_id ? (organizationsMap[user.organization_id] || 'Independent') : 'Independent'),
+    displayId: user?.display_id || null,
+    joined: user?.created_at,
+  };
+};
+
+// KPI role narrowing composes with the FilterSheet role filter (Doctors' resolveStatusFilter
+// idiom): a KPI role wins unless the sheet explicitly excludes it (then the list is empty).
+const resolveUsersRoleFilter = (filters = {}) => {
+  const sheetRoles = Array.isArray(filters.role) ? filters.role.filter(Boolean) : (filters.role ? [filters.role] : []);
+  const kpiRole = filters.kpiFilter && filters.kpiFilter !== 'all' ? filters.kpiFilter : null;
+  if (!kpiRole) return { role: sheetRoles, forceEmpty: false };
+  if (sheetRoles.length === 0 || sheetRoles.includes(kpiRole)) return { role: kpiRole, forceEmpty: false };
+  return { role: kpiRole, forceEmpty: true };
+};
+
+const hasActiveUserFilters = (filters = {}) => Boolean(
+  filters.search ||
+  (Array.isArray(filters.role) && filters.role.length > 0) ||
+  (Array.isArray(filters.provider_type) && filters.provider_type.length > 0) ||
+  (filters.bvn_verified && filters.bvn_verified !== 'all') ||
+  (filters.created_at && (filters.created_at.start || filters.created_at.end))
 );
 
-const UserRailButton = ({ icon: Icon, label, onClick }) => (
-  <Button
-    variant="ghost"
-    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
-    onClick={onClick}
-  >
-    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
-    {label}
-  </Button>
-);
+const getUsersSignal = ({ stats, kpiFilter, loadError, hasAny }) => {
+  const activeId = kpiFilter || 'all';
+  const option = USERS_KPI_OPTIONS.find((item) => item.id === activeId) || USERS_KPI_OPTIONS[0];
+  const count = getUsersKpiCount(option.id, stats);
+  const verified = stats.verified || 0;
 
-const UsersDetailRail = ({ user, onView }) => {
-  if (!user) {
-    return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-          <Users className="mb-4 h-10 w-10 text-muted-foreground/60" />
-          <h2 className="text-xl font-semibold">No user selected</h2>
-          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
-            Users that match your filters will appear here.
-          </p>
-        </div>
-      </aside>
-    );
+  if (loadError && !hasAny) {
+    return { icon: ShieldAlert, tone: 'danger', label: 'Load failed', headline: 'Users did not load', subhead: 'Retry to load the directory.' };
   }
 
-  const displayName = user.full_name || user.name || user.username || user.profile_username || 'Unnamed user';
-  const isVerified = Boolean(user.bvn_verified);
-  const verifiedValue = isVerified ? 'Verified' : 'Unverified';
-  const joinedValue = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
+  if (option.id === 'all') {
+    return {
+      icon: Users,
+      tone: 'muted',
+      label: 'Users',
+      headline: count > 0 ? `${count} user${count === 1 ? '' : 's'}` : 'No users yet',
+      // bvn_verified as a TRUST overlay in the subhead (not a KPI chip).
+      subhead: count > 0
+        ? `${verified} verified. User commands stay disabled until identity authority is verified.`
+        : 'User records for this scope will appear here.',
+    };
+  }
 
-  return (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">User details</h2>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-pill bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-            <Shield className="h-3.5 w-3.5" />
-            {user.role || 'unknown'}
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
-          onClick={() => onView(user)}
-          aria-label="Open full user details"
-        >
-          <Info className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="mb-5 flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/30 text-lg font-semibold text-foreground">
-          {getUserInitials(displayName)}
-        </div>
-        <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">{displayName}</h3>
-          <p className="mt-1 truncate text-sm text-muted-foreground">
-            {user.email || 'No email on file'}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <UserDetailLine icon={Users} label="Name" value={user.full_name || user.name} />
-        <UserDetailLine icon={Mail} label="Email" value={user.email} />
-        <UserDetailLine icon={Shield} label="Role" value={user.role} />
-        <UserDetailLine icon={Phone} label="Organization" value={user.organization_name || 'N/A'} />
-        <UserDetailLine icon={UserCheck} label="Verified" value={verifiedValue} />
-        <UserDetailLine icon={Eye} label="Joined" value={joinedValue} />
-      </div>
-
-      <div className="mt-5 space-y-2.5">
-        <Button
-          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
-          onClick={() => onView(user)}
-        >
-          <Eye className="mr-2 h-5 w-5" />
-          View details
-          <ChevronRight className="ml-auto h-5 w-5" />
-        </Button>
-
-        <div className="grid grid-cols-1 gap-3">
-          <UserRailButton icon={Info} label="Open record" onClick={() => onView(user)} />
-        </div>
-
-        <div
-          role="note"
-          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
-        >
-          <Shield className="h-4 w-4 shrink-0" />
-          User commands are disabled until identity authority is verified.
-        </div>
-      </div>
-    </aside>
-  );
+  const toneById = { provider: 'warning', org_admin: 'info', patient: 'muted' };
+  const noun = option.label.toLowerCase().replace(/s$/, '');
+  return {
+    icon: option.icon,
+    tone: toneById[option.id] || 'muted',
+    label: option.label,
+    headline: count > 0 ? `${count} ${count === 1 ? noun : option.label.toLowerCase()}` : `No ${option.label.toLowerCase()}`,
+    subhead: count > 0 ? 'Review identity, role, and verification records.' : `${option.label} for this scope will appear here.`,
+  };
 };
 
 export const UsersPage = () => {
-  const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
+  const { isAdmin, isOrgAdmin } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
-  const [users, setUsers] = useState([]);
-  const [organizationsMap, setOrganizationsMap] = useState({});
-  const [statistics, setStatistics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
-  const [showStatistics, setShowStatistics] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [usersCommandNotice, setUsersCommandNotice] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     isLoading: false,
     title: '',
     description: '',
     onConfirm: () => { },
-    variant: 'default'
+    variant: 'default',
   });
 
-  // Handle URL parameters for filtering
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const roleParam = searchParams.get('role');
+  const pagination = usePagination(20);
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
+  const canManage = isAdmin() || isOrgAdmin();
 
-    if (roleParam === 'provider') {
-      setFilters({ role: 'provider' });
+  const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : 'viewer');
+  const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
+
+  // ?role=provider / ?add=true deep-links (QuickSearch / notification targets).
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('role') === 'provider') {
+      setFilters((prev) => ({ ...prev, kpiFilter: 'provider' }));
     }
   }, [location.search]);
 
-  const { viewMode, setViewMode } = useViewMode('users-page', 'table');
-  const pagination = usePagination(20);
-
-  // Filter users based on KPI filter and other filters
-  const filteredUsers = useMemo(() => {
-    let filtered = [...users];
-
-    // Apply KPI filter
-    if (filters.kpiFilter === 'verified') {
-      filtered = filtered.filter(u => u.bvn_verified);
-    } else if (filters.kpiFilter === 'admin') {
-      filtered = filtered.filter(u => ['admin', 'org_admin'].includes(u.role));
-    } else if (filters.kpiFilter === 'provider') {
-      filtered = filtered.filter(u => u.role === 'provider');
-    }
-
-    // Apply search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(u =>
-        (u.username || u.profile_username || '').toLowerCase().includes(searchTerm) ||
-        (u.email || '').toLowerCase().includes(searchTerm) ||
-        (u.phone || '').toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Apply role filter
-    if (filters.role && filters.role.length > 0) {
-      filtered = filtered.filter(u => filters.role.includes(u.role));
-    }
-
-    // Apply verification filter
-    if (filters.bvn_verified === 'verified') {
-      filtered = filtered.filter(u => u.bvn_verified);
-    } else if (filters.bvn_verified === 'unverified') {
-      filtered = filtered.filter(u => !u.bvn_verified);
-    }
-
-    // Apply provider type filter
-    if (filters.provider_type && filters.provider_type.length > 0) {
-      filtered = filtered.filter(u => filters.provider_type.includes(u.provider_type));
-    }
-
-    // Apply Date Range filter
-    if (filters.created_at) {
-      const { start, end } = filters.created_at;
-      if (start) {
-        filtered = filtered.filter(u => new Date(u.created_at) >= new Date(start));
-      }
-      if (end) {
-        // Add 1 day to include end date fully or set time to end of day
-        const endDate = new Date(end);
-        endDate.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(u => new Date(u.created_at) <= endDate);
-      }
-    }
-
-    return filtered;
-  }, [users, filters]);
-
-  // Apply Client-Side Sorting
-  const processedUsers = useMemo(() => {
-    let result = [...filteredUsers];
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        const aVal = a[sortConfig.key] || '';
-        const bVal = b[sortConfig.key] || '';
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        }
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return result;
-  }, [filteredUsers, sortConfig]);
-
-  // Shared focused-record store: rail shows the most-urgent user at rest and
-  // toggles consistently on row focus (replaces the old private focusedUserId +
-  // list[0] fallback + first-item re-pin effect).
-  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('users', processedUsers);
-  const focusedUser = focusedRecord;
-
-  const usersRouteContext = useMemo(() => {
-    const recentUsers = [...users]
-      .filter(user => user.last_sign_in_at)
-      .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at))
-      .slice(0, 5);
-
+  const queryFilter = useMemo(() => {
+    const roleFilter = resolveUsersRoleFilter(filters);
+    const verified = filters.bvn_verified === 'verified' ? true : filters.bvn_verified === 'unverified' ? false : undefined;
     return {
-      users: processedUsers.slice(0, 25),
-      recentUsers,
-      statistics,
-      loading,
+      limit: pagination.itemsPerPage,
+      offset: pagination.paginationRange.start,
+      quiet: true,
+      role: roleFilter.role,
+      forceEmpty: roleFilter.forceEmpty,
+      provider_type: filters.provider_type,
+      verified,
+      search: filters.search || undefined,
+      created_at: filters.created_at,
+      sortKey: sortConfig.key,
+      sortDirection: sortConfig.direction,
     };
-  }, [loading, processedUsers, statistics, users]);
+  }, [
+    filters.kpiFilter,
+    filters.role,
+    filters.provider_type,
+    filters.bvn_verified,
+    filters.search,
+    filters.created_at,
+    pagination.itemsPerPage,
+    pagination.paginationRange.start,
+    sortConfig.key,
+    sortConfig.direction,
+  ]);
+
+  const { users, count, stats, loading, isFetching, error: queryError, refetch } = useProfilesQuery(queryFilter);
+  const loadError = queryError ? 'Users could not load. Check your connection and try again.' : null;
+  useEffect(() => {
+    if (queryError) console.error('[users] load failed:', queryError);
+  }, [queryError]);
+
+  const userRows = useMemo(() => (Array.isArray(users) ? users : []), [users]);
+  const derivedStats = useMemo(() => ({
+    total: Number(stats?.total) || count,
+    provider: Number(stats?.provider) || 0,
+    org_admin: Number(stats?.org_admin) || 0,
+    patient: Number(stats?.patient) || 0,
+    verified: Number(stats?.verified) || 0,
+  }), [stats, count]);
+
+  const { focusedRecord: focusedUser, setFocused, isFocused } = useFocusedRecord('users', userRows);
+
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(userRows);
+  const selectable = canManage;
+
+  const hasFilter = hasActiveUserFilters(filters);
+  const activeUsersFilter = filters.kpiFilter || 'all';
+  const fetchUsers = refetch;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    pagination.setTotalCount(count);
+  }, [count, pagination.setTotalCount]);
 
-    const publishUsersRouteContext = () => {
-      window.dispatchEvent(new CustomEvent('usersRouteContextUpdated', {
-        detail: usersRouteContext,
-      }));
-    };
-
-    publishUsersRouteContext();
-    window.addEventListener('requestUsersRouteContext', publishUsersRouteContext);
-
-    return () => {
-      window.removeEventListener('requestUsersRouteContext', publishUsersRouteContext);
-    };
-  }, [usersRouteContext]);
-
-  // Reset pagination when filters change
   useEffect(() => {
     pagination.resetPagination();
-  }, [filters, pagination.resetPagination]);
+    clearSelection();
+  }, [filters, sortConfig, pagination.resetPagination, clearSelection]);
 
-  // Fetch organizations map once on mount
+  // Realtime: a profiles change invalidates the list; a new signup announces itself,
+  // throttled to one toast / 10s so an insert burst can't stack over the operator.
+  const lastInsertToastAtRef = useRef(0);
   useEffect(() => {
-    const fetchOrgs = async () => {
-      try {
-        const orgs = await getOrganizations();
-        const map = {};
-        orgs.forEach(o => map[o.id] = o.name);
-        setOrganizationsMap(map);
-      } catch (error) {
-        console.error('Error fetching orgs for mapping:', error);
-      }
+    let active = true;
+    const channel = supabase
+      .channel('users_page_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        if (active) fetchUsers();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, (payload) => {
+        if (!active || payload?.eventType !== 'INSERT') return;
+        const now = Date.now();
+        if (now - lastInsertToastAtRef.current < 10000) return;
+        lastInsertToastAtRef.current = now;
+        toast('New user joined', payload?.new?.full_name ? { description: payload.new.full_name } : undefined);
+      })
+      .subscribe();
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
     };
-    fetchOrgs();
-  }, []);
+  }, [fetchUsers]);
 
-  const fetchUsers = useCallback(async (isLoadMore = false) => {
-    try {
-      setLoading(true);
-
-      const isPrivileged = isAdmin() || isOrgAdmin();
-      // For privileged users, we load 1000 items once and handle slicing locally
-      const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
-      const offset = isPrivileged ? 0 : pagination.paginationRange.start;
-
-      const filterOptions = {
-        includeAuthData: isPrivileged,
-        limit,
-        offset,
-        role: filters.role,
-        provider_type: filters.provider_type,
-        verified: filters.bvn_verified === 'verified' ? true : filters.bvn_verified === 'unverified' ? false : undefined,
-      };
-
-      let data = await getProfiles(filterOptions);
-
-      // Frontend Mapping Logic: Ensure organization names are set from our local map
-      data = data.map(u => ({
-        ...u,
-        organization_name: u.organization_id ? (organizationsMap[u.organization_id] || 'Independent') : 'Independent'
-      }));
-
-      if (isPrivileged) {
-        const totalCount = data.length;
-        pagination.setTotalCount(totalCount);
-
-        // Infinite Scroll Logic for local slice:
-        // Accumulate items from page 1 up to current page
-        const visibleCount = pagination.itemsPerPage * pagination.currentPage;
-        const paginatedData = data.slice(0, visibleCount);
-
-        setUsers(paginatedData);
-
-        // Fetch statistics for admins, or derive for Org Admins
-        if (isAdmin()) {
-          // Fetch robust validation stats separately to ensure accuracy
-          const [stats, verifiedRes] = await Promise.all([
-            getUserStatistics(),
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('bvn_verified', true)
-          ]);
-
-          // Ensure 'patient' count covers any users without explicit roles (default users)
-          if (stats && stats.roleDistribution) {
-            const dist = stats.roleDistribution;
-            const knownRolesCount = (dist.admin || 0) + (dist.provider || 0) + (dist.sponsor || 0) + (dist.viewer || 0) + (dist.org_admin || 0);
-            const impliedPatients = stats.totalUsers - knownRolesCount;
-
-            // If implicit count > explicit count, update it (assumes diff is generic users)
-            if (impliedPatients > (dist.patient || 0)) {
-              dist.patient = impliedPatients;
-            }
-          }
-
-          setStatistics({
-            ...stats,
-            bvnVerifiedUsers: verifiedRes.count || 0
-          });
-        } else {
-          // Derive statistics client-side for Org Admins (since they have the full list loaded)
-          const totalUsers = data.length;
-          const bvnVerifiedUsers = data.filter(u => u.bvn_verified).length;
-
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          const recentSignups = data.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
-
-          const stats = {
-            totalUsers,
-            totalProfiles: totalUsers,
-            recentSignups,
-            emailVerifiedUsers: null, // Cannot derive from client-side data - requires auth.users query
-            bvnVerifiedUsers,
-            roleDistribution: {
-              admin: data.filter(u => u.role === 'admin').length,
-              provider: data.filter(u => u.role === 'provider').length,
-              patient: data.filter(u => u.role === 'patient' || !u.role).length,
-              org_admin: data.filter(u => u.role === 'org_admin').length,
-              sponsor: data.filter(u => u.role === 'sponsor').length,
-              viewer: data.filter(u => u.role === 'viewer').length,
-            }
-          };
-          setStatistics(stats);
-        }
-      } else {
-        // Non-admin users: Accumulate if loading more, replace if fresh fetch (page 1)
-        pagination.setTotalCount(data.length);
-        setUsers(prev => (pagination.currentPage === 1 ? data : [...prev, ...data]));
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      handleApiError(error, 'fetch');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, isAdmin, isOrgAdmin, pagination.currentPage, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount, organizationsMap]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers, pagination.currentPage]);
-
+  // --- Write register. EDIT is a real write (updateProfile). CREATE / INVITE / DELETE are
+  // INTENTIONALLY fail-closed ("no parallel truth" -- the console must not mint auth
+  // identities or hard-delete profiles the app cannot reconcile). Do NOT "fix" these gates.
   const handleSaveUser = useCallback(async (formData) => {
     try {
-      let savedProfile;
       if (modalMode === 'edit' && selectedUser?.id) {
-        savedProfile = await updateProfile(selectedUser.id, formData);
-
+        await updateProfile(selectedUser.id, formData);
         fetchUsers();
       } else if (modalMode === 'create') {
         if (!formData.id) {
@@ -555,7 +345,7 @@ export const UsersPage = () => {
         fetchUsers();
       }
     } catch (error) {
-      console.error("Save User Error:", error);
+      console.error('Save User Error:', error);
       throw error;
     }
   }, [modalMode, selectedUser, fetchUsers]);
@@ -566,122 +356,87 @@ export const UsersPage = () => {
     return false;
   }, []);
 
-  const handleInvite = useCallback(() => {
-    handleIdentityActionUnavailable();
-  }, [handleIdentityActionUnavailable]);
-
-  const handleCreate = useCallback(() => {
-    handleIdentityActionUnavailable();
-  }, [handleIdentityActionUnavailable]);
-
-  const handleOpenAnalytics = useCallback(() => {
-    setAnalyticsModalOpen(true);
-  }, []);
-
-  // Open "Add" modal on page load if requested via URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('add') === 'true') {
-      handleCreate();
-    }
-  }, [handleCreate, location.search]);
-
-  // Handle custom events from context panel
-  useEffect(() => {
-    const handleOpenModal = () => handleCreate();
-    const handleOpenInviteModal = () => handleInvite();
-    const handleOpenFilters = () => setFilterSheetOpen(true);
-    const handleOpenUserAnalytics = () => handleOpenAnalytics();
-
-    window.addEventListener('openUserModal', handleOpenModal);
-    window.addEventListener('openInviteUserModal', handleOpenInviteModal);
-    window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openUserAnalytics', handleOpenUserAnalytics);
-
-    return () => {
-      window.removeEventListener('openUserModal', handleOpenModal);
-      window.removeEventListener('openInviteUserModal', handleOpenInviteModal);
-      window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openUserAnalytics', handleOpenUserAnalytics);
-    };
-  }, [handleCreate, handleInvite, handleOpenAnalytics]);
-
-  const handleView = useCallback((user) => {
-    setFocused(user?.id || null);
-    setSelectedUser(user);
-    setModalMode('view');
-  }, [setFocused]);
-
-  const handleEdit = useCallback((user) => {
-    setSelectedUser(user);
-    setModalMode('edit');
-  }, []);
-
   const handleDeleteUnavailable = useCallback(() => {
     setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);
     toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);
     return false;
   }, []);
 
+  const handleInvite = useCallback(() => handleIdentityActionUnavailable(), [handleIdentityActionUnavailable]);
+  const handleCreate = useCallback(() => handleIdentityActionUnavailable(), [handleIdentityActionUnavailable]);
+  const confirmDelete = useCallback(() => handleDeleteUnavailable(), [handleDeleteUnavailable]);
+  const handleBulkDelete = useCallback(() => handleDeleteUnavailable(), [handleDeleteUnavailable]);
 
-  const handleViewAnalytics = useCallback(() => {
-    setAnalyticsModalOpen(true);
-  }, []);
+  const handleView = useCallback((user) => {
+    if (user?.id && !isFocused(user.id)) setFocused(user.id);
+    setSelectedUser(user);
+    setModalMode('view');
+  }, [isFocused, setFocused]);
 
-  // Selection Handlers
-  const handleSelect = useCallback((id, checked) => {
-    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(uid => uid !== id));
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    if (checked) {
-      setSelectedIds(processedUsers.map(u => u.id));
-    } else {
-      setSelectedIds([]);
-    }
-  }, [processedUsers]);
-
-  const handleSort = useCallback((key) => {
-    setSortConfig(prev => {
-      if (prev.key === key && prev.direction === 'desc') {
-        return { key: '', direction: 'asc' }; // Reset
-      }
-      return {
-        key,
-        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-      };
-    });
-  }, []);
-
-  const confirmDelete = useCallback((user) => {
-    handleDeleteUnavailable(user);
-  }, [handleDeleteUnavailable]);
-
-  const handleBulkDelete = useCallback(() => {
-    handleDeleteUnavailable();
-  }, [handleDeleteUnavailable]);
+  const handleEdit = useCallback((user) => {
+    if (!canManage) return;
+    setSelectedUser(user);
+    setModalMode('edit');
+  }, [canManage]);
 
   const handleModalClose = useCallback(() => {
     setSelectedUser(null);
     setModalMode(null);
   }, []);
 
-  const filterSchema = React.useMemo(() => [
-    {
-      key: 'search',
-      type: 'text',
-      label: 'Search',
-      placeholder: 'Search users...',
-    },
+  const handleViewAnalytics = useCallback(() => setAnalyticsModalOpen(true), []);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
+
+  const setKpiFilter = useCallback((id) => {
+    setFilters((prev) => ({ ...prev, kpiFilter: id || 'all' }));
+  }, []);
+
+  const setSearchFilter = useCallback((search) => {
+    setFilters((prev) => ({ ...prev, search }));
+  }, []);
+
+  // Open "Add" via URL / context-panel events (fail-closed).
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') handleCreate();
+  }, [handleCreate, location.search]);
+
+  useEffect(() => {
+    const handleOpenModal = () => handleCreate();
+    const handleOpenInviteModal = () => handleInvite();
+    const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenUserAnalytics = () => handleViewAnalytics();
+    window.addEventListener('openUserModal', handleOpenModal);
+    window.addEventListener('openInviteUserModal', handleOpenInviteModal);
+    window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openUserAnalytics', handleOpenUserAnalytics);
+    return () => {
+      window.removeEventListener('openUserModal', handleOpenModal);
+      window.removeEventListener('openInviteUserModal', handleOpenInviteModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openUserAnalytics', handleOpenUserAnalytics);
+    };
+  }, [handleCreate, handleInvite, handleViewAnalytics]);
+
+  const filterSchema = useMemo(() => [
+    { key: 'search', type: 'text', label: 'Search', placeholder: 'Search users...' },
     {
       key: 'role',
       type: 'multiselect',
       label: 'Role',
       options: [
         { value: 'admin', label: 'Admin' },
+        { value: 'org_admin', label: 'Org admin' },
         { value: 'provider', label: 'Provider' },
         { value: 'patient', label: 'Patient' },
-      ]
+        { value: 'sponsor', label: 'Sponsor' },
+      ],
     },
     {
       key: 'bvn_verified',
@@ -689,161 +444,94 @@ export const UsersPage = () => {
       label: 'Verification',
       options: [
         { value: 'all', label: 'All' },
-        { value: 'verified', label: 'Verified Only' },
-        { value: 'unverified', label: 'Unverified Only' }
-      ]
+        { value: 'verified', label: 'Verified only' },
+        { value: 'unverified', label: 'Unverified only' },
+      ],
     },
     {
       key: 'provider_type',
       type: 'multiselect',
-      label: 'Provider Type',
+      label: 'Provider type',
       dependsOn: { key: 'role', value: 'provider' },
       options: [
-        { value: 'Doctor', label: 'Doctor' },
-        { value: 'Nurse', label: 'Nurse' },
-        { value: 'Specialist', label: 'Specialist' },
-        { value: 'Pharmacist', label: 'Pharmacist' }
-      ]
+        { value: 'doctor', label: 'Doctor' },
+        { value: 'driver', label: 'Driver' },
+      ],
     },
-    {
-      key: 'created_at',
-      type: 'date',
-      label: 'Joined Date',
-      placeholder: 'Select dates'
-    }
+    { key: 'created_at', type: 'date', label: 'Joined date', placeholder: 'Select dates' },
   ], []);
 
-  // View toggle component
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
-  ), [viewMode, setViewMode]);
-
-  // Filter button component
-  const filterButtonComponent = React.useMemo(() => (
+  const filterButtonComponent = useMemo(() => (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-muted hover:text-muted-foreground relative"
+      className="squircle h-9 w-9 bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
       aria-label="Filter users"
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
     >
-      <Filter className="h-4 w-4" />
-      {(filters.search || (filters.role && filters.role.length > 0) || (filters.bvn_verified && filters.bvn_verified.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-muted" />
-      )}
+      <Users className="h-4 w-4" />
+      {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
     </Button>
-  ), [filters]);
+  ), [filterSheetOpen, hasFilter]);
 
-  // Primary Action (Add User)
-  const headerActions = React.useMemo(() => (
-    (isAdmin() || isOrgAdmin()) && (
+  // Primary header action: "ADD USER" is FAIL-CLOSED (identity authority not proved).
+  const headerActions = useMemo(() => (
+    canManage ? (
       <Button
         onClick={handleInvite}
-        className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
+        className="h-9 rounded-pill bg-muted/40 px-4 text-[12px] font-semibold text-muted-foreground transition-all active:scale-95"
         aria-label="Add user unavailable"
         aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
         data-state="unavailable"
       >
-        <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">ADD USER</span>
-        <span className="md:hidden">ADD</span>
-      </Button>
-    )
-  ), [isAdmin, isOrgAdmin, handleInvite, usersCommandNotice]);
-
-  // Footer Configuration
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} / {users.length} Users</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, users.length]);
-
-  usePageFooter(footerContent, 'pagination', !loading && users.length > 0);
-
-  usePageShell({ bleed: true, hideFab: true });
-
-  usePageHeader(
-    'User Management',
-    headerActions,
-    !isMobile ? viewToggleComponent : null,
-    filterButtonComponent,
-    isAdmin() ? (
-      <Button
-        onClick={() => setShowStatistics(!showStatistics)}
-        variant="ghost"
-        size="icon"
-        className={`squircle h-9 w-9 ${showStatistics ? 'bg-muted text-muted-foreground' : 'hover:bg-muted hover:text-muted-foreground'}`}
-        aria-label="Toggle statistics"
-      >
-        <BarChart3 className="h-4 w-4" />
+        <Plus className="mr-2 h-4 w-4" />
+        Add user
       </Button>
     ) : null
-  );
+  ), [canManage, handleInvite, usersCommandNotice]);
 
-  // Bulk Action Bar Component
-  const BulkActionBar = useMemo(() => (
-    <LayoutGroup>
-      {selectedIds.length > 0 && (
-        <motion.div
-          initial={{ x: 50, opacity: 0, scale: 0.9 }}
-          animate={{ x: 0, opacity: 1, scale: 1 }}
-          exit={{ x: 50, opacity: 0, scale: 0.9 }}
-          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 shadow-none rounded-pill"
-        >
-          <div className="bg-foreground text-background text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-pill flex items-center justify-center shadow-sm mb-1">
-            {selectedIds.length}
-          </div>
+  usePageHeader('User Management', headerActions, null, filterButtonComponent);
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
 
-          {isAdmin() && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBulkDelete}
-              className="h-10 w-10 rounded-icon bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
-              title="Delete unavailable"
-              aria-label="Delete unavailable"
-              data-state="unavailable"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
+  // Route-owned right panel -- publish live context (canon shared by Requests/Staff).
+  const usersRouteContext = useMemo(() => ({
+    stats: derivedStats,
+    recent: userRows.slice(0, 5),
+    focusedUser,
+    users: userRows.slice(0, 25),
+    count,
+    loading,
+    canManage,
+  }), [canManage, count, derivedStats, focusedUser, loading, userRows]);
 
-          <div className="w-8 h-2 my-0.5" aria-hidden="true" />
+  const publishUsersRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('usersRouteContextUpdated', { detail: usersRouteContext }));
+  }, [usersRouteContext]);
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedIds([])}
-            className="h-8 w-8 rounded-icon hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
-            title="Clear Selection"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </motion.div>
-      )}
-    </LayoutGroup>
-  ), [selectedIds, isAdmin, handleBulkDelete]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    publishUsersRouteContext();
+    window.addEventListener('requestUsersRouteContext', publishUsersRouteContext);
+    return () => window.removeEventListener('requestUsersRouteContext', publishUsersRouteContext);
+  }, [publishUsersRouteContext]);
 
   if (isMobile) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Users" description="User Management Mission Control" />
         {usersCommandNotice && (
-          <div
-            id="users-action-feedback"
-            role="status"
-            aria-live="polite"
-            className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
-          >
+          <div id="users-action-feedback" role="status" aria-live="polite" className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
             {usersCommandNotice}
           </div>
         )}
         <MobileUsers
-          users={processedUsers}
+          users={userRows}
           loading={loading}
-          statistics={statistics}
+          statistics={derivedStats}
           filters={filters}
           setFilters={setFilters}
           onView={handleView}
@@ -858,11 +546,10 @@ export const UsersPage = () => {
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
           selectedIds={selectedIds}
-          onSelect={handleSelect}
+          onSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
         />
 
-        {/* Modals & Sheets */}
         <UserModal
           isOpen={modalMode === 'create' || modalMode === 'edit' || modalMode === 'view'}
           onClose={handleModalClose}
@@ -870,22 +557,8 @@ export const UsersPage = () => {
           mode={modalMode}
           onSave={handleSaveUser}
         />
-
-        <InviteUserModal
-          isOpen={modalMode === 'invite'}
-          onClose={handleModalClose}
-          onInvited={fetchUsers}
-        />
-
-        <FilterSheet
-          isOpen={filterSheetOpen}
-          onOpenChange={setFilterSheetOpen}
-          filterSchema={filterSchema}
-          onApply={setFilters}
-          initialValues={filters}
-          isMobile={isMobile}
-        />
-
+        <InviteUserModal isOpen={modalMode === 'invite'} onClose={handleModalClose} onInvited={fetchUsers} />
+        <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} isMobile={isMobile} />
         <ConfirmationModal
           isOpen={confirmationModal.isOpen}
           onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
@@ -896,372 +569,523 @@ export const UsersPage = () => {
           confirmLabel={confirmationModal.confirmLabel}
           isLoading={confirmationModal.isLoading}
         />
+        <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="user" />
 
-        {/* Global Overlays */}
-        {BulkActionBar}
-
-        <AnalyticsModal
-          open={analyticsModalOpen}
-          onClose={() => setAnalyticsModalOpen(false)}
-          analytics={statistics}
-          type="user"
-        />
+        {selectable && (
+          <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground active:scale-[0.96]"
+              title="Delete unavailable"
+              aria-label="Delete unavailable"
+              data-state="unavailable"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          </BulkActionBar>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-6 md:py-8 pt-6">
+    <div className="min-h-screen text-foreground">
       <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
       {usersCommandNotice && (
-        <div
-          id="users-action-feedback"
-          role="status"
-          aria-live="polite"
-          className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
-        >
+        <div id="users-action-feedback" role="status" aria-live="polite" className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
           {usersCommandNotice}
         </div>
       )}
-      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
-        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
-          <UsersSignalPanel
-            stats={statistics}
-            users={processedUsers}
-            loading={loading}
-            kpiFilter={filters.kpiFilter}
-            setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-          />
-          <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
-        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-        {/* Admin Statistics Section */}
-        {isAdmin() && showStatistics && statistics && (
-        <div className="rounded-card bg-background/35 p-6 mb-6">
-          <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-muted-foreground" />
-            User Statistics
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-muted-foreground">{statistics.totalUsers}</div>
-              <div className="text-sm text-muted-foreground">Total Users</div>
-            </div>
-            <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-200">{statistics.emailVerifiedUsers}</div>
-              <div className="text-sm text-muted-foreground">Email Verified</div>
-            </div>
-            <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-muted-foreground">{statistics.recentSignups}</div>
-              <div className="text-sm text-muted-foreground">Recent (30d)</div>
-            </div>
-            <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-amber-700 dark:text-amber-200">{statistics.totalProfiles}</div>
-              <div className="text-sm text-muted-foreground">Profiles</div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Role Distribution</h4>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(statistics.roleDistribution).map(([role, count]) => (
-                <span key={role} className="inline-flex items-center rounded-pill bg-muted text-muted-foreground px-3 py-1 text-xs font-medium">
-                  {role}: {count}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+
+      <UsersDesktopWorkspace
+        items={userRows}
+        stats={derivedStats}
+        loading={loading}
+        isFetching={isFetching}
+        loadError={loadError}
+        canManage={canManage}
+        focusedUser={focusedUser}
+        setFocused={setFocused}
+        filters={filters}
+        kpiFilter={activeUsersFilter}
+        setKpiFilter={setKpiFilter}
+        setSearchFilter={setSearchFilter}
+        hasFilter={hasFilter}
+        filterSheetOpen={filterSheetOpen}
+        openFilters={() => setFilterSheetOpen(true)}
+        onRetry={fetchUsers}
+        pagination={pagination}
+        sortConfig={sortConfig}
+        onSort={handleSort}
+        selectable={selectable}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        onView={handleView}
+        onEdit={handleEdit}
+        onInvite={handleInvite}
+        moduleRailItems={visibleModuleRail}
+        routingPath={routingPath}
+        onRailNavigate={handleRailNavigate}
+      />
+
+      {selectable && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          {/* Delete stays FAIL-CLOSED (identity authority not proved) -- the bar renders the
+              affordance but the action surfaces the gated notice, never a real bulk delete. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground active:scale-[0.96]"
+            title="Delete unavailable"
+            aria-label="Delete unavailable"
+            data-state="unavailable"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
       )}
 
-      {/* User List Content */}
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : (
-        <>
-          {users.length === 0 ? (
-            <div className="rounded-card bg-card/70 p-12 text-center">
-              <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-bold text-xl mb-2">
-                {filters.search ? 'No Users Found' :
-                  filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Users Yet' :
-                    'No Matching Users'}
-              </h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                {filters.search ? `No users found matching "${filters.search}". Try adjusting your search terms.` :
-                  filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
-                    'Create your first user to get started with managing your system.' :
-                    'Try adjusting your filters or search criteria to find the users you\'re looking for.'}
-              </p>
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                {filters.search && (
-                  <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="rounded-button">
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Search
-                  </Button>
-                )}
-                {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-                  <Button onClick={() => setFilters({ kpiFilter: 'all', role: '', bvn_verified: '', provider_type: '', search: '' })} variant="outline" className="rounded-button">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Reset Filters
-                  </Button>
-                )}
-                <Button
-                  onClick={handleInvite}
-                  className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
-                  aria-label="Add user unavailable"
-                  aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
-                  data-state="unavailable"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  ADD USER
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Grid View */}
-              {viewMode === 'grid' && (
-                <LayoutGroup>
-                  <motion.div
-                    layout
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-                  >
-                    {processedUsers.map((user, index) => (
-                      <motion.div
-                        layout
-                        key={user.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="col-span-1"
-                      >
-                        <div
-                          onClick={() => setFocused(user.id)}
-                          data-state={isFocused(user.id) ? 'selected' : 'idle'}
-                          className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${isFocused(user.id) ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
-                        >
-                          {/* Apple hover glow effect */}
-                          {/* Top Right Icon */}
-                          <div className="absolute top-0 right-0 p-5 z-20">
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-muted rounded-pill scale-150" />
-                              <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                {user.role === 'admin' ? <Shield className="h-5 w-5 text-muted-foreground" /> : <Users className="h-5 w-5 text-muted-foreground" />}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <span className="inline-flex items-center rounded-pill bg-muted text-muted-foreground px-3 py-1 text-xs font-medium">
-                              {user.role || 'patient'}
-                            </span>
-                            {user.bvn_verified && (
-                              <span className="inline-flex items-center rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2 py-1 text-xs font-medium">
-                                Verified
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-4 mb-4 relative z-10">
-                            <div className="w-16 h-16 rounded-icon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
-                              {(user.image_uri || user.avatar_url) ? (
-                                <img
-                                  src={user.image_uri || user.avatar_url}
-                                  alt={user.username || user.profile_username}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.profile_username}`;
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-2xl font-bold text-muted-foreground">
-                                  {(user.username || user.profile_username || 'Unknown User')?.[0]?.toUpperCase() || 'U'}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-xl tracking-tight truncate w-40">
-                                {user.full_name || user.username || user.profile_username || 'Unknown User'}
-                              </h3>
-                              {user.provider_type && (
-                                <p className="text-sm font-medium text-muted-foreground">{user.provider_type}</p>
-                              )}
-                              <p className="text-xs text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 mb-6 relative z-10">
-                            <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                              <span className="truncate font-normal">{user.email || 'No email'}</span>
-                            </div>
-                            {user.phone && (
-                              <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                                <Phone className="h-4 w-4 text-emerald-700 dark:text-emerald-200" />
-                                <span className="font-normal">{user.phone}</span>
-                              </div>
-                            )}
-                            {user.last_sign_in_at && (
-                              <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                                <UserCheck className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-normal">
-                                  Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="mt-auto flex gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleView(user)}
-                              className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-foreground"
-                              aria-label={`View details for ${user.username || user.profile_username || 'user'}`}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              VIEW
-                            </Button>
-                            {(isAdmin() || isOrgAdmin()) && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEdit(user)}
-                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-foreground"
-                                  aria-label={`Edit ${user.username || user.profile_username || 'user'}`}
-                                >
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  EDIT
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => confirmDelete(user)}
-                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-muted-foreground"
-                                  aria-label={`Delete unavailable for ${user.username || user.profile_username || 'user'}`}
-                                  aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
-                                  data-state="unavailable"
-                                >
-                                  <Trash2 className="h-3 w-3 mr-1" />
-                                  NOT READY
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                </LayoutGroup>
-              )}
-
-              {/* List View */}
-              {viewMode === 'list' && (
-                <UserListView
-                  users={processedUsers}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={confirmDelete}
-                  onFocus={setFocused}
-                  isAdmin={isAdmin()}
-                />
-              )}
-
-
-              {/* Table View */}
-              {viewMode === 'table' && (
-                <UserTableView
-                  users={processedUsers}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={confirmDelete}
-                  onFocus={setFocused}
-                  selectedIds={selectedIds}
-                  onSelect={handleSelect}
-                  onSelectAll={handleSelectAll}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  isAdmin={isAdmin()}
-                />
-              )}
-            </>
-          )}
-        </>
-      )}
-
-        {/* Pagination Controls */}
-        <PaginationControls
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          onPrevPage={pagination.prevPage}
-          onNextPage={pagination.nextPage}
-          hasPrevPage={pagination.hasPrevPage}
-          hasNextPage={pagination.hasNextPage}
-          loading={loading}
-        />
-          </div>
-        </section>
-
-        <UsersDetailRail user={focusedUser} onView={handleView} />
-      </div>
-
-      {/* Modals & Overlays */}
-      {BulkActionBar}
-
+      <UserModal
+        isOpen={modalMode === 'create' || modalMode === 'edit' || modalMode === 'view'}
+        onClose={handleModalClose}
+        user={selectedUser}
+        mode={modalMode}
+        onSave={handleSaveUser}
+      />
+      <InviteUserModal isOpen={modalMode === 'invite'} onClose={handleModalClose} onInvited={fetchUsers} />
+      <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={null} isMobile={isMobile} />
+      <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="user" />
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
         title={confirmationModal.title}
         description={confirmationModal.description}
+        onConfirm={confirmationModal.onConfirm}
         variant={confirmationModal.variant}
         confirmLabel={confirmationModal.confirmLabel}
         isLoading={confirmationModal.isLoading}
       />
+    </div>
+  );
+};
 
-      {
-        modalMode === 'invite' && (
-          <InviteUserModal
-            isOpen={true}
-            onClose={handleModalClose}
-            onInviteSuccess={() => {
-              handleModalClose();
-              fetchUsers();
-            }}
+const UsersDesktopWorkspace = ({
+  items,
+  stats,
+  loading,
+  isFetching,
+  loadError,
+  canManage,
+  focusedUser,
+  setFocused,
+  filters,
+  kpiFilter,
+  setKpiFilter,
+  setSearchFilter,
+  hasFilter,
+  filterSheetOpen,
+  openFilters,
+  onRetry,
+  pagination,
+  sortConfig,
+  onSort,
+  selectable,
+  selectedIds,
+  allSelected,
+  someSelected,
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
+  onView,
+  onEdit,
+  onInvite,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+}) => {
+  const listScrollRef = useRef(null);
+  const failedEmpty = Boolean(loadError) && items.length === 0;
+  const hasAny = items.length > 0;
+  const signal = getUsersSignal({ stats, kpiFilter, loadError, hasAny });
+
+  useScrollResetOnPage(listScrollRef, pagination.currentPage);
+  const handleListKeyDown = useListKeyboardNav({
+    items,
+    focusedItem: focusedUser,
+    setFocusedId: setFocused,
+    onOpen: onView,
+    scrollRef: listScrollRef,
+    rowAttr: 'data-user-row',
+  });
+
+  return (
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/users"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
+        <UsersDetailRail
+          user={focusedUser}
+          loading={loading}
+          hasFilter={hasFilter}
+          canManage={canManage}
+          onView={onView}
+          onEdit={onEdit}
+          onInvite={onInvite}
+        />
+      )}
+    >
+      <SignalPanel signal={signal} loading={loading} toneClassMap={usersToneClass}>
+        <KpiStrip
+          options={USERS_KPI_OPTIONS}
+          getCount={(id) => getUsersKpiCount(id, stats)}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+          loading={loading}
+          isFetching={isFetching}
+          pinnedIds={PINNED_USERS_KPI_IDS}
+          importance={USERS_KPI_IMPORTANCE}
+          defaultId="all"
+          dataAttr="data-users-state"
+        />
+      </SignalPanel>
+
+      <ActivitySheet
+        loading={loading}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={pagination}
+        itemNoun="users"
+        toolbar={(
+          <SheetToolbar
+            searchValue={filters.search}
+            onSearchCommit={setSearchFilter}
+            searchPlaceholder="Search users by name, email, or phone..."
+            searchTestId="users-sheet-search"
+            onRefresh={onRetry}
+            refreshing={isFetching}
+            refreshNoun="users"
+            onOpenFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasFilter}
           />
-        )
-      }
-
-      {
-        (modalMode === 'create' || modalMode === 'edit' || modalMode === 'view') && (
-          <UserModal
-            isOpen={!!modalMode}
-            onClose={handleModalClose}
-            user={selectedUser}
-            mode={modalMode}
-            onSave={handleSaveUser}
+        )}
+      >
+        <div
+          ref={listScrollRef}
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          aria-label="Users list"
+          style={{ outline: 'none' }}
+          className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+        >
+          <UsersListHeader
+            selectable={selectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onSelectAll={onSelectAll}
+            sortConfig={sortConfig}
+            onSort={onSort}
           />
-        )
-      }
 
-      <AnalyticsModal
-        open={analyticsModalOpen}
-        onClose={() => setAnalyticsModalOpen(false)}
-        analytics={statistics}
-        type="user"
-      />
+          {loading && <SkeletonRows />}
 
-      <FilterSheet
-        isOpen={filterSheetOpen}
-        onOpenChange={setFilterSheetOpen}
-        filterSchema={filterSchema}
-        onApply={setFilters}
-        initialValues={filters}
-        viewToggle={isMobile ? viewToggleComponent : null}
-        isMobile={isMobile}
+          {!loading && loadError && items.length === 0 && (
+            <LoadErrorState title="Users did not load" message={loadError} onRetry={onRetry} />
+          )}
+
+          {!loading && !loadError && Number(pagination.totalCount) === 0 && (
+            <EmptyState
+              icon={Users}
+              heading={hasFilter ? 'No matching users' : (USERS_EMPTY_HEADINGS[kpiFilter] || 'No users yet')}
+              body={hasFilter ? 'Change filters or search again.' : 'User records for this scope will appear here.'}
+            >
+              {hasFilter && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setKpiFilter('all')}
+                  className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                >
+                  Show all users
+                </Button>
+              )}
+            </EmptyState>
+          )}
+
+          {!loading && items.length > 0 && items.map((user) => (
+            <UserRow
+              key={user.id}
+              user={user}
+              selected={focusedUser?.id === user.id}
+              onFocus={() => setFocused(user.id)}
+              onView={onView}
+              onEdit={onEdit}
+              canManage={canManage}
+              selectable={selectable}
+              checked={selectedIds.includes(user.id)}
+              onToggleSelect={onToggleSelect}
+              onSelectClick={onSelectClick}
+            />
+          ))}
+        </div>
+      </ActivitySheet>
+    </WorkspaceStage>
+  );
+};
+
+const UsersListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
+  <div className={`grid ${selectable ? USERS_GRID_COLS_SELECT : USERS_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all users'}
+        className="h-4 w-4"
       />
-    </div >
+    )}
+    {/* Name / Role / Verified / Organization are plain labels -- only Joined (created_at)
+        is a meaningful sort; role/verification/type belong in the FilterSheet. */}
+    <span>Name</span>
+    <span>Role</span>
+    <span>Verified</span>
+    <span>Organization</span>
+    <SortableColumnHeader label="Joined" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
+    <span className="justify-self-end text-right">Action</span>
+  </div>
+);
+
+const UserRow = ({ user, selected, onFocus, onView, onEdit, canManage, selectable = false, checked = false, onToggleSelect, onSelectClick }) => {
+  const projection = getUsersProjection(user);
+  const isProvider = projection.role === 'provider';
+  const TypeIcon = getProviderTypeIcon(projection.providerType);
+
+  return (
+    <ListRowShell
+      id={user.id}
+      dataAttrName="data-user-row"
+      gridCols={selectable ? USERS_GRID_COLS_SELECT : USERS_GRID_COLS}
+      selected={selected}
+      onFocus={onFocus}
+      onOpen={() => onView(user)}
+    >
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(user.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect ${projection.name}` : `Select ${projection.name}`}
+          className="h-4 w-4"
+        />
+      )}
+
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-muted/40 text-sm font-semibold text-foreground">
+          {getUserInitials(projection.name)}
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold text-foreground" title={projection.name}>{projection.name}</div>
+          <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="truncate" title={projection.email || projection.phone}>{projection.email || projection.phone || 'No contact'}</span>
+            {isProvider && projection.providerType && (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[11px] capitalize text-muted-foreground/80">
+                <TypeIcon className="h-3 w-3" />
+                {projection.providerType}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <StatusPill label={projection.roleMeta.label} icon={Shield} className={projection.roleMeta.tone} compact />
+      </div>
+
+      <div className="min-w-0">
+        {projection.verified ? (
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Verified
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-foreground/[0.055] px-2.5 py-1 text-[11px] font-semibold text-muted-foreground dark:bg-white/[0.06]">
+            <Shield className="h-3.5 w-3.5" />
+            Unverified
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0 truncate text-sm text-muted-foreground" title={projection.organization}>{projection.organization}</div>
+
+      <div className="text-sm font-medium text-muted-foreground">{formatJoinedDate(projection.joined)}</div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(event) => { event.stopPropagation(); onView(user); }}
+          className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+          aria-label={`View ${projection.name}`}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        {canManage && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(event) => { event.stopPropagation(); onEdit(user); }}
+            className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+            aria-label={`Edit ${projection.name}`}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </ListRowShell>
+  );
+};
+
+const RailActionButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 w-full rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit, onInvite }) => {
+  if (loading) {
+    return (
+      <DetailRailShell>
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Shimmer className="h-6 w-36 rounded-inner" />
+            <Shimmer className="h-6 w-24 rounded-pill" />
+          </div>
+          <Shimmer className="h-9 w-9 rounded-pill" />
+        </div>
+        <div className="mb-5 flex items-center gap-4">
+          <Shimmer className="h-14 w-14 shrink-0 rounded-pill" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Shimmer className="h-5 w-2/3 rounded-inner" />
+            <Shimmer className="h-4 w-1/2 rounded-inner" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (<Shimmer key={i} className="h-[52px] w-full rounded-inner" />))}
+        </div>
+      </DetailRailShell>
+    );
+  }
+
+  if (!user) {
+    return (
+      <DetailRailShell>
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Users className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No user selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            {hasFilter ? 'Users that match your filters will appear here.' : 'Select a user to see their details here.'}
+          </p>
+        </div>
+      </DetailRailShell>
+    );
+  }
+
+  const projection = getUsersProjection(user);
+  const isProvider = projection.role === 'provider';
+  const TypeIcon = getProviderTypeIcon(projection.providerType);
+
+  return (
+    <DetailRailShell>
+      <RailInsetHero>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold tracking-tight">User details</h2>
+            {projection.displayId && (
+              <div className="mt-1 flex min-w-0 items-center gap-1">
+                <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={projection.displayId}>{projection.displayId}</p>
+                <CopyChip value={projection.displayId} label="Copy user ID" />
+              </div>
+            )}
+            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${projection.roleMeta.tone}`}>
+              <Shield className="h-3.5 w-3.5" />
+              {projection.roleMeta.label}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+            onClick={() => onView(user)}
+            aria-label="Open full user details"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/40 text-lg font-semibold text-foreground">
+            {getUserInitials(projection.name)}
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-lg font-semibold" title={projection.name}>{projection.name}</h3>
+            <p className="mt-1 truncate text-sm text-muted-foreground" title={projection.email}>{projection.email || 'No email on file'}</p>
+          </div>
+        </div>
+      </RailInsetHero>
+
+      <div className="space-y-2">
+        <DetailLine icon={Mail} label="Email" value={projection.email} />
+        {projection.phone && <DetailLine icon={Phone} label="Phone" value={projection.phone} />}
+        <DetailLine icon={Shield} label="Role" value={projection.roleMeta.label} />
+        {isProvider && projection.providerType && <DetailLine icon={TypeIcon} label="Provider type" value={projection.providerType} />}
+        <DetailLine icon={projection.verified ? ShieldCheck : Shield} label="Verified" value={projection.verified ? 'Verified' : 'Unverified'} />
+        <DetailLine icon={Building2} label="Organization" value={projection.organization} />
+        <DetailLine icon={Clock} label="Joined" value={formatJoinedDate(projection.joined)} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(user)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        {canManage && (
+          <div className="grid grid-cols-2 gap-3">
+            <RailActionButton icon={Edit} label="Edit" onClick={() => onEdit(user)} />
+            <RailActionButton icon={Info} label="Open record" onClick={() => onView(user)} />
+          </div>
+        )}
+
+        {/* Delete / invite stay FAIL-CLOSED ("no parallel truth"): the console must not
+            hard-delete a profile or mint an auth identity the app cannot reconcile. */}
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+        >
+          <Shield className="h-4 w-4 shrink-0" />
+          User commands are disabled until identity authority is verified.
+        </div>
+      </div>
+    </DetailRailShell>
   );
 };

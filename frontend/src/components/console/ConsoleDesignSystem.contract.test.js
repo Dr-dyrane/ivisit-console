@@ -40,6 +40,7 @@ describe('Console design system contract', () => {
     // submit spinner via the page (animate-spin), which the interaction gate accepts.
     { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', modal: 'src/components/modals/VerificationModal.jsx' },
     { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', modal: 'src/components/modals/DoctorModal.jsx' },
+    { name: 'users', page: 'src/components/pages/UsersPage.jsx', modal: 'src/components/modals/UserModal.jsx' },
   ];
 
   const CONSOLE_FILES = () => ({
@@ -197,6 +198,7 @@ describe('Console design system contract', () => {
       ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
       verificationQueue: read('src/components/pages/VerificationQueue.jsx'),
       doctorsPage: read('src/components/pages/DoctorsPage.jsx'),
+      usersPage: read('src/components/pages/UsersPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });

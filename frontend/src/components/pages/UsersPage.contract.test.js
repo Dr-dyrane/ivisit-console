@@ -7,18 +7,22 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
-describe('Users Page 14 intake contract', () => {
-  it('keeps Users in intake only and out of the default visual hardgate', () => {
+describe('Users Page 14 admitted-to-canon contract', () => {
+  it('admits Users to canon (blocker map closed) while preserving the intake-audit trail', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
+    // The 2026-07-05 intake audit is RETAINED as historical evidence...
     expect(gate).toContain('### Page 14 Intake Audit - Users');
     expect(gate).toContain('Users at `/users` is intake only and is not admitted under the Today/Requests canon.');
-    expect(gate).toContain('No visual revamp, shared Requests pattern reuse, invite/role/delete enablement, route-owned action promotion, or hardgate promotion is authorized yet.');
     expect(gate).toContain('Promotion rule: the first Users visual pass must close this blocker map before adding Page 14 to the default hardgate.');
+    // ...and the CLOSURE resolution supersedes it: Users is admitted to canon.
+    expect(gate).toContain('RESOLUTION - Page 14 Users ADMITTED to canon (2026-07-10).');
+    expect(gate).toContain('CLOSED this blocker map');
+    expect(gate).toContain('Invite/create/delete remain INTENTIONALLY fail-closed');
 
     expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
     expect(routes).toContain("'/users': {");
@@ -64,29 +68,47 @@ describe('Users Page 14 intake contract', () => {
     expect(gate).toContain('direct `delete_user_by_admin` RPC calls');
     expect(gate).toContain('mobile pull-to-refresh, infinite load, row reveal, mobile selection, mobile delete, generated mobile trend data, `LIVE` fallback');
 
-    for (const source of [oldPage, page]) {
-      expect(source).toContain("useViewMode('users-page', 'table')");
-      expect(source).toContain('usePagination(20)');
-      expect(source).toContain('const limit = isPrivileged ? 1000 : pagination.itemsPerPage;');
-      expect(source).toContain('let data = await getProfiles(filterOptions);');
-      expect(source).toContain('const orgs = await getOrganizations();');
-      expect(source).toContain('getUserStatistics()');
-      expect(source).toContain("supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('bvn_verified', true)");
-      expect(source).toContain('pagination.setTotalCount(totalCount)');
-      expect(source).toContain('await updateProfile(selectedUser.id, formData)');
-      expect(source).toContain('await createProfile(formData)');
-      expect(source).toContain('const handleBulkDelete = useCallback(() => {');
-      expect(source).toContain("window.addEventListener('openUserModal', handleOpenModal)");
-      expect(source).toContain("window.addEventListener('openInviteUserModal', handleOpenInviteModal)");
-      expect(source).toContain("window.addEventListener('openUserAnalytics'");
-      expect(source).toContain('<MobileUsers');
-      expect(source).toContain('<UserModal');
-      expect(source).toContain('<InviteUserModal');
-      expect(source).toContain('<ConfirmationModal');
-      expect(source).toContain('<AnalyticsModal');
-      expect(source).toContain('<FilterSheet');
-      expect(source).toContain('<UserListView');
-      expect(source).toContain('<UserTableView');
+    // BASELINE (f31f29f) evidence: the pre-revamp page carried the 3-view density shell +
+    // the 1000-row client load. Retained as the record of what preceded admission.
+    expect(oldPage).toContain("useViewMode('users-page', 'table')");
+    expect(oldPage).toContain('const limit = isPrivileged ? 1000 : pagination.itemsPerPage;');
+    expect(oldPage).toContain('let data = await getProfiles(filterOptions);');
+    expect(oldPage).toContain('<UserListView');
+    expect(oldPage).toContain('<UserTableView');
+
+    // ADMITTED page: composes the console DS over the server-projection useProfilesQuery
+    // (Phase A). The density shell + the 1000-row client-side load are GONE.
+    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain("import { SignalPanel } from '../console/SignalPanel';");
+    expect(page).toContain("import { KpiStrip } from '../console/KpiStrip';");
+    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('useProfilesQuery(');
+    expect(page).toContain('useRowSelection(userRows)');
+    expect(page).toContain("useFocusedRecord('users', userRows)");
+    expect(page).toContain('useListKeyboardNav');
+    expect(page).toContain('useScrollResetOnPage');
+    expect(page).toContain('isFetching={isFetching}');
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
+    expect((page.match(/<SortableColumnHeader/g) || []).length).toBe(1);
+    expect(page).not.toContain("useViewMode('users-page', 'table')");
+    expect(page).not.toContain('const limit = isPrivileged ? 1000');
+    expect(page).not.toContain('let data = await getProfiles(filterOptions);');
+    expect(page).not.toContain('<UserListView');
+    expect(page).not.toContain('<UserTableView');
+    expect(page).not.toContain('initial={{');
+    // Still-present receivers + the write register (edit works; create/invite/delete gated).
+    expect(page).toContain('await updateProfile(selectedUser.id, formData)');
+    expect(page).toContain('await createProfile(formData)');
+    expect(page).toContain('const handleBulkDelete = useCallback(() =>');
+    expect(page).toContain("window.addEventListener('openUserModal', handleOpenModal)");
+    expect(page).toContain("window.addEventListener('openInviteUserModal', handleOpenInviteModal)");
+    expect(page).toContain("window.addEventListener('openUserAnalytics'");
+    for (const el of ['<MobileUsers', '<UserModal', '<InviteUserModal', '<ConfirmationModal', '<AnalyticsModal', '<FilterSheet']) {
+      expect(page).toContain(el);
     }
     expect(oldPage).toContain("supabase.rpc('delete_user_by_admin', { target_user_id: targetId })");
     expect(oldPage).toContain("toast.success('User deleted successfully')");
@@ -101,13 +123,12 @@ describe('Users Page 14 intake contract', () => {
     expect(page).toContain('const handleDeleteUnavailable = useCallback(() => {');
     expect(page).toContain('setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);');
-    expect(page).toContain('const handleOpenAnalytics = useCallback(() => {');
-    expect(page).toContain('handleDeleteUnavailable(user);');
-    expect(page).toContain('handleDeleteUnavailable();');
+    expect(page).toContain('const handleViewAnalytics = useCallback(() => setAnalyticsModalOpen(true)');
+    expect(page).toContain('const confirmDelete = useCallback(() => handleDeleteUnavailable()');
+    expect(page).toContain('const handleBulkDelete = useCallback(() => handleDeleteUnavailable()');
     expect(page).toContain('id="users-action-feedback"');
     expect(page).toContain('role="status"');
     expect(page).toContain('data-state="unavailable"');
-    expect(page).toContain('NOT READY');
     expect((page.match(/window\.addEventListener\('openUserModal'/g) || []).length).toBe(1);
 
     for (const source of [oldMobile, mobile]) {
@@ -277,7 +298,6 @@ describe('Users Page 14 intake contract', () => {
 
     expect(usersPageSource).toContain('rounded-card');
     expect(usersPageSource).toContain('rounded-inner');
-    expect(usersPageSource).toContain('rounded-icon');
     expect(usersPageSource).toContain('rounded-button');
     expect(usersPageSource).toContain('rounded-pill');
     // Page 14 uses the canonical squircle vocabulary (matches the gold-standard EmergencyRequestsPage);
@@ -287,8 +307,8 @@ describe('Users Page 14 intake contract', () => {
     expect(usersPageSource).not.toContain('ring-2');
     expect(usersPageSource).not.toContain('h-[1px]');
     expect(usersPageSource).not.toMatch(/\bgeo-/);
+    // Fail-closed identity boundary is preserved after admission (a decision, not a blocker).
     expect(usersPageSource).toContain('data-state="unavailable"');
-    expect(usersPageSource).toContain('NOT READY');
 
     expect(usersPanel).toContain('rounded-card');
     expect(usersPanel).toContain('rounded-inner');
