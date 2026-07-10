@@ -136,6 +136,7 @@ describe('Console design system contract', () => {
     const surfaces = {
       visitsPage: read('src/components/pages/VisitsPage.jsx'),
       visitsPanel: read('src/components/context/VisitsPanel.jsx'),
+      emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });

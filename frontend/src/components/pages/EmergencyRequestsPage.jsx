@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
@@ -17,7 +16,15 @@ import { dispatchEmergency, completeEmergency } from '../../services/emergencyRe
 import * as walletService from '../../services/walletService';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
-import { PaginationControls } from '../ui/PaginationControls';
+// Console design system: the workspace grammar lives in shared components --
+// pages compose the canon instead of re-remembering it. This page is the DONOR
+// (the components carry its own markup verbatim), so adoption is zero-visual.
+import { WorkspaceStage, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { KpiStrip } from '../console/KpiStrip';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, getFilterTriggerState } from '../console/ActivitySheet';
+import { Shimmer, SkeletonRows, CopyChip, DetailLine, StageStrip, EmptyState } from '../console/primitives';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
@@ -27,15 +34,11 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import {
   AlertCircle,
   Ambulance,
-  ArrowUpDown,
   BedDouble,
   CheckCheck,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   ClipboardCheck,
   Clock,
-  Copy,
   CreditCard,
   Filter as FilterIcon,
   Hospital,
@@ -44,7 +47,6 @@ import {
   Loader2,
   MapPin,
   RefreshCw,
-  Search,
   Send,
   ShieldCheck,
   Trash2,
@@ -55,7 +57,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { FilterSheet } from '../common/FilterSheet';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { Checkbox } from '../ui/checkbox';
-import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { MobileEmergency } from '../mobile/MobileEmergency';
 import { SEOHead } from '../common/SEOHead';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
@@ -67,8 +68,6 @@ import {
   isCashPaymentMethod,
 } from '../../utils/emergencyRequestMapper';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
-
-const routeFeedbackMs = 320;
 
 const EMPTY_REQUEST_FILTERS = Object.freeze({
   search: '',
@@ -82,12 +81,6 @@ const hasActiveRequestFilters = (filters = {}) => Boolean(
   filters.created_at?.start ||
   filters.created_at?.end
 );
-
-const getFilterTriggerState = ({ isOpen, hasFilter }) => {
-  if (isOpen) return 'open';
-  if (hasFilter) return 'filtered';
-  return 'idle';
-};
 
 const buildRequestsServiceFilter = (filters = {}) => {
   const dateRange = filters.created_at || {};
@@ -105,7 +98,7 @@ const kpiOptions = [
     label: 'All',
     icon: LayoutGrid,
     colorClass: 'text-foreground',
-    activeClass: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
+    activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
   },
   {
@@ -113,7 +106,7 @@ const kpiOptions = [
     label: 'Needs attention',
     icon: AlertCircle,
     colorClass: 'text-destructive',
-    activeClass: 'bg-destructive/16 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+    activeClass: 'bg-destructive/16 text-destructive shadow-e2',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
   },
   {
@@ -121,7 +114,7 @@ const kpiOptions = [
     label: 'Active',
     icon: Clock,
     colorClass: 'text-amber-700 dark:text-amber-200',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
   },
   {
@@ -131,7 +124,7 @@ const kpiOptions = [
     label: 'Mine',
     icon: UserRound,
     colorClass: 'text-violet-600 dark:text-violet-200',
-    activeClass: 'bg-violet-500/10 text-violet-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-violet-200',
+    activeClass: 'bg-violet-500/10 text-violet-700 shadow-e2 dark:text-violet-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700 dark:hover:text-violet-200',
   },
   {
@@ -139,7 +132,7 @@ const kpiOptions = [
     label: 'Beds',
     icon: BedDouble,
     colorClass: 'text-cyan-600 dark:text-cyan-200',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-200',
   },
   {
@@ -147,40 +140,37 @@ const kpiOptions = [
     label: 'Ambulance',
     icon: Ambulance,
     colorClass: 'text-sky-600 dark:text-sky-200',
-    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
+    activeClass: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
   },
 ];
 
-// Canon: a KPI/state strip renders AT MOST 3 chips — the page's smart-context priority.
-// Selection is DATA-DRIVEN (see selectPrimaryKpis): rank by live count so a zero-count
-// chip never outranks one with real numbers, then display in canonical order for stable
-// positions. Tiles match the Today glance tile exactly (soft resting lift, py-2.5,
-// max-w-2xl grid-cols-2 sm:grid-cols-3). Neutral at rest; colour only when selected.
-const KPI_REST = 'bg-card/65 text-muted-foreground shadow-[0_16px_38px_rgb(0_0_0/0.08)] hover:bg-card/82 dark:bg-white/[0.055] dark:hover:bg-white/[0.085]';
+// Canon: AT MOST 3 chips, data-driven smart context, Today-matched tile spec --
+// the strip architecture now lives in the shared KpiStrip (S1.2); the page keeps
+// only the DOMAIN inputs: options, importance, pins, counts.
 const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, mine: 3, bed: 4, ambulance: 5 };
 
 const statusStyles = {
   pending_approval: {
     label: 'Needs attention',
-    className: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+    className: 'bg-destructive/14 text-destructive shadow-e2',
   },
   in_progress: {
     label: 'Active',
-    className: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+    className: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
   },
   accepted: {
     label: 'Accepted',
-    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+    className: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
   },
   arrived: {
     label: 'Arrived',
-    className: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
+    className: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
   },
   completed: {
     label: 'Completed',
     icon: CheckCheck,
-    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
+    className: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
   },
   cancelled: {
     label: 'Cancelled',
@@ -188,7 +178,7 @@ const statusStyles = {
   },
   payment_declined: {
     label: 'Payment issue',
-    className: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+    className: 'bg-destructive/14 text-destructive shadow-e2',
   },
 };
 
@@ -423,40 +413,20 @@ const getRequestSignal = ({ stats, requests, kpiFilter, loadError }) => {
   };
 };
 
-// Rank KPIs by live significance (count desc), stable importance tiebreak.
-const rankKpiOptions = ({ stats, requests, options = kpiOptions }) =>
-  options
-    .map((option) => ({ option, count: getKpiCount({ id: option.id, stats, requests }) }))
-    .sort(
-      (a, b) =>
-        b.count - a.count ||
-        (KPI_IMPORTANCE[a.option.id] ?? 9) - (KPI_IMPORTANCE[b.option.id] ?? 9)
-    )
-    .map((entry) => entry.option);
-
-// Smart-context selection: the actionable triage states (pending/active) are pinned
-// ONLY while they carry signal (count > 0) — an actionable 5 outranks a service-type 145,
-// but a ZERO-count chip never occupies a slot another option could fill with real data
-// (that dead-chip state is exactly what data-driven selection exists to prevent). Empty
-// slots fill data-driven (count desc); the user's selected chip always stays visible.
-// Rendered in canonical order for stable positions.
+// Smart-context selection (pin-while-signal, count-desc fill, max 3) now lives in
+// the shared KpiStrip's selectPrimaryKpis; the page keeps only the pinned ids.
 const PINNED_KPI_IDS = ['pending', 'active'];
-const selectPrimaryKpis = ({ stats, requests, kpiFilter, includeMine = false }) => {
-  // 'Mine' (responder_id = me) only exists for responder personas (drivers).
-  const pool = includeMine ? kpiOptions : kpiOptions.filter((option) => option.id !== 'mine');
-  const pinned = PINNED_KPI_IDS.filter(
-    (id) => getKpiCount({ id, stats, requests }) > 0
-  );
-  const chosen = new Set(pinned);
-  if (kpiFilter && !chosen.has(kpiFilter) && pool.some((option) => option.id === kpiFilter)) {
-    chosen.add(kpiFilter);
-  }
-  for (const option of rankKpiOptions({ stats, requests, options: pool })) {
-    if (chosen.size >= 3) break;
-    chosen.add(option.id);
-  }
-  return pool.filter((option) => chosen.has(option.id)).slice(0, 3);
-};
+
+// Selected-state override for the shared strip: a zero-count "Needs attention"
+// chip renders as the emerald all-clear instead of the destructive tone.
+const resolveRequestKpiActive = (item, count) => (
+  item.id === 'pending' && count === 0
+    ? {
+        activeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+        colorClass: 'text-emerald-700 dark:text-emerald-200',
+      }
+    : null
+);
 
 const getDefaultRequestKpi = (stats) => {
   const pending = normalizeCount(stats?.pending_approval ?? stats?.pending, 0);
@@ -470,46 +440,24 @@ const getDefaultRequestKpi = (stats) => {
 };
 
 const requestToneClass = {
-  danger: 'bg-destructive/12 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
-  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-sky-200',
+  danger: 'bg-destructive/12 text-destructive shadow-e2',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  critical: 'bg-rose-500/10 text-rose-700 shadow-e2 dark:text-rose-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
 
 const railPrimaryActionClass = {
-  review: 'bg-destructive text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-destructive/90',
-  dispatch: 'bg-sky-600 text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-sky-500',
-  complete: 'bg-emerald-600 text-white shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-emerald-500',
-  retry: 'bg-amber-500 text-slate-950 shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-amber-400',
-  details: 'bg-foreground text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] hover:bg-foreground/90',
+  review: 'bg-destructive text-white shadow-e2-strong hover:bg-destructive/90',
+  dispatch: 'bg-sky-600 text-white shadow-e2-strong hover:bg-sky-500',
+  complete: 'bg-emerald-600 text-white shadow-e2-strong hover:bg-emerald-500',
+  retry: 'bg-amber-500 text-slate-950 shadow-e2-strong hover:bg-amber-400',
+  details: 'bg-foreground text-background shadow-e2-strong hover:bg-foreground/90',
 };
 
-const RequestsAtlasLayer = () => (
-  <div className="absolute inset-0 overflow-hidden bg-background">
-    <div
-      className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
-      style={{
-        backgroundImage:
-          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
-        backgroundSize: '260px 180px, 340px 240px, 420px 280px',
-        backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
-      }}
-    />
-    <div
-      className="absolute inset-0"
-      style={{
-        background:
-          'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
-      }}
-    />
-  </div>
-);
-
 export const EmergencyRequestsPage = () => {
-  const navigate = useNavigate();
   const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId, profile, user, loading: authLoading } = useAuth();
   const { isMobile } = useNavigation();
 
@@ -549,7 +497,9 @@ export const EmergencyRequestsPage = () => {
   // Retry is a direct service call (not a mutation hook), so pending is tracked
   // manually — mirrors dispatchMutation.isPending / completeMutation.isPending.
   const [retryPending, setRetryPending] = useState(false);
-  const [routingPath, setRoutingPath] = useState(null);
+  // Wayfinding dock: first-click-wins navigation with the pressed-pill feedback
+  // window comes from the shared stage (useWayfindingNav).
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
 
   const queryClient = useQueryClient();
   const pagination = usePagination(20);
@@ -569,17 +519,6 @@ export const EmergencyRequestsPage = () => {
     () => getConsoleModuleRailItems(roleKind),
     [roleKind]
   );
-
-  const handleRailNavigate = useCallback((path) => {
-    if (!path) return;
-    setRoutingPath(path);
-    window.setTimeout(() => {
-      if (path !== window.location.pathname) {
-        navigate(path);
-      }
-      setRoutingPath(null);
-    }, routeFeedbackMs);
-  }, [navigate]);
 
   const getEmergencyLabel = useCallback((request) => (
     request?.display_id ||
@@ -782,8 +721,10 @@ export const EmergencyRequestsPage = () => {
       aria-expanded={filterSheetOpen}
     >
       <FilterIcon className="h-4 w-4" />
+      {/* Neutral-shadow law: the dot lost its colored glow on DS adoption (the
+          documented self-debt); the sky dot itself stays (Visits precedent). */}
       {hasFilter && (
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500 shadow-[0_0_24px_rgba(14,165,233,0.55)]" />
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />
       )}
     </Button>
   ), [filterSheetOpen, filterTriggerState, hasFilter]);
@@ -794,7 +735,7 @@ export const EmergencyRequestsPage = () => {
         <Button
           onClick={handleCreateEmergency}
           data-state={isEmergencyModalOpen ? 'open' : 'idle'}
-          className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+          className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
           aria-label="Create new request"
           aria-haspopup="dialog"
           aria-expanded={isEmergencyModalOpen}
@@ -1463,185 +1404,27 @@ const RequestsDesktopWorkspace = ({
     && requests.every((row) => selectedIds.includes(row.id));
   const someSelected = selectable && !allSelected && selectedIds.length > 0;
   const listScrollRef = useRef(null);
+  // 'Mine' (responder_id = me) only exists for responder personas (drivers); the
+  // pool is filtered BEFORE the shared strip ranks and selects chips.
+  const kpiPool = includeMine ? kpiOptions : kpiOptions.filter((option) => option.id !== 'mine');
 
-  // A page change resets the rows viewport to the top; otherwise the next page
-  // opens mid-scroll wherever the last one left off.
-  useEffect(() => {
-    listScrollRef.current?.scrollTo({ top: 0 });
-  }, [pagination.currentPage]);
-
-  // Keyboard list navigation on the rows viewport: ArrowDown/ArrowUp move row focus
-  // (clamped to the current page), Enter opens details for the focused row, Escape
-  // returns focus to the default (first row). Typing surfaces and open dialogs are
-  // ignored so the shortcuts never steal keys from inputs or modals.
-  const handleListKeyDown = useCallback((event) => {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== 'Escape') return;
-    if (event.defaultPrevented) return;
-    const target = event.target;
-    if (target instanceof HTMLElement) {
-      const tag = target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
-    }
-    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]')) return;
-
-    if (event.key === 'Escape') {
-      setFocusedRequestId(null);
-      return;
-    }
-    if (requests.length === 0) return;
-    if (event.key === 'Enter') {
-      if (focusedRequest) {
-        event.preventDefault();
-        onView(focusedRequest);
-      }
-      return;
-    }
-
-    event.preventDefault();
-    const delta = event.key === 'ArrowDown' ? 1 : -1;
-    const currentIndex = requests.findIndex((row) => row.id === focusedRequest?.id);
-    const nextIndex = currentIndex === -1
-      ? (delta > 0 ? 0 : requests.length - 1)
-      : Math.min(requests.length - 1, Math.max(0, currentIndex + delta));
-    const next = requests[nextIndex];
-    if (!next) return;
-    setFocusedRequestId(next.id);
-    listScrollRef.current?.querySelector(`[data-request-row="${next.id}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [requests, focusedRequest, onView, setFocusedRequestId]);
+  useScrollResetOnPage(listScrollRef, pagination.currentPage);
+  const handleListKeyDown = useListKeyboardNav({
+    items: requests,
+    focusedItem: focusedRequest,
+    setFocusedId: setFocusedRequestId,
+    onOpen: onView,
+    scrollRef: listScrollRef,
+    rowAttr: 'data-request-row',
+  });
 
   return (
-    <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
-      <RequestsAtlasLayer />
-      <ConsoleModuleRail
-        items={moduleRailItems}
-        activePath="/emergencies"
-        routingPath={routingPath}
-        onNavigate={onRailNavigate}
-      />
-
-      <div className="relative z-10 flex min-h-[calc(100dvh-3rem)] w-full min-w-0 flex-col gap-5 px-4 pb-8 pt-20 sm:px-5 md:pt-24 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28">
-        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
-          <RequestSignalPanel
-            signal={signal}
-            stats={stats}
-            requests={requests}
-            kpiFilter={kpiFilter}
-            setKpiFilter={setKpiFilter}
-            loading={loading}
-            isFetching={isFetching}
-            includeMine={includeMine}
-          />
-
-          <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
-            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-            <RequestToolbar
-              filters={filters}
-              setFilters={setFilters}
-              openFilters={openFilters}
-              filterSheetOpen={filterSheetOpen}
-              filterTriggerState={filterTriggerState}
-              onRefresh={onRetry}
-              refreshing={isFetching}
-            />
-
-            <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
-              <span>{loading ? 'Loading requests' : failedEmpty ? "Couldn't load" : `${pagination.totalCount} requests`}</span>
-              <span>{loading ? 'One moment' : failedEmpty ? 'Retry below' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
-            </div>
-
-            <div
-              ref={listScrollRef}
-              tabIndex={0}
-              onKeyDown={handleListKeyDown}
-              aria-label="Requests list"
-              style={{ outline: 'none' }}
-              className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
-            >
-              <RequestListHeader
-                selectable={selectable}
-                allSelected={allSelected}
-                someSelected={someSelected}
-                onSelectAll={onSelectAll}
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-
-              {loading && <RequestSkeletonRows />}
-              {!loading && loadError && requests.length === 0 && (
-                <RequestLoadErrorState message={loadError} onRetry={onRetry} />
-              )}
-              {!loading && loadError && requests.length > 0 && (
-                <RequestLoadNotice message={loadError} onRetry={onRetry} />
-              )}
-              {!loading && !loadError && Number(pagination.totalCount) === 0 && (
-                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
-                  <ClipboardCheck className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                  <h3 className="text-xl font-semibold">
-                    {hasFilter ? 'No matching requests' : (REQUEST_EMPTY_HEADINGS[kpiFilter] || 'No requests yet')}
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    {hasFilter ? 'Change filters or search again.' : 'New requests will appear here.'}
-                  </p>
-                  <div className="mt-5 flex items-center gap-2">
-                    {hasFilter && (
-                      <Button
-                        variant="ghost"
-                        onClick={openFilters}
-                        data-state={filterTriggerState}
-                        className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-                        aria-haspopup="dialog"
-                        aria-expanded={filterSheetOpen}
-                      >
-                        Change filters
-                      </Button>
-                    )}
-                    {!hasFilter && kpiFilter && kpiFilter !== 'all' && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setKpiFilter('all')}
-                        className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-                      >
-                        Show all requests
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-              {/* Replace-in-place (lessons #15): the skeleton holds the exact final layout and
-                  rows swap in instantly — no per-row stagger/translate entrance (that top-to-
-                  bottom cascade IS the "stacking" skew). layout="position" on the row keeps
-                  sort/removal reflow smooth without entrance motion. */}
-              {!loading && requests.length > 0 && (
-                requests.map((request) => (
-                  <RequestRow
-                    key={request.id}
-                    request={request}
-                    selected={focusedRequest?.id === request.id}
-                    onFocus={() => setFocusedRequestId(request.id)}
-                    onView={onView}
-                    selectable={selectable}
-                    checked={selectedIds.includes(request.id)}
-                    onToggleSelect={onToggleSelect}
-                    onSelectClick={onSelectClick}
-                  />
-                ))
-              )}
-            </div>
-
-            <PaginationControls
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              totalCount={pagination.totalCount}
-              itemsPerPage={pagination.itemsPerPage}
-              onPrevPage={pagination.prevPage}
-              onNextPage={pagination.nextPage}
-              hasPrevPage={pagination.hasPrevPage}
-              hasNextPage={pagination.hasNextPage}
-              loading={loading || isFetching}
-            />
-          </div>
-        </section>
-
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/emergencies"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
         <RequestDetailRail
           request={focusedRequest}
           currentUser={currentUser}
@@ -1657,122 +1440,125 @@ const RequestsDesktopWorkspace = ({
           onProcessCash={onProcessCash}
           onRetryPayment={onRetryPayment}
         />
-      </div>
-    </section>
-  );
-};
-
-const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading, isFetching, includeMine = false }) => {
-  const SignalIcon = signal.icon;
-
-  return (
-    // Replace-in-place: the skeleton holds this exact layout, so the panel gets no
-    // entrance motion — content swaps in where the skeleton stood (lessons #15).
-    <section className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]">
-      <div className="w-full min-w-0">
-        {loading ? (
-          <div className="space-y-4">
-            <Shimmer className="h-8 w-36 rounded-pill" />
-            <Shimmer className="h-12 w-3/4 rounded-card md:h-[72px]" />
-            <Shimmer className="h-5 w-1/2 rounded-inner" />
-          </div>
-        ) : (
-          <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${requestToneClass[signal.tone] || requestToneClass.muted}`}>
-              <SignalIcon className="h-4 w-4" />
-              {signal.label}
-            </div>
-            <h1 className="text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-              {signal.headline}
-            </h1>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-              {signal.subhead}
-            </p>
-          </div>
-        )}
-
-        <RequestKpiStrip
-          stats={stats}
-          requests={requests}
+      )}
+    >
+      <SignalPanel signal={signal} loading={loading} toneClassMap={requestToneClass}>
+        <KpiStrip
+          options={kpiPool}
+          getCount={(id) => getKpiCount({ id, stats, requests })}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
           loading={loading}
           isFetching={isFetching}
-          includeMine={includeMine}
+          pinnedIds={PINNED_KPI_IDS}
+          importance={KPI_IMPORTANCE}
+          defaultId="pending"
+          dataAttr="data-request-kpi"
+          resolveActive={resolveRequestKpiActive}
         />
-      </div>
-    </section>
+      </SignalPanel>
+
+      <ActivitySheet
+        loading={loading}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={pagination}
+        itemNoun="requests"
+        toolbar={(
+          <SheetToolbar
+            searchValue={filters.search}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            searchPlaceholder="Search by request ID, facility, responder, or type..."
+            searchTestId="requests-sheet-search"
+            onRefresh={onRetry}
+            refreshing={isFetching}
+            refreshNoun="requests"
+            onOpenFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasFilter}
+          />
+        )}
+      >
+        <div
+          ref={listScrollRef}
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          aria-label="Requests list"
+          style={{ outline: 'none' }}
+          className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+        >
+          <RequestListHeader
+            selectable={selectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onSelectAll={onSelectAll}
+            sortConfig={sortConfig}
+            onSort={onSort}
+          />
+
+          {loading && <SkeletonRows />}
+          {!loading && loadError && requests.length === 0 && (
+            <RequestLoadErrorState message={loadError} onRetry={onRetry} />
+          )}
+          {!loading && loadError && requests.length > 0 && (
+            <RequestLoadNotice message={loadError} onRetry={onRetry} />
+          )}
+          {!loading && !loadError && Number(pagination.totalCount) === 0 && (
+            <EmptyState
+              icon={ClipboardCheck}
+              heading={hasFilter ? 'No matching requests' : (REQUEST_EMPTY_HEADINGS[kpiFilter] || 'No requests yet')}
+              body={hasFilter ? 'Change filters or search again.' : 'New requests will appear here.'}
+            >
+              {hasFilter && (
+                <Button
+                  variant="ghost"
+                  onClick={openFilters}
+                  data-state={filterTriggerState}
+                  className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                  aria-haspopup="dialog"
+                  aria-expanded={filterSheetOpen}
+                >
+                  Change filters
+                </Button>
+              )}
+              {!hasFilter && kpiFilter && kpiFilter !== 'all' && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setKpiFilter('all')}
+                  className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                >
+                  Show all requests
+                </Button>
+              )}
+            </EmptyState>
+          )}
+          {/* Replace-in-place (lessons #15): the skeleton holds the exact final layout and
+              rows swap in instantly -- no per-row stagger/translate entrance (that top-to-
+              bottom cascade IS the "stacking" skew). layout="position" on the row keeps
+              sort/removal reflow smooth without entrance motion. */}
+          {!loading && requests.length > 0 && (
+            requests.map((request) => (
+              <RequestRow
+                key={request.id}
+                request={request}
+                selected={focusedRequest?.id === request.id}
+                onFocus={() => setFocusedRequestId(request.id)}
+                onView={onView}
+                selectable={selectable}
+                checked={selectedIds.includes(request.id)}
+                onToggleSelect={onToggleSelect}
+                onSelectClick={onSelectClick}
+              />
+            ))
+          )}
+        </div>
+      </ActivitySheet>
+    </WorkspaceStage>
   );
 };
 
-const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter, loading, isFetching, includeMine = false }) => {
-  if (loading) {
-    return (
-      <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl sm:px-4 md:py-3"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 space-y-2">
-                <Shimmer className="h-3 w-16 rounded-pill" />
-                <Shimmer className="h-6 w-9 rounded-inner" />
-              </div>
-              <Shimmer className="h-7 w-7 rounded-pill" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
-      {selectPrimaryKpis({ stats, requests, kpiFilter, includeMine }).map((item) => {
-        const Icon = item.icon;
-      const active = (kpiFilter || 'pending') === item.id;
-      const count = getKpiCount({ id: item.id, stats, requests });
-      const clearPending = item.id === 'pending' && count === 0;
-      const activeClass = clearPending
-        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
-        : item.activeClass;
-      const colorClass = clearPending ? 'text-emerald-700 dark:text-emerald-200' : item.colorClass;
-      return (
-        <motion.button
-          key={item.id}
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)}
-          data-request-kpi={item.id}
-          data-state={active ? 'selected' : 'idle'}
-          className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? activeClass : KPI_REST}`}
-          aria-pressed={active}
-          aria-label={`${item.label}: ${count}`}
-        >
-          <span className="flex items-start justify-between gap-2">
-            <span className="min-w-0">
-              <span className="block text-[10px] font-medium leading-tight sm:text-[11px]">{item.label}</span>
-              <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
-            </span>
-            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? colorClass : ''}`}>
-              {active && isFetching ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Icon className="h-3.5 w-3.5" />
-              )}
-            </span>
-          </span>
-        </motion.button>
-      );
-      })}
-      </div>
-    );
-};
-
 const RequestLoadErrorState = ({ message, onRetry }) => (
-  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-e2">
     <AlertCircle className="mb-4 h-12 w-12 text-destructive/75" />
     <h3 className="text-xl font-semibold">Requests did not load</h3>
     <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -1790,7 +1576,7 @@ const RequestLoadErrorState = ({ message, onRetry }) => (
 );
 
 const RequestLoadNotice = ({ message, onRetry }) => (
-  <div className="mb-3 flex flex-col gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)] sm:flex-row sm:items-center sm:justify-between">
+  <div className="mb-3 flex flex-col gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-e2 sm:flex-row sm:items-center sm:justify-between">
     <span className="font-medium">{message || 'Requests could not refresh.'}</span>
     <Button
       type="button"
@@ -1803,97 +1589,10 @@ const RequestLoadNotice = ({ message, onRetry }) => (
   </div>
 );
 
-const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState, onRefresh, refreshing = false }) => {
-  // Debounced search: the input edits a local draft; the query filter (filters.search)
-  // commits 300ms after typing pauses — one refetch per pause, not per keystroke.
-  const [searchDraft, setSearchDraft] = useState(filters.search || '');
-
-  // Follow external changes (FilterSheet Clear, "Show all requests") into the draft.
-  useEffect(() => {
-    setSearchDraft(filters.search || '');
-  }, [filters.search]);
-
-  useEffect(() => {
-    if ((filters.search || '') === searchDraft) return undefined;
-    const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchDraft }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchDraft, filters.search, setFilters]);
-
-  return (
-  <div className="flex items-center gap-3">
-    <div className="relative flex-1">
-      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
-      <input
-        type="search"
-        value={searchDraft}
-        onChange={(event) => setSearchDraft(event.target.value)}
-        placeholder="Search by request ID, facility, responder, or type..."
-        className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
-      />
-    </div>
-    {/* Manual refresh — realtime usually covers it, but operators on flaky channels
-        need an explicit affordance (desktop equivalent of mobile pull-to-refresh). */}
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onRefresh}
-      disabled={refreshing}
-      className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
-      aria-label={refreshing ? 'Refreshing requests' : 'Refresh requests'}
-      title={refreshing ? 'Refreshing...' : 'Refresh'}
-    >
-      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-    </Button>
-    <Button
-      variant="ghost"
-      onClick={openFilters}
-      data-state={filterTriggerState}
-      className="h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-      aria-haspopup="dialog"
-      aria-expanded={filterSheetOpen}
-    >
-      <FilterIcon className="mr-2 h-4 w-4" />
-      Filters
-    </Button>
-  </div>
-  );
-};
-
 // Person | Status | Service | Facility | Time | Action — status owns its own column
 // (it used to hide stacked inside the Facility cell, under a header that lied).
 const REQUEST_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
 const REQUEST_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(88px,0.62fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
-
-// Clickable column header (VisitsPage/HospitalsPage idiom): a new key sorts ascending,
-// re-tapping the active key flips direction. Feeds setSortConfig via onSort.
-const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => {
-  const isSorted = sortConfig?.key === sortKey;
-  const direction = isSorted ? sortConfig.direction : null;
-  return (
-    // aria-sort lives on a columnheader-roled wrapper (§6 accessibility canon).
-    <span
-      role="columnheader"
-      aria-sort={isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-    <button
-      type="button"
-      onClick={() => onSort?.(sortKey)}
-      data-state={isSorted ? 'sorted' : 'idle'}
-      className={`flex items-center gap-1 transition-colors hover:text-foreground active:scale-[0.96] ${className}`}
-      aria-label={`Sort by ${label}`}
-    >
-      {label}
-      {isSorted ? (
-        direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-      ) : (
-        <ArrowUpDown className="h-3 w-3 opacity-40" />
-      )}
-    </button>
-    </span>
-  );
-};
 
 const RequestListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
   <div className={`grid ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
@@ -1938,7 +1637,7 @@ const RequestRow = ({ request, selected, onFocus, onView, selectable = false, ch
   return (
     <motion.div
       layout="position"
-      className={`group mb-2 grid min-h-[80px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
+      className={`group mb-2 grid min-h-[80px] ${selectable ? REQUEST_GRID_COLS_SELECT : REQUEST_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-e2-strong dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-e2 dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
       data-request-row={request.id}
       data-state={selected ? 'selected' : 'idle'}
       role="button"
@@ -2061,7 +1760,7 @@ const RequestDetailRail = ({
 
   if (loading) {
     return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
         <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="space-y-3">
@@ -2095,7 +1794,7 @@ const RequestDetailRail = ({
 
   if (!request) {
     return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
         <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
@@ -2163,11 +1862,11 @@ const RequestDetailRail = ({
     (primaryAction.kind === 'retry' && retryPending);
 
   return (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
       <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
       {/* Today-sheet surface recipe: a recessed inset panel holds the hero block, and the
           detail cards below read as fill-films over the pane (no per-card shadow). */}
-      <div className="mb-4 rounded-modal bg-background/55 p-3 dark:bg-white/[0.05] md:p-4">
+      <RailInsetHero>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold tracking-tight">Request details</h2>
@@ -2182,11 +1881,12 @@ const RequestDetailRail = ({
             {status.label}
           </div>
           {/* Compact lifecycle progression: filled to the current canonical stage; cancelled all-muted. */}
-          <div className="mt-3 flex w-[200px] max-w-full gap-1" aria-hidden="true">
-            {REQUEST_STAGE_ORDER.map((stage, index) => (
-              <span key={stage} className={`h-1 flex-1 rounded-pill ${!railCancelled && index <= railStageIndex ? railStageFill : 'bg-muted/40'}`} />
-            ))}
-          </div>
+          <StageStrip
+            order={REQUEST_STAGE_ORDER}
+            fillClass={railStageFill}
+            activeIndex={railStageIndex}
+            muted={railCancelled}
+          />
         </div>
         <Button
           variant="ghost"
@@ -2224,7 +1924,7 @@ const RequestDetailRail = ({
           )}
         </div>
       </div>
-      </div>
+      </RailInsetHero>
 
       <div className="space-y-2">
         <DetailLine icon={Hospital} label="Facility" value={projection.facilityDisplay.name} />
@@ -2318,45 +2018,6 @@ const RequestDetailRail = ({
   );
 };
 
-const DetailLine = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.045] p-2.5 dark:bg-white/[0.055]">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
-      <Icon className="h-4 w-4" />
-    </span>
-    <div className="min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div
-        className="mt-1 truncate text-sm font-semibold text-foreground"
-        title={typeof value === 'string' ? value : undefined}
-      >
-        {value || 'Not set'}
-      </div>
-    </div>
-  </div>
-);
-
-// Click-to-copy affordance for rail values the operator re-keys elsewhere (phone,
-// case id). Ghost pill; stopPropagation keeps the copy from bubbling into row/rail
-// click handlers.
-const CopyChip = ({ value, label }) => (
-  <button
-    type="button"
-    onClick={(event) => {
-      event.stopPropagation();
-      const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-      if (clipboard?.writeText) {
-        clipboard.writeText(String(value)).catch(() => {});
-      }
-      toast('Copied');
-    }}
-    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground active:scale-95"
-    aria-label={label}
-    title={label}
-  >
-    <Copy className="h-3 w-3" />
-  </button>
-);
-
 const RailActionButton = ({ icon: Icon, label, onClick, pending = false }) => (
   <Button
     variant="ghost"
@@ -2424,16 +2085,3 @@ const getPrimaryRailAction = ({
   };
 };
 
-// One skeleton primitive for the whole page: same pulse/tone as the row skeleton,
-// composed into signal, KPI, row, and rail variants so loading has no bare dots.
-const Shimmer = ({ className = '' }) => (
-  <span className={`block animate-pulse bg-muted/38 dark:bg-white/[0.055] ${className}`} />
-);
-
-const RequestSkeletonRows = () => (
-  <div className="space-y-2">
-    {Array.from({ length: 7 }).map((_, index) => (
-      <Shimmer key={index} className="h-[80px] rounded-card" />
-    ))}
-  </div>
-);

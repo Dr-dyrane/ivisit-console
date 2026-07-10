@@ -52,14 +52,18 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('sortDirection: sortConfig.direction');
     // Sort UI: clickable column headers toggle setSortConfig (VisitsPage/HospitalsPage
     // idiom), feeding the sortKey/sortDirection plumbing above into the service filter.
+    // The header/sheet/count-row/pagination anatomy composes from the console DS
+    // (locked in ConsoleDesignSystem.contract.test.js); the page wires the domain:
+    // TIME-only sort key + the shared pagination store.
     expect(pageSource).toContain('const handleSort = useCallback((key) =>');
     expect(pageSource).toContain('setSortConfig((current) => ({');
-    expect(pageSource).toContain('const SortableColumnHeader = ({');
+    expect(pageSource).toContain("SortableColumnHeader, getFilterTriggerState } from '../console/ActivitySheet'");
+    expect(pageSource).toContain('<SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />');
     expect(pageSource).toContain('onSort={handleSort}');
     expect(pageSource).toContain('pagination.setTotalCount(count || 0);');
-    expect(pageSource).toContain('<PaginationControls');
-    expect(pageSource).toContain('totalCount={pagination.totalCount}');
-    expect(pageSource).toContain('itemsPerPage={pagination.itemsPerPage}');
+    expect(pageSource).toContain('<ActivitySheet');
+    expect(pageSource).toContain('itemNoun="requests"');
+    expect(pageSource).toContain('pagination={pagination}');
     expect(pageSource).toContain('Number(pagination.totalCount) === 0');
     expect(pageSource).not.toContain('setTotalCount(data.length');
     expect(pageSource).not.toContain('setTotalCount(normalizedRows.length');
@@ -92,8 +96,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const activeRequestsSource = `${pageSource}\n${mobileSource}`;
 
     expect(pageSource).toContain('const RequestsDesktopWorkspace = (');
-    expect(pageSource).toContain('<RequestSignalPanel');
-    expect(pageSource).toContain('<RequestKpiStrip');
+    // Signal panel + KPI strip compose from the console DS (this page is the donor);
+    // the page keeps its domain maps (signal copy, tone classes, options, counts).
+    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={requestToneClass}>');
+    expect(pageSource).toContain('<KpiStrip');
     expect(pageSource).toContain('<RequestRow');
     expect(pageSource).toContain('<RequestDetailRail');
     expect(pageSource).toContain('viewToggle={null}');
@@ -131,7 +137,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     });
 
     expect(pageSource).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';");
-    expect(pageSource).toContain("import { ConsoleModuleRail } from '../common/ConsoleModuleRail';");
+    // The stage owns the atlas + wayfinding dock now (console DS WorkspaceStage
+    // renders ConsoleModuleRail); the page stopped importing the rail directly.
+    expect(pageSource).toContain("import { WorkspaceStage, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';");
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
     expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
     expect(pageSource).toContain('const RequestDetailRail = ({');
@@ -183,20 +191,24 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
     const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
 
-    expect(pageSource).toContain('Loading requests');
-    expect(pageSource).toContain('One moment');
-    expect(pageSource).toContain('{loading && <RequestSkeletonRows />}');
+    // Count-row copy ('Loading requests' / 'One moment') renders through the DS
+    // ActivitySheet from itemNoun="requests"; the skeleton rows are the shared
+    // SkeletonRows primitive (both locked in ConsoleDesignSystem.contract.test.js).
+    expect(pageSource).toContain('itemNoun="requests"');
+    expect(fs.readFileSync('src/components/console/ActivitySheet.jsx', 'utf8')).toContain("'One moment'");
+    expect(pageSource).toContain('{loading && <SkeletonRows />}');
     expect(pageSource).toContain('<RequestLoadErrorState message={loadError} onRetry={onRetry} />');
     expect(pageSource).toContain('<RequestLoadNotice message={loadError} onRetry={onRetry} />');
     expect(pageSource).toContain('Number(pagination.totalCount) === 0');
     expect(pageSource).toContain('No matching requests');
     expect(pageSource).toContain('Change filters');
-    expect(pageSource).toContain('const RequestSkeletonRows = () => (');
+    expect(pageSource).toContain("SkeletonRows, CopyChip, DetailLine, StageStrip, EmptyState } from '../console/primitives'");
     expect(pageSource).toContain('const RequestLoadErrorState = ({ message, onRetry }) => (');
     expect(pageSource).toContain('const RequestLoadNotice = ({ message, onRetry }) => (');
-    expect(pageSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    // KPI chip selected/idle + aria-pressed anatomy is locked once in the DS
+    // KpiStrip; the row keeps its own selected/idle truth in the page.
+    expect(pageSource).toContain('dataAttr="data-request-kpi"');
     expect(pageSource).toContain("data-state={selected ? 'selected' : 'idle'}");
-    expect(pageSource).toContain('aria-pressed={active}');
     expect(pageSource).toContain('aria-pressed={selected}');
     expect(pageSource).toContain('data-state={filterTriggerState}');
     expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
@@ -256,13 +268,16 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('Number(pagination.totalCount) === 0');
     expect(pageSource).toContain('No matching requests');
     expect(pageSource).toContain('Change filters');
-    expect(pageSource).toContain('Loading requests');
-    expect(pageSource).toContain('One moment');
+    // 'Loading requests' / 'One moment' come from the DS ActivitySheet count row
+    // via itemNoun="requests" (locked in ConsoleDesignSystem.contract.test.js).
+    expect(pageSource).toContain('itemNoun="requests"');
     expect(pageSource).toContain('const EMPTY_REQUEST_FILTERS = Object.freeze({');
     expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
     expect(pageSource).toContain('date_from: dateRange.start');
     expect(pageSource).toContain('date_to: dateRange.end');
-    expect(pageSource).toContain('const getFilterTriggerState = ({ isOpen, hasFilter }) =>');
+    // getFilterTriggerState is DS-owned now (ActivitySheet); the page imports it
+    // for the header trigger and the DS toolbar computes its own state from props.
+    expect(pageSource).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader, getFilterTriggerState } from '../console/ActivitySheet';");
     expect(pageSource).toContain('const filterTriggerState = getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter });');
     expect(pageSource).toContain("data-state={isEmergencyModalOpen ? 'open' : 'idle'}");
     expect(pageSource).toContain('aria-expanded={isEmergencyModalOpen}');
@@ -354,14 +369,18 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'cancelled')");
     expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(pageSource).toContain("usePageFooter(null, 'status', false)");
-    expect(pageSource).toContain('const RequestsAtlasLayer = () => (');
-    expect(pageSource).toContain('<ConsoleModuleRail');
+    // The atlas layer + module rail render inside the DS WorkspaceStage
+    // (ConsoleAtlasLayer is this page's own recipe, extracted verbatim);
+    // wayfinding press feedback comes from the shared useWayfindingNav.
+    expect(pageSource).toContain('<WorkspaceStage');
     expect(pageSource).toContain('activePath="/emergencies"');
+    expect(pageSource).toContain('moduleRailItems={moduleRailItems}');
     expect(pageSource).toContain('getConsoleModuleRailItems(roleKind)');
-    expect(pageSource).toContain('setRoutingPath(path)');
+    expect(pageSource).toContain('const { routingPath, handleRailNavigate } = useWayfindingNav();');
+    expect(pageSource).toContain('routingPath={routingPath}');
     expect(railSource).toContain("admin: ['today', 'requests', 'staff', 'payments', 'help']");
     expect(railComponentSource).toContain('aria-current={isActive ? \'page\' : undefined}');
-    expect(pageSource).toContain('const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter, loading, isFetching, includeMine = false }) =>');
+    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={requestToneClass}>');
     expect(pageSource).toContain('getRequestSignal({ stats, requests, kpiFilter, loadError })');
     expect(pageSource).toContain('return normalizeCount(stats?.pending, rowCount);');
     expect(pageSource).toContain("id: 'active'");
@@ -378,10 +397,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain("label: 'Critical care'");
     expect(pageSource).not.toContain("priority === 'critical'");
     expect(pageSource).not.toContain('requests.length > 0 ? rowCount : normalizeCount(stats?.pending, rowCount)');
-    expect(pageSource).toContain('data-request-kpi={item.id}');
-    expect(pageSource).toContain("data-state={active ? 'selected' : 'idle'}");
-    expect(pageSource).toContain('aria-pressed={active}');
-    expect(pageSource).toContain('aria-label={`${item.label}: ${count}`}');
+    // Chip anatomy (data-state selected/idle, aria-pressed, aria-label) is locked
+    // once in the DS KpiStrip; the page pins its domain wiring: pool pins,
+    // importance, the 'pending' default, and the zero-pending emerald override.
+    expect(pageSource).toContain('dataAttr="data-request-kpi"');
+    expect(pageSource).toContain('pinnedIds={PINNED_KPI_IDS}');
+    expect(pageSource).toContain('importance={KPI_IMPORTANCE}');
+    expect(pageSource).toContain('defaultId="pending"');
+    expect(pageSource).toContain('resolveActive={resolveRequestKpiActive}');
     expect(pageSource).toContain('data-request-row={request.id}');
     expect(pageSource).toContain("data-state={selected ? 'selected' : 'idle'}");
     expect(pageSource).toContain('aria-pressed={selected}');
@@ -401,19 +424,28 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('bg-primary text-white');
     expect(pageSource).not.toContain('bg-warning text-background');
     expect(pageSource).toContain('hover:bg-foreground/10 hover:text-foreground');
-    expect(pageSource).toContain('bg-sky-500 shadow-[0_0_24px_rgba(14,165,233,0.55)]');
+    // Neutral-shadow law (DS adoption): the header filter dot keeps the sky fill
+    // but lost its colored glow -- the documented self-debt (Visits precedent).
+    expect(pageSource).toContain('h-2 w-2 rounded-pill bg-sky-500');
+    expect(pageSource).not.toContain('shadow-[0_0_24px_rgba(14,165,233,0.55)]');
     expect(pageSource).not.toContain('hover:bg-primary/10 hover:text-primary');
     expect(pageSource).not.toContain('bg-primary shadow-[0_0_24px_hsl(var(--primary)');
     expect(pageSource).not.toContain('rounded-full bg-destructive/16 text-lg font-semibold text-destructive');
-    expect(pageSource).toContain('min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground');
-    expect(pageSource).toContain('lg:h-[calc(100dvh-3rem)]');
-    expect(pageSource).toContain('rounded-t-sheet bg-card/68');
+    // Stage + activity-sheet surfaces live in the DS files now (this page is the
+    // donor); the detail rail shell stays page-local for its mobile bottom margin
+    // (mb-[calc(13rem+var(--safe-bottom))]) the DS DetailRailShell does not carry.
+    const workspaceStageSource = fs.readFileSync('src/components/console/WorkspaceStage.jsx', 'utf8');
+    const activitySheetSource = fs.readFileSync('src/components/console/ActivitySheet.jsx', 'utf8');
+    expect(workspaceStageSource).toContain('min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground');
+    expect(workspaceStageSource).toContain('lg:h-[calc(100dvh-3rem)]');
+    expect(activitySheetSource).toContain('rounded-t-sheet bg-card/68');
+    expect(activitySheetSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
     expect(pageSource).toContain('md:rounded-sheet');
     expect(pageSource).toContain('overflow-y-auto rounded-card');
     expect(pageSource).not.toContain('rounded-t-[44px] bg-card/68');
     expect(pageSource).not.toContain('overflow-y-auto rounded-[30px]');
     expect(pageSource).toContain('lg:h-[calc(100dvh-5.5rem)]');
-    expect(pageSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
+    expect(pageSource).toContain('mx-auto mb-4 h-1.5 w-[42px]');
     expect(pageSource).toContain('const railPrimaryActionClass = {');
     expect(activeRequestsSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(activeRequestsSource).not.toContain('group-hover:opacity-100');
