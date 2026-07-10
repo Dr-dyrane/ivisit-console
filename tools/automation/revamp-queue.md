@@ -309,9 +309,20 @@ Notes:
   (context-aware stats trigger) + SkeletonGroupPanel `trailing='timePill'|'pill'` variants —
   MobileEmergency can adopt both on its next touch. Remaining kit gap (reported, open):
   TonedAvatar has no img-overlay variant (Requests rail avatar).
+- **RE-COMPOSITION 3/3 DONE — MobileToday** (agent-built, controller-verified + committed):
+  donor-diff 0/0 on className+aria+data+visible-strings; ZERO pin edits (verified the contract
+  never pins MobileToday). THE HANDOFF'S THREE FIDELITY RE-COMPOSITIONS ARE COMPLETE. Kit gaps
+  queued from this pass: (1) MobileHero hero-recipe divergence — kit follows the desktop-donor
+  live-region placement (role=status on the tone pill, gap-3/span) vs the shipped mobile
+  dashboard (live region on the Updating pill, gap-2/div): mobile lane, arbitrate which is canon
+  and the kit reconciles; (2) dashboard-shaped skeleton (MobileTodaySkeleton recipe, spec S9) not
+  yet a kit scaffold. TODAY UNBLOCK (user-authorized): the mobile lane's stranded legacy-Today
+  chrome batch was verified (26/26, hardgate 8/8) and landed as a handover commit.
 - **IN FLIGHT: EmergencyRequestsPage DESKTOP adoption** of console/* + shadow-e tokens (agent
   launched after ME committed — the shared contract file is free); zero visual change; the
-  filter-dot colored glow debt dies in that pass; page joins the ConsoleDS estate-law sweep. **PIN-BLOCKED on TodayHome.contract.test.js (item-7 flag, WIDENED):** the
+  filter-dot colored glow debt dies in that pass; page joins the ConsoleDS estate-law sweep.
+  **NEXT AFTER IT LANDS: TodayHome DESKTOP adoption** (now unblocked; builds the GlanceTile
+  nav-variant; sequenced only on the ConsoleDS contract file the Requests agent is editing). **PIN-BLOCKED on TodayHome.contract.test.js (item-7 flag, WIDENED):** the
   mobile-lane-dirty test blocks BOTH MobileToday's kit re-composition AND TodayHome's desktop
   DS/token adoption (it pins the literal class strings those passes move). It also needs the
   GlanceTile nav-variant componentized (spec inventory row 2) - desktop lane builds it in the
@@ -340,3 +351,13 @@ Notes:
   the Visits rebuild arc. Enforcement: extend ConsoleDesignSystem.contract (or a mobile twin) so
   each recipe is pinned ONCE, then retire the per-page copies of those pins.
 - **Fallback:** if unclaimed here, the mobile lane builds it in-main-loop incrementally next session.
+
+### 2026-07-09 — mobile-uiux-lane — FLAGGED KIT EDIT: SearchRow filter trigger now conditional
+- **What:** `canon/SearchRow.jsx` filter TapButton is now wrapped in `{onOpenFilters && (...)}`,
+  mirroring the stats trigger. Kit contract updated same-commit (new pin `{onOpenFilters && (`).
+- **Why:** MobilePricing Wave-2 pass — the page has NO filter sheet (tabs + KPI chips are its
+  whole filter grammar), so an always-rendered trigger is a dead tap (canon: every control acts).
+  Also fixes the latent dead-tap for any consumer whose page omits `onOpenFilters`.
+- **Blast radius:** zero visual change for pages that wire `onOpenFilters` (all current
+  consumers: SupportTickets, HealthNews, Insurance, Emergency, Visits). Behavior change only
+  for undefined-handler cases: trigger hides instead of dead-tapping.
