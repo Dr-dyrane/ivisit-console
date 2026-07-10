@@ -545,3 +545,13 @@ Notes:
   HospitalsPage.contract (branch + label + the justify-between wrapper contract).
 - Mirrors the desktop decision: fail-closed commands render FIRST-CLASS with honest feedback,
   never washed/hidden (header Add facility precedent, SHELL_PARITY_AUDIT 1.1/1.5).
+
+### 2026-07-09 — desktop-uiux-lane — LIVE VERDICT: hospitals create is DB-enforced fail-closed + onboarding insert dead
+- User asked "why is add hospital unavailable? mistakenly dropped?" — live pg_policies: hospitals
+  has ONLY 2 SELECT policies, zero INSERT/UPDATE/DELETE, no create RPC. The gate is the DATABASE,
+  not the UI. Deliberate (Page-8 admission 15acf6c9, no-parallel-truth), pinned in SQL by the
+  contract test.
+- **NEW QUEUE (onboarding + ivisit-app):** onboardingService.js:303 direct client insert into
+  hospitals cannot pass live RLS — org registration's facility creation appears dead against
+  live. Verify end-to-end; fix = service-role edge function or scoped pending-insert policy,
+  authored in ivisit-app. Details: DATA_SYNC_REMEDIATION_AUDIT section 12c.

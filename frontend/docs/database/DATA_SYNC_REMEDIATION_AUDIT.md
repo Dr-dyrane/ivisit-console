@@ -336,3 +336,31 @@ everywhere else — no further F3-class liars exist in this domain. Bonus facts 
 definition: `bed_availability` (jsonb) is COALESCE-writable live (console doesn't send it —
 fine), and `last_availability_update` auto-bumps server-side whenever any bed field is present
 in the payload, so the rail "Updated" fact is genuinely operational, not editorial.
+
+### 12c. "Why is Add hospital unavailable?" — live-verified answer (2026-07-09)
+
+User challenged the gate ("mistakenly dropped?"). Live introspection of `pg_policies` settles it:
+
+1. **The live `hospitals` table has ONLY two SELECT policies** ("Explore providers are publicly
+   readable", "Public read for verified hospitals") — **zero INSERT/UPDATE/DELETE policies, and
+   no create-hospital RPC exists** (proname search: empty). With RLS on, every direct client
+   insert is rejected for EVERY role including admin. The console's fail-closed create is
+   therefore not a UI opinion — the database enforces it. NOT a mistaken drop: `createHospital`
+   was removed at the Page-8 admission (`15acf6c9`) under no-parallel-truth, and the contract
+   test pins the no-INSERT-policy state in SQL.
+2. **NEW FINDING — the org onboarding wizard's facility creation is dead against live.**
+   `onboardingService.js:303-305` does a DIRECT client insert into `hospitals` (shared
+   anon/session client, no edge function, no service role). Against the live policy set that
+   insert cannot pass RLS — organization registration presumably fails at "Failed to create
+   organization". Either it has been broken since the policy drift, or registrations flow
+   through some other path. **QUEUE (onboarding domain + ivisit-app backend):** verify the live
+   onboarding flow end-to-end; if broken, creation needs a service-role edge function or a
+   scoped INSERT policy (pending/unverified self-registrations only) authored in ivisit-app.
+3. **Where hospitals actually come from (live):** the app-side sync pipeline (service-role
+   writers: Places discovery — `provider_source`/`image_*` provenance columns) and historical
+   onboarding inserts. The console reads, verifies, and administers; it does not author
+   facility truth ad hoc.
+4. **If the user WANTS console create:** the modal's preserved create + Google Places autofill
+   path (the F6-style FLAG region) is the ready-made frontend; it needs an ivisit-app-side
+   `create_hospital_by_admin` receiver (display_id generation, verification_status='pending',
+   org linkage) before wiring. Decision stands open with the FLAG.
