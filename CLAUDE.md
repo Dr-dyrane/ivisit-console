@@ -177,7 +177,7 @@ One service file per domain. Key services:
 | `/users` | org_admin | users |
 | `/wallet` | org_admin | wallet |
 | `/pricing` | org_admin | pricing |
-| `/hospitals` | admin | hospitals |
+| `/hospitals` | org_admin | hospitals |
 | `/insurance` | admin | insurance |
 | `/subscriptions` | admin | subscriptions |
 

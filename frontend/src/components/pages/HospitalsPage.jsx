@@ -168,16 +168,29 @@ export const HospitalsPage = () => {
   // The KPI status pill and sheet filters compose into one server filter; stats are
   // requested on the status-agnostic set (getHospitalStatsFilters) so the KPI counts
   // stay stable while the list narrows.
+  // Dead-filter fix (2026-07-09): the sheet's "Registered On" range (`created_at:
+  // {start,end}`) never reached the service. It now maps to date_from/date_to ISO
+  // bounds (Requests donor pattern) for BOTH the list and the stats set, so KPI
+  // counts stay date-scoped (but status-agnostic) alongside the visible window.
+  const serviceFilters = useMemo(() => {
+    const { created_at: createdRange, ...rest } = filters || {};
+    return {
+      ...rest,
+      ...(createdRange?.start ? { date_from: `${createdRange.start}T00:00:00.000Z` } : {}),
+      ...(createdRange?.end ? { date_to: `${createdRange.end}T23:59:59.999Z` } : {}),
+    };
+  }, [filters]);
+
   const queryFilter = useMemo(() => ({
     filters: {
-      ...filters,
+      ...serviceFilters,
       ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
     },
-    statsFilters: getHospitalStatsFilters(filters),
+    statsFilters: getHospitalStatsFilters(serviceFilters),
     limit: pagination.itemsPerPage,
     offset: pagination.paginationRange.start,
     quiet: true,
-  }), [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
+  }), [serviceFilters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
 
   const {
     hospitals,
@@ -466,6 +479,8 @@ export const HospitalsPage = () => {
       label: 'Status',
       options: [
         { value: 'available', label: 'Available' },
+        // Busy has always been a KPI-strip state; the sheet just never offered it.
+        { value: 'busy', label: 'Busy' },
         { value: 'full', label: 'Full' },
       ]
     },
@@ -546,6 +561,8 @@ export const HospitalsPage = () => {
           setFilters={handleApplyFilters}
           onView={handleView}
           onEdit={handleEdit}
+          errorMessage={hospitalPageError}
+          onRetry={fetchHospitals}
           onRefresh={fetchHospitals}
           onViewAnalytics={handleOpenAnalytics}
           isAdmin={isAdmin()}

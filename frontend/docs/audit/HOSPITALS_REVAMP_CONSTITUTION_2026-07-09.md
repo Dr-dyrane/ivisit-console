@@ -84,12 +84,23 @@ section is load-bearing** — `gateSource()` pins mean editing it can red the su
 **QUEUE (data-sync ledger; do not derail):** F11 bedManagementService (`.single()` 406 on
 unverified reads, completed-counts-as-occupied inflation, unbounded read, toast-in-service).
 
-**FLAG (backend / user decision):** F3 ER-wait edits silently dropped (RPC SET clause lacks the
-column; optimistic ghost-flicker) — add to RPC in ivisit-app OR reframe field read-only; may be
-intentional per TRIGGER_POLICY_MATRIX metadata-vs-capacity split. F4 live-RPC drift: repo
-migration wipes arrays on omitted keys while service comments claim COALESCE preservation —
-**verify the live function before any partial-payload write**. F6 orphan deletion (user
-sign-off). F13 dormant capacity writers stay unwired (fail-closed).
+**FLAGS — ALL RESOLVED (user arbitration + live DB introspection, 2026-07-09):**
+- **F3 RESOLVED — ER-wait reframed READ-ONLY** (user: "reframe it as read only — those are
+  operational insights"). LIVE-CONFIRMED: the live `update_hospital_by_admin` SET clause contains
+  NO `emergency_wait_time_minutes` — the field was never writable; every prior "edit" was
+  silently dropped. `HospitalModal` field is now `disabled` with the operational-insight title +
+  in-code citation. **DOCTRINE (user decision): operational-insight fields (ER wait, live
+  capacity signals) derive from live activity and are never hand-edited in the console** — apply
+  this test to every future editable-field question.
+- **F4 RESOLVED — the LIVE RPC COALESCE-preserves ALL arrays** (specialties/service_types/
+  features verified via pg_get_functiondef introspection; no unconditional wipe). The REPO
+  MIGRATION (`core_rpcs.sql`) is the stale artifact — same production-drift class as the
+  dispatch-RPC finding (PERSONA_MATRIX §6 #2). Partial-payload writes are SAFE against live;
+  backend item: update the repo migration in ivisit-app to match the live function.
+- **F6 RESOLVED — orphans DELETED** (user: "delete orphan codes; fleet manager I believe is the
+  ambulance page"): `HospitalFleetManager.jsx` + `hospitalImportService.js` removed (zero
+  importers verified twice). Fleet management belongs to the Ambulances page domain.
+- F13 dormant capacity writers stay unwired (fail-closed).
 
 ## 5. The plan (Visits/Requests precedent, one page at a time)
 

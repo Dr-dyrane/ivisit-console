@@ -543,12 +543,18 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ER Wait (min)</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-500" />
+                        {/* OPERATIONAL INSIGHT, read-only by decision (user 2026-07-09): ER wait
+                            derives from live operations, not hand-edits -- the update RPC's SET
+                            clause deliberately omits this column (metadata vs operational-
+                            capacity split). Editable before, the value was silently dropped
+                            server-side with an optimistic ghost-flicker
+                            (HOSPITALS_REVAMP_CONSTITUTION F3). */}
                         <Input
                           type="number"
                           name="emergency_wait_time_minutes"
                           value={formData.emergency_wait_time_minutes || 0}
-                          onChange={handleChange}
-                          disabled={isView}
+                          disabled
+                          title="Operational insight -- updates from live activity, not editable here"
                           className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>

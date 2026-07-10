@@ -110,3 +110,28 @@ block plus grammar swaps, all pinned or replaced.
 ### Verdict
 Baseline drops: all intentional and cited. The rebuild is grammar + kit + native-data work,
 NOT feature restoration — with three genuine data-sync upgrades (display_id, tel:, maps/occupancy).
+
+### Addendum 2026-07-09 — Hospitals vs Requests/Visits donor-parity matrix (mobile lane)
+
+Requested comparison "navbar to bottombar, sidebar, modals, side effects, data-sync, RBAC":
+
+| Anatomy | Requests (donor) | Hospitals verdict |
+|---|---|---|
+| Navbar (SmartTopNav) | context-aware avatar/back | Shell-level, identical — no gap. |
+| Bottom bar | dock morph + '/' New-request FAB | Morph verified live (4th pill = Hospitals). FAB hidden via `usePageShell({hideFab})` — CORRECT: create is fail-closed by gate, so no FAB is the honest state. |
+| KPI strip ↔ list sync | status-agnostic stats | Was date-BLIND: the sheet's "Registered On" filter was DEAD (offered since intake, never read by `applyHospitalFilters`). FIXED: donor-identical `date_from`/`date_to` mapping, applied to list AND stats so counts match the window. Busy was also missing from the sheet's status options — added. |
+| Degraded/error states | mobile banner + retry + honest empty | Mobile had NONE (`hospitalPageError` stopped at desktop). FIXED: `mobile-hospitals-degraded-state` banner + retry + error-aware empty copy. |
+| Detail surface | sheet → Details modal | Sheet (this rebuild) + `?id` deep link opens the view modal on both form factors — parity. |
+| Realtime | route-owned channel → RQ invalidate | Present; UpdatingPillRow now signals it on mobile. |
+| Toasts/side effects | stable ids, fail-closed notices | "Add facility is unavailable" toast preserved; edit writes via RQ mutation. |
+| RBAC | provider+ | `/hospitals` minRole is **org_admin** (CLAUDE.md table said admin — corrected); `canManage = isAdmin || isOrgAdmin`; RLS scopes org rows; lower personas never see the route (dock is role-gated). |
+| Sidebar / right panel | — | Desktop lane's claim (HospitalsPanel route-context cleaned 2026-07-06); out of mobile scope. |
+
+**Data-sync sweep (schema vs rendered):** newly surfaced on the sheet — facility `type`
+(row label + eyebrow), `icu_beds_available`, `emergency_wait_time_minutes`/`wait_time`
+(positive-only; 0 reads as default-unset), eligibility flags (`emergency/dispatch/booking`),
+`last_availability_update` freshness ("5d ago"), `specialties` chips (cap 4 + overflow).
+Deliberately NOT surfaced: `base_price`/`price_range` (Pricing command authority gated),
+`image` (storage/consent unproved), `bed_availability`/`ambulance_availability` Json blobs
+(parser discipline — shape unproved), `organization_id`/`org_admin_id` (org identity is
+Page 15's blocked domain).

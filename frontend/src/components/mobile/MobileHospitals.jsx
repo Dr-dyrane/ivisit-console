@@ -11,6 +11,9 @@ import {
     CalendarDays,
     Phone,
     Hash,
+    Clock,
+    History,
+    Zap,
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
@@ -30,6 +33,15 @@ import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadM
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
+import { formatRelativeTime } from '../../utils/activityUtils';
+
+// Sentence-case a raw facility type token ('specialty_clinic' -> 'Specialty clinic').
+const facilityTypeLabel = (hospital) => {
+    const raw = hospital?.type || hospital?.provider_type;
+    if (!raw) return 'Facility';
+    const text = String(raw).replace(/[_-]+/g, ' ').trim();
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : 'Facility';
+};
 
 // Native reads (read-the-data-we-have rule): coordinates win, address text is the
 // fallback; either way the island deep-links into the user's maps app.
@@ -62,6 +74,8 @@ export const MobileHospitals = ({
     onOpenFilters,
     hasMore,
     onLoadMore,
+    errorMessage = null,
+    onRetry,
     canDelete = false,
     selectionEnabled = false,
     selectedIds = [],
@@ -250,6 +264,25 @@ export const MobileHospitals = ({
                     isAllSelected={selectionEnabled && displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
                 />
 
+                {errorMessage && displayHospitals.length > 0 && (
+                    <div
+                        className="mb-3 rounded-card bg-destructive/10 p-4 text-destructive"
+                        data-testid="mobile-hospitals-degraded-state"
+                    >
+                        <p className="text-sm font-semibold">Hospitals did not refresh</p>
+                        <p className="mt-1 text-xs text-destructive/75">Showing the last loaded facility rows.</p>
+                        {onRetry && (
+                            <button
+                                type="button"
+                                onClick={onRetry}
+                                className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                            >
+                                Try again
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="space-y-1">
                     {displayHospitals.map((hospital) => {
                         const status = getHospitalStatus(hospital);
@@ -266,7 +299,7 @@ export const MobileHospitals = ({
                                 key={hospital.id}
                                 icon={Hospital}
                                 color={statusColor}
-                                label="Facility"
+                                label={facilityTypeLabel(hospital)}
                                 value={hospital.name || 'Unnamed Hospital'}
                                 secondary={`${bedsText} · ${fleet} units`}
                                 statusPill={statusPill(status)}
@@ -295,7 +328,12 @@ export const MobileHospitals = ({
                     </div>
 
                     {displayHospitals.length === 0 && !loading && !showTopSectionLoading && (
-                        <MobileListEmpty icon={Hospital} label="No hospitals found" labelTone="plain" />
+                        <MobileListEmpty
+                            icon={Hospital}
+                            label={errorMessage ? 'Hospitals did not load' : 'No hospitals found'}
+                            hint={errorMessage ? 'Try again before treating the network as empty.' : undefined}
+                            labelTone="plain"
+                        />
                     )}
                 </div>
 
@@ -310,6 +348,28 @@ export const MobileHospitals = ({
                     // Display IDs are labels: prefer the ORG-XXXXXX display_id the service
                     // projects; the truncated UUID is only a fallback, never mutation identity.
                     const facilityId = activeHospital.display_id || `#${String(activeHospital.id || '').slice(0, 12).toUpperCase()}`;
+                    // Operational reads the schema already carries (data-sync pass 2026-07-09):
+                    // wait time, ICU beds, app-eligibility flags, availability freshness.
+                    // Null stays hidden (Number(null) coerces to a lying 0); a 0-minute wait
+                    // also reads as default-unset, so only a positive wait is claimed.
+                    const icuBeds = activeHospital.icu_beds_available != null
+                        ? Number(activeHospital.icu_beds_available)
+                        : null;
+                    const waitMinutes = Number(activeHospital.emergency_wait_time_minutes);
+                    const waitValue = Number.isFinite(waitMinutes) && waitMinutes > 0
+                        ? `≈ ${waitMinutes} min`
+                        : (activeHospital.wait_time || null);
+                    const eligibility = [
+                        activeHospital.emergency_eligible && 'Emergency',
+                        activeHospital.dispatch_eligible && 'Dispatch',
+                        activeHospital.booking_eligible && 'Booking'
+                    ].filter(Boolean).join(' · ');
+                    const availabilityUpdated = activeHospital.last_availability_update
+                        ? formatRelativeTime(activeHospital.last_availability_update)
+                        : null;
+                    const specialties = Array.isArray(activeHospital.specialties)
+                        ? activeHospital.specialties.filter(Boolean)
+                        : [];
 
                     return (
                         <MobileDetailSheet
@@ -317,7 +377,7 @@ export const MobileHospitals = ({
                             onClose={() => setActiveHospital(null)}
                             icon={Hospital}
                             iconTone={statusColor}
-                            eyebrow="Facility"
+                            eyebrow={facilityTypeLabel(activeHospital)}
                             title={activeHospital.name || 'Unnamed Hospital'}
                             statusPill={statusPill(status)}
                             islands={[
@@ -338,10 +398,30 @@ export const MobileHospitals = ({
                                     label: 'Beds',
                                     value: totalBeds > 0 ? `${beds} of ${totalBeds} available` : `${beds} available`
                                 },
+                                icuBeds != null && Number.isFinite(icuBeds) && {
+                                    icon: Bed,
+                                    label: 'ICU beds',
+                                    value: `${icuBeds}`
+                                },
                                 {
                                     icon: Ambulance,
                                     label: 'Fleet',
                                     value: `${fleet} ambulance${fleet === 1 ? '' : 's'}`
+                                },
+                                waitValue && {
+                                    icon: Clock,
+                                    label: 'Wait time',
+                                    value: waitValue
+                                },
+                                eligibility && {
+                                    icon: Zap,
+                                    label: 'Eligibility',
+                                    value: eligibility
+                                },
+                                availabilityUpdated && {
+                                    icon: History,
+                                    label: 'Availability updated',
+                                    value: availabilityUpdated
                                 },
                                 {
                                     icon: Star,
@@ -362,6 +442,24 @@ export const MobileHospitals = ({
                             primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveHospital(null); onView(activeHospital); } }}
                             secondary={canManage ? { icon: Edit, onClick: () => { setActiveHospital(null); onEdit(activeHospital); }, 'aria-label': `Edit ${activeHospital.name || 'facility'}` } : undefined}
                         >
+                            {specialties.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {specialties.slice(0, 4).map((specialty) => (
+                                        <span
+                                            key={specialty}
+                                            className="inline-flex items-center rounded-pill bg-foreground/[0.06] px-2.5 py-1 text-[11px] font-semibold text-muted-foreground dark:bg-white/[0.08]"
+                                        >
+                                            {specialty}
+                                        </span>
+                                    ))}
+                                    {specialties.length > 4 && (
+                                        <span className="inline-flex items-center rounded-pill px-2 py-1 text-[11px] font-semibold text-muted-foreground/60">
+                                            +{specialties.length - 4} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Gated command inventory (gate ledger: scheduling + destructive
                                 delete stay unavailable until receiver proof; the page passes
                                 canDelete={false} and no onSchedule today). */}

@@ -123,7 +123,12 @@ describe('HospitalsPage admission audit contract', () => {
     // S3 migration: the route projection now flows through useHospitalsQuery; the
     // page destructures its stats as hospitalPageStats and writes via the mutation.
     expect(page).toContain('useHospitalsQuery(queryFilter)');
-    expect(page).toContain('statsFilters: getHospitalStatsFilters(filters)');
+    // Dead-filter fix (2026-07-09): the sheet's "Registered On" range now maps to
+    // date_from/date_to before the service; stats consume the same date-mapped set
+    // (still status-agnostic) so KPI counts match the visible window.
+    expect(page).toContain('statsFilters: getHospitalStatsFilters(serviceFilters)');
+    expect(page).toContain("...(createdRange?.start ? { date_from: `${createdRange.start}T00:00:00.000Z` } : {})");
+    expect(serviceSource()).toContain("query = query.gte('created_at', filter.date_from)");
     expect(page).toContain('stats: hospitalPageStats');
     expect(page).toContain('updateHospitalMutation.mutateAsync(formData)');
     expect(page).toContain('statistics={hospitalPageStats}');

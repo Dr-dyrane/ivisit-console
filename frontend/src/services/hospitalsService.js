@@ -128,6 +128,15 @@ function applyHospitalFilters(query, filter = {}) {
     query = query.contains('specialties', [filter.specialty]);
   }
 
+  // Dead-filter fix (2026-07-09): the FilterSheet has offered a "Registered On" date
+  // range since intake, but nothing read it. Donor-identical to emergencyService.
+  if (filter?.date_from) {
+    query = query.gte('created_at', filter.date_from);
+  }
+  if (filter?.date_to) {
+    query = query.lte('created_at', filter.date_to);
+  }
+
   const search = sanitizeSearchTerm(filter?.search);
   if (search) {
     query = query.or(`name.ilike.%${search}%,address.ilike.%${search}%`);

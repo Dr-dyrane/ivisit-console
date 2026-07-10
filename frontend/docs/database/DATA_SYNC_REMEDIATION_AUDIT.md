@@ -302,3 +302,25 @@ coherent (Requests contract semantics); View modal opens via ModalShell; rail se
 filter changes; pagination indicator honest (Page 1 of 9). NOT yet exercised: dark-mode parity,
 Edit/create submit paths (no live writes during audit), pagination navigation, sort correctness
 per column, keyboard-only walk.
+
+## 12. Hospitals live-DB verification (2026-07-09) — RPC drift settled by introspection
+
+Live `update_hospital_by_admin` read via `pg_get_functiondef` (service-role `exec_sql`,
+read-only). Findings, binding for ALL lanes:
+
+1. **Arrays are SAFE (F4 resolved).** The LIVE function COALESCE-preserves every column —
+   `specialties = COALESCE(...)`, `service_types = COALESCE(...)`, `features = COALESCE(...)`;
+   no unconditional `col = v_col` writes exist. Partial payloads do NOT wipe arrays. The repo
+   migration (`core_rpcs.sql`) showing unconditional array SETs is the STALE artifact — same
+   production-drift class as the dispatch RPC. Backend item (ivisit-app): refresh the migration
+   from live. The service-layer comments claiming COALESCE were correct all along.
+2. **ER wait is NOT writable (F3 confirmed + decided).** The live SET clause contains no
+   `emergency_wait_time_minutes` (and no `org_admin_id`). Every console "edit" of ER wait was
+   silently dropped server-side. **USER DECISION (2026-07-09): operational-insight fields — ER
+   wait, live capacity signals — derive from live operations and are READ-ONLY in the console,
+   permanently.** `HospitalModal` now renders the field `disabled` with the rationale in-code.
+   Do not "fix" this by widening the RPC; the metadata-vs-operational split is intentional.
+3. **Orphans deleted (F6):** `HospitalFleetManager.jsx` + `hospitalImportService.js` removed
+   (0 importers; fleet belongs to the Ambulances domain — user sign-off).
+
+Full register: `docs/audit/HOSPITALS_REVAMP_CONSTITUTION_2026-07-09.md` §4.

@@ -410,3 +410,17 @@ Notes:
   + occupancy honesty ("X of Y available" using total_beds). Fail-closed inventory preserved
   verbatim (`canDelete && onDelete`, `onSchedule && (` pins green).
 - MobileAmbulances + MobileWallet remain the last dropdown-row rebuilds (mobile lane queue).
+
+### 2026-07-09 — desktop-uiux-lane — HOSPITALS: live-DB verdicts + user decisions (BINDING, all lanes)
+- **F4 SETTLED BY LIVE INTROSPECTION:** the LIVE `update_hospital_by_admin` COALESCE-preserves
+  ALL columns incl. specialties/service_types/features — partial payloads do NOT wipe arrays.
+  The repo `core_rpcs.sql` migration is the stale artifact (same drift class as the dispatch
+  RPC). Safe to send partial payloads; backend item queued: refresh migration in ivisit-app.
+- **F3 DECIDED (user): operational insights are READ-ONLY.** Live SET clause has no
+  `emergency_wait_time_minutes` — ER-wait edits were always silently dropped. HospitalModal
+  field now `disabled` with in-code rationale. DOCTRINE: fields deriving from live operations
+  (ER wait, capacity signals) are never hand-edited in the console. Do not widen RPCs for them.
+- **F6 DONE (user): orphans deleted** — `dashboard/HospitalFleetManager.jsx` +
+  `services/hospitalImportService.js` (0 importers; fleet = Ambulances domain).
+- Details: `frontend/docs/database/DATA_SYNC_REMEDIATION_AUDIT.md` §12 +
+  `frontend/docs/audit/HOSPITALS_REVAMP_CONSTITUTION_2026-07-09.md` §4.
