@@ -181,7 +181,9 @@ describe('Insurance Page 12 intake contract', () => {
     expect(mobile).not.toContain('result.filter');
     expect(mobile).toContain('useStableList(policies, loading)');
     expect(mobile).toContain("onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}");
-    expect(mobile).toContain("onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}");
+    // Canon kit (Wave 2, 2026-07-09): search now flows through SearchRow's debounced
+    // commit -- same filters-owned data path as the old inline onChange, new recipe.
+    expect(mobile).toContain("onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}");
     expect(page).not.toContain('canManage={');
     expect(page).toContain('canDelete={false}');
     expect(page).toContain('canVerify={false}');
