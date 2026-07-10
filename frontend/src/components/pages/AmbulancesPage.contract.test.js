@@ -187,6 +187,9 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain("params.get('id')");
     expect(page).toContain('SortableColumnHeader');
     expect(page).toContain('<ListRowShell');
+    // AMB-5 resolved: base_price is real pricing data (pricingService reads it)
+    // that was fetched but shown nowhere -- now surfaced read-only in the rail.
+    expect(page).toContain('label="Base price"');
     // Selection mechanism ADDED (user: "add the multiple select options"): the
     // admin-only checkbox column + select-all/indeterminate + shift-range render;
     // the bulk WRITE stays fail-closed (BulkActionBar delete disabled with

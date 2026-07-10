@@ -31,6 +31,7 @@ import {
   MapPin,
   Plus,
   Route,
+  Tag,
   Trash2,
   Truck,
   Wrench,
@@ -925,6 +926,10 @@ const AmbulanceDetailRail = ({ ambulance, loading, hasFilter, canEdit, onView, o
   const displayId = ambulance.display_id || null;
   const callSign = ambulance.call_sign || 'Unknown unit';
   const crewCount = Array.isArray(ambulance.crew) ? ambulance.crew.filter(Boolean).length : 0;
+  // base_price is REAL data (pricingService reads it) that was fetched but shown
+  // nowhere on the fleet page (AMB-5) -- surface it read-only here.
+  const basePriceValue = Number(ambulance.base_price);
+  const basePriceLabel = Number.isFinite(basePriceValue) && basePriceValue > 0 ? basePriceValue.toLocaleString() : 'Not set';
   const viewOpening = activeActionFeedback === `view-${ambulance.id}`;
   const editOpening = activeActionFeedback === `edit-${ambulance.id}`;
 
@@ -968,6 +973,7 @@ const AmbulanceDetailRail = ({ ambulance, loading, hasFilter, canEdit, onView, o
           <DetailLine icon={Wrench} label="Type" value={ambulance.type || 'Standard'} />
           <DetailLine icon={Ambulance} label="Plate" value={ambulance.vehicle_number || ambulance.license_plate || 'Not set'} />
           <DetailLine icon={Activity} label="Crew" value={crewCount > 0 ? `${crewCount} listed` : 'Not listed'} />
+          <DetailLine icon={Tag} label="Base price" value={basePriceLabel} />
           <DetailLine icon={Clock} label="Updated" value={ambulance.updated_at ? new Date(ambulance.updated_at).toLocaleString() : 'Unknown'} />
         </div>
 

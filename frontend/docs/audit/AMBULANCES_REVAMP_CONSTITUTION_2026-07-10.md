@@ -80,7 +80,9 @@ On adoption AmbulancesPage renders `SortableColumnHeader` → enters the registr
 - **AMB-6** `current_call` hand-editable free text = parallel dispatch truth → make **read-only/system-owned** (like trip statuses).
 
 **QUEUE (data-sync ledger; don't derail):**
-- **AMB-5** `base_price` dead form plumbing (in payload builder, no input, shown nowhere) — decide: surface an editable price field, or drop from the payload builder.
+- ~~**AMB-5** `base_price`~~ **RESOLVED 2026-07-10**: `base_price` is real data (`pricingService`
+  reads it) that was fetched but invisible on the fleet page — now surfaced **read-only** in the
+  rail ("Base price"). Writes stay pricing-domain-owned (the modal still doesn't author it).
 - **AMB-8** `location` PostGIS pulled by `select('*')`, rendered nowhere — drop from the projection or route to the map.
 - **AMB-9** double status narrowing (FilterSheet status AND kpiFilter both `.eq`/`.in` status) can silently zero results — document the precedence or reconcile.
 

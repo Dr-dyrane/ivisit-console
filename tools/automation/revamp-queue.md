@@ -759,3 +759,24 @@ Notes:
 - **Pattern for other domains:** each entity's status vocabulary should be ONE shared module the
   page+rail+KPI+panel+mobile consume -- not redefined per surface. Hospitals/Visits/Requests are
   candidates for the same extraction (their status maps are page-local today).
+
+### 2026-07-10 — desktop-uiux-lane — "fix gaps": cross-domain color audit + AMB-5 surfaced
+- **Cross-domain color-drift audit (the gap I fixed on Ambulances -- does it exist elsewhere?):**
+  checked every domain page vs its context panel. RESULT: Hospitals page<->panel MATCH (available
+  emerald / busy cyan / full amber); Visits page<->panel MATCH (scheduled cyan / in_progress amber
+  / completed emerald / cancelled muted); Requests panel colors by SERVICE (ambulance sky / bed
+  cyan / critical_care rose), NOT status -- a different dimension, intentional, not a drift. So the
+  en_route amber-vs-cyan drift was AMBULANCES-ONLY (already fixed). No other live color bug.
+- **AMB-5 RESOLVED:** base_price is real data (pricingService reads it) fetched but invisible on the
+  fleet page -- now surfaced read-only in the rail ("Base price"). Pinned. Writes stay pricing-owned.
+- **Held / queued (honest, not silently skipped):**
+  - Bulk fleet delete: rendered but fail-closed (disabled with reason). Enabling a destructive bulk
+    write needs EXPLICIT user authorization -- not done on a generic "fix gaps".
+  - Mobile ambulance status colors: CORRECT (amber) but a 4th independent copy; converging onto
+    constants/ambulanceStatus needs migrating the mobile lane's label pins -- queued to the mobile
+    lane's next touch (don't churn a settled+correct file).
+  - Other-domain color single-sourcing (Hospitals/Visits status maps are page-local but consistent):
+    extract to shared sources on each page's next pass -- NOT a blanket sweep (one-page-at-a-time).
+  - AMB-9 double status narrowing (FilterSheet status AND kpiFilter both narrow): shared filter
+    model across ALL pages, AND-semantics arguably correct; a design decision, left flagged.
+  - AMB-8 location: opaque PostGIS payload, harmless; service select-narrow not worth the risk.
