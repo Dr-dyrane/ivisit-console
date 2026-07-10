@@ -98,7 +98,16 @@ cross-page canon and records it as an explicit user decision. The readable home 
 This globalizes the Requests full-UX pass into a cross-page gate, the same way the Desktop
 Data-Render Canon above globalized the handled-sheet lock. It closes the gap where a page could
 pass RBAC, layout, hardgate, and contract locks and still ship loading flashes, silent refetches,
-dead-end empty states, or double-submittable CTAs. No page may be declared done — admitted,
+dead-end empty states, or double-submittable CTAs.
+
+> **ENFORCED 2026-07-10 (was manual → now machinery).** The *statically-checkable* boxes below
+> are now an automated estate law — `ConsoleDesignSystem.contract.test.js` › "enforces the
+> interaction-completeness canon on every list-workspace page": per list page it requires
+> `active:scale-*` (press), NO `initial={{` (no stage-reveal), `isFetching={isFetching}` (honest
+> refetch), `hasFilter ?` (branched empty), and `animate-spin` in the write surface (submit
+> spinner). This gate exists because Ambulances passed every other gate and still shipped without
+> a modal spinner / un-pressable row buttons — the "relying on memory" failure. Runtime-only boxes
+> (reduced-motion, press feel, warm-cache paint) still need the rendered proof. No page may be declared done — admitted,
 recertified, or "revamp complete" — until every box below is checked with proof (rendered or
 contract-test, per §7 QA Proof). The loading-motion model referenced here is canon in
 [`MOTION_AND_INTERACTION_CANON.md`](../design-system/MOTION_AND_INTERACTION_CANON.md) §3.

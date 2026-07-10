@@ -698,3 +698,23 @@ Notes:
   mechanism registry). 84/84 across six gold surfaces; hardgate ambulances-clean; donor-diff
   deltas domain-owned; live compile clean; drop audit vs f31f29f clean. QUEUE: AMB-5 base_price,
   AMB-8 location, AMB-9 double status narrowing. Constitution marked LANDED.
+
+### 2026-07-10 — desktop-uiux-lane — HARNESS RECONSTRUCTED: interaction-completeness gate (the polish backstop)
+- **User caught the real failure:** "if you are done that means our harness failed." Ambulances
+  passed structure/mechanism/data gates but still needed final touches (animations) -- because the
+  Motion & Interaction Canon + UX-Completeness checklist were DOCS/manual, not enforced. That is
+  the exact "relying on my memory" gap.
+- **Studied the full arc** (Requests->Today->Visits->Hospitals) via git + a 4-scout extraction of
+  each gold page's interaction/motion signatures. Found the enforceable intersection.
+- **NEW ESTATE LAW** in ConsoleDesignSystem.contract: "interaction-completeness canon on every
+  list-workspace page" -- per list page + paired modal requires active:scale-* (press), NO
+  initial={{ (no stage-reveal), isFetching={isFetching} (honest refetch), hasFilter ? (branched
+  empty), animate-spin in the write surface (submit spinner). Composition-guaranteed items not
+  re-checked. Proven to bite: would have flagged the pre-fix Ambulances modal (no spinner).
+- **Fixed the Ambulances gaps** the gate/study surfaced: modal submit Loader2 spinner; row action
+  buttons active:scale-95 + aria-busy/data-state opening feedback (page-pinned, since the floor
+  proves presence not per-control). 85/85 across six gold surfaces; hardgate clean; PRODUCTION
+  BUILD compiled successfully (exit 0). Docs updated: MOTION_AND_INTERACTION_CANON 3b,
+  PAGE_REVAMP_GATE UX-gate ENFORCED note, DS decision trail.
+- **Honest limitation:** the floor checks presence, not per-control coverage; runtime-only items
+  (reduced-motion, press feel, warm-cache paint) still need a rendered proof on localhost:3000.

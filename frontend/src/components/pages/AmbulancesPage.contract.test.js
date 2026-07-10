@@ -313,6 +313,16 @@ describe('AmbulancesPage visual-start repair contract', () => {
     //   write payload (hand-typing it would author parallel dispatch truth).
     expect(modal).not.toContain("current_call: formData.current_call?.trim()");
     expect(modal).not.toContain('name="current_call"');
+    // Interaction-completeness polish (2026-07-10): the estate gate enforces the
+    // floor across list pages; these lock the page-SPECIFIC touches its floor
+    // can't resolve -- every row action button presses + carries opening
+    // feedback, and the modal submit shows a pending spinner. (The row-button
+    // press was a real gap the floor missed -- see the estate gate comment.)
+    expect(page).toContain('active:scale-95 ${viewOpening');
+    expect(page).toContain('active:scale-95 ${editOpening');
+    expect(page).toContain('aria-busy={viewOpening}');
+    expect(page).toContain('aria-busy={editOpening}');
+    expect(modal).toContain('<Loader2 className="mr-2 h-4 w-4 animate-spin" />');
 
     expect(service).toContain('export async function assignDriverToAmbulance(ambulanceId, driverId)');
     expect(service).toContain('export async function updateAmbulanceLocation(ambulanceId, location)');

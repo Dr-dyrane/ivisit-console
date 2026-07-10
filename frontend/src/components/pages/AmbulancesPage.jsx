@@ -773,6 +773,7 @@ const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageF
   const station = getAmbulanceStation(ambulance);
   const vehicle = getAmbulanceVehicle(ambulance);
   const viewOpening = activeActionFeedback === `view-${ambulance.id}`;
+  const editOpening = activeActionFeedback === `edit-${ambulance.id}`;
 
   return (
     <ListRowShell
@@ -808,8 +809,10 @@ const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageF
           variant="ghost"
           size="sm"
           onClick={(event) => { event.stopPropagation(); onView(ambulance); }}
-          className={`h-8 w-8 rounded-button p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground ${viewOpening ? 'scale-95 bg-foreground/10 text-foreground' : ''}`}
+          className={`h-8 w-8 rounded-button p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${viewOpening ? 'scale-95 bg-foreground/10 text-foreground' : ''}`}
           aria-label={`View details for ${callSign}`}
+          aria-busy={viewOpening}
+          data-state={viewOpening ? 'opening' : 'idle'}
         >
           <Eye className="h-4 w-4" />
         </Button>
@@ -818,8 +821,10 @@ const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageF
             variant="ghost"
             size="sm"
             onClick={(event) => { event.stopPropagation(); onEdit(ambulance); }}
-            className="h-8 w-8 rounded-button p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground"
+            className={`h-8 w-8 rounded-button p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${editOpening ? 'scale-95 bg-foreground/10 text-foreground' : ''}`}
             aria-label={`Edit ${callSign}`}
+            aria-busy={editOpening}
+            data-state={editOpening ? 'opening' : 'idle'}
           >
             <Edit className="h-4 w-4" />
           </Button>

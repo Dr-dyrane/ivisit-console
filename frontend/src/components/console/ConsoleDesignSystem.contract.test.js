@@ -221,4 +221,55 @@ describe('Console design system contract', () => {
       }
     }
   });
+
+  it('enforces the interaction-completeness canon on every list-workspace page (estate law)', () => {
+    // WHY THIS EXISTS: the Motion & Interaction Canon
+    // (docs/design-system/MOTION_AND_INTERACTION_CANON.md) and the
+    // "UX-Completeness Gate" checklist (docs/planning/PAGE_REVAMP_GATE.md) were
+    // DOCS + MANUAL checklists -- so a page could pass structure, mechanism, and
+    // data gates and still ship without press feedback, a submit spinner, honest
+    // refetch, branched empty states, or with a re-introduced entrance stagger.
+    // Ambulances did exactly that (row buttons with no press, modal with no
+    // spinner) and every automated gate stayed green -- the "relying on memory"
+    // failure. This gate turns the checklist's STATICALLY-CHECKABLE items into
+    // machinery, grounded in the exact signatures the gold pages
+    // (Requests/Visits/Hospitals) all share. Items that composition already
+    // guarantees (SignalPanel no-entrance, KpiStrip isFetching spinner + chip
+    // aria-pressed, UpdatingPill role=status, ListRowShell layout=position) are
+    // NOT re-checked here -- using the DS component IS the guarantee; this gate
+    // covers only what the PAGE/MODAL author writes by hand. Git provenance:
+    // 27dbb30b (replace-in-place rows), ff9ab49c (no signal entrance), 083c63f8
+    // (loading-motion canon + the gate), 70af6bcc (retry pending + submit spinner).
+    //
+    // Each list-workspace page (its own custom controls) must carry:
+    //  - control-press : at least one `active:scale-*` (dead controls feel dead)
+    //  - no-stage-reveal: NO `initial={{` (a re-introduced entrance stagger on
+    //                     data content -- the banned mount-cascade)
+    //  - isFetching     : `isFetching={isFetching}` surfaced to the DS strip/sheet
+    //  - empty-branch   : `hasFilter ?` (empty vs filtered/search + recovery CTA)
+    //  - submit-spinner : `animate-spin` in the write surface (the paired modal,
+    //                     OR the page itself for rail-write pages like Requests)
+    const LIST_PAGES = [
+      { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
+      { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', modal: 'src/components/modals/VisitModal.jsx' },
+      { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', modal: 'src/components/modals/HospitalModal.jsx' },
+      { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', modal: 'src/components/modals/AmbulanceModal.jsx' },
+    ];
+    for (const entry of LIST_PAGES) {
+      const src = read(entry.page);
+      const modal = read(entry.modal);
+      // Only list-workspace surfaces are in scope (defensive; all four are).
+      if (!/SortableColumnHeader/.test(src)) continue;
+      const checks = {
+        controlPress: /active:scale-/.test(src),
+        noStageReveal: !/initial=\{\{/.test(src),
+        isFetchingSurfaced: src.includes('isFetching={isFetching}'),
+        emptyBranch: src.includes('hasFilter ?'),
+        submitSpinner: /animate-spin/.test(src) || /animate-spin/.test(modal),
+      };
+      for (const [item, ok] of Object.entries(checks)) {
+        expect({ page: entry.name, item, ok }).toEqual({ page: entry.name, item, ok: true });
+      }
+    }
+  });
 });

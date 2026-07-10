@@ -103,6 +103,11 @@ never data. If a prior mockup or page staged its regions in on load, it is now o
 The cross-page enforcement checklist lives in
 [`PAGE_REVAMP_GATE.md`](../planning/PAGE_REVAMP_GATE.md) § UX-Completeness Gate - 2026-07-09.
 
+## 3b. ENFORCED (2026-07-10) — the static items are now machinery, not memory
+
+The Requests→Today→Visits→Hospitals polish was hand-applied and the completeness checklist (§UX-Completeness Gate in `PAGE_REVAMP_GATE.md`) was **manual** — so Ambulances passed structure/mechanism/data gates and still shipped without a modal submit spinner and with un-pressable row buttons, and every automated gate stayed green. That "relying on memory" failure is closed: the **statically-checkable** items are now enforced by the *interaction-completeness estate law* in `src/components/console/ConsoleDesignSystem.contract.test.js`, grounded in the exact signatures all gold list pages share. Per list-workspace page (renders `SortableColumnHeader`) it requires:
+`control-press` (≥1 `active:scale-*`) · `no-stage-reveal` (NO `initial={{` — banned entrance) · `isFetching` surfaced (`isFetching={isFetching}`) · `empty-branch` (`hasFilter ?`) · `submit-spinner` (`animate-spin` in the paired modal or the page's rail write surface). Composition-guaranteed items (SignalPanel no-entrance, KpiStrip refetch spinner + `aria-pressed`, `UpdatingPill` `role=status`, `ListRowShell` `layout="position"`) are NOT re-checked — using the DS component IS the guarantee. **Limitation (honest):** the floor proves *presence*, not per-control coverage — a page with press on some buttons but not others passes the floor, so per-button press stays a page-contract pin (e.g. AmbulancesPage's row-button `active:scale`+`aria-busy` pins). Runtime-only items (reduced-motion, actual press feel, warm-cache instant paint) still need §4 browser-confirm.
+
 ## 4. How we verify (process — from now on)
 
 Every interaction/visual fix must end with ONE of:

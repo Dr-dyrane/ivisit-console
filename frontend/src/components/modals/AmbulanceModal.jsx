@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Ambulance, Activity, Calendar, Hospital, MapPin, Shield, UserCheck, Wrench } from 'lucide-react';
+import { Ambulance, Activity, Calendar, Hospital, Loader2, MapPin, Shield, UserCheck, Wrench } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -290,6 +290,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
               aria-busy={loading}
               data-state={loading ? 'saving' : 'idle'}
             >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? 'Saving...' : isCreate ? 'Add unit' : 'Save changes'}
             </Button>
           )}
