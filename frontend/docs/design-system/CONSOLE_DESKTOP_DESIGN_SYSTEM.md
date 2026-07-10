@@ -101,7 +101,7 @@ Consult this BEFORE re-deciding an element; extend it when a decision lands. `gi
 
 | Page | Status |
 |---|---|
-| Visits | **ADOPTED** (reference composition) |
-| Requests | Next: extract-source; behavior already identical — adoption moves pins, zero visual change |
+| **Requests** | **THE CANONICAL SOURCE** — every component is its markup, lifted out. Next: it consumes the library itself (zero visual change, pins move). Known self-debt for that pass: the header filter-dot colored glow (`rgba(14,165,233,0.55)`) violates the neutral-shadow law. |
+| Visits | ADOPTED — first consumer of the library; measured against Requests, never the other way around |
 | Today | KPI tiles/glance share the spec; adopt `KpiStrip`/primitives on its next pass |
 | Remaining pages | Adopt on their revamp pass; new pages MUST compose, not copy |

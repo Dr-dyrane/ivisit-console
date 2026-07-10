@@ -60,10 +60,19 @@ export const StatusPill = ({ label, icon: Icon = null, className = '', compact =
   </span>
 );
 
-// Entity marker: CIRCLE (rounded-pill), status-toned well, initial fallback.
+// Two-letter initials (donor: Requests getInitials): first letters of the first
+// two name parts.
+export const getInitials = (name = '') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || '?';
+  const second = parts[1]?.[0] || '';
+  return `${first}${second}`.toUpperCase();
+};
+
+// Entity marker: CIRCLE (rounded-pill), status-toned well, two-letter initials.
 export const TonedAvatar = ({ name, className = '', size = 'h-9 w-9', textSize = 'text-sm' }) => (
   <span className={`flex ${size} shrink-0 items-center justify-center rounded-pill ${textSize} font-semibold ${className}`}>
-    {String(name || '?').trim().charAt(0).toUpperCase() || '?'}
+    {getInitials(name)}
   </span>
 );
 

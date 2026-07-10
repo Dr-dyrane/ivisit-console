@@ -359,12 +359,14 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("markActionFeedback('emergency-context')");
     expect(page).toContain("markActionFeedback(`view-${visit?.id || 'unknown'}`)");
     expect(page).toContain("markActionFeedback(`edit-${visit?.id || 'unknown'}`)");
-    // Opening/selected feedback states render inside the DS components; the page
-    // wires the feedback source (locked here) and the DS contract locks the states.
-    expect(page).toContain("opening={activeActionFeedback === 'create'}");
-    expect(page).toContain('label="New visit"');
+    // Donor parity: the primary command is the dark header pill (Requests idiom)
+    // next to the header filter trigger; the sheet toolbar carries search/refresh/
+    // Filters only. Opening/selected feedback states render inside DS components.
+    expect(page).toContain('New visit');
+    expect(page).toContain('aria-label="Schedule new visit"');
+    expect(page).toContain('aria-label="Filter visits"');
     expect(page).toContain("filtersOpening={activeActionFeedback === 'filters'}");
-    expect(page).toContain("{viewOpening ? 'Opening...' : 'View'}");
+    expect(page).toContain("{viewOpening ? 'Opening...' : 'Details'}");
     expect(page).toContain("{editOpening ? 'Opening...' : 'Edit'}");
     expect(page).toContain('aria-busy={viewOpening}');
 

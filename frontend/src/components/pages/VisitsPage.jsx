@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
 import { SignalPanel } from '../console/SignalPanel';
 import { KpiStrip } from '../console/KpiStrip';
-import { ActivitySheet, SheetToolbar, PrimaryCommand, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
 import { Shimmer, SkeletonRows, CopyChip, StatusPill, TonedAvatar, DetailLine, StageStrip, EmptyState, ErrorBanner, LoadErrorState } from '../console/primitives';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { formatDayTime } from '../../utils/dayTime';
@@ -25,7 +25,7 @@ import {
   ChevronRight,
   Clock,
   Edit,
-  Eye,
+  Filter,
   Hospital,
   Info,
   LayoutGrid,
@@ -33,7 +33,6 @@ import {
   PlayCircle,
   Plus,
   Stethoscope,
-  User,
 } from 'lucide-react';
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
@@ -650,7 +649,51 @@ export const VisitsPage = () => {
     }
   ], []);
 
-  usePageHeader("Visits");
+  // Header actions mirror the donor (Requests): the primary command is the dark
+  // fg-on-bg pill in the top header, next to the header filter trigger. NOTE: the
+  // donor's filter dot carries a colored glow -- banned by the neutral-shadow law;
+  // the dot renders glow-free here (Requests cleans its own on DS adoption).
+  const headerActions = React.useMemo(() => {
+    if (!canCreateVisits) return null;
+    return (
+      <Button
+        onClick={handleCreate}
+        data-state={modalMode === 'create' ? 'open' : 'idle'}
+        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+        aria-label="Schedule new visit"
+        aria-haspopup="dialog"
+        aria-expanded={modalMode === 'create'}
+      >
+        <Calendar className="mr-2 h-4 w-4" />
+        New visit
+      </Button>
+    );
+  }, [canCreateVisits, handleCreate, modalMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleOpenFilters}
+      data-state={filterSheetOpen ? 'open' : 'idle'}
+      className="squircle h-9 w-9 bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+      aria-label="Filter visits"
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
+    >
+      <Filter className="h-4 w-4" />
+      {hasActiveVisitFilters(filters) && (
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />
+      )}
+    </Button>
+  ), [filterSheetOpen, filters, handleOpenFilters]);
+
+  usePageHeader(
+    'Visits',
+    headerActions,
+    null,
+    filterButtonComponent
+  );
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -893,13 +936,6 @@ const VisitsDesktopWorkspace = ({
             filterSheetOpen={filterSheetOpen}
             filtersActive={hasFilter}
             filtersOpening={activeActionFeedback === 'filters'}
-            primarySlot={canCreate ? (
-              <PrimaryCommand
-                onClick={onCreate}
-                opening={activeActionFeedback === 'create'}
-                label="New visit"
-              />
-            ) : null}
           />
         )}
         errorBanner={loadError && !failedEmpty ? (
@@ -1031,21 +1067,18 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
         {formatDayTime(visit.date || visit.created_at)}
       </span>
 
-      <span className="flex justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(event) => {
-            event.stopPropagation();
-            onView(visit);
-          }}
-          className="h-8 w-8 rounded-pill p-0 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
-          title="View details"
-          aria-label={`View visit for ${patientName}`}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={(event) => {
+          event.stopPropagation();
+          onView(visit);
+        }}
+        className="justify-self-end rounded-pill bg-background/45 px-3 text-xs font-semibold transition-all duration-200 hover:bg-foreground hover:text-background active:scale-95"
+        aria-label={`View visit for ${patientName}`}
+      >
+        Details
+      </Button>
     </ListRowShell>
   );
 };
@@ -1154,7 +1187,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
         <DetailLine icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
         <DetailLine icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
         <DetailLine icon={MapPin} label="Location" value={roomLabel} />
-        <DetailLine icon={User} label="Patient" value={patientName} />
+        <DetailLine icon={Clock} label="Scheduled" value={dateLabel} />
       </div>
 
       <div className="mt-5 space-y-2">
@@ -1164,8 +1197,8 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           aria-busy={viewOpening}
           data-state={viewOpening ? 'opening' : 'idle'}
         >
-          <Eye className="mr-2 h-4 w-4" />
-          {viewOpening ? 'Opening...' : 'View'}
+          <Info className="mr-2 h-4 w-4" />
+          {viewOpening ? 'Opening...' : 'Details'}
           <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
         </Button>
         {canEdit && (
