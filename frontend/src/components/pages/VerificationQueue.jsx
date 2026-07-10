@@ -3,6 +3,7 @@ import { getVerificationQueue, verifyProvider, subscribeToVerificationQueue } fr
 import { getOrgVerificationQueue, verifyOrganization, subscribeToOrgVerificationQueue } from '../../services/orgVerificationService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useRowSelection } from '../../hooks/useRowSelection';
@@ -250,10 +251,8 @@ export const VerificationQueue = () => {
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [orgStats, setOrgStats] = useState({ pending: 0, verified: 0, rejected: 0, total: 0 });
   const [selectedProvider, setSelectedProvider] = useState(null);
-  // Right-side detail rail focus. We store only the focused id; the record is DERIVED
-  // (auto-selecting the first row when nothing is explicitly focused -- donor parity).
-  // Distinct from selectedProvider, which drives the full-detail modal.
-  const [focusedItemId, setFocusedItemId] = useState(null);
+  // Right-side detail rail focus lives in the console-wide FocusedRecord store (resolved
+  // below, after sortedItems). Distinct from selectedProvider, which drives the full modal.
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -310,14 +309,12 @@ export const VerificationQueue = () => {
     return rows;
   }, [activeItems, sortConfig.direction]);
 
-  // Auto-select the first row for the detail rail (donor parity: Requests/Visits/
-  // Hospitals default focus to the first item so the rail is never empty when there is
-  // data). An explicit click/keyboard focus wins; otherwise it tracks the first row as
-  // the list changes (queue switch, page, sort).
-  const focusedItem = useMemo(
-    () => sortedItems.find((row) => row.id === focusedItemId) || sortedItems[0] || null,
-    [sortedItems, focusedItemId],
-  );
+  // Auto-select the focused record via the console-wide shared store (donor parity:
+  // Hospitals/Ambulances COMPOSE this same hook). focusedRecord = the explicit selection
+  // OR the urgency default (mostUrgent, not list[0]) OR null -- so the rail is never empty
+  // when there is data. We compose the extracted mechanism instead of re-rolling
+  // `find || list[0]` inline (the reinvention that had dropped the behavior on this page).
+  const { focusedRecord: focusedItem, setFocused } = useFocusedRecord('verification', sortedItems);
 
   const {
     selectedIds,
@@ -460,7 +457,7 @@ export const VerificationQueue = () => {
   useEffect(() => {
     pagination.resetPagination();
     clearSelection();
-    setFocusedItemId(null);
+    setFocused(null);
   }, [queueType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Selection is per-page (bulk approve acts on the visible page); drop it on paging.
@@ -737,7 +734,7 @@ export const VerificationQueue = () => {
         canApprove={canApprove}
         actionLoading={actionLoading}
         focusedItem={focusedItem}
-        setFocusedId={setFocusedItemId}
+        setFocusedId={setFocused}
         filters={filters}
         setStatusFilter={setStatusFilter}
         setSearchFilter={setSearchFilter}

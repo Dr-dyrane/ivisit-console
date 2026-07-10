@@ -126,12 +126,14 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
   });
 
-  it('auto-selects the first row for the detail rail (donor parity: no empty rail with data)', () => {
+  it('auto-selects the focused row via the shared FocusedRecord hook (donor parity: no empty rail with data)', () => {
     const source = pageSource();
-    // The focused record is DERIVED (id + fallback), so the rail is never empty when there
-    // is data -- the one gap Approvals had vs Requests/Visits/Hospitals/Ambulances.
-    expect(source).toContain('const focusedItem = useMemo(');
-    expect(source).toContain('sortedItems.find((row) => row.id === focusedItemId) || sortedItems[0] || null');
+    // COMPOSE the extracted mechanism (Hospitals/Ambulances) rather than re-rolling
+    // `find || list[0]` inline -- the inline reinvention is what dropped the behavior and
+    // took a user correction (2026-07-10). The rail is never empty when there is data.
+    expect(source).toContain("import { useFocusedRecord } from '../../contexts/FocusedRecordContext';");
+    expect(source).toContain("const { focusedRecord: focusedItem, setFocused } = useFocusedRecord('verification', sortedItems);");
+    expect(source).not.toContain('const focusedItem = useMemo(');
   });
 
   it('keeps the shared context panel copy aligned with Approvals naming', () => {

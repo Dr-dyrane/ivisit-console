@@ -230,6 +230,12 @@ describe('Console design system contract', () => {
       { slug: 'selection', test: /useRowSelection\(|handleToggleSelect/ },        // Hospitals adoption 2026-07-09
       { slug: 'keyboard-nav', test: /useListKeyboardNav/ },                       // Requests list nav canon
       { slug: 'scroll-reset', test: /useScrollResetOnPage/ },                     // page-change scroll reset
+      // auto-select: the detail rail defaults to the focused row OR the urgency/first
+      // record so it is never empty when there is data. Composed via the shared
+      // useFocusedRecord hook (Hospitals/Ambulances) OR the inline `find || list[0] ||
+      // null` fallback (Requests/Visits). Approvals shipped WITHOUT it and it took a user
+      // correction (2026-07-10) -- the exact "unregistered donor mechanism" gap.
+      { slug: 'auto-select', test: /useFocusedRecord\(|\|\|\s*\w+\[0\]\s*\|\|\s*null/ },
       { slug: 'honest-failed-hero', test: /loadError/ },                          // F7: reassuring zero over a failed load
       { slug: 'arrival-toast', test: /lastInsertToastAtRef/ },                    // donor realtime INSERT toast
       { slug: 'deep-link', test: /params\.get\(|useSearchParams|location\.search/ }, // QuickSearch ?id focus
