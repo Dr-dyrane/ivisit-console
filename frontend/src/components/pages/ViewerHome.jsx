@@ -20,7 +20,7 @@ const LinkCard = ({ onClick, icon: Icon, title, delay, ease }) => (
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay, ease }}
-    className="glass-card rounded-card p-5 text-left flex items-center gap-3 hover-lift"
+    className="bg-card/70 rounded-card p-5 text-left flex items-center gap-3"
   >
     <div className="w-10 h-10 rounded-icon bg-muted/40 flex items-center justify-center shrink-0">
       <Icon className="h-5 w-5 text-foreground" />
@@ -51,7 +51,7 @@ export const ViewerHome = () => {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease }}
-        className="glass-card rounded-card p-6 md:p-8 mt-6 flex flex-col items-center text-center"
+        className="bg-card/70 rounded-card p-6 md:p-8 mt-6 flex flex-col items-center text-center"
       >
         <div className="w-14 h-14 rounded-icon bg-primary/10 flex items-center justify-center mb-4">
           <Lock className="h-7 w-7 text-primary" />

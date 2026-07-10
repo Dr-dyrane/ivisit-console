@@ -23,7 +23,7 @@ const StatCard = ({ icon: Icon, label, value, sub, accent, onClick, delay, ease 
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay, ease }}
-    className="glass-card rounded-card p-5 md:p-6 text-left flex flex-col justify-between min-h-[140px] hover-lift"
+    className="bg-card/70 rounded-card p-5 md:p-6 text-left flex flex-col justify-between min-h-[140px]"
   >
     <div className="flex items-center gap-3">
       <div className={`w-10 h-10 rounded-icon flex items-center justify-center ${accent}`}>
@@ -45,7 +45,7 @@ const ActionCard = ({ icon: Icon, title, onClick, delay, ease }) => (
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay, ease }}
-    className="glass-card rounded-card p-5 text-left flex items-center gap-3 hover-lift"
+    className="bg-card/70 rounded-card p-5 text-left flex items-center gap-3"
   >
     <div className="w-10 h-10 rounded-icon bg-primary/10 flex items-center justify-center">
       <Icon className="h-5 w-5 text-primary" />
