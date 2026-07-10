@@ -283,6 +283,46 @@ For **every page** we finish designing, before calling it done:
     no payment/cash chips or reverse geocode — visits carry neither; View/Edit-only rail —
     terminal outcomes locked), never from omission.
 
+26. **Why the fine details keep needing the user's eyes — the agent's real constraints, named,
+    and their countermeasures.** After the Visits conversion, the user had to point out (in
+    sequence): the missing stage, the header command placement, the "Details" row-action label,
+    two-letter initials, row selection, the filter-trigger context states, and finally Visits
+    EXCEEDING the canon with five sortable headers. Each survived a checklist, a design system,
+    contract tests, and screenshots. The honest failure modes:
+    (a) **Sampled reading.** The donor is ~2400 lines; it gets read in grep-sized fragments and
+    synthesized from fragments + memory. Anything not sampled is invisible — and "fine things"
+    live precisely in the unsampled gaps. *Countermeasure:* a parity pass diffs the donor's FULL
+    element inventory (every element, prop, aria-*, data-*, label string, class), not a category
+    checklist; build the inventory first, then tick it. A `scripts/donor-diff` style extractor is
+    the harness-grade version — candidate next tool.
+    (b) **Compaction salience loss.** Session summaries preserve decisions ("width matters") but
+    not their *salience distribution* — which details the user bled over. *Countermeasure:* the
+    Decision Trail (DS doc) + `git log --follow` on the donor BEFORE converting; the trail is the
+    salience record.
+    (c) **Abstraction bias.** Comparison happens at named-concept level (rail, strip, toolbar);
+    deltas without a name in the checklist don't register (initials arity, a label string, a
+    data-state vocabulary). *Countermeasure:* same as (a) — mechanical enumeration beats
+    conceptual comparison.
+    (d) **Directional blindness.** "Adopt what the donor has" is additive-only; nothing asked
+    "what does this page have that the donor DELIBERATELY lacks?" — so superset drift (5 sortable
+    headers vs the canon's 1) was invisible. *Countermeasure:* every parity pass runs BOTH
+    directions: missing AND exceeding.
+    (e) **Pinned-test circularity.** Contract tests verify what got pinned, and what gets pinned
+    is what was already thought of — green suites feel like "done" but only re-confirm the
+    author's blind spots. *Countermeasure:* pins lock decisions AFTER they're found; finding them
+    needs (a)/(d). The DS is the structural fix — once both pages render from ONE component there
+    is nothing left to compare (every miss lived in page-local composition the DS didn't yet own).
+    (f) **Single-state screenshots.** One default-state screenshot per page; fine things live in
+    states (scrolled header, hover, admin vs provider, filtered). The header-command miss survived
+    because the header was scroll-hidden in the frame reviewed. *Countermeasure:* the rendered
+    proof is a state MATRIX (default + scrolled + admin + filtered + dark), donor and consumer
+    side by side.
+    (g) **Components travel without their usage grammar.** `SortableColumnHeader` was extracted
+    from the donor and then used five times where the donor uses it ONCE — the restraint lived in
+    a donor comment next to the usage, not in the component. *Countermeasure:* extracting a
+    component means extracting its usage constraints into the DS doc's component table; a
+    component without a "when NOT to use it" entry is half-extracted.
+
 ---
 
 ## Data-sync issues found while doing UI/UX (queue pointer)
