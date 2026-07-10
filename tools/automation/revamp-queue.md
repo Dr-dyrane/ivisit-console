@@ -303,10 +303,15 @@ Notes:
   class-inventory diff (old file vs page+kit universe = zero missing classes); pins migrated
   same-commit (search testid/labels -> kit props, frosted-panel positive pin -> kit file,
   press/filter-state -> kit contract). 58/58 across 4 suites, strict-radius 4/4.
-- **NEXT: MobileEmergency** (agent in flight) -> then EmergencyRequestsPage DESKTOP adoption of
-  console/* + shadow-e tokens (sequenced behind it: both passes edit
-  EmergencyRequestsPage.contract.test.js; zero visual change; the filter-dot colored glow debt
-  dies in that pass). **PIN-BLOCKED on TodayHome.contract.test.js (item-7 flag, WIDENED):** the
+- **RE-COMPOSITION 2/3 DONE — MobileEmergency** (agent-built, controller-verified + committed):
+  donor-diff 0 missing classes; 8 pins migrated; skeleton kept page-local (single-pill trailing);
+  SearchRow deferred on a kit gap. **KIT GAPS CLOSED same arc:** SearchRow `statsOpen`
+  (context-aware stats trigger) + SkeletonGroupPanel `trailing='timePill'|'pill'` variants —
+  MobileEmergency can adopt both on its next touch. Remaining kit gap (reported, open):
+  TonedAvatar has no img-overlay variant (Requests rail avatar).
+- **IN FLIGHT: EmergencyRequestsPage DESKTOP adoption** of console/* + shadow-e tokens (agent
+  launched after ME committed — the shared contract file is free); zero visual change; the
+  filter-dot colored glow debt dies in that pass; page joins the ConsoleDS estate-law sweep. **PIN-BLOCKED on TodayHome.contract.test.js (item-7 flag, WIDENED):** the
   mobile-lane-dirty test blocks BOTH MobileToday's kit re-composition AND TodayHome's desktop
   DS/token adoption (it pins the literal class strings those passes move). It also needs the
   GlanceTile nav-variant componentized (spec inventory row 2) - desktop lane builds it in the
