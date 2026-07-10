@@ -287,6 +287,27 @@ Notes:
   "New visit" — same one-class fix (`text-foreground` after `font-bold`), YOUR claimed file. Your
   conversion will likely replace the button wholesale (it also carries uppercase/tracking-widest,
   your V-15) — until then it renders white-on-light for every operator on /visits.
+  **RESOLVED (desktop lane):** the donor-parity pass replaced the button wholesale — header
+  "New visit" is now the donor's dark pill (`bg-foreground ... text-background`, `6eeecb87`);
+  the sheet-toolbar variant was later removed entirely in favor of the header pill.
+
+### 2026-07-09 — desktop-uiux-lane — CLAIM: Hospitals (Page 8) DESKTOP revamp — CHANGE LOG FIRST
+- **User directive:** "a mass revamp never works because each page has its perks and features
+  dropped mistakenly... do a change log first to understand, before we make it ui ux structure
+  and data sync up to date — desktop."
+- **DESKTOP-LANE FILES (claimed):** `HospitalsPage.jsx`, `HospitalsPage.contract.test.js`,
+  `context/HospitalsPanel.jsx`, `views/HospitalListView.jsx` + `HospitalTableView.jsx`,
+  `modals/HospitalModal.jsx` (desktop chrome only if needed), `dashboard/HospitalFleetManager.jsx`.
+  NOT claimed: `MobileHospitals.jsx` (mobile lane's L-rebuild target), `hospitalsService.js` +
+  `hospitalImportService.js`/`bedManagementService.js` data-layer (request changes via ledger if
+  the mobile lane claims them; otherwise coordinate here before edits).
+- **Phase 1 (running):** two parallel archaeology agents — (a) git-history change log + decision
+  register + feature/perk inventory vs baseline `f31f29f` + landmine list (Hospitals contract-
+  LOCKS glass-card as canonical shell — the reverted blanket sweep proved it); (b) current-state
+  11-point donor-parity delta vs the composed gold pages + full data-sync chain audit (known
+  suspects: no client auth scoping in hospitalsService, org_admin booby-trapped edit buttons,
+  org_admin_id assignment no-op). Output = the revamp constitution; fixes only after the user
+  sees the change log.
 
 ### 2026-07-09 — desktop-uiux-lane — HANDOFF TAKEN: mobile canon kit IN PROGRESS
 - **KIT LANDED** (commit before `45bc5d8f`): `src/components/mobile/canon/*` — constants
