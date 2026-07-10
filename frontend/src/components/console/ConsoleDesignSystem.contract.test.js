@@ -39,6 +39,7 @@ describe('Console design system contract', () => {
     // write-surface is the provider modal; the facility inline write (rail) carries the
     // submit spinner via the page (animate-spin), which the interaction gate accepts.
     { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', modal: 'src/components/modals/VerificationModal.jsx' },
+    { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', modal: 'src/components/modals/DoctorModal.jsx' },
   ];
 
   const CONSOLE_FILES = () => ({
@@ -195,6 +196,7 @@ describe('Console design system contract', () => {
       hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
       ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
       verificationQueue: read('src/components/pages/VerificationQueue.jsx'),
+      doctorsPage: read('src/components/pages/DoctorsPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });

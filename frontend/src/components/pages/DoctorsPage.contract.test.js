@@ -89,7 +89,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).toContain('filters.kpiFilter,');
     expect(page).toContain('filters.created_at,');
     expect(page).toContain('sortConfig.key');
-    expect(page).toContain('nextFilter.sortKey = sortConfig.key;');
+    expect(page).toContain('sortKey: sortConfig.key,');
     expect(page).not.toContain('}, [filters, isPrivileged');
     expect(page).not.toContain('limit: isPrivileged ? 1000');
     expect(page).not.toContain('filteredDoctors');
@@ -139,7 +139,9 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).toContain('const confirmDelete = useCallback');
     expect(page).toContain('const handleBulkDelete = useCallback');
     expect(page).toContain('onDelete={confirmDelete}');
-    expect(page).toContain('onSelect={handleSelect}');
+    // Selection is now the SHARED useRowSelection hook (gains shift-range + prune-to-
+    // visible); the mobile surface consumes handleToggleSelect/handleSelectAll from it.
+    expect(page).toContain('onSelect={handleToggleSelect}');
     expect(page).toContain('onSelectAll={handleSelectAll}');
     expect(page).toContain('selectionEnabled={canManageStaff}');
     expect(page).toContain('<ConfirmationModal');
@@ -167,6 +169,56 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).not.toContain('clinical availability');
   });
 
+  it('is composed on the console design system, not the retired ViewToggle/bento shell', () => {
+    const page = pageSource();
+    // COMPOSITION: the shared workspace grammar, not bespoke StaffSignalPanel/StaffStateStrip/StaffDetailRail.
+    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain("import { SignalPanel } from '../console/SignalPanel';");
+    expect(page).toContain("import { KpiStrip } from '../console/KpiStrip';");
+    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
+    // Shared MECHANISMS (not reinvented inline): selection prune, keyboard nav, scroll
+    // reset, auto-select, arrival toast, deep-link, isFetching surfaced.
+    expect(page).toContain("from '../../hooks/useRowSelection'");
+    expect(page).toContain('useRowSelection(staffRows)');
+    expect(page).toContain("useFocusedRecord('doctors', staffRows)");
+    expect(page).toContain('useListKeyboardNav');
+    expect(page).toContain('useScrollResetOnPage');
+    expect(page).toContain('isFetching={isFetching}');
+    expect(page).toContain('lastInsertToastAtRef');
+    expect(page).toContain('location.search');
+    // Single-shared-list: exactly ONE Time header; the retired density shell is gone.
+    expect((page.match(/<SortableColumnHeader/g) || []).length).toBe(1);
+    expect(page).not.toContain('ViewToggle');
+    expect(page).not.toContain('useViewMode');
+    expect(page).not.toContain('<DoctorListView');
+    expect(page).not.toContain('<DoctorTableView');
+    expect(page).not.toContain('StaffSignalPanel');
+    expect(page).not.toContain('StaffStateStrip');
+    // No re-introduced entrance stagger; no colored bleeding shadow glow.
+    expect(page).not.toContain('initial={{');
+    expect({ rgba: /shadow-\[[^\]]*rgba?\(/.test(page) }).toEqual({ rgba: false });
+    // DATA-TRUTH (live-DB check 2026-07-10): status handling tolerates the real 'invited'
+    // state and does NOT default unknown statuses to 'available' (the masquerade bug).
+    expect(page).toContain('invited: {');
+    expect(page).not.toContain('|| staffStatusMeta.available');
+  });
+
+  it('records the data-verified persona exclusion (no schema-first driver split)', () => {
+    const page = pageSource();
+    // Live-DB check (2026-07-10): 322/322 doctors are provider_type='doctor', zero
+    // drivers/paramedics, and specialization is monovalue (321 Emergency / 1 General).
+    // So NO driver/persona KPI is data-backed -- do not join provider_type or invent a
+    // Role chip. The honest axis is availability + specialization (subtitle).
+    expect(page).not.toContain('provider_type');
+    expect(page).not.toContain("'driver'");
+    expect(page).not.toContain('Paramedic');
+  });
+
   it('removes stale Staff mobile trend and Doctor-facing copy from the active surface', () => {
     const page = pageSource();
     const mobile = mobileSource();
@@ -174,8 +226,7 @@ describe('DoctorsPage Staff contract', () => {
 
     expect(activeStaffSource).toContain("'Staff'");
     expect(activeStaffSource).toContain('Search staff');
-    expect(activeStaffSource).toContain('Staff status filters');
-    expect(activeStaffSource).toContain('No staff found');
+    expect(activeStaffSource).toContain('No staff yet');
     expect(activeStaffSource).not.toContain('Medical Staff');
     expect(activeStaffSource).not.toContain('ADD DOCTOR');
     expect(activeStaffSource).not.toContain('Search doctors');
