@@ -7,15 +7,18 @@ import {
     Clock,
     Edit,
     Eye,
-    Filter,
     Hospital,
     Mail,
     Phone,
-    Search,
     Stethoscope,
     Trash2,
     Users
 } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x + the haptic filter trigger it hand-rolled;
+// useSkeletonWarmup covers cached bottom-nav mounts; UpdatingPill replaces the
+// hand-rolled header refetch pill.
+import { SearchRow, useSkeletonWarmup, UpdatingPill } from './canon';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileMetricRow } from './MobileMetricList';
@@ -110,7 +113,8 @@ export const MobileDoctors = ({
 
     const sourceDoctors = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
     const { displayItems: displayDoctors, isBuffering } = useStableList(sourceDoctors, loading);
-    const showSkeleton = loading && displayDoctors.length === 0;
+    const warmingUp = useSkeletonWarmup();
+    const showSkeleton = warmingUp || (loading && displayDoctors.length === 0);
 
     const filterItems = useMemo(() => mobileStaffFilters.map((item) => ({
         ...item,
@@ -154,39 +158,18 @@ export const MobileDoctors = ({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                            <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                            <input
-                                type="search"
-                                placeholder="Search staff..."
-                                value={filters?.search || ''}
-                                onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
-                                className="h-11 w-full rounded-inner bg-muted/28 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
-                            />
-                        </div>
-                        <motion.button
-                            type="button"
-                            whileTap={{ scale: 0.96 }}
-                            onClick={(event) => {
-                                onOpenFilters?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
-                            }}
-                            className="flex h-11 w-11 items-center justify-center rounded-button bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground"
-                            aria-label="Filter staff"
-                        >
-                            <Filter size={18} />
-                        </motion.button>
-                    </div>
+                    <SearchRow
+                        placeholder="Search staff..."
+                        search={filters?.search || ''}
+                        onSearchCommit={(value) => setFilters?.(prev => ({ ...prev, search: value }))}
+                        entityLabel="staff"
+                        onOpenFilters={onOpenFilters}
+                    />
 
                     <div className="flex items-center justify-between px-1">
                         <h2 className="text-lg font-semibold tracking-normal">Staff</h2>
                         <div className="flex items-center gap-2">
-                            {isBuffering && (
-                                <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                    Updating
-                                </span>
-                            )}
+                            {isBuffering && !showSkeleton && <UpdatingPill />}
                             {canSelect && displayDoctors.length > 0 && (
                                 <button
                                     type="button"
@@ -232,7 +215,7 @@ export const MobileDoctors = ({
                             {!loading && !hasMore && displayDoctors.length > 0 && <MobileListEnd label="End of staff list" />}
                         </div>
 
-                        {displayDoctors.length === 0 && !loading && (
+                        {displayDoctors.length === 0 && !loading && !showSkeleton && (
                             <MobileListEmpty icon={Stethoscope} label="No staff found" labelTone="plain" />
                         )}
                     </div>
