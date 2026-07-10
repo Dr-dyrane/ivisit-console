@@ -1,4 +1,16 @@
-# Hospitals Desktop — Change Log & Revamp Constitution (2026-07-09)
+# Hospitals Desktop — Change Log & Revamp Constitution (2026-07-09) — **PAGE CLOSED**
+
+> **CLOSED OUT 2026-07-09 (user sign-off "lets close out hospital page").** Landed: DS
+> composition `377e0850`, selection triggers + estate law `dc899e1b`, bottom-bar left-pill+FAB
+> `7cdf4062`, modal close-out (create+Places path DELETED — live DB enforces fail-closed create,
+> DATA_SYNC 12c; ReadOnlyField view mode on canonical radii; Places photo attribution caption).
+> Remaining items live in the ledger as owned queue entries, not open work: F11
+> bedManagementService bundle (data-sync), onboarding hospitals-insert dead against live RLS
+> (onboarding domain + ivisit-app), org-name join for a rail Organization line (narrow service
+> addition), wait_time vs emergency_wait_time_minutes semantic overlap (backend), attribution on
+> list thumbnails + mobile surfaces (estate/mobile lane), desktop dock last-pill morph (estate
+> decision), provider read-only view of own facility (product). Reopening any decision here
+> requires user arbitration, not a refactor.
 
 > The user's law: "a mass revamp never works because each page has its perks and features dropped
 > mistakenly — do a change log first to understand." Two-agent archaeology (git historian +

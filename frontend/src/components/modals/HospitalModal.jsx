@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
@@ -7,7 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User } from 'lucide-react';
+import { Hospital, MapPin, Phone, Bed, Ambulance, Clock, Activity, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { CopyChip } from '../console/primitives';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -95,9 +95,13 @@ const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl ba
 
 const formId = 'hospital-modal-form';
 
+// Create mode was DELETED (user close-out 2026-07-09): the live DB enforces
+// fail-closed create -- hospitals has zero INSERT policies and no create RPC
+// (DATA_SYNC 12c), so the interactive-but-unreachable create + Google Places
+// autofill path was a booby-trap held closed only by the page. Git history
+// keeps the recipe if a backend receiver is ever authored in ivisit-app.
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
-  const isCreate = mode === 'create';
 
   const [formData, setFormData] = useState(() => buildInitialFormData(hospital));
 
@@ -107,11 +111,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
   const [loading, setLoading] = useState(false);
   const [showImage, setShowImage] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchTimeoutRef = useRef(null);
-  const searchContainerRef = useRef(null);
 
   useEffect(() => {
     setFormData(buildInitialFormData(hospital));
@@ -125,81 +124,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const bedUtilizationPercent = totalBeds > 0
     ? Math.min(Math.round(((totalBeds - availableBeds) / totalBeds) * 100), 100)
     : 0;
-
-  const handleGoogleSearch = async (query) => {
-    if (!query || query.length < 3) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
-
-    try {
-      setSearchLoading(true);
-      // Call the real edge function for Google Places search
-      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/discover-hospitals`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          query: query,
-          mode: 'text_search',
-          limit: 5
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
-
-      const data = await response.json();
-      setSearchResults(data.hospitals || []);
-      setShowSearchResults(true);
-    } catch (error) {
-      console.error('Google search error:', error);
-      handleApiError(error, 'fetch');
-      setSearchResults([]);
-      setShowSearchResults(false);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Debounced search handler
-  const handleSearchChange = (e) => {
-    const query = e.target.value;
-    
-    // Clear existing timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced search
-    searchTimeoutRef.current = setTimeout(() => {
-      handleGoogleSearch(query);
-    }, 300);
-  };
-
-  // Click outside handler for search results
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
-        setShowSearchResults(false);
-      }
-    };
-
-    if (showSearchResults) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [showSearchResults]);
 
   // Load bed reservations and utilization when modal opens
   useEffect(() => {
@@ -237,24 +161,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     } finally {
       setLoadingReservations(false);
     }
-  };
-
-  const handleSelectHospital = (hospital) => {
-    setFormData(prev => ({
-      ...prev,
-      name: hospital.name,
-      address: hospital.address,
-      phone: hospital.phone,
-      rating: hospital.rating || 4.0,
-      type: hospital.types?.includes('hospital') ? 'premium' : 'standard',
-      latitude: hospital.geometry?.location?.lat || 0,
-      longitude: hospital.geometry?.location?.lng || 0,
-      place_id: hospital.place_id,
-      verification_status: 'pending'
-    }));
-    setShowSearchResults(false);
-    setSearchResults([]);
-    toast.success(`Selected ${hospital.name}`);
   };
 
   const handleChange = (e) => {
@@ -307,7 +213,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     <ModalShell
       isOpen={isOpen}
       onClose={() => onClose()}
-      title={formData.name || 'New Facility'}
+      title={formData.name || 'Facility record'}
       subtitle={hospital?.display_id ? (
         <span className="inline-flex min-w-0 items-center gap-1">
           {formData.type && <span className="truncate">{formData.type}</span>}
@@ -343,7 +249,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
               className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground active:scale-[0.96] hover:bg-primary/90"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
+              {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           )}
         </div>
@@ -352,156 +258,109 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       <div className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar flex-1 min-h-0">
         <form id={formId} onSubmit={handleSubmit} className="space-y-6">
 
-                {/* --- GOOGLE AUTOFILL SECTION --- */}
-                {isCreate && (
-                  <GlassCard icon={<MapPin />} title="Auto-fill from Google">
-                    <div className="relative" ref={searchContainerRef}>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleSearch" className="text-xs font-semibold text-muted-foreground uppercase px-1">Search Google Places</Label>
-                        <div className="relative">
-                          <Input
-                            id="googleSearch"
-                            placeholder="Search for a hospital (e.g. Mayo Clinic)..."
-                            className={`${modalFieldClassName} h-12 pl-10`}
-                            onChange={handleSearchChange}
-                          />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                            {searchLoading ? (
-                              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                            ) : (
-                              <MapPin className="w-4 h-4 text-primary" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Search Results Dropdown */}
-                      {showSearchResults && (
-                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl  rounded-inner shadow-xl max-h-64 overflow-y-auto mt-2">
-                          {searchResults.length > 0 ? (
-                            searchResults.map((hospital, index) => (
-                              <div
-                                key={hospital.place_id || index}
-                                className="p-3 hover:bg-white/10 cursor-pointer transition-colors rounded-inner"
-                                onClick={() => handleSelectHospital(hospital)}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <div className="p-2 bg-primary/10 rounded-icon">
-                                    <Hospital className="w-4 h-4 text-primary" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-sm truncate">{hospital.name}</h4>
-                                    <p className="text-xs text-muted-foreground truncate">{hospital.address}</p>
-                                    {hospital.rating && (
-                                      <div className="flex items-center gap-1 mt-1">
-                                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                        <span className="text-xs text-muted-foreground">{hospital.rating}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              No hospitals found. Try a different search term.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <p className="text-[10px] text-muted-foreground mt-2 px-1">
-                        Search results from Google Places. Select a hospital to auto-fill details.
-                      </p>
-                    </div>
-                  </GlassCard>
-                )}
-
                 {/* General Information */}
                 <GlassCard icon={<Activity />} title="Facility Details">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Name</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className={`${modalFieldClassName} h-11 md:h-12 font-semibold text-base md:text-lg`}
-                        placeholder="General Hospital..."
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.name} icon={<Hospital className="h-4 w-4" />} />
+                      ) : (
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          className={`${modalFieldClassName} h-11 md:h-12 font-semibold text-base md:text-lg`}
+                          placeholder="General Hospital..."
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="type" className="text-xs font-semibold text-muted-foreground uppercase px-1">Tier</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger id="type" className={`${modalFieldClassName} h-12 font-normal`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className={modalSelectContentClassName}>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="basic">Basic</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isView ? (
+                        <ReadOnlyField value={formData.type} />
+                      ) : (
+                        <Select
+                          value={formData.type}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                        >
+                          <SelectTrigger id="type" className={`${modalFieldClassName} h-12 font-normal`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={modalSelectContentClassName}>
+                            <SelectItem value="premium">Premium</SelectItem>
+                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="basic">Basic</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="emergency_level" className="text-xs font-semibold text-muted-foreground uppercase px-1">Trauma Level</Label>
-                      <Input
-                        id="emergency_level"
-                        name="emergency_level"
-                        value={formData.emergency_level}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className={`${modalFieldClassName} h-12 font-normal`}
-                        placeholder="Level 1 Trauma..."
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.emergency_level} />
+                      ) : (
+                        <Input
+                          id="emergency_level"
+                          name="emergency_level"
+                          value={formData.emergency_level}
+                          onChange={handleChange}
+                          className={`${modalFieldClassName} h-12 font-normal`}
+                          placeholder="Level 1 Trauma..."
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="price_range" className="text-xs font-semibold text-muted-foreground uppercase px-1">Price Range</Label>
-                    <Input
-                      id="price_range"
-                      name="price_range"
-                      value={formData.price_range}
-                      onChange={handleChange}
-                      disabled={isView}
-                      className={`${modalFieldClassName} font-normal`}
-                      placeholder="e.g. $150"
-                    />
+                    {isView ? (
+                      <ReadOnlyField value={formData.price_range} />
+                    ) : (
+                      <Input
+                        id="price_range"
+                        name="price_range"
+                        value={formData.price_range}
+                        onChange={handleChange}
+                        className={`${modalFieldClassName} font-normal`}
+                        placeholder="e.g. $150"
+                      />
+                    )}
                   </div>
 
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="specialties" className="text-xs font-semibold text-muted-foreground uppercase px-1">Specialties (comma separated)</Label>
-                      <Input
-                        id="specialties"
-                        name="specialties"
-                        value={Array.isArray(formData.specialties) ? formData.specialties.join(', ') : formData.specialties || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()) }))}
-                        disabled={isView}
-                        className={`${modalFieldClassName} font-normal`}
-                        placeholder="General Care, Surgery..."
-                      />
+                      <Label htmlFor="specialties" className="text-xs font-semibold text-muted-foreground uppercase px-1">{isView ? 'Specialties' : 'Specialties (comma separated)'}</Label>
+                      {isView ? (
+                        <ReadOnlyField value={formData.specialties} multiline />
+                      ) : (
+                        <Input
+                          id="specialties"
+                          name="specialties"
+                          value={Array.isArray(formData.specialties) ? formData.specialties.join(', ') : formData.specialties || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()) }))}
+                          className={`${modalFieldClassName} font-normal`}
+                          placeholder="General Care, Surgery..."
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="features" className="text-xs font-semibold text-muted-foreground uppercase px-1">Features (comma separated)</Label>
-                      <Input
-                        id="features"
-                        name="features"
-                        value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value.split(',').map(s => s.trim()) }))}
-                        disabled={isView}
-                        className={`${modalFieldClassName} font-normal`}
-                        placeholder="Lab, Helipad..."
-                      />
+                      <Label htmlFor="features" className="text-xs font-semibold text-muted-foreground uppercase px-1">{isView ? 'Features' : 'Features (comma separated)'}</Label>
+                      {isView ? (
+                        <ReadOnlyField value={formData.features} multiline />
+                      ) : (
+                        <Input
+                          id="features"
+                          name="features"
+                          value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value.split(',').map(s => s.trim()) }))}
+                          className={`${modalFieldClassName} font-normal`}
+                          placeholder="Lab, Helipad..."
+                        />
+                      )}
                     </div>
                   </div>
                 </GlassCard>
@@ -513,72 +372,88 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       <Label htmlFor="total_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-                        <Input
-                          type="number"
-                          id="total_beds"
-                          name="total_beds"
-                          value={formData.total_beds || 0}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={formData.total_beds || 0} />
+                        ) : (
+                          <Input
+                            type="number"
+                            id="total_beds"
+                            name="total_beds"
+                            value={formData.total_beds || 0}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="available_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Available</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                        <Input
-                          type="number"
-                          id="available_beds"
-                          name="available_beds"
-                          value={formData.available_beds}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={formData.available_beds} />
+                        ) : (
+                          <Input
+                            type="number"
+                            id="available_beds"
+                            name="available_beds"
+                            value={formData.available_beds}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="icu_beds_available" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ICU Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
-                        <Input
-                          type="number"
-                          id="icu_beds_available"
-                          name="icu_beds_available"
-                          value={formData.icu_beds_available || 0}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={formData.icu_beds_available || 0} />
+                        ) : (
+                          <Input
+                            type="number"
+                            id="icu_beds_available"
+                            name="icu_beds_available"
+                            value={formData.icu_beds_available || 0}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Reserved</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
-                        <Input
-                          type="number"
-                          value={reservedBedsDisplay}
-                          disabled
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={reservedBedsDisplay} />
+                        ) : (
+                          <Input
+                            type="number"
+                            value={reservedBedsDisplay}
+                            disabled
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="ambulances_count" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Ambulances</Label>
                       <div className="relative">
                         <Ambulance className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          id="ambulances_count"
-                          name="ambulances_count"
-                          value={formData.ambulances_count}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={formData.ambulances_count} />
+                        ) : (
+                          <Input
+                            type="number"
+                            id="ambulances_count"
+                            name="ambulances_count"
+                            value={formData.ambulances_count}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -591,15 +466,19 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             capacity split). Editable before, the value was silently dropped
                             server-side with an optimistic ghost-flicker
                             (HOSPITALS_REVAMP_CONSTITUTION F3). */}
-                        <Input
-                          type="number"
-                          id="emergency_wait_time_minutes"
-                          name="emergency_wait_time_minutes"
-                          value={formData.emergency_wait_time_minutes || 0}
-                          disabled
-                          title="Operational insight -- updates from live activity, not editable here"
-                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                        />
+                        {isView ? (
+                          <ReadOnlyStat value={formData.emergency_wait_time_minutes || 0} />
+                        ) : (
+                          <Input
+                            type="number"
+                            id="emergency_wait_time_minutes"
+                            name="emergency_wait_time_minutes"
+                            value={formData.emergency_wait_time_minutes || 0}
+                            disabled
+                            title="Operational insight -- updates from live activity, not editable here"
+                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -703,48 +582,57 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase px-1">Address</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Textarea
-                          id="address"
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} min-h-[80px] pl-10 pt-3 font-normal resize-none`}
-                        />
-                      </div>
+                      {isView ? (
+                        <ReadOnlyField value={formData.address} icon={<MapPin className="h-4 w-4" />} multiline />
+                      ) : (
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                          <Textarea
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} min-h-[80px] pl-10 pt-3 font-normal resize-none`}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase px-1">Phone</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className={`${modalFieldClassName} h-12 pl-10 font-mono`}
-                        />
-                      </div>
+                      {isView ? (
+                        <ReadOnlyField value={formData.phone} icon={<Phone className="h-4 w-4" />} />
+                      ) : (
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className={`${modalFieldClassName} h-12 pl-10 font-mono`}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase px-1">Operational Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger id="status" className={`${modalFieldClassName} h-12 font-normal`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className={modalSelectContentClassName}>
-                          <SelectItem value="available">Available</SelectItem>
-                          <SelectItem value="busy">Busy</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isView ? (
+                        <ReadOnlyField value={formData.status} />
+                      ) : (
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                        >
+                          <SelectTrigger id="status" className={`${modalFieldClassName} h-12 font-normal`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={modalSelectContentClassName}>
+                            <SelectItem value="available">Available</SelectItem>
+                            <SelectItem value="busy">Busy</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </GlassCard>
@@ -752,21 +640,27 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 {/* Additional Settings */}
                 <GlassCard icon={<Activity />} title="System & Verification">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-inner shadow-[0_12px_28px_rgb(0_0_0/0.05)]">
-                      <input
-                        type="checkbox"
-                        id="verified"
-                        name="verified"
-                        checked={formData.verified}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="w-5 h-5 rounded-icon accent-primary"
+                    {isView ? (
+                      <ReadOnlyField
+                        value={formData.verified ? 'Verified partner' : 'Not verified'}
+                        subtext="Trusted medical facility flag"
                       />
-                      <Label htmlFor="verified" className="text-sm font-medium cursor-pointer">
-                        Verified Partner
-                        <p className="text-[10px] text-muted-foreground font-normal">Mark as a trusted medical facility</p>
-                      </Label>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-4 bg-white/5 rounded-inner shadow-[0_12px_28px_rgb(0_0_0/0.05)]">
+                        <input
+                          type="checkbox"
+                          id="verified"
+                          name="verified"
+                          checked={formData.verified}
+                          onChange={handleChange}
+                          className="w-5 h-5 rounded-icon accent-primary"
+                        />
+                        <Label htmlFor="verified" className="text-sm font-medium cursor-pointer">
+                          Verified Partner
+                          <p className="text-[10px] text-muted-foreground font-normal">Mark as a trusted medical facility</p>
+                        </Label>
+                      </div>
+                    )}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="image" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Image</Label>
@@ -798,6 +692,15 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                               className="w-full h-48 object-cover"
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
+                            {/* Places attribution compliance: the sync pipeline
+                                stores the provider's attribution string (often
+                                HTML) -- render it as plain text wherever the
+                                photo displays (SHELL_PARITY_AUDIT section 4). */}
+                            {hospital?.image_attribution_text && (
+                              <p className="absolute bottom-0 left-0 right-0 bg-black/55 px-2 py-1 text-[10px] leading-4 text-white/90">
+                                Photo: {String(hospital.image_attribution_text).replace(/<[^>]*>/g, '')}
+                              </p>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -834,6 +737,45 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 };
 
 /* Sub-components */
+
+// View-mode presentation (VisitModal ReadOnlyField recipe, radii swapped to
+// the canonical tokens -- this file is hardgate-gated; the donor's literal
+// radius utilities are flagged debt there). Read surfaces never render as
+// disabled inputs.
+const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
+  const displayValue = Array.isArray(value)
+    ? (value.filter(Boolean).join('\n') || 'Not set')
+    : String(value || 'Not set');
+
+  return (
+    <div className={`flex gap-3 rounded-inner bg-muted/30 px-3 py-3 text-sm ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
+      {icon && (
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/50 text-muted-foreground">
+          {icon}
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className={`block font-medium text-foreground ${multiline ? 'whitespace-pre-wrap leading-6' : 'truncate'}`}>
+          {displayValue}
+        </span>
+        {subtext && (
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            {subtext}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+};
+
+// Compact read-only cell for the Live Capacity grid: same footprint as the
+// numeric inputs it replaces in view mode, minus the editable affordance.
+const ReadOnlyStat = ({ value }) => (
+  <div className="flex h-10 items-center rounded-inner bg-muted/30 pl-9 pr-3 text-sm font-semibold tabular-nums text-foreground">
+    {value}
+  </div>
+);
+
 const GlassCard = ({ children, title, icon }) => (
   // Donor two-tone surface (EmergencyRequestModal): single-tone bg-white/5 was
   // near-invisible in light mode.

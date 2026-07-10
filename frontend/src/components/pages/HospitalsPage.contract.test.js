@@ -616,14 +616,25 @@ describe('HospitalsPage admission audit contract', () => {
     expect(table).not.toContain('<tbody');
 
     expect(modal).toContain('mode === \'view\'');
-    // isEdit was declared-and-never-used (SHELL_PARITY_AUDIT 2.11) -- the modal
-    // needs only isView/isCreate; edit is the fall-through.
+    // isEdit was declared-and-never-used (SHELL_PARITY_AUDIT 2.11); edit is the
+    // fall-through mode.
     expect(modal).not.toContain('mode === \'edit\'');
-    expect(modal).toContain('mode === \'create\'');
+    // Create mode DELETED (user close-out 2026-07-09): the live DB enforces
+    // fail-closed create -- zero INSERT policies, no create RPC (DATA_SYNC 12c).
+    // The interactive-but-unreachable create + Places autofill path was a
+    // booby-trap; git history keeps the recipe if a receiver is ever authored.
+    expect(modal).not.toContain('mode === \'create\'');
+    expect(modal).not.toContain('isCreate');
+    expect(modal).not.toContain('Auto-fill from Google');
+    expect(modal).not.toContain('discover-hospitals');
+    // View mode renders read surfaces, not disabled inputs (VisitModal
+    // ReadOnlyField recipe on canonical radius tokens -- this file is
+    // hardgate-gated); Places photos carry their attribution text.
+    expect(modal).toContain('const ReadOnlyField');
+    expect(modal).toContain('const ReadOnlyStat');
+    expect(modal).toContain('image_attribution_text');
     // Toast single-owner rule (VisitModal V-16): the page toasts success and
     // error; the modal only closes on success and stays open on failure.
-    expect(modal).not.toContain('toast.success(isCreate');
-    expect(modal).not.toContain("handleApiError(error, isCreate");
     expect(modal).toContain('Single toast owner is the page');
     // Sticky footer via ModalShell footer prop + cross-boundary submit.
     expect(modal).toContain("const formId = 'hospital-modal-form';");

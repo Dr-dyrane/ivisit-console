@@ -578,3 +578,20 @@ Notes:
   end-to-end and ?id-with-display_id deep link. Remaining Hospitals items are desktop-lane
   (navbar redistribution + panel quick actions, arbitration #2) — mobile lane stands by for
   the next page call.
+
+### 2026-07-09 — desktop-uiux-lane — HOSPITALS PAGE CLOSED (user sign-off)
+- **Modal close-out landed:** create + Google Places autofill path DELETED (live DB enforces
+  fail-closed create — DATA_SYNC 12c; git history keeps the recipe if ivisit-app ever authors a
+  receiver); view mode now renders ReadOnlyField/ReadOnlyStat surfaces (VisitModal recipe on
+  CANONICAL radius tokens — the donor's literal radii are its own flagged debt) instead of
+  disabled inputs; Places photo attribution caption renders on the modal preview
+  (image_attribution_text, tags stripped). Pins migrated same-commit; suites 54/54;
+  hardgate hospitals-clean.
+- **Full arc:** constitution -> archaeology -> DS composition 377e0850 -> shell-parity audit ->
+  live RPC/policy verification -> selection estate law dc899e1b -> bottom bar 7cdf4062 -> modal
+  close-out. Page composes console/*, all decisions cited, all gates green.
+- **Still queued (owned elsewhere, NOT open Hospitals work):** F11 bedManagementService bundle;
+  onboarding hospitals-insert dead vs live RLS (onboarding + ivisit-app); org-name join rail
+  line; wait_time vs emergency_wait_time_minutes overlap; attribution on thumbnails + MOBILE
+  surfaces (mobile lane: MobileHospitals renders Places photos with no attribution — same ToS
+  exposure); desktop dock morph (estate decision); provider read-only view (product).
