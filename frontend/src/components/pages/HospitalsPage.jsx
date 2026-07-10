@@ -39,7 +39,11 @@ import {
   Star,
   Tag,
   Timer,
+  Trash2,
 } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
+import { BulkActionBar } from '../common/BulkActionBar';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
@@ -477,6 +481,21 @@ export const HospitalsPage = () => {
     setAnalyticsModalOpen(true);
   }, [markActionFeedback]);
 
+  // Row selection (estate law, donor: Requests/Visits): the mechanism renders
+  // admin-only -- checkbox column, select-all with indeterminate, shift-range.
+  // Bulk WRITES stay fail-closed per the decision register (no DELETE
+  // receiver): the bar's action is disabled with the reason, never a dead
+  // click and never a parallel write.
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(hospitals);
+
   const hospitalPanelContext = React.useMemo(() => ({
     stats: hospitalPageStats || {},
     recent: hospitals.slice(0, 4),
@@ -805,7 +824,29 @@ export const HospitalsPage = () => {
         sortConfig={sortConfig}
         onSort={handleSort}
         activeActionFeedback={activeActionFeedback}
+        selectable={isAdmin()}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        allSelected={allSelected}
+        someSelected={someSelected}
       />
+
+      {isAdmin() && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
+            title="Facility deletion is locked until backend authority is proved"
+            aria-label="Facility deletion is locked until backend authority is proved"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
 
       {modalMode && (
         <HospitalModal
@@ -866,6 +907,13 @@ const HospitalsDesktopWorkspace = ({
   sortConfig,
   onSort,
   activeActionFeedback,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
+  allSelected = false,
+  someSelected = false,
 }) => {
   const signal = getHospitalSignal({ stats, hospitals, kpiFilter, loadError });
   const hasFilter = hasActiveHospitalFilters(filters);
@@ -995,7 +1043,14 @@ const HospitalsDesktopWorkspace = ({
 
           {!loading && !failedEmpty && (
             <>
-              <HospitalListHeader sortConfig={sortConfig} onSort={onSort} />
+              <HospitalListHeader
+                sortConfig={sortConfig}
+                onSort={onSort}
+                selectable={selectable}
+                allSelected={allSelected}
+                someSelected={someSelected}
+                onSelectAll={onSelectAll}
+              />
 
               {hospitals.length === 0 && !loadError && (
                 <EmptyState
@@ -1022,6 +1077,10 @@ const HospitalsDesktopWorkspace = ({
                   selected={isFocused(hospital.id)}
                   onFocus={() => setFocused(hospital.id)}
                   onView={onView}
+                  selectable={selectable}
+                  checked={selectedIds.includes(hospital.id)}
+                  onToggleSelect={onToggleSelect}
+                  onSelectClick={onSelectClick}
                 />
               ))}
             </>
@@ -1039,9 +1098,19 @@ const HospitalsDesktopWorkspace = ({
 // Time is the sortable created_at. ICU/Fleet/Rating stay rail-only detail --
 // Cost-cut spirit: only live columns earn a slot.
 const HOSPITAL_GRID_COLS = 'grid-cols-[minmax(160px,1.4fr)_minmax(96px,auto)_minmax(56px,auto)_minmax(72px,auto)_minmax(96px,auto)_72px]';
+const HOSPITAL_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(160px,1.4fr)_minmax(96px,auto)_minmax(56px,auto)_minmax(72px,auto)_minmax(96px,auto)_72px]';
 
-const HospitalListHeader = ({ sortConfig, onSort }) => (
-  <div className={`grid ${HOSPITAL_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+const HospitalListHeader = ({ sortConfig, onSort, selectable = false, allSelected = false, someSelected = false, onSelectAll }) => (
+  <div className={`grid ${selectable ? HOSPITAL_GRID_COLS_SELECT : HOSPITAL_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all facilities'}
+        className="h-4 w-4"
+      />
+    )}
     {/* Facility / Status / Beds / Wait are plain labels (donor: Requests) -- the
         old nine sortable headers were dead ends (F1: none wired; the service
         hard-coded created_at), and only Time is a meaningful operational sort.
@@ -1074,7 +1143,7 @@ const HospitalAvatar = ({ hospital, size = 'h-9 w-9', iconSize = 'h-4 w-4' }) =>
   </span>
 );
 
-const HospitalRow = ({ hospital, selected, onFocus, onView }) => {
+const HospitalRow = ({ hospital, selected, onFocus, onView, selectable = false, checked = false, onToggleSelect, onSelectClick }) => {
   const statusKey = String(hospital?.status || 'available').toLowerCase();
   const statusLabel = hospitalStatusLabel[statusKey] || statusKey.replace(/_/g, ' ');
   const facilityName = hospital.name || 'Unnamed hospital';
@@ -1083,11 +1152,23 @@ const HospitalRow = ({ hospital, selected, onFocus, onView }) => {
     <ListRowShell
       id={hospital.id}
       dataAttrName="data-hospital-row"
-      gridCols={HOSPITAL_GRID_COLS}
+      gridCols={selectable ? HOSPITAL_GRID_COLS_SELECT : HOSPITAL_GRID_COLS}
       selected={selected}
       onFocus={onFocus}
       onOpen={() => onView(hospital)}
     >
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(hospital.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect ${facilityName}` : `Select ${facilityName}`}
+          className="h-4 w-4"
+        />
+      )}
       <span className="flex min-w-0 items-center gap-3">
         <HospitalAvatar hospital={hospital} />
         <span className="min-w-0">

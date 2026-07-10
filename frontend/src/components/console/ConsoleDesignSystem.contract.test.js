@@ -169,4 +169,29 @@ describe('Console design system contract', () => {
       expect({ name, hslShadow: /shadow-\[[^\]]*hsl\(/.test(src) }).toEqual({ name, hslShadow: false });
     }
   });
+
+  it('keeps the selection mechanism on every sortable-list surface (estate law)', () => {
+    // Selection regressed three times before this gate (Requests twice,
+    // Hospitals once at adoption, 2026-07-09): per-page pins only protect
+    // decisions a page already made, so a NEW adoption could ship a sortable
+    // list with no select-all / row checkboxes and nothing went red. The law:
+    // any estate surface rendering a SortableColumnHeader list must carry the
+    // selection mechanism (useRowSelection, or the donor's hand-rolled
+    // handleToggleSelect) or a literal recorded exclusion
+    // ("selection excluded by decision: <ref>"). Bulk WRITES stay per-page
+    // fail-closed -- this gate is about the mechanism, not the writes.
+    const surfaces = {
+      visitsPage: read('src/components/pages/VisitsPage.jsx'),
+      emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
+      todayHome: read('src/components/pages/TodayHome.jsx'),
+      hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
+    };
+    for (const [name, src] of Object.entries(surfaces)) {
+      const rendersSortableList = /SortableColumnHeader/.test(src);
+      const hasSelection = /useRowSelection\(|handleToggleSelect/.test(src);
+      const hasRecordedExclusion = /selection excluded by decision/.test(src);
+      expect({ name, selectionLaw: !rendersSortableList || hasSelection || hasRecordedExclusion })
+        .toEqual({ name, selectionLaw: true });
+    }
+  });
 });
