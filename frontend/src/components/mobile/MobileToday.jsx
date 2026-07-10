@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     Activity,
@@ -15,6 +15,19 @@ import { MobilePageShell } from './MobilePageShell';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { mobileEasing } from './mobileMotion';
+// Mobile canon kit: the loading truth (forced warm-up + Updating pill), the
+// hairline whisper, and the control press primitive live in shared components
+// (extraction source: CANON_COMPONENT_SPECS.md). This page keeps its DOMAIN -
+// the Today dashboard presentation (hero, glance tiles, action-sheet rows).
+// Kept PAGE-LOCAL on purpose (fidelity-first): the hero markup (the kit
+// MobileHero's status row is a gap-3 span with role="status"/aria-live; this
+// donor ships a gap-2 div and anchors the live region on the Updating pill
+// instead), the dashboard-shaped load scaffold (the kit only has the grouped-
+// list scaffold), and the card-grade presses that fire feedback on onClick
+// (glance tiles, action-row toggles) rather than TapCard's pointerdown.
+import { useSkeletonWarmup, UpdatingPill } from './canon/Loading';
+import { Hairline } from './canon/GroupedList';
+import { TapButton } from './canon/Tap';
 
 /**
  * MobileToday — the mobile-canon presentation of the Today home (a DASHBOARD, not a
@@ -50,12 +63,6 @@ import { mobileEasing } from './mobileMotion';
  *                navigates after its route-feedback delay)
  *   onRefresh    async () => void — pull-to-refresh handler
  */
-
-// Minimum skeleton time on every mount. Bottom-nav navigation mounts with cached
-// data (loading already false), so without this the page would skip the skeleton and
-// assemble cached content top-to-bottom. A short forced warm-up makes navigation load
-// skeleton-first then reveal in one commit — identical to a hard refresh. Tunable.
-const SKELETON_WARMUP_MS = 400;
 
 // Canonical mobile tones for the model's tone names. Same names the desktop
 // statusClass map consumes; hues are the mobile canon (MobileEmergency avatar
@@ -191,8 +198,10 @@ const GlanceTile = ({ item, onPress, routingPath }) => {
 
 // Action row — expand-in-place disclosure (desktop DetailRow in mobile grammar; NOT a
 // detail sheet — dashboards do not open record sheets). Row press is card-grade
-// (0.988); the revealed action pill is a quiet control (0.96) with the same
-// Loader2 + 'Opening...' feedback as every other route action.
+// (0.988) and stays page-local (INFO feedback on onClick, not TapCard's pointerdown);
+// the revealed action pill is the canon TapButton (control 0.96, CLICK feedback baked)
+// with the same Loader2 + 'Opening...' feedback as every other route action.
+// onNavigate takes the raw path; the pill only renders when the path exists.
 const MobileTodayActionRow = ({ row, expanded, onToggle, onNavigate, routingPath }) => {
     const StatusIcon = row.loading ? Loader2 : row.disabled ? LockKeyhole : row.done ? CheckCircle2 : CircleDashed;
     const isOpening = Boolean(row.path) && routingPath === row.path;
@@ -237,17 +246,15 @@ const MobileTodayActionRow = ({ row, expanded, onToggle, onNavigate, routingPath
                         <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{row.disabledReason}</p>
                     )}
                     {row.path && row.actionLabel && !row.disabled && (
-                        <motion.button
-                            type="button"
-                            whileTap={{ scale: 0.96 }}
-                            onClick={(event) => onNavigate(event, row.path)}
+                        <TapButton
+                            onClick={() => onNavigate?.(row.path)}
                             data-state={isOpening ? 'opening' : 'idle'}
                             aria-label={`${row.actionLabel}${isOpening ? ', opening' : ''}`}
                             className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-pill bg-foreground/[0.08] px-4 text-xs font-semibold text-foreground transition-colors active:bg-foreground/[0.12] dark:bg-white/[0.10] dark:active:bg-white/[0.14]"
                         >
                             {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
                             {isOpening ? 'Opening...' : row.actionLabel}
-                        </motion.button>
+                        </TapButton>
                     )}
                 </motion.div>
             )}
@@ -267,16 +274,11 @@ export const MobileToday = ({
     onAction,
     onRefresh,
 }) => {
-    // Forced skeleton on every mount (see SKELETON_WARMUP_MS): guarantees a
+    // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
-    const [warmingUp, setWarmingUp] = useState(true);
+    const warmingUp = useSkeletonWarmup();
     const [expandedRow, setExpandedRow] = useState(null);
     const { triggerFromEvent } = useFeedback();
-
-    useEffect(() => {
-        const timer = setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS);
-        return () => clearTimeout(timer);
-    }, []);
 
     // Skeleton while warming up OR while the parent's live data is still pending.
     // When it clears, the whole dashboard swaps in a single commit — no top-to-bottom
@@ -331,11 +333,7 @@ export const MobileToday = ({
                                         `isFetching` is the only signal. Hidden under the skeleton,
                                         which already communicates load. Anchored to the status row
                                         so its appearance never shifts layout. */}
-                                    {isFetching && (
-                                        <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                            Updating
-                                        </span>
-                                    )}
+                                    {isFetching && <UpdatingPill />}
                                 </div>
                                 <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]">
                                     {hero.headline}
@@ -393,11 +391,11 @@ export const MobileToday = ({
                                     {/* Primary CTA mirrors desktop's deliberate choice: quiet
                                         bg-foreground, NOT bg-primary — Today's one loud-ish
                                         action stays ink-toned. Filled-CTA glow per the mobile
-                                        button canon; glyph swaps to Loader2 while opening. */}
-                                    <motion.button
-                                        type="button"
-                                        whileTap={{ scale: 0.96 }}
-                                        onClick={(event) => handleNavigate(event, hero.path)}
+                                        button canon; glyph swaps to Loader2 while opening.
+                                        Canon TapButton: control press 0.96 + CLICK feedback
+                                        baked on the same onClick phase this donor used. */}
+                                    <TapButton
+                                        onClick={() => onAction?.(hero.path)}
                                         disabled={!hero.path}
                                         data-state={primaryOpening ? 'opening' : 'idle'}
                                         aria-label={`${hero.primaryAction}${primaryOpening ? ', opening' : ''}`}
@@ -405,7 +403,7 @@ export const MobileToday = ({
                                     >
                                         {primaryOpening ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                                         {primaryOpening ? 'Opening...' : hero.primaryAction}
-                                    </motion.button>
+                                    </TapButton>
 
                                     <div className="mt-3">
                                         {rows.map((row, index) => (
@@ -414,11 +412,11 @@ export const MobileToday = ({
                                                     row={row}
                                                     expanded={activeExpandedRow === row.id}
                                                     onToggle={handleToggleRow}
-                                                    onNavigate={handleNavigate}
+                                                    onNavigate={onAction}
                                                     routingPath={routingPath}
                                                 />
                                                 {index < rows.length - 1 && (
-                                                    <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[56px]" aria-hidden="true" />
+                                                    <Hairline inset={56} />
                                                 )}
                                             </React.Fragment>
                                         ))}
