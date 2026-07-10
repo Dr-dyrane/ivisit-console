@@ -29,8 +29,25 @@ For **every page** we finish designing, before calling it done:
 4. **Queue, don't derail.** Any data-sync defect found → log it in `DATA_SYNC_REMEDIATION_AUDIT.md`
    (with symptom, root cause, evidence paths, fix direction) and keep moving on UI/UX. Fix data-sync
    in its own pass.
-5. **Verify + commit.** `CI=true npx craco test <files> --watchAll=false` green, `craco build`
-   compiles, commit scoped files only.
+5. **Verify + commit — run the full gate stack, not just the page suite.**
+   - `CI=true npx craco test <page>.contract.test.js src/components/console/ConsoleDesignSystem.contract.test.js --watchAll=false` — the page suite **and** the estate laws (colored-shadow + the **donor-mechanism registry**, below).
+   - `node scripts/check-ui-surface-hardgate.js --strict-radius` (no borders/rings/rogue radii).
+   - `node scripts/check-data-contract.js` (no phantom columns).
+   - `npm run check:mojibake` / encoding.
+   - `node scripts/donor-diff.js <donorPage> <thisPage> --universe <console/* used>` — mechanical token diff; every missing donor token must be either DS-composed (in the universe) or an enumerated domain delta.
+   - Live compile (preview server) or `craco build`. Commit scoped files only.
+   - **The donor-mechanism registry (the completeness backstop).** `ConsoleDesignSystem.contract`
+     enforces that every **list-workspace surface** (renders a `SortableColumnHeader`) carries each
+     load-bearing donor mechanism — `selection`, `keyboard-nav`, `scroll-reset`,
+     `honest-failed-hero`, `arrival-toast`, `deep-link` — **or** records a cited exclusion
+     (`<slug> excluded by decision: <ref>`). This is the gate that catches a mechanism a NEW
+     adoption *silently omits* (per-page pins can't — they only protect decisions already made;
+     the Hospitals table shipped with no select triggers and nothing went red until a user caught
+     it). Adopting a list page? Wire all six or write the marker. Register a new mechanism by
+     adding a row to `MECHANISMS` with its presence signature and the drop that motivated it.
+     Composition-satisfied mechanisms (debounce, updating-pill, drag handle — baked into
+     `ActivitySheet`/`SheetToolbar`) are deliberately NOT in the registry: composing the component
+     IS the guarantee.
 6. **Main-parity drop audit (user decision 2026-07-09).** After the revamp lands, diff the page
    family against `main` (= preservation baseline `f31f29f`) at the FEATURE level — handlers,
    window events, service exports, aria-labels — and classify EVERY disappearance as intentional
@@ -373,6 +390,32 @@ node scripts/donor-diff.js "45bc5d8f~1:frontend/src/components/mobile/MobileVisi
 
 The tool surfaces candidates; the human ticks them. It cannot see dynamically-assembled
 strings, spread props, or rendered state -- it replaces the SAMPLING, not the judgment.
+
+---
+
+## The mobile harness — static + behavioral (born 2026-07-10, the Hospitals close-out)
+
+Hospitals shipped **8 canon failures under a full green suite** — the gates were all static
+(mojibake/hardgate/data-contract/pinned-strings) and blind to GRAMMAR conformance and
+DATA-fitting; worse, a contract pin locked the metric rail that VIOLATED the LIST grammar
+(Lesson 26e made concrete). The gap is closed by two pieces that split cleanly:
+
+1. **`scripts/check-mobile-grammar.js` (STATIC).** A page-type grammar linter: every
+   `Mobile*.jsx` needs a manifest entry (unclassified = fatal, so a NEW page can't ship
+   without a conscious `list`/`dashboard`/`list-migrating`/`exempt` declaration). `list`
+   pages MUST have heading + SearchRow + grouped panel + group-shaped skeleton + warm-up +
+   Updating pill, and MUST NOT carry `MobileSecondaryMetricRail`/`MobileFeaturedMetric`
+   (glance tiles are DASHBOARD-only). Bans the off-grammar CLASS, not one pinned instance
+   (kills Lesson 26d/e). Wired into `npm run build`; `:strict` makes debt warnings fatal.
+   It self-flagged the MobileEmergency load-more-without-accumulator on first run.
+2. **`docs/ui-ux/MOBILE_PAGE_CLOSE_CHECKLIST.md` (BEHAVIORAL).** The runtime invariants no
+   static tool can see — count=active-scope, load-more APPENDS, placeholder poisoning,
+   filter-state truth, skeleton-on-both-load-paths, data-fitted rows (which FIELD to
+   render). Driven on the LIVE page per close, recorded in `FEATURE_PARITY_VS_MAIN.md`.
+
+**The loop now:** Gate 0 static (grammar linter + donor-diff + contract/mojibake/hardgate)
+→ Gate 1 behavioral matrix (live) → Gate 2 data-fitting → Gate 3 record+close. Static for
+structure, driven-live for behavior and data-fit; neither alone caught Hospitals.
 
 ---
 

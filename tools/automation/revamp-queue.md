@@ -615,3 +615,19 @@ Notes:
 - Pins migrated same-commit (header approvals; panel approvals nav + Call/Maps/Copy + radius;
   removed Add/canAdd pins). Suites 30/30 on touched; hospitals hardgate-clean; parse OK; live
   compile clean. This closes the arbitration #2 handoff -- Hospitals fully done, desktop + mobile.
+
+### 2026-07-10 — mobile-uiux-lane — HARNESS GAP-CLOSERS landed (before Wallet, user-directed)
+- **Static:** `frontend/scripts/check-mobile-grammar.js` — mobile page-type grammar linter.
+  Manifest-gated (unclassified page = fatal → forces a grammar declaration); `list` pages
+  require heading+search+grouped-panel+group-skeleton+warmup+pill and BAN the metric rail/
+  featured billboard. Wired into `npm run build`. 0 fatal now; 22 warnings map the Wave-2
+  migration debt (rail/featured/no-grouped-panel per page) + re-flagged MobileEmergency
+  load-more-without-accumulator. Proven to bite (3 simulated Hospitals regressions caught).
+- **Behavioral:** `frontend/docs/ui-ux/MOBILE_PAGE_CLOSE_CHECKLIST.md` — the runtime-invariant
+  matrix (count-scope, append, placeholder poisoning, filter-state, skeleton-both-paths,
+  data-fitting) that NO static tool sees; driven live per close, recorded in FEATURE_PARITY.
+- Loop doc updated (UIUX_REVAMP_PROCESS_AND_LESSONS "The mobile harness"). NET: the next page
+  (Wallet) builds Gate0-static → Gate1-live → Gate2-datafit → Gate3-close, harness-DRIVEN.
+- **Estate follow-ups the linter now tracks as first-class debt:** the 9 list-migrating pages
+  need the grouped-panel rebuild + rail removal; MobileEmergency + MobileVisits need the
+  accumulator guard port (kit useScopeAccumulator). Not blocking; ratcheted.

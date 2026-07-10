@@ -73,7 +73,9 @@
     "check:data-contract": "node scripts/check-data-contract.js",
     "check:ui-hardgate": "node scripts/check-ui-surface-hardgate.js",
     "check:ui-hardgate:revamp": "node scripts/check-ui-surface-hardgate.js --strict-radius",
-    "build": "npm run check:database-types-encoding && npm run check:mojibake && npm run check:data-contract && npm run check:ui-hardgate && craco build",
+    "check:mobile-grammar": "node scripts/check-mobile-grammar.js",
+    "check:mobile-grammar:strict": "node scripts/check-mobile-grammar.js --strict",
+    "build": "npm run check:database-types-encoding && npm run check:mojibake && npm run check:data-contract && npm run check:ui-hardgate && npm run check:mobile-grammar && craco build",
     "test": "craco test",
     "lint": "eslint src"
   },
