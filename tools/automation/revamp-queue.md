@@ -665,3 +665,16 @@ Notes:
 - Data-truth bugs found: crew Json<->string mismatch (AMB-4), current_call parallel-dispatch-truth
   (AMB-6), double status narrowing (AMB-9), base_price dead plumbing (AMB-5), location dead
   payload (AMB-8). Next phase: DS composition per the constitution.
+
+### 2026-07-10 — mobile-uiux-lane — HARNESS TEST on Ambulances: PASSED, sharpened, + a donor bug found
+- Ambulances promoted list-migrating -> list, built HARNESS-FIRST (linter emitted the to-do).
+  Committed 5ea50baa (Gate 0) + accumulator fix. Close record in FEATURE_PARITY_VS_MAIN.md.
+- Harness improved BY the test: linter now strips comments + matches <Tag (killed a grouped-
+  panel false-pass); added `// grammar:<key>=<reason>` waivers (Emergency/Today carry them).
+- **DONOR BUG (act on next scope window): MobileHospitals carries the SAME `provisional`-flag
+  accumulator that Gate-1 proved REPLACES page-1 on the first load-more.** Ambulances now uses
+  the provably-correct simpler rule (append non-empty; clear on settled-empty). Port it to
+  Hospitals + Visits, then extract the kit `useScopeAccumulator` (offset-keyed) to retire the
+  heuristic. Hospitals live-appeared to append (timing-masked) — do NOT trust; re-verify.
+- Live mobile mount was env-blocked this session (innerWidth stuck 1920, Lesson 14); Gate-1
+  deterministic invariants driven in Node instead, render-only ones cited to live Hospitals.

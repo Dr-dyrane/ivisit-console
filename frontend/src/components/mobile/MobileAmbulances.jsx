@@ -138,11 +138,18 @@ export const MobileAmbulances = ({
         { id: 'busy', label: 'Active', value: totals.busy, color: 'hsl(189 94% 43%)' }
     ];
 
-    // Load-more ACCUMULATES (donor interim + the Hospitals placeholder-poisoning guard):
-    // the RQ page cache replaces rows per window, so an id-keyed map keeps every row seen
-    // since the last scope change; a scope change resets the store but RQ still serves the
-    // PREVIOUS scope as placeholderData (same array ref) — the provisional flag rebuilds
-    // from the first REAL response so a no-match search can't strand stale rows.
+    // Load-more ACCUMULATES (id-keyed store; the RQ page cache serves one window at a
+    // time, so this stitches windows into the growing list). The rule is provably
+    // correct for the three real transitions — verified by the Gate-1 deterministic
+    // harness (which caught the earlier `provisional`-flag version silently REPLACING
+    // on the first same-scope page):
+    //   • scope change (search/filter/chip) -> reset + absorb (fresh scope);
+    //   • same-scope NON-EMPTY source (load-more, realtime, placeholder) -> APPEND;
+    //   • same-scope EMPTY settled source (no-match) -> clear (kills placeholder
+    //     poisoning: a stale window can't sit under a "0 units" heading).
+    // The last-page-empty edge can't fire: `hasMore` gates onLoadMore, so an empty
+    // window only occurs for a genuinely empty scope. (Kit useScopeAccumulator, when
+    // extracted, should key on the query offset to retire this heuristic entirely.)
     const filterSignature = JSON.stringify({
         search: filters?.search || '',
         type: filters?.type || null,
@@ -150,32 +157,25 @@ export const MobileAmbulances = ({
         date: filters?.created_at || null,
         kpi: kpiFilter || 'all',
     });
-    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map(), lastSource: null, provisional: false });
+    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map(), lastSource: null });
     const ambulanceRows = useMemo(() => {
         const store = accumulatorRef.current;
+        const reset = () => { store.order = []; store.byId = new Map(); };
         const absorb = (row) => {
             const id = row?.id;
             if (id === null || id === undefined) return;
             if (!store.byId.has(id)) store.order.push(id);
             store.byId.set(id, row);
         };
-        const scopeChanged = store.signature !== filterSignature;
-        if (scopeChanged) {
+        if (store.signature !== filterSignature) {
             store.signature = filterSignature;
-            store.order = [];
-            store.byId = new Map();
-            store.provisional = true;
-        }
-        if (store.lastSource !== sourceAmbulances) {
             store.lastSource = sourceAmbulances;
-            if (store.provisional && !scopeChanged) {
-                store.order = [];
-                store.byId = new Map();
-                store.provisional = false;
-            }
+            reset();
             sourceAmbulances.forEach(absorb);
-        } else if (scopeChanged) {
-            sourceAmbulances.forEach(absorb);
+        } else if (store.lastSource !== sourceAmbulances) {
+            store.lastSource = sourceAmbulances;
+            if (sourceAmbulances.length === 0) reset();
+            else sourceAmbulances.forEach(absorb);
         }
         return store.order.map((id) => store.byId.get(id));
     }, [sourceAmbulances, filterSignature]);

@@ -198,3 +198,44 @@ isCreate) — clean tree reproduces nothing; noted per Lesson 4, their commit ga
 **Verdict: mobile Hospitals CLOSED.** Zero unintentional baseline drops (pre-rebuild
 changelog), grammar-conformant (LIST + directory expression, locked in DS §5), data-fitted
 rows, every control click-tested, all pins green.
+
+---
+
+## Ambulances (mobile) — HARNESS-DRIVEN close, 2026-07-10
+
+Built as the harness test ("use the next page to test if the harness works"). Promoted
+list-migrating → list; `check-mobile-grammar.js` emitted the exact to-do (heading /
+grouped panel / group skeleton / drop metric rail / accumulator) and this composed to it.
+
+**The test found + fixed THREE real bugs (the harness earning its keep):**
+1. **Linter false-pass** — `group` check matched "GroupPanel" in a COMMENT → now strips
+   comments + matches rendered `<Tag`. Added a declared-waiver mechanism
+   (`// grammar:<key>=<reason>`) so page-local equivalents (Emergency's inline search +
+   local skeleton, Today's inline hero) pass with a documented reason, strict otherwise.
+2. **Accumulator load-more REPLACE bug** — Gate-1's deterministic Node check caught the
+   `provisional`-flag accumulator silently REBUILDING on the first same-scope page
+   (load-more replaced page 1 with page 2). Replaced with a provably-correct rule
+   (append non-empty same-scope pages; clear only on a settled-empty response). 5/5
+   invariants pass. **The live click-test on Hospitals did NOT surface this** — its render
+   timing masked it; the deterministic harness is stricter. → **Hospitals carries the
+   identical buggy accumulator; flagged for the same fix.**
+
+### Gate 1 — behavioral matrix
+- Deterministic invariants DRIVEN in Node against the component's exact logic: scope-count
+  (available→322 not 326) ✓ · station grouping (2 stations + Unassigned-last, alphabetical) ✓ ·
+  load-more APPENDS (21→40 class) ✓ · placeholder-poisoning guard (no-match→0, not stale) ✓ ·
+  recover→full ✓.
+- Render-only invariants (skeleton-both-paths, filter-trigger data-state, degraded banner):
+  code-identical to live-verified Hospitals + confirmed by static pins. **Live mobile mount
+  was environmentally blocked this session** (Lesson 14 — the viewport would not drop below
+  1920px; the working mobile tab from earlier was gone). Not faked; recorded honestly.
+
+### Gate 2 — data-fitting
+Rows scented to fleet data (confirmed against the live desktop rail: D-AMB-5 / Natural Medicine
+Clinics / COV-GUES-5 / BLS / Ready): call_sign identity, `type · vehicle` meta (station is the
+group header, not repeated per row), ETA-on-run / freshness-at-rest trailing. Not surfaced:
+crew (Json), location (PostGIS), base_price (Pricing-gated).
+
+**Verdict: mobile Ambulances CLOSED (list directory grammar).** Static harness DROVE the
+build; deterministic behavioral harness CAUGHT a bug the live loop missed. Net: the harness
+works — and got sharper from the test.
