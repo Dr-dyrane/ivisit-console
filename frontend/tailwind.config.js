@@ -21,6 +21,15 @@ module.exports = {
                         modal: 'var(--radius-modal, 38px)',  // Modal / dialog sheets
                         squircle: 'var(--squircle, 1.75rem)',
                 },
+                // Canonical elevation scale (MANAGEMENT_PAGE_STANDARDS S0): NEUTRAL only.
+                // Colored/bleeding glows are banned everywhere except the backdrop atlas.
+                boxShadow: {
+                        e1: '0 1px 3px rgb(0 0 0 / 0.05)',          // hairline lift (rows at rest)
+                        e2: '0 4px 12px rgb(0 0 0 / 0.07)',         // standard raise (pills, hover)
+                        'e2-strong': '0 6px 16px rgb(0 0 0 / 0.12)', // selected rows, primary CTAs
+                        'e2-lift': '0 16px 38px rgb(0 0 0 / 0.08)',  // glance/KPI tiles ONLY
+                        e3: '0 12px 32px rgb(0 0 0 / 0.10)',        // sheets, rails, overlays (cap)
+                },
                 colors: {
                         // Design system tokens
                         brand: 'hsl(var(--primary))',
