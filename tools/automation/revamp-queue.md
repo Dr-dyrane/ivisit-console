@@ -534,3 +534,14 @@ Notes:
   — same latent bug on no-match searches. Mobile lane will port the guard when page scope
   reopens (user has the lane parked on Hospitals). KIT CANDIDATE: extract the guarded
   accumulator as canon `useScopeAccumulator` so all three pages share one implementation.
+
+### 2026-07-09 — desktop-uiux-lane — FLAG RESOLVED: /hospitals mobile bottom bar (left pill + FAB restored)
+- **User arbitration** ("supposed to be left side pill with fab?"): fail-closed-with-reason wins
+  over honest-by-absence. Root cause: getRouteOwnedMobileAction had no /hospitals branch, so
+  `showAnyAction=false` flipped the bar wrapper to `justify-center` — a centered orphan pill,
+  off the left-pill+FAB grammar every other owned route renders.
+- Fix: hospitals branch added (org_admin/admin, sky 'staff' gradient, `openHospitalModal`
+  dispatch → the page's pinned handleCreateUnavailable honest toast). Pinned in
+  HospitalsPage.contract (branch + label + the justify-between wrapper contract).
+- Mirrors the desktop decision: fail-closed commands render FIRST-CLASS with honest feedback,
+  never washed/hidden (header Add facility precedent, SHELL_PARITY_AUDIT 1.1/1.5).

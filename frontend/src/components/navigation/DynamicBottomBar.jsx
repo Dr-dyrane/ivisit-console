@@ -205,6 +205,21 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
+    // Hospitals (user arbitration 2026-07-09, bottom-bar FLAG resolved
+    // fail-closed-with-reason): without a branch the bar collapsed to a
+    // centered pill with no FAB -- off the left-pill+FAB grammar every other
+    // owned route renders. The page answers openHospitalModal with the honest
+    // unavailable toast (create is fail-closed, no INSERT policy), mirroring
+    // the desktop header's first-class-but-policied Add facility pill.
+    if (pathname.startsWith('/hospitals') && ['org_admin', 'admin'].includes(userRole)) {
+        return {
+            icon: Plus,
+            label: 'Add facility',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openHospitalModal'))
+        };
+    }
+
     if (pathname.startsWith('/support-tickets') && ['provider', 'org_admin', 'admin'].includes(userRole)) {
         return {
             icon: ClipboardCheck,
