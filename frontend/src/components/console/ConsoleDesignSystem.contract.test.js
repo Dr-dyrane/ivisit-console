@@ -266,6 +266,13 @@ describe('Console design system contract', () => {
         isFetchingSurfaced: src.includes('isFetching={isFetching}'),
         emptyBranch: src.includes('hasFilter ?'),
         submitSpinner: /animate-spin/.test(src) || /animate-spin/.test(modal),
+        // TIME-ONLY sort discipline (DS decision trail): exactly ONE sortable
+        // column (the Time-equivalent). Person/Status/Service/Facility are plain
+        // labels -- alphabetical sorts aren't operational and JSON snapshots have
+        // no scalar to order on. Visits drifted to 5 sortable headers once
+        // (2026-07-09) and only a same-day manual catch realigned it -- this is
+        // the gate that makes that catch automatic instead of memory-dependent.
+        singleTimeSort: (src.match(/<SortableColumnHeader/g) || []).length === 1,
       };
       for (const [item, ok] of Object.entries(checks)) {
         expect({ page: entry.name, item, ok }).toEqual({ page: entry.name, item, ok: true });
