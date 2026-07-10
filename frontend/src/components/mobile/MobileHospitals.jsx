@@ -22,9 +22,13 @@ import {
 // page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached bottom-nav
 // mounts; UpdatingPillRow is the background-refetch signal. The dropdown-row
 // pseudo-sheet became the canonical MobileDetailSheet (Doctors/Insurance grammar).
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
+// Directory-grammar PILOT (user arbitration 2026-07-09, "Hospitals only, for now"):
+// the list body composes the Requests/Visits kit — MobileHeading + one flat
+// GroupPanel + hairline MobileListRow — instead of the legacy fat-card rows.
+// Doctors/Users/Insurance/Subscriptions HOLD until the pilot look is approved.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
+import { MobileSectionHeader } from './MobileMetricList';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
@@ -84,7 +88,9 @@ export const MobileHospitals = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeHospital, setActiveHospital] = useState(null);
-    const selectionMode = selectionEnabled && selectedIds.length > 0;
+    // Selection props stay accepted as dormant inventory (selection is fail-closed
+    // estate-wide); the kit MobileListRow carries no selection affordance until
+    // receiver proof lands, so nothing renders from them.
     const sourceHospitals = useMemo(() => (Array.isArray(hospitals) ? hospitals : []), [hospitals]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -174,21 +180,44 @@ export const MobileHospitals = ({
                 : 'hsl(var(--muted-foreground))'
     );
 
+    // Status-tinted row orb (kit MobileListRow anatomy; literal palette — the
+    // theme's semantic tokens resolve to brand red and are reserved for danger).
+    const orbClassFor = (status) => (
+        status === 'available'
+            ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300'
+            : status === 'busy'
+                ? 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300'
+                : status === 'full'
+                    ? 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
+                    : 'bg-muted/40 text-muted-foreground'
+    );
+
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                kpiStrip={(
-                    <MobileKPIStrip
-                        loading={showTopSectionLoading}
-                        kpis={kpis}
-                        activeKpi={activeStatusFilter}
-                        onKpiClick={handleStatusFilter}
-                    />
-                )}
-                contentClassName="pt-4 pb-4 text-foreground"
+                contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-8 text-foreground"
             >
-                <section className="mb-3">
+                <div className="space-y-3">
+                {/* Chrome (title + summary) is always present — no entrance motion.
+                    Only DATA regions load; they scaffold with skeletons and replace
+                    in place (donor: MobileEmergency/MobileVisits heading order). */}
+                <MobileHeading
+                    title="Hospitals"
+                    noun="hospital"
+                    count={hospitalTotals.total}
+                    showSkeleton={showTopSectionLoading}
+                    failedEmpty={Boolean(errorMessage) && displayHospitals.length === 0}
+                />
+
+                <MobileKPIStrip
+                    loading={showTopSectionLoading}
+                    kpis={kpis}
+                    activeKpi={activeStatusFilter}
+                    onKpiClick={handleStatusFilter}
+                />
+
+                <section className="px-4">
                     <MobileSectionHeader
                         label="Facility Signals"
                         count={hospitalTotals.available}
@@ -243,7 +272,9 @@ export const MobileHospitals = ({
                     />
                 </section>
 
-                <div className="mb-3 px-1">
+                <section className="px-4">
+                    {/* Flat search row (canon Apple search bar): input + filter + stats
+                        controls sit directly on the page; the panel list follows below. */}
                     <SearchRow
                         placeholder="Search hospitals..."
                         search={filters?.search || ''}
@@ -253,88 +284,77 @@ export const MobileHospitals = ({
                         onOpenStats={canManage ? onViewAnalytics : null}
                         statsLabel="Open analytics"
                     />
-                </div>
 
-                <MobileSectionHeader
-                    label="Facility Directory"
-                    count={displayHospitals.length}
-                    color="hsl(var(--muted-foreground))"
-                    labelTone="plain"
-                    onSelectAll={selectionEnabled && displayHospitals.length > 0 ? () => onSelectAll?.(displayHospitals) : null}
-                    isAllSelected={selectionEnabled && displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
-                />
+                    <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
 
-                {errorMessage && displayHospitals.length > 0 && (
-                    <div
-                        className="mb-3 rounded-card bg-destructive/10 p-4 text-destructive"
-                        data-testid="mobile-hospitals-degraded-state"
-                    >
-                        <p className="text-sm font-semibold">Hospitals did not refresh</p>
-                        <p className="mt-1 text-xs text-destructive/75">Showing the last loaded facility rows.</p>
-                        {onRetry && (
-                            <button
-                                type="button"
-                                onClick={onRetry}
-                                className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                    <div className="mt-3 space-y-2">
+                        {errorMessage && displayHospitals.length > 0 && (
+                            <div
+                                className="rounded-card bg-destructive/10 p-4 text-destructive"
+                                data-testid="mobile-hospitals-degraded-state"
                             >
-                                Try again
-                            </button>
+                                <p className="text-sm font-semibold">Hospitals did not refresh</p>
+                                <p className="mt-1 text-xs text-destructive/75">Showing the last loaded facility rows.</p>
+                                {onRetry && (
+                                    <button
+                                        type="button"
+                                        onClick={onRetry}
+                                        className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                                    >
+                                        Try again
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Directory pilot: ONE flat panel (a directory has no recency
+                            buckets worth grouping), hairline-separated kit rows. Tap opens
+                            the detail bottom sheet, never an inline dropdown. */}
+                        {displayHospitals.length > 0 && (
+                            <GroupPanel label="Facility directory" count={displayHospitals.length}>
+                                {displayHospitals.map((hospital, index) => {
+                                    const status = getHospitalStatus(hospital);
+                                    const fleet = Number(hospital.ambulances_count) || 0;
+                                    const beds = Number(hospital.available_beds) || 0;
+
+                                    return (
+                                        <React.Fragment key={hospital.id}>
+                                            <MobileListRow
+                                                item={hospital}
+                                                dataAttr="data-mobile-hospital-row"
+                                                onOpen={setActiveHospital}
+                                                ariaLabel={`${hospital.name || 'Unnamed Hospital'}, ${status}`}
+                                                orbClass={orbClassFor(status)}
+                                                icon={Hospital}
+                                                title={hospital.name || 'Unnamed Hospital'}
+                                                meta={`${facilityTypeLabel(hospital)} · ${fleet} unit${fleet === 1 ? '' : 's'}`}
+                                                time={`${beds} beds`}
+                                                markerChip={hospital.verified ? 'Verified' : null}
+                                                pill={statusPill(status)}
+                                            />
+                                            {index < displayHospitals.length - 1 && <Hairline />}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </GroupPanel>
+                        )}
+
+                        <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                            {showTopSectionLoading && <MobileListSkeletonRows />}
+                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                            {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
+                        </div>
+
+                        {displayHospitals.length === 0 && !loading && !showTopSectionLoading && (
+                            <MobileListEmpty
+                                icon={Hospital}
+                                label={errorMessage ? 'Hospitals did not load' : 'No hospitals found'}
+                                hint={errorMessage ? 'Try again before treating the network as empty.' : undefined}
+                                labelTone="plain"
+                            />
                         )}
                     </div>
-                )}
-
-                <div className="space-y-1">
-                    {displayHospitals.map((hospital) => {
-                        const status = getHospitalStatus(hospital);
-                        const statusColor = statusColorFor(status);
-                        const fleet = Number(hospital.ambulances_count) || 0;
-                        const beds = Number(hospital.available_beds) || 0;
-                        const totalBeds = Number(hospital.total_beds) || 0;
-                        // The defining numbers ride the readable secondary line, not a
-                        // decorative blade (Pricing precedent).
-                        const bedsText = totalBeds > 0 ? `${beds} of ${totalBeds} beds` : `${beds} beds`;
-
-                        return (
-                            <MobileMetricRow
-                                key={hospital.id}
-                                icon={Hospital}
-                                color={statusColor}
-                                label={facilityTypeLabel(hospital)}
-                                value={hospital.name || 'Unnamed Hospital'}
-                                secondary={`${bedsText} · ${fleet} units`}
-                                statusPill={statusPill(status)}
-                                statusIndicators={hospital.verified ? [{
-                                    icon: BadgeCheck,
-                                    color: 'hsl(160 84% 39%)',
-                                    label: 'Verified'
-                                }] : []}
-                                // Tap opens the canonical detail bottom sheet (MobileDetailSheet),
-                                // not an inline dropdown — the approved mobile design + the
-                                // desktop detail-rail behaviour.
-                                onClick={() => setActiveHospital(hospital)}
-                                itemId={hospital.id}
-                                isSelected={selectionEnabled && selectedIds.includes(hospital.id)}
-                                onSelect={selectionEnabled ? onSelect : undefined}
-                                selectionMode={selectionMode}
-                            />
-                        );
-                    })}
-
-                    <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
-                        {showTopSectionLoading && <MobileListSkeletonRows />}
-                        <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
-                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
-                        {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
-                    </div>
-
-                    {displayHospitals.length === 0 && !loading && !showTopSectionLoading && (
-                        <MobileListEmpty
-                            icon={Hospital}
-                            label={errorMessage ? 'Hospitals did not load' : 'No hospitals found'}
-                            hint={errorMessage ? 'Try again before treating the network as empty.' : undefined}
-                            labelTone="plain"
-                        />
-                    )}
+                </section>
                 </div>
 
                 {activeHospital && (() => {

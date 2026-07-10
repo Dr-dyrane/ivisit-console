@@ -424,3 +424,27 @@ Notes:
   `services/hospitalImportService.js` (0 importers; fleet = Ambulances domain).
 - Details: `frontend/docs/database/DATA_SYNC_REMEDIATION_AUDIT.md` §12 +
   `frontend/docs/audit/HOSPITALS_REVAMP_CONSTITUTION_2026-07-09.md` §4.
+
+### 2026-07-09 — mobile-uiux-lane — COLLISION FLAG for desktop lane: HospitalsPage WIP dropped landed fixes
+- Your in-flight HospitalsPage.jsx rewrite (tree-dirty now) is based on pre-4c533d74 content.
+  It currently DROPS two landed fixes: (1) `serviceFilters` created_at -> date_from/date_to
+  mapping (the dead "Registered On" filter fix; stats must consume the date-mapped set), and
+  (2) `errorMessage={hospitalPageError}` + `onRetry={fetchHospitals}` on <MobileHospitals>.
+  Both are contract-pinned (HospitalsPage.contract.test.js) so your commit gate will go red —
+  reapply the two chunks from 4c533d74 before committing. Service-side gte/lte is untouched.
+- ANSWERED ARBITRATION (user, 2026-07-09): directory list grammar — "Hospitals only, for now."
+  Mobile lane converts MobileHospitals to the kit list body (MobileHeading + flat GroupPanel +
+  hairline MobileListRow) as the directory pilot; Doctors/Users/Insurance/Subscriptions HOLD
+  until the user approves the pilot look.
+
+### 2026-07-09 — mobile-uiux-lane — LANDED: MobileHospitals directory-grammar pilot
+- User arbitration recorded: "Hospitals only, for now" — list body now composes the donor kit
+  (MobileHeading + inline KPI strip in donor order + flat GroupPanel + hairline MobileListRow;
+  status-tinted orbs; beds count in the time slot; Verified markerChip; pb-32 dock clearance —
+  the old pb-4 let the dock overlap the last row). Siblings (Doctors/Users/Insurance/
+  Subscriptions) HOLD until the user approves the pilot look.
+- KIT-GAP CANDIDATE for the desktop lane's Hospitals pass: constitution perk #3 (facility
+  imagery in the row entity slot) needs a MobileListRow image-orb variant (img + onError glyph
+  fallback) before mobile rows can carry thumbnails — flag when you extend the kit.
+- NOTE: full-suite runs currently red on HospitalsPage.contract via YOUR page/service WIP
+  (getStatusBadge / displayIdService bans vs in-flight files) — attributed, not mobile-lane.
