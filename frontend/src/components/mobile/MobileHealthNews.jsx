@@ -1,6 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Newspaper, Search, Eye, FileCheck, Tag, BookOpen, Globe, Clock, Link, SlidersHorizontal, BarChart3 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Newspaper, Eye, FileCheck, Tag, BookOpen, Globe, Clock, Link } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached
+// mounts; UpdatingPillRow is the background-refetch signal.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
@@ -88,8 +92,9 @@ export const MobileHealthNews = ({
   }, [articles, stats]);
 
   const sourceArticles = useMemo(() => (Array.isArray(articles) ? articles : []), [articles]);
-  const { displayItems: displayArticles } = useStableList(sourceArticles, loading);
-  const showTopSectionLoading = loading && displayArticles.length === 0;
+  const { displayItems: displayArticles, isBuffering } = useStableList(sourceArticles, loading);
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && displayArticles.length === 0);
 
   // Date-grouped feed (rollout S5): newest-first by published/created date. Grouping is
   // render-only; the month header carries a tabular count (group-header canon, DS v1.2 §3).
@@ -204,38 +209,17 @@ export const MobileHealthNews = ({
           />
         </section>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              data-testid="mobile-health-news-search"
-              placeholder="Search articles..."
-              value={filters?.search || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-inner bg-background/60 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
-            />
-          </div>
-          {onOpenFilters && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Open filters"
-            >
-              <SlidersHorizontal size={18} />
-            </motion.button>
-          )}
-          {onViewAnalytics && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Open analytics"
-            >
-              <BarChart3 size={18} />
-            </motion.button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder="Search articles..."
+            search={filters?.search || ''}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            searchTestId="mobile-health-news-search"
+            entityLabel="articles"
+            onOpenFilters={onOpenFilters}
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -294,8 +278,9 @@ export const MobileHealthNews = ({
             <MobileListEmpty icon={Newspaper} label="No articles found" labelTone="plain" />
           )}
 
-          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-            {loading && <MobileListSkeletonRows />}
+          <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+            {showTopSectionLoading && <MobileListSkeletonRows />}
+            <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displayArticles.length > 0 && <MobileListEnd label="End of article list" />}
           </div>
