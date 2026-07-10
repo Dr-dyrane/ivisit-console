@@ -114,7 +114,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('createVisit({');
     expect(page).toContain('updateVisit(selectedVisit.id, formData)');
     expect(page).toContain('canDelete={false}');
-    expect(page).toContain('selectionEnabled={false}');
+    expect(page).toContain('selectionEnabled={isAdmin()}');
     expect(page).not.toContain('selectedIds.map((id) => deleteVisit(id))');
     expect(page).not.toContain('deleteVisit(visit.id)');
     // Row selection ADOPTED (donor: Requests, user 2026-07-09): admin-only
@@ -491,7 +491,7 @@ describe('VisitsPage admission contract', () => {
     // bulk bar's single action is disabled with the locked reason.
     expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
     expect(page).toContain('canDelete={false}');
-    expect(page).toContain('selectionEnabled={false}');
+    expect(page).toContain('selectionEnabled={isAdmin()}');
 
     expect(list).toContain('canDelete = false');
     expect(list).toContain('selectionEnabled = false');
@@ -502,6 +502,10 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('canDelete = false');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('{canDelete && (');
+    // Selection ON (isAdmin) but fail-closed: the mobile bulk bar's only control is a
+    // DISABLED delete with the locked reason — mechanism restored, write stays locked.
+    expect(mobile).toContain('MobileSelectionBar');
+    expect(mobile).toContain('Bulk visit outcomes are locked until authorized');
   });
 
   it('guards Visits realtime refreshes and async list results after route cleanup', () => {

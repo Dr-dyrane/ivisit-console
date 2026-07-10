@@ -477,7 +477,10 @@ export const AmbulancesPage = () => {
           onLoadMore={pagination.nextPage}
           errorMessage={loadError}
           onRetry={fetchAmbulances}
-          selectionEnabled={false}
+          selectionEnabled={canManageFleet}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
         />
 
         {modalMode && (

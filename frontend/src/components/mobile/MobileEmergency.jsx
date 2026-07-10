@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
     AlertCircle,
     Ambulance,
+    Ban,
     BarChart3,
     BedDouble,
     Calendar,
@@ -28,6 +29,7 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -212,7 +214,7 @@ const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
 // orb + service glyph, patient name 15/500, "{service} · {date}" meta, trailing
 // day-aware time + status pill + chevron. Tap opens the MobileDetailSheet, never an
 // inline dropdown.
-const MobileRequestRow = ({ request, onOpen }) => {
+const MobileRequestRow = ({ request, onOpen, selectable, selected, selectionMode, onToggleSelect, onLongPress }) => {
     const projection = buildEmergencyRenderProjection(request);
     const vital = resolveVital('emergency', request.status);
     const pill = vital?.pill;
@@ -236,6 +238,11 @@ const MobileRequestRow = ({ request, onOpen }) => {
             time={formatRequestDayTime(request.created_at)}
             markerChip={showCashChip ? 'Cash' : null}
             pill={pill}
+            selectable={selectable}
+            selected={selected}
+            selectionMode={selectionMode}
+            onToggleSelect={onToggleSelect}
+            onLongPress={onLongPress}
         />
     );
 };
@@ -263,11 +270,25 @@ export const MobileEmergency = ({
     loadError,
     onRetry,
     kpiFilter,
-    setKpiFilter
+    setKpiFilter,
+    // Multi-select (admin-only). selectionEnabled is the page's isAdmin() — NOT the
+    // folded `isAdmin` prop above (isAdmin||isOrgAdmin, used for dispatch/analytics):
+    // desktop denies org-admins bulk cancel, so mobile must too.
+    selectionEnabled = false,
+    selectedIds = [],
+    onSelect,
+    onSelectAll,
+    onBulkCancel,
+    cancellableCount = 0
 }) => {
     const observerTarget = useRef(null);
     const [activeRequest, setActiveRequest] = useState(null);
     const { triggerFromEvent } = useFeedback();
+    // Mirrors desktop's admin-only bulk-CANCEL — the one authorized bulk action of the
+    // four gold pages. selectionMode derives from the shared selectedIds so the row
+    // affordance and the bulk bar can never disagree.
+    const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+    const selectionMode = selectionEnabled && selectedIdSet.size > 0;
     // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
     const warmingUp = useSkeletonWarmup();
@@ -433,6 +454,27 @@ export const MobileEmergency = ({
                         <UpdatingPillRow show={isFetching && !showSkeleton} />
 
                         <div className="mt-3 space-y-2">
+                        {selectionEnabled && (
+                            <MobileSelectionBar
+                                count={selectedIdSet.size}
+                                onSelectAll={() => onSelectAll?.(true)}
+                                onClear={() => onSelectAll?.(false)}
+                            >
+                                {/* Real authorized bulk action: cancel (admin-only). Only the
+                                    cancellable subset is acted on (the page filters + confirms via
+                                    its ConfirmationModal); disabled when none are cancellable. */}
+                                <button
+                                    type="button"
+                                    onClick={() => onBulkCancel?.()}
+                                    disabled={cancellableCount === 0}
+                                    aria-label={cancellableCount === 0 ? 'No cancellable requests selected' : `Cancel ${cancellableCount} request${cancellableCount === 1 ? '' : 's'}`}
+                                    className="flex h-8 items-center gap-1.5 rounded-button bg-destructive/12 px-3 text-[12px] font-semibold text-destructive transition-transform active:scale-95 disabled:opacity-40"
+                                >
+                                    <Ban className="h-3.5 w-3.5" />
+                                    Cancel{cancellableCount > 0 ? ` ${cancellableCount}` : ''}
+                                </button>
+                            </MobileSelectionBar>
+                        )}
                         {!loading && loadError && displayItems.length > 0 && (
                             <div className="rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)]">
                                 <p className="font-semibold">Requests could not refresh</p>
@@ -460,7 +502,17 @@ export const MobileEmergency = ({
                                 items={displayItems}
                                 getDate={(request) => request.created_at}
                                 getStatus={(request) => canonicalizeEmergencyStatus(request.status, null)}
-                                renderRow={(request) => <MobileRequestRow request={request} onOpen={setActiveRequest} />}
+                                renderRow={(request) => (
+                                    <MobileRequestRow
+                                        request={request}
+                                        onOpen={setActiveRequest}
+                                        selectable={selectionEnabled}
+                                        selected={selectedIdSet.has(request.id)}
+                                        selectionMode={selectionMode}
+                                        onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+                                        onLongPress={(it) => onSelect?.(it.id, true)}
+                                    />
+                                )}
                             />
                         )}
 

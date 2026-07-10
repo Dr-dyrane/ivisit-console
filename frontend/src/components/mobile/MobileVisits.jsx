@@ -10,12 +10,14 @@ import {
     MapPin,
     Siren,
     Stethoscope,
+    Trash2,
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
@@ -124,11 +126,20 @@ export const MobileVisits = ({
     canEdit = isAdmin || isOrgAdmin,
     canDelete = false,
     selectionEnabled = false,
+    selectedIds = [],
+    onSelect,
+    onSelectAll,
     onOpenFilters,
     hasMore,
     onLoadMore,
 }) => {
     const observerTarget = useRef(null);
+    // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
+    // MECHANISM renders but the bulk WRITE stays locked — VisitsPage's only bulk control
+    // is a DISABLED delete ("locked until backend authority is proved"), so mobile shows
+    // the same disabled bar, never a live mutation. Gated by selectionEnabled (page: isAdmin).
+    const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+    const selectionMode = selectionEnabled && selectedIdSet.size > 0;
     const [activeVisit, setActiveVisit] = useState(null);
     const { triggerFromEvent } = useFeedback();
     // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
@@ -268,6 +279,25 @@ export const MobileVisits = ({
                         <UpdatingPillRow show={isFetching && !showSkeleton} />
 
                         <div className="mt-3 space-y-2">
+                        {selectionEnabled && (
+                            <MobileSelectionBar
+                                count={selectedIdSet.size}
+                                onSelectAll={() => onSelectAll?.(true)}
+                                onClear={() => onSelectAll?.(false)}
+                            >
+                                {/* Fail-closed: bulk visit outcomes have no receiver, so the
+                                    bulk control is DISABLED (mirrors VisitsPage's locked bar). */}
+                                <button
+                                    type="button"
+                                    disabled
+                                    aria-label="Bulk visit outcomes are locked until authorized"
+                                    title="Bulk visit outcomes are locked until authorized"
+                                    className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </MobileSelectionBar>
+                        )}
                         {!loading && errorMessage && displayVisits.length > 0 && (
                             <MobileVisitErrorBanner message={errorMessage} onRetry={onRetry || onRefresh} />
                         )}
@@ -284,7 +314,17 @@ export const MobileVisits = ({
                                 items={displayVisits}
                                 getDate={visitWhen}
                                 getStatus={(visit) => getVisitStatusKey(visit?.status)}
-                                renderRow={(visit) => <MobileVisitRow visit={visit} onOpen={setActiveVisit} />}
+                                renderRow={(visit) => (
+                                    <MobileVisitRow
+                                        visit={visit}
+                                        onOpen={setActiveVisit}
+                                        selectable={selectionEnabled}
+                                        selected={selectedIdSet.has(visit.id)}
+                                        selectionMode={selectionMode}
+                                        onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+                                        onLongPress={(it) => onSelect?.(it.id, true)}
+                                    />
+                                )}
                             />
                         )}
 
@@ -443,7 +483,7 @@ const getFacilityName = (visit) => (
 // orb (vitalTracks tones), patient name 15/500, "{type} · {facility}" meta, trailing
 // day-aware time + status pill + chevron. Tap opens the MobileDetailSheet (approved
 // design + desktop rail behaviour), never an inline dropdown.
-const MobileVisitRow = ({ visit, onOpen }) => {
+const MobileVisitRow = ({ visit, onOpen, selectable, selected, selectionMode, onToggleSelect, onLongPress }) => {
     const row = visitRowProjection(visit);
     const vital = resolveVital('visit', row.statusKey);
     const pill = vital?.pill;
@@ -463,6 +503,11 @@ const MobileVisitRow = ({ visit, onOpen }) => {
             meta={`${row.serviceType} · ${row.primary}`}
             time={formatRequestDayTime(visitWhen(visit))}
             pill={{ className: orbClass, label: pill?.label || row.statusLabel, dataStatus: row.statusKey }}
+            selectable={selectable}
+            selected={selected}
+            selectionMode={selectionMode}
+            onToggleSelect={onToggleSelect}
+            onLongPress={onLongPress}
         />
     );
 };

@@ -8,7 +8,8 @@ import {
     Car,
     Clock,
     Hash,
-    Radio
+    Radio,
+    Trash2
 } from 'lucide-react';
 // LIST-type page, DIRECTORY expression (MOBILE_DESIGN_SYSTEM §5) — built harness-first
 // 2026-07-10: the grammar linter (check-mobile-grammar.js) emitted the exact to-do
@@ -20,6 +21,7 @@ import {
 import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
@@ -105,9 +107,14 @@ export const MobileAmbulances = ({
     const observerTarget = useRef(null);
     const [activeAmbulance, setActiveAmbulance] = useState(null);
     const { triggerFromEvent } = useFeedback();
-    // Selection props stay accepted as dormant inventory (fail-closed estate-wide);
-    // the kit MobileListRow carries no selection affordance until receiver proof.
     const canManage = isAdmin || isOrgAdmin;
+    // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
+    // MECHANISM renders (long-press, select-all, check overlay) but the bulk WRITE stays
+    // locked — AmbulancesPage's only bulk control is a DISABLED delete ("locked until
+    // authorized", no receiver), so mobile shows the same disabled bar, never a live
+    // mutation. Gated by selectionEnabled (the page passes canManageFleet).
+    const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+    const selectionMode = selectionEnabled && selectedIdSet.size > 0;
     // Background-refetch signal: the REAL isFetching from the query (KPI switch /
     // search / pull-refresh keep loading=false). isBuffering (Boolean(loading)) is
     // the fallback until the page wires isFetching (Updating-pill-dead fix, 2026-07-10).
@@ -267,6 +274,11 @@ export const MobileAmbulances = ({
                 meta={meta}
                 time={time}
                 pill={statusPill(status, getAvailabilityLabel(status))}
+                selectable={selectionEnabled}
+                selected={selectedIdSet.has(ambulance.id)}
+                selectionMode={selectionMode}
+                onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+                onLongPress={(it) => onSelect?.(it.id, true)}
             />
         );
     };
@@ -312,6 +324,25 @@ export const MobileAmbulances = ({
                     <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
                     <div className="mt-3 space-y-2">
+                        {selectionEnabled && (
+                            <MobileSelectionBar
+                                count={selectedIdSet.size}
+                                onSelectAll={() => onSelectAll?.(true)}
+                                onClear={() => onSelectAll?.(false)}
+                            >
+                                {/* Fail-closed: fleet delete has no receiver, so the bulk
+                                    control is DISABLED (mirrors AmbulancesPage's locked bar). */}
+                                <button
+                                    type="button"
+                                    disabled
+                                    aria-label="Bulk fleet deletion is locked until authorized"
+                                    title="Bulk fleet deletion is locked until authorized"
+                                    className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </MobileSelectionBar>
+                        )}
                         {errorMessage && displayAmbulances.length > 0 && (
                             <div
                                 className="rounded-card bg-destructive/10 p-4 text-destructive"

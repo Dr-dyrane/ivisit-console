@@ -1187,6 +1187,12 @@ export const EmergencyRequestsPage = () => {
           onRetry={fetchRequests}
           kpiFilter={selectedKpiFilter}
           setKpiFilter={setKpiFilter}
+          selectionEnabled={isAdmin()}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          onBulkCancel={handleBulkCancel}
+          cancellableCount={cancellableSelectedCount}
         />
       ) : (
         <RequestsDesktopWorkspace

@@ -739,7 +739,10 @@ export const VisitsPage = () => {
           viewerIsDoctor={isProvider() && !isDriver()}
           canEdit={canEditVisits}
           canDelete={false}
-          selectionEnabled={false}
+          selectionEnabled={isAdmin()}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
           onOpenFilters={handleOpenFilters}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}

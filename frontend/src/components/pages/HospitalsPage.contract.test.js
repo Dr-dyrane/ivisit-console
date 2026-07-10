@@ -160,7 +160,10 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('onDelete={handleDelete}');
     expect(page).toContain('canDelete={false}');
-    expect(page).toContain('selectionEnabled={false}');
+    // Mobile selection MECHANISM enabled (isAdmin) 2026-07-10 as a fail-closed MIRROR of
+    // desktop: the row long-press + bulk bar render, but the bulk WRITE stays locked (the
+    // mobile bar's only control is a disabled delete — see the mobile locked-bar pins).
+    expect(page).toContain('selectionEnabled={isAdmin()}');
     // Realtime cleanup pins survive the migration: the page keeps its own
     // hospitals_page_changes channel + mount guard + removeChannel teardown, but the
     // change handler now feeds the ['hospitals'] cache instead of a manual refetch,
@@ -411,6 +414,11 @@ describe('HospitalsPage admission audit contract', () => {
     expect(mobile).not.toContain('toDeltaBadge');
     expect(mobile).toContain('canDelete = false');
     expect(mobile).toContain('selectionEnabled = false');
+    // Selection is ON (page passes isAdmin) but fail-closed: the mobile bulk bar's only
+    // control is a DISABLED delete with the locked reason — mechanism mirrors desktop, the
+    // write does not (the drop the user flagged, restored without unlocking a gated write).
+    expect(mobile).toContain('MobileSelectionBar');
+    expect(mobile).toContain('Facility deletion is locked until authorized');
     expect(mobile).toContain('canDelete && onDelete');
     expect(mobile).toContain('onSchedule && (');
     expect(mobile).not.toContain('border-0');

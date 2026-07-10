@@ -217,10 +217,11 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).not.toContain('deleteAmbulance');
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('onDelete={confirmDelete}');
-    // canDelete={false} lived on the retired List/Table density views; the one
-    // canonical render carries no delete affordance and selection is
-    // recorded-excluded (pinned above). The mobile branch keeps selectionEnabled.
-    expect(page).toContain('selectionEnabled={false}');
+    // Mobile selection MECHANISM enabled (canManageFleet) 2026-07-10 as a fail-closed
+    // MIRROR of desktop: the mobile branch passes the same gate the desktop selection
+    // uses; the bulk WRITE stays locked (the mobile bar's only control is a disabled
+    // delete — pinned below), never a live fleet mutation.
+    expect(page).toContain('selectionEnabled={canManageFleet}');
 
     expect(mobile).not.toContain('MobileFeaturedMetric');
     expect(mobile).not.toContain('growthData');
@@ -229,7 +230,10 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('avgRating');
     expect(mobile).not.toContain('onDelete');
-    expect(mobile).not.toContain('Trash2');
+    // Mobile NOW carries a Trash2 — but ONLY as the DISABLED locked-bar control (the
+    // fail-closed write), never a live delete. Prove the lock, not the absence.
+    expect(mobile).toContain('MobileSelectionBar');
+    expect(mobile).toContain('Bulk fleet deletion is locked until authorized');
     expect(mobile).toContain('sourceAmbulances');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('labelTone="plain"');

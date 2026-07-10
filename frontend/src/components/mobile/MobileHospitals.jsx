@@ -32,6 +32,7 @@ import {
 import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
@@ -134,9 +135,12 @@ export const MobileHospitals = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeHospital, setActiveHospital] = useState(null);
-    // Selection props stay accepted as dormant inventory (selection is fail-closed
-    // estate-wide); the kit MobileListRow carries no selection affordance until
-    // receiver proof lands, so nothing renders from them.
+    // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
+    // MECHANISM renders but the bulk WRITE stays locked — HospitalsPage's only bulk
+    // control is a DISABLED delete ("locked, no DELETE receiver"), so mobile shows the
+    // same disabled bar, never a live mutation. Gated by selectionEnabled (page: isAdmin).
+    const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+    const selectionMode = selectionEnabled && selectedIdSet.size > 0;
     const sourceHospitals = useMemo(() => (Array.isArray(hospitals) ? hospitals : []), [hospitals]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -343,6 +347,11 @@ export const MobileHospitals = ({
                 time={freshness}
                 markerChip={hospital.verified ? 'Verified' : null}
                 pill={statusPill(status)}
+                selectable={selectionEnabled}
+                selected={selectedIdSet.has(hospital.id)}
+                selectionMode={selectionMode}
+                onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+                onLongPress={(it) => onSelect?.(it.id, true)}
             />
         );
     };
@@ -392,6 +401,25 @@ export const MobileHospitals = ({
                     <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
                     <div className="mt-3 space-y-2">
+                        {selectionEnabled && (
+                            <MobileSelectionBar
+                                count={selectedIdSet.size}
+                                onSelectAll={() => onSelectAll?.(true)}
+                                onClear={() => onSelectAll?.(false)}
+                            >
+                                {/* Fail-closed: facility delete has no receiver, so the bulk
+                                    control is DISABLED (mirrors HospitalsPage's locked bar). */}
+                                <button
+                                    type="button"
+                                    disabled
+                                    aria-label="Facility deletion is locked until authorized"
+                                    title="Facility deletion is locked until authorized"
+                                    className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </MobileSelectionBar>
+                        )}
                         {errorMessage && displayHospitals.length > 0 && (
                             <div
                                 className="rounded-card bg-destructive/10 p-4 text-destructive"

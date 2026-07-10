@@ -81,6 +81,7 @@ const MANIFEST = {
   'MobileQuickNavPill.jsx': { tier: 'exempt', reason: 'primitive' },
   'MobileSecondaryMetricCard.jsx': { tier: 'exempt', reason: 'primitive (the metric rail itself)' },
   'MobileSheetActions.jsx': { tier: 'exempt', reason: 'primitive' },
+  'MobileSelectionBar.jsx': { tier: 'exempt', reason: 'primitive (shared multi-select action bar)' },
   'MobileSkeleton.jsx': { tier: 'exempt', reason: 'primitive' },
 };
 

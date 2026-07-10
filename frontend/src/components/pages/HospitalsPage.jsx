@@ -771,7 +771,10 @@ export const HospitalsPage = () => {
           onLoadMore={pagination.nextPage}
           isFetching={isFetching}
           canDelete={false}
-          selectionEnabled={false}
+          selectionEnabled={isAdmin()}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
         />
 
         {modalMode && (
