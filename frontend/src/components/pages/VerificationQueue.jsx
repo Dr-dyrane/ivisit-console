@@ -400,7 +400,9 @@ export const VerificationQueue = () => {
         { value: 'all', label: 'All Applications' },
         { value: 'pending', label: 'Pending Review' },
         { value: 'approved', label: 'Approved' },
-        { value: 'rejected', label: 'Rejected' }
+        // 'Rejected' is FACILITY-ONLY (2026-07-10): providers have no rejected state,
+        // so the filter returned pending rows (a lie). Offered only for the org lane.
+        ...(queueType === 'providers' ? [] : [{ value: 'rejected', label: 'Rejected' }]),
       ]
     },
     {
@@ -803,32 +805,20 @@ export const VerificationQueue = () => {
                         </div>
 
                         <div className="relative z-10 mt-6 pt-4 flex items-center justify-between gap-2">
+                          {/* Provider lane is APPROVE-ONLY (2026-07-10): no rejected state,
+                              so REJECT was a no-op. Approve verifies; decline = leave pending. */}
                           {!provider.bvn_verified && canApprove ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="h-8 flex-1 rounded-pill text-[10px] font-bold"
-                                disabled={actionLoading}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVerify(provider.id, false);
-                                }}
-                              >
-                                REJECT
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="h-8 flex-1 rounded-pill bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
-                                disabled={actionLoading}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVerify(provider.id, true);
-                                }}
-                              >
-                                APPROVE
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              className="h-8 w-full rounded-pill bg-emerald-500/90 hover:bg-emerald-400 text-white text-[10px] font-bold"
+                              disabled={actionLoading}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVerify(provider.id, true);
+                              }}
+                            >
+                              APPROVE
+                            </Button>
                           ) : (
                             <div className="flex items-center justify-center w-full">
                               <Badge className={`${provider.bvn_verified ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-400/15 text-amber-200'} font-bold px-4 py-1 rounded-pill`}>
@@ -994,7 +984,8 @@ export const VerificationQueue = () => {
           canApprove={canApprove}
           onOpen={setSelectedProvider}
           onApprove={(item) => (queueType === 'providers' ? handleVerify(item.id, true) : handleVerifyOrg(item.id, true))}
-          onReject={(item) => (queueType === 'providers' ? handleVerify(item.id, false) : handleVerifyOrg(item.id, false))}
+          // Provider lane is approve-only — no reject path even from the rail.
+          onReject={queueType === 'organizations' ? (item) => handleVerifyOrg(item.id, false) : undefined}
           actionLoading={actionLoading}
         />
       </div>
@@ -1025,6 +1016,8 @@ export const VerificationQueue = () => {
           onClear={() => setSelectedIds([])}
         >
           <>
+            {/* Bulk selection is providers-only, and providers are APPROVE-ONLY
+                (2026-07-10) — so the bulk-reject action was a no-op and is removed. */}
             <Button
               variant="ghost"
               size="icon"
@@ -1034,16 +1027,6 @@ export const VerificationQueue = () => {
               title="Approve Selected"
             >
               <CheckCircle className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleBulkVerify(false)}
-              disabled={actionLoading}
-              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive hover:bg-destructive hover:text-white transition-all"
-              title="Reject Selected"
-            >
-              <AlertTriangle className="h-5 w-5" />
             </Button>
           </>
         </BulkActionBar>
@@ -1214,20 +1197,25 @@ const VerificationDetailRail = ({ item, queueType, canApprove, onOpen, onApprove
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
 
+        {/* Provider lane is APPROVE-ONLY (2026-07-10): providers have no rejected state,
+            so a Reject was a no-op. Facilities keep a real Approve + Reject
+            (verification_status). Only render Reject when the lane can truly reject. */}
         {canApprove && isPending && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className={queueType === 'organizations' ? 'grid grid-cols-2 gap-3' : ''}>
+            {queueType === 'organizations' && onReject && (
+              <Button
+                variant="destructive"
+                disabled={actionLoading}
+                className="h-11 rounded-button text-sm font-bold"
+                onClick={() => onReject(item)}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+            )}
             <Button
-              variant="destructive"
               disabled={actionLoading}
-              className="h-11 rounded-button text-sm font-bold"
-              onClick={() => onReject(item)}
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Reject
-            </Button>
-            <Button
-              disabled={actionLoading}
-              className="h-11 rounded-button bg-emerald-500/90 text-white transition-all hover:bg-emerald-400 text-sm font-bold"
+              className="h-11 w-full rounded-button bg-emerald-500/90 text-white transition-all hover:bg-emerald-400 text-sm font-bold"
               onClick={() => onApprove(item)}
             >
               <CheckCircle className="mr-2 h-4 w-4" />

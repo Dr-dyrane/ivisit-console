@@ -298,26 +298,18 @@ export const VerificationModal = ({
                       >
                         Close
                       </Button>
+                      {/* Provider lane is APPROVE-ONLY (2026-07-10): providers have no rejected
+                          state (single bvn_verified boolean), so Reject was a no-op. Approve
+                          verifies; declining = leave the application pending. */}
                       {!formData.bvn_verified && onVerify && (
-                        <>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={() => handleVerifyAction(false)}
-                            disabled={loading}
-                            className="rounded-button font-semibold px-8"
-                          >
-                            {loading ? 'Processing...' : 'Reject'}
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => handleVerifyAction(true)}
-                            disabled={loading}
-                            className="rounded-button bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
-                          >
-                            {loading ? 'Processing...' : 'Approve'}
-                          </Button>
-                        </>
+                        <Button
+                          type="button"
+                          onClick={() => handleVerifyAction(true)}
+                          disabled={loading}
+                          className="rounded-button bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
+                        >
+                          {loading ? 'Processing...' : 'Approve'}
+                        </Button>
                       )}
                     </>
                   ) : (

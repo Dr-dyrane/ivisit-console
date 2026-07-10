@@ -59,7 +59,7 @@ const MANIFEST = {
   'MobileSubscriptions.jsx': { tier: 'list-migrating' },
   'MobileSupportTickets.jsx': { tier: 'list-migrating' },
   'MobileUsers.jsx': { tier: 'list-migrating' },
-  'MobileVerification.jsx': { tier: 'list-migrating' },
+  'MobileVerification.jsx': { tier: 'list' },
   // ── Exempt (not a canon list/dashboard page) ──
   'MobileWallet.jsx': { tier: 'dashboard' },
   'MobileOrganizations.jsx': { tier: 'exempt', reason: 'gate-blocked (Page 15 not admitted); no canon composition yet' },

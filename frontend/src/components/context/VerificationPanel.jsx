@@ -15,11 +15,13 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 
-export const VerificationPanel = ({ verificationData, loading }) => {
+export const VerificationPanel = ({ verificationContext, verificationData, loading }) => {
   const navigate = useNavigate();
   const [panelNotice, setPanelNotice] = React.useState('Approval actions ready.');
-  const stats = verificationData || { pending: 0, approved: 0, rejected: 0, total: 0 };
+  const stats = verificationContext?.stats || verificationData || { pending: 0, approved: 0, rejected: 0, total: 0 };
   const verificationRate = stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0;
+  const selected = verificationContext?.selected || null;
+  const queueLabel = verificationContext?.queueType === 'organizations' ? 'Facility' : 'Provider';
 
   const handleCreate = () => {
     setPanelNotice('Opening provider management.');
@@ -58,6 +60,30 @@ export const VerificationPanel = ({ verificationData, loading }) => {
 
       {!loading?.verification && (
         <>
+          {selected && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Selected {queueLabel.toLowerCase()}</h3>
+              <div className="rounded-card bg-background/55 p-4 shadow-sm">
+                <p className="font-bold tracking-tight truncate">{selected.username || selected.name || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground truncate">{selected.email || selected.address || 'No contact on file'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(selected.role || selected.type) && (
+                    <span className="rounded-pill bg-muted/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {selected.role || selected.type}
+                    </span>
+                  )}
+                  <span className={`rounded-pill px-2.5 py-1 text-[10px] font-semibold ${(selected.bvn_verified || selected.verification_status === 'verified') ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-amber-500/15 text-amber-700 dark:text-amber-200'}`}>
+                    {(selected.bvn_verified || selected.verification_status === 'verified') ? 'Approved' : 'Pending review'}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

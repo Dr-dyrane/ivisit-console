@@ -128,29 +128,21 @@ export const VerificationQueueListView = ({
                     <Eye className="h-4 w-4" />
                   </Button>
 
+                  {/* Provider lane is APPROVE-ONLY (2026-07-10): providers have no rejected
+                      state (single bvn_verified boolean), so a Reject here was a no-op that
+                      re-wrote pending as pending. Approve verifies; declining = leave pending.
+                      Facilities keep a real Approve/Reject (verification_status). */}
                   {onVerify && !provider.bvn_verified && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onVerify(provider.id, true)}
-                        aria-label={`Approve ${provider.username || provider.email || 'provider'}`}
-                        className="squircle h-8 w-8 p-0 hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200 transition-all duration-200"
-                        title="Approve"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onVerify(provider.id, false)}
-                        aria-label={`Reject ${provider.username || provider.email || 'provider'}`}
-                        className="squircle h-8 w-8 p-0 hover:bg-destructive/20 text-destructive hover:text-destructive transition-all duration-200"
-                        title="Reject"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onVerify(provider.id, true)}
+                      aria-label={`Approve ${provider.username || provider.email || 'provider'}`}
+                      className="squircle h-8 w-8 p-0 hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200 transition-all duration-200"
+                      title="Approve"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
                   )}
 
                 </div>

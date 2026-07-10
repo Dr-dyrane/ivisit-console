@@ -68,13 +68,26 @@ describe('VerificationQueue Approvals contract', () => {
     const source = mobileSource();
 
     expect(source).toContain('canApprove = false');
-    expect(source).toContain('pending && canApprove && onVerifyProvider');
-    expect(source).toContain('pending && canApprove && onVerifyOrganization');
+    // Approval COMMANDS are admin-only AND per-lane: the provider gate can't leak into
+    // the facility queue (or vice-versa). canApproveNow folds pending + canApprove once.
+    expect(source).toContain('const canApproveNow = pending && canApprove;');
+    expect(source).toContain('canApproveNow && isProviders && onVerifyProvider');
+    expect(source).toContain('canApproveNow && !isProviders && onVerifyOrganization');
     expect(source).toContain('ADMIN REVIEW');
     expect(source).toContain("canApprove ? 'No verification items found' : 'No visible approval items'");
     expect(source).toContain('Approval items are not visible for this role.');
-    expect(source).toContain('Review Summary');
     expect(source).toContain('useStableList(sourceItems, loading)');
+    // Canon LIST anatomy (rebuilt 2026-07-10): a grouped list with a tap->detail-sheet,
+    // NOT the old glance-tile rail + featured billboard + inline-expand dropdown. These
+    // lock the rebuild so the DASHBOARD furniture can't creep back onto a LIST page.
+    expect(source).toContain('<MobileHeading');
+    expect(source).toContain('<GroupPanel');
+    expect(source).toContain('<SkeletonGroupPanel');
+    expect(source).toContain('<MobileDetailSheet');
+    expect(source).not.toContain('MobileSecondaryMetricRail');
+    expect(source).not.toContain('MobileFeaturedMetric');
+    expect(source).not.toContain('Review Summary');
+    expect(source).not.toContain('expandedContent');
     expect(source).not.toContain('filteredItems');
     expect(source).not.toContain('let result = [...items]');
     expect(source).not.toContain('result.filter');
@@ -186,5 +199,72 @@ describe('VerificationQueue Approvals contract', () => {
     expect(facilityService).toContain('getDisplayIds(orgIds, { quiet: filters.quiet })');
     expect(facilityService).toContain('facility approvals');
     expect(facilityService).not.toContain('Verification Queue ->');
+  });
+
+  // ── Dual-queue gate hardening (2026-07-10) ──────────────────────────────────────
+  // The approvals page runs TWO lanes (providers + facilities) through TWO services
+  // with DIFFERENT schemas. The old gate proved mechanisms for ONE lane and assumed a
+  // single list; these tests close both seams so a lane can't silently lose a command.
+  it('proves every approval COMMAND is wired to BOTH lanes (dual-queue, not one)', () => {
+    const source = pageSource();
+    const mobile = mobileSource();
+    // Both verify handlers exist and are DISTINCT (a shared handler would hide a lane).
+    expect(source).toContain('const handleVerify = async (providerId, approved)');
+    expect(source).toContain('const handleVerifyOrg = async (hospitalId, approved)');
+    // Both are wired to the mobile surface (from the PAGE), each canApprove-gated —
+    // not just the provider lane (the seam: a command proven for one queue, invisible
+    // for the other). The mobile component consumes both props.
+    expect(source).toContain('onVerifyProvider={canApprove ? handleVerify : null}');
+    expect(source).toContain('onVerifyOrganization={canApprove ? handleVerifyOrg : null}');
+    expect(mobile).toContain('onVerifyProvider,');
+    expect(mobile).toContain('onVerifyOrganization,');
+    // Per-lane STATS are distinct — the count never assumes one list (sort-count seam).
+    expect(source).toContain('const [stats, setStats]');
+    expect(source).toContain('const [orgStats, setOrgStats]');
+    expect(source).toContain("const activeStats = queueType === 'providers'");
+    expect(source).toContain("const items = queueType === 'providers' ? providers : organizations;");
+    expect(source).toContain('count: items.length');
+  });
+
+  it('makes the PROVIDER lane approve-only and the FACILITY lane keep a real reject', () => {
+    const source = pageSource();
+    const mobile = mobileSource();
+    const list = listSource();
+    const table = tableSource();
+    const modal = modalSource();
+    const providerService = providerServiceSource();
+    const facilityService = facilityServiceSource();
+    // Providers have NO rejected state (single bvn_verified boolean) — reject was a
+    // no-op that re-wrote pending as pending. It is removed from every provider surface.
+    expect(list).not.toContain('onVerify(provider.id, false)');
+    expect(table).not.toContain('onVerify(provider.id, false)');
+    expect(mobile).not.toContain('onVerifyProvider(item.id, false)');
+    expect(modal).not.toContain('handleVerifyAction(false)');
+    // Provider-reject must be gone from the WHOLE page surface (grid card, detail rail,
+    // bulk bar) — not just the extracted views. This is the dual-queue seam: prove the
+    // mechanism is absent everywhere, not in one place. Org reject uses handleVerifyOrg.
+    expect(source).not.toContain('handleVerify(provider.id, false)');
+    expect(source).not.toContain('handleVerify(item.id, false)');
+    expect(source).not.toContain('handleBulkVerify(false)');
+    expect(source).not.toContain('Reject Selected');
+    expect(source).toContain("onReject={queueType === 'organizations'");
+    // The service no longer LIES that 'rejected' == 'pending'; it is honest-empty.
+    expect(providerService).not.toContain('Rejected providers are also unverified');
+    expect(providerService).toContain('A provider cannot be "rejected"');
+    // 'Rejected' is FACILITY-ONLY on both surfaces (queue-gated, never a dead 0-chip).
+    expect(mobile).toContain("...(queueType === 'providers' ? [] : [{ id: 'rejected'");
+    expect(source).toContain("...(queueType === 'providers' ? [] : [{ value: 'rejected'");
+    // Facilities keep the REAL Approve + Reject (verification_status has a rejected state).
+    expect(mobile).toContain('onVerifyOrganization(item.id, false)');
+    expect(facilityService).toContain("status === 'approved' ? 'verified' : status");
+  });
+
+  it('lets an org_admin reviewer see the review panel (route is org_admin-reachable)', () => {
+    const navContextPanel = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+    // The panel is READ-ONLY review context; the page/route is org_admin-reachable, so
+    // an org_admin reviewer must get it. Approval COMMANDS stay admin-gated (canApprove).
+    expect(navContextPanel).toContain("'/verification': isAdmin() || isOrgAdmin()");
+    expect(pageSource()).toContain('const canApprove = isAdmin();');
+    expect(pageSource()).toContain('const canReview = canApprove || isOrgAdmin();');
   });
 });

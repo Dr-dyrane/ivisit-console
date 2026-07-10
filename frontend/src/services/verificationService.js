@@ -121,13 +121,19 @@ export async function getVerificationQueue(filters = {}) {
       .from(TABLE_NAME)
       .select('*', { count: 'exact' });
 
-    // Apply status filter
+    // Apply status filter. NOTE (2026-07-10): providers have NO rejected state — the
+    // schema is a single `bvn_verified` boolean, so "reject" was a no-op (it wrote
+    // bvn_verified:false onto already-unverified pending rows) and the old 'rejected'
+    // branch returned the SAME rows as 'pending', a lie. Reject is removed from the
+    // provider lane (approve-only); 'rejected' is now HONEST-EMPTY here as a defensive
+    // guard. Facilities keep a real verification_status='rejected' (orgVerificationService).
     if (status === 'pending') {
       query = query.eq('role', 'provider').eq('bvn_verified', false);
     } else if (status === 'approved') {
       query = query.eq('role', 'provider').eq('bvn_verified', true);
     } else if (status === 'rejected') {
-      query = query.eq('role', 'provider').eq('bvn_verified', false); // Rejected providers are also unverified
+      // A provider cannot be "rejected" (no such state) — return empty, never pending.
+      query = query.eq('role', 'provider').eq('bvn_verified', true).eq('bvn_verified', false);
     }
     // 'all' status should show all providers only
     if (status === 'all') {

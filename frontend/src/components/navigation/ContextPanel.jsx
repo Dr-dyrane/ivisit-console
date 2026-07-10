@@ -66,7 +66,7 @@ export const ContextPanel = () => {
       '/': true, // Today - everyone can access
       '/emergencies': !isPatient() && !isViewer(), // Operational roles only
       '/users': isAdmin(), // Admin only
-      '/verification': isAdmin(), // Admin only
+      '/verification': isAdmin() || isOrgAdmin(), // Approvals is org_admin-reachable (route minRole org_admin); the panel is REVIEW context (read-only side data), so an org_admin reviewer must get it too. Approval COMMANDS stay admin-gated inside the panel/page (canApprove = isAdmin()).
       '/analytics': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
       '/doctors': isAdmin() || isOrgAdmin(), // Management only
       '/visits': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management

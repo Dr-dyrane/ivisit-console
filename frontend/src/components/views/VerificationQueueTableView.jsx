@@ -133,30 +133,20 @@ export const VerificationQueueTableView = ({
                                     </TableCell>
                                     <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-end gap-1">
-                                            {/* Approve/Reject Buttons - Keep inline for verification workflow */}
+                                            {/* Provider lane is APPROVE-ONLY (2026-07-10): no rejected
+                                                state exists for providers (single bvn_verified boolean),
+                                                so Reject was a no-op. Approve verifies; decline = leave pending. */}
                                             {onVerify && !provider.bvn_verified && (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => onVerify(provider.id, true)}
-                                                        aria-label={`Approve ${provider.username || provider.email || 'provider'}`}
-                                                        className="squircle h-8 w-8 p-0 hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200 transition-colors"
-                                                        title="Approve"
-                                                    >
-                                                        <CheckCircle className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => onVerify(provider.id, false)}
-                                                        aria-label={`Reject ${provider.username || provider.email || 'provider'}`}
-                                                        className="squircle h-8 w-8 p-0 hover:bg-destructive/20 text-destructive hover:text-destructive transition-colors"
-                                                        title="Reject"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                </>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => onVerify(provider.id, true)}
+                                                    aria-label={`Approve ${provider.username || provider.email || 'provider'}`}
+                                                    className="squircle h-8 w-8 p-0 hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200 transition-colors"
+                                                    title="Approve"
+                                                >
+                                                    <CheckCircle className="h-4 w-4" />
+                                                </Button>
                                             )}
 
                                             {/* More Options Dropdown */}
