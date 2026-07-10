@@ -800,3 +800,24 @@ Notes:
 - HARNESS FINDING: the two-tier (list/dashboard) model handles Wallet as a dashboard-with-feed,
   but the finance summary+feed hybrid is a pattern worth naming in MOBILE_DESIGN_SYSTEM §5 if a
   second finance page appears.
+
+### 2026-07-10 — desktop-uiux-lane — APPROVALS (VERIFICATION) archaeology: HARNESS STRESS-TEST verdict
+- User: "test our guardrails and see if we would land a pixel perfect page revamp." Ran the
+  changelog-first step (3 scouts) on the DUAL-QUEUE approvals page (providers|facilities) -- the
+  first structurally-different page vs the single-list gates.
+- **VERDICT (VERIFICATION_REVAMP_CONSTITUTION_2026-07-10 section 0):** gates alone would NOT land it
+  pixel-perfect. They generalize to dual-queue IF composed "single-shared-list" (one ActivitySheet,
+  rows swapped by queueType, one shared Time SortableColumnHeader), BUT the test found FIVE real
+  seams: (1) queue-blind mechanism checks (can't tell both-lane wiring), (2) TIME-sort count===1
+  assumes single-list, (3) interaction LIST_PAGES rigid {page,modal} pair, (4) single-source-color
+  is a pattern not a gate (verification already drifts 4 surfaces), (5) pages not in the gate maps
+  are silently skipped. AND the gates see NO data truth -- the scouts found 8 correctness bugs
+  (F1-F11) a pixel-perfect-looking page still ships. Conclusion: gates(conformance) +
+  data-sync(correctness) + queue-axis hardening = all three needed.
+- Key data-truth bugs: F1 providers have NO real rejected state (reject is a no-op); F2 provider
+  badge data-broken (renders nonexistent verification_status); F4 bulk misfires on facilities
+  (verifyProvider(orgId)); F5 phantom verification_notes; F8 org realtime never fires post-approve;
+  F9 facilities truth = hospitals table not organizations.
+- Stranded VerificationPanel = LAND it (missing receiver half of a committed-dangling context chain).
+- 5 decisions gate composition (provider reject; panel selected-card; RBAC panel gate; phantom
+  notes; harden-gates-now vs discipline). Awaiting user before the big compose.
