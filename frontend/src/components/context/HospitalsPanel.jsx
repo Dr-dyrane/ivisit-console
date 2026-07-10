@@ -1,14 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   Bed,
+  Copy,
+  FileCheck,
   Filter,
   Hospital,
   Loader2,
   MapPin,
+  Navigation,
   Phone,
-  Plus
 } from 'lucide-react';
 
 const toCount = (value, fallback = 0) => {
@@ -55,6 +58,7 @@ const getFacilityLocation = (hospital) => (
 );
 
 export const HospitalsPanel = ({ hospitalContext }) => {
+  const navigate = useNavigate();
   const context = hospitalContext || {};
   const stats = context.stats || {};
   const recent = Array.isArray(context.recent) ? context.recent : [];
@@ -63,11 +67,18 @@ export const HospitalsPanel = ({ hospitalContext }) => {
   const total = toCount(stats.total ?? context.count, recent.length);
   const available = toCount(stats.available, 0);
   const full = toCount(stats.full, 0);
-  // Deny-by-default context gating (EmergencyPanel recipe): the page publishes
-  // canAdd -- honor it instead of a cosmetically-disabled-but-live button.
-  const canAdd = context.canAdd === true;
   const errorMessage = context.errorMessage;
-  const contactPhone = context.focusedHospital?.phone || null;
+  // Focused-facility native quick actions (user arbitration #2 decision 3): the
+  // panel offers what the operator can DO with the focused record right now --
+  // call it, open it on a map, copy its ID -- each honestly disabled when the
+  // focused facility lacks that datum. Create is DB-enforced fail-closed, so
+  // the panel's page-level working action is the approval queue, not Add.
+  const focused = context.focusedHospital || null;
+  const contactPhone = focused?.phone || null;
+  const facilityLat = Number(focused?.latitude);
+  const facilityLng = Number(focused?.longitude);
+  const hasCoords = Number.isFinite(facilityLat) && Number.isFinite(facilityLng);
+  const facilityId = focused?.display_id || null;
   const [panelNotice, setPanelNotice] = React.useState('Facility actions ready.');
 
   React.useEffect(() => {
@@ -76,13 +87,9 @@ export const HospitalsPanel = ({ hospitalContext }) => {
     }
   }, [errorMessage]);
 
-  const handleAddFacility = () => {
-    if (!canAdd) {
-      setPanelNotice('Add facility is unavailable.');
-      return;
-    }
-    setPanelNotice('Opening facility form.');
-    window.dispatchEvent(new CustomEvent('openHospitalModal'));
+  const handleApprovals = () => {
+    setPanelNotice('Opening facility approvals.');
+    navigate('/verification?queue=organizations');
   };
 
   const handleOpenAnalytics = () => {
@@ -104,6 +111,28 @@ export const HospitalsPanel = ({ hospitalContext }) => {
     window.location.href = `tel:${contactPhone}`;
   };
 
+  const handleOpenMaps = () => {
+    if (!hasCoords) {
+      setPanelNotice('Focus a facility with coordinates to open the map.');
+      return;
+    }
+    setPanelNotice('Opening in maps.');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${facilityLat},${facilityLng}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyId = async () => {
+    if (!facilityId) {
+      setPanelNotice('Focus a facility to copy its ID.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(facilityId);
+      setPanelNotice(`Copied ${facilityId}.`);
+    } catch (error) {
+      setPanelNotice('Copy failed -- select the ID manually.');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <motion.section
@@ -117,7 +146,10 @@ export const HospitalsPanel = ({ hospitalContext }) => {
           Facilities overview
         </p>
 
-        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        {/* First card matches the Requests/Visits panel hero exactly: the card
+            radius token (the sheet radius was too round -- a sheet curve on a
+            KPI card) + shadow-e2-lift (the glance-tile elevation, VisitsPanel). */}
+        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-e2-lift transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -175,20 +207,20 @@ export const HospitalsPanel = ({ hospitalContext }) => {
         <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Panel actions
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
+          {/* Page-level working action (arbitration #2): the domain's real
+              adjacent write surface -- the facility approval queue -- replaces
+              the DB-fail-closed Add. Same decoded action as the navbar/FAB. */}
           <motion.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
-            onClick={handleAddFacility}
-            disabled={!canAdd}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
-            title={canAdd ? 'Add facility' : 'Add facility is unavailable'}
-            aria-disabled={!canAdd}
-            data-state={canAdd ? 'idle' : 'unavailable'}
+            onClick={handleApprovals}
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-sky-500/10 px-2 text-sky-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
+            title="Review pending facility approvals"
           >
-            <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Add</span>
+            <FileCheck className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Approvals</span>
           </motion.button>
 
           <motion.button
@@ -196,7 +228,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-cyan-500/10 px-3 text-cyan-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-cyan-500/10 px-2 text-cyan-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
             title="View facility statistics"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -208,28 +240,66 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/34 px-3 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-muted/34 px-2 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
             title="Filter facilities"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Filter</span>
           </motion.button>
-
-          <motion.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleContact}
-            disabled={!contactPhone}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/24 px-3 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34 disabled:cursor-not-allowed disabled:opacity-55"
-            title={contactPhone ? `Call ${contactPhone}` : 'Focus a facility with a phone number to call it'}
-            aria-disabled={!contactPhone}
-            data-state={contactPhone ? 'idle' : 'unavailable'}
-          >
-            <Phone className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Contact</span>
-          </motion.button>
         </div>
+
+        {/* Focused-facility native quick actions (arbitration #2 decision 3):
+            what the operator can do with the focused record right now -- call,
+            open on a map, copy its ID. Each honestly disabled when the focused
+            facility lacks that datum; the whole group hides when none focused. */}
+        {focused && (
+          <div className="grid grid-cols-3 gap-2">
+            <motion.button
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleContact}
+              disabled={!contactPhone}
+              className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-muted/24 px-2 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34 disabled:cursor-not-allowed disabled:opacity-55"
+              title={contactPhone ? `Call ${contactPhone}` : 'This facility has no phone number'}
+              aria-disabled={!contactPhone}
+              data-state={contactPhone ? 'idle' : 'unavailable'}
+            >
+              <Phone className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Call</span>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleOpenMaps}
+              disabled={!hasCoords}
+              className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-muted/24 px-2 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34 disabled:cursor-not-allowed disabled:opacity-55"
+              title={hasCoords ? 'Open this facility in maps' : 'This facility has no coordinates'}
+              aria-disabled={!hasCoords}
+              data-state={hasCoords ? 'idle' : 'unavailable'}
+            >
+              <Navigation className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Maps</span>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleCopyId}
+              disabled={!facilityId}
+              className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-inner bg-muted/24 px-2 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34 disabled:cursor-not-allowed disabled:opacity-55"
+              title={facilityId ? `Copy ${facilityId}` : 'This facility has no record ID'}
+              aria-disabled={!facilityId}
+              data-state={facilityId ? 'idle' : 'unavailable'}
+            >
+              <Copy className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Copy ID</span>
+            </motion.button>
+          </div>
+        )}
         <p className="px-1 text-xs font-medium text-muted-foreground" role="status" aria-live="polite">
           {panelNotice}
         </p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
@@ -31,11 +31,11 @@ import {
   Clock,
   Edit,
   Eye,
+  FileCheck,
   Filter,
   Hospital,
   MapPin,
   Phone,
-  Plus,
   Star,
   Tag,
   Timer,
@@ -247,6 +247,7 @@ const formatHospitalWait = (minutes) => {
 export const HospitalsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isMobile } = useNavigation();
   const [selectedHospital, setSelectedHospital] = useState(null);
@@ -465,6 +466,14 @@ export const HospitalsPage = () => {
       active = false;
     };
   }, [location.search, setFocused]);
+
+  // The navbar's working action (user arbitration #2, 2026-07-09): the domain's
+  // real adjacent write surface is the facility approval queue -- same decoded
+  // action as the FAB/bottom bar (/verification?queue=organizations).
+  const handleFacilityApprovals = useCallback(() => {
+    markActionFeedback('facility-approvals');
+    navigate('/verification?queue=organizations');
+  }, [markActionFeedback, navigate]);
 
   const handleCreateUnavailable = useCallback(() => {
     markActionFeedback('create-unavailable');
@@ -702,28 +711,29 @@ export const HospitalsPage = () => {
   ), [filterSheetOpen, filters, handleOpenFilters]);
 
   const headerActions = React.useMemo(() => {
-    // Create remains unavailable until a backend receiver/policy is proved.
-    // The command still renders in the donor's fg-on-bg pill recipe
-    // (EmergencyRequestsPage headerActions): a washed 70%-opacity button reads
-    // as broken/loading, not policied. data-state="unavailable" + honest toast
-    // carry the fail-closed truth instead (HOSPITALS_SHELL_PARITY_AUDIT 1.1).
+    // Navbar carries the WORKING action, not the gated create (user arbitration
+    // #2, 2026-07-09): the Add pill leaves the top bar -- create is DB-enforced
+    // fail-closed (DATA_SYNC 12c), so a permanently-policied pill is not a
+    // working command. In its place, the domain's real adjacent write surface:
+    // the facility approval queue (same decoded action as the FAB/bottom bar).
+    // The honest create gate stays reachable via the ?add=true deep link.
     if (canEditHospitals) {
       return (
         <Button
-          onClick={handleCreateUnavailable}
-          title="Add facility is unavailable until a backend receiver is proved"
-          aria-busy={activeActionFeedback === 'create-unavailable'}
-          data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'unavailable'}
-          className={`h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95 ${activeActionFeedback === 'create-unavailable' ? 'scale-95' : ''}`}
-          aria-label="Add facility"
+          onClick={handleFacilityApprovals}
+          title="Review pending facility approvals"
+          aria-busy={activeActionFeedback === 'facility-approvals'}
+          data-state={activeActionFeedback === 'facility-approvals' ? 'opening' : 'idle'}
+          className={`h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95 ${activeActionFeedback === 'facility-approvals' ? 'scale-95' : ''}`}
+          aria-label="Facility approvals"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add facility
+          <FileCheck className="mr-2 h-4 w-4" />
+          Facility approvals
         </Button>
       );
     }
     return null;
-  }, [activeActionFeedback, canEditHospitals, handleCreateUnavailable]);
+  }, [activeActionFeedback, canEditHospitals, handleFacilityApprovals]);
 
   usePageHeader(
     "Hospitals",

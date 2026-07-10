@@ -178,10 +178,17 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('supabase.removeChannel(channel)');
     expect(page).not.toContain('<StaffSchedulingModal');
     expect(page).not.toContain('createHospital');
+    // handleCreateUnavailable stays reachable (the ?add=true deep link + the
+    // openHospitalModal listener) even though it LEFT the top bar.
     expect(page).toContain('handleCreateUnavailable');
     expect(page).toContain("toast.info('Add facility is unavailable')");
-    expect(page).toContain('Add facility');
-    expect(page).toContain("data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'unavailable'}");
+    // Navbar working action (user arbitration #2, 2026-07-09): the header pill
+    // is the facility approval queue (same decoded action as the FAB/bottom
+    // bar), not the gated Add. The unavailable Add pill LEFT the top bar.
+    expect(page).toContain('handleFacilityApprovals');
+    expect(page).toContain("navigate('/verification?queue=organizations')");
+    expect(page).toContain('Facility approvals');
+    expect(page).not.toContain("data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'unavailable'}");
     expect(page).not.toContain('aria-disabled="true"');
     expect(page).not.toContain('ADD HOSPITAL');
     expect(page).toContain("handleOpenModal = () => handleCreateUnavailable()");
@@ -490,29 +497,42 @@ describe('HospitalsPage admission audit contract', () => {
 
     expect(panel).toContain('export const HospitalsPanel = ({ hospitalContext }) =>');
     expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Facility actions ready.');");
-    expect(panel).toContain("window.dispatchEvent(new CustomEvent('openHospitalModal'))");
     expect(panel).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
     expect(panel).toContain("window.dispatchEvent(new CustomEvent('openFilters'))");
     expect(panel).toContain('Facilities overview');
     expect(panel).toContain('Current route scope');
     expect(panel).toContain('Panel actions');
     expect(panel).toContain('Current list');
-    expect(panel).toContain('Add facility is unavailable.');
     expect(panel).toContain('No facilities in the current view.');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    // Deny-by-default gating (SHELL_PARITY_AUDIT section 3, 2026-07-09): the
-    // panel honors the canAdd/focusedHospital flags the page publishes -- real
-    // disabled + honest titles, no cosmetically-disabled-but-live buttons.
-    expect(panel).toContain("const canAdd = context.canAdd === true;");
-    expect(panel).toContain('disabled={!canAdd}');
-    expect(panel).toContain("title={canAdd ? 'Add facility' : 'Add facility is unavailable'}");
+    // Working actions distributed to the panel (user arbitration #2): the gated
+    // Add button LEAVES the panel (create is DB-fail-closed); the page-level
+    // working action is the facility approval queue (same decoded action as the
+    // navbar/FAB) -- SPA navigate, not a dead window event.
+    expect(panel).toContain("navigate('/verification?queue=organizations')");
+    expect(panel).toContain('Approvals');
+    expect(panel).not.toContain('const canAdd = context.canAdd === true;');
+    expect(panel).not.toContain("window.dispatchEvent(new CustomEvent('openHospitalModal'))");
     expect(panel).toContain('title="View facility statistics"');
     expect(panel).toContain('title="Filter facilities"');
+    // Focused-facility native quick actions (decision 3): call / maps / copy-ID,
+    // each honestly disabled when the focused facility lacks that datum, the
+    // whole group hidden when nothing is focused.
+    expect(panel).toContain('const focused = context.focusedHospital || null;');
+    expect(panel).toContain('const contactPhone = focused?.phone || null;');
     expect(panel).toContain('disabled={!contactPhone}');
     expect(panel).toContain("window.location.href = `tel:${contactPhone}`");
-    expect(panel).toContain('const contactPhone = context.focusedHospital?.phone || null;');
+    expect(panel).toContain('disabled={!hasCoords}');
+    expect(panel).toContain('www.google.com/maps/search');
+    expect(panel).toContain('disabled={!facilityId}');
+    expect(panel).toContain('navigator.clipboard.writeText(facilityId)');
+    expect(panel).toContain('{focused && (');
     expect(panel).toContain('const errorMessage = context.errorMessage;');
+    // First card matches the Requests/Visits panel hero: rounded-CARD (not the
+    // too-round rounded-sheet) + shadow-e2-lift (the glance-tile elevation).
+    expect(panel).toContain('rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-e2-lift');
+    expect(panel).not.toContain('rounded-sheet bg-sky-500/10');
     expect(panel).not.toContain('rgb(6_182_212');
 
     expect(panel).not.toContain('hospitalsData');

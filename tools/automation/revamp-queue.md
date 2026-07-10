@@ -595,3 +595,23 @@ Notes:
   line; wait_time vs emergency_wait_time_minutes overlap; attribution on thumbnails + MOBILE
   surfaces (mobile lane: MobileHospitals renders Places photos with no attribution — same ToS
   exposure); desktop dock morph (estate decision); provider read-only view (product).
+
+### 2026-07-10 — desktop-uiux-lane — ARBITRATION #2 HANDOFF CLOSED (navbar + panel)
+- Received from a855b95e: decisions (2) navbar redistribution + (3) panel native quick actions.
+- **Navbar (2), refined by user live** ("pass same decoded action to navbar instead of add
+  facility"): the header primary command is now **Facility approvals** -> navigate
+  /verification?queue=organizations (same decoded action as the FAB/bottom bar). The gated Add
+  pill LEFT the top bar; handleCreateUnavailable stays reachable via ?add=true + the
+  openHospitalModal listener.
+- **Panel (3):** gated Add button REMOVED from HospitalsPanel; page-level working action is now
+  **Approvals** (SPA navigate). Focused-facility native quick actions added (hidden when nothing
+  focused): **Call** (tel:), **Maps** (google maps from lat/lng), **Copy ID**
+  (navigator.clipboard of display_id) -- each honestly disabled when the focused facility lacks
+  that datum. Action buttons switched to the donor flex-col grammar (icon over label) in 3-col
+  grids.
+- **Radius bug fix (user-reported):** HospitalsPanel first card was `rounded-sheet` (too round --
+  a sheet curve on a KPI card) -> `rounded-card` + `shadow-e2-lift`, matching the Requests/Visits
+  panel hero exactly.
+- Pins migrated same-commit (header approvals; panel approvals nav + Call/Maps/Copy + radius;
+  removed Add/canAdd pins). Suites 30/30 on touched; hospitals hardgate-clean; parse OK; live
+  compile clean. This closes the arbitration #2 handoff -- Hospitals fully done, desktop + mobile.
