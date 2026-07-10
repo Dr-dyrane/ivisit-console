@@ -26,7 +26,7 @@ import {
     Newspaper,
     LifeBuoy,
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     EmergencyRequestModal,
     UserModal,
@@ -72,11 +72,15 @@ const DynamicBottomBarContent = () => {
     const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
     // Route-owned actions may open a locally hosted modal (routeModal) instead of
     // dispatching a window event — pages like '/' have no modal listener mounted.
+    // A `to` action navigates (SPA route change, not an anchor/full reload).
     const [routeModal, setRouteModal] = useState(null);
+    const navigate = useNavigate();
     const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);
     const routeOwnedAction = routeOwnedActionConfig?.modal
         ? { ...routeOwnedActionConfig, action: () => setRouteModal(routeOwnedActionConfig.modal) }
-        : routeOwnedActionConfig;
+        : routeOwnedActionConfig?.to
+            ? { ...routeOwnedActionConfig, action: () => navigate(routeOwnedActionConfig.to) }
+            : routeOwnedActionConfig;
     const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;
 
     // provider_type routes responder providers (driver/paramedic/ambulance) to the
@@ -205,18 +209,19 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Hospitals (user arbitration 2026-07-09, bottom-bar FLAG resolved
-    // fail-closed-with-reason): without a branch the bar collapsed to a
-    // centered pill with no FAB -- off the left-pill+FAB grammar every other
-    // owned route renders. The page answers openHospitalModal with the honest
-    // unavailable toast (create is fail-closed, no INSERT policy), mirroring
-    // the desktop header's first-class-but-policied Add facility pill.
+    // Hospitals (user arbitration 2026-07-09 #2: "make the FAB render something
+    // practical and working"): the gated Add toast leaves the FAB; the route
+    // action is now the domain's REAL adjacent write surface — the facility
+    // approval queue (/verification, facilities tab preselected via ?queue=).
+    // Approvals is absent from the dock on /hospitals (the 4th pill morphs to
+    // the current page), so nothing duplicates. The honest create gate stays
+    // reachable via the desktop header pill and the ?add=true deep link.
     if (pathname.startsWith('/hospitals') && ['org_admin', 'admin'].includes(userRole)) {
         return {
-            icon: Plus,
-            label: 'Add facility',
+            icon: FileCheck,
+            label: 'Facility approvals',
             color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openHospitalModal'))
+            to: '/verification?queue=organizations',
         };
     }
 

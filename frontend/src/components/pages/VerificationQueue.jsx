@@ -80,8 +80,13 @@ export const VerificationQueue = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
-  // Track which queue we're viewing.
-  const [queueType, setQueueType] = useState('providers'); // 'providers' | 'organizations'
+  // Track which queue we're viewing. ?queue=organizations preselects the
+  // facilities tab (receiver for the Hospitals FAB, arbitration 2026-07-09).
+  const [queueType, setQueueType] = useState(() => (
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('queue') === 'organizations'
+      ? 'organizations'
+      : 'providers'
+  )); // 'providers' | 'organizations'
   const [organizations, setOrganizations] = useState([]);
   const [orgStats, setOrgStats] = useState({ pending: 0, verified: 0, rejected: 0, total: 0 });
   const providerRequestSeqRef = useRef(0);

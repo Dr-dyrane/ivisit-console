@@ -824,7 +824,11 @@ describe('Today/Requests revamp gate contract', () => {
     expect(bottomBar).toContain("location.pathname.startsWith('/health-news')");
     expect(bottomBar).not.toContain('HealthNewsModal');
     expect(bottomBar).not.toContain("case 'healthNews'");
-    expect(contextAction).toContain("label: 'Add facility'");
+    // Stale-pin reconciliation (2026-07-09): the generic hospitals context action
+    // was REMOVED by the shell-parity pass (HospitalsPage.contract pins the ban);
+    // create is fail-closed and the /hospitals FAB is now the facility-approvals
+    // route action (user arbitration #2). This inventory pin flips to match.
+    expect(contextAction).not.toContain("label: 'Add facility'");
     expect(contextAction).toContain("label: 'Add unit'");
     expect(contextAction).toContain("label: 'New article'");
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openAmbulanceModal'))");

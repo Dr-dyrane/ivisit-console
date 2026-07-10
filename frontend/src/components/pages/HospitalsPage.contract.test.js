@@ -215,14 +215,16 @@ describe('HospitalsPage admission audit contract', () => {
     expect(contextAction).not.toContain("'/hospitals'");
     expect(contextAction).not.toContain("label: 'Add facility'");
     expect(contextAction).not.toContain("label: 'Add Hospital'");
-    // Bottom bar (user arbitration 2026-07-09, SHELL_PARITY FLAG resolved
-    // fail-closed-with-reason): /hospitals renders the canonical left-pill +
-    // FAB grammar -- without a route-owned action the bar collapsed to a
-    // centered pill. The FAB dispatches openHospitalModal, which this page
-    // answers with handleCreateUnavailable's honest toast.
+    // Bottom bar (user arbitration 2026-07-09, SHELL_PARITY FLAG resolved; then
+    // arbitration #2 same day: "make the FAB render something practical and
+    // working"): /hospitals renders the canonical left-pill + FAB grammar, and
+    // the FAB is the domain's REAL adjacent write surface — the facility
+    // approval queue (/verification?queue=organizations), not the gated Add
+    // toast. The honest create gate stays on the desktop header pill + ?add=true.
     const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
     expect(bottomBar).toContain("pathname.startsWith('/hospitals') && ['org_admin', 'admin'].includes(userRole)");
-    expect(bottomBar).toContain("label: 'Add facility'");
+    expect(bottomBar).toContain("label: 'Facility approvals'");
+    expect(bottomBar).toContain("to: '/verification?queue=organizations'");
     expect(bottomBar).toContain("justify-between' : 'justify-center'");
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).not.toContain("usePageFooter(footerContent, 'pagination'");

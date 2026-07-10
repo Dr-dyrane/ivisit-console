@@ -555,3 +555,18 @@ Notes:
   hospitals cannot pass live RLS — org registration's facility creation appears dead against
   live. Verify end-to-end; fix = service-role edge function or scoped pending-insert policy,
   authored in ivisit-app. Details: DATA_SYNC_REMEDIATION_AUDIT section 12c.
+
+### 2026-07-09 — mobile-uiux-lane — ARBITRATION #2 APPLIED: Hospitals FAB does real work + action-home handoff
+- **User decisions:** (1) FAB = "Facility approvals" -> /verification?queue=organizations (the
+  domain's real adjacent write surface; Approvals is absent from the dock on /hospitals since
+  the 4th pill morphs). Gated Add leaves the FAB; the honest toast stays reachable via the
+  desktop header pill + ?add=true. (2) Navbar = working actions only (Filter + Analytics; the
+  gated Add pill LEAVES the top bar). (3) Context panel focused-facility gains native quick
+  actions: Call (tel:), Open in maps, Copy facility-ID, alongside the working Edit.
+- **Landed (mobile lane):** DynamicBottomBar `to:` navigation actions + the /hospitals branch
+  swap; VerificationQueue ?queue=organizations receiver (facilities tab preselect); pin
+  migrations (HospitalsPage.contract bottomBar label; PageRevampGate stale 'Add facility'
+  contextAction pin flipped — it contradicted YOUR newer HospitalsPage.contract:216 ban and
+  was the pre-existing suite red).
+- **HANDOFF -> desktop lane (your dirty HospitalsPage.jsx + HospitalsPanel):** decisions (2)
+  and (3) above — navbar action redistribution + panel native quick actions. Cite this row.
