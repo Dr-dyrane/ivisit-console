@@ -1,7 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Users, Search, Eye, Mail, Clock, Crown, BadgeCheck, SlidersHorizontal, BarChart3 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Users, Eye, Mail, Clock, Crown, BadgeCheck } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x; useSkeletonWarmup covers cached bottom-nav mounts;
+// UpdatingPillRow is the background-refetch signal (list never re-skeletons).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
@@ -74,7 +77,8 @@ export const MobileSubscriptions = ({
     return result;
   }, [subscribers, filters]);
   const { displayItems: displaySubscribers, isBuffering } = useStableList(filteredSubscribers, loading);
-  const showTopSectionLoading = loading && displaySubscribers.length === 0;
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && displaySubscribers.length === 0);
 
   const kpis = [
     { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--foreground))', delta: 'Shown', direction: 'flat' },
@@ -208,37 +212,16 @@ export const MobileSubscriptions = ({
           />
         </section>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              placeholder="Search subscribers..."
-              value={filters?.search || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-inner bg-muted/40 text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
-            />
-          </div>
-          {onOpenFilters && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
-              aria-label="Open filters"
-            >
-              <SlidersHorizontal size={18} />
-            </motion.button>
-          )}
-          {onViewAnalytics && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
-              aria-label="Open analytics"
-            >
-              <BarChart3 size={18} />
-            </motion.button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder="Search subscribers..."
+            search={filters?.search || ''}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            entityLabel="subscribers"
+            onOpenFilters={onOpenFilters}
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -283,10 +266,11 @@ export const MobileSubscriptions = ({
             })}
           </AnimatePresence>
 
-          {displaySubscribers.length === 0 && <MobileListEmpty icon={Users} label="No subscribers found" labelTone="plain" />}
+          {displaySubscribers.length === 0 && !showTopSectionLoading && <MobileListEmpty icon={Users} label="No subscribers found" labelTone="plain" />}
 
-          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-            {loading && <MobileListSkeletonRows />}
+          <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+            {showTopSectionLoading && <MobileListSkeletonRows />}
+            <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
           </div>

@@ -198,9 +198,11 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).not.toContain('onClick={() => onEdit(sub)}');
     expect(mobile).not.toContain('onClick={() => onDelete(sub)}');
 
-    // Chrome-clean locks preserved (borderless; canonical radius only).
-    expect(mobile).toContain('rounded-inner');
-    expect(mobile).toContain('rounded-button');
+    // Chrome-clean locks preserved (borderless; canonical radius only). The last
+    // in-file radius holders (search input + trigger buttons) moved into the canon
+    // kit in the Wave-2 migration (2026-07-09); the raw-radius bans below still
+    // prove no non-token radius sneaks back in.
+    expect(mobile).toContain("from './canon'");
     expect(mobile).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
     expect(mobile).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
     expect(mobile).not.toMatch(/\bgeo-/);
