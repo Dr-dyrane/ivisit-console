@@ -264,7 +264,11 @@ describe('TodayHome role contract', () => {
     expect(sponsorHtml).toContain('Read-only report');
     expect(sponsorHtml).toContain('Review request activity');
     expect(sponsorHtml).toContain('In impact');
-    expect(sponsorHtml).not.toContain('3 active');
+    // The DS shadow token + active-state utility pair ('...shadow-e3 active:...')
+    // carries the bare substring '3 active' inside class attributes, so this guard
+    // pins the rendered copy forms instead: text nodes and aria-label values.
+    expect(sponsorHtml).not.toContain('3 active<');
+    expect(sponsorHtml).not.toContain(': 3 active');
     expect(sponsorHtml).not.toContain('Open requests');
     expect(sponsorHtml).not.toContain('/emergencies');
     expect(sponsorHtml).not.toContain('/support-tickets');
@@ -611,12 +615,13 @@ describe('TodayHome role contract', () => {
     expect(source).toContain('focus-visible:bg-foreground/10');
     expect(source).not.toContain('focus-visible:bg-primary/10');
     expect(source).not.toContain('dark:focus-visible:bg-primary/20');
-    expect(source).toContain('<motion.button');
-    expect(source).toContain('whileTap={{ scale: 0.98 }}');
-    expect(source).toContain('onClick={() => onAction(item.path)}');
-    expect(source).toContain('disabled={!item.path}');
-    expect(source).toContain("aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}");
-    expect(source).toContain('data-today-glance={item.label.toLowerCase()}');
+    // The glance tile composes from the console DS: GlanceTile locks the motion,
+    // aria, data-state, and orb-swap anatomy once (ConsoleDesignSystem.contract.test.js);
+    // the page wires its domain only -- tone map + the Today data attribute.
+    expect(source).toContain("import { GlanceTile } from '../console/GlanceTile';");
+    expect(source).toContain('<GlanceTile');
+    expect(source).toContain('toneClassMap={rowToneClass}');
+    expect(source).toContain('dataAttr="data-today-glance"');
     expect(source).toContain("data-state={isOpening ? 'opening' : 'idle'}");
     expect(source).toContain('<ArrowRight className="h-3.5 w-3.5" />');
     expect(source).toContain('<Loader2 className="h-3.5 w-3.5 animate-spin" />');
@@ -627,7 +632,13 @@ describe('TodayHome role contract', () => {
     expect(source).toContain("data-state={isOpening ? 'opening' : 'idle'}");
     expect(source).toContain('ConsoleModuleRail');
     expect(source).toContain('getConsoleModuleRailItems(roleKind)');
-    expect(source).toContain('font-semibold leading-tight text-foreground [overflow-wrap:anywhere]');
+    // The glance value/label anatomy lives in the DS GlanceTile now; prove it
+    // still renders through this page (tile spec + data attribute + rest state).
+    const adminHtml = renderTodayRole('admin');
+    expect(adminHtml).toContain('data-today-glance="requests"');
+    expect(adminHtml).toContain('shadow-e2-lift');
+    expect(adminHtml).toContain('data-state="idle"');
+    expect(adminHtml).toContain('font-semibold leading-tight text-foreground [overflow-wrap:anywhere]');
     expect(source).not.toContain('block truncate text-[13px] font-semibold text-foreground');
     expect(railSource).toContain("sponsor: ['today', 'statistics']");
     expect(railComponentSource).toContain('data-console-rail={id}');
@@ -691,8 +702,13 @@ describe('TodayHome role contract', () => {
     const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
 
     expect(source).toContain("import { useNavigate } from 'react-router-dom';");
-    expect(source).toContain('const routeFeedbackMs = 320;');
+    // routeFeedbackMs is the DS token now (WorkspaceStage exports 320, locked in
+    // ConsoleDesignSystem.contract.test.js). handleAction stays PAGE-LOCAL on
+    // purpose: it adds first-click-wins + timer-ref cleanup that the shared
+    // useWayfindingNav does not carry yet (recorded kit gap).
+    expect(source).toContain("import { routeFeedbackMs } from '../console/WorkspaceStage';");
     expect(source).toContain('const handleAction = useCallback((path) => {');
+    expect(source).toContain('if (routingPath) return;');
     expect(source).toContain('if (!path) return;');
     expect(source).toContain('setRoutingPath(path);');
     expect(source).toContain('window.setTimeout(() => {');

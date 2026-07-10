@@ -8,6 +8,7 @@ describe('Console design system contract', () => {
   const tailwind = () => read('tailwind.config.js');
   const primitives = () => read('src/components/console/primitives.jsx');
   const kpiStrip = () => read('src/components/console/KpiStrip.jsx');
+  const glanceTile = () => read('src/components/console/GlanceTile.jsx');
   const signalPanel = () => read('src/components/console/SignalPanel.jsx');
   const activitySheet = () => read('src/components/console/ActivitySheet.jsx');
   const workspaceStage = () => read('src/components/console/WorkspaceStage.jsx');
@@ -17,6 +18,7 @@ describe('Console design system contract', () => {
   const CONSOLE_FILES = () => ({
     primitives: primitives(),
     kpiStrip: kpiStrip(),
+    glanceTile: glanceTile(),
     signalPanel: signalPanel(),
     activitySheet: activitySheet(),
     workspaceStage: workspaceStage(),
@@ -60,6 +62,27 @@ describe('Console design system contract', () => {
     expect(src).toContain("setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)");
     // The active chip's icon swaps to a spinner during background refetches.
     expect(src).toContain('{active && isFetching ? (');
+  });
+
+  it('locks the glance tile: the Today nav-tile spec + opening feedback', () => {
+    const src = glanceTile();
+    // THE Today tile recipe (KPI tiles must match it exactly): squircle,
+    // frosted fill, neutral e2-lift at rest, e3 on focus lift.
+    expect(src).toContain('group min-h-[66px] cursor-pointer rounded-inner bg-card/65 px-3 py-2.5 text-left shadow-e2-lift backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 hover:bg-card/82 focus-visible:-translate-y-0.5 focus-visible:bg-foreground/10 focus-visible:shadow-e3 active:bg-card/90 disabled:pointer-events-none disabled:opacity-70 dark:bg-white/[0.055] dark:hover:bg-white/[0.085] dark:focus-visible:bg-white/[0.12] sm:px-4 md:py-3');
+    expect(src).toContain('whileHover={{ y: -2 }}');
+    expect(src).toContain('whileTap={{ scale: 0.98 }}');
+    // NAV variant (KpiStrip owns the filter tile): navigating swaps the trailing
+    // orb ArrowRight -> Loader2 with an explicit opening state; pathless disables.
+    expect(src).toContain('const isOpening = item.path && routingPath === item.path;');
+    expect(src).toContain("data-state={isOpening ? 'opening' : 'idle'}");
+    expect(src).toContain("aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}");
+    expect(src).toContain('{isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}');
+    expect(src).toContain('disabled={!item.path}');
+    // Anatomy: label over value, min-w-0 column; tone colour on the orb ONLY.
+    expect(src).toContain('block text-[10px] font-medium text-muted-foreground sm:text-[11px]');
+    expect(src).toContain('mt-1 block text-[13px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere] sm:text-sm');
+    expect(src).toContain('group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 ${toneClass}');
+    expect(src).toContain('const toneClass = toneClassMap[item.tone] || toneClassMap.muted;');
   });
 
   it('locks the signal panel architecture: heights, no entrance motion', () => {
@@ -137,6 +160,7 @@ describe('Console design system contract', () => {
       visitsPage: read('src/components/pages/VisitsPage.jsx'),
       visitsPanel: read('src/components/context/VisitsPanel.jsx'),
       emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
+      todayHome: read('src/components/pages/TodayHome.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });

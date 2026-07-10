@@ -23,9 +23,9 @@ import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/Layou
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { SEOHead } from '../common/SEOHead';
+import { GlanceTile } from '../console/GlanceTile';
+import { routeFeedbackMs } from '../console/WorkspaceStage';
 import { MobileToday } from '../mobile/MobileToday';
-
-const routeFeedbackMs = 320;
 
 export const ROLE_COPY = {
   admin: {
@@ -692,40 +692,6 @@ const AtlasLayer = () => (
   </div>
 );
 
-const GlanceCard = ({ item, onAction, routingPath }) => {
-  const isOpening = item.path && routingPath === item.path;
-  const toneClass = rowToneClass[item.tone] || rowToneClass.muted;
-
-  return (
-    <motion.button
-      type="button"
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onAction(item.path)}
-      disabled={!item.path}
-      aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}
-      data-today-glance={item.label.toLowerCase()}
-      data-state={isOpening ? 'opening' : 'idle'}
-      style={{ outline: 'none' }}
-      className="group min-h-[66px] cursor-pointer rounded-inner bg-card/65 px-3 py-2.5 text-left shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 hover:bg-card/82 focus-visible:-translate-y-0.5 focus-visible:bg-foreground/10 focus-visible:shadow-[0_12px_32px_rgb(0_0_0/0.10)] active:bg-card/90 disabled:pointer-events-none disabled:opacity-70 dark:bg-white/[0.055] dark:hover:bg-white/[0.085] dark:focus-visible:bg-white/[0.12] sm:px-4 md:py-3"
-    >
-      <span className="flex items-start justify-between gap-2">
-        <span className="min-w-0">
-          <span className="block text-[10px] font-medium text-muted-foreground sm:text-[11px]">
-            {item.label}
-          </span>
-          <span className="mt-1 block text-[13px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere] sm:text-sm">
-            {item.value}
-          </span>
-        </span>
-        <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill transition-[background,color,transform] duration-200 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 ${toneClass}`}>
-          {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-        </span>
-      </span>
-    </motion.button>
-  );
-};
-
 const TodayCenter = ({ today, roleCopy, live, initialLoading, glanceItems, onAction, routingPath }) => {
   const Icon = today.icon || Activity;
 
@@ -762,12 +728,17 @@ const TodayCenter = ({ today, roleCopy, live, initialLoading, glanceItems, onAct
           )}
         </div>
         <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3 md:mt-7">
+          {/* The glance tile is the console DS nav tile (donor: this page's
+              GlanceCard, extracted verbatim); the page wires its domain only:
+              tone map + the Today data attribute. */}
           {glanceItems.map((item) => (
-            <GlanceCard
+            <GlanceTile
               key={item.label}
               item={item}
               onAction={onAction}
               routingPath={routingPath}
+              toneClassMap={rowToneClass}
+              dataAttr="data-today-glance"
             />
           ))}
         </div>
@@ -826,7 +797,7 @@ const DetailRow = ({ row, expanded, onToggle, onAction, routingPath }) => {
               onClick={() => onAction(row.path)}
               data-state={isOpening ? 'opening' : 'idle'}
               aria-label={`${row.actionLabel}${isOpening ? ', opening' : ''}`}
-              className="mt-3 inline-flex items-center gap-2 rounded-pill bg-foreground/[0.18] px-3 py-2 text-xs font-semibold text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,transform] active:scale-[0.98] hover:bg-foreground/[0.22] focus-visible:bg-foreground/[0.26] dark:bg-white/[0.24] dark:hover:bg-white/[0.30]"
+              className="mt-3 inline-flex items-center gap-2 rounded-pill bg-foreground/[0.18] px-3 py-2 text-xs font-semibold text-foreground shadow-e2 transition-[background,transform] active:scale-[0.98] hover:bg-foreground/[0.22] focus-visible:bg-foreground/[0.26] dark:bg-white/[0.24] dark:hover:bg-white/[0.30]"
             >
               {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
               {isOpening ? 'Opening...' : row.actionLabel}
@@ -842,7 +813,7 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
   // No entrance motion (MOTION canon §3): the delayed y+scale pop made the sheet
   // arrive on a second clock after the hero — the banned stage-reveal/skew.
   <aside
-    className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-3 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]"
+    className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-3 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]"
   >
     <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
 
@@ -865,7 +836,7 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
         onClick={onPrimary}
         data-state={routingPath === today.path ? 'opening' : 'idle'}
         aria-label={`${today.primaryAction}${routingPath === today.path ? ', opening' : ''}`}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button bg-foreground px-4 py-2.5 text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-[background,box-shadow,transform] hover:bg-foreground/90 focus-visible:shadow-[0_12px_32px_rgb(0_0_0/0.10)] active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-white/90 md:mt-5 md:py-3.5"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button bg-foreground px-4 py-2.5 text-sm font-semibold text-background shadow-e2-strong transition-[background,box-shadow,transform] hover:bg-foreground/90 focus-visible:shadow-e3 active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-white/90 md:mt-5 md:py-3.5"
       >
         {routingPath === today.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
         {routingPath === today.path ? 'Opening...' : today.primaryAction}
