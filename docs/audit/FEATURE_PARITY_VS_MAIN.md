@@ -57,3 +57,56 @@ Files diffed: `EmergencyRequestsPage.jsx`, `MobileEmergency.jsx`, `EmergencyDeta
 
 ### Verdict
 PASS — zero unintentional drops. The reference page holds its own bar.
+
+---
+
+## Hospitals (mobile) — PRE-REBUILD changelog, audited 2026-07-09
+
+> User decision 2026-07-09: "a mass revamp never works because each page has its perks and
+> features dropped mistakenly" — so the changelog comes FIRST, then the rebuild. This section
+> is the understanding pass for `MobileHospitals.jsx` before its kit re-composition.
+
+### Commit changelog (15 commits total; the 5 since the `main` baseline)
+| Commit | What it did to MobileHospitals |
+|---|---|
+| `f31f29ff` (= main, baseline) | 448 ln. Dropdown-row pseudo-sheets (`expandedContent`), apple-glass chrome, FAKE `growthData` sparklines `[32,44,51,49,61,69]`, `'LIVE'` trend labels, `statistics?.previous` delta badges, client-side `filteredHospitals` (name/address search + kpi filter), MobileFeaturedMetric ("Network Capacity"/"Avg Rating"...) + "Operations Pulse" rail, Beds/Fleet KPIs, selection + schedule + delete all wired. |
+| `15acf6c9` checkpoint ("preserve console revamp gate work") | THE mass-revamp commit: −146/+89. Killed the dishonest block (FeaturedMetric, growthData, LIVE, delta badges, avgRating), moved filtering server-side (`handleStatusFilter` → `filters.status`), introduced the honest `visibleBeds`/`visibleAmbulances` "This page" rail + Busy/Full KPIs. Kept the dropdown grammar. |
+| `2b90369f` | Borderless canon (border-0 purge, page+views+panel+mobile). |
+| `bbcbaa21` | DS parity: canon press, `.eyebrow`, opaque content, apple-glass removed. |
+| `03aa4587` | One-voice micro-drift collapse (glass alias + control press). |
+| `69986ab2` | Batch-A facility-cluster sweep (~69 mechanical parity fixes). |
+
+### Dropped INTENTIONALLY (all cited)
+| What (from main) | Why / where recorded |
+|---|---|
+| `growthData`, `chartData`, `'LIVE'`, `calcDeltaPercent`/`toDeltaBadge` trends, MobileFeaturedMetric, "Avg Rating"/"Network Capacity"/"Operations Pulse" | Dishonest (fake sparkline; deltas fed by `statistics.previous` that no service supplies). BANNED by contract pins: `not.toContain` growthData/chartData/'LIVE'/formatSignedPercent/calcDeltaPercent/toDeltaBadge/MobileFeaturedMetric. |
+| `filteredHospitals` client-side search/filter | Replaced, not lost: server-side via `handleStatusFilter` + page-owned search filters. Pinned both ways (`not.toContain('filteredHospitals')`, `toContain('handleStatusFilter')`). |
+| Beds/Fleet KPI-strip entries | Moved to the rail as honest "Visible Beds"/"Visible Fleet" ("This page" scope) — pinned. Busy/Full KPIs added in their place. |
+| Selection, bulk, delete, schedule ACTIVATION | Fail-closed BY DESIGN, not dropped: component keeps the inventory (`canDelete && onDelete`, `onSchedule && (` — both contract-pinned) but the page passes `canDelete={false}`, `selectionEnabled={false}`, no `onDelete`/`onSchedule`/`onSelect`. Gate ledger row: Hospitals "Create, scheduling, storage upload, destructive delete, staff scheduling, contact, and reservation lifecycle actions remain unavailable/read-only until receiver proof". |
+
+### Dropped UNINTENTIONALLY
+**None found** at identifier level. The checkpoint's big deletion was the dishonest-metrics
+block plus grammar swaps, all pinned or replaced.
+
+### Current gaps → rebuild targets (structure / UX / data-sync)
+1. **Structure:** dropdown-row pseudo-sheet (`expandedContent`/`isExpanded`/`onExpand`) — the
+   estate's last-but-two inline-expand page. Canon = tap opens `MobileDetailSheet` (Doctors/
+   Insurance/Subscriptions grammar). No contract pin blocks the conversion.
+2. **UX:** inline search recipe (no 300ms debounce, no clear-x) → kit `SearchRow`; no
+   `useSkeletonWarmup` (cached bottom-nav mounts skip skeleton-first); `isBuffering` not even
+   destructured → no `UpdatingPillRow` refetch signal; empty state not skeleton-gated.
+3. **Data-sync (available but unrendered / mis-rendered):**
+   - `display_id` (ORG-XXXXXX) exists on rows via the service's displayIds map, but the row
+     detail shows a truncated raw UUID `#{id.slice(0,12)}` — violates "Display IDs are labels".
+   - `phone` is on every row (modal edits it) — never rendered; DetailSheet island with `tel:`
+     href (MobileDetailIslands supports href; Emergency precedent).
+   - `latitude`/`longitude` on rows — address island gets a maps deep-link
+     (`https://maps.google.com/?q=lat,lng`, Emergency precedent; address-text fallback).
+   - `total_beds` on rows — only `available_beds` is shown; occupancy reads "X of Y available".
+4. **Chrome:** `bg-white/[0.02]` islands in expanded content are invisible in light mode —
+   dies with the DetailSheet conversion. `rightBlade` decorative badge → readable secondary
+   line (Pricing precedent: the defining numbers ride the secondary line, not a blade).
+
+### Verdict
+Baseline drops: all intentional and cited. The rebuild is grammar + kit + native-data work,
+NOT feature restoration — with three genuine data-sync upgrades (display_id, tel:, maps/occupancy).

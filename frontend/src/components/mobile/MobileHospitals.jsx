@@ -1,5 +1,4 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
     Hospital,
     Bed,
@@ -10,23 +9,41 @@ import {
     Edit,
     Trash2,
     CalendarDays,
-    Search,
-    SlidersHorizontal,
-    BarChart3,
+    Phone,
+    Hash,
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
-import { Button } from '../ui/button';
+// Canon kit re-composition (2026-07-09, pre-rebuild changelog in
+// docs/audit/FEATURE_PARITY_VS_MAIN.md): SearchRow bakes in the 300ms debounce this
+// page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached bottom-nav
+// mounts; UpdatingPillRow is the background-refetch signal. The dropdown-row
+// pseudo-sheet became the canonical MobileDetailSheet (Doctors/Insurance grammar).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { statusPill } from '../../constants/vitalTracks';
+
+// Native reads (read-the-data-we-have rule): coordinates win, address text is the
+// fallback; either way the island deep-links into the user's maps app.
+const mapsHref = (hospital) => {
+    const lat = Number(hospital?.latitude);
+    const lng = Number(hospital?.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+        return `https://maps.google.com/?q=${lat},${lng}`;
+    }
+    if (hospital?.address) {
+        return `https://maps.google.com/?q=${encodeURIComponent(hospital.address)}`;
+    }
+    return undefined;
+};
 
 export const MobileHospitals = ({
     hospitals,
@@ -52,9 +69,8 @@ export const MobileHospitals = ({
     onSelectAll
 }) => {
     const observerTarget = useRef(null);
-    const [expandedHospitalId, setExpandedHospitalId] = useState(null);
+    const [activeHospital, setActiveHospital] = useState(null);
     const selectionMode = selectionEnabled && selectedIds.length > 0;
-    const { triggerFromEvent } = useFeedback();
     const sourceHospitals = useMemo(() => (Array.isArray(hospitals) ? hospitals : []), [hospitals]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -116,8 +132,9 @@ export const MobileHospitals = ({
         }
     ];
 
-    const { displayItems: displayHospitals } = useStableList(sourceHospitals, loading);
-    const showTopSectionLoading = loading && displayHospitals.length === 0;
+    const { displayItems: displayHospitals, isBuffering } = useStableList(sourceHospitals, loading);
+    const warmingUp = useSkeletonWarmup();
+    const showTopSectionLoading = warmingUp || (loading && displayHospitals.length === 0);
 
     const canManage = isAdmin || isOrgAdmin;
     const activeStatusFilter = Array.isArray(filters?.status)
@@ -134,6 +151,14 @@ export const MobileHospitals = ({
             return nextFilters;
         });
     };
+
+    const statusColorFor = (status) => (
+        status === 'available' || status === 'verified'
+            ? 'hsl(160 84% 39%)'
+            : status === 'full' || status === 'pending'
+                ? 'hsl(38 92% 50%)'
+                : 'hsl(var(--muted-foreground))'
+    );
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
@@ -204,39 +229,16 @@ export const MobileHospitals = ({
                     />
                 </section>
 
-                <div className="flex items-center gap-2 mb-3 px-1">
-                    <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-                        <input
-                            type="text"
-                            placeholder="Search hospitals..."
-                            value={filters?.search || ''}
-                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-button bg-muted/40 text-meta font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={(event) => {
-                            onOpenFilters?.();
-                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                        }}
-                        className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
-                    >
-                        <SlidersHorizontal size={18} />
-                    </motion.button>
-                    {canManage && (
-                        <motion.button
-                            whileTap={{ scale: 0.96 }}
-                            onClick={(event) => {
-                                onViewAnalytics?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                            }}
-                            className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out"
-                        >
-                            <BarChart3 size={18} />
-                        </motion.button>
-                    )}
+                <div className="mb-3 px-1">
+                    <SearchRow
+                        placeholder="Search hospitals..."
+                        search={filters?.search || ''}
+                        onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                        entityLabel="hospitals"
+                        onOpenFilters={onOpenFilters}
+                        onOpenStats={canManage ? onViewAnalytics : null}
+                        statsLabel="Open analytics"
+                    />
                 </div>
 
                 <MobileSectionHeader
@@ -250,142 +252,147 @@ export const MobileHospitals = ({
 
                 <div className="space-y-1">
                     {displayHospitals.map((hospital) => {
-                            const status = getHospitalStatus(hospital);
-                            const statusColor = status === 'available' || status === 'verified'
-                                ? 'hsl(160 84% 39%)'
-                                : status === 'full' || status === 'pending'
-                                    ? 'hsl(38 92% 50%)'
-                                    : 'hsl(var(--muted-foreground))';
-                            const fleet = Number(hospital.ambulances_count) || 0;
-                            const beds = Number(hospital.available_beds) || 0;
+                        const status = getHospitalStatus(hospital);
+                        const statusColor = statusColorFor(status);
+                        const fleet = Number(hospital.ambulances_count) || 0;
+                        const beds = Number(hospital.available_beds) || 0;
+                        const totalBeds = Number(hospital.total_beds) || 0;
+                        // The defining numbers ride the readable secondary line, not a
+                        // decorative blade (Pricing precedent).
+                        const bedsText = totalBeds > 0 ? `${beds} of ${totalBeds} beds` : `${beds} beds`;
 
-                            return (
-                                <MobileMetricRow
-                                    key={hospital.id}
-                                    icon={Hospital}
-                                    color={statusColor}
-                                    label={status.charAt(0).toUpperCase() + status.slice(1)}
-                                    value={hospital.name || 'Unnamed Hospital'}
-                                    rightBlade={{
-                                        badge: hospital.verified ? 'Verified' : 'Unverified',
-                                        direction: hospital.verified ? 'up' : 'flat',
-                                        label: 'Fleet',
-                                        value: `${fleet} units`,
-                                        color: statusColor
-                                    }}
-                                    statusIndicators={[
-                                        {
-                                            icon: hospital.verified ? BadgeCheck : BadgeX,
-                                            color: hospital.verified ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
-                                            label: hospital.verified ? 'Verified' : 'Unverified'
-                                        },
-                                        {
-                                            icon: Ambulance,
-                                            color: fleet > 0 ? 'hsl(189 94% 43%)' : 'hsl(var(--muted-foreground)/0.35)',
-                                            label: `${fleet} ambulances`
-                                        }
-                                    ]}
-                                    isExpanded={expandedHospitalId === hospital.id}
-                                    onExpand={(id) => setExpandedHospitalId(prev => (prev === id ? null : id))}
-                                    itemId={hospital.id}
-                                    isSelected={selectionEnabled && selectedIds.includes(hospital.id)}
-                                    onSelect={selectionEnabled ? onSelect : undefined}
-                                    selectionMode={selectionMode}
-                                    expandedContent={(
-                                        <div className="space-y-4 py-3">
-                                            <div className="grid grid-cols-1 gap-2">
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                    <MapPin size={14} className="text-muted-foreground/40" />
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="eyebrow">Address</span>
-                                                        <span className="text-xs font-semibold truncate">{hospital.address || 'No address provided'}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                        <Bed size={14} className="text-muted-foreground/40" />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="eyebrow">Beds</span>
-                                                            <span className="text-xs font-semibold font-dashboard-numbers">{beds}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                        <Ambulance size={14} className="text-muted-foreground/40" />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="eyebrow">Fleet</span>
-                                                            <span className="text-xs font-semibold font-dashboard-numbers">{fleet}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between px-1">
-                                                <div className="flex flex-col">
-                                                    <span className="eyebrow">Hospital ID</span>
-                                                    <span className="text-[11px] font-mono text-foreground/40 font-normal">#{(hospital.id || '').slice(0, 12).toUpperCase()}</span>
-                                                </div>
-                                                <span className="inline-flex items-center rounded-pill font-semibold tracking-tight text-[11px] py-1 px-3 bg-sky-500/20 text-sky-600 dark:text-sky-300">
-                                                    <Star className="w-3 h-3 mr-1" />
-                                                    {Number(hospital.rating || 0).toFixed(1)}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex gap-2 pt-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                    onClick={() => onView(hospital)}
-                                                >
-                                                    <Eye size={16} className="text-muted-foreground" />
-                                                    <span className="text-[11px] font-semibold">Details</span>
-                                                </Button>
-                                                {canManage && (
-                                                    <>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="flex-1 h-12 rounded-button bg-background/85 flex items-center justify-center gap-2 active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                            onClick={() => onEdit(hospital)}
-                                                        >
-                                                            <Edit size={16} className="text-amber-700 dark:text-amber-300" />
-                                                            <span className="text-[11px] font-semibold">Edit</span>
-                                                        </Button>
-                                                        {onSchedule && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                                onClick={() => onSchedule(hospital)}
-                                                            >
-                                                                <CalendarDays size={16} className="text-cyan-700 dark:text-cyan-300" />
-                                                            </Button>
-                                                        )}
-                                                        {canDelete && onDelete && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="w-12 h-12 rounded-button bg-background/85 flex items-center justify-center active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
-                                                                onClick={() => onDelete(hospital)}
-                                                            >
-                                                                <Trash2 size={16} className="text-destructive/60" />
-                                                            </Button>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                />
-                            );
+                        return (
+                            <MobileMetricRow
+                                key={hospital.id}
+                                icon={Hospital}
+                                color={statusColor}
+                                label="Facility"
+                                value={hospital.name || 'Unnamed Hospital'}
+                                secondary={`${bedsText} · ${fleet} units`}
+                                statusPill={statusPill(status)}
+                                statusIndicators={hospital.verified ? [{
+                                    icon: BadgeCheck,
+                                    color: 'hsl(160 84% 39%)',
+                                    label: 'Verified'
+                                }] : []}
+                                // Tap opens the canonical detail bottom sheet (MobileDetailSheet),
+                                // not an inline dropdown — the approved mobile design + the
+                                // desktop detail-rail behaviour.
+                                onClick={() => setActiveHospital(hospital)}
+                                itemId={hospital.id}
+                                isSelected={selectionEnabled && selectedIds.includes(hospital.id)}
+                                onSelect={selectionEnabled ? onSelect : undefined}
+                                selectionMode={selectionMode}
+                            />
+                        );
                     })}
 
-                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-                        {loading && <MobileListSkeletonRows />}
+                    <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                        {showTopSectionLoading && <MobileListSkeletonRows />}
+                        <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
                         {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                         {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
                     </div>
 
-                    {displayHospitals.length === 0 && !loading && (
+                    {displayHospitals.length === 0 && !loading && !showTopSectionLoading && (
                         <MobileListEmpty icon={Hospital} label="No hospitals found" labelTone="plain" />
                     )}
                 </div>
+
+                {activeHospital && (() => {
+                    const status = getHospitalStatus(activeHospital);
+                    const statusColor = statusColorFor(status);
+                    const fleet = Number(activeHospital.ambulances_count) || 0;
+                    const beds = Number(activeHospital.available_beds) || 0;
+                    const totalBeds = Number(activeHospital.total_beds) || 0;
+                    const rating = Number(activeHospital.rating) || 0;
+                    const phone = activeHospital.phone;
+                    // Display IDs are labels: prefer the ORG-XXXXXX display_id the service
+                    // projects; the truncated UUID is only a fallback, never mutation identity.
+                    const facilityId = activeHospital.display_id || `#${String(activeHospital.id || '').slice(0, 12).toUpperCase()}`;
+
+                    return (
+                        <MobileDetailSheet
+                            isOpen={!!activeHospital}
+                            onClose={() => setActiveHospital(null)}
+                            icon={Hospital}
+                            iconTone={statusColor}
+                            eyebrow="Facility"
+                            title={activeHospital.name || 'Unnamed Hospital'}
+                            statusPill={statusPill(status)}
+                            islands={[
+                                {
+                                    icon: MapPin,
+                                    label: 'Address',
+                                    value: activeHospital.address || 'No address provided',
+                                    href: mapsHref(activeHospital)
+                                },
+                                phone && {
+                                    icon: Phone,
+                                    label: 'Phone',
+                                    value: phone,
+                                    href: `tel:${String(phone).replace(/[\s-]/g, '')}`
+                                },
+                                {
+                                    icon: Bed,
+                                    label: 'Beds',
+                                    value: totalBeds > 0 ? `${beds} of ${totalBeds} available` : `${beds} available`
+                                },
+                                {
+                                    icon: Ambulance,
+                                    label: 'Fleet',
+                                    value: `${fleet} ambulance${fleet === 1 ? '' : 's'}`
+                                },
+                                {
+                                    icon: Star,
+                                    label: 'Rating',
+                                    value: rating > 0 ? rating.toFixed(1) : 'Not rated'
+                                },
+                                {
+                                    icon: activeHospital.verified ? BadgeCheck : BadgeX,
+                                    label: 'Verification',
+                                    value: activeHospital.verified ? 'Verified' : 'Not verified'
+                                },
+                                {
+                                    icon: Hash,
+                                    label: 'Facility ID',
+                                    value: facilityId
+                                }
+                            ]}
+                            primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveHospital(null); onView(activeHospital); } }}
+                            secondary={canManage ? { icon: Edit, onClick: () => { setActiveHospital(null); onEdit(activeHospital); }, 'aria-label': `Edit ${activeHospital.name || 'facility'}` } : undefined}
+                        >
+                            {/* Gated command inventory (gate ledger: scheduling + destructive
+                                delete stay unavailable until receiver proof; the page passes
+                                canDelete={false} and no onSchedule today). */}
+                            {canManage && (onSchedule || (canDelete && onDelete)) && (
+                                <div className="flex gap-2 pt-1">
+                                    {onSchedule && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveHospital(null); onSchedule(activeHospital); }}
+                                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-foreground/[0.06] text-sm font-semibold text-foreground transition-all active:scale-[0.96] hover:bg-foreground/10 dark:bg-white/[0.08]"
+                                        >
+                                            <CalendarDays className="h-4 w-4" />
+                                            Schedule
+                                        </button>
+                                    )}
+                                    {canDelete && onDelete && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveHospital(null); onDelete(activeHospital); }}
+                                            aria-label={`Delete ${activeHospital.name || 'facility'}`}
+                                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform active:scale-[0.96] hover:bg-destructive/20"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </MobileDetailSheet>
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );

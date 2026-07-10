@@ -398,3 +398,15 @@ Notes:
 - **Remaining inline-recipe holders (all already queued as structural rebuilds, NOT Wave-2):**
   MobileHospitals, MobileAmbulances, MobileWallet (L, dropdown-row pseudo-sheets),
   MobileOrganizations (gate-blocked). They should consume the kit wholesale when rebuilt.
+
+### 2026-07-09 — mobile-uiux-lane — CLAIMED + LANDED: MobileHospitals kit re-composition
+- **Changelog-first protocol (new standing step):** pre-rebuild changelog written BEFORE the
+  rebuild — docs/audit/FEATURE_PARITY_VS_MAIN.md "Hospitals (mobile) — PRE-REBUILD changelog".
+  Verdict: all baseline drops intentional+cited (dishonest metrics block, pinned bans);
+  zero unintentional drops; gated commands (delete/schedule/selection) fail-closed BY DESIGN.
+- **Rebuild:** dropdown-row pseudo-sheet -> MobileDetailSheet grammar; SearchRow + warm-up +
+  UpdatingPillRow; three data-sync upgrades: display_id shown instead of truncated UUID,
+  phone island with tel: href, address island with maps deep-link (lat/lng, address fallback)
+  + occupancy honesty ("X of Y available" using total_beds). Fail-closed inventory preserved
+  verbatim (`canDelete && onDelete`, `onSchedule && (` pins green).
+- MobileAmbulances + MobileWallet remain the last dropdown-row rebuilds (mobile lane queue).
