@@ -325,6 +325,57 @@ For **every page** we finish designing, before calling it done:
 
 ---
 
+## donor-diff (the Lesson 26 harness tool)
+
+`scripts/donor-diff.js` is the mechanical element-inventory diff promised in Lesson 26 --
+it kills (a) sampled reading (it enumerates the donor's FULL inventory, no grep-sized
+sampling) and (d) directional blindness (it always reports BOTH directions; superset
+drift is drift).
+
+```
+node scripts/donor-diff.js <donorFile> <consumerFile> [--universe fileA,fileB,...] [--git-base <ref>] [--strict]
+```
+
+- Either file may be a git spec `ref:path` (repo-root-relative, `git show` semantics),
+  e.g. `45bc5d8f~1:frontend/src/components/mobile/MobileVisits.jsx`.
+- `--universe a,b,c` -- the kit files a page composes; they count as part of the consumer
+  for the MISSING direction only (a shared kit legitimately holds more than one donor).
+- `--git-base <ref>` -- read the donor from a ref when the donor arg is a plain path:
+  `node scripts/donor-diff.js src/X.jsx src/X.jsx --git-base HEAD~2` compares a file's
+  own past vs present (fidelity re-composition check).
+- `--strict` -- non-zero exit when the donor-missing list is non-empty (report-only otherwise).
+
+Inventory categories: className tokens (quoted strings, template static parts, AND bare
+class-string consts/object values), aria-* names + static values, data-* names (including
+ones carried as string literals like `dataAttr="data-mobile-visit-row"`), JSX PascalCase
+components, and visible strings (JSX text + `label`/`title`/`placeholder`/`aria-label`/any
+`*Label` prop statics, compared by VALUE so a prop rename that keeps the user-visible
+string is parity).
+
+**The loop MANDATES running it at two points:**
+1. **Donor-parity passes** (Lesson 25) -- donor = the gold-standard page (Requests),
+   consumer = the converted page + its `--universe` kit files. Every MISSING item is
+   adopt-or-record-divergence; every EXCEEDING item is a superset-drift check (the
+   five-sortable-headers class of miss).
+2. **Fidelity re-compositions** (a page re-built to compose the kit, zero visual drift
+   intended) -- donor = the file's own pre-recomposition ref, consumer = the new file,
+   `--universe` = the kit it now composes. Expect ZERO missing className tokens; residual
+   aria/visible misses are the static-to-dynamic moves (``aria-label={`Filter ${entityLabel}`}``)
+   to verify by eye.
+
+Reference run (the verified-by-hand MobileVisits re-composition, reports 0 missing classes):
+
+```
+node scripts/donor-diff.js "45bc5d8f~1:frontend/src/components/mobile/MobileVisits.jsx" \
+  frontend/src/components/mobile/MobileVisits.jsx \
+  --universe frontend/src/components/mobile/canon/GroupedList.jsx,frontend/src/components/mobile/canon/Loading.jsx,frontend/src/components/mobile/canon/SearchRow.jsx,frontend/src/components/mobile/canon/MobileHero.jsx,frontend/src/components/mobile/canon/Tap.jsx,frontend/src/components/mobile/canon/constants.js
+```
+
+The tool surfaces candidates; the human ticks them. It cannot see dynamically-assembled
+strings, spread props, or rendered state -- it replaces the SAMPLING, not the judgment.
+
+---
+
 ## Data-sync issues found while doing UI/UX (queue pointer)
 
 Logged in `DATA_SYNC_REMEDIATION_AUDIT.md` §9+ as they surface. Current:
