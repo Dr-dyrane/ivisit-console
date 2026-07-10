@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { CopyChip } from '../console/primitives';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { Loader2 } from 'lucide-react';
@@ -86,12 +87,16 @@ const buildInitialFormData = (hospital) => {
   };
 };
 
-const modalFieldClassName = 'rounded-button bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
+// Donor field token (EmergencyRequestModal requestFieldClassName) minus the
+// baked h-11 -- this modal sizes per-field -- plus the disabled modifiers the
+// view mode and the read-only ER-wait field rely on.
+const modalFieldClassName = 'rounded-inner bg-background/60 transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60';
 const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl backdrop-blur-xl';
+
+const formId = 'hospital-modal-form';
 
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
-  const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
   const [formData, setFormData] = useState(() => buildInitialFormData(hospital));
@@ -286,11 +291,13 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
     try {
       await onSave(formData);
-      toast.success(isCreate ? 'Hospital created successfully' : 'Hospital updated successfully');
-      onClose(true);
+      // Single toast owner is the page (HospitalsPage.handleSave toasts
+      // success and error itself, then re-throws) -- toasting here duplicated
+      // every notification (VisitModal V-16 rule). The modal only closes on
+      // success and stays open on failure so edits are not lost.
+      onClose();
     } catch (error) {
       console.error('Error saving hospital:', error);
-      handleApiError(error, isCreate ? 'create' : 'update');
     } finally {
       setLoading(false);
     }
@@ -299,9 +306,16 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   return (
     <ModalShell
       isOpen={isOpen}
-      onClose={() => onClose(false)}
+      onClose={() => onClose()}
       title={formData.name || 'New Facility'}
-      subtitle={formData.type}
+      subtitle={hospital?.display_id ? (
+        <span className="inline-flex min-w-0 items-center gap-1">
+          {formData.type && <span className="truncate">{formData.type}</span>}
+          {formData.type && <span aria-hidden="true">·</span>}
+          <span className="truncate font-mono text-[11px] font-medium tracking-wide" title={hospital.display_id}>{hospital.display_id}</span>
+          <CopyChip value={hospital.display_id} label="Copy record ID" />
+        </span>
+      ) : formData.type}
       icon={<Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />}
       badge={
         <Badge className={`rounded-pill font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
@@ -310,9 +324,33 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       }
       size="lg"
       managed
+      footer={(
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onClose()}
+            className="h-12 rounded-button bg-muted/60 px-8 font-semibold active:scale-[0.96]"
+            disabled={loading}
+          >
+            {isView ? 'Close' : 'Cancel'}
+          </Button>
+          {!isView && (
+            <Button
+              type="submit"
+              form={formId}
+              disabled={loading}
+              className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground active:scale-[0.96] hover:bg-primary/90"
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
+            </Button>
+          )}
+        </div>
+      )}
     >
       <div className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar flex-1 min-h-0">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id={formId} onSubmit={handleSubmit} className="space-y-6">
 
                 {/* --- GOOGLE AUTOFILL SECTION --- */}
                 {isCreate && (
@@ -402,7 +440,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className={`${modalFieldClassName} h-12 font-normal`}>
+                        <SelectTrigger id="type" className={`${modalFieldClassName} h-12 font-normal`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className={modalSelectContentClassName}>
@@ -472,11 +510,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 <GlassCard icon={<Activity />} title="Live Capacity">
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
+                      <Label htmlFor="total_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
                         <Input
                           type="number"
+                          id="total_beds"
                           name="total_beds"
                           value={formData.total_beds || 0}
                           onChange={handleChange}
@@ -486,11 +525,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Available</Label>
+                      <Label htmlFor="available_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Available</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
                         <Input
                           type="number"
+                          id="available_beds"
                           name="available_beds"
                           value={formData.available_beds}
                           onChange={handleChange}
@@ -500,11 +540,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ICU Beds</Label>
+                      <Label htmlFor="icu_beds_available" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ICU Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
                         <Input
                           type="number"
+                          id="icu_beds_available"
                           name="icu_beds_available"
                           value={formData.icu_beds_available || 0}
                           onChange={handleChange}
@@ -526,11 +567,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Ambulances</Label>
+                      <Label htmlFor="ambulances_count" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Ambulances</Label>
                       <div className="relative">
                         <Ambulance className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           type="number"
+                          id="ambulances_count"
                           name="ambulances_count"
                           value={formData.ambulances_count}
                           onChange={handleChange}
@@ -540,7 +582,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ER Wait (min)</Label>
+                      <Label htmlFor="emergency_wait_time_minutes" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ER Wait (min)</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-500" />
                         {/* OPERATIONAL INSIGHT, read-only by decision (user 2026-07-09): ER wait
@@ -551,6 +593,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             (HOSPITALS_REVAMP_CONSTITUTION F3). */}
                         <Input
                           type="number"
+                          id="emergency_wait_time_minutes"
                           name="emergency_wait_time_minutes"
                           value={formData.emergency_wait_time_minutes || 0}
                           disabled
@@ -567,7 +610,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   
                   {/* Bed Utilization Indicator */}
                   {(formData.total_beds || 0) > 0 && (
-                    <div className="mt-4 p-3 bg-white/5 rounded-inner ">
+                    <div className="mt-4 p-3 bg-white/5 rounded-inner" aria-live="polite">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
                         <span className="text-xs font-bold">
@@ -589,13 +632,13 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   
                   {/* Active Bed Reservations - Only show in view mode */}
                   {isView && (
-                    <div className="mt-4">
+                    <div className="mt-4" aria-live="polite">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Bed className="h-4 w-4 text-primary" />
+                          <Bed className="h-4 w-4 text-muted-foreground" />
                           <span className="text-xs font-semibold text-muted-foreground uppercase">Active Reservations</span>
                         </div>
-                        <Badge className="bg-primary/20 text-primary text-xs">
+                        <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200 text-xs">
                           {activeReservations.length} active
                         </Badge>
                       </div>
@@ -693,7 +736,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className={`${modalFieldClassName} h-12 font-normal`}>
+                        <SelectTrigger id="status" className={`${modalFieldClassName} h-12 font-normal`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className={modalSelectContentClassName}>
@@ -784,37 +827,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   </div>
                 </GlassCard>
 
-                {/* Footer Actions */}
-                <div className="p-3 md:p-4 rounded-inner bg-white/5  flex gap-3 justify-end">
-                  {!isView ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onClose(false)}
-                        className="rounded-button h-11 md:h-12 font-semibold text-muted-foreground hover:bg-white/10"
-                        disabled={loading}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="rounded-button h-11 md:h-12 bg-primary hover:bg-primary/90 font-semibold px-6 md:px-8 shadow-lg shadow-primary/20"
-                        disabled={loading}
-                      >
-                        {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => onClose(false)}
-                      className="rounded-button h-11 md:h-12 bg-white/10 text-foreground hover:bg-white/20 font-semibold px-6 md:px-8"
-                    >
-                      Close
-                    </Button>
-                  )}
-                </div>
         </form>
       </div>
     </ModalShell>
@@ -823,7 +835,9 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-card bg-white/5  ">
+  // Donor two-tone surface (EmergencyRequestModal): single-tone bg-white/5 was
+  // near-invisible in light mode.
+  <div className="p-4 sm:p-6 rounded-card bg-foreground/[0.05] dark:bg-white/[0.07]">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-icon">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}

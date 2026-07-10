@@ -101,6 +101,12 @@ const sanitizeSearchTerm = (value) => String(value || '')
   .replace(/[%_,]/g, ' ')
   .replace(/\s+/g, ' ');
 
+// F1 (HOSPITALS_REVAMP_CONSTITUTION_2026-07-09): only real, meaningfully
+// orderable columns may enter .order() (donor: emergencyService
+// EMERGENCY_REQUEST_SORT_FIELDS). The page's single sortable header is Time ->
+// created_at; anything else falls back to the created_at default.
+const HOSPITAL_SORT_FIELDS = new Set(['created_at']);
+
 function applyHospitalFilters(query, filter = {}) {
   if (filter?.id) {
     query = query.eq('id', filter.id);
@@ -139,7 +145,10 @@ function applyHospitalFilters(query, filter = {}) {
 
   const search = sanitizeSearchTerm(filter?.search);
   if (search) {
-    query = query.or(`name.ilike.%${search}%,address.ilike.%${search}%`);
+    // F9 second half (HOSPITALS_REVAMP_CONSTITUTION_2026-07-09): display_id and
+    // phone are real hospitals columns (database.ts) operators actually paste
+    // into search; the debounce half lives in the shared SheetToolbar.
+    query = query.or(`name.ilike.%${search}%,address.ilike.%${search}%,display_id.ilike.%${search}%,phone.ilike.%${search}%`);
   }
 
   return query;
@@ -303,7 +312,10 @@ export async function getHospitals(filter = {}) {
 
       query = applyHospitalFilters(query, filter);
 
-      query = query.order('created_at', { ascending: false });
+      // F1: the sort key is allowlisted (HOSPITAL_SORT_FIELDS) and the direction
+      // defaults to the prior created_at desc behavior when the caller sends none.
+      const sortKey = HOSPITAL_SORT_FIELDS.has(filter?.sortKey) ? filter.sortKey : 'created_at';
+      query = query.order(sortKey, { ascending: filter?.sortDirection === 'asc' });
 
       if (filter?.offset !== undefined && filter?.offset !== null) {
         query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
@@ -317,20 +329,11 @@ export async function getHospitals(filter = {}) {
     });
     if (error) throw error;
 
-    // NEW: Enrich with display IDs (ORG-XXXXXX)
-    let enrichedData = data || [];
-    if (enrichedData.length > 0) {
-      const { getDisplayIds } = await import('./displayIdService');
-      const orgIds = enrichedData.map(h => h.id);
-      const displayIds = await getDisplayIds(orgIds, { quiet: filter?.quiet });
-
-      enrichedData = enrichedData.map(h => ({
-        ...h,
-        display_id: displayIds.get(h.id) || null
-      }));
-    }
-
-    const result = enrichedData;
+    // F12 (HOSPITALS_REVAMP_CONSTITUTION_2026-07-09): display_id is a REAL
+    // hospitals column already returned by select('*'); the old display-id
+    // enrichment was a second service read that could clobber genuine ids with
+    // null on a lookup miss. Read the column directly.
+    const result = data || [];
     if (filter?.count) {
       return { data: result, count: Number.isFinite(count) ? count : result.length };
     }
@@ -354,6 +357,8 @@ export async function getHospitalsPageData(options = {}) {
     statsFilters = filters,
     limit = 20,
     offset = 0,
+    sortKey,
+    sortDirection,
     quiet = false,
   } = options;
 
@@ -363,6 +368,8 @@ export async function getHospitalsPageData(options = {}) {
         ...filters,
         limit,
         offset,
+        sortKey,
+        sortDirection,
         count: true,
         quiet,
       }),

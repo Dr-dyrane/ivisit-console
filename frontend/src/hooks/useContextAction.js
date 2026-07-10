@@ -3,7 +3,6 @@ import {
     Plus,
     MapPin,
     Users,
-    Hospital,
     Ambulance,
     Stethoscope,
     Calendar,
@@ -36,16 +35,6 @@ export const useContextAction = (openModal) => {
             color: 'primary',
             action: () => {
                 window.dispatchEvent(new CustomEvent('openUserModal'));
-            }
-        };
-    } else if (currentPath.includes('/hospitals')) {
-        return {
-            icon: Hospital,
-            label: 'Add facility',
-            color: 'info',
-            action: () => {
-                // Hospitals owns create authority and can show unavailable feedback.
-                window.dispatchEvent(new CustomEvent('openHospitalModal'));
             }
         };
     } else if (currentPath.includes('/ambulances')) {

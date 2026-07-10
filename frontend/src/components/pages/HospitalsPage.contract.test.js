@@ -185,49 +185,96 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain("modalMode !== 'edit'");
     expect(page).toContain('updatedHospital?.id || selectedHospital.id');
     expect(page).not.toContain('updatedHospital.name');
+    // Toast single-owner rule (VisitModal V-16, adopted 2026-07-09): the page
+    // owns the terse success toast and exactly one handleApiError; the
+    // notification is best-effort so its failure never reports a committed
+    // save as failed.
+    expect(page).toContain("toast.success('Facility updated')");
+    expect(page).toContain('Save succeeded but notification failed');
+    // Donor realtime anatomy: throttled INSERT arrival toast (one per 10s).
+    expect(page).toContain("toast('New facility added'");
+    expect(page).toContain('lastInsertToastAtRef.current < 10000');
     expect(page).not.toContain('onSchedule={');
     expect(fab).toContain("location.pathname.startsWith('/hospitals')");
-    expect(contextAction).toContain("label: 'Add facility'");
+    // Dead-affordance hygiene (SHELL_PARITY_AUDIT 1.5, 2026-07-09): the FAB is
+    // hidden on /hospitals and no other route keys the hospitals action, so the
+    // registry entry was unreachable everywhere -- deleted, not preserved.
+    expect(contextAction).not.toContain("'/hospitals'");
+    expect(contextAction).not.toContain("label: 'Add facility'");
     expect(contextAction).not.toContain("label: 'Add Hospital'");
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).not.toContain("usePageFooter(footerContent, 'pagination'");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain('min-h-screen text-foreground');
-    // Borderless canon: manual glass (bg-card/NN backdrop-blur) replaces the legacy glass-card utility.
-    expect(page).toContain('bg-card/68 backdrop-blur-2xl');
+    // Borderless canon, DS composition (converted 2026-07-09, Requests gold
+    // standard): the frosted sheet/rail glass now lives in the console DS
+    // components -- the page itself carries no blur of its own (Visits parity).
+    expect(page).not.toContain('backdrop-blur');
+    expect(fs.readFileSync('src/components/console/ActivitySheet.jsx', 'utf8')).toContain('rounded-t-sheet bg-card/68 p-3 shadow-e3 backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet');
     expect(page).not.toContain('glass-card');
     expect(page).toContain('const getHospitalSignal =');
-    expect(page).toContain('const HospitalSignalPanel =');
-    expect(page).toContain('const HospitalStateStrip =');
-    expect(page).toContain('<HospitalSignalPanel');
+    // Converted 2026-07-09: the page-local HospitalSignalPanel/HospitalStateStrip
+    // became the shared SignalPanel + KpiStrip (S1.2 max-3 smart context,
+    // toggle-to-All, tile spec, aria-pressed and selected/idle data-state all
+    // locked in ConsoleDesignSystem.contract.test.js). The page owns only the
+    // DOMAIN: signal copy incl. the honest failed-load hero (F7), state options,
+    // pinned operational-pressure states, and the wayfinding stage.
+    expect(page).toContain("from '../console/SignalPanel'");
+    expect(page).toContain("from '../console/KpiStrip'");
+    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('activePath="/hospitals"');
+    expect(page).toContain('moduleRailItems={visibleModuleRail}');
+    expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={hospitalToneClass}>');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('options={hospitalStateOptions}');
+    expect(page).toContain("const PINNED_HOSPITAL_STATE_IDS = ['full', 'busy'];");
+    expect(page).toContain('pinnedIds={PINNED_HOSPITAL_STATE_IDS}');
+    expect(page).toContain('importance={HOSPITAL_KPI_IMPORTANCE}');
+    expect(page).toContain('dataAttr="data-hospital-state"');
+    expect(page).toContain("headline: 'Hospitals did not load'");
     expect(page).toContain('stats={hospitalPageStats}');
-    expect(page).toContain('hospitalStateOptions.map');
     expect(page).toContain("id: 'busy'");
     expect(page).toContain('Visible beds');
     expect(page).toContain('Visible fleet');
-    expect(page).toContain('aria-pressed={active}');
-    expect(page).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(page).toContain('aria-live="polite"');
     expect(page).not.toContain('Network Size');
     expect(page).not.toContain('At Capacity');
     expect(page).not.toContain('Low Capacity');
     expect(page).not.toContain('FILTERED');
     expect(page).not.toContain('VIEW ALL');
     expect(page).not.toContain('Busy / strained');
-    expect(page).toContain('const HospitalActivitySheet =');
-    expect(page).toContain('const HospitalSheetToolbar =');
-    expect(page).toContain('const HospitalErrorBanner =');
-    expect(page).toContain('const HospitalEmptyState =');
+    // Converted 2026-07-09: the page-local sheet/toolbar/banner/empty-state
+    // components became the shared ActivitySheet + SheetToolbar (300ms debounced
+    // search F9, refresh, context-aware filter trigger, count-row triplet,
+    // Updating pill F8, pagination) + ErrorBanner (destructive, rows present) +
+    // LoadErrorState (failed-empty owns the scroller) + filter-aware EmptyState.
+    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('itemNoun="hospitals"');
+    expect(page).toContain('<SheetToolbar');
+    expect(page).toContain('isFetching={isFetching}');
+    expect(page).toContain('refreshing={isFetching}');
+    expect(page).toContain('<ErrorBanner');
+    expect(page).toContain('title="Hospitals could not load"');
+    expect(page).toContain('const failedEmpty = Boolean(loadError) && hospitals.length === 0;');
+    expect(page).toContain('<LoadErrorState title="Hospitals did not load" message={loadError} onRetry={onRetry} />');
+    expect(page).toContain('<EmptyState');
+    expect(page).toContain('const HOSPITAL_EMPTY_HEADINGS = {');
     // Degraded-state copy is preserved, now derived from the RQ error instead of a
     // dedicated error useState + setter.
     expect(page).toContain('const hospitalPageError = queryError');
     expect(page).not.toContain('setHospitalPageError');
     expect(page).toContain("'Hospitals could not load. Try again.'");
-    expect(page).toContain('data-testid="hospitals-activity-sheet"');
-    expect(page).toContain('data-testid="hospitals-sheet-search"');
-    expect(page).toContain('data-testid="hospitals-error-state"');
-    expect(page).toContain('Retry');
-    expect(page).toContain('<PaginationControls');
-    expect(page).toContain('setFilters(prev => ({ ...prev, search: event.target.value }))');
+    // Testids survive the conversion through DS props: the sheet testid renders
+    // from itemNoun ("hospitals-activity-sheet"), the search/error testids ride
+    // searchTestId/testId, and PaginationControls renders inside the shared
+    // ActivitySheet from the same route-owned pagination store.
+    expect(page).toContain('searchTestId="hospitals-sheet-search"');
+    expect(page).toContain('testId="hospitals-error-state"');
+    expect(page).toContain('pagination={pagination}');
+    expect(page).toContain('onRetry={onRetry}');
+    expect(page).toContain("onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}");
     expect(page).toContain('pagination.resetPagination()');
     // Shared focused-record store (useFocusedRecord) replaces the old private
     // focusedHospitalId state + list.find(id)||list[0] memo: rail shows the
@@ -238,18 +285,57 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('<HospitalDetailRail');
     expect(page).toContain('const HospitalDetailRail =');
     expect(page).toContain('data-testid="hospitals-detail-rail"');
-    expect(page).toContain('aria-pressed={focused}');
-    expect(page).toContain("data-state={focused ? 'focused' : 'idle'}");
+    // Converted 2026-07-09: rows are the shared ListRowShell (selected/idle
+    // aria-pressed + data-state semantics locked in the DS contract); the rail
+    // composes DetailRailShell/RailInsetHero/DetailLine/CopyChip/StageStrip.
+    // RailMetric/RailFact became DetailLine film rows (perk 6); the verification
+    // lifecycle renders as the StageStrip (perk 5 upgrade, pending -> verified,
+    // rejected all-muted); latitude/longitude become a working maps link.
+    expect(page).toContain('<ListRowShell');
+    expect(page).toContain('selected={isFocused(hospital.id)}');
     expect(page).toContain('setFocused(hospital.id)');
-    expect(page).toContain('const RailMetric =');
-    expect(page).toContain('const RailFact =');
+    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<RailInsetHero>');
+    expect(page).toContain('<DetailLine');
+    expect(page).toContain('<CopyChip value={displayId} label="Copy record ID" />');
+    expect(page).toContain('<StageStrip');
+    expect(page).toContain("const HOSPITAL_VERIFICATION_ORDER = ['pending', 'verified'];");
+    expect(page).toContain('Hospital details');
+    expect(page).toContain('Open in Google Maps');
+    // Perk 3: the entity slot carries the facility IMAGE thumbnail with an
+    // onError glyph fallback (page-local HospitalAvatar; the DS TonedAvatar has
+    // no image-overlay slot yet -- known kit gap).
+    expect(page).toContain('const HospitalAvatar = ({ hospital');
+    expect(page).toContain("onError={(event) => { event.currentTarget.style.display = 'none'; }}");
+    // F5 (constitution section 4): org_admin edit affordance is scoped to the
+    // operator's own organization (admin unrestricted); the rail affordance and
+    // the modal trigger share one gate; the RPC still enforces server-side.
+    expect(page).toContain('const canEditHospital = useCallback((hospital) => {');
+    expect(page).toContain('hospital.organization_id === orgId');
+    expect(page).toContain("toast.info('Edit is limited to facilities in your organization')");
+    expect(page).toContain('canEditFocused={focusedHospital ? canEditHospital(focusedHospital) : false}');
     expect(page).toContain('Use Requests for reservation changes.');
     expect(page).not.toContain("import { Card } from '../ui/card'");
     expect(page).not.toContain('<Card');
     expect(page).not.toContain('</Card>');
     expect(page).not.toContain('border-t border-muted/20');
-    // Borderless canon: the focus card uses canonical squircle radius, no rounded-[30px] literal.
-    expect(page).toContain("rounded-card p-5 transition-[background,box-shadow,transform]");
+    // Converted 2026-07-09: the min-h-[520px] grid cards retired with the density
+    // variants -- ONE canonical ListRowShell render (row chrome, replace-in-place
+    // motion, and keyboard/context-menu semantics locked in the DS contract).
+    // Sort truth (F1): Time -> created_at is the ONLY sortable header, plumbed
+    // sortConfig -> queryFilter.sortKey/sortDirection -> service allowlist.
+    expect(page).toContain('const HOSPITAL_GRID_COLS');
+    expect(page).toContain('<SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />');
+    expect(page).toContain("rowAttr: 'data-hospital-row'");
+    expect(page).toContain('useScrollResetOnPage(listScrollRef, pagination.currentPage)');
+    expect(page).not.toContain('min-h-[520px]');
+    // Red-trap + banned-entrance cleanup: getStatusBadge (theme success/warning
+    // tokens render red) and the framer entrance/stagger died with the grid; the
+    // page composes DS motion (layout="position" replace-in-place) instead.
+    expect(page).not.toContain('getStatusBadge');
+    expect(page).not.toContain('framer-motion');
+    expect(page).not.toContain('initial={{');
+    expect(page).not.toContain('rgba(');
     expect(page).not.toContain('geo-round');
     expect(page).not.toContain('geo-badge');
     expect(page).not.toContain('geo-sharp');
@@ -380,10 +466,19 @@ describe('HospitalsPage admission audit contract', () => {
     expect(panel).toContain('No facilities in the current view.');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain('title="Add facility"');
+    // Deny-by-default gating (SHELL_PARITY_AUDIT section 3, 2026-07-09): the
+    // panel honors the canAdd/focusedHospital flags the page publishes -- real
+    // disabled + honest titles, no cosmetically-disabled-but-live buttons.
+    expect(panel).toContain("const canAdd = context.canAdd === true;");
+    expect(panel).toContain('disabled={!canAdd}');
+    expect(panel).toContain("title={canAdd ? 'Add facility' : 'Add facility is unavailable'}");
     expect(panel).toContain('title="View facility statistics"');
     expect(panel).toContain('title="Filter facilities"');
-    expect(panel).toContain('title="Contact unavailable"');
+    expect(panel).toContain('disabled={!contactPhone}');
+    expect(panel).toContain("window.location.href = `tel:${contactPhone}`");
+    expect(panel).toContain('const contactPhone = context.focusedHospital?.phone || null;');
+    expect(panel).toContain('const errorMessage = context.errorMessage;');
+    expect(panel).not.toContain('rgb(6_182_212');
 
     expect(panel).not.toContain('hospitalsData');
     expect(panel).not.toContain('Network Status');
@@ -419,8 +514,15 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('createHospital(formData)');
     expect(page).toContain('updateHospital(selectedHospital.id, formData)');
     expect(page).toContain('<HospitalModal');
-    expect(page).toContain('<HospitalListView');
-    expect(page).toContain('<HospitalTableView');
+    // Explicitly converted 2026-07-09 (Requests gold standard, desktop data-render
+    // canon): ONE canonical render. ViewToggle and the grid/list/table density
+    // variants are retired from the active route; the legacy view files stay on
+    // disk unimported (chrome-lint targets only), exactly like Requests/Visits.
+    expect(page).not.toContain('<HospitalListView');
+    expect(page).not.toContain('<HospitalTableView');
+    expect(page).not.toContain('useViewMode');
+    expect(page).not.toContain('<ViewToggle');
+    expect(page).not.toContain('TableSkeleton');
 
     expect(list).toContain('onView');
     expect(list).toContain('onEdit');
@@ -479,8 +581,18 @@ describe('HospitalsPage admission audit contract', () => {
     expect(table).not.toContain('<tbody');
 
     expect(modal).toContain('mode === \'view\'');
-    expect(modal).toContain('mode === \'edit\'');
+    // isEdit was declared-and-never-used (SHELL_PARITY_AUDIT 2.11) -- the modal
+    // needs only isView/isCreate; edit is the fall-through.
+    expect(modal).not.toContain('mode === \'edit\'');
     expect(modal).toContain('mode === \'create\'');
+    // Toast single-owner rule (VisitModal V-16): the page toasts success and
+    // error; the modal only closes on success and stays open on failure.
+    expect(modal).not.toContain('toast.success(isCreate');
+    expect(modal).not.toContain("handleApiError(error, isCreate");
+    expect(modal).toContain('Single toast owner is the page');
+    // Sticky footer via ModalShell footer prop + cross-boundary submit.
+    expect(modal).toContain("const formId = 'hospital-modal-form';");
+    expect(modal).toContain('form={formId}');
     expect(modal).toContain('Manage in Requests');
     expect(modal).toContain("import { AnimatePresence, motion } from 'framer-motion';");
     expect(modal).toContain('const modalFieldClassName =');
@@ -502,6 +614,15 @@ describe('HospitalsPage admission audit contract', () => {
     expect(service).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact' })");
     expect(service).toContain('Number.isFinite(count) ? count : result.length');
     expect(service).not.toContain('getHospitals({ quiet })');
+    // Narrow service additions (constitution section 5, this pass): allowlisted
+    // sort plumbing (F1), display_id/phone in the search .or() (F9), and the
+    // direct display_id column read (F12 -- the displayIdService double-read
+    // could clobber genuine ids with null on a lookup miss).
+    expect(service).toContain("const HOSPITAL_SORT_FIELDS = new Set(['created_at'])");
+    expect(service).toContain("query = query.order(sortKey, { ascending: filter?.sortDirection === 'asc' })");
+    expect(service).toContain('display_id.ilike');
+    expect(service).toContain('phone.ilike');
+    expect(service).not.toContain('displayIdService');
     expect(service).toContain('export async function getHospital(hospitalId)');
     expect(service).toContain('export async function createHospital(input)');
     expect(service).toContain('export async function updateHospital(hospitalId, input)');

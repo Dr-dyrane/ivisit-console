@@ -58,14 +58,30 @@ export const HospitalsPanel = ({ hospitalContext }) => {
   const context = hospitalContext || {};
   const stats = context.stats || {};
   const recent = Array.isArray(context.recent) ? context.recent : [];
+  const hasContext = Boolean(hospitalContext);
+  const loading = Boolean(context.loading) || !hasContext;
   const total = toCount(stats.total ?? context.count, recent.length);
   const available = toCount(stats.available, 0);
   const full = toCount(stats.full, 0);
-  const loading = Boolean(context.loading);
+  // Deny-by-default context gating (EmergencyPanel recipe): the page publishes
+  // canAdd -- honor it instead of a cosmetically-disabled-but-live button.
+  const canAdd = context.canAdd === true;
+  const errorMessage = context.errorMessage;
+  const contactPhone = context.focusedHospital?.phone || null;
   const [panelNotice, setPanelNotice] = React.useState('Facility actions ready.');
 
+  React.useEffect(() => {
+    if (errorMessage) {
+      setPanelNotice('Facilities did not fully refresh. The page can retry.');
+    }
+  }, [errorMessage]);
+
   const handleAddFacility = () => {
-    setPanelNotice('Add facility is unavailable.');
+    if (!canAdd) {
+      setPanelNotice('Add facility is unavailable.');
+      return;
+    }
+    setPanelNotice('Opening facility form.');
     window.dispatchEvent(new CustomEvent('openHospitalModal'));
   };
 
@@ -80,7 +96,12 @@ export const HospitalsPanel = ({ hospitalContext }) => {
   };
 
   const handleContact = () => {
-    setPanelNotice('Contact is unavailable.');
+    if (!contactPhone) {
+      setPanelNotice('Focus a facility with a phone number to call it.');
+      return;
+    }
+    setPanelNotice(`Calling ${contactPhone}.`);
+    window.location.href = `tel:${contactPhone}`;
   };
 
   return (
@@ -96,7 +117,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
           Facilities overview
         </p>
 
-        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+        <div className="rounded-sheet bg-sky-500/10 p-4 text-sky-900 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
@@ -116,7 +137,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-inner bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200">
+          <div className="rounded-inner bg-emerald-500/10 p-3 text-emerald-800 shadow-e2 dark:text-emerald-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <MapPin className="h-4 w-4" />
@@ -132,7 +153,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             </div>
           </div>
 
-          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200">
+          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-e2 dark:text-amber-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
                 <Bed className="h-4 w-4" />
@@ -160,9 +181,11 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleAddFacility}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
-            title="Add facility"
-            data-state="unavailable"
+            disabled={!canAdd}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-sky-500/10 px-3 text-sky-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
+            title={canAdd ? 'Add facility' : 'Add facility is unavailable'}
+            aria-disabled={!canAdd}
+            data-state={canAdd ? 'idle' : 'unavailable'}
           >
             <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Add</span>
@@ -173,7 +196,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_14px_42px_rgb(6_182_212/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-cyan-500/10 px-3 text-cyan-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
             title="View facility statistics"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -185,7 +208,7 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/34 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/34 px-3 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
             title="Filter facilities"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -197,10 +220,11 @@ export const HospitalsPanel = ({ hospitalContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleContact}
-            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/24 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.08)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34"
-            title="Contact unavailable"
-            aria-disabled="true"
-            data-state="unavailable"
+            disabled={!contactPhone}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-inner bg-muted/24 px-3 text-muted-foreground shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34 disabled:cursor-not-allowed disabled:opacity-55"
+            title={contactPhone ? `Call ${contactPhone}` : 'Focus a facility with a phone number to call it'}
+            aria-disabled={!contactPhone}
+            data-state={contactPhone ? 'idle' : 'unavailable'}
           >
             <Phone className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Contact</span>
