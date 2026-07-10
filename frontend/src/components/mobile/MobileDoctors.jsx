@@ -46,6 +46,21 @@ const getStatus = (doctor) => String(doctor?.status || 'available').toLowerCase(
 // The staff member's home facility — the directory's orthogonal grouping axis.
 const getFacility = (doctor) => doctor?.hospitals?.name || null;
 
+// Contacts-style directory grouping: strip a leading title, take the first letter, and
+// coarsen to A-F / G-L / M-R / S-Z (+ # for non-letters) so it stays within the scorer's
+// healthy 2-8 group cap. Only USED when it distributes (else recency, per the scorer) —
+// so a shared title prefix or a monoliteral name set can't force a degenerate split.
+const ALPHA_ORDER = ['A-F', 'G-L', 'M-R', 'S-Z', '#'];
+const coarseAlpha = (name) => {
+    const stripped = String(name || '').replace(/^\s*(dr|prof|mr|mrs|ms)\.?\s+/i, '').trim().toUpperCase();
+    const code = stripped.charCodeAt(0);
+    if (!(code >= 65 && code <= 90)) return '#';
+    if (code <= 70) return 'A-F';
+    if (code <= 76) return 'G-L';
+    if (code <= 82) return 'M-R';
+    return 'S-Z';
+};
+
 // Status-tinted orb. Literal hues (the semantic tokens collapse to brand red); status is
 // degenerate on live data (mostly 'available'), but the tint stays honest per-record.
 const orbClassFor = (status) => (
@@ -181,6 +196,10 @@ export const MobileDoctors = ({
     // would collapse any categorical spine.
     const { groups: doctorGroups } = useMemo(() => resolveAdaptiveGroups(displayDoctors, [
         { key: 'facility', assign: getFacility, orphanLabel: 'Unassigned' },
+        // Staff DIRECTORY axis (Contacts-style A-Z, coarsened to <=8 buckets so the scorer
+        // accepts it). Safe: if names don't distribute (e.g. a shared title prefix), the
+        // scorer rejects it and we fall to recency — the adaptive-grouping contract.
+        { key: 'alpha', assign: (d) => coarseAlpha(d.name), order: (keys) => keys.slice().sort((a, b) => ALPHA_ORDER.indexOf(a) - ALPHA_ORDER.indexOf(b)) },
         { type: 'coarse-recency', key: 'joined', getDate: (d) => d.updated_at || d.created_at },
     ]), [displayDoctors]);
 
