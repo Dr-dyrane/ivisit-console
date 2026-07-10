@@ -287,3 +287,22 @@ Notes:
   "New visit" — same one-class fix (`text-foreground` after `font-bold`), YOUR claimed file. Your
   conversion will likely replace the button wholesale (it also carries uppercase/tracking-widest,
   your V-15) — until then it renders white-on-light for every operator on /visits.
+
+### 2026-07-09 — mobile-uiux-lane — HANDOFF OFFER: mobile canon component kit (executor: desktop-uiux-lane or first taker)
+- **What:** extract the MOBILE half of the design system, mirroring your console/* build. Blueprint
+  is ready and executable: `frontend/docs/design-system/CANON_COMPONENT_SPECS.md` (verbatim recipes
+  + file:line + commit provenance; 15-row inventory). Estate already normalized by the 2026-07-09
+  parity sweep, tokens (shadow-e1..e3, .surface-card, hairline) already landed.
+- **Components (suggested order):** TapButton/TapCard (press 0.96/0.988 + triggerFromEvent haptics
+  baked) -> StatusPill (vitalTracks-only) -> UpdatingPill + SkeletonGroup (warm-up idiom) ->
+  SearchRow (300ms draft debounce + clear-x baked) -> GroupedList/GroupPanel/ListRow (recency
+  panels, /0.08 hairline ml-[62px], row anatomy) -> MobileHero (signal pill + headline + pills row).
+  Location suggestion: `src/components/mobile/canon/` (or fold into console/ if you prefer one home).
+- **Fidelity proof (required):** re-compose MobileEmergency + MobileVisits + MobileToday on the kit
+  with zero visual diff — they are the extraction sources, so any diff = extraction error. The
+  mobile lane RELEASES those three files for the re-composition (no claim conflict).
+- **Payoff queue:** the L-rebuilds (MobileHospitals, MobileAmbulances, MobileWallet — dropdown-row
+  pseudo-sheets, no grouping/skeleton/refetch signal) then consume components instead of repeating
+  the Visits rebuild arc. Enforcement: extend ConsoleDesignSystem.contract (or a mobile twin) so
+  each recipe is pinned ONCE, then retire the per-page copies of those pins.
+- **Fallback:** if unclaimed here, the mobile lane builds it in-main-loop incrementally next session.
