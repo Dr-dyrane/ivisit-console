@@ -220,15 +220,27 @@ grouped panel / group skeleton / drop metric rail / accumulator) and this compos
    timing masked it; the deterministic harness is stricter. → **Hospitals carries the
    identical buggy accumulator; flagged for the same fix.**
 
-### Gate 1 — behavioral matrix
-- Deterministic invariants DRIVEN in Node against the component's exact logic: scope-count
-  (available→322 not 326) ✓ · station grouping (2 stations + Unassigned-last, alphabetical) ✓ ·
-  load-more APPENDS (21→40 class) ✓ · placeholder-poisoning guard (no-match→0, not stale) ✓ ·
-  recover→full ✓.
-- Render-only invariants (skeleton-both-paths, filter-trigger data-state, degraded banner):
-  code-identical to live-verified Hospitals + confirmed by static pins. **Live mobile mount
-  was environmentally blocked this session** (Lesson 14 — the viewport would not drop below
-  1920px; the working mobile tab from earlier was gone). Not faked; recorded honestly.
+### Gate 1 — behavioral matrix — LIVE-VERIFIED 2026-07-10
+The OS-window resize would not move `innerWidth` (stuck 1920) and the preview browser had no
+auth session, so the mobile fork was forced by overriding `window.innerWidth=390` + firing a
+`resize` event on the AUTHENTICATED browser — mounting the REAL MobileAmbulances with REAL
+data (behavioral reads are DOM, not pixels; a legitimate fork-forcing technique, not faked
+data). Every invariant driven live:
+- **scope-count** — "Ready 322" chip → heading "322 units", not the raw 326 (the exact
+  invariant that was broken on Hospitals) ✓
+- **load-more APPENDS** — 20→40 rows, 40 unique ids, zero duplicates, page-1 unit D-AMB-1
+  still present alongside page-2 (genuine append, not replace — the fix holds live) ✓
+- **placeholder-poisoning guard** — "zzzqqnomatch" → 0 rows + "No units match" + Clear Search
+  (not stale rows under a heading) → Clear → 20 back ✓
+- **filter-trigger truth** — data-state idle → open (sheet renders) ✓
+- **station grouping** — live headers (Fulcare Hospital Limited, Jaber Al Ahmad Armed Forces
+  Hospital, CMH Subhan…) ✓
+- **row scenting** — "D-AMB-1 · BLS · COV-GUES-1 · Jun 30 · Ready" (call_sign / type·vehicle /
+  freshness / status pill) ✓
+- **detail sheet** — tap → BLS eyebrow, station, vehicle COV-GUES-1, Unit ID AMB-E45E86
+  (display_id label, not raw UUID) ✓
+- Deterministic Node harness (the accumulator invariants) also 5/5 — it CAUGHT the load-more
+  replace bug the earlier Hospitals click-test had missed.
 
 ### Gate 2 — data-fitting
 Rows scented to fleet data (confirmed against the live desktop rail: D-AMB-5 / Natural Medicine
