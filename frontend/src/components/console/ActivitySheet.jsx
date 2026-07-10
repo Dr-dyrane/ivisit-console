@@ -9,7 +9,7 @@
 //     stagger ever (replace-in-place canon)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpDown, ChevronDown, ChevronUp, Filter, Plus, RefreshCw, Search } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, ChevronUp, Filter, Plus, RefreshCw, Search } from 'lucide-react';
 import { Button } from '../ui/button';
 import { PaginationControls } from '../ui/PaginationControls';
 import { UpdatingPill } from './primitives';
@@ -161,7 +161,9 @@ export const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, class
         {isSorted ? (
           direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
         ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-40" />
+          // Neutral state = a stacked caret (not a two-headed arrow) -- the
+          // standard sortable-column affordance (user: "caret instead of arrows").
+          <ChevronsUpDown className="h-3 w-3 opacity-40" />
         )}
       </button>
     </span>

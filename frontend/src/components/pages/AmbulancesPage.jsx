@@ -31,9 +31,13 @@ import {
   MapPin,
   Plus,
   Route,
+  Trash2,
   Truck,
   Wrench,
 } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
+import { BulkActionBar } from '../common/BulkActionBar';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
@@ -238,6 +242,21 @@ export const AmbulancesPage = () => {
     if (id == null) { setFocused(null); return; }
     if (focusedAmbulance?.id !== id) setFocused(id);
   }, [focusedAmbulance, setFocused]);
+
+  // Row selection (estate law, donor: Requests/Hospitals): admin-only checkbox
+  // column + select-all/indeterminate + shift-range. The MECHANISM renders; the
+  // bulk WRITE stays fail-closed (disabled with reason) -- fleet delete was
+  // dropped at the visual-start repair and is not re-enabled without explicit
+  // authorization, even though the RLS ALL policy would permit it.
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(ambulances);
 
   const markActionFeedback = useCallback((key) => {
     setActiveActionFeedback(key);
@@ -530,7 +549,29 @@ export const AmbulancesPage = () => {
         sortConfig={sortConfig}
         onSort={handleSort}
         activeActionFeedback={activeActionFeedback}
+        selectable={canManageFleet}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        allSelected={allSelected}
+        someSelected={someSelected}
       />
+
+      {canManageFleet && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
+            title="Bulk fleet deletion is locked until it is explicitly authorized"
+            aria-label="Bulk fleet deletion is locked until it is explicitly authorized"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
 
       {modalMode && (
         <AmbulanceModal isOpen={!!modalMode} onClose={handleModalClose} ambulance={selectedAmbulance} mode={modalMode} listFilter={queryFilter} />
@@ -545,6 +586,7 @@ export const AmbulancesPage = () => {
 // AMB-3): Unit (call_sign + type eyebrow) | Status | Station | Vehicle | Updated
 // (the sortable Time-equivalent, updated_at) | Action.
 const AMBULANCE_GRID_COLS = 'grid-cols-[minmax(160px,1.4fr)_minmax(96px,auto)_minmax(120px,1fr)_minmax(110px,auto)_minmax(96px,auto)_72px]';
+const AMBULANCE_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(160px,1.4fr)_minmax(96px,auto)_minmax(120px,1fr)_minmax(110px,auto)_minmax(96px,auto)_72px]';
 
 const AMBULANCE_EMPTY_HEADINGS = {
   available: 'No ready units',
@@ -584,6 +626,13 @@ const AmbulancesDesktopWorkspace = ({
   sortConfig,
   onSort,
   activeActionFeedback,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
+  allSelected = false,
+  someSelected = false,
 }) => {
   const signal = getAmbulanceSignal({ stats, ambulances, kpiFilter, loadError });
   const listScrollRef = useRef(null);
@@ -697,7 +746,14 @@ const AmbulancesDesktopWorkspace = ({
 
           {!loading && !failedEmpty && (
             <>
-              <AmbulanceListHeader sortConfig={sortConfig} onSort={onSort} />
+              <AmbulanceListHeader
+                sortConfig={sortConfig}
+                onSort={onSort}
+                selectable={selectable}
+                allSelected={allSelected}
+                someSelected={someSelected}
+                onSelectAll={onSelectAll}
+              />
 
               {ambulances.length === 0 && !loadError && (
                 <EmptyState
@@ -717,11 +773,11 @@ const AmbulancesDesktopWorkspace = ({
                 </EmptyState>
               )}
 
-              {/* selection excluded by decision: single + bulk delete were dropped
-                  at the visual-start repair (f586f1a0) and no console bulk-write
-                  receiver exists for the fleet; the delete service fn stays
-                  inventory only. Do NOT wire live selection
-                  (AMBULANCES_REVAMP_CONSTITUTION_2026-07-10 section 3). */}
+              {/* Selection mechanism renders admin-only (user: "add the multiple
+                  select options"); the bulk WRITE stays fail-closed (the
+                  BulkActionBar delete is disabled with reason) -- fleet delete
+                  was dropped at the visual-start repair and is not re-enabled
+                  without explicit authorization. */}
               {ambulances.map((ambulance) => (
                 <AmbulanceRow
                   key={ambulance.id}
@@ -732,6 +788,10 @@ const AmbulancesDesktopWorkspace = ({
                   onEdit={onEdit}
                   canManageFleet={canManageFleet}
                   activeActionFeedback={activeActionFeedback}
+                  selectable={selectable}
+                  checked={selectedIds.includes(ambulance.id)}
+                  onToggleSelect={onToggleSelect}
+                  onSelectClick={onSelectClick}
                 />
               ))}
             </>
@@ -752,8 +812,17 @@ const AmbulanceAvatar = ({ size = 'h-9 w-9', iconSize = 'h-4 w-4' }) => (
   </span>
 );
 
-const AmbulanceListHeader = ({ sortConfig, onSort }) => (
-  <div className={`grid ${AMBULANCE_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+const AmbulanceListHeader = ({ sortConfig, onSort, selectable = false, allSelected = false, someSelected = false, onSelectAll }) => (
+  <div className={`grid ${selectable ? AMBULANCE_GRID_COLS_SELECT : AMBULANCE_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all units'}
+        className="h-4 w-4"
+      />
+    )}
     {/* Unit / Status / Station / Vehicle are plain labels (donor canon: only a
         Time column sorts -- alphabetical sorts are not operational). Updated is
         the sortable time-equivalent. Status filtering = KPI chips + FilterSheet. */}
@@ -766,7 +835,7 @@ const AmbulanceListHeader = ({ sortConfig, onSort }) => (
   </div>
 );
 
-const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageFleet, activeActionFeedback }) => {
+const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageFleet, activeActionFeedback, selectable = false, checked = false, onToggleSelect, onSelectClick }) => {
   const status = getFleetStatus(ambulance);
   const StatusIcon = ambulanceStatusPillIcon(status);
   const callSign = ambulance.call_sign || 'Unknown unit';
@@ -779,11 +848,23 @@ const AmbulanceRow = ({ ambulance, selected, onFocus, onView, onEdit, canManageF
     <ListRowShell
       id={ambulance.id}
       dataAttrName="data-ambulance-row"
-      gridCols={AMBULANCE_GRID_COLS}
+      gridCols={selectable ? AMBULANCE_GRID_COLS_SELECT : AMBULANCE_GRID_COLS}
       selected={selected}
       onFocus={onFocus}
       onOpen={() => onView(ambulance)}
     >
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(ambulance.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect ${callSign}` : `Select ${callSign}`}
+          className="h-4 w-4"
+        />
+      )}
       <span className="flex min-w-0 items-center gap-3">
         <AmbulanceAvatar />
         <span className="min-w-0">

@@ -183,13 +183,21 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain('useListKeyboardNav');
     expect(page).toContain('useScrollResetOnPage');
     expect(page).toContain('const loadError =');
-    expect(page).toContain('selection excluded by decision:');
     expect(page).toContain('arrival-toast excluded by decision:');
     expect(page).toContain("params.get('id')");
     expect(page).toContain('SortableColumnHeader');
     expect(page).toContain('<ListRowShell');
-    expect(page).not.toContain('useRowSelection');
-    expect(page).not.toContain('<BulkActionBar');
+    // Selection mechanism ADDED (user: "add the multiple select options"): the
+    // admin-only checkbox column + select-all/indeterminate + shift-range render;
+    // the bulk WRITE stays fail-closed (BulkActionBar delete disabled with
+    // reason). Flipped from the earlier `selection excluded by decision` marker.
+    expect(page).toContain('useRowSelection(ambulances)');
+    expect(page).toContain('selectable={canManageFleet}');
+    expect(page).toContain('AMBULANCE_GRID_COLS_SELECT');
+    expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('title="Bulk fleet deletion is locked until it is explicitly authorized"');
+    expect(page).not.toContain('selection excluded by decision:');
     expect(page).toContain("new CustomEvent('ambulancesRouteContextUpdated'");
     expect(page).toContain("requestAmbulancesRouteContext");
     expect(page).toContain('itemNoun="ambulances"');
@@ -204,7 +212,6 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).not.toContain('handleBulkDelete');
     expect(page).not.toContain('selectedIds.map((id) => deleteAmbulance(id))');
     expect(page).not.toContain('deleteAmbulance');
-    expect(page).not.toContain('<BulkActionBar');
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('onDelete={confirmDelete}');
     // canDelete={false} lived on the retired List/Table density views; the one
