@@ -38,6 +38,14 @@ import {
     SubscriptionModal
 } from '../modals/index';
 import { useSubscription } from '../../hooks/useSubscription';
+import { getProtectedRoutesForRole } from '../../config/routes';
+
+// RBAC (2026-07-10): a `to:` FAB navigates to a route, so its role gate must be the
+// SAME truth the route guard uses — derive it from getProtectedRoutesForRole, never a
+// hand-kept role list that can drift out of sync with the route's minRole. A user who
+// can't reach the destination must not see the FAB (no dead affordance).
+const canReachRoute = (userRole, to = '') =>
+  getProtectedRoutesForRole(userRole).includes(String(to).split('?')[0]);
 
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
@@ -191,7 +199,10 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    if (pathname.startsWith('/doctors')) {
+    // RBAC fix (2026-07-10 audit): /doctors is org_admin-scoped and staff CREATE is an
+    // admin action, but this FAB had NO role gate — a lower role reaching /doctors would
+    // get "Add staff". Gate it to match the route + create authority.
+    if (pathname.startsWith('/doctors') && ['org_admin', 'admin'].includes(userRole)) {
         return {
             icon: Stethoscope,
             label: 'Add staff',
@@ -216,7 +227,10 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
     // Approvals is absent from the dock on /hospitals (the 4th pill morphs to
     // the current page), so nothing duplicates. The honest create gate stays
     // reachable via the desktop header pill and the ?add=true deep link.
-    if (pathname.startsWith('/hospitals') && ['org_admin', 'admin'].includes(userRole)) {
+    // to:-FAB gate DERIVED from the destination route's RBAC (canReachRoute) — the same
+    // truth the route guard uses, so the FAB can never drift out of sync with
+    // /verification's minRole (RBAC audit 2026-07-10).
+    if (pathname.startsWith('/hospitals') && canReachRoute(userRole, '/verification')) {
         return {
             icon: FileCheck,
             label: 'Facility approvals',
@@ -225,16 +239,18 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Ambulances (user arbitration 2026-07-10): unit create is fail-closed (no INSERT
-    // proof), so — like Hospitals — the FAB does the domain's REAL adjacent work: the
-    // fleet's people-verification queue (drivers are provider_type='driver', verified in
-    // the providers tab). Non-duplicating: the dock already carries Today/Requests/Map.
-    if (pathname.startsWith('/ambulances') && ['org_admin', 'admin'].includes(userRole)) {
+    // Ambulances (user arbitration 2026-07-10): unit create is fail-closed, so — like
+    // Hospitals — the FAB does the domain's REAL adjacent work. Data-sync-guided scope:
+    // the ambulances page is about the FLEET, and the providers queue is role='provider'
+    // (doctors + drivers), so the FAB scopes to provider_type='driver' via ?type=driver
+    // — "Driver approvals" now shows DRIVERS, honest to the data. Non-duplicating (the
+    // dock carries Map); gate derived from /verification RBAC.
+    if (pathname.startsWith('/ambulances') && canReachRoute(userRole, '/verification')) {
         return {
             icon: FileCheck,
             label: 'Driver approvals',
             color: 'staff',
-            to: '/verification?queue=providers',
+            to: '/verification?queue=providers&type=driver',
         };
     }
 

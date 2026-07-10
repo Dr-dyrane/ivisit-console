@@ -109,6 +109,7 @@ export async function getVerificationQueue(filters = {}) {
     const {
       status = 'pending', // pending, approved, all
       search = '',
+      providerType = null, // data-sync scope: 'driver' shows only fleet drivers (Ambulances FAB)
       page = 1,
       limit = 12,
       orderBy = 'created_at',
@@ -131,6 +132,14 @@ export async function getVerificationQueue(filters = {}) {
     // 'all' status should show all providers only
     if (status === 'all') {
       query = query.eq('role', 'provider');
+    }
+
+    // provider_type scope (data-sync-guided, 2026-07-10): the providers queue is
+    // role='provider' with no type filter, so it mixes doctors and drivers. A caller
+    // scoped to a fleet ('driver') filters to that provider_type. Real column
+    // (profiles.provider_type, live per the persona census); null = no scoping.
+    if (providerType) {
+      query = query.eq('provider_type', providerType);
     }
 
     // Apply search filter

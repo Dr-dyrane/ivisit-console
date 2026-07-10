@@ -250,9 +250,16 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // so it MUST carry a route-owned FAB or the dock collapses to a lone pill. The FAB
     // does real adjacent work — driver approvals — parallel to the Hospitals FAB.
     const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
-    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && ['org_admin', 'admin'].includes(userRole)");
+    // RBAC (2026-07-10 audit): the to:-FAB gate is DERIVED from the destination route
+    // (canReachRoute), not a hand-kept role list, so it can't drift from /verification's
+    // minRole. Data-sync scope: ?type=driver filters the providers queue to drivers so
+    // "Driver approvals" is honest to the fleet.
+    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && canReachRoute(userRole, '/verification')");
     expect(bottomBar).toContain("label: 'Driver approvals'");
-    expect(bottomBar).toContain("to: '/verification?queue=providers'");
+    expect(bottomBar).toContain("to: '/verification?queue=providers&type=driver'");
+    expect(bottomBar).toContain('const canReachRoute =');
+    // The /doctors FAB RBAC gap is closed (was ungated).
+    expect(bottomBar).toContain("pathname.startsWith('/doctors') && ['org_admin', 'admin'].includes(userRole)");
     expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");
     expect(mobile).toContain("return 'Ready';");

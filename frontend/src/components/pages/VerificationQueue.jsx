@@ -80,6 +80,12 @@ export const VerificationQueue = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
+  // ?type=driver scopes the providers queue to a provider_type (data-sync-guided:
+  // the Ambulances FAB is about the FLEET, so "Driver approvals" must show DRIVERS,
+  // not every provider — the queue is role='provider' with no type filter otherwise).
+  const providerTypeFilter = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('type')
+    : null;
   // Track which queue we're viewing. ?queue=organizations preselects the
   // facilities tab (receiver for the Hospitals FAB, arbitration 2026-07-09).
   const [queueType, setQueueType] = useState(() => (
@@ -123,6 +129,7 @@ export const VerificationQueue = () => {
       const result = await getVerificationQueue({
         status: filters.status,
         search: filters.search,
+        providerType: providerTypeFilter || undefined,
         page: pagination.currentPage,
         limit: pagination.itemsPerPage,
         quiet: true
