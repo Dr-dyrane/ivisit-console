@@ -17,27 +17,51 @@ import {
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
-// Canon kit re-composition (2026-07-09, pre-rebuild changelog in
-// docs/audit/FEATURE_PARITY_VS_MAIN.md): SearchRow bakes in the 300ms debounce this
-// page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached bottom-nav
-// mounts; UpdatingPillRow is the background-refetch signal. The dropdown-row
-// pseudo-sheet became the canonical MobileDetailSheet (Doctors/Insurance grammar).
-// Directory-grammar PILOT (user arbitration 2026-07-09, "Hospitals only, for now"):
-// the list body composes the Requests/Visits kit — MobileHeading + one flat
-// GroupPanel + hairline MobileListRow — instead of the legacy fat-card rows.
-// Doctors/Users/Insurance/Subscriptions HOLD until the pilot look is approved.
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline } from './canon';
+// Canon kit re-composition (2026-07-09, changelog + failure audit in
+// docs/audit/FEATURE_PARITY_VS_MAIN.md). LIST-type page per the locked page-type
+// grammar (MOBILE_DESIGN_SYSTEM §5): heading -> KPI chips -> search -> grouped list.
+// No metric rails / glance tiles on a list page — the old signals rail is gone and
+// its beds/fleet aggregates ride AnalyticsModal via hospitalPageStats.
+//
+// DIRECTORY expression of the LIST grammar (data-fitted, 2026-07-09): a facility
+// registry has no recency to bucket by, but it HAS a capacity signal — the operator's
+// routing question. Panels group by it (Reporting capacity / No capacity reported),
+// so dead zeros collapse into one honest group header instead of shouting per-row.
+// Rows lead with what the data actually discriminates: name, address, and
+// availability FRESHNESS in the trailing time slot (stale capacity is the risk).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader } from './MobileMetricList';
-import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
 import { formatRelativeTime } from '../../utils/activityUtils';
+
+// Atlas stage (donor recipe: MobileVisitsAtlasLayer — Lesson 25 macro-stage item 1;
+// ambient brand tint is sanctioned expression, Lesson 18).
+const MobileHospitalsAtlasLayer = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
+        <div
+            className="absolute inset-0 opacity-[0.28] dark:opacity-[0.22]"
+            style={{
+                backgroundImage:
+                    'linear-gradient(118deg, transparent 0 46%, hsl(var(--foreground) / 0.055) 46% 49%, transparent 49%), linear-gradient(32deg, transparent 0 42%, hsl(var(--foreground) / 0.045) 42% 45%, transparent 45%), linear-gradient(154deg, transparent 0 64%, hsl(var(--primary) / 0.07) 64% 67%, transparent 67%)',
+                backgroundSize: '250px 178px, 330px 236px, 410px 276px',
+                backgroundPosition: '18px 10px, -72px 48px, 16% 38%',
+            }}
+        />
+        <div
+            className="absolute inset-0"
+            style={{
+                background:
+                    'radial-gradient(circle at 20% 32%, hsl(var(--primary) / 0.10), transparent 28%), radial-gradient(circle at 82% 62%, hsl(var(--foreground) / 0.055), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.18), hsl(var(--background)) 92%)',
+            }}
+        />
+    </div>
+);
 
 // Sentence-case a raw facility type token ('specialty_clinic' -> 'Specialty clinic').
 const facilityTypeLabel = (hospital) => {
@@ -61,6 +85,22 @@ const mapsHref = (hospital) => {
     return undefined;
 };
 
+// Filter-trigger truth (donor: hasMobileRequestFilters / hasMobileVisitFilters):
+// any committed narrowing counts, so the trigger's filtered state never lies.
+const hasMobileHospitalFilters = (filters = {}) => Boolean(
+    filters?.search ||
+    filters?.status ||
+    filters?.created_at?.start ||
+    filters?.created_at?.end
+);
+
+// The operator's routing question: does this facility report ANY capacity signal?
+const hasCapacitySignal = (hospital) => (
+    (Number(hospital?.available_beds) || 0) > 0 ||
+    (Number(hospital?.total_beds) || 0) > 0 ||
+    (Number(hospital?.ambulances_count) || 0) > 0
+);
+
 export const MobileHospitals = ({
     hospitals,
     loading,
@@ -76,6 +116,8 @@ export const MobileHospitals = ({
     isAdmin,
     isOrgAdmin,
     onOpenFilters,
+    filterSheetOpen = false,
+    analyticsOpen = false,
     hasMore,
     onLoadMore,
     errorMessage = null,
@@ -117,10 +159,7 @@ export const MobileHospitals = ({
         total: metricValue(statistics?.total, sourceHospitals.length),
         available: metricValue(statistics?.available, sourceHospitals.filter(h => getHospitalStatus(h) === 'available').length),
         full: metricValue(statistics?.full, sourceHospitals.filter(h => getHospitalStatus(h) === 'full').length),
-        busy: metricValue(statistics?.busy, sourceHospitals.filter(h => getHospitalStatus(h) === 'busy').length),
-        verified: metricValue(statistics?.verified, sourceHospitals.filter(h => h.verified).length),
-        beds: metricValue(statistics?.visibleBeds, sourceHospitals.reduce((sum, h) => sum + (Number(h.available_beds) || 0), 0)),
-        fleet: metricValue(statistics?.visibleAmbulances, sourceHospitals.reduce((sum, h) => sum + (Number(h.ambulances_count) || 0), 0))
+        busy: metricValue(statistics?.busy, sourceHospitals.filter(h => getHospitalStatus(h) === 'busy').length)
     };
 
     // Literal status hues (sky/emerald/amber) — the semantic tokens (--primary/--success/
@@ -152,7 +191,33 @@ export const MobileHospitals = ({
         }
     ];
 
-    const { displayItems: displayHospitals, isBuffering } = useStableList(sourceHospitals, loading);
+    // Load-more ACCUMULATES (donor interim, MobileVisits/MobileEmergency): the RQ page
+    // cache replaces rows per window, so an id-keyed map keeps every row seen since
+    // the last scope change; a narrowed scope resets it, a same-scope refetch updates
+    // rows in place by id. Without this, "infinite scroll" swaps the visible window.
+    const filterSignature = JSON.stringify({
+        search: filters?.search || '',
+        status: filters?.status || null,
+        date: filters?.created_at || null,
+    });
+    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map() });
+    const hospitalRows = useMemo(() => {
+        const store = accumulatorRef.current;
+        if (store.signature !== filterSignature) {
+            store.signature = filterSignature;
+            store.order = [];
+            store.byId = new Map();
+        }
+        sourceHospitals.forEach((row) => {
+            const id = row?.id;
+            if (id === null || id === undefined) return;
+            if (!store.byId.has(id)) store.order.push(id);
+            store.byId.set(id, row);
+        });
+        return store.order.map((id) => store.byId.get(id));
+    }, [sourceHospitals, filterSignature]);
+
+    const { displayItems: displayHospitals, isBuffering } = useStableList(hospitalRows, loading);
     const warmingUp = useSkeletonWarmup();
     const showTopSectionLoading = warmingUp || (loading && displayHospitals.length === 0);
 
@@ -171,6 +236,28 @@ export const MobileHospitals = ({
             return nextFilters;
         });
     };
+
+    // Count integrity (§5): the heading tracks the ACTIVE KPI scope, never the raw
+    // total — "1514 hospitals" must not sit above an available-filtered list.
+    const scopeCount = activeStatusFilter === 'all'
+        ? hospitalTotals.total
+        : (hospitalTotals[activeStatusFilter] ?? hospitalTotals.total);
+
+    const hasFilter = hasMobileHospitalFilters(filters);
+
+    // Directory grouping: capacity signal first (render-only, orthogonal to the
+    // status chips); empty groups drop, so a fully-silent page shows one panel.
+    const capacityGroups = useMemo(() => {
+        const reporting = [];
+        const silent = [];
+        displayHospitals.forEach((hospital) => {
+            (hasCapacitySignal(hospital) ? reporting : silent).push(hospital);
+        });
+        return [
+            { key: 'reporting', label: 'Reporting capacity', items: reporting },
+            { key: 'silent', label: 'No capacity reported', items: silent },
+        ].filter((group) => group.items.length > 0);
+    }, [displayHospitals]);
 
     const statusColorFor = (status) => (
         status === 'available' || status === 'verified'
@@ -192,20 +279,59 @@ export const MobileHospitals = ({
                     : 'bg-muted/40 text-muted-foreground'
     );
 
+    const renderHospitalRow = (hospital) => {
+        const status = getHospitalStatus(hospital);
+        const beds = Number(hospital.available_beds) || 0;
+        const totalBeds = Number(hospital.total_beds) || 0;
+        const fleet = Number(hospital.ambulances_count) || 0;
+        // Meta leads with what discriminates: capacity when reported, then address
+        // (the most-populated readable fact after the name). Dead zeros never ride
+        // a row — their group header already said it once.
+        const capacityText = totalBeds > 0
+            ? `${beds} of ${totalBeds} beds`
+            : beds > 0
+                ? `${beds} beds`
+                : fleet > 0
+                    ? `${fleet} unit${fleet === 1 ? '' : 's'}`
+                    : null;
+        const address = hospital.address || 'No address provided';
+        const meta = capacityText ? `${capacityText} · ${address}` : address;
+        // Freshness is the trailing time (donor anatomy): stale capacity is the
+        // operator's risk, and updated_at always exists as the honest fallback.
+        const freshness = formatRelativeTime(hospital.last_availability_update || hospital.updated_at);
+
+        return (
+            <MobileListRow
+                item={hospital}
+                dataAttr="data-mobile-hospital-row"
+                onOpen={setActiveHospital}
+                ariaLabel={`${hospital.name || 'Unnamed Hospital'}, ${status}`}
+                orbClass={orbClassFor(status)}
+                icon={Hospital}
+                title={hospital.name || 'Unnamed Hospital'}
+                meta={meta}
+                time={freshness}
+                markerChip={hospital.verified ? 'Verified' : null}
+                pill={statusPill(status)}
+            />
+        );
+    };
+
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-8 text-foreground"
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
-                <div className="space-y-3">
+                <MobileHospitalsAtlasLayer />
+                <div className="relative z-10 space-y-3">
                 {/* Chrome (title + summary) is always present — no entrance motion.
                     Only DATA regions load; they scaffold with skeletons and replace
                     in place (donor: MobileEmergency/MobileVisits heading order). */}
                 <MobileHeading
                     title="Hospitals"
                     noun="hospital"
-                    count={hospitalTotals.total}
+                    count={scopeCount}
                     showSkeleton={showTopSectionLoading}
                     failedEmpty={Boolean(errorMessage) && displayHospitals.length === 0}
                 />
@@ -218,61 +344,6 @@ export const MobileHospitals = ({
                 />
 
                 <section className="px-4">
-                    <MobileSectionHeader
-                        label="Facility Signals"
-                        count={hospitalTotals.available}
-                        color="hsl(160 84% 39%)"
-                        labelTone="plain"
-                    />
-                    <MobileSecondaryMetricRail
-                        loading={showTopSectionLoading}
-                        variant="icon"
-                        items={[
-                            {
-                                icon: Hospital,
-                                title: 'Available Sites',
-                                subtitle: 'Current status',
-                                value: hospitalTotals.available,
-                                color: 'hsl(160 84% 39%)',
-                                iconColorClass: 'text-emerald-600 dark:text-emerald-300',
-                                iconBgClass: 'bg-emerald-500/10',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                icon: BadgeCheck,
-                                title: 'Verified',
-                                subtitle: 'Approved sites',
-                                value: hospitalTotals.verified,
-                                color: 'hsl(38 92% 50%)',
-                                iconColorClass: 'text-amber-600 dark:text-amber-300',
-                                iconBgClass: 'bg-amber-500/10',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                icon: Bed,
-                                title: 'Visible Beds',
-                                subtitle: 'This page',
-                                value: hospitalTotals.beds,
-                                color: 'hsl(189 94% 43%)',
-                                iconColorClass: 'text-cyan-700 dark:text-cyan-300',
-                                iconBgClass: 'bg-cyan-500/10',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                icon: Ambulance,
-                                title: 'Visible Fleet',
-                                subtitle: 'This page',
-                                value: hospitalTotals.fleet,
-                                color: 'hsl(199 89% 48%)',
-                                iconColorClass: 'text-sky-700 dark:text-sky-300',
-                                iconBgClass: 'bg-sky-500/10',
-                                onClick: onViewAnalytics
-                            }
-                        ]}
-                    />
-                </section>
-
-                <section className="px-4">
                     {/* Flat search row (canon Apple search bar): input + filter + stats
                         controls sit directly on the page; the panel list follows below. */}
                     <SearchRow
@@ -281,7 +352,10 @@ export const MobileHospitals = ({
                         onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
                         entityLabel="hospitals"
                         onOpenFilters={onOpenFilters}
+                        filterSheetOpen={filterSheetOpen}
+                        hasFilter={hasFilter}
                         onOpenStats={canManage ? onViewAnalytics : null}
+                        statsOpen={analyticsOpen}
                         statsLabel="Open analytics"
                     />
 
@@ -307,40 +381,26 @@ export const MobileHospitals = ({
                             </div>
                         )}
 
-                        {/* Directory pilot: ONE flat panel (a directory has no recency
-                            buckets worth grouping), hairline-separated kit rows. Tap opens
-                            the detail bottom sheet, never an inline dropdown. */}
-                        {displayHospitals.length > 0 && (
-                            <GroupPanel label="Facility directory" count={displayHospitals.length}>
-                                {displayHospitals.map((hospital, index) => {
-                                    const status = getHospitalStatus(hospital);
-                                    const fleet = Number(hospital.ambulances_count) || 0;
-                                    const beds = Number(hospital.available_beds) || 0;
-
-                                    return (
-                                        <React.Fragment key={hospital.id}>
-                                            <MobileListRow
-                                                item={hospital}
-                                                dataAttr="data-mobile-hospital-row"
-                                                onOpen={setActiveHospital}
-                                                ariaLabel={`${hospital.name || 'Unnamed Hospital'}, ${status}`}
-                                                orbClass={orbClassFor(status)}
-                                                icon={Hospital}
-                                                title={hospital.name || 'Unnamed Hospital'}
-                                                meta={`${facilityTypeLabel(hospital)} · ${fleet} unit${fleet === 1 ? '' : 's'}`}
-                                                time={`${beds} beds`}
-                                                markerChip={hospital.verified ? 'Verified' : null}
-                                                pill={statusPill(status)}
-                                            />
-                                            {index < displayHospitals.length - 1 && <Hairline />}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </GroupPanel>
+                        {/* Group-shaped skeleton (§5.2): mirrors the panel 1:1 so content
+                            replaces it in place with zero layout jump. */}
+                        {showTopSectionLoading ? (
+                            <SkeletonGroupPanel rows={6} />
+                        ) : (
+                            <div className="space-y-[18px]">
+                                {capacityGroups.map((group) => (
+                                    <GroupPanel key={group.key} label={group.label} count={group.items.length}>
+                                        {group.items.map((hospital, index) => (
+                                            <React.Fragment key={hospital.id}>
+                                                {renderHospitalRow(hospital)}
+                                                {index < group.items.length - 1 && <Hairline />}
+                                            </React.Fragment>
+                                        ))}
+                                    </GroupPanel>
+                                ))}
+                            </div>
                         )}
 
                         <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
-                            {showTopSectionLoading && <MobileListSkeletonRows />}
                             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
                         </div>
@@ -349,7 +409,18 @@ export const MobileHospitals = ({
                             <MobileListEmpty
                                 icon={Hospital}
                                 label={errorMessage ? 'Hospitals did not load' : 'No hospitals found'}
-                                hint={errorMessage ? 'Try again before treating the network as empty.' : undefined}
+                                reason={filters?.search ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                                hint={errorMessage
+                                    ? 'Try again before treating the network as empty.'
+                                    : filters?.search
+                                        ? `No hospitals match "${filters.search}".`
+                                        : hasFilter
+                                            ? 'Try resetting filters to see the full network.'
+                                            : 'Facilities will appear here once registered.'}
+                                onRecover={!errorMessage && (filters?.search || hasFilter)
+                                    ? () => setFilters(() => ({}))
+                                    : undefined}
+                                recoverLabel={!errorMessage && filters?.search ? 'Clear Search' : !errorMessage && hasFilter ? 'Reset Filters' : undefined}
                                 labelTone="plain"
                             />
                         )}

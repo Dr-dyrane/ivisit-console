@@ -493,3 +493,17 @@ Notes:
   ReadOnlyField radii (rounded-2xl/xl/lg :601,:616,:618 — landed 2d1768c4) + hardgate
   false-positive on the tailwind.config.js e1 shadow comment ("1px" in a boxShadow value is not
   a border hairline). Neither is hospitals debt.
+
+### 2026-07-09 — mobile-uiux-lane — HOSPITALS CANON-FAILURE FIXES (all 8) + directory grammar locked
+- Failure audit vs Today/Requests/Visits (user-directed, lessons-doc-grounded) fixed in one
+  pass on MobileHospitals: (1) "Facility Signals" rail REMOVED — DS §5 LIST grammar (pins
+  migrated, beds/fleet aggregates ride AnalyticsModal); (2) heading count now scope-aware
+  (§5 count integrity); (3) load-more now ACCUMULATES (id-keyed accumulator, Visits interim
+  verbatim); (4) atlas stage added (Visits recipe verbatim); (5) SearchRow hasFilter wired
+  component-side; (6) empty state reason+recovery; (7) rows re-scented to the DATA — address
+  meta, capacity text only when reported, freshness trailing time; (8) group-shaped skeleton
+  (SkeletonGroupPanel). Directory grammar documented in MOBILE_DESIGN_SYSTEM §5.
+- **FLAG for desktop lane (HospitalsPage.jsx is YOUR dirty file):** when it's next clean,
+  pass `filterSheetOpen={filterSheetOpen}` and `analyticsOpen={analyticsModalOpen}` to
+  <MobileHospitals> so the search-row triggers can show open-state truth (component
+  defaults false — safe until wired).

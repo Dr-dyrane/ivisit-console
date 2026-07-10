@@ -236,6 +236,20 @@ No KPI filter strips on dashboards; no glance tiles on lists. A page that seems 
 is two pages. (Both grammars share the same loading model below — Today's skeleton mirrors
 its hero/tiles/sheet 1:1 exactly as Requests' mirrors its grouped list.)
 
+**DIRECTORY expression of the LIST grammar** (locked 2026-07-09; reference
+`src/components/mobile/MobileHospitals.jsx`). Feeds (Requests/Visits) bucket by RECENCY
+because their records are lifecycle events in time. A registry/directory (facilities,
+fleet…) has no recency worth bucketing — so the panels group by the page's OPERATIONAL
+QUESTION instead (Hospitals: capacity signal — "Reporting capacity" / "No capacity
+reported", so dead zeros collapse into one honest group header instead of repeating
+per-row). Same anatomy otherwise: heading with scope-aware count, chips filter, one
+flat/predicate-grouped GroupPanel set, hairline rows, trailing time slot carries the
+record's honest time axis (a directory's is data FRESHNESS — `last_availability_update`/
+`updated_at` — because staleness is the operator's risk), meta leads with the most
+DISCRIMINATING populated field (address), never a repeated constant or a dead zero.
+Grouping is render-only and orthogonal to the chip filter axis; pick the predicate from
+the data's real distribution, not from the schema's hopes.
+
 ### Loading & refetch model (canon)
 
 Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components/mobile/MobileToday.jsx` (dashboard).

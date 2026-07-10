@@ -152,7 +152,11 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('handleDelete');
     expect(page).not.toContain('handleBulkDelete');
     expect(page).not.toContain('selectedIds.map((id) => deleteHospital(id))');
-    expect(page).not.toContain('<BulkActionBar');
+    // Pin migrated (user arbitration 2026-07-09, "the table lacks the multiple
+    // select triggers"): the selection MECHANISM renders admin-only -- the
+    // Page-8 ban stays only on bulk WRITES (deleteHospital pins above), so the
+    // bar is present with its action disabled-with-reason, never a live write.
+    expect(page).toContain('<BulkActionBar');
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('onDelete={handleDelete}');
     expect(page).toContain('canDelete={false}');
@@ -194,6 +198,15 @@ describe('HospitalsPage admission audit contract', () => {
     // Donor realtime anatomy: throttled INSERT arrival toast (one per 10s).
     expect(page).toContain("toast('New facility added'");
     expect(page).toContain('lastInsertToastAtRef.current < 10000');
+    // Selection mechanism (estate law, regressed at adoption 2026-07-09):
+    // admin-only checkbox column + select-all/indeterminate + shift-range;
+    // the BulkActionBar's write stays fail-closed with the reason visible.
+    expect(page).toContain('useRowSelection(hospitals)');
+    expect(page).toContain('selectable={isAdmin()}');
+    expect(page).toContain('HOSPITAL_GRID_COLS_SELECT');
+    expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('title="Facility deletion is locked until backend authority is proved"');
     expect(page).not.toContain('onSchedule={');
     expect(fab).toContain("location.pathname.startsWith('/hospitals')");
     // Dead-affordance hygiene (SHELL_PARITY_AUDIT 1.5, 2026-07-09): the FAB is
@@ -342,13 +355,24 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('hover-glow');
 
     expect(mobile).toContain('MobileKPIStrip');
-    expect(mobile).toContain('MobileSecondaryMetricRail');
-    expect(mobile).toContain('Facility Signals');
-    expect(mobile).toContain('statistics?.visibleBeds');
-    expect(mobile).toContain('statistics?.visibleAmbulances');
-    expect(mobile).toContain("title: 'Visible Beds'");
-    expect(mobile).toContain("title: 'Visible Fleet'");
-    expect(mobile).toContain('Current status');
+    // Page-type grammar (MOBILE_DESIGN_SYSTEM §5, locked 2026-07-09): Hospitals is
+    // LIST-type — no glance tiles / metric rails on a list page. The old "Facility
+    // Signals" rail (removed 2026-07-09) duplicated the chips and its beds/fleet
+    // aggregates ride AnalyticsModal via hospitalPageStats. The DIRECTORY expression
+    // of the LIST grammar: capacity-first GroupPanels (dead zeros collapse into one
+    // honest header), address-led row meta, availability FRESHNESS as trailing time,
+    // scope-aware heading count, id-keyed load-more accumulation, atlas stage,
+    // group-shaped skeleton.
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('Facility Signals');
+    expect(mobile).toContain("label: 'Reporting capacity'");
+    expect(mobile).toContain("label: 'No capacity reported'");
+    expect(mobile).toContain('const scopeCount = activeStatusFilter');
+    expect(mobile).toContain('accumulatorRef');
+    expect(mobile).toContain('MobileHospitalsAtlasLayer');
+    expect(mobile).toContain('SkeletonGroupPanel');
+    expect(mobile).toContain('formatRelativeTime(hospital.last_availability_update || hospital.updated_at)');
+    expect(mobile).toContain('hasMobileHospitalFilters');
     expect(mobile).toContain('activeStatusFilter');
     expect(mobile).toContain('handleStatusFilter');
     expect(mobile).toContain('nextFilters.status = id');
