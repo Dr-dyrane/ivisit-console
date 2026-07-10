@@ -195,8 +195,18 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain('sourceAmbulances');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('labelTone="plain"');
-    expect(mobile).toContain('Fleet signals');
-    expect(mobile).toContain('Fleet directory');
+    // Directory grammar (LIST §5, harness-driven rebuild 2026-07-10): station-grouped
+    // panels replace the old "Fleet signals" metric rail + "Fleet directory" section
+    // header. The grammar linter emitted this exact to-do; these pins lock the result.
+    expect(mobile).toContain('MobileHeading');
+    expect(mobile).toContain('MobileAmbulancesAtlasLayer');
+    expect(mobile).toContain('SkeletonGroupPanel');
+    expect(mobile).toContain('const scopeCount = totals');
+    expect(mobile).toContain('accumulatorRef');
+    expect(mobile).toContain('hasMobileFleetFilters');
+    expect(mobile).toContain("label: 'Unassigned'");
+    expect(mobile).toContain('formatRelativeTime(ambulance.updated_at)');
+    expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");
     expect(mobile).toContain("return 'Ready';");
     expect(mobile).toContain("return 'En route';");
@@ -210,11 +220,13 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).not.toContain('Fleet Directory');
     expect(mobile).not.toContain("return 'READY';");
     expect(mobile).not.toContain("return 'EN ROUTE';");
-    expect(mobile).toContain('subtitle: null');
     expect(mobile).not.toContain('Assigned now');
     expect(mobile).not.toContain('Current status');
     expect(mobile).not.toContain('Out of service');
-    expect(mobile).toContain('MobileSecondaryMetricRail');
+    // Metric rail removed (LIST grammar): a list page carries no glance-tile rail;
+    // the beds/fleet-style aggregates ride AnalyticsModal via the page stats.
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('subtitle: null');
     expect(mobile).toContain("setKpiFilter?.(id)");
     // Chips are uniformly plain (one-voice): the recycled strip carries no per-page
     // label toning. Guard that the vestigial labelTone prop stays removed.

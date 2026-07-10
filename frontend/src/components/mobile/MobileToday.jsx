@@ -19,6 +19,8 @@ import { mobileEasing } from './mobileMotion';
 // hairline whisper, and the control press primitive live in shared components
 // (extraction source: CANON_COMPONENT_SPECS.md). This page keeps its DOMAIN -
 // the Today dashboard presentation (hero, glance tiles, action-sheet rows).
+// grammar:hero=inline signal-first hero -- bespoke (signal pill + headline + subhead
+// + role pill), a gap-2 div anchoring aria-live on the Updating pill; see below.
 // Kept PAGE-LOCAL on purpose (fidelity-first): the hero markup (the kit
 // MobileHero's status row is a gap-3 span with role="status"/aria-live; this
 // donor ships a gap-2 div and anchors the live region on the Updating pill

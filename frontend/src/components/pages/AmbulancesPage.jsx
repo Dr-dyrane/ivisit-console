@@ -553,6 +553,8 @@ export const AmbulancesPage = () => {
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
           onOpenFilters={handleOpenFilters}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
           errorMessage={ambulancePageError}

@@ -51,7 +51,7 @@ const MANIFEST = {
   'MobileToday.jsx': { tier: 'dashboard' },
   // ── LIST-migrating (Wave-2: SearchRow + warm-up landed; grouped-panel + rail
   //    removal is the next rebuild — tracked as debt, not blocked) ──
-  'MobileAmbulances.jsx': { tier: 'list-migrating' },
+  'MobileAmbulances.jsx': { tier: 'list' },
   'MobileDoctors.jsx': { tier: 'list-migrating' },
   'MobileHealthNews.jsx': { tier: 'list-migrating' },
   'MobileInsurance.jsx': { tier: 'list-migrating' },
@@ -84,29 +84,47 @@ const MANIFEST = {
   'MobileSkeleton.jsx': { tier: 'exempt', reason: 'primitive' },
 };
 
-const has = (src, needle) => src.includes(needle);
-const hasAny = (src, needles) => needles.some((n) => src.includes(n));
+// Strip line + block comments so a mention in prose (e.g. "NOT the GroupPanel
+// pilot") can't false-pass a usage check — the exact gap the Ambulances harness
+// test exposed 2026-07-10.
+const stripComments = (src) => src
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/[^\n]*/g, '');
+
+const has = (src, needle) => stripComments(src).includes(needle);
+const hasAny = (src, needles) => { const s = stripComments(src); return needles.some((n) => s.includes(n)); };
+// Rendered JSX usage of a component: `<Name` (covers `<Name>` and `<Name ...`),
+// comment-stripped, so an import or a prose mention never counts as rendering it.
+const hasTag = (src, name) => stripComments(src).includes(`<${name}`);
+const hasAnyTag = (src, names) => { const s = stripComments(src); return names.some((n) => s.includes(`<${n}`)); };
+// Declared-divergence waiver: `// grammar:<key>=<reason>` in the ORIGINAL source
+// (comments intact) lets a page satisfy an anatomy requirement with a documented
+// page-local equivalent (the canon requires the ANATOMY — a group-shaped skeleton,
+// a search field, a hero — not necessarily the exact kit component). Strict by
+// default: no waiver, no pass. The reason is the record.
+const waived = (rawSrc, key) => new RegExp(`grammar:${key}=\\S`).test(rawSrc);
 
 // FATAL rules per tier — all currently satisfied by the canon pages (green now),
 // each targets a specific Hospitals-class failure so a regression reds the build.
 function lintList(src) {
   const fatal = [];
   const warn = [];
-  // Required LIST anatomy.
-  if (!has(src, 'MobileHeading')) fatal.push('missing MobileHeading (title + honest scope count line, §5)');
-  if (!hasAny(src, ['SearchRow'])) fatal.push('missing canon SearchRow (§3 search field)');
-  if (!hasAny(src, ['GroupPanel', 'GroupedList'])) fatal.push('missing grouped panel (GroupPanel/GroupedList) — a LIST renders a grouped list, not floating cards');
-  if (!hasAny(src, ['SkeletonGroupPanel', 'SkeletonGroupList'])) fatal.push('missing group-shaped skeleton (§5.2 — must mirror the panel 1:1 for replace-in-place)');
+  // Required LIST anatomy — checked as RENDERED JSX (`<Name`), not bare mentions.
+  // Each anatomy slot accepts a `// grammar:<key>=<reason>` waiver for a documented
+  // page-local equivalent (the canon requires the anatomy, not the exact component).
+  if (!hasTag(src, 'MobileHeading') && !waived(src, 'heading')) fatal.push('missing MobileHeading (title + honest scope count line, §5)');
+  if (!hasTag(src, 'SearchRow') && !waived(src, 'search')) fatal.push('missing canon SearchRow (§3 search field) — waive with `// grammar:search=<reason>` if rendered inline');
+  if (!hasAnyTag(src, ['GroupPanel', 'GroupedList'])) fatal.push('missing grouped panel (GroupPanel/GroupedList) — a LIST renders a grouped list, not floating cards');
+  if (!hasAnyTag(src, ['SkeletonGroupPanel', 'SkeletonGroupList']) && !waived(src, 'skeleton')) fatal.push('missing group-shaped skeleton (§5.2 — must mirror the panel 1:1) — waive with `// grammar:skeleton=<reason>` for a page-local group skeleton');
   if (!has(src, 'useSkeletonWarmup')) fatal.push('missing useSkeletonWarmup (§5.1 — skeleton-first on cached bottom-nav mounts)');
-  if (!hasAny(src, ['UpdatingPill'])) fatal.push('missing UpdatingPill/UpdatingPillRow (§5.5 — the isFetching refetch signal)');
+  if (!hasTag(src, 'UpdatingPill')) fatal.push('missing UpdatingPill/UpdatingPillRow (§5.5 — the isFetching refetch signal)');
   // The grammar ban: glance tiles / billboards are DASHBOARD furniture (§5).
-  if (has(src, 'MobileSecondaryMetricRail')) fatal.push('LIST page carries MobileSecondaryMetricRail — glance-tile rails are DASHBOARD-only (§5); aggregates ride AnalyticsModal');
-  if (has(src, 'MobileFeaturedMetric')) fatal.push('LIST page carries MobileFeaturedMetric — the billboard is DASHBOARD-only (§5)');
+  if (hasTag(src, 'MobileSecondaryMetricRail')) fatal.push('LIST page carries MobileSecondaryMetricRail — glance-tile rails are DASHBOARD-only (§5); aggregates ride AnalyticsModal');
+  if (hasTag(src, 'MobileFeaturedMetric')) fatal.push('LIST page carries MobileFeaturedMetric — the billboard is DASHBOARD-only (§5)');
   // Behavioral WARN: load-more must APPEND, not replace the window (Hospitals bug).
   const hasLoadMore = hasAny(src, ['useLoadMoreControl', 'onLoadMore']);
   const hasAccumulator = hasAny(src, ['accumulatorRef', 'store.byId', 'store.order']);
-  const waived = has(src, 'grammar:loadmore-append');
-  if (hasLoadMore && !hasAccumulator && !waived) {
+  if (hasLoadMore && !hasAccumulator && !waived(src, 'loadmore-append')) {
     warn.push('load-more present but NO visible accumulator (accumulatorRef) — verify rows APPEND, not replace the RQ window (Hospitals-class bug); add `// grammar:loadmore-append=<mechanism>` to waive');
   }
   return { fatal, warn };
@@ -115,9 +133,9 @@ function lintList(src) {
 function lintDashboard(src) {
   const fatal = [];
   const warn = [];
-  if (!has(src, 'MobileHero')) fatal.push('missing MobileHero (signal-first hero, §5 DASHBOARD)');
-  if (has(src, 'SearchRow')) fatal.push('DASHBOARD carries SearchRow — dashboards do not search/filter a list (§5)');
-  if (has(src, 'MobileKPIStrip')) fatal.push('DASHBOARD carries MobileKPIStrip filter chips — dashboard tiles NAVIGATE, they never filter (§5)');
+  if (!hasTag(src, 'MobileHero') && !waived(src, 'hero')) fatal.push('missing MobileHero (signal-first hero, §5 DASHBOARD) — waive with `// grammar:hero=<reason>` if rendered inline');
+  if (hasTag(src, 'SearchRow')) fatal.push('DASHBOARD carries SearchRow — dashboards do not search/filter a list (§5)');
+  if (hasTag(src, 'MobileKPIStrip')) fatal.push('DASHBOARD carries MobileKPIStrip filter chips — dashboard tiles NAVIGATE, they never filter (§5)');
   return { fatal, warn };
 }
 
@@ -125,12 +143,12 @@ function lintListMigrating(src) {
   const fatal = [];
   const warn = [];
   // Wave-2 floor: SearchRow + warm-up must be present (they were the migration).
-  if (!has(src, 'SearchRow')) fatal.push('list-migrating page lost its canon SearchRow');
+  if (!hasTag(src, 'SearchRow')) fatal.push('list-migrating page lost its canon SearchRow');
   if (!has(src, 'useSkeletonWarmup')) fatal.push('list-migrating page lost useSkeletonWarmup');
   // Debt report (non-fatal): the rebuild to grouped-panel + rail removal is pending.
-  if (has(src, 'MobileSecondaryMetricRail')) warn.push('DEBT: still carries MobileSecondaryMetricRail (glance-tile rail) — remove on the grouped-panel rebuild');
-  if (has(src, 'MobileFeaturedMetric')) warn.push('DEBT: still carries MobileFeaturedMetric (billboard) — remove on the grouped-panel rebuild');
-  if (!hasAny(src, ['GroupPanel', 'GroupedList'])) warn.push('DEBT: not yet on the grouped panel (renders floating MobileMetricRow cards)');
+  if (hasTag(src, 'MobileSecondaryMetricRail')) warn.push('DEBT: still carries MobileSecondaryMetricRail (glance-tile rail) — remove on the grouped-panel rebuild');
+  if (hasTag(src, 'MobileFeaturedMetric')) warn.push('DEBT: still carries MobileFeaturedMetric (billboard) — remove on the grouped-panel rebuild');
+  if (!hasAnyTag(src, ['GroupPanel', 'GroupedList'])) warn.push('DEBT: not yet on the grouped panel (renders floating MobileMetricRow cards)');
   return { fatal, warn };
 }
 

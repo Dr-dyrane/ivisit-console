@@ -175,6 +175,9 @@ const MobileRequestsAtlasLayer = () => (
 // content materializes where it already sat. Apple/iOS loading model.
 // PAGE-LOCAL (not the kit SkeletonGroupList): this scaffold's trailing column is a
 // single pill bar, the kit's is a time+pill column — swapping would be visual drift.
+// grammar:skeleton=page-local group-shaped skeleton -- mirrors THIS page's recency
+// panel 1:1 (its trailing column carries the request-specific time+pill+marker, which
+// the generic kit SkeletonGroupList does not); satisfies §5.2 replace-in-place.
 const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
     <div className="space-y-[18px]" aria-hidden="true">
         {Array.from({ length: groups }).map((_, groupIndex) => (
@@ -356,9 +359,12 @@ export const MobileEmergency = ({
                     />
 
                     <section className="px-4">
-                        {/* Flat search row (canon Apple search bar): no wrapping surface,
-                            no drag-handle. The input + filter + stats controls sit directly
-                            on the page over the atlas; the grouped list follows below. */}
+                        {/* grammar:search=inline flat search row -- this page is the DONOR /
+                            extraction source the kit SearchRow was lifted FROM; byte-identical.
+                            Consolidation to <SearchRow> is the donor-consolidation flag (ledger,
+                            desktop lane). Flat search row (canon Apple search bar): no wrapping
+                            surface, no drag-handle. The input + filter + stats controls sit
+                            directly on the page over the atlas; the grouped list follows below. */}
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
