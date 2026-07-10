@@ -391,13 +391,15 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("{editOpening ? 'Opening...' : 'Edit'}");
     expect(page).toContain('aria-busy={viewOpening}');
 
-    // KPI selected-state now lives in the shared MobileKPIStrip chip row; the filter
-    // control keeps its local filtered-state here.
-    expect(mobile).toContain("data-state={hasFilter ? 'filtered' : 'idle'}");
+    // The search row + triggers come from the mobile canon kit (SearchRow): press
+    // ladder, debounce, and the context-aware filter state are locked in
+    // MobileCanonKit.contract.test.js; the page wires the filtered signal.
+    expect(mobile).toContain("from './canon/SearchRow'");
+    expect(mobile).toContain('hasFilter={hasFilter}');
     // Row tap opens the detail bottom sheet (approved design + desktop rail behaviour),
     // replacing the old inline dropdown expand.
-    expect(mobile).toContain('onClick={() => onOpen(visit)}');
-    expect(mobile).toContain('whileTap={{ scale: 0.96 }}');
+    expect(mobile).toContain('onOpen={() => onOpen(visit)}');
+    expect(mobile).toContain("from './canon/GroupedList'");
 
     expect(gate).toContain('Interaction feedback proof, 2026-06-30');
     expect(gate).toContain('Visits route actions now expose immediate opening, selected, and reveal states');
@@ -622,9 +624,10 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain("id: 'completed'");
     expect(mobile).toContain("id: 'cancelled'");
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
-    expect(mobile).toContain('data-testid="mobile-visits-sheet-search"');
-    expect(mobile).toContain('aria-label="Filter visits"');
-    expect(mobile).toContain('aria-label="Open visit statistics"');
+    // Search row testid + trigger labels are wired through the canon kit props.
+    expect(mobile).toContain('searchTestId="mobile-visits-sheet-search"');
+    expect(mobile).toContain('entityLabel="visits"');
+    expect(mobile).toContain('statsLabel="Open visit statistics"');
     expect(mobile).toContain('const MobileVisitRow = ({');
     expect(mobile).toContain('<MobileDetailSheet');
     // labelTone="plain" per Mobile DS v1.2 no-all-caps (donor parity with MobileEmergency).
@@ -667,7 +670,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<DetailRailShell>');
     expect(page).toContain('itemNoun="visits"');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
-    expect(mobile).toContain('aria-label="Filter visits"');
+    expect(mobile).toContain('entityLabel="visits"');
     expect(gate).toContain('Responsive and deep-link admission proof, 2026-07-02');
     expect(gate).toContain('wide desktop, tablet, 390px mobile, and `?view=` deep-link');
     expect(gate).toContain('Visit status source-room repair, 2026-07-07');
@@ -722,7 +725,10 @@ describe('VisitsPage admission contract', () => {
       expect({ name, inset: src.includes('shadow-[inset') }).toEqual({ name, inset: false });
       expect({ name, separator: src.includes('DropdownMenuSeparator') }).toEqual({ name, separator: false });
     }
-    expect(mobileSource()).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5');
+    // The sanctioned frosted recency panel now lives in the mobile canon kit
+    // (GROUP_PANEL_FROSTED, frosted-as-a-prop); the page composes it.
+    expect(fs.readFileSync('src/components/mobile/canon/GroupedList.jsx', 'utf8')).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5');
+    expect(mobileSource()).toContain("from './canon/Loading'");
     // Donor-parity frosted surfaces live in the console DS, not the page.
     expect(fs.readFileSync('src/components/console/ActivitySheet.jsx', 'utf8')).toContain('rounded-t-sheet bg-card/68 p-3 shadow-e3 backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet');
     expect(fs.readFileSync('src/components/console/WorkspaceStage.jsx', 'utf8')).toContain('shadow-e3 backdrop-blur-2xl');

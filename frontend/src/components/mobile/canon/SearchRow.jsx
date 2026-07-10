@@ -35,6 +35,7 @@ export const SearchRow = ({
   placeholder,
   search,
   onSearchCommit,
+  searchTestId = undefined,
   entityLabel = 'items',
   onOpenFilters,
   filterSheetOpen = false,
@@ -55,6 +56,7 @@ export const SearchRow = ({
           value={searchDraft}
           onChange={(e) => setSearchDraft(e.target.value)}
           className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-10 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+          data-testid={searchTestId}
         />
         {searchDraft && (
           <button
@@ -83,6 +85,7 @@ export const SearchRow = ({
         <TapButton
           feedbackVariant={FEEDBACK_TYPES.CLICK}
           feedbackColor="hsl(var(--foreground))"
+          data-state="idle"
           onClick={() => onOpenStats()}
           className={TRIGGER_CLASS}
           aria-label={statsLabel}

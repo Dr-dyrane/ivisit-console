@@ -1,21 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
     AlertCircle,
-    BarChart3,
     Calendar,
-    ChevronRight,
     Clock,
     Edit,
     Eye,
-    Filter,
     Hash,
     Hospital,
     MapPin,
-    Search,
     Siren,
     Stethoscope,
-    X,
 } from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
@@ -26,16 +20,17 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+// Mobile canon kit: the grouped-list grammar, loading truth, search row, and
+// heading live in shared components (extraction source: CANON_COMPONENT_SPECS.md);
+// this page keeps only its DOMAIN - visit projection, states, sheet, empty logic.
+import { useSkeletonWarmup, UpdatingPillRow, SkeletonGroupList } from './canon/Loading';
+import { GroupedList, MobileListRow } from './canon/GroupedList';
+import { SearchRow } from './canon/SearchRow';
+import { MobileHeading } from './canon/MobileHero';
+import { LOAD_MORE_ROOT_MARGIN } from './canon/constants';
 import { visitRowProjection, getVisitStatusKey } from '../../utils/visitRowProjection';
 import { formatRequestDayTime } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
-import { groupByRecency } from '../../utils/groupByRecency';
-
-// Minimum skeleton time on every mount. Bottom-nav navigation mounts with cached
-// data (loading already false), so without this the page would skip the skeleton and
-// assemble cached content top-to-bottom. A short forced warm-up makes navigation load
-// skeleton-first then reveal in one commit — identical to a hard refresh. Tunable.
-const SKELETON_WARMUP_MS = 400;
 
 const countNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -98,43 +93,6 @@ const hasMobileVisitFilters = (filters = {}) => Boolean(
 // then the older scheduled_at spelling, then created_at as the honest last resort.
 const visitWhen = (visit) => visit?.date || visit?.scheduled_at || visit?.created_at;
 
-// Group-shaped load scaffold: mirrors the real recency panel 1:1 (same header row,
-// frosted panel, row rhythm, and 62px hairline inset) so the list REPLACES it in place
-// with zero layout jump — no top-to-bottom entrance, the skeleton holds the layout and
-// content materializes where it already sat. Apple/iOS loading model.
-const MobileVisitsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
-    <div className="space-y-[18px]" aria-hidden="true">
-        {Array.from({ length: groups }).map((_, groupIndex) => (
-            <div key={groupIndex}>
-                <div className="flex items-center justify-between px-1 pb-2.5">
-                    <span className="h-[13px] w-24 rounded-pill bg-muted/25 shimmer" />
-                    <span className="h-[13px] w-5 rounded-pill bg-muted/20 shimmer" />
-                </div>
-                <div className="rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
-                    {Array.from({ length: rowsPerGroup }).map((_, rowIndex) => (
-                        <React.Fragment key={rowIndex}>
-                            <div className="flex items-center gap-3 px-2 py-3">
-                                <span className="h-10 w-10 shrink-0 rounded-pill bg-muted/25 shimmer" />
-                                <div className="min-w-0 flex-1 space-y-2">
-                                    <span className="block h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer" />
-                                    <span className="block h-3 w-3/5 rounded-pill bg-muted/15 shimmer" />
-                                </div>
-                                <div className="ml-2 flex shrink-0 flex-col items-end gap-2">
-                                    <span className="h-3 w-12 rounded-pill bg-muted/20 shimmer" />
-                                    <span className="h-6 w-14 rounded-pill bg-muted/20 shimmer" />
-                                </div>
-                            </div>
-                            {rowIndex < rowsPerGroup - 1 && (
-                                <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" />
-                            )}
-                        </React.Fragment>
-                    ))}
-                </div>
-            </div>
-        ))}
-    </div>
-);
-
 /**
  * MobileVisits — the Visits mobile surface on the MobileEmergency list grammar:
  * flat header + chip strip + flat search row + iOS-Settings recency-grouped frosted
@@ -144,12 +102,10 @@ const MobileVisitsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
 export const MobileVisits = ({
     visits,
     loading,
-    // ADDITIVE (wave-2a): background-refetch signal. The desktop lane wires the real
-    // React Query isFetching later (ledger interface request filed); defaults false so
-    // today's page contract works unchanged.
+    // Background-refetch signal (wired by the desktop conversion): the Updating
+    // pill + local load-more spinner; the list never re-skeletons on refetch.
     isFetching = false,
-    // ADDITIVE (wave-2a): visible-scope total (the page's filtered count). Until the
-    // desktop lane wires it, the summary derives the scope count from `statistics`.
+    // Visible-scope total (the page's filtered count); statistics-derived fallback.
     count,
     statistics,
     filters,
@@ -174,10 +130,10 @@ export const MobileVisits = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeVisit, setActiveVisit] = useState(null);
-    // Forced skeleton on every mount (see SKELETON_WARMUP_MS): guarantees a
-    // skeleton-first load on cached bottom-nav navigation, not just on refresh.
-    const [warmingUp, setWarmingUp] = useState(true);
     const { triggerFromEvent } = useFeedback();
+    // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
+    // skeleton-first load on cached bottom-nav navigation, not just on refresh.
+    const warmingUp = useSkeletonWarmup();
 
     // LOAD MORE = ACCUMULATE (2026-07-09 user arbitration). The page still swaps pages
     // through usePagination + onLoadMore — every fetch replaces `visits` with ONE page —
@@ -218,35 +174,13 @@ export const MobileVisits = ({
     const showSkeleton = warmingUp || (loading && displayVisits.length === 0);
     const hasFilter = hasMobileVisitFilters(filters);
 
-    // Search debounce: typing edits a local draft; the server filter (and its
-    // network refetch) commits 300ms after the last keystroke instead of per
-    // character. External writes (Clear search recovery) sync back into the draft.
-    const [searchDraft, setSearchDraft] = useState(filters?.search || '');
-    useEffect(() => {
-        setSearchDraft(filters?.search || '');
-    }, [filters?.search]);
-    useEffect(() => {
-        const handle = setTimeout(() => {
-            setFilters?.((prev) => {
-                if ((prev?.search || '') === searchDraft) return prev;
-                return { ...prev, search: searchDraft };
-            });
-        }, 300);
-        return () => clearTimeout(handle);
-    }, [searchDraft, setFilters]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS);
-        return () => clearTimeout(timer);
-    }, []);
-
     useEffect(() => {
         if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
                 if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '120px' }
+            { threshold: 0.1, rootMargin: LOAD_MORE_ROOT_MARGIN }
         );
         if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
@@ -261,9 +195,8 @@ export const MobileVisits = ({
 
     const totalCount = countNumber(statistics?.total, visitRows.length);
     // Header count tracks the ACTIVE scope, not the raw total — "62 visits" must not sit
-    // above a 3-row Cancelled-filtered list. The additive `count` prop is the page's
-    // real visible-scope total; until the desktop lane wires it, the per-KPI stat is
-    // the closest honest scope count.
+    // above a 3-row Cancelled-filtered list. The `count` prop is the page's real
+    // visible-scope total; the per-KPI stat is the fallback honest scope count.
     const activeStateItem = mobileVisitStates.find((item) => item.id === (activeKpi || 'all')) || mobileVisitStates[0];
     const scopedCount = activeStateItem.id === 'all'
         ? totalCount
@@ -297,18 +230,13 @@ export const MobileVisits = ({
                     {/* Chrome (title + summary) is always present — no entrance motion.
                         Only DATA regions load; they scaffold with skeletons and replace
                         in place, so nothing sweeps in top-to-bottom. */}
-                    <section className="px-4">
-                        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Visits</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {showSkeleton
-                                ? 'Loading visits...'
-                                // A failed load must not report a confident "0 visits" —
-                                // the summary stays honest about what actually happened.
-                                : errorMessage && displayVisits.length === 0
-                                    ? 'Visits did not load'
-                                    : `${visibleCount} visit${visibleCount === 1 ? '' : 's'}`}
-                        </p>
-                    </section>
+                    <MobileHeading
+                        title="Visits"
+                        noun="visit"
+                        count={visibleCount}
+                        showSkeleton={showSkeleton}
+                        failedEmpty={Boolean(errorMessage) && displayVisits.length === 0}
+                    />
 
                     <MobileKPIStrip
                         kpis={kpis}
@@ -321,121 +249,43 @@ export const MobileVisits = ({
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                                <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                                <input
-                                    type="text"
-                                    inputMode="search"
-                                    placeholder="Search visits..."
-                                    value={searchDraft}
-                                    onChange={(event) => setSearchDraft(event.target.value)}
-                                    className="h-9 w-full rounded-inner bg-background/60 pl-10 pr-10 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
-                                    data-testid="mobile-visits-sheet-search"
-                                />
-                                {searchDraft && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            // Clear commits immediately (no debounce wait).
-                                            setSearchDraft('');
-                                            setFilters?.((prev) => ({ ...prev, search: '' }));
-                                        }}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-pill bg-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/15 active:scale-95"
-                                        aria-label="Clear search"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <motion.button
-                                type="button"
-                                whileTap={{ scale: 0.96 }}
-                                onClick={(event) => {
-                                    onOpenFilters?.();
-                                    triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
-                                }}
-                                data-state={hasFilter ? 'filtered' : 'idle'}
-                                className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
-                                aria-label="Filter visits"
-                                aria-haspopup="dialog"
-                            >
-                                <Filter size={18} />
-                            </motion.button>
-
-                            {(isAdmin || isOrgAdmin) && (
-                                <motion.button
-                                    type="button"
-                                    whileTap={{ scale: 0.96 }}
-                                    onClick={(event) => {
-                                        onViewAnalytics?.();
-                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
-                                    }}
-                                    data-state="idle"
-                                    className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]"
-                                    aria-label="Open visit statistics"
-                                    aria-haspopup="dialog"
-                                >
-                                    <BarChart3 size={18} />
-                                </motion.button>
-                            )}
-                        </div>
+                        <SearchRow
+                            placeholder="Search visits..."
+                            search={filters?.search}
+                            onSearchCommit={(value) => setFilters?.((prev) => ({ ...prev, search: value }))}
+                            searchTestId="mobile-visits-sheet-search"
+                            entityLabel="visits"
+                            onOpenFilters={onOpenFilters}
+                            hasFilter={hasFilter}
+                            onOpenStats={(isAdmin || isOrgAdmin) ? onViewAnalytics : null}
+                            statsLabel="Open visit statistics"
+                        />
 
                         {/* Background-refetch feedback: placeholder data stays on screen while
                             refetching (KPI switch, search, filter, pull-to-refresh, load-more),
                             so `loading` stays false — `isFetching` is the only signal. Hidden
                             under the skeleton, which already communicates load. */}
-                        <div className="mt-4 flex items-center justify-end px-2">
-                            {isFetching && !showSkeleton && (
-                                <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                    Updating
-                                </span>
-                            )}
-                        </div>
+                        <UpdatingPillRow show={isFetching && !showSkeleton} />
 
                         <div className="mt-3 space-y-2">
                         {!loading && errorMessage && displayVisits.length > 0 && (
                             <MobileVisitErrorBanner message={errorMessage} onRetry={onRetry || onRefresh} />
                         )}
 
-                        {/* iOS-Settings grouped list (canon): one frosted PANEL per recency
+                        {/* iOS-Settings grouped list (canon kit): one frosted PANEL per recency
                             bucket over the atlas; rows are transparent, separated by a slate
                             hairline — separation is fill/frost, never a stroke. Grouping is
-                            render-only; id-keyed state is unaffected.
-
-                            Load model: the group-shaped skeleton holds the exact final
-                            layout, then the real list REPLACES it in place — no entrance
-                            motion at all. A fade here would run FROM BLANK on cached (bottom-
-                            nav) mounts where the data is already present, which reads as a
-                            top-to-bottom load; instant replace keeps reload and navigation
-                            identical. Nothing moves; content is simply there once mounted. */}
+                            render-only; the group-shaped skeleton holds the exact final layout
+                            and the real list REPLACES it in place (no entrance motion). */}
                         {showSkeleton ? (
-                            <MobileVisitsListSkeleton />
+                            <SkeletonGroupList groups={2} rowsPerGroup={[3, 3]} />
                         ) : (
-                        <div className="space-y-[18px]">
-                            {groupByRecency(
-                                displayVisits,
-                                visitWhen,
-                                (visit) => getVisitStatusKey(visit?.status),
-                            ).map(({ key, label, items }) => (
-                                <div key={key}>
-                                    <div className="flex items-center justify-between px-1 pb-2.5">
-                                        <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{label}</span>
-                                        <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{items.length}</span>
-                                    </div>
-                                    <div className="rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
-                                        {items.map((visit, index) => (
-                                            <React.Fragment key={visit.id}>
-                                                <MobileVisitRow visit={visit} onOpen={setActiveVisit} />
-                                                {index < items.length - 1 && (
-                                                    <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" aria-hidden="true" />
-                                                )}
-                                            </React.Fragment>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                            <GroupedList
+                                items={displayVisits}
+                                getDate={visitWhen}
+                                getStatus={(visit) => getVisitStatusKey(visit?.status)}
+                                renderRow={(visit) => <MobileVisitRow visit={visit} onOpen={setActiveVisit} />}
+                            />
                         )}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
@@ -589,12 +439,11 @@ const getFacilityName = (visit) => (
     (visit?.hospital_id ? 'Linked facility' : 'No facility')
 );
 
-// Donor row anatomy with the visit identity: status-tinted orb (vitalTracks tones),
-// patient name 15/500, "{type} · {facility}" meta, trailing day-aware time + status
-// pill + chevron. Tap opens the MobileDetailSheet (approved design + desktop rail
-// behaviour), never an inline dropdown.
+// Donor row anatomy with the visit identity (canon MobileListRow): status-tinted
+// orb (vitalTracks tones), patient name 15/500, "{type} · {facility}" meta, trailing
+// day-aware time + status pill + chevron. Tap opens the MobileDetailSheet (approved
+// design + desktop rail behaviour), never an inline dropdown.
 const MobileVisitRow = ({ visit, onOpen }) => {
-    const { triggerFromEvent } = useFeedback();
     const row = visitRowProjection(visit);
     const vital = resolveVital('visit', row.statusKey);
     const pill = vital?.pill;
@@ -603,31 +452,17 @@ const MobileVisitRow = ({ visit, onOpen }) => {
     const TypeIcon = isEmergency ? Siren : Stethoscope;
 
     return (
-        <motion.button
-            type="button"
-            layout="position"
-            whileTap={{ scale: 0.988 }}
-            onClick={() => onOpen(visit)}
-            onPointerDown={(event) => triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, haptic: true, sound: true })}
-            className="group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]"
-            data-mobile-visit-row={visit.id}
-            aria-haspopup="dialog"
-            aria-label={`Open ${row.patientName}`}
-        >
-            <span className={`h-10 w-10 shrink-0 rounded-pill flex items-center justify-center ${orbClass}`}>
-                <TypeIcon size={20} />
-            </span>
-            <div className="min-w-0 flex-1">
-                <p className="text-[15px] leading-5 font-medium text-foreground truncate">{row.patientName}</p>
-                <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{row.serviceType} · {row.primary}</p>
-            </div>
-            <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
-                <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{formatRequestDayTime(visitWhen(visit))}</span>
-                <span className="flex items-center gap-2">
-                    <span className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${orbClass}`} data-status={row.statusKey}>{pill?.label || row.statusLabel}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                </span>
-            </span>
-        </motion.button>
+        <MobileListRow
+            item={visit}
+            dataAttr="data-mobile-visit-row"
+            onOpen={() => onOpen(visit)}
+            ariaLabel={`Open ${row.patientName}`}
+            orbClass={orbClass}
+            icon={TypeIcon}
+            title={row.patientName}
+            meta={`${row.serviceType} · ${row.primary}`}
+            time={formatRequestDayTime(visitWhen(visit))}
+            pill={{ className: orbClass, label: pill?.label || row.statusLabel, dataStatus: row.statusKey }}
+        />
     );
 };

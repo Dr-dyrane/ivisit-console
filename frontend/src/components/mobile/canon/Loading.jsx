@@ -32,27 +32,32 @@ export const UpdatingPillRow = ({ show }) => (
 );
 
 const ORB_SKELETON = {
-  40: 'h-10 w-10 rounded-pill bg-muted/25 shimmer',
-  36: 'h-9 w-9 rounded-pill bg-muted/25 shimmer',
+  40: 'h-10 w-10 shrink-0 rounded-pill bg-muted/25 shimmer',
+  36: 'h-9 w-9 shrink-0 rounded-pill bg-muted/25 shimmer',
 };
 
-// One group-shaped scaffold: header bars + panel + rows + hairlines.
+// One group-shaped scaffold: header bars + panel + rows + hairlines. Bar alphas
+// and the trailing time+pill column are VERBATIM from the freshest donor
+// (MobileVisitsListSkeleton) so content replaces the scaffold with zero jump.
 export const SkeletonGroupPanel = ({ rows = 3, orbSize = 40, frosted = true }) => (
   <div aria-hidden="true">
     <div className="flex items-center justify-between px-1 pb-2.5">
       <span className="h-[13px] w-24 rounded-pill bg-muted/25 shimmer" />
-      <span className="h-[13px] w-5 rounded-pill bg-muted/25 shimmer" />
+      <span className="h-[13px] w-5 rounded-pill bg-muted/20 shimmer" />
     </div>
     <div className={frosted ? GROUP_PANEL_FROSTED : GROUP_PANEL_FLAT}>
       {Array.from({ length: rows }).map((_, index) => (
         <React.Fragment key={index}>
           <div className="flex items-center gap-3 px-2 py-3">
             <span className={ORB_SKELETON[orbSize] || ORB_SKELETON[40]} />
-            <span className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <span className="block h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer" />
-              <span className="block h-3 w-3/5 rounded-pill bg-muted/25 shimmer" />
-            </span>
-            <span className="h-6 w-14 shrink-0 rounded-pill bg-muted/25 shimmer" />
+              <span className="block h-3 w-3/5 rounded-pill bg-muted/15 shimmer" />
+            </div>
+            <div className="ml-2 flex shrink-0 flex-col items-end gap-2">
+              <span className="h-3 w-12 rounded-pill bg-muted/20 shimmer" />
+              <span className="h-6 w-14 rounded-pill bg-muted/20 shimmer" />
+            </div>
           </div>
           {index < rows - 1 && <Hairline inset={orbSize === 36 ? 56 : 62} />}
         </React.Fragment>

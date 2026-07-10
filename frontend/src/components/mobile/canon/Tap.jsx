@@ -29,7 +29,6 @@ export const TapButton = React.forwardRef(({
       ref={ref}
       type="button"
       whileTap={mobileMotion.press.control}
-      transition={mobileMotion.quick}
       onClick={(event) => {
         if (!silent) {
           triggerFromEvent(event, {
@@ -73,7 +72,6 @@ export const TapCard = React.forwardRef(({
       type="button"
       layout="position"
       whileTap={mobileMotion.press.card}
-      transition={mobileMotion.quick}
       onPointerDown={(event) => {
         if (!silent) {
           triggerFromEvent(event, {

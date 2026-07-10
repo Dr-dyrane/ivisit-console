@@ -61,9 +61,11 @@ describe('Mobile canon kit contract', () => {
     expect(src).toContain('role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground"');
     expect(src).toContain('mt-4 flex items-center justify-end px-2');
     // Scaffolds mirror the real layout 1:1 and stay aria-hidden.
-    expect(src).toContain('h-10 w-10 rounded-pill bg-muted/25 shimmer');
+    expect(src).toContain('h-10 w-10 shrink-0 rounded-pill bg-muted/25 shimmer');
     expect(src).toContain('h-[15px] w-2/5 rounded-pill bg-muted/25 shimmer');
-    expect(src).toContain('h-6 w-14 shrink-0 rounded-pill bg-muted/25 shimmer');
+    // Trailing time+pill scaffold column (donor MobileVisitsListSkeleton verbatim).
+    expect(src).toContain('h-3 w-12 rounded-pill bg-muted/20 shimmer');
+    expect(src).toContain('h-6 w-14 rounded-pill bg-muted/20 shimmer');
     expect(src).toContain('aria-hidden="true"');
     expect(src).not.toContain('initial={{');
   });

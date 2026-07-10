@@ -93,7 +93,10 @@ export const MobileListRow = ({
         {markerChip && (
           <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{markerChip}</span>
         )}
-        <span className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{pill?.label || 'New'}</span>
+        <span
+          className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}
+          {...(pill?.dataStatus ? { 'data-status': pill.dataStatus } : {})}
+        >{pill?.label || 'New'}</span>
         <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
       </span>
     </span>
