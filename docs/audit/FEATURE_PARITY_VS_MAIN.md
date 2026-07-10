@@ -37,3 +37,23 @@ clear-search / statistics a11y labels on mobile · the console DS components
 
 ### Verdict
 PASS — zero unintentional drops. Every removal is contract-pinned or ledgered.
+
+---
+
+## Requests (Page 2) — audited 2026-07-09, retroactive (the gold-standard page itself)
+
+Files diffed: `EmergencyRequestsPage.jsx`, `MobileEmergency.jsx`, `EmergencyDetailsModal.jsx`,
+`EmergencyRequestModal.jsx`, `emergencyService.js` vs `main`/`f31f29f`.
+
+### Dropped INTENTIONALLY (all verified replaced or cited)
+| What (from main) | Why / where recorded |
+|---|---|
+| `handleBulkDelete`, `handleSelect` | Converted, not dropped: destructive bulk DELETE became fail-closed bulk CANCEL — `handleToggleSelect`/`handleSelectAll`/`handleBulkCancel` live at page:940/969/1022 with stable toast ids; "removes mobile destructive shortcuts" is contract-pinned. |
+| Static chip aria-labels ("Filter by pending requests" etc.) | Superseded: chips carry `aria-label={label}: {count}` (page:1752) — richer than main's. |
+| "Create new emergency request" / "Filter emergency requests" labels | Relabeled with the page's rename to "Requests": "Create new request" / "Filter requests" (page:780/798). |
+
+### Dropped UNINTENTIONALLY
+**None found.** MobileEmergency, both modals, and emergencyService lost zero identifiers.
+
+### Verdict
+PASS — zero unintentional drops. The reference page holds its own bar.
