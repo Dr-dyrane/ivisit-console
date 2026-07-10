@@ -27,6 +27,7 @@ import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
 import { formatRelativeTime } from '../../utils/activityUtils';
+import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
 
 const ACTIVE_FLEET_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene']);
 
@@ -190,23 +191,17 @@ export const MobileAmbulances = ({
 
     const hasFilter = hasMobileFleetFilters(filters);
 
-    // Directory grouping: by STATION (render-only, orthogonal to the status chips).
-    // Unassigned units bucket last; empty groups drop.
-    const stationGroups = useMemo(() => {
-        const byStation = new Map();
-        const unassigned = [];
-        displayAmbulances.forEach((a) => {
-            const s = getStation(a);
-            if (!s) { unassigned.push(a); return; }
-            if (!byStation.has(s)) byStation.set(s, []);
-            byStation.get(s).push(a);
-        });
-        const groups = [...byStation.entries()]
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([label, items]) => ({ key: label, label, items }));
-        if (unassigned.length) groups.push({ key: '__unassigned', label: 'Unassigned', items: unassigned });
-        return groups;
-    }, [displayAmbulances]);
+    // Adaptive, DATA-DRIVEN grouping (2026-07-10): station is the dispatcher's mental
+    // axis, but on a real fleet it's usually degenerate — measured live: 147 stations /
+    // 85% singletons, a wall of one-row panels. So resolveAdaptiveGroups SCORES the
+    // station split and uses it only if it distributes; otherwise it falls to
+    // update-recency (freshness), which always buckets AND is itself the operational
+    // signal (a "ready" unit not updated in weeks is the dispatcher's risk). The chosen
+    // factor is decided per-render from the actual rows, never assumed.
+    const { groups: fleetGroups } = useMemo(() => resolveAdaptiveGroups(displayAmbulances, [
+        { key: 'station', assign: getStation, orphanLabel: 'Unassigned' },
+        { type: 'recency', key: 'recency', getDate: (a) => a.updated_at || a.created_at },
+    ]), [displayAmbulances]);
 
     const getStatusColor = (status) => {
         if (status === 'available') return 'hsl(160 84% 39%)';
@@ -334,7 +329,7 @@ export const MobileAmbulances = ({
                             <SkeletonGroupPanel rows={6} />
                         ) : (
                             <div className="space-y-[18px]">
-                                {stationGroups.map((group) => (
+                                {fleetGroups.map((group) => (
                                     <GroupPanel key={group.key} label={group.label} count={group.items.length}>
                                         {group.items.map((ambulance, index) => (
                                             <React.Fragment key={ambulance.id}>

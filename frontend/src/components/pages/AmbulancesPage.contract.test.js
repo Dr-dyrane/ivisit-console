@@ -232,7 +232,12 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain('const scopeCount = totals');
     expect(mobile).toContain('accumulatorRef');
     expect(mobile).toContain('hasMobileFleetFilters');
-    expect(mobile).toContain("label: 'Unassigned'");
+    // Adaptive, data-driven grouping (2026-07-10): station is degenerate on real fleets
+    // (147 groups / 85% singletons measured), so resolveAdaptiveGroups scores it and
+    // falls to update-recency; the station factor keeps its 'Unassigned' orphan bucket.
+    expect(mobile).toContain('resolveAdaptiveGroups');
+    expect(mobile).toContain("orphanLabel: 'Unassigned'");
+    expect(mobile).toContain("type: 'recency'");
     expect(mobile).toContain('formatRelativeTime(ambulance.updated_at)');
     expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");

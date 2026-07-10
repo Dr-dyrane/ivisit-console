@@ -383,8 +383,13 @@ describe('HospitalsPage admission audit contract', () => {
     // group-shaped skeleton.
     expect(mobile).not.toContain('MobileSecondaryMetricRail');
     expect(mobile).not.toContain('Facility Signals');
-    expect(mobile).toContain("label: 'Reporting capacity'");
-    expect(mobile).toContain("label: 'No capacity reported'");
+    // Adaptive, data-driven grouping (2026-07-10): capacity is degenerate on the real
+    // network (98% report), so resolveAdaptiveGroups scores it and falls to
+    // availability-freshness recency; the capacity factor keeps its labels.
+    expect(mobile).toContain('resolveAdaptiveGroups');
+    expect(mobile).toContain("'Reporting capacity'");
+    expect(mobile).toContain("'No capacity reported'");
+    expect(mobile).toContain("type: 'recency'");
     expect(mobile).toContain('const scopeCount = activeStatusFilter');
     expect(mobile).toContain('accumulatorRef');
     expect(mobile).toContain('MobileHospitalsAtlasLayer');

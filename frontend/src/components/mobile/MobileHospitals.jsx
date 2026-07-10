@@ -39,6 +39,7 @@ import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
 import { formatRelativeTime } from '../../utils/activityUtils';
+import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
 
 // Atlas stage (donor recipe: MobileVisitsAtlasLayer — Lesson 25 macro-stage item 1;
 // ambient brand tint is sanctioned expression, Lesson 18).
@@ -265,19 +266,22 @@ export const MobileHospitals = ({
 
     const hasFilter = hasMobileHospitalFilters(filters);
 
-    // Directory grouping: capacity signal first (render-only, orthogonal to the
-    // status chips); empty groups drop, so a fully-silent page shows one panel.
-    const capacityGroups = useMemo(() => {
-        const reporting = [];
-        const silent = [];
-        displayHospitals.forEach((hospital) => {
-            (hasCapacitySignal(hospital) ? reporting : silent).push(hospital);
-        });
-        return [
-            { key: 'reporting', label: 'Reporting capacity', items: reporting },
-            { key: 'silent', label: 'No capacity reported', items: silent },
-        ].filter((group) => group.items.length > 0);
-    }, [displayHospitals]);
+    // Adaptive, DATA-DRIVEN grouping (2026-07-10): capacity-reporting is the operator's
+    // routing question, but on the real network it's degenerate — measured live: 98% of
+    // facilities report capacity, so the split collapses to one giant panel + a 3-row
+    // scrap. resolveAdaptiveGroups SCORES the capacity split and uses it only if it
+    // distributes; otherwise it falls to availability-freshness recency (a facility
+    // whose capacity hasn't updated in weeks is stale/suspect — the same operational
+    // risk, and it always buckets). The factor is chosen per-render from the actual rows.
+    const { groups: hospitalGroups } = useMemo(() => resolveAdaptiveGroups(displayHospitals, [
+        {
+            key: 'capacity',
+            assign: (h) => (hasCapacitySignal(h) ? 'reporting' : 'silent'),
+            labelFor: (k) => (k === 'reporting' ? 'Reporting capacity' : 'No capacity reported'),
+            order: (keys) => ['reporting', 'silent'].filter((k) => keys.includes(k)),
+        },
+        { type: 'recency', key: 'recency', getDate: (h) => h.last_availability_update || h.updated_at },
+    ]), [displayHospitals]);
 
     const statusColorFor = (status) => (
         status === 'available' || status === 'verified'
@@ -407,7 +411,7 @@ export const MobileHospitals = ({
                             <SkeletonGroupPanel rows={6} />
                         ) : (
                             <div className="space-y-[18px]">
-                                {capacityGroups.map((group) => (
+                                {hospitalGroups.map((group) => (
                                     <GroupPanel key={group.key} label={group.label} count={group.items.length}>
                                         {group.items.map((hospital, index) => (
                                             <React.Fragment key={hospital.id}>
