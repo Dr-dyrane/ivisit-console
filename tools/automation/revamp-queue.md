@@ -631,3 +631,23 @@ Notes:
 - **Estate follow-ups the linter now tracks as first-class debt:** the 9 list-migrating pages
   need the grouped-panel rebuild + rail removal; MobileEmergency + MobileVisits need the
   accumulator guard port (kit useScopeAccumulator). Not blocking; ratcheted.
+
+### 2026-07-10 — desktop-uiux-lane — HARNESS HARDENED: donor-mechanism registry (completeness gate)
+- **User asked "do we have enough to build the next page without missing anything?"** Honest answer:
+  strong harness, but one hole -- gates pin decisions ALREADY made; they don't DEMAND donor
+  mechanisms a NEW adoption omits (how the select triggers dropped). Closed it.
+- **Generalized the selection estate-law into a donor-mechanism REGISTRY**
+  (ConsoleDesignSystem.contract): every list-workspace surface (renders SortableColumnHeader) must
+  carry each load-bearing mechanism -- selection, keyboard-nav, scroll-reset, honest-failed-hero,
+  arrival-toast, deep-link -- OR record `<slug> excluded by decision: <ref>`. Composition-satisfied
+  mechanisms (debounce/updating-pill/drag handle, baked into ActivitySheet/SheetToolbar) are
+  deliberately excluded -- composing the component IS the guarantee.
+- **Proven to bite** (adversarial self-check): missing mechanism -> red (flagged the exact 2026
+  select-triggers failure mode); recorded exclusion -> pass; dashboard (no SortableColumnHeader) ->
+  exempt, no false positive. All 3 list surfaces (Requests/Visits/Hospitals) satisfy all 6; Requests
+  carries the ONE cited exclusion (deep-link: QuickSearch has no /emergencies?id today -- queued),
+  which makes the exclusion path live, not decorative.
+- Process doc updated: step 5 now enumerates the full gate stack (page suite + estate laws +
+  hardgate + data-contract + mojibake + donor-diff + live compile) and how to register a new
+  mechanism. Suites 80/80. This is the "enforced, not just disciplined" upgrade -- the next list
+  page cannot silently drop a registered mechanism.

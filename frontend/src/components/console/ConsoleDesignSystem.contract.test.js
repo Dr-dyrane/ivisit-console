@@ -170,16 +170,37 @@ describe('Console design system contract', () => {
     }
   });
 
-  it('keeps the selection mechanism on every sortable-list surface (estate law)', () => {
-    // Selection regressed three times before this gate (Requests twice,
-    // Hospitals once at adoption, 2026-07-09): per-page pins only protect
-    // decisions a page already made, so a NEW adoption could ship a sortable
-    // list with no select-all / row checkboxes and nothing went red. The law:
-    // any estate surface rendering a SortableColumnHeader list must carry the
-    // selection mechanism (useRowSelection, or the donor's hand-rolled
-    // handleToggleSelect) or a literal recorded exclusion
-    // ("selection excluded by decision: <ref>"). Bulk WRITES stay per-page
-    // fail-closed -- this gate is about the mechanism, not the writes.
+  it('keeps every donor MECHANISM on the list-workspace surfaces (estate law: presence-or-recorded-exclusion)', () => {
+    // WHY THIS EXISTS (the hole every other gate left open): per-page contract
+    // pins protect decisions a page ALREADY made -- they cannot DEMAND a donor
+    // mechanism a NEW adoption silently omits. That gap shipped the Hospitals
+    // table with no select triggers (2026-07-09) and nothing went red, because
+    // no pin required them. `scripts/donor-diff.js` is the mechanical token-level
+    // companion, but it is report-only and human-overridable (the same 28px
+    // selection column was rationalised away as a "domain delta"). This registry
+    // is the behavioural backstop donor-diff cannot express: each load-bearing
+    // donor mechanism must be PRESENT on every list-workspace surface (one that
+    // renders a SortableColumnHeader list), OR the surface must record a
+    // deliberate exclusion with the literal marker "<slug> excluded by decision:
+    // <ref>". Adding a new list page? Wire each mechanism or write its marker --
+    // the sweep reds otherwise. Bulk WRITES stay per-page fail-closed; this gate
+    // is about the mechanism being present, not about what it is allowed to do.
+    //
+    // To register a new mechanism: add a row here (slug + presence signature),
+    // confirm the existing surfaces satisfy it or carry the exclusion marker,
+    // and cite the drop that motivated it. Composition-satisfied mechanisms
+    // (debounce, updating-pill, drag handle -- baked into ActivitySheet/
+    // SheetToolbar) are intentionally ABSENT: composing the component IS the
+    // guarantee, so they cannot be dropped without dropping the component.
+    const MECHANISMS = [
+      // slug, presence signature, motivating drop
+      { slug: 'selection', test: /useRowSelection\(|handleToggleSelect/ },        // Hospitals adoption 2026-07-09
+      { slug: 'keyboard-nav', test: /useListKeyboardNav/ },                       // Requests list nav canon
+      { slug: 'scroll-reset', test: /useScrollResetOnPage/ },                     // page-change scroll reset
+      { slug: 'honest-failed-hero', test: /loadError/ },                          // F7: reassuring zero over a failed load
+      { slug: 'arrival-toast', test: /lastInsertToastAtRef/ },                    // donor realtime INSERT toast
+      { slug: 'deep-link', test: /params\.get\(|useSearchParams|location\.search/ }, // QuickSearch ?id focus
+    ];
     const surfaces = {
       visitsPage: read('src/components/pages/VisitsPage.jsx'),
       emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
@@ -187,11 +208,15 @@ describe('Console design system contract', () => {
       hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
-      const rendersSortableList = /SortableColumnHeader/.test(src);
-      const hasSelection = /useRowSelection\(|handleToggleSelect/.test(src);
-      const hasRecordedExclusion = /selection excluded by decision/.test(src);
-      expect({ name, selectionLaw: !rendersSortableList || hasSelection || hasRecordedExclusion })
-        .toEqual({ name, selectionLaw: true });
+      // Only list-workspace surfaces are in scope (TodayHome is a dashboard, not
+      // a sortable list -- it renders no SortableColumnHeader, so it is exempt).
+      if (!/SortableColumnHeader/.test(src)) continue;
+      for (const m of MECHANISMS) {
+        const present = m.test.test(src);
+        const excluded = src.includes(`${m.slug} excluded by decision:`);
+        expect({ surface: name, mechanism: m.slug, present_or_excluded: present || excluded })
+          .toEqual({ surface: name, mechanism: m.slug, present_or_excluded: true });
+      }
     }
   });
 });

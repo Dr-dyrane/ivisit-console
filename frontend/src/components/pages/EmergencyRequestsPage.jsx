@@ -650,6 +650,12 @@ export const EmergencyRequestsPage = () => {
     };
   }, [queryClient]);
 
+  // deep-link excluded by decision: QuickSearch emits /emergencies without an
+  // ?id focus param today, so this page carries no URL deep-link handler (the
+  // donor of the idiom is HospitalsPage's params.get('id')). Adding the ?id
+  // handler here is a queued donor-lane item (revamp-queue 2026-07-09,
+  // "deep-link debts Hospitals exposes"); until then this is a recorded,
+  // cited exclusion, not a silent omission.
   const handleCreateEmergency = useCallback(() => {
     setSelectedRequest(null);
     setIsEmergencyModalOpen(true);
