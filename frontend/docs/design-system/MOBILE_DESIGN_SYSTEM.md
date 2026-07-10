@@ -12,7 +12,7 @@
 > **Authority:** where the older `APPLE_GLASS_DESIGN_SYSTEM.md` / `DYRANE_UI_DESIGN_SYSTEM.md`
 > disagree with this doc, **this doc wins** for mobile. They are kept for history.
 
-Status: **DRAFT v1.2 — 2026-07-09.** Layers 4 (components) largely ✅ from the rollout;
+Status: **DRAFT v1.3 — 2026-07-10.** Layers 4 (components) largely ✅ from the rollout;
 Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation work.
 **v1.1 (2026-07-09):** the Requests-proven canon is folded in — surface token system (§2), loading &
 refetch model (§5), KPI-scope + empty/error rules (§5), search field + Updating pill (§3),
@@ -20,6 +20,10 @@ dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.j
 **v1.2 (2026-07-09):** the Today-proven dashboard canon — page-type grammar LIST vs DASHBOARD (§5),
 no-all-caps typography (§3), prop-driven mobile presentation (§8), dock-slot ranking +
 context-aware top bar (§6). Second reference page: `src/components/mobile/MobileToday.jsx`.
+**v1.3 (2026-07-10):** the surface-hygiene canon — bare slash-opacity is a design token (a
+non-scale value renders TRANSPARENT and slips every source-string gate), the harness checks
+STRUCTURE not COMPUTED render, and the active KPI/filter chip tints with its OWN hue, not global
+brand. Folded into the Decisions log + §3 (chip) + §9 (enforcement).
 
 ---
 
@@ -88,6 +92,30 @@ context-aware top bar (§6). Second reference page: `src/components/mobile/Mobil
   Today / Requests / Approvals / Map. Top bar (`SmartHeader.jsx`): on home ('/') the avatar
   owns the LEFT section (no history to render); on subpages it yields left to the back +
   previous-route chip and sits right. Details in §6.
+- **2026-07-10 · Opacity is a design token — a bare slash-opacity must be a real scale value** —
+  Tailwind compiles the bare `bg-*/N` modifier (and `text-/border-/ring-*/N`) ONLY when `N` is in
+  `theme.opacity`. The default scale is `5/10/20/25/30/40/50/60/70/75/80/90/95`; any non-scale
+  value (`/12 /14 /15 /34 /55 /85`…) silently compiles to **TRANSPARENT** — the tinted
+  disc/surface simply never paints, and because the icon/text color still shows, the miss is
+  INVISIBLE (a whole class of orb tints and status discs was transparent through the entire canon
+  migration). **DO:** use a scale value, OR add the step to `frontend/tailwind.config.js`
+  `theme.extend.opacity` (the full used set is the source of truth in `tailwind.config.js`; a `check-mobile-grammar.js` guard fails the build on any bare opacity not in that set), OR use the
+  bracket form `bg-*/[0.NN]` (always valid). **DON'T:** hand-pick a non-scale bare opacity and
+  assume it renders. Enforced by a new bare-opacity guard in `scripts/check-mobile-grammar.js`
+  (§9).
+- **2026-07-10 · The harness checks STRUCTURE, not COMPUTED RENDERING** — the grammar linter
+  enforces anatomy + pinned source strings; it CANNOT see that a class fails to compile. The
+  transparent-tint class above passed every gate because the source *string* was present and
+  correct — the rendered pixel was not. **RULE:** for "revamped to perfection," verify COMPUTED
+  surfaces live — `getComputedStyle` of the orb / panel / pill — not just source pins. A
+  source-string gate proves intent, never render; a green harness is necessary, not sufficient.
+- **2026-07-10 · Active KPI/filter chip tints with its OWN hue, not global brand** — a neutral
+  filter ("All") filled with brand-red reads as ALARM. The active chip takes its own status
+  `color` (the chip's `resolveVital()` hue), not `bg-primary`/crimson — reinforcing Principle 3
+  (status lives in a raw hue, never brand-red). **DO:** derive the active fill from the chip's own
+  tone. **DON'T:** paint every active chip crimson. Supersedes the earlier "`.on` = brand" reading
+  of the chip element (§3); the one-loud-`bg-primary` law (§0/§2) stays reserved for the route
+  FAB, not the filter row.
 
 ## 0. Principles (the feel)
 
@@ -175,7 +203,7 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 | **Button** | filled-primary (brand + `0 8px 18px tone/0.30` glow), ghost, destructive; h≥44, `rounded-button`, graduated press | ◐ `ui/button` + `MobileSheetActions` (CTA group) — no documented mobile button set |
 | **Status pill** | `rounded-pill px-2.5 py-1 text-[11px] font-semibold` + `resolveVital().pill` tone | ✅ (`statusPill` prop) |
 | **Icon well / tile** | `rounded-icon` tinted tile (status/neutral) | ◐ inline; make `MobileIconWell` |
-| **Chip (filter/state)** | `rounded-pill chrome-glass` + dot + count; `.on` = brand | ◐ (in KPI strip / per page) |
+| **Chip (filter/state)** | `rounded-pill chrome-glass` + dot + count; **active = the chip's OWN status hue** (its `resolveVital()` `color`), NOT brand-red — a neutral "All" filled crimson reads as alarm (Decisions log 2026-07-10) | ◐ (in KPI strip / per page) |
 | **Grab handle** | `h-1.5 w-[42px] rounded-pill bg-foreground/20` | ✅ (ModalShell / sheets) |
 | **Divider / hairline** | between sibling rows in a grouped panel ONLY: `h-px bg-[hsl(var(--muted-foreground)/0.08)]`, inset `ml-[62px]` past the orb (§2); everywhere else spacing only — never a border/outline | ✅ (Requests grouped list + skeleton) |
 | **Search field** | `type="text" inputMode="search"` (`text` avoids the duplicate native clear) + leading icon + trailing clear (×) button when non-empty, `aria-label="Clear search"` | ✅ (Requests) — roll out per page |
@@ -340,8 +368,10 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 ## 9. Enforcement
 
 - `check-ui-surface-hardgate.js --strict-radius` (radius ladder + no legacy geometry/borders) — **target: green on every mobile page**.
+- `check-mobile-grammar.js` — anatomy + pinned source strings + motion-token pin + **bare-opacity guard**: a bare `bg-/text-/border-/ring-*/N` whose `N` is not in `theme.opacity` fails (it would compile TRANSPARENT — Decisions log 2026-07-10). Use a scale value, a `theme.extend.opacity` step, or bracket `/[0.NN]`.
 - `check-mojibake.js` on touched files.
 - Contract tests per page lock the composition (rows, sheet, borderless).
+- **The harness proves STRUCTURE, not COMPUTED RENDERING** (Decisions log 2026-07-10). Every gate above reads source strings; none can see that a class failed to compile. For a "revamped to perfection" sign-off, additionally verify COMPUTED surfaces live — `getComputedStyle` of the orb / panel / status disc — a green harness is necessary, not sufficient.
 
 ---
 
@@ -359,6 +389,7 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 - [ ] `isFetching` → Updating pill · header count = active-KPI scope · `all` enumerated on every dependent surface
 - [ ] empty `reason` + recovery action · no raw DB error text · chips `aria-pressed` · search `inputMode="search"` + clear (×)
 - [ ] strict-radius hardgate green · one `chrome-glass` recipe · tokens (no re-inline)
+- [ ] every bare slash-opacity is a real scale value (or bracket `/[0.NN]`) — no transparent tints · COMPUTED surfaces verified live (getComputedStyle), not just source-pinned · active filter chip = own hue, not brand-red
 
 ---
 

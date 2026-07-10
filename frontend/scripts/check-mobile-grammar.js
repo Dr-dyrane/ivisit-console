@@ -164,6 +164,70 @@ function lintListMigrating(src) {
   return { fatal, warn };
 }
 
+// ── Bare slash-opacity guard (added 2026-07-10 after the invisible-tint bug) ──
+// Tailwind's bare color-opacity modifier (`bg-emerald-500/12`, `text-cyan-700/14`)
+// ONLY compiles when the numeric value N exists in theme.opacity. The DEFAULT scale is
+// {0,5,10,20,25,30,40,50,60,70,75,80,90,95,100}; ANY non-scale bare value silently
+// compiles to TRANSPARENT — the tinted surface (avatar orbs, status discs, destructive
+// buttons) never renders while the icon/text color still shows, so the loss is invisible.
+// We extended theme.extend.opacity in tailwind.config.js (12/14/15/34/...); this guard
+// bans any FUTURE non-scale bare value so a tint can't die silently again. Bracket
+// arbitrary values (`/[0.12]`) always compile and are ignored.
+const DEFAULT_OPACITY_SCALE = [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100];
+
+// Parse the keys under theme.extend.opacity from the config's OBJECT LITERAL (not
+// require() — requiring tailwind.config.js would pull the full plugin graph). The opacity
+// block carries no nested braces, so a single-level brace match is exact.
+function readConfiguredOpacity(configPath) {
+  if (!fs.existsSync(configPath)) return [];
+  const block = stripComments(fs.readFileSync(configPath, 'utf8')).match(/opacity\s*:\s*\{([^}]*)\}/);
+  if (!block) return [];
+  const keys = [];
+  const keyRe = /(?:^|[,{\s])(\d+)\s*:/g;
+  let m;
+  while ((m = keyRe.exec(block[1])) !== null) keys.push(Number(m[1]));
+  return keys;
+}
+
+// Recursively collect *.jsx under a dir (mobile + pages are flat today, but a walk
+// future-proofs the `**/*.jsx` scope).
+function collectJsx(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...collectJsx(full));
+    else if (/\.jsx$/.test(ent.name)) out.push(full);
+  }
+  return out;
+}
+
+// FATAL check: scan for bare slash-opacity color tokens whose numeric value is NOT in the
+// VALID set (DEFAULT scale ∪ configured extend.opacity). Bracket values (`/[0.12]`) never
+// match the regex (a `[` follows the slash), so they're implicitly ignored. Returns
+// formatted `file:line  class  — message` lines.
+function checkBareOpacity(scanDirs, configPath) {
+  const valid = new Set([...DEFAULT_OPACITY_SCALE, ...readConfiguredOpacity(configPath)]);
+  const tokenRe = /\b(bg|text|border|ring|fill|stroke|from|via|to)-[a-z]+(?:-[0-9]+)?\/([0-9]{1,3})\b/g;
+  const root = path.join(__dirname, '..');
+  const fatal = [];
+  for (const dir of scanDirs) {
+    for (const file of collectJsx(dir)) {
+      const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
+      const rel = path.relative(root, file).replace(/\\/g, '/');
+      lines.forEach((line, i) => {
+        let m;
+        tokenRe.lastIndex = 0;
+        while ((m = tokenRe.exec(line)) !== null) {
+          if (valid.has(Number(m[2]))) continue;
+          fatal.push(`${rel}:${i + 1}  ${m[0]}  — non-scale bare opacity compiles to transparent — use a value in theme.opacity, add it to tailwind.config.js theme.extend.opacity, or use bracket /[0.NN]`);
+        }
+      });
+    }
+  }
+  return fatal;
+}
+
 function main() {
   const strict = process.argv.includes('--strict');
   const files = fs.readdirSync(MOBILE_DIR).filter((f) => /^Mobile.*\.jsx$/.test(f)).sort();
@@ -208,6 +272,17 @@ function main() {
       console.log('\nDynamicBottomBar.jsx  [dock/FAB]');
       dockFatal.forEach((r) => { console.log(`  ✗ FATAL  ${r} is in routeOwnsAction but has NO getRouteOwnedMobileAction branch -> the dock collapses to a lone pill (left-pill + FAB grammar broken)`); fatalCount++; });
     }
+  }
+
+  // Bare slash-opacity guard (see checkBareOpacity above). Scans mobile + pages JSX
+  // against the DEFAULT scale ∪ tailwind.config.js theme.extend.opacity keys.
+  const opacityFatal = checkBareOpacity(
+    [MOBILE_DIR, path.join(__dirname, '..', 'src', 'components', 'pages')],
+    path.join(__dirname, '..', 'tailwind.config.js'),
+  );
+  if (opacityFatal.length) {
+    console.log('\n[bare-opacity]  non-scale bare opacity → transparent tint');
+    opacityFatal.forEach((m) => { console.log(`  ✗ FATAL  ${m}`); fatalCount++; });
   }
 
   for (const file of files) {

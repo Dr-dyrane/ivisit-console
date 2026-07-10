@@ -101,6 +101,7 @@ Consult this BEFORE re-deciding an element; extend it when a decision lands. `gi
 | Loading truth | Replace-in-place: skeleton only on first assembly, Updating pill for refetches, no entrance stagger (froze a panel at 39% opacity once) | lessons 15/16, `9bc448bb` |
 | One canonical render | ViewToggle/density variants retired (Requests, then Visits) | `9bc448bb` |
 | Cost column | CUT ("less is more, cut it") — live data never carried it | Visits conversion |
+| **Bare slash-opacity is a token** | Tailwind compiles `bg-/text-/border-/ring-*/N` ONLY when `N` ∈ `theme.opacity`; a non-scale value (`/12 /34 /85`…) silently renders TRANSPARENT (tint gone, icon still shows → invisible). Fix: a scale value, a `theme.extend.opacity` step (full used set is the source of truth in `tailwind.config.js`; a `check-mobile-grammar.js` guard fails the build on any bare opacity outside it), or bracket `/[0.NN]`. Corollary: harnesses gate STRUCTURE not COMPUTED render — verify surfaces with `getComputedStyle`, not source pins. Full rule → `MOBILE_DESIGN_SYSTEM.md` Decisions log 2026-07-10. | opacity-hygiene fix `tailwind.config.js` |
 
 ## 4. Adoption status
 

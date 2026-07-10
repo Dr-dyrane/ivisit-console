@@ -74,7 +74,12 @@ export const MobileKPIStrip = ({
                 {allKpis.map((kpi, idx) => {
                     const isActive = activeKpi === kpi.id;
                     const hasCount = kpi.value !== undefined && kpi.value !== null && kpi.value !== '';
-                    // Compact state CHIP (rounded-pill): dot + label + count; active = brand fill.
+                    const chipColor = kpi.color || 'hsl(var(--primary))';
+                    // Compact state CHIP (rounded-pill): dot + label + count.
+                    // Active = a subtle TINT of the chip's OWN status hue (borderless fill,
+                    // no brand-red): "Needs attention" reads red, "Available" reads emerald,
+                    // the neutral "All"/"Staff" chip stays muted — active hue matches meaning.
+                    // Label stays text-foreground so contrast holds on every hue + both themes.
                     // Replaces the old stat-rectangle — Mobile DS "state filter = chip row".
                     return (
                         <motion.button
@@ -85,15 +90,18 @@ export const MobileKPIStrip = ({
                             aria-pressed={isActive}
                             data-state={isActive ? 'selected' : 'idle'}
                             className={`shrink-0 flex items-center gap-2 rounded-pill px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition-[background,transform] duration-200 ease-out ${isActive
-                                ? 'bg-primary text-primary-foreground'
+                                ? 'text-foreground'
                                 : 'bg-foreground/[0.06] dark:bg-white/[0.08] text-muted-foreground backdrop-blur-xl active:bg-foreground/[0.1]'
                                 }`}
-                            style={{ WebkitTapHighlightColor: 'transparent' }}
+                            style={{
+                                WebkitTapHighlightColor: 'transparent',
+                                ...(isActive ? { backgroundColor: `color-mix(in srgb, ${chipColor} 20%, transparent)` } : null)
+                            }}
                         >
                             {!isActive && (
                                 <span
                                     className="h-1.5 w-1.5 shrink-0 rounded-pill"
-                                    style={{ backgroundColor: kpi.color || 'hsl(var(--primary))' }}
+                                    style={{ backgroundColor: chipColor }}
                                     aria-hidden="true"
                                 />
                             )}
