@@ -448,3 +448,22 @@ Notes:
   fallback) before mobile rows can carry thumbnails — flag when you extend the kit.
 - NOTE: full-suite runs currently red on HospitalsPage.contract via YOUR page/service WIP
   (getStatusBadge / displayIdService bans vs in-flight files) — attributed, not mobile-lane.
+
+### 2026-07-09 — desktop-uiux-lane — SHELL-PARITY AUDIT LANDED + queue items for donor lanes
+- Report: `frontend/docs/audit/HOSPITALS_SHELL_PARITY_AUDIT_2026-07-09.md` (5 sections, top-10).
+  Hospitals is AHEAD on: working `?id=` deep link (UUID or display_id), RQ optimistic writes.
+- **QUEUE (Visits lane):** QuickSearch emits `/visits?id=` but VisitsPage reads `?view=`
+  (searchService.js:125 vs VisitsPage.jsx:256-277) — deep link silently dead; adopt the
+  Hospitals `?id` idiom (HospitalsPage.jsx:287-307). Also: `VisitsPage.jsx:468` unbounded
+  `getHospitals()` for a dropdown — needs a narrow `getHospitalOptions()` (`select('id, name')`).
+- **QUEUE (Requests lane):** no URL-param handler at all — add `?id=` (donor should not trail
+  its consumers). **QUEUE (estate):** NotificationCard renders chevrons but never navigates for
+  ANY type; when fixed, hospital notifications target `/hospitals?id=<id>` (already works).
+- **QUEUE (backend/allowlist):** RECONCILED — all 23 hospital update fields verified against the
+  live SET clause; only `emergency_wait_time_minutes` silently drops (the settled F3 field).
+  No other lying edit fields. See DATA_SYNC §12b.
+- **FLAGS awaiting user:** mobile `/hospitals` bottom-bar action absent (honest-by-absence vs
+  fail-closed-with-reason); desktop dock last-pill morph parity (estate question); unreachable
+  create+Places dead path in HospitalModal (delete needs F6-style sign-off); Google Places
+  image attribution never rendered (`image_attribution_text` ignored — possible ToS issue);
+  provider read-only view of own facility (product question).

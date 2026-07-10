@@ -324,3 +324,15 @@ read-only). Findings, binding for ALL lanes:
    (0 importers; fleet belongs to the Ambulances domain — user sign-off).
 
 Full register: `docs/audit/HOSPITALS_REVAMP_CONSTITUTION_2026-07-09.md` §4.
+
+### 12b. Full allowlist reconciliation vs the live SET clause (2026-07-09, follow-up)
+
+The shell-parity audit queued "reconcile all 23 `HOSPITAL_UPDATE_FIELDS` against the live RPC".
+Done via the same read-only introspection: **22 of 23 allowlisted columns ARE in the live SET
+clause** — `image`, `place_id`, `wait_time`, `verified`, `verification_status` and the rest are
+all genuinely writable (COALESCE-guarded). The ONLY silent drop remains
+`emergency_wait_time_minutes` (the settled F3 read-only field). The edit form is honest
+everywhere else — no further F3-class liars exist in this domain. Bonus facts from the live
+definition: `bed_availability` (jsonb) is COALESCE-writable live (console doesn't send it —
+fine), and `last_availability_update` auto-bumps server-side whenever any bed field is present
+in the payload, so the rail "Updated" fact is genuinely operational, not editorial.
