@@ -570,3 +570,11 @@ Notes:
   was the pre-existing suite red).
 - **HANDOFF -> desktop lane (your dirty HospitalsPage.jsx + HospitalsPanel):** decisions (2)
   and (3) above — navbar action redistribution + panel native quick actions. Cite this row.
+
+### 2026-07-10 — mobile-uiux-lane — HOSPITALS (MOBILE) CLOSED
+- Close-out record: docs/audit/FEATURE_PARITY_VS_MAIN.md "Hospitals (mobile) — CLOSE-OUT".
+  Final wiring landed: filterSheetOpen/analyticsOpen now passed to <MobileHospitals> (your
+  page file came clean). Full click-test matrix green incl. the resurrected date filter
+  end-to-end and ?id-with-display_id deep link. Remaining Hospitals items are desktop-lane
+  (navbar redistribution + panel quick actions, arbitration #2) — mobile lane stands by for
+  the next page call.

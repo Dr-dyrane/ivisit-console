@@ -171,3 +171,30 @@ receiver proof. Edit is the only surviving command (canManage). **Unintentional:
    command authority gated), `profile_id` (driver identity needs a name-join receiver;
    enrichment candidate recorded, service change deferred to avoid the desktop lane's
    in-flight service work).
+
+### Hospitals (mobile) — CLOSE-OUT, 2026-07-10
+
+**Live click-test matrix (all verified on the running app, mobile viewport):**
+search debounce + clear-x + server commit ✓ · KPI chips filter + scope-aware heading count
+("1417 hospitals" under Available) ✓ · "Registered On" date filter END-TO-END through the
+sheet UI (2020 range → "0 hospitals", filtered-empty, Reset Filters recovery, trigger
+data-state=filtered) ✓ · filter trigger open/filtered/idle truth ✓ · load-more ACCUMULATES
+(21→40; arm → scroll-to-load grammar) ✓ · scope-change placeholder poisoning fixed +
+re-verified (no-match search → honest empty, recover → full list) ✓ · capacity-first panels
+with real data (5 reporting / 15 silent) ✓ · detail sheet: all islands, tel:/maps hrefs,
+display_id label ✓ · `?id` deep link with a DISPLAY_ID (HSP-42ECCF → CMH Subhan view modal
+auto-open; F12 round-trip fear unfounded for live rows) ✓ · degraded banner + error-aware
+empty ✓ · dock left-pill + FAB grammar, FAB → facility approvals queue with Facilities tab
+preselect ✓ · fail-closed create toast preserved (desktop pill + ?add=true) ✓.
+
+**Open items, with owners (none block the mobile close):**
+desktop navbar working-actions redistribution + panel native quick actions (arbitration #2 —
+desktop lane, ledgered) · donor accumulator placeholder-poisoning port to MobileVisits/
+MobileEmergency + kit useScopeAccumulator extraction (mobile lane, next page-scope window) ·
+onboarding phantom columns (baselined data-contract debt) · one transient: a mid-edit HMR
+chunk of the lane's dirty HospitalModal crashed the page during testing (ReferenceError:
+isCreate) — clean tree reproduces nothing; noted per Lesson 4, their commit gate owns it.
+
+**Verdict: mobile Hospitals CLOSED.** Zero unintentional baseline drops (pre-rebuild
+changelog), grammar-conformant (LIST + directory expression, locked in DS §5), data-fitted
+rows, every control click-tested, all pins green.

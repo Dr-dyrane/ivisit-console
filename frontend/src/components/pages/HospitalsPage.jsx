@@ -755,6 +755,8 @@ export const HospitalsPage = () => {
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
           onOpenFilters={handleOpenFilters}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
           canDelete={false}
