@@ -7,6 +7,16 @@ module.exports = {
   ],
   theme: {
         extend: {
+                // Opacity scale extended with the non-default steps the design system's
+                // surface tints actually use (12/14/15/34/...). Tailwind's bare slash
+                // color-opacity modifier (e.g. `bg-emerald-500/12`) only compiles values
+                // present in theme.opacity; without these, those tinted surfaces — avatar
+                // orbs, status discs, destructive buttons — silently rendered TRANSPARENT
+                // (the tint was authored but never generated). 2026-07-10 surface-hygiene fix.
+                opacity: {
+                        8: '0.08', 12: '0.12', 14: '0.14', 15: '0.15', 18: '0.18', 22: '0.22',
+                        34: '0.34', 35: '0.35', 45: '0.45', 55: '0.55', 65: '0.65', 85: '0.85', 88: '0.88',
+                },
                 borderRadius: {
                         lg: 'var(--radius)',
                         md: 'calc(var(--radius) - 2px)',
