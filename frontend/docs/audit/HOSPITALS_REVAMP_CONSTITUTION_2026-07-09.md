@@ -102,7 +102,14 @@ unverified reads, completed-counts-as-occupied inflation, unbounded read, toast-
   importers verified twice). Fleet management belongs to the Ambulances page domain.
 - F13 dormant capacity writers stay unwired (fail-closed).
 
-## 5. The plan (Visits/Requests precedent, one page at a time)
+## 5. The plan (Visits/Requests precedent, one page at a time) — **LANDED `377e0850` (2026-07-09)**
+
+> Executed as written, plus the shell-parity audit's additions (single-owner toasts, INSERT
+> arrival toast, best-effort notification, rail operational insights, donor header pill, panel
+> gating, dead context-action removal). Deferred WITH a reason: HospitalModal ReadOnlyField
+> view-mode conversion waits for the create+Places dead-path FLAG decision (same regions, one
+> restructure). Verified: suites 53/53, donor-diff domain-only deltas, data-contract clean,
+> mojibake clean. Hardgate reds are pre-existing non-hospitals debt (ledger).
 
 Compose `console/*`: WorkspaceStage/atlas/dock (page has NONE today — grid layout, 320-360 rail,
 no wayfinding), SignalPanel (+ keep the beds/fleet pills as children), KpiStrip (max-3

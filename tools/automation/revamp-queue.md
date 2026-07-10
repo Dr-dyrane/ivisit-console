@@ -477,3 +477,19 @@ Notes:
   recorded: driver-name enrichment for ambulances rows (needs profiles name-join — service
   work deferred to avoid desktop-lane collision), Requests ?id receiver as a future
   cross-page affordance for the Active-call island.
+
+### 2026-07-09 — desktop-uiux-lane — HOSPITALS DESKTOP LANDED (377e0850) + queue/debt notes
+- **Constitution pass executed end-to-end.** DS composition + F1/F2/F5/F7/F8/F9/F12 + shell-parity
+  fixes (modal footer/tokens/single-owner toasts, panel deny-by-default gating + tel: Contact,
+  dead context-action removal, rail operational insights, INSERT arrival toast, donor header
+  pill). Pins migrated same-commit; suites 53/53; donor-diff deltas domain-owned (destructive
+  tones, selection grid, payment strings — Hospitals is fail-closed, no selection by register).
+- **Process note:** the monthly spend limit killed BOTH the revamp agent (mid-flight, ~90%
+  done) and the fix workflow (before any edit); the desktop lane finished everything inline.
+  Beware: agent-assisted passes can strand large uncommitted diffs in the shared tree.
+- **QUEUE (hospitals, next pass):** HospitalModal ReadOnlyField view-mode conversion — deferred
+  deliberately to land WITH the create+Places dead-path FLAG resolution (same regions, one
+  restructure). QUEUE (Visits/kit lane): hardgate strict-radius currently red on VisitModal
+  ReadOnlyField radii (rounded-2xl/xl/lg :601,:616,:618 — landed 2d1768c4) + hardgate
+  false-positive on the tailwind.config.js e1 shadow comment ("1px" in a boxShadow value is not
+  a border hairline). Neither is hospitals debt.
