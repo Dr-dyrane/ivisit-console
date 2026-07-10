@@ -30,7 +30,7 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
 
     return (
         <div className={`mb-3 px-1 ${className}`}>
-            <div className="relative bg-muted/40 rounded-inner p-2 flex items-center gap-2 overflow-x-auto no-scrollbar" {...bind}>
+            <div className="relative surface-card rounded-inner p-2 flex items-center gap-2 overflow-x-auto no-scrollbar" {...bind}>
                 {actions.map((action) => {
                     const Icon = action.icon;
                     const tone = action.tone || 'neutral';
@@ -50,7 +50,7 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
                                     sound: true
                                 });
                             }}
-                            className={`h-9 rounded-pill text-[10px] uppercase tracking-[0.14em] whitespace-nowrap px-3 inline-flex items-center justify-center gap-1.5 transition-[color,background,transform] duration-200 ${active ? 'bg-[hsl(var(--spark)/0.10)]' : 'bg-transparent'} ${toneClasses[tone] || toneClasses.neutral}`}
+                            className={`h-9 rounded-pill text-[11px] font-semibold whitespace-nowrap px-3 inline-flex items-center justify-center gap-1.5 transition-[color,background,transform] duration-200 ${active ? 'bg-[hsl(var(--spark)/0.10)]' : 'bg-transparent'} ${toneClasses[tone] || toneClasses.neutral}`}
                         >
                             {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
                             <span>{action.label}</span>

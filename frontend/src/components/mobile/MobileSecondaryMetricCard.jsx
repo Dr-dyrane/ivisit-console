@@ -54,7 +54,7 @@ export const MobileSecondaryMetricCard = ({
             <Comp
                 type={isInteractive ? 'button' : undefined}
                 onClick={handleClick}
-                className={`w-full min-w-0 p-4 bg-muted/40 rounded-button flex items-center justify-between text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.988] cursor-pointer transform-gpu' : ''}`}
+                className={`w-full min-w-0 p-4 surface-card rounded-button flex items-center justify-between text-left ${isInteractive ? 'transition-[transform,background-color] duration-200 hover:bg-foreground/[0.07] active:bg-foreground/[0.08] dark:hover:bg-white/[0.09] dark:active:bg-white/[0.10] active:scale-[0.988] cursor-pointer transform-gpu' : ''}`}
             >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     {Icon && (
@@ -83,7 +83,7 @@ export const MobileSecondaryMetricCard = ({
         <Comp
             type={isInteractive ? 'button' : undefined}
             onClick={handleClick}
-            className={`relative w-full min-w-0 p-4 bg-muted/40 rounded-button overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.988] cursor-pointer transform-gpu' : ''}`}
+            className={`relative w-full min-w-0 p-4 surface-card rounded-button overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color] duration-200 hover:bg-foreground/[0.07] active:bg-foreground/[0.08] dark:hover:bg-white/[0.09] dark:active:bg-white/[0.10] active:scale-[0.988] cursor-pointer transform-gpu' : ''}`}
         >
             {Icon && <Icon className="absolute top-3 right-3 h-4 w-4 text-foreground/30" />}
             <div className="flex flex-col pr-6 min-w-0 flex-1">
@@ -93,7 +93,7 @@ export const MobileSecondaryMetricCard = ({
             <div className="flex flex-col items-end shrink-0 pl-2">
                 <span className="text-xl font-medium tracking-tighter font-dashboard-numbers whitespace-nowrap">{value}</span>
                 {trendText ? (
-                    <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 whitespace-nowrap">
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70 whitespace-nowrap">
                         {trendDirection === 'up' && <ArrowUpRight className={`h-3 w-3 ${trendUpClass}`} />}
                         {trendDirection === 'down' && <ArrowDownRight className={`h-3 w-3 ${trendDownClass}`} />}
                         {(!trendDirection || trendDirection === 'flat') && <Minus className={`h-3 w-3 ${trendFlatClass}`} />}

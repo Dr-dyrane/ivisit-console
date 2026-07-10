@@ -51,7 +51,7 @@ export const UsersPanel = ({
     <div className="space-y-4">
       {/* Quick Stats */}
       <div className="space-y-2">
-        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Live Statistics</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ml-1">Live statistics</h3>
         <div className="grid grid-cols-2 gap-2">
           <div className="p-4 bg-muted rounded-card flex flex-col gap-1 group">
             <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export const UsersPanel = ({
 
       {/* Role Distribution */}
       <div className="space-y-1.5">
-        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Roles</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ml-1">Roles</h3>
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between p-3 rounded-inner bg-amber-500/10 transition-colors hover:bg-amber-500/15">
             <div className="flex items-center gap-2">
@@ -131,10 +131,10 @@ export const UsersPanel = ({
 
       {/* Recent Activity */}
       <div className="space-y-2">
-        <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Recent logins</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ml-1">Recent logins</h3>
         <div className="space-y-1">
           {recentUsers.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4 bg-white/5 rounded-card">
+            <p className="text-xs text-muted-foreground text-center py-4 surface-card rounded-card">
               No recent activity
             </p>
           ) : (
@@ -142,7 +142,7 @@ export const UsersPanel = ({
               <div
                 key={user.id}
                 onClick={() => onViewUser(user)}
-                className="flex items-center justify-between p-2 rounded-inner bg-white/5 hover:bg-white/10 transition-all cursor-pointer group"
+                className="flex items-center justify-between p-2 rounded-inner surface-card hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -156,8 +156,8 @@ export const UsersPanel = ({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[8px] font-bold text-muted-foreground">Sign In</p>
-                  <p className="text-[10px] whitespace-nowrap">{new Date(user.last_sign_in_at).toLocaleDateString()}</p>
+                  <p className="text-[11px] font-semibold text-muted-foreground">Sign in</p>
+                  <p className="text-[11px] whitespace-nowrap">{new Date(user.last_sign_in_at).toLocaleDateString()}</p>
                 </div>
               </div>
             ))
@@ -168,20 +168,20 @@ export const UsersPanel = ({
       {/* Verification Overview */}
       {statistics && (
         <div className="space-y-2">
-          <h3 className="font-bold text-[10px] tracking-[0.2em] text-muted-foreground ml-1">Trust Score</h3>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ml-1">Trust score</h3>
           <div className="p-4 bg-emerald-500/10 rounded-card flex items-center justify-around">
             <div className="text-center">
               <div className="text-xl font-bold text-emerald-700 dark:text-emerald-200">
                 {Math.round((verifiedCount / users.length) * 100)}%
               </div>
-              <p className="text-[8px] text-muted-foreground">Verified</p>
+              <p className="text-[11px] text-muted-foreground">Verified</p>
             </div>
             <div className="h-8 w-1 rounded-pill bg-foreground/10" />
             <div className="text-center">
               <div className="text-xl font-bold text-foreground">
                 {users.length - verifiedCount}
               </div>
-              <p className="text-[8px] text-muted-foreground">Pending</p>
+              <p className="text-[11px] text-muted-foreground">Pending</p>
             </div>
           </div>
         </div>

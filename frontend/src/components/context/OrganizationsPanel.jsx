@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
     Building2,
     Users2,
@@ -23,12 +22,9 @@ export const OrganizationsPanel = ({ organizations = [], summary = null }) => {
 
     return (
         <div className="space-y-4">
+            {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
             {/* Network Overview */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-2"
-            >
+            <div className="space-y-2">
                 <h3 className="font-semibold text-[10px] tracking-[0.14em] text-muted-foreground ml-1">Network Hub</h3>
 
                 <div className="bg-emerald-500/15 p-4 rounded-card flex items-center justify-between group transition-all">
@@ -61,7 +57,7 @@ export const OrganizationsPanel = ({ organizations = [], summary = null }) => {
                         <p className="font-bold text-sm">{totalOrgs} Verified</p>
                     </div>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Operations */}
             <div className="grid grid-cols-3 gap-2">
@@ -71,7 +67,7 @@ export const OrganizationsPanel = ({ organizations = [], summary = null }) => {
                     className="flex flex-col items-center justify-center gap-2 p-3 rounded-button bg-muted hover:bg-muted/70 transition-all group"
                 >
                     <Plus className="h-5 w-5 text-muted-foreground group-hover:rotate-90 transition-transform" />
-                    <span className="text-[8px] font-semibold tracking-[0.14em] text-muted-foreground">Onboard</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">Onboard</span>
                 </button>
                 <button
                     type="button"
@@ -80,7 +76,7 @@ export const OrganizationsPanel = ({ organizations = [], summary = null }) => {
                     className="flex flex-col items-center justify-center gap-2 p-3 rounded-button bg-muted group opacity-60 cursor-not-allowed"
                 >
                     <TrendingUp className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
-                    <span className="text-[8px] font-semibold tracking-[0.14em] text-muted-foreground">Growth</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">Growth</span>
                 </button>
                 <button
                     type="button"
@@ -89,12 +85,12 @@ export const OrganizationsPanel = ({ organizations = [], summary = null }) => {
                     className="flex flex-col items-center justify-center gap-2 p-3 rounded-button bg-muted dark:bg-white/5 group opacity-60 cursor-not-allowed"
                 >
                     <BarChart3 className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
-                    <span className="text-[8px] font-semibold tracking-[0.14em] text-muted-foreground">Pulse</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">Pulse</span>
                 </button>
             </div>
 
             {/* Bottom Alert */}
-            <div className="p-4 rounded-inner bg-white/5 flex items-center gap-3">
+            <div className="p-4 rounded-inner surface-card flex items-center gap-3">
                 <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center flex-shrink-0">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                 </div>

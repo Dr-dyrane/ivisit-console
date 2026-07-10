@@ -46,12 +46,9 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
             </Card>
           )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-3"
-          >
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">News Overview</h3>
+          {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">News overview</h3>
 
             <Card className="bg-background/50 backdrop-blur-xs rounded-card p-4">
               <div className="flex items-center justify-between">
@@ -93,19 +90,14 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 </div>
               </Card>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-3"
-          >
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick Actions</h3>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Panel actions</h3>
 
             <div className="grid grid-cols-2 gap-2">
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={handleFilters}
                 className="flex flex-col items-center gap-2 rounded-inner bg-sky-500/10 p-3 text-sky-700 transition-colors hover:bg-sky-500/18 dark:text-sky-200"
                 title="Filter Articles"
@@ -115,7 +107,7 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
               </motion.button>
 
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={handleAnalytics}
                 className="flex flex-col items-center gap-2 rounded-inner bg-emerald-500/10 p-3 text-emerald-700 transition-colors hover:bg-emerald-500/18 dark:text-emerald-200"
                 title="View Analytics"
@@ -124,15 +116,10 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 <span className="font-normal text-xs">Analytics</span>
               </motion.button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-3"
-          >
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Recent Articles</h3>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Recent articles</h3>
 
             <div className="space-y-2">
               {recentNews.map((news) => (
@@ -159,7 +146,7 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </>
       )}
     </div>

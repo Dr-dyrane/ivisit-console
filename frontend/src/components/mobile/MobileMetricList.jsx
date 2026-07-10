@@ -73,7 +73,7 @@ export const MobileSectionHeader = ({
                     </button>
                 )}
                 {count !== undefined && (
-                    <span className="text-[10px] font-semibold text-muted-foreground/50 bg-white/5 px-2 py-1 rounded-pill">
+                    <span className="text-[11px] font-semibold text-muted-foreground/60 surface-card px-2 py-1 rounded-pill">
                         {count}
                     </span>
                 )}
@@ -86,15 +86,15 @@ export const MobileSectionHeader = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={mobileMotion.base}
-                    className="mt-2 px-2 py-1.5 rounded-inner bg-[hsl(var(--spark)/0.08)] shadow-[0_12px_28px_hsl(var(--spark)/0.10)] flex items-center justify-between gap-2"
+                    className="mt-2 px-2 py-1.5 rounded-inner bg-[hsl(var(--spark)/0.08)] flex items-center justify-between gap-2"
                 >
-                    <span className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.95)]">
-                        Selection Mode - {selectedCount} selected
+                    <span className="text-[11px] font-semibold text-[hsl(var(--spark)/0.95)]">
+                        Selection mode - {selectedCount} selected
                     </span>
                     {typeof onClearSelection === 'function' && (
                         <button
                             onClick={handleClearSelection}
-                            className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.92)] px-2 py-1 rounded-button bg-[hsl(var(--spark)/0.10)]"
+                            className="text-[11px] font-semibold text-[hsl(var(--spark)/0.92)] px-2 py-1 rounded-button bg-[hsl(var(--spark)/0.10)]"
                         >
                             Clear
                         </button>
@@ -277,14 +277,9 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10 shadow-[0_0_0_2px_hsl(var(--foreground)/0.12)]' : isCurrentlyExpanded ? 'rounded-t-button bg-card dark:bg-white/[0.08] -translate-y-0.5' : 'rounded-button bg-card dark:bg-white/[0.055] active:bg-black/[0.02] dark:active:bg-white/[0.09]'
+                className={`w-full flex items-center gap-3 p-3 relative overflow-hidden group select-none transition-[background,transform] duration-200 ease-out ${isSelected ? 'rounded-button bg-foreground/10' : isCurrentlyExpanded ? 'rounded-t-button surface-card -translate-y-0.5' : 'rounded-button surface-card active:bg-black/[0.02] dark:active:bg-white/[0.09]'
                     }`}
-                style={{
-                    WebkitTapHighlightColor: 'transparent',
-                    WebkitTouchCallout: 'none',
-                    WebkitUserSelect: 'none',
-                    userSelect: 'none'
-                }}
+                style={{ WebkitTouchCallout: 'none' }}
             >
                 <AnimatePresence>
                     {ripple && (
@@ -310,10 +305,7 @@ export const MobileMetricRow = ({
                     never a left-side accent bar (CONSOLE_DESIGN_SYSTEM_FROM_APP.md). */}
                 <div
                     className={`w-9 h-9 rounded-icon flex items-center justify-center shrink-0 relative z-10 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
-                    style={{
-                        background: `${color.replace(/\)$/, ' / 0.12)')}`,
-                        boxShadow: isSelected ? `0 0 0 3px ${color.replace(/\)$/, ' / 0.16)')}` : 'none'
-                    }}
+                    style={{ background: `${color.replace(/\)$/, ' / 0.12)')}` }}
                 >
                     {Icon && <Icon size={16} className="opacity-95" style={{ color }} />}
 
@@ -332,7 +324,7 @@ export const MobileMetricRow = ({
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/85">
+                    <p className="text-[11px] font-medium mb-0.5 truncate text-muted-foreground/85">
                         {label}
                     </p>
                     <div className="flex items-center gap-2 min-w-0">
@@ -369,8 +361,7 @@ export const MobileMetricRow = ({
                         <div
                             className="relative min-w-[118px] max-w-[132px] h-9 rounded-inner px-2.5 py-1 overflow-hidden"
                             style={{
-                                background: `linear-gradient(120deg, ${blade.color.replace(/\)$/, ' / 0.16)')}, ${blade.color.replace(/\)$/, ' / 0.04)')})`,
-                                boxShadow: `0 0 14px ${blade.color.replace(/\)$/, ' / 0.16)')}`
+                                background: `linear-gradient(120deg, ${blade.color.replace(/\)$/, ' / 0.16)')}, ${blade.color.replace(/\)$/, ' / 0.04)')})`
                             }}
                         >
                             <div
@@ -379,17 +370,17 @@ export const MobileMetricRow = ({
                             />
                             <div className="relative z-10 h-full flex items-center gap-2">
                                 {blade.badge && (
-                                    <span className="inline-flex shrink-0 rounded-pill px-1.5 py-0.5 text-[8px] font-semibold leading-none tracking-wide text-foreground/90 bg-black/10 dark:bg-white/10">
-                                        {blade.direction === 'up' && <TrendingUp size={8} className="mr-1 text-emerald-500" />}
-                                        {blade.direction === 'down' && <TrendingDown size={8} className="mr-1 text-destructive" />}
+                                    <span className="inline-flex shrink-0 rounded-pill px-1.5 py-0.5 text-[11px] font-semibold leading-none text-foreground/90 bg-black/10 dark:bg-white/10">
+                                        {blade.direction === 'up' && <TrendingUp size={10} className="mr-1 text-emerald-500" />}
+                                        {blade.direction === 'down' && <TrendingDown size={10} className="mr-1 text-destructive" />}
                                         {blade.badge}
                                     </span>
                                 )}
                                 <div className="min-w-0 leading-none">
-                                    <p className="text-[7px] font-medium uppercase tracking-[0.1em] text-foreground/65 truncate">
+                                    <p className="text-[11px] font-medium leading-none text-foreground/65 truncate">
                                         {blade.label || 'Signal'}
                                     </p>
-                                    <p className="mt-0.5 text-[10px] font-semibold tracking-tight text-foreground truncate font-dashboard-numbers">
+                                    <p className="mt-0.5 text-[11px] font-semibold leading-none tracking-tight text-foreground truncate font-dashboard-numbers">
                                         {blade.value}
                                     </p>
                                 </div>
@@ -423,7 +414,7 @@ export const MobileMetricRow = ({
                     >
                         <div className="px-3 pt-3 pb-1 flex items-center gap-2">
                             <div className="w-1 h-1 rounded-pill opacity-70" style={{ backgroundColor: color }} />
-                            <span className="text-[8px] uppercase tracking-[0.16em] font-medium text-foreground/45">Detail Layer</span>
+                            <span className="text-[11px] font-medium text-foreground/55">Detail layer</span>
                         </div>
                         <div className="p-3 pt-2 text-[11px] text-muted-foreground/80 tracking-tight leading-relaxed font-medium">
                             {typeof expandedContent === 'string'

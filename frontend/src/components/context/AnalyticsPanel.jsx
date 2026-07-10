@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   BarChart3,
   TrendingUp,
@@ -26,12 +25,9 @@ export const AnalyticsPanel = () => {
 
   return (
     <div className="space-y-4">
+      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
       {/* Overview */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="space-y-2"
-      >
+      <div className="space-y-2">
         <h3 className="font-semibold text-[10px] uppercase tracking-[0.14em] text-muted-foreground ml-1">Overview</h3>
 
         <div className="bg-muted/20 p-4 rounded-card flex items-start gap-3">
@@ -57,15 +53,10 @@ export const AnalyticsPanel = () => {
             <span className="inline-flex items-center rounded-pill bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{SOURCE_PENDING_LABEL}</span>
           </div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-2"
-      >
+      {/* Panel actions */}
+      <div className="space-y-2">
         <h3 className="font-semibold text-[10px] uppercase tracking-[0.14em] text-muted-foreground ml-1">Reporting</h3>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -95,7 +86,7 @@ export const AnalyticsPanel = () => {
         <p role="status" aria-live="polite" className="px-1 text-xs leading-5 text-muted-foreground">
           {panelNotice}
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 };

@@ -134,7 +134,7 @@ export const MobileListEmpty = ({
                             sound: true
                         });
                     }}
-                    className="mt-3 h-8 px-3 rounded-button text-[10px] uppercase tracking-[0.14em] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
+                    className="mt-3 h-8 px-3 rounded-button text-[11px] font-semibold bg-[hsl(var(--spark)/0.10)] text-[hsl(var(--spark)/0.94)]"
                 >
                     {recoverLabel || fallbackRecoverLabel}
                 </motion.button>

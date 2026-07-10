@@ -79,16 +79,34 @@ export const MobileSupportTickets = ({
     resolved: Number(stats?.resolved) || tickets.filter((ticket) => ticket.status === 'resolved').length,
   }), [stats, tickets]);
 
+  // Semantic tokens (--success/--warning/--info) collapse to crimson in this theme
+  // (red-token trap); status hues use the raw vitalTracks accents instead.
   const kpis = [
-    { id: 'all', label: 'Requests', value: counts.total, color: 'hsl(var(--primary))' },
-    { id: 'open', label: 'Open', value: counts.open, color: 'hsl(var(--warning))' },
-    { id: 'in_progress', label: 'Active', value: counts.active, color: 'hsl(var(--info))' },
-    { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(var(--success))' },
+    { id: 'all', label: 'Requests', value: counts.total, color: 'hsl(var(--muted-foreground))' },
+    { id: 'open', label: 'Open', value: counts.open, color: 'hsl(26 90% 37%)' },
+    { id: 'in_progress', label: 'Active', value: counts.active, color: 'hsl(200 98% 39%)' },
+    { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(162 94% 24%)' },
   ];
 
   const handleSearch = (event) => {
     setFilters((current) => ({ ...current, search: event.target.value }));
   };
+
+  // Date-grouped feed (rollout S5): newest-first. Grouping is render-only; the month
+  // header carries a tabular count (group-header canon, DS v1.2 §3).
+  const groupedTickets = useMemo(
+    () => groupByMonth(displayItems, (ticket) => ticket?.created_at),
+    [displayItems]
+  );
+  const monthCounts = useMemo(() => {
+    const monthTotals = {};
+    let current = null;
+    groupedTickets.forEach(({ header }) => {
+      if (header) current = header;
+      if (current) monthTotals[current] = (monthTotals[current] || 0) + 1;
+    });
+    return monthTotals;
+  }, [groupedTickets]);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -104,9 +122,9 @@ export const MobileSupportTickets = ({
         )}
         contentClassName="pt-4 pb-4 text-foreground"
       >
-        <section className="mb-3 rounded-card bg-card/72 p-4 shadow-[0_22px_64px_rgb(0_0_0/0.14)] backdrop-blur-xl dark:bg-card/46">
+        <section className="mb-3 rounded-card surface-card p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_14px_34px_hsl(var(--primary)/0.12)]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-foreground/[0.06] text-foreground dark:bg-white/[0.08]">
               <Headphones className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -123,7 +141,7 @@ export const MobileSupportTickets = ({
             <Button
               type="button"
               onClick={onRetry}
-              className="mt-4 h-10 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+              className="mt-4 h-10 rounded-button px-4 text-sm font-semibold"
             >
               Try again
             </Button>
@@ -138,14 +156,14 @@ export const MobileSupportTickets = ({
               placeholder="Search support"
               value={filters?.search || ''}
               onChange={handleSearch}
-              className="h-11 w-full rounded-button bg-card/72 pl-10 pr-4 text-[13px] shadow-inner placeholder:text-muted-foreground/45 transition-[background,box-shadow] focus-visible:bg-card/88 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] dark:bg-card/46"
+              className="h-11 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
             />
           </div>
           {onOpenFilters && (
             <button
               type="button"
               onClick={onOpenFilters}
-              className="flex h-11 w-11 items-center justify-center rounded-button bg-card/72 text-muted-foreground shadow-[0_14px_32px_rgb(0_0_0/0.10)] transition-[background,color,transform] active:scale-[0.96] hover:bg-card/88 hover:text-primary dark:bg-card/46"
+              className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all active:scale-[0.96] hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
               aria-label="Filter support"
             >
               <SlidersHorizontal size={18} />
@@ -155,7 +173,7 @@ export const MobileSupportTickets = ({
             <button
               type="button"
               onClick={onViewAnalytics}
-              className="flex h-11 w-11 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_14px_32px_hsl(var(--primary)/0.12)] transition-[background,transform] active:scale-[0.96] hover:bg-primary/15"
+              className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all active:scale-[0.96] hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
               aria-label="Open support analytics"
             >
               <BarChart3 size={18} />
@@ -166,30 +184,32 @@ export const MobileSupportTickets = ({
         <MobileSectionHeader
           label="Support queue"
           count={Number(stats?.total) || displayItems.length}
-          color="hsl(var(--primary))"
+          color="hsl(var(--muted-foreground))"
           labelTone="plain"
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {/* Date-grouped feed (rollout S5): newest-first, a month header at each
-                boundary. Grouping is render-only; id-keyed expand state is unaffected. */}
-            {groupByMonth(displayItems, (ticket) => ticket?.created_at).map(({ item: ticket, header }) => {
+            {/* Date-grouped feed (rollout S5): newest-first, a sentence-case bold month
+                header + tabular count at each boundary (group-header canon, DS v1.2 §3 —
+                the eyebrow is detail furniture only). Grouping is render-only. */}
+            {groupedTickets.map(({ item: ticket, header }) => {
               const vital = resolveVital('support', ticket.status);
               const resolved = ticket.status === 'resolved' || ticket.status === 'closed';
 
               return (
                 <React.Fragment key={ticket.id}>
                   {header && (
-                    <div className="px-2 pb-1 pt-3 eyebrow">
-                      {header}
+                    <div className="flex items-center justify-between px-2 pb-1 pt-3">
+                      <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{header}</span>
+                      <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{monthCounts[header]}</span>
                     </div>
                   )}
                   {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved
                       mobile design + desktop detail-rail behaviour — not an inline dropdown. */}
                   <MobileMetricRow
                     icon={resolved ? CheckCircle : Headphones}
-                    color={vital?.accent || 'hsl(var(--primary))'}
+                    color={vital?.accent || 'hsl(var(--muted-foreground))'}
                     label="Support request"
                     value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
                     secondary={`${priorityLabel(ticket.priority)} priority · ${categoryLabel(ticket.category)}`}
@@ -241,7 +261,7 @@ export const MobileSupportTickets = ({
               secondary={canManage ? { icon: Edit, onClick: () => { setActiveTicket(null); onEdit?.(activeTicket); }, 'aria-label': `Edit ${activeTicket.subject || 'support request'}` } : undefined}
             >
               {activeTicket.message && (
-                <div className="rounded-inner bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                <div className="rounded-inner surface-card p-3 text-xs leading-5 text-muted-foreground">
                   {activeTicket.message}
                 </div>
               )}
@@ -251,7 +271,7 @@ export const MobileSupportTickets = ({
                     <button
                       type="button"
                       onClick={() => { setActiveTicket(null); onAssign?.(activeTicket); }}
-                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-primary/10 text-sm font-semibold text-primary transition-transform active:scale-[0.96] hover:bg-primary/15"
+                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-foreground/[0.06] text-sm font-semibold text-foreground transition-all active:scale-[0.96] hover:bg-foreground/10 dark:bg-white/[0.08]"
                     >
                       <UserPlus className="h-4 w-4" />
                       Assign to me

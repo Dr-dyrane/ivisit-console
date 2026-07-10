@@ -129,16 +129,16 @@ export const MobileAnalytics = ({
     );
     const financeMetricRows = [
         {
-            label: 'Daily Yield',
+            label: 'Daily yield',
             value: formatFinanceValue(resolvedFinanceSummary.today),
             progress: hasFinanceData ? Math.min(100, Math.round(((Number(resolvedFinanceSummary.today) || 0) / financeScale) * 100)) : 0,
-            color: 'hsl(var(--success))'
+            color: 'hsl(162 94% 24%)'
         },
         {
-            label: 'Weekly Average',
+            label: 'Weekly average',
             value: formatFinanceValue((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7),
             progress: hasFinanceData ? Math.min(100, Math.round((((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7) / financeScale) * 100)) : 0,
-            color: 'hsl(var(--primary))'
+            color: 'hsl(200 98% 39%)'
         }
     ];
     const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0
@@ -156,23 +156,25 @@ export const MobileAnalytics = ({
         return responseTimeData.map(d => ({ value: d.avgTime }));
     }, [responseTimeData]);
 
+    // Semantic tokens (--success/--warning/--info/--secondary) collapse to crimson in
+    // this theme (red-token trap); status hues use the raw vitalTracks accents instead.
     const getKPIData = () => {
         if (isAdmin || isOrgAdmin || isSponsor) {
             return [
-                { label: 'Success', value: successValue, color: 'hsl(var(--success))', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
-                { label: 'Avg Time', value: avgTimeValue, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
+                { label: 'Success', value: successValue, color: 'hsl(162 94% 24%)', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
+                { label: 'Avg time', value: avgTimeValue, color: 'hsl(200 98% 39%)', delta: responseTrend.badge, direction: responseTrend.direction },
                 { label: 'Total', value: resolvedStats.totalEmergencies, color: 'hsl(var(--destructive))', delta: demandTrend.badge, direction: demandTrend.direction },
-                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-                { label: 'Subs', value: subscriberKpiValue, color: 'hsl(var(--info))', delta: subscriptionScopeLabel, direction: 'flat' }
+                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+                { label: 'Subs', value: subscriberKpiValue, color: 'hsl(200 98% 39%)', delta: subscriptionScopeLabel, direction: 'flat' }
             ];
         }
         return [
-            { label: 'My Success', value: successValue, color: 'hsl(var(--success))', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
-            { label: 'Responses', value: resolvedStats.totalEmergencies, color: 'hsl(var(--primary))', delta: demandTrend.badge, direction: demandTrend.direction },
-            { label: 'Avg Time', value: avgTimeValue, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
-            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' }
+            { label: 'My success', value: successValue, color: 'hsl(162 94% 24%)', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
+            { label: 'Responses', value: resolvedStats.totalEmergencies, color: 'hsl(var(--muted-foreground))', delta: demandTrend.badge, direction: demandTrend.direction },
+            { label: 'Avg time', value: avgTimeValue, color: 'hsl(200 98% 39%)', delta: responseTrend.badge, direction: responseTrend.direction },
+            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' }
         ];
     };
 
@@ -186,7 +188,7 @@ export const MobileAnalytics = ({
                         <section
                             data-testid="mobile-analytics-error-state"
                             role="alert"
-                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive shadow-sm"
+                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div>
@@ -196,7 +198,7 @@ export const MobileAnalytics = ({
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
-                                    className="shrink-0 rounded-button bg-background/70 px-4 py-2 text-xs font-semibold text-destructive"
+                                    className="shrink-0 rounded-pill bg-destructive/10 px-4 py-2 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
                                 >
                                     Retry
                                 </button>
@@ -208,17 +210,17 @@ export const MobileAnalytics = ({
                             data-testid="mobile-analytics-source-state"
                             role="status"
                             aria-live="polite"
-                            className="mx-3 mb-4 rounded-card bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
+                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div>
                                     <p className="text-sm font-semibold">{sourceIssueSummary.title}</p>
-                                    <p className="mt-1 text-xs text-amber-800/75 dark:text-amber-100/70">{sourceIssueSummary.detail}</p>
+                                    <p className="mt-1 text-xs text-destructive/75">{sourceIssueSummary.detail}</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
-                                    className="shrink-0 rounded-button bg-background/70 px-4 py-2 text-xs font-semibold text-amber-900 dark:text-amber-100"
+                                    className="shrink-0 rounded-pill bg-destructive/10 px-4 py-2 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
                                 >
                                     Retry
                                 </button>
@@ -229,19 +231,19 @@ export const MobileAnalytics = ({
                     <MobileFeaturedMetric
                         items={[
                             {
-                                label: isProvider ? 'Personal Performance' : 'Impact Velocity',
+                                label: isProvider ? 'Personal performance' : 'Impact velocity',
                                 value: isProvider ? successValue : avgTimeValue,
                                 trend: hasMeasuredAvgTime ? (resolvedStats.avgResponseTime < 10 ? 'Current' : 'Watch') : SOURCE_PENDING_LABEL,
                                 icon: isProvider ? Activity : Clock,
-                                color: isProvider ? 'hsl(var(--success))' : 'hsl(var(--info))',
+                                color: isProvider ? 'hsl(162 94% 24%)' : 'hsl(200 98% 39%)',
                                 chartData: sparklineData
                             },
                             {
-                                label: 'System Success',
+                                label: 'System success',
                                 value: successValue,
                                 trend: successTrendBadge,
                                 icon: CheckCircle2,
-                                color: 'hsl(var(--success))',
+                                color: 'hsl(162 94% 24%)',
                                 chartData: sparklineData
                             },
                             {
@@ -253,11 +255,11 @@ export const MobileAnalytics = ({
                                 chartData: sparklineData
                             },
                             {
-                                label: 'Network Capacity',
+                                label: 'Network capacity',
                                 value: resolvedStats.totalHospitals,
                                 trend: SOURCE_PENDING_LABEL,
                                 icon: Hospital,
-                                color: 'hsl(var(--info))',
+                                color: 'hsl(200 98% 39%)',
                                 chartData: []
                             }
                         ]}
@@ -265,11 +267,11 @@ export const MobileAnalytics = ({
 
                     {/* IMPACT SUMMARY */}
                     <section>
-                        <MobileSectionHeader label="System Impact" color="hsl(var(--primary))" />
+                        <MobileSectionHeader label="System impact" color="hsl(var(--muted-foreground))" labelTone="plain" />
                         <div className="space-y-0.5">
                             <MobileMetricRow
                                 icon={AlertTriangle}
-                                label={isProvider ? "Your Cases" : "Total Emergencies"}
+                                label={isProvider ? "Your cases" : "Total emergencies"}
                                 value={resolvedStats.totalEmergencies}
                                 rightBlade={{
                                     badge: demandTrend.badge,
@@ -283,15 +285,15 @@ export const MobileAnalytics = ({
                                 expandedContent={
                                     <div className="space-y-4 py-3">
                                         <div className="flex flex-col gap-1 px-1">
-                                            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">Case Type Distribution</span>
+                                            <span className="text-[11px] font-medium text-muted-foreground">Case type distribution</span>
                                             <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="text-destructive font-semibold">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {emergencyTypes.map((type, i) => (
-                                                <div key={i} className="flex flex-col gap-1 p-3 bg-muted/30 rounded-inner">
+                                                <div key={i} className="flex flex-col gap-1 p-3 surface-card rounded-inner">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{type.name}</span>
-                                                        {type.isDominant && <div className="w-1.5 h-1.5 rounded-pill bg-destructive animate-pulse" />}
+                                                        <span className="text-[11px] font-medium text-muted-foreground">{type.name}</span>
+                                                        {type.isDominant && <div className="w-1.5 h-1.5 rounded-pill bg-destructive" />}
                                                     </div>
                                                     <span className="text-lg font-semibold tracking-tighter">{type.value}</span>
                                                 </div>
@@ -302,34 +304,33 @@ export const MobileAnalytics = ({
                             />
                             <MobileMetricRow
                                 icon={Activity}
-                                label="Status Breakdown"
+                                label="Status breakdown"
                                 value={successValue}
                                 rightBlade={{
                                     badge: successValue,
                                     label: 'Fulfillment',
                                     value: successValue,
                                     direction: hasMeasuredSuccess && resolvedStats.successRate >= 85 ? 'up' : hasMeasuredSuccess ? 'down' : 'flat',
-                                    color: 'hsl(var(--success))'
+                                    color: 'hsl(162 94% 24%)'
                                 }}
-                                color="hsl(var(--success))"
+                                color="hsl(162 94% 24%)"
                                 description="Fulfillment rate"
                                 expandedContent={
                                     <div className="space-y-3 py-3">
                                         {requestsByStatus.map((status, i) => (
                                             <div key={i} className="space-y-1.5">
-                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.14em] font-semibold">
+                                                <div className="flex justify-between items-center text-[11px] font-medium">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 rounded-pill" style={{ backgroundColor: status.color }} />
-                                                        <span className="text-foreground/60">{status.name}</span>
+                                                        <span className="text-muted-foreground">{status.name}</span>
                                                     </div>
-                                                    <span className="text-foreground/80 font-semibold">{status.value} units</span>
+                                                    <span className="text-foreground/80 font-semibold tabular-nums">{status.value} units</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${(status.value / Math.max(resolvedStats.totalEmergencies, 1)) * 100}%` }}
+                                                <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
+                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    <div
                                                         className="h-full"
-                                                        style={{ backgroundColor: status.color, opacity: 0.6 }}
+                                                        style={{ width: `${(status.value / Math.max(resolvedStats.totalEmergencies, 1)) * 100}%`, backgroundColor: status.color, opacity: 0.6 }}
                                                     />
                                                 </div>
                                             </div>
@@ -343,18 +344,18 @@ export const MobileAnalytics = ({
                     {/* PEAK DEMAND HEATMAP (Admin/Org Admin/Sponsor) */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Demand Velocity" color="hsl(var(--destructive))" />
-                            <div className="px-6 py-8 bg-card/68 backdrop-blur-2xl rounded-card relative overflow-hidden shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+                            <MobileSectionHeader label="Demand velocity" color="hsl(var(--destructive))" labelTone="plain" />
+                            <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Activity size={40} className="text-destructive" />
                                 </div>
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] uppercase tracking-[0.14em] text-destructive font-semibold">Load Distribution</p>
-                                        <h4 className="text-xl font-medium tracking-tight">Peak Heatmap</h4>
+                                        <p className="text-[11px] font-medium text-destructive">Load distribution</p>
+                                        <h4 className="text-xl font-medium tracking-tight">Peak heatmap</h4>
                                     </div>
                                     <div className="px-3 py-1 bg-destructive/10 rounded-pill">
-                                        <span className="text-[10px] font-semibold text-destructive uppercase tracking-[0.14em]">{SOURCE_PENDING_LABEL}</span>
+                                        <span className="text-[11px] font-semibold text-destructive">{SOURCE_PENDING_LABEL}</span>
                                     </div>
                                 </div>
 
@@ -362,15 +363,15 @@ export const MobileAnalytics = ({
                                     {demandHeatmap.map((item, idx) => (
                                         <div key={idx} className="aspect-square relative group">
                                             <div
-                                                className={`w-full h-full rounded-inner transition-all duration-300 ${item.value > 80 ? 'bg-destructive/60 shadow-[0_0_8px_rgba(var(--destructive),0.4)]' :
+                                                className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-destructive/60' :
                                                     item.value > 50 ? 'bg-amber-500/40' :
                                                         item.value > 30 ? 'bg-sky-500/20' :
-                                                            'bg-white/5'
+                                                            'bg-foreground/[0.05] dark:bg-white/[0.07]'
                                                     }`}
                                             />
                                             {/* Minimal hour indicator for key times */}
                                             {(idx % 6 === 0) && (
-                                                <span className="absolute -bottom-4 left-0 text-[10px] text-muted-foreground/30 font-semibold uppercase tracking-tighter">
+                                                <span className="absolute -bottom-4 left-0 text-[11px] font-medium text-muted-foreground/60">
                                                     {item.hour}
                                                 </span>
                                             )}
@@ -378,18 +379,18 @@ export const MobileAnalytics = ({
                                     ))}
                                 </div>
 
-                                <div className="mt-8 flex justify-between items-center opacity-40">
+                                <div className="mt-8 flex justify-between items-center text-muted-foreground">
                                     <div className="flex gap-4">
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-1.5 h-1.5 rounded-pill bg-destructive/60" />
-                                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Critical</span>
+                                            <span className="text-[11px] font-medium">Critical</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-pill bg-white/10" />
-                                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Idle</span>
+                                            <div className="w-1.5 h-1.5 rounded-pill bg-foreground/15" />
+                                            <span className="text-[11px] font-medium">Idle</span>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-semibold italic opacity-50 uppercase tracking-[0.14em]">{SOURCE_PENDING_LABEL}</span>
+                                    <span className="text-[11px] font-medium italic">{SOURCE_PENDING_LABEL}</span>
                                 </div>
                             </div>
                         </section>
@@ -398,43 +399,40 @@ export const MobileAnalytics = ({
                     {/* INFRASTRUCTURE CAPACITY */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Strategic Assets" color="hsl(var(--info))" />
+                            <MobileSectionHeader label="Strategic assets" color="hsl(200 98% 39%)" labelTone="plain" />
                             <div className="space-y-0.5">
                                 <MobileMetricRow
                                     icon={Hospital}
-                                    label="Medical Facilities"
+                                    label="Medical facilities"
                                     value={resolvedStats.totalHospitals}
                                     rightBlade={{
                                         badge: resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL,
                                         label: 'Capacity',
                                         value: `${resolvedHospitalCapacity.total} Beds`,
                                         direction: (resolvedHospitalCapacity.occupied / Math.max(resolvedHospitalCapacity.total || 0, 1)) < 0.8 ? 'up' : 'down',
-                                        color: 'hsl(var(--primary))'
+                                        color: 'hsl(200 98% 39%)'
                                     }}
-                                    color="hsl(var(--primary))"
+                                    color="hsl(200 98% 39%)"
                                     expandedContent={
                                         <div className="space-y-4 py-3">
                                             <div className="grid grid-cols-2 gap-3">
-                                                <div className="p-3 bg-muted/30 rounded-inner">
-                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">Total Capacity</p>
+                                                <div className="p-3 surface-card rounded-inner">
+                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Total capacity</p>
                                                     <p className="text-lg font-semibold tracking-tighter">{resolvedHospitalCapacity.total} Beds</p>
                                                 </div>
-                                                <div className="p-3 bg-muted/30 rounded-inner">
-                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">ICU Reserved</p>
-                                                    <p className="text-lg font-semibold tracking-tighter text-sky-500">{resolvedHospitalCapacity.icu}</p>
+                                                <div className="p-3 surface-card rounded-inner">
+                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">ICU reserved</p>
+                                                    <p className="text-lg font-semibold tracking-tighter text-sky-700 dark:text-sky-300">{resolvedHospitalCapacity.icu}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-2 px-1">
                                                 <div className="flex justify-between items-baseline">
-                                                    <span className="text-[10px] uppercase tracking-[0.14em] font-semibold opacity-40">Bed Occupancy</span>
-                                                    <span className="text-xs font-semibold">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
+                                                    <span className="text-[11px] font-medium text-muted-foreground">Bed occupancy</span>
+                                                    <span className="text-xs font-semibold tabular-nums">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
                                                 </div>
-                                                <div className="h-1.5 w-full bg-muted/30 rounded-pill overflow-hidden shadow-inner">
-                                                    <motion.div
-                                                        className="h-full bg-sky-500/60"
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${hospitalCapacityPercent}%` }}
-                                                    />
+                                                <div className="h-1.5 w-full surface-card rounded-pill overflow-hidden">
+                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    <div className="h-full bg-sky-500/60" style={{ width: `${hospitalCapacityPercent}%` }} />
                                                 </div>
                                             </div>
                                         </div>
@@ -442,36 +440,32 @@ export const MobileAnalytics = ({
                                 />
                                 <MobileMetricRow
                                     icon={Ambulance}
-                                    label="Fleet Readiness"
+                                    label="Fleet readiness"
                                     value={resolvedStats.totalAmbulances}
                                     rightBlade={{
                                         badge: SOURCE_PENDING_LABEL,
-                                        label: 'Readiness Source',
+                                        label: 'Readiness source',
                                         value: SOURCE_PENDING_LABEL,
                                         direction: 'flat',
-                                        color: 'hsl(var(--success))'
+                                        color: 'hsl(162 94% 24%)'
                                     }}
-                                    color="hsl(var(--success))"
+                                    color="hsl(162 94% 24%)"
                                     expandedContent={
                                         <div className="space-y-4 py-3">
-                                            <div className="p-3 bg-muted/30 rounded-inner flex justify-between items-center">
+                                            <div className="p-3 surface-card rounded-inner flex justify-between items-center">
                                                 <div>
-                                                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1 font-semibold">Readiness Source</p>
+                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Readiness source</p>
                                                     <p className="text-lg font-semibold tracking-tighter">{SOURCE_PENDING_LABEL}</p>
                                                 </div>
-                                                <span className="inline-flex items-center rounded-pill bg-muted/40 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Pending</span>
+                                                <span className="inline-flex items-center rounded-pill surface-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">Pending</span>
                                             </div>
                                             <div className="space-y-2 px-1">
-                                                <div className="flex justify-between items-baseline opacity-40">
-                                                    <span className="text-[10px] uppercase tracking-[0.14em] font-semibold">Deployment Ratio</span>
+                                                <div className="flex justify-between items-baseline text-muted-foreground">
+                                                    <span className="text-[11px] font-medium">Deployment ratio</span>
                                                     <span className="text-xs font-semibold">{SOURCE_PENDING_LABEL}</span>
                                                 </div>
-                                                <div className="h-1.5 w-full bg-muted/30 rounded-pill overflow-hidden">
-                                                    <motion.div
-                                                        className="h-full bg-emerald-500/60"
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: 0 }}
-                                                    />
+                                                <div className="h-1.5 w-full surface-card rounded-pill overflow-hidden">
+                                                    <div className="h-full bg-emerald-500/60" style={{ width: 0 }} />
                                                 </div>
                                             </div>
                                         </div>
@@ -483,33 +477,33 @@ export const MobileAnalytics = ({
 
                     {/* SYSTEM PERFORMANCE & SEARCH (Reveal Gradually) */}
                     <section className="mt-3">
-                        <MobileSectionHeader label="System Health" color="hsl(var(--secondary))" />
+                        <MobileSectionHeader label="System health" color="hsl(var(--muted-foreground))" labelTone="plain" />
                         <div className="space-y-0.5">
                             <MobileMetricRow
                                 icon={TrendingUp}
-                                label="Search Analytics"
+                                label="Search analytics"
                                 value={successValue}
                                 rightBlade={{
                                     badge: responseTrend.badge,
                                     label: 'Status',
                                     value: avgTimeValue,
                                     direction: responseTrend.direction,
-                                    color: 'hsl(var(--info))'
+                                    color: 'hsl(200 98% 39%)'
                                 }}
-                                color="hsl(var(--info))"
+                                color="hsl(200 98% 39%)"
                                 description="Pattern efficiency"
                                 expandedContent={
                                     <div className="grid grid-cols-2 gap-2 py-3">
                                         {[
-                                            { label: 'Total Volume', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'info' },
-                                            { label: 'Precision', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'success' },
-                                            { label: 'Latency', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'primary' },
-                                            { label: 'Void Ratio', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'warning' }
+                                            { label: 'Total volume', value: SOURCE_PENDING_LABEL, change: 'Pending' },
+                                            { label: 'Precision', value: SOURCE_PENDING_LABEL, change: 'Pending' },
+                                            { label: 'Latency', value: SOURCE_PENDING_LABEL, change: 'Pending' },
+                                            { label: 'Void ratio', value: SOURCE_PENDING_LABEL, change: 'Pending' }
                                         ].map((m, i) => (
-                                            <div key={i} className="p-3 bg-muted/30 rounded-inner flex flex-col justify-between min-h-[70px]">
+                                            <div key={i} className="p-3 surface-card rounded-inner flex flex-col justify-between min-h-[70px]">
                                                 <div className="flex justify-between items-start">
-                                                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">{m.label}</span>
-                                                    <span className="text-[10px] font-black text-muted-foreground">{m.change}</span>
+                                                    <span className="text-[11px] font-medium text-muted-foreground">{m.label}</span>
+                                                    <span className="text-[11px] font-semibold text-muted-foreground">{m.change}</span>
                                                 </div>
                                                 <span className="text-lg font-semibold tracking-tighter">{m.value}</span>
                                             </div>
@@ -519,35 +513,35 @@ export const MobileAnalytics = ({
                             />
                             <MobileMetricRow
                                 icon={Activity}
-                                label="Performance Vitals"
+                                label="Performance vitals"
                                 value={SOURCE_PENDING_LABEL}
                                 rightBlade={{
                                     badge: responseTrend.badge,
                                     label: 'Status',
                                     value: responseTrend.badge === SOURCE_PENDING_LABEL ? SOURCE_PENDING_LABEL : responseTrend.direction === 'up' ? 'Improving' : responseTrend.direction === 'down' ? 'Watch' : 'Current',
                                     direction: responseTrend.direction,
-                                    color: 'hsl(var(--success))'
+                                    color: 'hsl(162 94% 24%)'
                                 }}
-                                color="hsl(var(--success))"
+                                color="hsl(162 94% 24%)"
                                 description="Infrastructure health"
                                 expandedContent={
                                     <div className="space-y-4 py-4">
                                         {[
-                                            { label: 'API Response', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
-                                            { label: 'DB Query Time', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
+                                            { label: 'API response', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
+                                            { label: 'DB query time', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
                                             { label: 'Uptime', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
-                                            { label: 'Error Rate', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' }
+                                            { label: 'Error rate', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' }
                                         ].map((p, i) => (
                                             <div key={i} className="space-y-2">
-                                                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.14em] font-black opacity-60">
+                                                <div className="flex justify-between items-center text-[11px] font-medium text-muted-foreground">
                                                     <span>{p.label}</span>
                                                     <span className="text-foreground">{p.value}</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
-                                                    <motion.div
+                                                <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
+                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    <div
                                                         className={`h-full ${p.status === 'excellent' ? 'bg-emerald-500/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-sky-500/60'}`}
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${p.progress}%` }}
+                                                        style={{ width: `${p.progress}%` }}
                                                     />
                                                 </div>
                                             </div>
@@ -561,44 +555,43 @@ export const MobileAnalytics = ({
                     {/* FISCAL PERFORMANCE (Admin/Sponsor until org finance scope is proved) */}
                     {canReadFinanceAnalytics && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Fiscal Trajectory" color="hsl(var(--warning))" />
-                            <div className="px-6 py-8 bg-card/68 backdrop-blur-2xl rounded-card relative overflow-hidden shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+                            <MobileSectionHeader label="Fiscal trajectory" color="hsl(26 90% 37%)" labelTone="plain" />
+                            <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-5">
                                     <Wallet size={60} className="text-emerald-500" />
                                 </div>
 
                                 <div className="flex justify-between items-center mb-8">
                                     <div>
-                                        <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-500 font-black mb-1">Revenue Stream</p>
-                                        <h4 className="text-3xl font-black tracking-tighter">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
+                                        <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 mb-1">Revenue stream</p>
+                                        <h4 className="text-3xl font-semibold tracking-tighter">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
                                     </div>
                                     <div className="relative w-14 h-14 flex items-center justify-center">
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+                                            <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-foreground/10" />
                                             <circle
                                                 cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent"
                                                 strokeDasharray={151}
                                                 strokeDashoffset={151 - (151 * resolvedFinanceSummary.health / 100)}
-                                                className="text-emerald-500 transition-all duration-1000"
+                                                className="text-emerald-500"
                                             />
                                         </svg>
-                                        <span className="absolute text-[10px] font-black">{Math.round(resolvedFinanceSummary.health)}%</span>
+                                        <span className="absolute text-[11px] font-semibold tabular-nums">{Math.round(resolvedFinanceSummary.health)}%</span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-5">
                                     {financeMetricRows.map((m, i) => (
                                         <div key={i} className="space-y-2">
-                                            <div className="flex justify-between text-[10px] uppercase tracking-[0.14em] font-semibold opacity-40">
+                                            <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
                                                 <span>{m.label}</span>
-                                                <span className="text-foreground/80">{m.value}</span>
+                                                <span className="text-foreground/80 tabular-nums">{m.value}</span>
                                             </div>
-                                            <div className="h-1 w-full bg-muted/30 rounded-pill overflow-hidden">
-                                                <motion.div
+                                            <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
+                                                {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                <div
                                                     className="h-full opacity-60"
-                                                    style={{ backgroundColor: m.color }}
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${m.progress}%` }}
+                                                    style={{ backgroundColor: m.color, width: `${m.progress}%` }}
                                                 />
                                             </div>
                                         </div>
@@ -606,13 +599,13 @@ export const MobileAnalytics = ({
                                 </div>
 
                                 <div className="mt-8 grid grid-cols-2 gap-3">
-                                    <div className="p-3 bg-white/5 rounded-inner text-center">
-                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-1">Conversion</p>
-                                        <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
+                                    <div className="p-3 surface-card rounded-inner text-center">
+                                        <p className="text-[11px] font-medium text-muted-foreground mb-1">Conversion</p>
+                                        <p className="text-sm font-semibold text-foreground">{paidConversionLabel}</p>
                                     </div>
-                                    <div className="p-3 bg-white/5 rounded-inner text-center">
-                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-1">Avg Ticket</p>
-                                        <p className="text-sm font-black text-foreground">{avgTicketLabel}</p>
+                                    <div className="p-3 surface-card rounded-inner text-center">
+                                        <p className="text-[11px] font-medium text-muted-foreground mb-1">Avg ticket</p>
+                                        <p className="text-sm font-semibold text-foreground">{avgTicketLabel}</p>
                                     </div>
                                 </div>
                             </div>
@@ -625,7 +618,7 @@ export const MobileAnalytics = ({
                             <p
                                 role="status"
                                 aria-live="polite"
-                                className="mb-3 rounded-inner bg-muted/40 px-4 py-3 text-xs font-medium text-muted-foreground"
+                                className="mb-3 rounded-inner surface-card px-4 py-3 text-xs font-medium text-muted-foreground"
                             >
                                 {exportNotice}
                             </p>
@@ -634,15 +627,14 @@ export const MobileAnalytics = ({
                             whileTap={{ scale: 0.96 }}
                             onClick={handleExport}
                             aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
-                            className="w-full bg-card/68 backdrop-blur-2xl py-4 rounded-button flex items-center justify-center gap-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] group relative overflow-hidden"
+                            className="w-full surface-card py-4 rounded-button flex items-center justify-center gap-3 transition-all"
                         >
-                            <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-active:opacity-100 transition-opacity" />
-                            <Download size={20} className="text-sky-500" />
-                            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-sky-500/80">Report unavailable</span>
+                            <Download size={20} className="text-muted-foreground" />
+                            <span className="text-[13px] font-semibold text-foreground">Report unavailable</span>
                         </motion.button>
                         <p
                             id="mobile-analytics-export-feedback"
-                            className="text-center text-[10px] text-muted-foreground/20 mt-6 uppercase tracking-[0.14em] font-black"
+                            className="text-center text-[11px] font-medium text-muted-foreground mt-6"
                         >
                             Report scope pending - {new Date().toLocaleDateString()}
                         </p>

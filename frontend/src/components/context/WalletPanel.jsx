@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
     ArrowUpRight,
     ArrowDownLeft,
@@ -71,13 +70,10 @@ export const WalletPanel = ({ walletContext }) => {
 
     return (
         <div className="space-y-4">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-3"
-            >
+            {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+            <div className="space-y-3">
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Payments overview</h3>
-                <div className="relative overflow-hidden rounded-card bg-card/72 p-5 shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.05]">
+                <div className="relative overflow-hidden rounded-card surface-card p-5 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
                     <p className="mb-1 text-sm font-medium text-muted-foreground">Available balance</p>
                     <h2 className="text-4xl font-semibold tracking-tight text-foreground">
                         {balanceLabel}
@@ -106,20 +102,15 @@ export const WalletPanel = ({ walletContext }) => {
                         <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{cardState}</p>
                     </div>
                 </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-2"
-            >
+            <div className="space-y-2">
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Panel actions</h3>
                 <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={handleTopUp}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-sky-500/10 text-sky-700 transition-all hover:bg-sky-500/18 active:scale-[0.98] dark:text-sky-100"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-sky-500/10 text-sky-700 transition-all hover:bg-sky-500/18 active:scale-[0.96] dark:text-sky-100"
                 >
                     <Plus className="h-5 w-5 transition-transform" />
                     <span className="text-sm font-semibold">Add funds</span>
@@ -127,7 +118,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleWithdraw}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Withdraw</span>
@@ -135,7 +126,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleCards}
                     disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <CreditCard className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Manage cards</span>
@@ -143,7 +134,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleExport}
                     disabled={!ledger.length}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <Download className="h-5 w-5 text-muted-foreground transition-transform" />
                     <span className="text-sm font-semibold">Export</span>
@@ -152,14 +143,9 @@ export const WalletPanel = ({ walletContext }) => {
                 <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">
                     {panelStatus || (canManage ? 'One action at a time.' : 'Payments actions need admin access.')}
                 </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-2"
-            >
+            <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-semibold text-muted-foreground">Current route scope</h3>
                     <span className="rounded-pill bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
@@ -181,14 +167,9 @@ export const WalletPanel = ({ walletContext }) => {
                         <p className="mt-1 text-xl font-semibold">{paymentMethods.length}</p>
                     </div>
                 </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="space-y-2"
-            >
+            <div className="space-y-2">
                 <h3 className="px-1 text-sm font-semibold text-muted-foreground">Current list</h3>
                 <div className="space-y-1">
                     {recentActivity.map((item) => {
@@ -223,20 +204,15 @@ export const WalletPanel = ({ walletContext }) => {
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center gap-3 rounded-card bg-emerald-500/8 p-4"
-            >
+            <div className="flex items-center gap-3 rounded-card bg-emerald-500/8 p-4">
                 <ShieldCheck className="h-5 w-5 text-emerald-700 dark:text-emerald-100" />
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-100">{cardState}</p>
                     <p className="truncate text-xs leading-tight text-emerald-700/70 dark:text-emerald-100/70">Cards are encrypted</p>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };

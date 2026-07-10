@@ -47,18 +47,15 @@ export const DoctorsPanel = ({ staffContext }) => {
     window.dispatchEvent(new CustomEvent('openFilters'));
   };
 
-  const panelSurface = 'bg-card/68 backdrop-blur-2xl rounded-card p-4 shadow-[0_18px_50px_rgb(0_0_0/0.12)]';
-  const compactSurface = 'bg-card/68 backdrop-blur-2xl rounded-card p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)]';
-  const actionBase = 'group flex flex-col items-center justify-center gap-2 rounded-button p-3 shadow-[0_10px_28px_rgb(0_0_0/0.10)] transition-all duration-200 focus-visible:shadow-[0_16px_40px_rgba(0,0,0,0.18)]';
+  const panelSurface = 'surface-card rounded-card p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
+  const compactSurface = 'surface-card rounded-card p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
+  const actionBase = 'group flex flex-col items-center justify-center gap-2 rounded-button p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-all duration-200 focus-visible:bg-foreground/10';
   const eyebrow = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground';
 
   return (
     <div className="space-y-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="space-y-3"
-      >
+      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+      <div className="space-y-3">
         <h3 className={eyebrow}>Staff overview</h3>
 
         <motion.div className={panelSurface} whileHover={{ y: -1 }}>
@@ -101,21 +98,16 @@ export const DoctorsPanel = ({ staffContext }) => {
             </div>
           </motion.div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
+      <div className="space-y-3">
         <h3 className={eyebrow}>Panel actions</h3>
 
         <div className="grid grid-cols-3 gap-2">
           <motion.button
             type="button"
             whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
             onClick={handleCreateStaff}
             className={`${actionBase} bg-sky-500/10 hover:bg-sky-500/15 text-sky-700 dark:text-sky-200`}
             data-state={canManage ? 'ready' : 'unavailable'}
@@ -128,7 +120,7 @@ export const DoctorsPanel = ({ staffContext }) => {
           <motion.button
             type="button"
             whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
             onClick={handleAnalytics}
             className={`${actionBase} bg-cyan-500/10 hover:bg-cyan-500/15 text-cyan-700 dark:text-cyan-200`}
             title="View staff statistics"
@@ -139,7 +131,7 @@ export const DoctorsPanel = ({ staffContext }) => {
           <motion.button
             type="button"
             whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
             onClick={handleFilters}
             className={`${actionBase} bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-200`}
             title="Filter staff"
@@ -156,7 +148,7 @@ export const DoctorsPanel = ({ staffContext }) => {
         >
           {panelNotice}
         </div>
-      </motion.div>
+      </div>
 
       <div className="space-y-3">
         <h3 className={eyebrow}>Current list</h3>
@@ -170,7 +162,7 @@ export const DoctorsPanel = ({ staffContext }) => {
           {!context.loading && visibleStaff.map((staff, idx) => (
             <motion.div
               key={staff.id || idx}
-              className="bg-card/68 backdrop-blur-2xl p-3 rounded-button flex items-center justify-between shadow-[0_12px_32px_rgb(0_0_0/0.10)] transition-colors hover:bg-card/80 group"
+              className="surface-card p-3 rounded-button flex items-center justify-between shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-colors hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] group"
               whileHover={{ y: -1 }}
             >
               <div className="flex items-center gap-3">

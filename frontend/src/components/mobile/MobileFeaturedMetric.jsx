@@ -33,7 +33,7 @@ export const MobileFeaturedMetric = ({
     if (loading) {
         return (
             <div className="mb-4 px-1">
-                <div className="rounded-card bg-muted/40 p-4 sm:p-5 space-y-4 min-h-[160px]">
+                <div className="rounded-card surface-card p-4 sm:p-5 space-y-4 min-h-[160px]">
                     <div className="flex justify-between items-start gap-3">
                         <div className="space-y-2 min-w-0 flex-1">
                             <div className="h-3 w-24 rounded-inner bg-muted/20" />
@@ -72,15 +72,9 @@ export const MobileFeaturedMetric = ({
                 key={idx}
                 type={item.onClick ? 'button' : undefined}
                 onClick={item.onClick ? handleClick : undefined}
-                className={`p-6 bg-muted/40 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-card ${item.onClick ? 'text-left active:scale-[0.988] transition-transform duration-150 transform-gpu' : ''}`}
+                className={`p-6 surface-card flex flex-col justify-between relative overflow-hidden group min-h-[160px] rounded-card ${item.onClick ? 'text-left active:scale-[0.988] transition-transform duration-150 transform-gpu' : ''}`}
                 style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
             >
-                {/* Enhanced Neon primary glow background - Slightly more presence */}
-                <div
-                    className="absolute -inset-10 opacity-[0.12]"
-                    style={{ background: `radial-gradient(circle at 50% 50%, ${c.replace(/\)$/, ' / 0.6)')}, transparent 70%)` }}
-                />
-
                 {/* Optional background image layer */}
                 {item.image && (
                     <div className="absolute inset-0 z-0">
@@ -106,7 +100,7 @@ export const MobileFeaturedMetric = ({
                                 {item.value}
                             </h2>
                             {item.trend && (
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-pill ${String(item.trend).includes('+') ? 'text-emerald-500 bg-emerald-500/10' : String(item.trend).includes('-') ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-pill ${String(item.trend).includes('+') ? 'text-emerald-500 bg-emerald-500/10' : String(item.trend).includes('-') ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'
                                     }`}>
                                     {item.trend}
                                 </span>
@@ -115,7 +109,7 @@ export const MobileFeaturedMetric = ({
                     </div>
 
                     <div
-                        className="w-10 h-10 rounded-button flex items-center justify-center shrink-0 shadow-md relative z-10"
+                        className="w-10 h-10 rounded-button flex items-center justify-center shrink-0 relative z-10"
                         style={{ background: `radial-gradient(circle at 30% 30%, ${c.replace(/\)$/, ' / 0.2)')}, ${c.replace(/\)$/, ' / 0.1)')})` }}
                     >
                         {ItemIcon && <ItemIcon size={20} className="opacity-70" style={{ color: c }} />}
@@ -157,7 +151,7 @@ export const MobileFeaturedMetric = ({
     }
 
     // Multiple items: one card per screen, scroll naturally to next
-    // -m-2 p-2: shadow breathing room so overflow-x doesn't clip shadow-xl
+    // -m-2 p-2: breathing room so overflow-x doesn't clip the card edge
     return (
         <div
             className="relative -m-2 p-2 overflow-x-auto overflow-y-visible no-scrollbar"
@@ -167,10 +161,9 @@ export const MobileFeaturedMetric = ({
                 {data.map((item, idx) => renderCard(item, idx))}
                 <div className="shrink-0 w-3" />
             </div>
-            {/* Subtle premium framing: soft top/bottom fade + inner shadow */}
+            {/* Subtle framing: soft top/bottom fade only (no decorative inner shadow) */}
             <div className="pointer-events-none absolute left-2 right-2 top-1 h-4 bg-gradient-to-b from-background/50 to-transparent" />
             <div className="pointer-events-none absolute left-2 right-2 bottom-1 h-4 bg-gradient-to-t from-background/50 to-transparent" />
-            <div className="pointer-events-none absolute inset-2 rounded-card shadow-[inset_0_10px_24px_rgba(0,0,0,0.18)]" />
             {/* Edge masks to hint overflow */}
             <div className="pointer-events-none absolute left-2 top-2 bottom-2 w-6 bg-gradient-to-r from-background/70 to-transparent" />
             <div className="pointer-events-none absolute right-2 top-2 bottom-2 w-6 bg-gradient-to-l from-background/70 to-transparent" />

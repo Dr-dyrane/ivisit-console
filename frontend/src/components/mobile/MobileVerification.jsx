@@ -14,6 +14,13 @@ import { MobileListEmpty } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { mobileSpring } from './mobileMotion';
+
+// Sentence-case a raw status/role token ('org_admin' -> 'Org admin').
+const tokenLabel = (value, fallback = '') => {
+  const text = String(value || fallback).replace(/[_-]+/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
 
 export const MobileVerification = ({
   queueType = 'providers',
@@ -45,11 +52,13 @@ export const MobileVerification = ({
   const sourceItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
   const { displayItems } = useStableList(sourceItems, loading);
 
+  // Raw vitalTracks accents (amber/emerald/slate) — the light 300/400 tones were
+  // light-on-light in light mode.
   const kpis = useMemo(() => [
-    { id: 'pending', label: 'Pending', value: activeStats?.pending || 0, color: 'rgb(251 191 36)' },
-    { id: 'approved', label: 'Approved', value: queueType === 'providers' ? (activeStats?.approved || 0) : (activeStats?.verified || 0), color: 'rgb(52 211 153)' },
+    { id: 'pending', label: 'Pending', value: activeStats?.pending || 0, color: 'hsl(26 90% 37%)' },
+    { id: 'approved', label: 'Approved', value: queueType === 'providers' ? (activeStats?.approved || 0) : (activeStats?.verified || 0), color: 'hsl(162 94% 24%)' },
     { id: 'rejected', label: 'Rejected', value: activeStats?.rejected || 0, color: 'hsl(var(--destructive))' },
-    { id: 'all', label: 'Total', value: activeStats?.total || sourceItems.length, color: 'rgb(148 163 184)' }
+    { id: 'all', label: 'Total', value: activeStats?.total || sourceItems.length, color: 'hsl(var(--muted-foreground))' }
   ], [activeStats, sourceItems.length, queueType]);
 
   const showTopSectionLoading = loading && displayItems.length === 0;
@@ -70,28 +79,28 @@ export const MobileVerification = ({
               value: displayItems.length,
               trend: null,
               icon: Shield,
-              color: 'rgb(148 163 184)'
+              color: 'hsl(var(--muted-foreground))'
             },
             {
-              label: 'Approval Rate',
+              label: 'Approval rate',
               value: `${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`,
               trend: null,
               icon: CheckCircle,
-              color: 'rgb(52 211 153)'
+              color: 'hsl(162 94% 24%)'
             },
             {
-              label: 'Pending Load',
+              label: 'Pending load',
               value: activeStats?.pending || 0,
               trend: null,
               icon: Shield,
-              color: 'rgb(251 191 36)'
+              color: 'hsl(26 90% 37%)'
             },
             {
               label: 'Total',
               value: activeStats?.total || sourceItems.length,
               trend: null,
               icon: Users,
-              color: 'rgb(148 163 184)'
+              color: 'hsl(var(--muted-foreground))'
             }
           ]}
         />
@@ -100,31 +109,30 @@ export const MobileVerification = ({
           <MobileSectionHeader
             label="Review Summary"
             count={activeStats?.total || sourceItems.length}
-            color="rgb(148 163 184)"
+            color="hsl(var(--muted-foreground))"
+            labelTone="plain"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
             items={[
               {
                 icon: CheckCircle,
-                title: 'Approval Rate',
+                title: 'Approval rate',
                 subtitle: 'Review share',
                 value: `${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`,
-                color: 'rgb(52 211 153)',
+                color: 'hsl(162 94% 24%)',
                 trendDirection: 'flat',
                 trendText: null,
                 onClick: onViewAnalytics
               },
               {
                 icon: Shield,
-                title: 'Pending Load',
+                title: 'Pending load',
                 subtitle: 'Needs review',
                 value: activeStats?.pending || 0,
-                color: 'rgb(251 191 36)',
+                color: 'hsl(26 90% 37%)',
                 trendDirection: 'flat',
                 trendText: null,
-                trendUpClass: 'text-amber-300',
-                trendDownClass: 'text-emerald-300',
                 onClick: onViewAnalytics
               },
               {
@@ -132,7 +140,7 @@ export const MobileVerification = ({
                 title: 'Total',
                 subtitle: 'Current page',
                 value: activeStats?.total || sourceItems.length,
-                color: 'rgb(148 163 184)',
+                color: 'hsl(var(--muted-foreground))',
                 trendDirection: 'flat',
                 trendText: null,
                 onClick: onViewAnalytics
@@ -142,7 +150,7 @@ export const MobileVerification = ({
                 title: 'Filtered',
                 subtitle: 'Shown now',
                 value: displayItems.length,
-                color: 'rgb(251 191 36)',
+                color: 'hsl(26 90% 37%)',
                 trendDirection: 'flat',
                 trendText: null,
                 onClick: onViewAnalytics
@@ -151,26 +159,26 @@ export const MobileVerification = ({
           />
         </section>
 
-        <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative mb-3 mx-1">
+        <div className="p-1 rounded-button surface-card flex relative mb-3 mx-1">
           <motion.div
-            className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-lg"
+            className="absolute top-1 bottom-1 bg-background shadow-sm rounded-icon dark:bg-white/[0.10]"
             initial={false}
             animate={{
               left: queueType === 'providers' ? '4px' : '50%',
               width: 'calc(50% - 4px)',
             }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={mobileSpring}
           />
           <button
             onClick={() => setQueueType('providers')}
-            className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${queueType === 'providers' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
+            className={`flex-1 relative z-10 py-1.5 text-[12px] font-semibold text-center transition-colors active:scale-[0.96] ${queueType === 'providers' ? 'text-foreground' : 'text-muted-foreground'
               }`}
           >
             Providers
           </button>
           <button
             onClick={() => setQueueType('organizations')}
-            className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${queueType === 'organizations' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
+            className={`flex-1 relative z-10 py-1.5 text-[12px] font-semibold text-center transition-colors active:scale-[0.96] ${queueType === 'organizations' ? 'text-foreground' : 'text-muted-foreground'
               }`}
           >
             Facilities
@@ -185,17 +193,17 @@ export const MobileVerification = ({
               placeholder={`Search ${queueType === 'providers' ? 'providers' : 'facilities'}...`}
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-background/45 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)]"
+              className="w-full h-11 pl-10 pr-4 rounded-inner bg-background/60 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
             />
           </div>
           {onOpenFilters && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={(event) => {
                 onOpenFilters?.();
-                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
               }}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
+              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
               aria-label="Open filters"
             >
               <SlidersHorizontal size={18} />
@@ -203,12 +211,12 @@ export const MobileVerification = ({
           )}
           {onViewAnalytics && (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={(event) => {
                 onViewAnalytics?.();
-                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
               }}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
+              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -219,7 +227,8 @@ export const MobileVerification = ({
         <MobileSectionHeader
           label="Approvals"
           count={displayItems.length}
-          color="rgb(251 191 36)"
+          color="hsl(26 90% 37%)"
+          labelTone="plain"
           onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayItems.length) : null}
           isAllSelected={displayItems.length > 0 && selectedIds.length === displayItems.length}
         />
@@ -230,19 +239,19 @@ export const MobileVerification = ({
               const pending = queueType === 'providers'
                 ? !item.bvn_verified
                 : String(item.verification_status || '').toLowerCase() === 'pending';
-              const color = pending ? 'rgb(251 191 36)' : 'rgb(52 211 153)';
+              const color = pending ? 'hsl(26 90% 37%)' : 'hsl(162 94% 24%)';
               return (
                 <MobileMetricRow
                   key={item.id}
                   icon={queueType === 'providers' ? User : Building2}
                   color={color}
-                  label={pending ? 'PENDING' : 'VERIFIED'}
+                  label={pending ? 'Pending' : 'Verified'}
                   value={queueType === 'providers' ? (item.username || item.email || 'Unknown') : (item.name || 'Unknown')}
                   rightBlade={{
-                    badge: pending ? 'REVIEW' : 'APPROVED',
+                    badge: pending ? 'Review' : 'Approved',
                     direction: pending ? 'flat' : 'up',
                     label: queueType === 'providers' ? 'Role' : 'Type',
-                    value: queueType === 'providers' ? String(item.role || 'provider').toUpperCase() : String(item.type || 'org').toUpperCase(),
+                    value: queueType === 'providers' ? tokenLabel(item.role, 'provider') : tokenLabel(item.type, 'org'),
                     color
                   }}
                   isExpanded={expandedId === item.id}
@@ -259,37 +268,37 @@ export const MobileVerification = ({
                       <div className="flex gap-2 pt-1">
                         {queueType === 'providers' ? (
                           <>
-                            <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass" onClick={() => onViewProvider(item)}>
-                              <Eye className="h-4 w-4 text-primary/70" />
+                            <Button variant="ghost" className="flex-1 h-12 rounded-button surface-card" onClick={() => onViewProvider(item)}>
+                              <Eye className="h-4 w-4 text-muted-foreground" />
                             </Button>
                             {pending && canApprove && onVerifyProvider && (
                               <>
-                                <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass" onClick={() => onVerifyProvider(item.id, true)}>
-                                  <CheckCircle className="h-4 w-4 text-emerald-300/80" />
+                                <Button variant="ghost" className="flex-1 h-12 rounded-button surface-card" onClick={() => onVerifyProvider(item.id, true)}>
+                                  <CheckCircle className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                                 </Button>
-                                <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass hover:bg-destructive/10 hover:text-destructive" onClick={() => onVerifyProvider(item.id, false)}>
-                                  <Ban className="h-4 w-4 text-destructive/70" />
+                                <Button variant="ghost" className="flex-1 h-12 rounded-button surface-card hover:bg-destructive/10 hover:text-destructive" onClick={() => onVerifyProvider(item.id, false)}>
+                                  <Ban className="h-4 w-4 text-destructive" />
                                 </Button>
                               </>
                             )}
                           </>
                         ) : (
                           <>
-                            <Badge className="flex-1 h-12 rounded-2xl flex items-center justify-center bg-muted/20 text-muted-foreground">
-                              {String(item.verification_status || 'pending').toUpperCase()}
+                            <Badge className="flex-1 h-12 rounded-button flex items-center justify-center surface-card text-muted-foreground">
+                              {tokenLabel(item.verification_status, 'pending')}
                             </Badge>
                             {pending && canApprove && onVerifyOrganization && (
                               <>
-                                <Button variant="ghost" className="h-12 rounded-2xl apple-glass px-3" onClick={() => onVerifyOrganization(item.id, true)}>
-                                  <CheckCircle className="h-4 w-4 text-emerald-300/80" />
+                                <Button variant="ghost" className="h-12 rounded-button surface-card px-3" onClick={() => onVerifyOrganization(item.id, true)}>
+                                  <CheckCircle className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                                 </Button>
-                                <Button variant="ghost" className="h-12 rounded-2xl apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onVerifyOrganization(item.id, false)}>
-                                  <Ban className="h-4 w-4 text-destructive/70" />
+                                <Button variant="ghost" className="h-12 rounded-button surface-card px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onVerifyOrganization(item.id, false)}>
+                                  <Ban className="h-4 w-4 text-destructive" />
                                 </Button>
                               </>
                             )}
                             {pending && (!canApprove || !onVerifyOrganization) && (
-                              <Badge className="h-12 rounded-2xl flex items-center justify-center bg-amber-400/15 text-amber-200 px-3">
+                              <Badge className="h-12 rounded-button flex items-center justify-center bg-amber-500/10 text-amber-700 dark:text-amber-200 px-3">
                                 ADMIN REVIEW
                               </Badge>
                             )}
@@ -317,6 +326,7 @@ export const MobileVerification = ({
                     : 'Approval items are not visible for this role.'}
               onRecover={hasActiveRecovery ? () => setFilters(prev => ({ ...prev, search: '', status: 'all' })) : undefined}
               recoverLabel={filters?.search ? 'Clear Search' : hasActiveRecovery ? 'Reset Filters' : undefined}
+              labelTone="plain"
             />
           )}
         </div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Badge } from '../ui/badge';
 import {
   AlertCircle,
   Ambulance,
@@ -76,12 +75,12 @@ const FleetMetric = ({ icon: Icon, label, value, tone }) => (
   </div>
 );
 
-const PanelAction = ({ icon: Icon, label, onClick, tone = 'text-primary bg-primary/10 hover:bg-primary/15' }) => (
+const PanelAction = ({ icon: Icon, label, onClick, tone = 'bg-sky-500/10 text-sky-700 hover:bg-sky-500/15 dark:text-sky-200' }) => (
   <motion.button
     type="button"
-    whileTap={{ scale: 0.97 }}
+    whileTap={{ scale: 0.96 }}
     onClick={onClick}
-    className={`flex min-h-16 flex-col items-center justify-center gap-2 rounded-inner px-3 py-3 text-xs font-semibold transition-all active:scale-95 ${tone}`}
+    className={`flex min-h-16 flex-col items-center justify-center gap-2 rounded-inner px-3 py-3 text-xs font-semibold transition-all ${tone}`}
   >
     <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
     <span>{label}</span>
@@ -107,11 +106,8 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
 
   return (
     <div className="space-y-3">
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-2"
-      >
+      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+      <section className="space-y-2">
         <div className="ml-1">
           <h3 className="text-[11px] font-semibold text-muted-foreground">Fleet context</h3>
           <p className="text-xs text-muted-foreground/80">From this page</p>
@@ -130,7 +126,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
             </div>
           </div>
         ) : (
-          <div className="rounded-card bg-card/64 p-4 shadow-[0_20px_56px_rgba(0,0,0,0.12)] dark:bg-white/[0.05]">
+          <div className="rounded-card surface-card p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
@@ -141,9 +137,9 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
                   <p className="truncate text-xs text-muted-foreground">{total} fleet units</p>
                 </div>
               </div>
-              <Badge className="rounded-pill bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">
+              <span className="inline-flex items-center rounded-pill bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">
                 Ready
-              </Badge>
+              </span>
             </div>
           </div>
         )}
@@ -162,7 +158,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
             tone="bg-amber-500/10 text-amber-700 dark:text-amber-200"
           />
         </div>
-      </motion.section>
+      </section>
 
       <section className="grid grid-cols-3 gap-2">
         <PanelAction icon={Plus} label="Add unit" onClick={handleCreateAmbulance} />

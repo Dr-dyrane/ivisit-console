@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { mobileMotion } from './mobileMotion';
 import { useScrollCooldown } from './useScrollCooldown';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 /**
  * MobileQuickNavPill
@@ -10,6 +12,7 @@ import { useScrollCooldown } from './useScrollCooldown';
  */
 export const MobileQuickNavPill = ({ items }) => {
     const { isScrolling, bind } = useScrollCooldown(180);
+    const { triggerFromEvent } = useFeedback();
     // Chunk items into pages of 4 for 2x2 grids
     const pages = [];
     for (let i = 0; i < items.length; i += 4) {
@@ -21,11 +24,12 @@ export const MobileQuickNavPill = ({ items }) => {
             <Link
                 key={idx}
                 to={item.path}
+                onClick={(event) => triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: item.color, haptic: true, sound: true })}
                 className={`block h-full ${isScrolling ? 'pointer-events-none' : ''}`}
             >
                 <motion.div
                     whileTap={mobileMotion.press.card}
-                    className="flex items-center gap-4 p-4 rounded-button bg-muted/40 active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
+                    className="flex items-center gap-4 p-4 rounded-button surface-card active:bg-foreground/[0.08] dark:active:bg-white/[0.09] transition-all duration-300 relative overflow-hidden group h-full min-h-[72px]"
                 >
                 {/* Background Analytical Glow */}
                 <div
@@ -41,7 +45,7 @@ export const MobileQuickNavPill = ({ items }) => {
                 />
 
                 <div
-                    className="w-10 h-10 rounded-icon flex items-center justify-center shrink-0 transition-all duration-300 group-active:scale-110 relative z-10 shadow-md"
+                    className="w-10 h-10 rounded-icon flex items-center justify-center shrink-0 transition-all duration-300 group-active:scale-110 relative z-10"
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${item.color.replace(/\)$/, ' / 0.2)')}, ${item.color.replace(/\)$/, ' / 0.1)')})`,
                     }}
@@ -50,11 +54,8 @@ export const MobileQuickNavPill = ({ items }) => {
                 </div>
 
                 <div className="flex flex-col min-w-0 relative z-10">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-foreground/80 leading-tight">
+                    <span className="text-[12px] font-semibold tracking-tight text-foreground/85 leading-tight truncate">
                         {item.label}
-                    </span>
-                    <span className="text-[7px] text-muted-foreground/30 font-normal uppercase tracking-widest mt-0.5">
-                        Exploration
                     </span>
                 </div>
                 </motion.div>

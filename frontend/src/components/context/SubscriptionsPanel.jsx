@@ -40,11 +40,8 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
 
   return (
     <div className="space-y-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="space-y-2"
-      >
+      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+      <div className="space-y-2">
         <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Subscriber context</h3>
 
         <div className="bg-emerald-500/10 p-4 rounded-card flex items-center justify-between group transition-all shadow-sm">
@@ -79,7 +76,7 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-sky-500/10 p-4 rounded-card group shadow-sm">
@@ -139,7 +136,7 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
         <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Recent</h3>
         <div className="space-y-1">
           {rows.slice(0, 4).map((subscriber, idx) => (
-            <div key={subscriber.id || idx} className="bg-white/5 p-3 rounded-inner flex items-center justify-between transition-colors hover:bg-white/10 group">
+            <div key={subscriber.id || idx} className="surface-card p-3 rounded-inner flex items-center justify-between transition-colors hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] group">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-icon flex items-center justify-center flex-shrink-0 ${
                   subscriber.status === 'active' ? 'bg-emerald-500/15' : 'bg-amber-500/15'
@@ -161,7 +158,7 @@ export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
             </div>
           ))}
           {rows.length === 0 && (
-            <div className="bg-white/5 p-3 rounded-inner text-[11px] text-muted-foreground">
+            <div className="surface-card p-3 rounded-inner text-[11px] text-muted-foreground">
               No subscribers shown.
             </div>
           )}

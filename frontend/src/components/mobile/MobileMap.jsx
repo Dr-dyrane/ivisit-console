@@ -32,6 +32,13 @@ import mobileMotion from './mobileMotion';
  * Canon #9: Stress-Ready
  * Canon #20: Premium Lightness
  */
+
+// Sentence-case a raw status token ('in_progress' -> 'In progress'). DS v1.2 §3:
+// no all-caps subtext — status values render sentence-case, not .toUpperCase().
+const statusLabel = (value, fallback = '') => {
+    const text = String(value || fallback).replace(/[_-]+/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+};
 export const MobileMap = ({
     mapData,
     toggleLayer,
@@ -72,7 +79,7 @@ export const MobileMap = ({
         },
         {
             id: 'ambulance',
-            label: 'Units Ready',
+            label: 'Units ready',
             value: processedAmbulances.filter(a => a.status === 'available').length,
             color: 'hsl(160 84% 39%)' // emerald-500
         },
@@ -125,7 +132,7 @@ export const MobileMap = ({
             <div className="absolute inset-0 pt-12">
                 {isSwitchingMap && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                        <AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
+                        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
                         <h3 className="text-xl font-medium mb-2">Syncing Map...</h3>
                     </div>
                 )}
@@ -216,7 +223,7 @@ export const MobileMap = ({
                                     onClick={() => setFilter?.(item.id || 'all')}
                                     className={`min-w-[5.2rem] rounded-inner px-3 py-2 text-left transition-all active:scale-[0.96] ${isActive ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/[0.04] text-foreground/78'}`}
                                 >
-                                    <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] opacity-70">
+                                    <span className="block text-[11px] font-medium opacity-70">
                                         {item.label}
                                     </span>
                                     <span className="block text-lg font-semibold leading-none">
@@ -312,9 +319,9 @@ export const MobileMap = ({
                                     {selectedMarker.type === 'emergency' && (
                                         <>
                                             <div className="flex items-center gap-2">
-                                                <span className={`inline-flex rounded-pill px-2.5 py-1 font-black tracking-[0.14em] text-[10px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"
+                                                <span className={`inline-flex rounded-pill px-2.5 py-1 font-semibold text-[11px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"
                                                     }`}>
-                                                    {selectedMarker.data.priority?.toUpperCase()}
+                                                    {statusLabel(selectedMarker.data.priority)}
                                                 </span>
                                                 <span className="text-[11px] text-muted-foreground font-medium">
                                                     Requested: {new Date(selectedMarker.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -391,7 +398,7 @@ export const MobileMap = ({
                                             <div className="p-4 bg-muted/20 rounded-card text-center">
                                                 <p className="eyebrow mb-1">Status</p>
                                                 <p className={`text-sm font-semibold ${selectedMarker.data.status === 'available' ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
-                                                    {selectedMarker.data.status?.toUpperCase()}
+                                                    {statusLabel(selectedMarker.data.status)}
                                                 </p>
                                             </div>
                                             <div className="p-4 bg-muted/20 rounded-card text-center">
