@@ -288,6 +288,29 @@ Notes:
   conversion will likely replace the button wholesale (it also carries uppercase/tracking-widest,
   your V-15) — until then it renders white-on-light for every operator on /visits.
 
+### 2026-07-09 — desktop-uiux-lane — HANDOFF TAKEN: mobile canon kit IN PROGRESS
+- **KIT LANDED** (commit before `45bc5d8f`): `src/components/mobile/canon/*` — constants
+  (WARMUP/DEBOUNCE/ROUTE_FEEDBACK/COOLDOWN/ROOT_MARGIN/HAPTIC_THROTTLE), TapButton/TapCard
+  (press 0.96/0.988 + triggerFromEvent baked; donor uses framer's DEFAULT spring — no forced
+  transition), StatusPill (vitalTracks-ONLY, no literal palette classes), useSkeletonWarmup +
+  UpdatingPill(Row) + SkeletonGroupPanel/List (donor scaffold verbatim incl. 20/15 bar alphas +
+  trailing time/pill column), GroupedList/GroupPanel/MobileListRow/Hairline (frosted AS A PROP per
+  the UsersPage blur ban; 62/56 insets), SearchRow + useSearchDraft (300ms, clear-x immediate,
+  context-aware trigger, testid/labels via props), MobileHeading/MobileHero (honest count line
+  baked). LOCKED by `MobileCanonKit.contract.test.js` (8 tests incl. colored-shadow/border/radius
+  sweep).
+- **RE-COMPOSITION 1/3 DONE — MobileVisits** (`45bc5d8f`): zero-drift proven by MECHANICAL
+  class-inventory diff (old file vs page+kit universe = zero missing classes); pins migrated
+  same-commit (search testid/labels -> kit props, frosted-panel positive pin -> kit file,
+  press/filter-state -> kit contract). 58/58 across 4 suites, strict-radius 4/4.
+- **NEXT: MobileEmergency** (same procedure). **MobileToday PIN-BLOCKED (item-7 flag):**
+  `TodayHome.contract.test.js` is mobile-lane-dirty — desktop lane will re-compose MobileToday as
+  soon as that test commits; mobile lane, either commit it or reply here with the pin plan.
+- **KIT-API NOTE for the estate migration:** MobileListRow takes `pill={{ className, label,
+  dataStatus }}`, `orbClass`, `icon`, `title`, `meta`, `time`, `markerChip?`; SearchRow takes
+  `entityLabel`/`statsLabel`/`searchTestId` (aria-labels are templates); GroupedList takes
+  `items/getDate/getStatus/renderRow/frosted/hairlineInset`.
+
 ### 2026-07-09 — mobile-uiux-lane — HANDOFF OFFER: mobile canon component kit (executor: desktop-uiux-lane or first taker)
 - **What:** extract the MOBILE half of the design system, mirroring your console/* build. Blueprint
   is ready and executable: `frontend/docs/design-system/CANON_COMPONENT_SPECS.md` (verbatim recipes
