@@ -7,7 +7,6 @@ import {
     BedDouble,
     Calendar,
     CheckCheck,
-    ChevronRight,
     ClipboardCheck,
     Clock,
     CreditCard,
@@ -34,18 +33,22 @@ import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useReverseGeocode } from '../../hooks/useReverseGeocode';
 import { useLoadMoreControl } from './useLoadMoreControl';
+// Mobile canon kit: the grouped-list grammar, loading truth, and heading live in
+// shared components (extraction source: CANON_COMPONENT_SPECS.md); this page keeps
+// only its DOMAIN - request projection, chips, search/action triggers, sheet islands.
+// The search row stays PAGE-LOCAL on purpose: the kit SearchRow's stats trigger has
+// no open-state (this page wires analyticsOpen -> data-state + aria-expanded), and
+// the load scaffold stays page-local because its trailing column (single pill bar)
+// differs from the kit scaffold's time+pill column. Fidelity wins this pass.
+import { useSkeletonWarmup, UpdatingPillRow } from './canon/Loading';
+import { GroupedList, MobileListRow } from './canon/GroupedList';
+import { MobileHeading } from './canon/MobileHero';
+import { LOAD_MORE_ROOT_MARGIN } from './canon/constants';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { buildEmergencyRenderProjection, formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
 import { formatRequestDayTime, isUnsettledCashRequest } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
-import { groupByRecency } from '../../utils/groupByRecency';
-
-// Minimum skeleton time on every mount. Bottom-nav navigation mounts with cached
-// data (loading already false), so without this the page would skip the skeleton and
-// assemble cached content top-to-bottom. A short forced warm-up makes navigation load
-// skeleton-first then reveal in one commit — identical to a hard refresh. Tunable.
-const SKELETON_WARMUP_MS = 400;
 
 // State filter chips for MobileKPIStrip. `color` is the raw status hue for the chip
 // dot (active chip is brand-filled by MobileKPIStrip itself). Hues mirror the row
@@ -170,6 +173,8 @@ const MobileRequestsAtlasLayer = () => (
 // frosted panel, row rhythm, and 62px hairline inset) so the list REPLACES it in place
 // with zero layout jump — no top-to-bottom entrance, the skeleton holds the layout and
 // content materializes where it already sat. Apple/iOS loading model.
+// PAGE-LOCAL (not the kit SkeletonGroupList): this scaffold's trailing column is a
+// single pill bar, the kit's is a time+pill column — swapping would be visual drift.
 const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
     <div className="space-y-[18px]" aria-hidden="true">
         {Array.from({ length: groups }).map((_, groupIndex) => (
@@ -200,6 +205,38 @@ const MobileRequestsListSkeleton = ({ groups = 2, rowsPerGroup = 3 }) => (
     </div>
 );
 
+// Donor row anatomy with the request identity (canon MobileListRow): status-tinted
+// orb + service glyph, patient name 15/500, "{service} · {date}" meta, trailing
+// day-aware time + status pill + chevron. Tap opens the MobileDetailSheet, never an
+// inline dropdown.
+const MobileRequestRow = ({ request, onOpen }) => {
+    const projection = buildEmergencyRenderProjection(request);
+    const vital = resolveVital('emergency', request.status);
+    const pill = vital?.pill;
+    const name = projection.patientDisplay.name;
+    const avatarClass = getMobileRequestAvatarClass(request);
+    const TypeIcon = getMobileRequestTypeIcon(request);
+    // Same quiet muted marker the desktop RequestRow shows next to
+    // its status pill: cash requests stay flagged until settled.
+    const showCashChip = isUnsettledCashRequest(request);
+
+    return (
+        <MobileListRow
+            item={request}
+            dataAttr="data-mobile-request-row"
+            onOpen={() => onOpen(request)}
+            ariaLabel={`Open ${name}`}
+            orbClass={avatarClass}
+            icon={TypeIcon}
+            title={name}
+            meta={`${serviceLabel(request)} · ${createdDateLabel(request.created_at)}`}
+            time={formatRequestDayTime(request.created_at)}
+            markerChip={showCashChip ? 'Cash' : null}
+            pill={pill}
+        />
+    );
+};
+
 export const MobileEmergency = ({
     emergencies,
     loading,
@@ -227,10 +264,10 @@ export const MobileEmergency = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeRequest, setActiveRequest] = useState(null);
-    // Forced skeleton on every mount (see SKELETON_WARMUP_MS): guarantees a
-    // skeleton-first load on cached bottom-nav navigation, not just on refresh.
-    const [warmingUp, setWarmingUp] = useState(true);
     const { triggerFromEvent } = useFeedback();
+    // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
+    // skeleton-first load on cached bottom-nav navigation, not just on refresh.
+    const warmingUp = useSkeletonWarmup();
     const { displayItems } = useStableList(emergencies, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
     // Skeleton while warming up OR while the first real fetch is still pending.
@@ -258,7 +295,7 @@ export const MobileEmergency = ({
     // Transcribe the active request's coordinates into a place label (same
     // Google -> Nominatim chain the desktop rail uses). Lives at the top level
     // because the detail-sheet render below is an inline IIFE (no hooks there);
-    // the hook caches by rounded coords, so reopening a sheet never re-fetches.
+    // the hook caches by quantized coords, so reopening a sheet never re-fetches.
     const activeCoordinates = useMemo(() => (
         activeRequest
             ? buildEmergencyRenderProjection(activeRequest).locationDisplay.coordinates
@@ -267,17 +304,12 @@ export const MobileEmergency = ({
     const { place: activePlace } = useReverseGeocode(activeCoordinates);
 
     useEffect(() => {
-        const timer = setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
         if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
                 if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '120px' }
+            { threshold: 0.1, rootMargin: LOAD_MORE_ROOT_MARGIN }
         );
         if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
@@ -308,18 +340,13 @@ export const MobileEmergency = ({
                     {/* Chrome (title + summary) is always present — no entrance motion.
                         Only DATA regions load; they scaffold with skeletons and replace
                         in place, so nothing sweeps in top-to-bottom. */}
-                    <section className="px-4">
-                        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">Requests</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {showSkeleton
-                                ? 'Loading requests...'
-                                // A failed load must not report a confident "0 requests" —
-                                // the summary stays honest about what actually happened.
-                                : loadError && displayItems.length === 0
-                                    ? 'Requests did not load'
-                                    : `${totalRequests} request${totalRequests === 1 ? '' : 's'}`}
-                        </p>
-                    </section>
+                    <MobileHeading
+                        title="Requests"
+                        noun="request"
+                        count={totalRequests}
+                        showSkeleton={showSkeleton}
+                        failedEmpty={Boolean(loadError) && displayItems.length === 0}
+                    />
 
                     <MobileKPIStrip
                         kpis={kpis}
@@ -397,13 +424,7 @@ export const MobileEmergency = ({
                             screen while refetching (KPI switch, search, filter, pull-to-refresh,
                             load-more), so `loading` stays false — `isFetching` is the only
                             signal. Hidden under the skeleton, which already communicates load. */}
-                        <div className="mt-4 flex items-center justify-end px-2">
-                            {isFetching && !showSkeleton && (
-                                <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                    Updating
-                                </span>
-                            )}
-                        </div>
+                        <UpdatingPillRow show={isFetching && !showSkeleton} />
 
                         <div className="mt-3 space-y-2">
                         {!loading && loadError && displayItems.length > 0 && (
@@ -420,82 +441,21 @@ export const MobileEmergency = ({
                             </div>
                         )}
 
-                        {/* iOS-Settings grouped list (canon): one frosted PANEL per recency
+                        {/* iOS-Settings grouped list (canon kit): one frosted PANEL per recency
                             bucket over the atlas; rows are transparent, separated by a slate
                             hairline — separation is fill/frost, never a border. Grouping is
-                            render-only; id-keyed state is unaffected.
-
-                            Load model: the group-shaped skeleton holds the exact final
-                            layout, then the real list REPLACES it in place — no entrance
-                            motion at all. A fade here would run FROM BLANK on cached (bottom-
-                            nav) mounts where the data is already present, which reads as a
-                            top-to-bottom load; instant replace keeps reload and navigation
-                            identical. Nothing moves; content is simply there once mounted. */}
+                            render-only; id-keyed state is unaffected. The group-shaped skeleton
+                            holds the exact final layout and the real list REPLACES it in place
+                            (no entrance motion): reload and cached navigation stay identical. */}
                         {showSkeleton ? (
                             <MobileRequestsListSkeleton />
                         ) : (
-                        <div className="space-y-[18px]">
-                            {groupByRecency(
-                                displayItems,
-                                (request) => request.created_at,
-                                (request) => canonicalizeEmergencyStatus(request.status, null),
-                            ).map(({ key, label, items }) => (
-                                <div key={key}>
-                                    <div className="flex items-center justify-between px-1 pb-2.5">
-                                        <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{label}</span>
-                                        <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{items.length}</span>
-                                    </div>
-                                    <div className="rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5">
-                                        {items.map((request, index) => {
-                                            const projection = buildEmergencyRenderProjection(request);
-                                            const vital = resolveVital('emergency', request.status);
-                                            const pill = vital?.pill;
-                                            const name = projection.patientDisplay.name;
-                                            const avatarClass = getMobileRequestAvatarClass(request);
-                                            const TypeIcon = getMobileRequestTypeIcon(request);
-                                            // Same quiet muted marker the desktop RequestRow shows next to
-                                            // its status pill: cash requests stay flagged until settled.
-                                            const showCashChip = isUnsettledCashRequest(request);
-                                            return (
-                                                <React.Fragment key={request.id}>
-                                                    <motion.button
-                                                        type="button"
-                                                        whileTap={{ scale: 0.988 }}
-                                                        onClick={() => setActiveRequest(request)}
-                                                        onPointerDown={(event) => triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, haptic: true, sound: true })}
-                                                        className="group/row w-full flex items-center gap-3 px-2 py-3 text-left rounded-inner transition-colors active:bg-foreground/[0.06] dark:active:bg-white/[0.08]"
-                                                        data-mobile-request-row={request.id}
-                                                        aria-haspopup="dialog"
-                                                        aria-label={`Open ${name}`}
-                                                    >
-                                                        <span className={`h-10 w-10 shrink-0 rounded-pill flex items-center justify-center ${avatarClass}`}>
-                                                            <TypeIcon size={20} />
-                                                        </span>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-[15px] leading-5 font-medium text-foreground truncate">{name}</p>
-                                                            <p className="mt-0.5 text-xs leading-[17px] text-muted-foreground truncate">{serviceLabel(request)} · {createdDateLabel(request.created_at)}</p>
-                                                        </div>
-                                                        <span className="ml-2 shrink-0 flex flex-col items-end gap-2 min-w-[72px]">
-                                                            <span className="text-xs leading-[15px] font-bold text-foreground tabular-nums">{formatRequestDayTime(request.created_at)}</span>
-                                                            <span className="flex items-center gap-2">
-                                                                {showCashChip && (
-                                                                    <span className="rounded-pill bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Cash</span>
-                                                                )}
-                                                                <span className={`rounded-pill px-2.5 py-[5px] text-[11px] font-bold ${pill?.className || 'bg-muted/34 text-muted-foreground'}`}>{pill?.label || 'New'}</span>
-                                                                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                                                            </span>
-                                                        </span>
-                                                    </motion.button>
-                                                    {index < items.length - 1 && (
-                                                        <div className="h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]" aria-hidden="true" />
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                            <GroupedList
+                                items={displayItems}
+                                getDate={(request) => request.created_at}
+                                getStatus={(request) => canonicalizeEmergencyStatus(request.status, null)}
+                                renderRow={(request) => <MobileRequestRow request={request} onOpen={setActiveRequest} />}
+                            />
                         )}
 
                         <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">

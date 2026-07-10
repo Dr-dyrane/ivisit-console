@@ -97,10 +97,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('<RequestRow');
     expect(pageSource).toContain('<RequestDetailRail');
     expect(pageSource).toContain('viewToggle={null}');
-    // Mobile Requests now renders the iOS-Settings grouped list (recency panels) instead
-    // of the flat MobileRequestRow feed.
-    expect(mobileSource).toContain('groupByRecency(');
-    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
+    // Mobile Requests now renders the iOS-Settings grouped list (recency panels) via the
+    // mobile canon kit (GroupedList/MobileListRow own the recency grouping + row anatomy;
+    // recipes are locked in MobileCanonKit.contract.test.js) instead of the flat feed.
+    expect(mobileSource).toContain("from './canon/GroupedList'");
+    expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
 
     expect(activeRequestsSource).not.toContain('EmergencyRequestListView');
     expect(activeRequestsSource).not.toContain('EmergencyRequestTableView');
@@ -134,7 +135,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
     expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
     expect(pageSource).toContain('const RequestDetailRail = ({');
-    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
+    expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
     expect(pageSource).toContain('usePageHeader(');
     expect(pageSource).toContain("'Requests',");
     expect(pageSource).toContain("usePageFooter(null, 'status', false);");
@@ -201,11 +202,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
 
     expect(mobileSource).toContain('<PullToRefresh onRefresh={onRefresh}>');
-    // Skeleton-first on EVERY mount: a forced warm-up guarantees the skeleton shows on
-    // cached bottom-nav navigation too (not just refresh), so content never assembles
-    // top-to-bottom. When it clears, the group-shaped skeleton is REPLACED in place.
-    expect(mobileSource).toContain('const SKELETON_WARMUP_MS =');
-    expect(mobileSource).toContain('setTimeout(() => setWarmingUp(false), SKELETON_WARMUP_MS)');
+    // Skeleton-first on EVERY mount: the canon warm-up hook (400ms recipe locked in
+    // MobileCanonKit.contract.test.js) guarantees the skeleton shows on cached bottom-nav
+    // navigation too (not just refresh), so content never assembles top-to-bottom. When it
+    // clears, the group-shaped skeleton is REPLACED in place. The scaffold itself stays
+    // PAGE-LOCAL: its trailing column (single pill bar) differs from the kit scaffold's
+    // time+pill column, and fidelity wins over kit adoption.
+    expect(mobileSource).toContain("from './canon/Loading'");
+    expect(mobileSource).toContain('const warmingUp = useSkeletonWarmup();');
     expect(mobileSource).toContain('const showSkeleton = warmingUp || (loading && displayItems.length === 0);');
     expect(mobileSource).toContain('const MobileRequestsListSkeleton = (');
     expect(mobileSource).toContain('{showSkeleton ? (');
@@ -452,17 +456,22 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('kpis={kpis}');
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain("onKpiClick={(id) => setKpiFilter?.(id)}");
-    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
+    expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
     // Grouped-list row: taps open the detail sheet directly via setActiveRequest, rendered
-    // inside a frosted recency PANEL with slate hairlines between transparent rows.
-    expect(mobileSource).toContain('onClick={() => setActiveRequest(request)}');
-    expect(mobileSource).toContain("import { groupByRecency } from '../../utils/groupByRecency';");
+    // inside a frosted recency PANEL with slate hairlines between transparent rows. The
+    // press ladder + row anatomy come from the canon kit (MobileCanonKit.contract.test.js).
+    expect(mobileSource).toContain('onOpen={setActiveRequest}');
+    expect(mobileSource).toContain('<GroupedList');
     expect(mobileSource).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl');
     expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]');
     expect(mobileSource).toContain('aria-haspopup="dialog"');
-    expect(mobileSource).toContain('>Requests</h1>');
+    // Heading (title + honest count line) renders through the canon MobileHeading;
+    // the h1 recipe is locked in MobileCanonKit.contract.test.js.
+    expect(mobileSource).toContain('<MobileHeading');
+    expect(mobileSource).toContain('title="Requests"');
+    expect(mobileSource).toContain('noun="request"');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');
-    expect(mobileSource).toContain('text-2xl font-semibold leading-tight');
+    expect(mobileSource).toContain("from './canon/MobileHero'");
     // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button
     // tiles), replacing the old inline `rounded-inner bg-background/30 p-3` tiles.
     expect(mobileSource).toContain('MobileDetailIslands');
