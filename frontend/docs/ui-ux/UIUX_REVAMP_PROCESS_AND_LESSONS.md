@@ -31,6 +31,13 @@ For **every page** we finish designing, before calling it done:
    in its own pass.
 5. **Verify + commit.** `CI=true npx craco test <files> --watchAll=false` green, `craco build`
    compiles, commit scoped files only.
+6. **Main-parity drop audit (user decision 2026-07-09).** After the revamp lands, diff the page
+   family against `main` (= preservation baseline `f31f29f`) at the FEATURE level — handlers,
+   window events, service exports, aria-labels — and classify EVERY disappearance as intentional
+   (cite the contract pin / ledger row / arbitration) or unintentional (fix it). A drop with no
+   citation is unintentional by definition. Method + per-page records:
+   `docs/audit/FEATURE_PARITY_VS_MAIN.md` (repo root). Visits passed 2026-07-09 with zero
+   unintentional drops.
 
 ---
 
