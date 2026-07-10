@@ -22,8 +22,20 @@ import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
 import { MobileActionRail } from './MobileActionRail';
+import { useSkeletonWarmup } from './canon';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { statusPill } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
+
+// Grammar tier: DASHBOARD (MOBILE_DESIGN_SYSTEM §5). The guardrail test (2026-07-10)
+// proved Wallet is NOT a list — it has no searchable directory / scope count; it's a
+// finance SUMMARY (signal hero + balance + metric-nav tiles + action rail) with a
+// month-grouped transaction FEED below (a genuine time-feed, groupByMonth — no adaptive
+// grouping). The one divergence from the dashboard canon is the hero, waived here:
+// grammar:hero=inline finance headline — the balance headline is a deliberate 34px
+// emphasis (bank-app balance), larger than the kit MobileHero's 2xl; the signal
+// pill + headline + subhead structure otherwise matches MobileHero.
 
 const mobilePaymentTone = {
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
@@ -72,7 +84,10 @@ export const MobileWallet = ({
 }) => {
   const [activeEntry, setActiveEntry] = useState(null);
   const [showBalance, setShowBalance] = useState(true);
-  const showTopSectionLoading = loading && !wallet && ledger.length === 0 && payments.length === 0;
+  const { triggerFromEvent } = useFeedback();
+  // Skeleton-first on cached bottom-nav mounts (§5.1), matching the Today dashboard.
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && !wallet && ledger.length === 0 && payments.length === 0);
   const items = activeTab === 'ledger' ? ledger : payments;
   const formatServiceTypeLabel = (serviceType) => {
     if (!serviceType || typeof serviceType !== 'string') return null;
@@ -259,7 +274,12 @@ export const MobileWallet = ({
                     key={item.id}
                     type="button"
                     whileTap={{ scale: 0.988 }}
-                    onClick={item.onClick}
+                    onClick={(event) => {
+                      // Glance-tile press feedback (§7 / Gate 2c) — card-grade haptic on
+                      // the finance nav tiles, matching Today's glance tiles.
+                      triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
+                      item.onClick?.(event);
+                    }}
                     className={`min-h-[86px] rounded-card px-4 py-3 text-left transition-all ${active ? tone.active : tone.rest}`}
                     aria-pressed={active}
                   >

@@ -61,7 +61,7 @@ const MANIFEST = {
   'MobileUsers.jsx': { tier: 'list-migrating' },
   'MobileVerification.jsx': { tier: 'list-migrating' },
   // ── Exempt (not a canon list/dashboard page) ──
-  'MobileWallet.jsx': { tier: 'exempt', reason: 'pre-canon, not yet rebuilt (mobile lane queue)' },
+  'MobileWallet.jsx': { tier: 'dashboard' },
   'MobileOrganizations.jsx': { tier: 'exempt', reason: 'gate-blocked (Page 15 not admitted); no canon composition yet' },
   'MobileDashboard.jsx': { tier: 'exempt', reason: 'legacy shell, superseded by MobileToday' },
   'MobileAnalytics.jsx': { tier: 'exempt', reason: 'analytics report surface (desktop domain), not a list/dashboard' },

@@ -780,3 +780,23 @@ Notes:
   - AMB-9 double status narrowing (FilterSheet status AND kpiFilter both narrow): shared filter
     model across ALL pages, AND-semantics arguably correct; a design decision, left flagged.
   - AMB-8 location: opaque PostGIS payload, harmless; service select-narrow not worth the risk.
+
+### 2026-07-10 — mobile-uiux-lane — GUARDRAIL TEST on Wallet: harness landed it safely (caught a mis-classification)
+- User: "test our guardrails and see if we would land a pixel perfect page revamp." Ran the full
+  guardrail suite on MobileWallet (the last queued page). RESULT — the harness WORKED:
+  1. Grammar linter REFUSED to green Wallet as `list` (7 fatals: demanded SearchRow +
+     MobileHeading-with-count that DON'T fit a finance page). That mismatch = the guardrail
+     catching that Wallet isn't a list BEFORE a wrong rebuild.
+  2. Re-classified `dashboard` (Wallet's real identity: signal hero + balance + metric-nav
+     tiles + action rail, with a month-grouped transaction FEED). Passes with ONE waivable
+     divergence — the bespoke 34px balance hero (deliberate bank-app emphasis > kit 2xl).
+  3. Data-sync guardrail: finance tables RLS-blocked/empty under anon (can't measure); feed
+     correctly uses groupByMonth (a time-feed, NOT a directory — no adaptive grouping needed).
+- LANDED: manifest -> dashboard; hero waiver marker; useSkeletonWarmup (cached-mount skeleton,
+  matches Today); glance-tile haptics on the metric-nav cards (Gate 2c). 42/42 green.
+- DEBT (Gate 2c, flagged): the feed still uses MobileMetricRow (not kit grouped rows) and has
+  no isFetching UpdatingPill — the wallet page uses a non-RQ finance data flow with no
+  isFetching to wire. Needs page-side data work + auth to live-verify (RLS). Next Wallet pass.
+- HARNESS FINDING: the two-tier (list/dashboard) model handles Wallet as a dashboard-with-feed,
+  but the finance summary+feed hybrid is a pattern worth naming in MOBILE_DESIGN_SYSTEM §5 if a
+  second finance page appears.
