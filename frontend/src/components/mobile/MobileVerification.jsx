@@ -1,19 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, Search, Eye, CheckCircle, Ban, Building2, User, Users, SlidersHorizontal, BarChart3 } from 'lucide-react';
+import { Shield, Eye, CheckCircle, Ban, Building2, User, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached
+// bottom-nav mounts; UpdatingPillRow is the background-refetch signal.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEmpty } from './MobileListStates';
+import { MobileListEmpty, MobileListSkeletonRows } from './MobileListStates';
 import { useStableList } from './useStableList';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { mobileSpring } from './mobileMotion';
 
 // Sentence-case a raw status/role token ('org_admin' -> 'Org admin').
@@ -45,12 +47,11 @@ export const MobileVerification = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const selectionMode = selectedIds.length > 0;
-  const { triggerFromEvent } = useFeedback();
 
   const activeStats = queueType === 'providers' ? stats : orgStats;
   const items = queueType === 'providers' ? providers : organizations;
   const sourceItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
-  const { displayItems } = useStableList(sourceItems, loading);
+  const { displayItems, isBuffering } = useStableList(sourceItems, loading);
 
   // Raw vitalTracks accents (amber/emerald/slate) — the light 300/400 tones were
   // light-on-light in light mode.
@@ -61,7 +62,8 @@ export const MobileVerification = ({
     { id: 'all', label: 'Total', value: activeStats?.total || sourceItems.length, color: 'hsl(var(--muted-foreground))' }
   ], [activeStats, sourceItems.length, queueType]);
 
-  const showTopSectionLoading = loading && displayItems.length === 0;
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && displayItems.length === 0);
   const hasActiveRecovery = Boolean(filters?.search) || String(filters?.status || 'all') !== 'all';
 
   return (
@@ -185,43 +187,16 @@ export const MobileVerification = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              placeholder={`Search ${queueType === 'providers' ? 'providers' : 'facilities'}...`}
-              value={filters?.search || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-inner bg-background/60 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
-            />
-          </div>
-          {onOpenFilters && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={(event) => {
-                onOpenFilters?.();
-                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
-              }}
-              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Open filters"
-            >
-              <SlidersHorizontal size={18} />
-            </motion.button>
-          )}
-          {onViewAnalytics && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={(event) => {
-                onViewAnalytics?.();
-                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
-              }}
-              className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Open analytics"
-            >
-              <BarChart3 size={18} />
-            </motion.button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder={`Search ${queueType === 'providers' ? 'providers' : 'facilities'}...`}
+            search={filters?.search || ''}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            entityLabel={queueType === 'providers' ? 'providers' : 'facilities'}
+            onOpenFilters={onOpenFilters}
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -312,7 +287,10 @@ export const MobileVerification = ({
             })}
           </AnimatePresence>
 
-          {displayItems.length === 0 && (
+          {showTopSectionLoading && <MobileListSkeletonRows />}
+          <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
+
+          {displayItems.length === 0 && !showTopSectionLoading && !loading && (
             <MobileListEmpty
               icon={Shield}
               label={canApprove ? 'No verification items found' : 'No visible approval items'}

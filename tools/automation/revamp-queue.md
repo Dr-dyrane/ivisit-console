@@ -361,3 +361,19 @@ Notes:
 - **Blast radius:** zero visual change for pages that wire `onOpenFilters` (all current
   consumers: SupportTickets, HealthNews, Insurance, Emergency, Visits). Behavior change only
   for undefined-handler cases: trigger hides instead of dead-tapping.
+
+### 2026-07-09 — mobile-uiux-lane — WAVE-2 STATUS + DONOR CONSOLIDATION FLAG
+- **Wave-2 kit migrations COMPLETE (7 pages):** SupportTickets 68dfe3e9, HealthNews 692277be,
+  Insurance 4926130c+faea01db, Pricing 3c1a67f2 (+ kit SearchRow conditional e04662a0),
+  Users 4bba5553, Doctors 017c0059, Subscriptions 5257c479, Verification (bonus — also fixes
+  its un-gated empty state that flashed "No verification items found" during initial load).
+  All pages now get: 300ms debounce + clear-x, warm-up on cached mounts, UpdatingPillRow.
+- **DONOR CONSOLIDATION (flagged, not fixed):** MobileEmergency still hand-rolls its search
+  row (byte-identical to the kit — it IS the extraction source, all behaviors present). A
+  SearchRow swap there must migrate ~5 pins in EmergencyRequestsPage.contract.test.js
+  (filterTriggerState/analyticsTriggerState derivations, data-state, aria-expanded — lines
+  ~232-233/300-304). Zero functional gain; purely structural. Whoever next opens that
+  contract should fold it in same-commit rather than as a standalone pass.
+- **Remaining inline-recipe holders (all already queued as structural rebuilds, NOT Wave-2):**
+  MobileHospitals, MobileAmbulances, MobileWallet (L, dropdown-row pseudo-sheets),
+  MobileOrganizations (gate-blocked). They should consume the kit wholesale when rebuilt.
