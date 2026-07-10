@@ -200,20 +200,40 @@ export const MobileHospitals = ({
         status: filters?.status || null,
         date: filters?.created_at || null,
     });
-    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map() });
+    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map(), lastSource: null, provisional: false });
     const hospitalRows = useMemo(() => {
         const store = accumulatorRef.current;
-        if (store.signature !== filterSignature) {
-            store.signature = filterSignature;
-            store.order = [];
-            store.byId = new Map();
-        }
-        sourceHospitals.forEach((row) => {
+        const absorb = (row) => {
             const id = row?.id;
             if (id === null || id === undefined) return;
             if (!store.byId.has(id)) store.order.push(id);
             store.byId.set(id, row);
-        });
+        };
+        const scopeChanged = store.signature !== filterSignature;
+        if (scopeChanged) {
+            store.signature = filterSignature;
+            store.order = [];
+            store.byId = new Map();
+            // Placeholder guard (live-caught 2026-07-09): on a scope change React
+            // Query still serves the PREVIOUS scope's rows as placeholderData (the
+            // same array reference). They may display for §5.5 refetch continuity,
+            // but they are PROVISIONAL — without this flag a no-match search kept
+            // showing 20 stale rows forever ("0 hospitals" heading over a full list).
+            store.provisional = true;
+        }
+        if (store.lastSource !== sourceHospitals) {
+            store.lastSource = sourceHospitals;
+            if (store.provisional && !scopeChanged) {
+                // First REAL response after a scope change: rebuild from it alone.
+                store.order = [];
+                store.byId = new Map();
+                store.provisional = false;
+            }
+            sourceHospitals.forEach(absorb);
+        } else if (scopeChanged) {
+            // Same array reference across the scope change = placeholder continuity.
+            sourceHospitals.forEach(absorb);
+        }
         return store.order.map((id) => store.byId.get(id));
     }, [sourceHospitals, filterSignature]);
 

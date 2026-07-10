@@ -522,3 +522,15 @@ Notes:
   must state adoption-time REQUIREMENTS (presence-or-recorded-exclusion), not just bans.
 - Note: mobile lane's `ed9e852e` swept my staged contract-test pins in (selection pins landed
   there); shared-index commits keep interleaving — verify at HEAD, not per-commit.
+
+### 2026-07-09 — mobile-uiux-lane — LIVE-CAUGHT BUG + donor flag: accumulator placeholder poisoning
+- Live click-test of the Hospitals directory rebuild caught it: on a scope change (search/
+  filter/chip), RQ placeholderData serves the PREVIOUS scope's rows (same array ref); the
+  id-keyed load-more accumulator absorbed them into the fresh scope's store, where the
+  settled empty response had nothing to overwrite — a no-match search showed "0 hospitals"
+  over 20 stale rows forever. Fixed in MobileHospitals with a provisional-store guard
+  (placeholder may display for §5.5 continuity; the first REAL response rebuilds the store).
+- **DONOR FLAG: MobileVisits + MobileEmergency carry the SAME accumulator without the guard**
+  — same latent bug on no-match searches. Mobile lane will port the guard when page scope
+  reopens (user has the lane parked on Hospitals). KIT CANDIDATE: extract the guarded
+  accumulator as canon `useScopeAccumulator` so all three pages share one implementation.
