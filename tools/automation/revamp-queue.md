@@ -467,3 +467,13 @@ Notes:
   create+Places dead path in HospitalModal (delete needs F6-style sign-off); Google Places
   image attribution never rendered (`image_attribution_text` ignored — possible ToS issue);
   provider read-only view of own facility (product question).
+
+### 2026-07-09 — mobile-uiux-lane — LANDED: MobileAmbulances changelog-first rebuild (fda49e7c)
+- Wave-2 grammar (DetailSheet + SearchRow + warmup/pill), NOT the GroupPanel pilot — hold
+  order respected. Changelog + data-sync record in FEATURE_PARITY_VS_MAIN.md. Live-verified
+  (BLS/D-AMB-6 sheet: station, vehicle COV-GUES-6, Unit ID AMB-324779 display label).
+- Aria pin migration in AmbulancesPage.contract (entityLabel/statsLabel carry the labels).
+- Queue: **MobileWallet is the LAST dropdown-row rebuild** in the mobile lane. Follow-ups
+  recorded: driver-name enrichment for ambulances rows (needs profiles name-join — service
+  work deferred to avoid desktop-lane collision), Requests ?id receiver as a future
+  cross-page affordance for the Active-call island.
