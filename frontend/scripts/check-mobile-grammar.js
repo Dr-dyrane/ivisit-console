@@ -188,6 +188,24 @@ function main() {
     }
   }
 
+  // Dock / FAB completeness (added 2026-07-10 — the user's point: "isn't the bottom bar +
+  // FAB part of the harness?"). A route in DynamicBottomBar's `routeOwnsAction` list
+  // SUPPRESSES the generic context FAB; if it then provides NO `getRouteOwnedMobileAction`
+  // branch, the dock collapses to a lone centered pill (the Ambulances bug). Every
+  // ADMITTED list route must carry a route-owned FAB action (real work or an honest gate).
+  const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
+  if (fs.existsSync(dockPath)) {
+    const dock = fs.readFileSync(dockPath, 'utf8');
+    const fnStart = dock.indexOf('getRouteOwnedMobileAction = (');
+    const fnBody = fnStart >= 0 ? dock.slice(fnStart) : '';
+    const ADMITTED_FAB_ROUTES = ['/emergencies', '/visits', '/hospitals', '/ambulances', '/doctors', '/support-tickets'];
+    const dockFatal = ADMITTED_FAB_ROUTES.filter((r) => !fnBody.includes(`startsWith('${r}')`));
+    if (dockFatal.length) {
+      console.log('\nDynamicBottomBar.jsx  [dock/FAB]');
+      dockFatal.forEach((r) => { console.log(`  ✗ FATAL  ${r} is in routeOwnsAction but has NO getRouteOwnedMobileAction branch -> the dock collapses to a lone pill (left-pill + FAB grammar broken)`); fatalCount++; });
+    }
+  }
+
   for (const file of files) {
     const entry = MANIFEST[file];
     if (!entry) { unclassified.push(file); continue; }

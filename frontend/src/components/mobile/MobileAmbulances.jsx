@@ -208,7 +208,7 @@ export const MobileAmbulances = ({
     // factor is decided per-render from the actual rows, never assumed.
     const { groups: fleetGroups } = useMemo(() => resolveAdaptiveGroups(displayAmbulances, [
         { key: 'station', assign: getStation, orphanLabel: 'Unassigned' },
-        { type: 'recency', key: 'recency', getDate: (a) => a.updated_at || a.created_at },
+        { type: 'coarse-recency', key: 'freshness', getDate: (a) => a.updated_at || a.created_at },
     ]), [displayAmbulances]);
 
     const getStatusColor = (status) => {

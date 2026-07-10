@@ -225,6 +225,19 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
+    // Ambulances (user arbitration 2026-07-10): unit create is fail-closed (no INSERT
+    // proof), so — like Hospitals — the FAB does the domain's REAL adjacent work: the
+    // fleet's people-verification queue (drivers are provider_type='driver', verified in
+    // the providers tab). Non-duplicating: the dock already carries Today/Requests/Map.
+    if (pathname.startsWith('/ambulances') && ['org_admin', 'admin'].includes(userRole)) {
+        return {
+            icon: FileCheck,
+            label: 'Driver approvals',
+            color: 'staff',
+            to: '/verification?queue=providers',
+        };
+    }
+
     if (pathname.startsWith('/support-tickets') && ['provider', 'org_admin', 'admin'].includes(userRole)) {
         return {
             icon: ClipboardCheck,

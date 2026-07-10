@@ -286,7 +286,7 @@ export const MobileHospitals = ({
             labelFor: (k) => (k === 'reporting' ? 'Reporting capacity' : 'No capacity reported'),
             order: (keys) => ['reporting', 'silent'].filter((k) => keys.includes(k)),
         },
-        { type: 'recency', key: 'recency', getDate: (h) => h.last_availability_update || h.updated_at },
+        { type: 'coarse-recency', key: 'freshness', getDate: (h) => h.last_availability_update || h.updated_at },
     ]), [displayHospitals]);
 
     const statusColorFor = (status) => (

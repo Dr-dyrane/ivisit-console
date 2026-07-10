@@ -59,6 +59,31 @@ const buildCategoricalGroups = (rows, factor) => {
 const buildRecencyGroups = (rows, getDate) =>
   groupByRecency(rows, getDate).map((b) => ({ key: b.key, label: b.label, items: b.items }));
 
+// COARSE freshness — the directory fallback. Fine recency (7 buckets) is right for a
+// FEED but fragments a directory into tiny/singleton panels ("This week: 1" — the
+// "too much grouping" the user flagged 2026-07-10). This collapses to at most three
+// operationally-meaningful staleness tiers by absolute day-age, so a directory never
+// shows a one-row recency panel while still grouping by date as asked.
+const COARSE_FRESHNESS = [
+  { key: 'recent', label: 'Updated recently', maxDays: 30 },
+  { key: 'earlier', label: 'Updated earlier', maxDays: 180 },
+  { key: 'stale', label: 'Not updated recently', maxDays: Infinity },
+];
+const buildCoarseRecencyGroups = (rows, getDate) => {
+  const nowMs = Date.now();
+  const byTier = { recent: [], earlier: [], stale: [] };
+  rows.forEach((item) => {
+    const raw = getDate(item);
+    const t = raw ? new Date(raw).getTime() : NaN;
+    const ageDays = Number.isNaN(t) ? Infinity : (nowMs - t) / 86400000;
+    const tier = COARSE_FRESHNESS.find((f) => ageDays <= f.maxDays) || COARSE_FRESHNESS[COARSE_FRESHNESS.length - 1];
+    byTier[tier.key].push(item);
+  });
+  return COARSE_FRESHNESS
+    .map((f) => ({ key: f.key, label: f.label, items: byTier[f.key] }))
+    .filter((g) => g.items.length > 0);
+};
+
 /**
  * Resolve the best grouping for `items` from an ordered list of candidate factors.
  * Each factor is either:
@@ -76,6 +101,9 @@ export const resolveAdaptiveGroups = (items, factors) => {
   if (total === 0) return { factorKey: 'empty', groups: [], score: null };
 
   for (const factor of factors) {
+    if (factor.type === 'coarse-recency') {
+      return { factorKey: factor.key, groups: buildCoarseRecencyGroups(rows, factor.getDate), score: null };
+    }
     if (factor.type === 'recency') {
       return { factorKey: factor.key, groups: buildRecencyGroups(rows, factor.getDate), score: null };
     }

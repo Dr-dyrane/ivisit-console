@@ -389,7 +389,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(mobile).toContain('resolveAdaptiveGroups');
     expect(mobile).toContain("'Reporting capacity'");
     expect(mobile).toContain("'No capacity reported'");
-    expect(mobile).toContain("type: 'recency'");
+    expect(mobile).toContain("type: 'coarse-recency'");
     expect(mobile).toContain('const scopeCount = activeStatusFilter');
     expect(mobile).toContain('accumulatorRef');
     expect(mobile).toContain('MobileHospitalsAtlasLayer');

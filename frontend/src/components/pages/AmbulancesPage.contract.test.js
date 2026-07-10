@@ -237,8 +237,15 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // falls to update-recency; the station factor keeps its 'Unassigned' orphan bucket.
     expect(mobile).toContain('resolveAdaptiveGroups');
     expect(mobile).toContain("orphanLabel: 'Unassigned'");
-    expect(mobile).toContain("type: 'recency'");
+    expect(mobile).toContain("type: 'coarse-recency'");
     expect(mobile).toContain('formatRelativeTime(ambulance.updated_at)');
+    // Dock/FAB grammar (user arbitration 2026-07-10): /ambulances is in routeOwnsAction,
+    // so it MUST carry a route-owned FAB or the dock collapses to a lone pill. The FAB
+    // does real adjacent work — driver approvals — parallel to the Hospitals FAB.
+    const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && ['org_admin', 'admin'].includes(userRole)");
+    expect(bottomBar).toContain("label: 'Driver approvals'");
+    expect(bottomBar).toContain("to: '/verification?queue=providers'");
     expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");
     expect(mobile).toContain("return 'Ready';");
