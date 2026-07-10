@@ -52,7 +52,7 @@ const MANIFEST = {
   // ── LIST-migrating (Wave-2: SearchRow + warm-up landed; grouped-panel + rail
   //    removal is the next rebuild — tracked as debt, not blocked) ──
   'MobileAmbulances.jsx': { tier: 'list' },
-  'MobileDoctors.jsx': { tier: 'list-migrating' },
+  'MobileDoctors.jsx': { tier: 'list' },
   'MobileHealthNews.jsx': { tier: 'list-migrating' },
   'MobileInsurance.jsx': { tier: 'list-migrating' },
   'MobilePricing.jsx': { tier: 'list-migrating' },

@@ -1,73 +1,96 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
-    BadgeCheck,
-    CheckCircle2,
-    Circle,
-    Clock,
-    Edit,
+    Stethoscope,
     Eye,
+    Edit,
+    Trash2,
     Hospital,
     Mail,
     Phone,
-    Stethoscope,
-    Trash2,
-    Users
+    BadgeCheck,
+    Clock
 } from 'lucide-react';
-// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
-// this page lacked + clear-x + the haptic filter trigger it hand-rolled;
-// useSkeletonWarmup covers cached bottom-nav mounts; UpdatingPill replaces the
-// hand-rolled header refetch pill.
-import { SearchRow, useSkeletonWarmup, UpdatingPill } from './canon';
+// LIST-type page, DIRECTORY expression (MOBILE_DESIGN_SYSTEM §5) — rebuilt to canon
+// 2026-07-10 (harness-driven: the grammar linter flagged "not yet on the grouped panel").
+// A staff directory's obvious axes are all DEGENERATE on the live data (specialization
+// 99.7% "Emergency", status 99.7% "available", a single provider_type), so panels group
+// ADAPTIVELY: resolveAdaptiveGroups scores the FACILITY split and uses it only if it
+// distributes, else falls to join-recency (the proven fallback — always buckets, never
+// singleton-sprawls). Trailing time = directory freshness (when the record was last
+// touched). Bulk delete is a REAL authorized action here (deleteDoctor receiver), unlike
+// the fleet/facility/visit pages whose bulk control is a fail-closed disabled stub.
+// grammar:loadmore-append=cumulative-limit — the mobile query uses offset 0 + a limit that
+// grows with currentPage, so the server returns the ACCUMULATED list; useStableList over
+// sourceDoctors already holds the full set. No client accumulator needed (unlike windowed
+// pages), so rows never replace the window.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
+import { MobileKPIStrip } from './MobileKPIStrip';
+import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileMetricRow } from './MobileMetricList';
-import { MobileDetailSheet } from './MobileDetailSheet';
-import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
+import { formatRelativeTime } from '../../utils/activityUtils';
+import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
 
-const mobileStaffFilters = [
-    {
-        id: 'all',
-        label: 'Staff',
-        icon: Users,
-        activeClass: 'bg-sky-400/12 text-sky-700 dark:text-sky-300',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'available',
-        label: 'Available',
-        icon: CheckCircle2,
-        activeClass: 'bg-emerald-400/12 text-emerald-700 dark:text-emerald-300',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'on_call',
-        label: 'On call',
-        icon: Phone,
-        activeClass: 'bg-sky-400/12 text-sky-700 dark:text-sky-300',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-    {
-        id: 'busy',
-        label: 'Busy',
-        icon: Clock,
-        activeClass: 'bg-amber-400/12 text-amber-700 dark:text-amber-300',
-        restClass: 'bg-muted/28 text-muted-foreground',
-    },
-];
+const metricValue = (value, fallback = 0) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+};
 
 const getStatus = (doctor) => String(doctor?.status || 'available').toLowerCase();
 
-const getFilterValue = ({ id, statistics, doctors }) => {
-    if (id === 'all') return Number(statistics?.total) || doctors.length;
-    if (id === 'on_call') return Number(statistics?.onCall) || doctors.filter(d => getStatus(d) === 'on_call').length;
-    return Number(statistics?.[id]) || doctors.filter(d => getStatus(d) === id).length;
-};
+// The staff member's home facility — the directory's orthogonal grouping axis.
+const getFacility = (doctor) => doctor?.hospitals?.name || null;
+
+// Status-tinted orb. Literal hues (the semantic tokens collapse to brand red); status is
+// degenerate on live data (mostly 'available'), but the tint stays honest per-record.
+const orbClassFor = (status) => (
+    status === 'available'
+        ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300'
+        : status === 'on_call'
+            ? 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
+            : status === 'busy'
+                ? 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
+                : status === 'off_duty'
+                    ? 'bg-muted/40 text-muted-foreground'
+                    : 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
+);
+
+// Atlas stage (donor recipe: MobileAmbulancesAtlasLayer — Lesson 25 macro-stage item 1;
+// ambient brand tint is sanctioned expression, Lesson 18).
+const MobileDoctorsAtlasLayer = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
+        <div
+            className="absolute inset-0 opacity-[0.28] dark:opacity-[0.22]"
+            style={{
+                backgroundImage:
+                    'linear-gradient(118deg, transparent 0 46%, hsl(var(--foreground) / 0.055) 46% 49%, transparent 49%), linear-gradient(32deg, transparent 0 42%, hsl(var(--foreground) / 0.045) 42% 45%, transparent 45%), linear-gradient(154deg, transparent 0 64%, hsl(var(--primary) / 0.07) 64% 67%, transparent 67%)',
+                backgroundSize: '250px 178px, 330px 236px, 410px 276px',
+                backgroundPosition: '18px 10px, -72px 48px, 16% 38%',
+            }}
+        />
+        <div
+            className="absolute inset-0"
+            style={{
+                background:
+                    'radial-gradient(circle at 20% 32%, hsl(var(--primary) / 0.10), transparent 28%), radial-gradient(circle at 82% 62%, hsl(var(--foreground) / 0.055), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.18), hsl(var(--background)) 92%)',
+            }}
+        />
+    </div>
+);
+
+// Filter-trigger truth: any committed narrowing counts, so the trigger's filtered state
+// never lies. The KPI chips are a separate axis (status), not part of this signal.
+const hasActiveDoctorFilters = (filters = {}) => Boolean(
+    filters?.search ||
+    (filters?.kpiFilter && filters.kpiFilter !== 'all') ||
+    filters?.created_at?.start ||
+    filters?.created_at?.end
+);
 
 export const MobileDoctors = ({
     doctors,
@@ -79,24 +102,33 @@ export const MobileDoctors = ({
     onEdit,
     onDelete,
     onRefresh,
+    onViewAnalytics,
     isAdmin,
     isOrgAdmin,
     onOpenFilters,
+    filterSheetOpen = false,
+    analyticsOpen = false,
     hasMore,
     onLoadMore,
+    isFetching = false,
+    errorMessage = null,
+    onRetry,
     canManage: canManageOverride,
     canDelete = false,
     selectionEnabled = false,
     selectedIds = [],
     onSelect,
-    onSelectAll
+    onSelectAll,
+    onBulkDelete,
+    canBulkDelete = false
 }) => {
     const observerTarget = useRef(null);
     const [activeDoctor, setActiveDoctor] = useState(null);
     const canManage = Boolean(canManageOverride ?? (isAdmin || isOrgAdmin));
-    const canSelect = selectionEnabled && canManage && Boolean(onSelect);
-    const selectionMode = canSelect && selectedIds.length > 0;
-    const { triggerFromEvent } = useFeedback();
+    // Background-refetch signal (KPI switch / search / pull-refresh keep loading=false).
+    const refetching = isFetching || false;
+    const sourceDoctors = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
+
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
     useEffect(() => {
@@ -111,136 +143,223 @@ export const MobileDoctors = ({
         return () => observer.disconnect();
     }, [hasMore, triggerLoad]);
 
-    const sourceDoctors = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
     const { displayItems: displayDoctors, isBuffering } = useStableList(sourceDoctors, loading);
     const warmingUp = useSkeletonWarmup();
-    const showSkeleton = warmingUp || (loading && displayDoctors.length === 0);
+    const showTopSectionLoading = warmingUp || (loading && displayDoctors.length === 0);
 
-    const filterItems = useMemo(() => mobileStaffFilters.map((item) => ({
-        ...item,
-        value: getFilterValue({ id: item.id, statistics, doctors }),
-    })), [statistics, doctors]);
+    const totals = {
+        all: metricValue(statistics?.total, sourceDoctors.length),
+        available: metricValue(statistics?.available, sourceDoctors.filter(d => getStatus(d) === 'available').length),
+        onCall: metricValue(statistics?.onCall, sourceDoctors.filter(d => getStatus(d) === 'on_call').length),
+        busy: metricValue(statistics?.busy, sourceDoctors.filter(d => getStatus(d) === 'busy').length),
+    };
+
+    const doctorKPIs = [
+        { id: 'all', label: 'Staff', value: totals.all, color: 'hsl(var(--muted-foreground))' },
+        { id: 'available', label: 'Available', value: totals.available, color: 'hsl(160 84% 39%)' },
+        { id: 'on_call', label: 'On call', value: totals.onCall, color: 'hsl(199 89% 48%)' },
+        { id: 'busy', label: 'Busy', value: totals.busy, color: 'hsl(38 92% 50%)' },
+    ];
+
+    // Count integrity (§5): the heading tracks the ACTIVE KPI scope, never the raw total.
+    const kpiToTotal = { all: 'all', available: 'available', on_call: 'onCall', busy: 'busy' };
+    const activeKpi = filters?.kpiFilter || 'all';
+    const scopeCount = totals[kpiToTotal[activeKpi] || 'all'] ?? totals.all;
+
+    const hasFilter = hasActiveDoctorFilters(filters);
+
+    // Selection (restored to canon 2026-07-10): gated to managers, using the SHARED page
+    // selection (useRowSelection passes selectedIds/onSelect/onSelectAll).
+    const canSelect = selectionEnabled && canManage && Boolean(onSelect);
+    const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+    const selectionMode = canSelect && selectedIdSet.size > 0;
+
+    // Adaptive, DATA-DRIVEN grouping: score FACILITY (the directory's mental axis) and use
+    // it only if it distributes into a healthy 2–8 groups; otherwise fall to join-recency
+    // (always buckets). Same resolution ambulances-by-station landed on. Decided per-render
+    // from the actual rows, never assumed — the live data (99.7% one specialty/status)
+    // would collapse any categorical spine.
+    const { groups: doctorGroups } = useMemo(() => resolveAdaptiveGroups(displayDoctors, [
+        { key: 'facility', assign: getFacility, orphanLabel: 'Unassigned' },
+        { type: 'coarse-recency', key: 'joined', getDate: (d) => d.updated_at || d.created_at },
+    ]), [displayDoctors]);
+
+    const renderDoctorRow = (doctor) => {
+        const status = getStatus(doctor);
+        const specialty = doctor.specialization || 'General';
+        const facility = getFacility(doctor) || 'No facility';
+        return (
+            <MobileListRow
+                item={doctor}
+                dataAttr="data-mobile-doctor-row"
+                onOpen={setActiveDoctor}
+                ariaLabel={`${doctor.name || 'Unknown staff'}, ${status.replace(/_/g, ' ')}`}
+                orbClass={orbClassFor(status)}
+                icon={Stethoscope}
+                title={doctor.name || 'Unknown staff'}
+                meta={`${specialty} · ${facility}`}
+                time={formatRelativeTime(doctor.updated_at || doctor.created_at)}
+                pill={statusPill(status)}
+                selectable={canSelect}
+                selected={selectedIdSet.has(doctor.id)}
+                selectionMode={selectionMode}
+                onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
+                onLongPress={(it) => onSelect?.(it.id, true)}
+            />
+        );
+    };
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                contentClassName="pt-4 pb-32 text-foreground"
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
-                <div className="space-y-4">
-                    <div className="overflow-x-auto pb-1" aria-label="Staff status filters">
-                        <div className="flex min-w-max gap-2">
-                            {filterItems.map((item) => {
-                                const Icon = item.icon;
-                                const active = (filters?.kpiFilter || 'all') === item.id;
-                                return (
-                                    <motion.button
-                                        key={item.id}
-                                        type="button"
-                                        whileTap={{ scale: 0.96 }}
-                                        onClick={(event) => {
-                                            setFilters?.(prev => ({ ...prev, kpiFilter: item.id }));
-                                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'rgb(125 211 252)', haptic: true, sound: true });
-                                        }}
-                                        className={`flex h-16 min-w-[142px] items-center gap-3 rounded-inner px-4 text-left transition-all ${active ? item.activeClass : item.restClass}`}
-                                        aria-pressed={active}
-                                    >
-                                        <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-background/40">
-                                            <Icon size={18} />
-                                        </span>
-                                        <span>
-                                            <span className="block text-xs font-semibold">{item.label}</span>
-                                            <span className="block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
-                                        </span>
-                                    </motion.button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <SearchRow
-                        placeholder="Search staff..."
-                        search={filters?.search || ''}
-                        onSearchCommit={(value) => setFilters?.(prev => ({ ...prev, search: value }))}
-                        entityLabel="staff"
-                        onOpenFilters={onOpenFilters}
+                <MobileDoctorsAtlasLayer />
+                <div className="relative z-10 space-y-3">
+                    <MobileHeading
+                        title="Staff"
+                        noun="member"
+                        count={scopeCount}
+                        showSkeleton={showTopSectionLoading}
+                        failedEmpty={Boolean(errorMessage) && displayDoctors.length === 0}
                     />
 
-                    <div className="flex items-center justify-between px-1">
-                        <h2 className="text-lg font-semibold tracking-normal">Staff</h2>
-                        <div className="flex items-center gap-2">
-                            {isBuffering && !showSkeleton && <UpdatingPill />}
-                            {canSelect && displayDoctors.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => onSelectAll?.(!(selectedIds.length === displayDoctors.length), displayDoctors)}
-                                    className="flex h-8 w-8 items-center justify-center rounded-button bg-muted/40 text-foreground/60 transition-all hover:text-foreground active:scale-[0.96]"
-                                    aria-label={selectedIds.length === displayDoctors.length ? 'Deselect all staff' : 'Select all staff'}
+                    <MobileKPIStrip
+                        loading={showTopSectionLoading}
+                        kpis={doctorKPIs}
+                        activeKpi={activeKpi}
+                        onKpiClick={(id) => setFilters?.(prev => ({ ...prev, kpiFilter: id }))}
+                    />
+
+                    <section className="px-4">
+                        <SearchRow
+                            placeholder="Search staff..."
+                            search={filters?.search || ''}
+                            onSearchCommit={(value) => setFilters?.(prev => ({ ...prev, search: value }))}
+                            entityLabel="staff"
+                            onOpenFilters={onOpenFilters}
+                            filterSheetOpen={filterSheetOpen}
+                            hasFilter={hasFilter}
+                            onOpenStats={canManage ? onViewAnalytics : null}
+                            statsOpen={analyticsOpen}
+                            statsLabel="Open staff statistics"
+                        />
+
+                        <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
+
+                        <div className="mt-3 space-y-2">
+                            {canSelect && (
+                                <MobileSelectionBar
+                                    count={selectedIdSet.size}
+                                    onSelectAll={() => onSelectAll?.(true)}
+                                    onClear={() => onSelectAll?.(false)}
                                 >
-                                    {selectedIds.length === displayDoctors.length
-                                        ? <CheckCircle2 size={16} className="text-foreground" />
-                                        : <Circle size={16} className="text-foreground/30" />}
-                                </button>
+                                    {/* Staff bulk delete is AUTHORIZED (deleteDoctor receiver), so this is a
+                                        LIVE control — routed to the page's handleBulkDelete, which confirms via
+                                        ConfirmationModal before the mutation. Not the fail-closed disabled stub
+                                        the fleet/facility/visit pages carry. */}
+                                    {canBulkDelete && onBulkDelete && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onBulkDelete()}
+                                            aria-label={`Delete ${selectedIdSet.size} staff`}
+                                            className="flex h-8 items-center gap-1.5 rounded-button bg-destructive/12 px-3 text-[12px] font-semibold text-destructive transition-transform active:scale-95 hover:bg-destructive/20"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Delete {selectedIdSet.size}
+                                        </button>
+                                    )}
+                                </MobileSelectionBar>
+                            )}
+
+                            {errorMessage && displayDoctors.length > 0 && (
+                                <div
+                                    className="rounded-card bg-destructive/10 p-4 text-destructive"
+                                    data-testid="mobile-doctors-degraded-state"
+                                >
+                                    <p className="text-sm font-semibold">Staff did not refresh</p>
+                                    <p className="mt-1 text-xs text-destructive/75">Showing the last loaded staff rows.</p>
+                                    {onRetry && (
+                                        <button
+                                            type="button"
+                                            onClick={onRetry}
+                                            className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                                        >
+                                            Try again
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Group-shaped skeleton (§5.2): mirrors the panel 1:1 for replace-in-place. */}
+                            {showTopSectionLoading ? (
+                                <SkeletonGroupPanel rows={6} />
+                            ) : (
+                                <div className="space-y-[18px]">
+                                    {doctorGroups.map((group) => (
+                                        <GroupPanel key={group.key} label={group.label} count={group.items.length}>
+                                            {group.items.map((doctor, index) => (
+                                                <React.Fragment key={doctor.id}>
+                                                    {renderDoctorRow(doctor)}
+                                                    {index < group.items.length - 1 && <Hairline />}
+                                                </React.Fragment>
+                                            ))}
+                                        </GroupPanel>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                                {refetching && !showTopSectionLoading && hasMore && displayDoctors.length > 0 && <MobileListLoadingMore />}
+                                {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                                {!loading && !hasMore && displayDoctors.length > 0 && <MobileListEnd label="End of staff list" />}
+                            </div>
+
+                            {displayDoctors.length === 0 && !loading && !showTopSectionLoading && (
+                                <MobileListEmpty
+                                    icon={Stethoscope}
+                                    label={errorMessage ? 'Staff did not load' : 'No staff found'}
+                                    reason={filters?.search ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                                    hint={errorMessage
+                                        ? 'Try again before treating the directory as empty.'
+                                        : filters?.search
+                                            ? `No staff match "${filters.search}".`
+                                            : hasFilter
+                                                ? 'Try clearing filters to see the full directory.'
+                                                : 'Staff will appear here once added.'}
+                                    onRecover={!errorMessage && (filters?.search || hasFilter)
+                                        ? () => setFilters?.(prev => ({ ...prev, search: '', kpiFilter: 'all' }))
+                                        : undefined}
+                                    recoverLabel={!errorMessage && filters?.search ? 'Clear Search' : !errorMessage && hasFilter ? 'Reset Filters' : undefined}
+                                    labelTone="plain"
+                                />
                             )}
                         </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        {displayDoctors.map((doctor) => {
-                            const name = doctor.name || 'Unknown staff';
-                            const specialty = doctor.specialization || 'General';
-                            const facility = doctor.hospitals?.name || 'No facility';
-
-                            return (
-                                <MobileMetricRow
-                                    key={doctor.id}
-                                    icon={Stethoscope}
-                                    color="hsl(199 89% 48%)"
-                                    label="Staff member"
-                                    value={name}
-                                    secondary={`${specialty} · ${facility}`}
-                                    statusPill={statusPill(getStatus(doctor))}
-                                    onClick={() => setActiveDoctor(doctor)}
-                                    itemId={doctor.id}
-                                    isSelected={canSelect && selectedIds.includes(doctor.id)}
-                                    onSelect={canSelect ? onSelect : undefined}
-                                    selectionMode={selectionMode}
-                                />
-                            );
-                        })}
-
-                        <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
-                            {showSkeleton && <MobileListSkeletonRows />}
-                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
-                            {!loading && !hasMore && displayDoctors.length > 0 && <MobileListEnd label="End of staff list" />}
-                        </div>
-
-                        {displayDoctors.length === 0 && !loading && !showSkeleton && (
-                            <MobileListEmpty icon={Stethoscope} label="No staff found" labelTone="plain" />
-                        )}
-                    </div>
+                    </section>
                 </div>
 
                 {activeDoctor && (() => {
                     const name = activeDoctor.name || 'Unknown staff';
                     const specialty = activeDoctor.specialization || 'General';
-                    const facility = activeDoctor.hospitals?.name || 'No facility';
+                    const facility = getFacility(activeDoctor) || 'No facility';
                     const phone = activeDoctor.phone || 'No phone';
+                    const status = getStatus(activeDoctor);
 
                     return (
                         <MobileDetailSheet
                             isOpen={!!activeDoctor}
                             onClose={() => setActiveDoctor(null)}
                             icon={Stethoscope}
-                            iconTone="hsl(199 89% 48%)"
+                            iconTone={status === 'busy' ? 'hsl(38 92% 50%)' : status === 'off_duty' ? 'hsl(var(--muted-foreground))' : 'hsl(199 89% 48%)'}
                             eyebrow="Staff member"
                             title={name}
-                            statusPill={statusPill(getStatus(activeDoctor))}
+                            statusPill={statusPill(status)}
                             islands={[
                                 { icon: Stethoscope, label: 'Specialty', value: specialty },
                                 { icon: Hospital, label: 'Facility', value: facility },
                                 { icon: Phone, label: 'Contact', value: phone },
-                                activeDoctor.email && { icon: Mail, label: 'Email', value: activeDoctor.email },
+                                activeDoctor.email && { icon: Mail, label: 'Email', value: activeDoctor.email, href: `mailto:${activeDoctor.email}` },
                                 activeDoctor.license_number && { icon: BadgeCheck, label: 'License', value: activeDoctor.license_number },
                                 { icon: Clock, label: 'Experience', value: activeDoctor.experience != null ? `${activeDoctor.experience} years` : 'Not set' },
                             ]}

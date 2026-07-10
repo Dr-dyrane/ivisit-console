@@ -575,6 +575,13 @@ export const DoctorsPage = () => {
           onSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
           onOpenFilters={() => setFilterSheetOpen(true)}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
+          isFetching={isFetching}
+          errorMessage={loadError}
+          onRetry={fetchDoctors}
+          onBulkDelete={handleBulkDelete}
+          canBulkDelete={canManageStaff}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />

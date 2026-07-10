@@ -114,10 +114,12 @@ describe('DoctorsPage Staff contract', () => {
     expect(mobile).not.toContain('let result = Array.isArray(doctors)');
     expect(mobile).not.toContain('result.filter');
 
-    // Staff mobile detail is a tap-opens bottom sheet (MobileDetailSheet), not an
-    // inline MobileMetricRow dropdown. One active-record state, row onClick opens it.
+    // Staff mobile detail is a tap-opens bottom sheet (MobileDetailSheet), not an inline
+    // dropdown. One active-record state; the canon MobileListRow opens it via onOpen
+    // (rebuilt to canon 2026-07-10 — was an inline MobileMetricRow onClick).
     expect(mobile).toContain('const [activeDoctor, setActiveDoctor] = useState(null);');
-    expect(mobile).toContain('onClick={() => setActiveDoctor(doctor)}');
+    expect(mobile).toContain('onOpen={setActiveDoctor}');
+    expect(mobile).toContain('<MobileListRow');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen={!!activeDoctor}');
     expect(mobile).not.toContain('expandedContent');
@@ -151,7 +153,15 @@ describe('DoctorsPage Staff contract', () => {
     expect(table).toContain('const canDeleteRow = canDelete && canManage && Boolean(onDelete)');
     expect(table).toContain('<Checkbox');
     expect(list).toContain('canDelete && onDelete && (');
-    expect(mobile).toContain('onSelect={canSelect ? onSelect : undefined}');
+    // Canon selection: the row is `selectable` (gated by canSelect) and toggles / long-
+    // presses through the SHARED onSelect; the old MobileMetricRow onSelect prop is retired.
+    // Staff bulk delete is AUTHORIZED here (deleteDoctor receiver) — the mobile bar carries a
+    // LIVE delete, not the fail-closed disabled stub the fleet/facility/visit pages use.
+    expect(mobile).toContain('const canSelect = selectionEnabled && canManage && Boolean(onSelect);');
+    expect(mobile).toContain('selectable={canSelect}');
+    expect(mobile).toContain('onToggleSelect={(it) => onSelect?.(it.id');
+    expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('canBulkDelete && onBulkDelete && (');
 
     // Scheduling stays unproved for Staff, and the delete copy is "Delete"
     // (never "Remove"), so these remain excluded from the active surface.
@@ -237,6 +247,14 @@ describe('DoctorsPage Staff contract', () => {
     expect(activeStaffSource).not.toContain('STANDBY');
     expect(activeStaffSource).not.toContain("'LIVE'");
     expect(activeStaffSource).not.toContain('growthData');
+    // Canon LIST rebuild (2026-07-10): grouped panel + heading, no MobileMetricRow floating
+    // cards, no metric rail / featured billboard (DASHBOARD furniture banned on a LIST page).
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).not.toContain('MobileMetricRow');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('MobileFeaturedMetric');
     expect(page).not.toContain('doctor - card');
     expect(page).not.toContain('geo - badge');
   });
