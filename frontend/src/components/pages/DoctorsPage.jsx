@@ -263,6 +263,10 @@ export const DoctorsPage = () => {
       total: Number(stats.total) || count,
       available: Number(stats.available) || 0,
       on_call: Number(stats.on_call) || 0,
+      // Mobile's on-call KPI chip reads camelCase `onCall` (MobileDoctors); keep the alias
+      // so it uses the SERVER exact stat, not a local re-filter of the paginated window
+      // (adversarial review 2026-07-10 -- the "no local re-filter" invariant).
+      onCall: Number(stats.onCall ?? stats.on_call) || 0,
       busy: Number(stats.busy) || 0,
       off_duty: Number(stats.off_duty) || 0,
     };
