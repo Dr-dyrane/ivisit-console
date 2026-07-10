@@ -67,6 +67,40 @@ beds" — a constant and a dead zero — while address never appeared.)
 - [ ] Gated/absent data reads honestly (null hidden, not coerced to a lying 0; a default
       value not claimed as truth).
 
+### Gate 2b — data-driven grouping (measure the factor; degenerate → fall back)
+
+The class that shipped twice: a grouping factor chosen by intuition that COLLAPSES on the
+real data (ambulances by station = 147 groups / 85% singletons; hospitals by capacity = 98%
+in one panel). "If a grouping gives you one or two items under it, regroup by another factor
+like date; use the real data distribution to decide" (user, 2026-07-10). Now mechanized in
+`utils/adaptiveGrouping.js` — but the JUDGMENT of which factors to offer is still yours.
+
+- [ ] Directory pages compose `resolveAdaptiveGroups(items, [domainFactor, …, recencyFallback])`
+      — never a hardcoded single-factor `Map`. (Feed pages use `GroupedList`/`groupByRecency`,
+      which is inherently recency-adaptive.)
+- [ ] MEASURE each candidate factor's live distribution before shipping (query the DB, don't
+      assume): healthy = 2–8 groups, ≤50% singletons, no group >85%. A degenerate primary
+      factor must fall through — verify live that the RENDERED grouping is the healthy one.
+- [ ] The LAST factor is a recency fallback (dates always distribute) so a result is
+      guaranteed; recency-as-freshness is itself the operational staleness signal.
+
+### Gate 2c — polish / motion (the "final touches" that live in memory → now enforced)
+
+The static linter (`check-mobile-grammar.js`) now FATALs on the structural ones
+(`animatePageLoad={false}`, `isFetching` wired, `mobileMotion` token canon). These remain
+eyes-on because they're per-element judgment:
+
+- [ ] Every interactive element has press feedback: kit rows→`TapCard` 0.988, controls→
+      `TapButton`/`whileTap` 0.96, and a haptic where a gold page fires one (chips, triggers,
+      copyable islands). No plain `<button>` with no press on a primary affordance.
+- [ ] Copyable identifiers: the detail sheet's ID/reference island is tap-to-copy with a
+      SUCCESS haptic (Visits Reference parity; desktop uses `CopyChip`). Not a static value.
+- [ ] Updating pill fires on a REAL background refetch (KPI switch / search / pull-refresh) —
+      driven by `isFetching`, not `isBuffering` (which is dead during refetch). Loading-more
+      spinner (`MobileListLoadingMore`) shows while the next page is in flight.
+- [ ] No entrance motion on the data body (skeleton-first replace-in-place); the KPI-strip
+      mount reveal is the ONE sanctioned settle (sticky-bar exception, do not "fix" it).
+
 ## Gate 3 — record + close
 
 - [ ] Pre-rebuild changelog + this matrix's results in `FEATURE_PARITY_VS_MAIN.md`.

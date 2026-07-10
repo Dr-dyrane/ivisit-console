@@ -769,6 +769,7 @@ export const HospitalsPage = () => {
           analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          isFetching={isFetching}
           canDelete={false}
           selectionEnabled={false}
         />

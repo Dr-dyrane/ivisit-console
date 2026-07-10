@@ -22,9 +22,11 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEnd, MobileListEmpty, MobileListLoadMore } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { statusPill } from '../../constants/vitalTracks';
 import { formatRelativeTime } from '../../utils/activityUtils';
 import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
@@ -92,6 +94,7 @@ export const MobileAmbulances = ({
     analyticsOpen = false,
     hasMore,
     onLoadMore,
+    isFetching = false,
     errorMessage = null,
     onRetry,
     selectionEnabled = false,
@@ -101,9 +104,14 @@ export const MobileAmbulances = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeAmbulance, setActiveAmbulance] = useState(null);
+    const { triggerFromEvent } = useFeedback();
     // Selection props stay accepted as dormant inventory (fail-closed estate-wide);
     // the kit MobileListRow carries no selection affordance until receiver proof.
     const canManage = isAdmin || isOrgAdmin;
+    // Background-refetch signal: the REAL isFetching from the query (KPI switch /
+    // search / pull-refresh keep loading=false). isBuffering (Boolean(loading)) is
+    // the fallback until the page wires isFetching (Updating-pill-dead fix, 2026-07-10).
+    const refetching = isFetching || false;
     const sourceAmbulances = useMemo(() => (Array.isArray(ambulances) ? ambulances : []), [ambulances]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -301,7 +309,7 @@ export const MobileAmbulances = ({
                         statsLabel="Open fleet statistics"
                     />
 
-                    <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
+                    <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
                     <div className="mt-3 space-y-2">
                         {errorMessage && displayAmbulances.length > 0 && (
@@ -343,7 +351,8 @@ export const MobileAmbulances = ({
                         )}
 
                         <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
-                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                            {refetching && !showTopSectionLoading && hasMore && displayAmbulances.length > 0 && <MobileListLoadingMore />}
+                            {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayAmbulances.length > 0 && <MobileListEnd label="End of fleet list" />}
                         </div>
 
@@ -405,7 +414,18 @@ export const MobileAmbulances = ({
                                     value: `Request ${String(activeAmbulance.current_call).slice(0, 8).toUpperCase()}`
                                 },
                                 { icon: Activity, label: 'Status', value: getAvailabilityLabel(status) },
-                                { icon: Hash, label: 'Unit ID', value: unitId },
+                                {
+                                    icon: Hash,
+                                    label: 'Unit ID',
+                                    value: unitId,
+                                    // Copyable identifier with confirmation haptic (Visits Reference
+                                    // island parity — the desktop rail uses CopyChip; the mobile sheet
+                                    // owed the same tap-to-copy micro-interaction).
+                                    onPress: (event) => {
+                                        navigator.clipboard?.writeText(unitId)?.catch(() => {});
+                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.SUCCESS, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                                    },
+                                },
                             ]}
                             primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveAmbulance(null); onView(activeAmbulance); } }}
                             secondary={canManage ? { icon: Edit, onClick: () => { setActiveAmbulance(null); onEdit(activeAmbulance); }, 'aria-label': `Edit ${activeAmbulance.call_sign || 'unit'}` } : undefined}

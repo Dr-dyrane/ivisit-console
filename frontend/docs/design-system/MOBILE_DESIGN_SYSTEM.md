@@ -124,7 +124,7 @@ context-aware top bar (§6). Second reference page: `src/components/mobile/Mobil
 | **Spacing** | 4px grid (ivisit-app `SPACING xs4 sm8 md16 lg24 xl32`); mobile section rhythm 20/12/8. | ☐ not tokenized (inline) |
 | **Typography** | scale: title 27–34 / h2 20 / body 15 / meta 12 / caption 10–11. **Casing (2026-07-09):** no all-caps subtext/subheadings — the uppercase `.eyebrow` caption survives only as established detail furniture (§3); section labels are sentence-case or not rendered at all. | ◐ `.eyebrow`/`.text-identity`/`.text-meta` tokenized; scale otherwise inline per component |
 | **Elevation** | soft: row `0 4px 10px /0.03`, card `0 22px 64px /0.14`, float `chrome-float`. app web shadow `0 18px 36px /0.18`. | ◐ inline; not tokenized |
-| **Motion** | **spring `{stiffness:168, damping:30, mass:0.9}`**, ease `[0.21,0.47,0.32,0.98]`, sheet-snap `[0.21,0.47,0.32,0.98]`, press controls `0.96` / cards `0.988`. | ⚠️ **`mobileMotion.js` uses ease `[0.22,1,0.36,1]` + durations — NOT the canon. Align.** |
+| **Motion** | **spring `{stiffness:168, damping:30, mass:0.9}`**, ease `[0.21,0.47,0.32,0.98]`, sheet-snap `[0.21,0.47,0.32,0.98]`, press controls `0.96` / cards `0.988`. | ✅ `mobileMotion.js` aligned (2026-07-08) — pinned by `check-mobile-grammar.js` motion-token check so the value can't drift back. |
 
 **Foundation gaps to close (highest-leverage for "one voice"):**
 - ✅ **Collapse glass to one recipe** — `apple-glass*` stripped of blur → opaque; `chrome-glass` sole frosted recipe (2026-07-08).
@@ -250,6 +250,19 @@ DISCRIMINATING populated field (address), never a repeated constant or a dead ze
 Grouping is render-only and orthogonal to the chip filter axis; pick the predicate from
 the data's real distribution, not from the schema's hopes.
 
+**Grouping is DATA-DRIVEN and ADAPTIVE, never a fixed guess** (locked 2026-07-10;
+`utils/adaptiveGrouping.js`). A directory factor chosen by intuition often COLLAPSES on the
+real data — measured: ambulances by station = 147 groups / 85% singletons; hospitals by
+capacity = 98% in one panel. A wall of one-row panels is worse than no grouping. So
+`resolveAdaptiveGroups(items, factors)` SCORES each candidate factor's distribution (healthy
+= 2–8 groups, ≤50% singletons, no group >85%) and uses it only if healthy; otherwise it
+falls through to the next factor, with **recency as the guaranteed fallback** (dates always
+distribute, and recency-as-freshness is itself the operational staleness signal). The chosen
+factor is decided PER RENDER from the actual rows, so each page adapts to the tenant's real
+data. The user's rule: *"if a grouping gives you one or two items under it, regroup by
+another factor like date; use the real data distribution to decide."* MEASURE (query the DB)
+before shipping a factor — Gate 2b of the close checklist.
+
 ### Loading & refetch model (canon)
 
 Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components/mobile/MobileToday.jsx` (dashboard).
@@ -296,7 +309,7 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 | Concern | Canon | Status |
 |---|---|---|
 | Press | controls `scale 0.96`, cards `0.988` (graduated) | ◐ (varies: some `0.97/0.95/0.98`) → normalize |
-| Spring / ease | spring `168/30/0.9`; ease `[0.21,0.47,0.32,0.98]` | ⚠️ `mobileMotion` uses `[0.22,1,0.36,1]` + durations → align |
+| Spring / ease | spring `168/30/0.9`; ease `[0.21,0.47,0.32,0.98]` | ✅ `mobileMotion` aligned (2026-07-08); pinned by the grammar linter's motion-token check |
 | Entrance | none — skeleton-first, replace-in-place (§5); chrome present with no reveal sweep; no translate/stagger/fade-from-blank on mount | ✅ (Requests) — apply per page |
 | Sheet | slide-up spring + grab handle + swipe-to-dismiss + backdrop scrim `bg-black/[0.46] backdrop-blur-sm` | ✅ (ModalShell) |
 | Reduced motion | global `prefers-reduced-motion` → fade only | ✅ (index.css + ModalShell) |

@@ -718,3 +718,22 @@ Notes:
   PAGE_REVAMP_GATE UX-gate ENFORCED note, DS decision trail.
 - **Honest limitation:** the floor checks presence, not per-control coverage; runtime-only items
   (reduced-motion, press feel, warm-cache paint) still need a rendered proof on localhost:3000.
+
+### 2026-07-10 — mobile-uiux-lane — HARNESS RECONSTRUCTION: polish/motion dimension + data-driven grouping
+- Root cause the user named: the harness checked STRUCTURE (grammar) but was blind to the
+  POLISH/MOTION/micro-interaction class, so "final touches" rode on memory and got dropped on
+  Hospitals+Ambulances. Three Explore agents mined the 4 gold pages' git+source; findings folded in.
+- **Grammar linter extended (now FATAL, was memory):** `animatePageLoad={false}` (entrance-motion-free),
+  `isFetching` wired (the dead-Updating-pill bug), + a GLOBAL mobileMotion token pin (ease
+  [0.21,0.47,0.32,0.98] / spring 168/30/0.9 / press 0.96·0.988) so the value can't drift back.
+  Bite-tested. 0 fatal now (all pages already satisfy).
+- **Close checklist extended:** Gate 2b (data-driven adaptive grouping — measure the factor,
+  degenerate->fallback) + Gate 2c (press coverage, copyable ID island, isFetching pill, no
+  entrance motion).
+- **Both pages FIXED:** copyable Unit ID / Facility ID islands with SUCCESS haptic (Visits
+  Reference parity); Updating pill now fed real isFetching (HospitalsPage wired; AmbulancesPage
+  is desktop-lane-DIRTY -> flag below); loading-more spinner added.
+- **FLAG desktop lane (AmbulancesPage.jsx is YOURS, dirty):** pass `isFetching={isFetching}` to
+  <MobileAmbulances> (you already destructure it at line 222 for the desktop rail) so the
+  mobile Updating pill/loading-more fire on refetch. Component defaults false -> safe until wired.
+- **Adaptive grouping** (utils/adaptiveGrouping.js) committed d0b89523; DS §5 + doc motion-drift fixed.

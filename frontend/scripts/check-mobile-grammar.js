@@ -118,6 +118,16 @@ function lintList(src) {
   if (!hasAnyTag(src, ['SkeletonGroupPanel', 'SkeletonGroupList']) && !waived(src, 'skeleton')) fatal.push('missing group-shaped skeleton (§5.2 — must mirror the panel 1:1) — waive with `// grammar:skeleton=<reason>` for a page-local group skeleton');
   if (!has(src, 'useSkeletonWarmup')) fatal.push('missing useSkeletonWarmup (§5.1 — skeleton-first on cached bottom-nav mounts)');
   if (!hasTag(src, 'UpdatingPill')) fatal.push('missing UpdatingPill/UpdatingPillRow (§5.5 — the isFetching refetch signal)');
+  // POLISH / MOTION dimension (added 2026-07-10 after the reference-page archaeology:
+  // these "final touches" lived only in memory and got dropped on Hospitals/Ambulances).
+  // Entrance-motion-free: the shell must not fade content in on mount (§5/§7 — the fade
+  // IS the "skew"; Lessons 15/16). `animatePageLoad={false}` is the switch.
+  if (!has(src, 'animatePageLoad={false}')) fatal.push('missing animatePageLoad={false} (§5/§7 — the page shell must not fade content in on mount; entrance motion is the "skew")');
+  // The Updating pill / loading-more spinner must consume the REAL refetch signal.
+  // isBuffering (Boolean(loading)) is FALSE during a background refetch, so a pill fed
+  // only by it is dead (the Hospitals/Ambulances bug found 2026-07-10). The page owns
+  // `isFetching` from the query; the component must reference it.
+  if (!has(src, 'isFetching') && !waived(src, 'refetch-signal')) fatal.push('missing isFetching wiring (§5.5 — the Updating pill / loading-more spinner must use the REAL refetch signal, not isBuffering alone which is dead during refetch)');
   // The grammar ban: glance tiles / billboards are DASHBOARD furniture (§5).
   if (hasTag(src, 'MobileSecondaryMetricRail')) fatal.push('LIST page carries MobileSecondaryMetricRail — glance-tile rails are DASHBOARD-only (§5); aggregates ride AnalyticsModal');
   if (hasTag(src, 'MobileFeaturedMetric')) fatal.push('LIST page carries MobileFeaturedMetric — the billboard is DASHBOARD-only (§5)');
@@ -136,6 +146,7 @@ function lintDashboard(src) {
   if (!hasTag(src, 'MobileHero') && !waived(src, 'hero')) fatal.push('missing MobileHero (signal-first hero, §5 DASHBOARD) — waive with `// grammar:hero=<reason>` if rendered inline');
   if (hasTag(src, 'SearchRow')) fatal.push('DASHBOARD carries SearchRow — dashboards do not search/filter a list (§5)');
   if (hasTag(src, 'MobileKPIStrip')) fatal.push('DASHBOARD carries MobileKPIStrip filter chips — dashboard tiles NAVIGATE, they never filter (§5)');
+  if (!has(src, 'animatePageLoad={false}')) fatal.push('missing animatePageLoad={false} (§5/§7 — no mount entrance fade)');
   return { fatal, warn };
 }
 
@@ -159,6 +170,23 @@ function main() {
   let fatalCount = 0;
   let warnCount = 0;
   const unclassified = [];
+
+  // Global motion-token canon (one source of truth for every page's press/spring/ease).
+  // The reference-page archaeology (2026-07-10) found MOBILE_DESIGN_SYSTEM.md still
+  // claims mobileMotion is off-canon [0.22,1,0.36,1]; the SOURCE is aligned. Pin the
+  // source so a regression (or the stale doc's value creeping back) reds the build.
+  const motionPath = path.join(MOBILE_DIR, 'mobileMotion.js');
+  if (fs.existsSync(motionPath)) {
+    const motion = fs.readFileSync(motionPath, 'utf8');
+    const motionFatal = [];
+    if (!motion.includes('0.21, 0.47, 0.32, 0.98')) motionFatal.push('mobileEasing is not the canon Apple ease [0.21, 0.47, 0.32, 0.98]');
+    if (!/stiffness:\s*168/.test(motion) || !/damping:\s*30/.test(motion)) motionFatal.push('mobileSpring is not the canon {stiffness:168, damping:30, mass:0.9}');
+    if (!/control:\s*\{\s*scale:\s*0\.96/.test(motion) || !/card:\s*\{\s*scale:\s*0\.988/.test(motion)) motionFatal.push('press ladder is not the canon control 0.96 / card 0.988');
+    if (motionFatal.length) {
+      console.log('\nmobileMotion.js  [motion tokens]');
+      motionFatal.forEach((m) => { console.log(`  ✗ FATAL  ${m}`); fatalCount++; });
+    }
+  }
 
   for (const file of files) {
     const entry = MANIFEST[file];

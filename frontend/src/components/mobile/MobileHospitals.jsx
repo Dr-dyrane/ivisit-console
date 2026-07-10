@@ -34,7 +34,9 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEnd, MobileListEmpty, MobileListLoadMore } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
@@ -121,6 +123,7 @@ export const MobileHospitals = ({
     analyticsOpen = false,
     hasMore,
     onLoadMore,
+    isFetching = false,
     errorMessage = null,
     onRetry,
     canDelete = false,
@@ -239,6 +242,9 @@ export const MobileHospitals = ({
     }, [sourceHospitals, filterSignature]);
 
     const { displayItems: displayHospitals, isBuffering } = useStableList(hospitalRows, loading);
+    // Background-refetch signal: the REAL isFetching from the query (isBuffering =
+    // Boolean(loading) is false during a refetch, so the pill was dead — 2026-07-10 fix).
+    const refetching = isFetching || false;
     const warmingUp = useSkeletonWarmup();
     const showTopSectionLoading = warmingUp || (loading && displayHospitals.length === 0);
 
@@ -383,7 +389,7 @@ export const MobileHospitals = ({
                         statsLabel="Open analytics"
                     />
 
-                    <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
+                    <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
                     <div className="mt-3 space-y-2">
                         {errorMessage && displayHospitals.length > 0 && (
@@ -425,7 +431,8 @@ export const MobileHospitals = ({
                         )}
 
                         <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
-                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                            {refetching && !showTopSectionLoading && hasMore && displayHospitals.length > 0 && <MobileListLoadingMore />}
+                            {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                             {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
                         </div>
 
@@ -551,7 +558,14 @@ export const MobileHospitals = ({
                                 {
                                     icon: Hash,
                                     label: 'Facility ID',
-                                    value: facilityId
+                                    value: facilityId,
+                                    // Copyable identifier with confirmation haptic (Visits Reference
+                                    // island parity — the desktop rail uses CopyChip; the mobile sheet
+                                    // owed the same tap-to-copy micro-interaction).
+                                    onPress: (event) => {
+                                        navigator.clipboard?.writeText(facilityId)?.catch(() => {});
+                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.SUCCESS, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                                    },
                                 }
                             ]}
                             primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveHospital(null); onView(activeHospital); } }}
