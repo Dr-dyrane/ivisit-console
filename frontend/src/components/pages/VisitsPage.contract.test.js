@@ -236,7 +236,19 @@ describe('VisitsPage admission contract', () => {
     // console design system, no view modes. aria-sort/columnheader semantics are
     // locked in ConsoleDesignSystem.contract.test.js.
     expect(page).toContain("from '../console/ActivitySheet'");
-    expect(page).toContain('<SortableColumnHeader');
+    // Donor sort truth (Requests): TIME is the only sortable column; the other
+    // headers are plain labels -- alphabetical sorts are not operational, and
+    // status/type filtering belongs to the state chips + FilterSheet (user
+    // arbitration: per-column filters removed).
+    expect(page).toContain('<SortableColumnHeader label="Time" sortKey="date" sortConfig={sortConfig} onSort={onSort} />');
+    expect(page).toContain('<span>Patient</span>');
+    expect(page).toContain('<span>Status</span>');
+    expect(page).toContain('<span>Type</span>');
+    expect(page).toContain('<span>Facility</span>');
+    expect(page).not.toContain('sortKey="user_id"');
+    expect(page).not.toContain('sortKey="status"');
+    expect(page).not.toContain('sortKey="type"');
+    expect(page).not.toContain('sortKey="hospital_id"');
     expect(page).not.toContain('viewMode');
 
     expect(gate).toContain('Visual implementation start proof, 2026-06-29');

@@ -1083,12 +1083,17 @@ const VisitListHeader = ({ sortConfig, onSort, selectable = false, allSelected =
         className="h-4 w-4"
       />
     )}
-    <SortableColumnHeader label="Patient" sortKey="user_id" sortConfig={sortConfig} onSort={onSort} />
-    <SortableColumnHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={onSort} />
-    <SortableColumnHeader label="Type" sortKey="type" sortConfig={sortConfig} onSort={onSort} />
-    <SortableColumnHeader label="Facility" sortKey="hospital_id" sortConfig={sortConfig} onSort={onSort} />
+    {/* Patient / Status / Type / Facility are plain labels (donor: Requests) --
+        sorting them alphabetically isn't practical operationally; only Time is a
+        meaningful sort. Status/type filtering belongs to the state chips and the
+        FilterSheet, never column headers (user arbitration: per-column filters
+        removed, Apple standards). */}
+    <span>Patient</span>
+    <span>Status</span>
+    <span>Type</span>
+    <span>Facility</span>
     <SortableColumnHeader label="Time" sortKey="date" sortConfig={sortConfig} onSort={onSort} />
-    <span className="text-right">Action</span>
+    <span className="justify-self-end text-right">Action</span>
   </div>
 );
 
