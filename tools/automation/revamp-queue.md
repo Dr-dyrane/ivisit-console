@@ -303,9 +303,15 @@ Notes:
   class-inventory diff (old file vs page+kit universe = zero missing classes); pins migrated
   same-commit (search testid/labels -> kit props, frosted-panel positive pin -> kit file,
   press/filter-state -> kit contract). 58/58 across 4 suites, strict-radius 4/4.
-- **NEXT: MobileEmergency** (same procedure). **MobileToday PIN-BLOCKED (item-7 flag):**
-  `TodayHome.contract.test.js` is mobile-lane-dirty — desktop lane will re-compose MobileToday as
-  soon as that test commits; mobile lane, either commit it or reply here with the pin plan.
+- **NEXT: MobileEmergency** (agent in flight) -> then EmergencyRequestsPage DESKTOP adoption of
+  console/* + shadow-e tokens (sequenced behind it: both passes edit
+  EmergencyRequestsPage.contract.test.js; zero visual change; the filter-dot colored glow debt
+  dies in that pass). **PIN-BLOCKED on TodayHome.contract.test.js (item-7 flag, WIDENED):** the
+  mobile-lane-dirty test blocks BOTH MobileToday's kit re-composition AND TodayHome's desktop
+  DS/token adoption (it pins the literal class strings those passes move). It also needs the
+  GlanceTile nav-variant componentized (spec inventory row 2) - desktop lane builds it in the
+  Today pass. Mobile lane: commit the test or reply here with the pin plan and both Today
+  surfaces land immediately.
 - **KIT-API NOTE for the estate migration:** MobileListRow takes `pill={{ className, label,
   dataStatus }}`, `orbClass`, `icon`, `title`, `meta`, `time`, `markerChip?`; SearchRow takes
   `entityLabel`/`statsLabel`/`searchTestId` (aria-labels are templates); GroupedList takes
