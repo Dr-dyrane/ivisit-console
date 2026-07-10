@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle, BarChart3, CheckCircle, Clock, Edit, Eye, Headphones, Search, SlidersHorizontal, Tag, Trash2, User, UserPlus } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Edit, Eye, Headphones, Tag, Trash2, User, UserPlus } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x; useSkeletonWarmup covers cached bottom-nav mounts;
+// UpdatingPillRow is the background-refetch signal (list never re-skeletons).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
@@ -58,7 +62,8 @@ export const MobileSupportTickets = ({
   const observerTarget = useRef(null);
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
   const { displayItems, isBuffering } = useStableList(tickets, loading);
-  const showSkeleton = loading && displayItems.length === 0;
+  const warmingUp = useSkeletonWarmup();
+  const showSkeleton = warmingUp || (loading && displayItems.length === 0);
 
   useEffect(() => {
     if (!hasMore) return undefined;
@@ -87,10 +92,6 @@ export const MobileSupportTickets = ({
     { id: 'in_progress', label: 'Active', value: counts.active, color: 'hsl(200 98% 39%)' },
     { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(162 94% 24%)' },
   ];
-
-  const handleSearch = (event) => {
-    setFilters((current) => ({ ...current, search: event.target.value }));
-  };
 
   // Date-grouped feed (rollout S5): newest-first. Grouping is render-only; the month
   // header carries a tabular count (group-header canon, DS v1.2 §3).
@@ -148,37 +149,16 @@ export const MobileSupportTickets = ({
           )}
         </section>
 
-        <div className="mb-3 flex items-center gap-2 px-1">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              placeholder="Search support"
-              value={filters?.search || ''}
-              onChange={handleSearch}
-              className="h-11 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
-            />
-          </div>
-          {onOpenFilters && (
-            <button
-              type="button"
-              onClick={onOpenFilters}
-              className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all active:scale-[0.96] hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Filter support"
-            >
-              <SlidersHorizontal size={18} />
-            </button>
-          )}
-          {onViewAnalytics && (
-            <button
-              type="button"
-              onClick={onViewAnalytics}
-              className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all active:scale-[0.96] hover:bg-foreground/10 hover:text-foreground dark:bg-white/[0.06]"
-              aria-label="Open support analytics"
-            >
-              <BarChart3 size={18} />
-            </button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder="Search support"
+            search={filters?.search || ''}
+            onSearchCommit={(value) => setFilters((current) => ({ ...current, search: value }))}
+            entityLabel="support requests"
+            onOpenFilters={onOpenFilters}
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open support analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -230,8 +210,9 @@ export const MobileSupportTickets = ({
             />
           )}
 
-          <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
-            {(loading || isBuffering) && <MobileListSkeletonRows />}
+          <div ref={observerTarget} className="flex min-h-[64px] flex-col items-center justify-center gap-2">
+            {showSkeleton && <MobileListSkeletonRows />}
+            <UpdatingPillRow show={isBuffering && !showSkeleton} />
             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displayItems.length > 0 && <MobileListEnd label="End of support queue" />}
           </div>
