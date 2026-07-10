@@ -737,3 +737,25 @@ Notes:
   <MobileAmbulances> (you already destructure it at line 222 for the desktop rail) so the
   mobile Updating pill/loading-more fire on refetch. Component defaults false -> safe until wired.
 - **Adaptive grouping** (utils/adaptiveGrouping.js) committed d0b89523; DS §5 + doc motion-drift fixed.
+
+### 2026-07-10 — desktop-uiux-lane — COLOR CODING HARDENED: single-source fleet status vocabulary
+- **User caught a real drift:** "color coding ... something we didn't get to harden ... how the
+  ambulance page speaks to the website." The ambulance status->color map was defined THREE times
+  (page pill, context panel toneByStatus, mobile) with NO shared source -- and they drifted: the
+  PAGE + MOBILE color en_route/on_route AMBER ("En route"), the CONTEXT PANEL colored it CYAN. Same
+  unit read two colors depending on surface. Pure memory-dependence.
+- **Fix (canon-in-code):** new `src/constants/ambulanceStatus.js` = single source for status
+  tone/label/icon + ACTIVE_FLEET_STATUSES. AmbulancesPage + AmbulancesPanel both consume it (page
+  aliases to its existing names; panel's local toneByStatus DELETED -> en_route now amber
+  everywhere). The route-context data flow (page publishes status+statusLabel ->
+  ambulancesRouteContextUpdated -> ContextPanel -> AmbulancesPanel) is unchanged; only the panel's
+  color LOOKUP moved to the shared source.
+- **Gated:** AmbulancesPage.contract now pins that page + panel import the shared module and define
+  NO local status color map (not.toContain toneByStatus / ambulanceStatusPillClass). Drift can't
+  recur. 16/16; hardgate clean.
+- **QUEUE (mobile lane):** MobileAmbulances still defines its own status color logic (CORRECT --
+  amber -- but a 4th independent copy). Converge it onto `constants/ambulanceStatus` so all four
+  surfaces share one source. Low-risk (behavior-identical); do it on the mobile file's next touch.
+- **Pattern for other domains:** each entity's status vocabulary should be ONE shared module the
+  page+rail+KPI+panel+mobile consume -- not redefined per surface. Hospitals/Visits/Requests are
+  candidates for the same extraction (their status maps are page-local today).

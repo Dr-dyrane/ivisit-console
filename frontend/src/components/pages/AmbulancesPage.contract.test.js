@@ -366,6 +366,16 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(panel).not.toContain('Live Fleet');
     expect(panel).not.toContain('Ready Units');
     expect(panel).not.toContain('ambulancesData');
+    // SINGLE-SOURCE color coding (user: "color coding ... something we didn't get
+    // to harden"): the fleet status tone/label vocabulary lives in ONE module
+    // that the page AND the context panel consume, so they cannot drift (the
+    // panel used to color en_route cyan while the page/mobile use amber). Lock
+    // that the panel imports the shared source and defines NO local status map.
+    expect(panel).toContain("from '../../constants/ambulanceStatus'");
+    expect(panel).toContain('getAmbulanceStatusToneClass(status)');
+    expect(panel).not.toContain('const toneByStatus');
+    expect(page).toContain("from '../../constants/ambulanceStatus'");
+    expect(page).not.toContain('const ambulanceStatusPillClass =');
     expect(contextPanel).toContain('ambulancesRouteContext');
     expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('requestAmbulancesRouteContext'))");
     expect(contextPanel).toContain('<AmbulancesPanel ambulanceContext={ambulancesRouteContext} />');

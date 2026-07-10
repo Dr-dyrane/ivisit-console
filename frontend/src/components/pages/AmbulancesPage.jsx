@@ -45,6 +45,17 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { MobileAmbulances } from '../mobile/MobileAmbulances';
+// Single source of truth for the fleet status color/label/icon vocabulary --
+// the page, the context panel, and mobile all consume this so the color coding
+// cannot drift (it did: the panel colored en_route cyan vs the page's amber).
+// Aliased to the page's existing names so call sites stay unchanged.
+import {
+  ACTIVE_FLEET_STATUSES,
+  getFleetStatus,
+  getAmbulanceStatusLabel as getFleetStatusLabel,
+  getAmbulanceStatusToneClass as ambulanceStatusPillClass,
+  getAmbulanceStatusIcon as ambulanceStatusPillIcon,
+} from '../../constants/ambulanceStatus';
 
 // Stats are computed status-agnostic (the status chip narrows the LIST, not the
 // KPI counts) so the chip totals stay stable while a chip is active.
@@ -53,46 +64,9 @@ const getAmbulanceStatsFilters = (filters = {}) => {
   return rest;
 };
 
-const ACTIVE_FLEET_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene']);
-
 const normalizeAmbulanceCount = (value, fallback = 0) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
-};
-
-const getFleetStatus = (ambulance) => String(ambulance?.status || 'available').toLowerCase();
-
-// Status vocabulary + literal tones, reused verbatim from the already-canon
-// MobileAmbulances so both surfaces speak one language (constitution perk 1).
-const getFleetStatusLabel = (status) => {
-  if (status === 'available') return 'Ready';
-  if (status === 'en_route' || status === 'on_route') return 'En route';
-  if (status === 'dispatched') return 'Dispatched';
-  if (status === 'on_trip') return 'On trip';
-  if (status === 'on_scene') return 'On scene';
-  if (status === 'returning') return 'Returning';
-  if (status === 'maintenance') return 'Maintenance';
-  if (status === 'offline') return 'Offline';
-  if (status === 'pending_approval') return 'Pending';
-  return status ? status.replace(/_/g, ' ') : 'Unknown';
-};
-
-// Literal palette only (the theme's --primary/--success/--warning/--info all
-// render RED): Ready emerald, En route amber, Active cyan, Service amber, rest
-// muted. This replaces the old red-trap status badge map (AMB-10).
-const ambulanceStatusPillClass = (status) => {
-  if (status === 'available') return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';
-  if (status === 'en_route' || status === 'on_route') return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
-  if (ACTIVE_FLEET_STATUSES.has(status)) return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
-  if (status === 'maintenance' || status === 'offline') return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
-  return 'bg-muted/40 text-muted-foreground';
-};
-
-const ambulanceStatusPillIcon = (status) => {
-  if (status === 'available') return MapPin;
-  if (status === 'maintenance' || status === 'offline') return Wrench;
-  if (ACTIVE_FLEET_STATUSES.has(status)) return Activity;
-  return Ambulance;
 };
 
 const getAmbulanceStation = (ambulance) => ambulance?.station_name || ambulance?.hospital || 'No station';

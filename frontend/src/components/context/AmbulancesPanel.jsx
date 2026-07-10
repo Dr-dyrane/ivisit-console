@@ -10,6 +10,10 @@ import {
   RefreshCw,
   Wrench,
 } from 'lucide-react';
+// Consume the shared fleet status vocabulary instead of a local tone map -- the
+// panel used to color en_route CYAN while the page/mobile use AMBER, so the same
+// unit read two colors. Sourcing from one place makes that drift impossible.
+import { getAmbulanceStatusToneClass, getAmbulanceStatusLabel } from '../../constants/ambulanceStatus';
 
 const emptyContext = {
   status: 'loading',
@@ -25,17 +29,6 @@ const emptyContext = {
     totalCount: 0,
   },
   recent: [],
-};
-
-const toneByStatus = {
-  available: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-  en_route: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  on_route: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  dispatched: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  on_trip: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  on_scene: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
-  maintenance: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-  offline: 'bg-muted/32 text-muted-foreground',
 };
 
 const contextStatusCopy = {
@@ -181,7 +174,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
         <div className="space-y-1">
           {recent.map((unit) => {
             const status = unit.status || 'available';
-            const tone = toneByStatus[status] || 'bg-muted/28 text-muted-foreground';
+            const tone = getAmbulanceStatusToneClass(status);
 
             return (
               <div
@@ -202,7 +195,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
                   </div>
                 </div>
                 <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-                  {unit.statusLabel || status}
+                  {unit.statusLabel || getAmbulanceStatusLabel(status)}
                 </span>
               </div>
             );
