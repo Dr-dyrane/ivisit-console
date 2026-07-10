@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
     Users,
     UserCheck,
@@ -13,12 +13,12 @@ import {
     Edit,
     Trash2,
     Activity,
-    Search,
-    SlidersHorizontal,
-    Loader2,
-    BarChart3,
     BadgeCheck
 } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached
+// bottom-nav mounts; UpdatingPillRow is the background-refetch signal.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { MobileKPIStrip } from './MobileKPIStrip';
@@ -30,8 +30,6 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { statusPill } from '../../constants/vitalTracks';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { calcDeltaPercent, formatSignedPercent } from '../../utils/metricsUtils';
@@ -87,7 +85,6 @@ export const MobileUsers = ({
     // 1. Infinite scroll setup with Intersection Observer
     const observerTarget = useRef(null);
     const [activeUser, setActiveUser] = useState(null);
-    const { triggerFromEvent } = useFeedback();
 
 
 
@@ -179,7 +176,8 @@ export const MobileUsers = ({
 
     const verificationRate = totalUsers ? (verifiedUsersCount / totalUsers) * 100 : 0;
     const { displayItems: displayUsers, isBuffering } = useStableList(users, loading);
-    const showInitialScaffoldLoading = loading && displayUsers.length === 0;
+    const warmingUp = useSkeletonWarmup();
+    const showInitialScaffoldLoading = warmingUp || (loading && displayUsers.length === 0);
 
     const getRoleColor = (role) => {
         switch (role) {
@@ -303,50 +301,16 @@ export const MobileUsers = ({
                 </section>
 
                 {/* D. SEARCH & FILTER */}
-                <div className="mb-3">
-                    {showInitialScaffoldLoading ? (
-                        <div className="flex items-center gap-2 px-1">
-                            <div className="h-11 flex-1 rounded-button bg-muted/20" />
-                            <div className="w-11 h-11 rounded-button bg-muted/20 shrink-0" />
-                            {(isAdmin || isOrgAdmin) && <div className="w-11 h-11 rounded-button bg-muted/20 shrink-0" />}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 px-1">
-                        <div className="flex-1 relative group">
-                            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-foreground transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search users..."
-                                value={filters.search || ''}
-                                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                                className="w-full h-11 pl-10 pr-4 rounded-button bg-muted/40 text-[12px] font-normal placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--foreground)/0.16)] transition-all"
-                            />
-                        </div>
-                        <motion.button
-                            whileTap={{ scale: 0.96 }}
-                            onClick={(event) => {
-                                onOpenFilters?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                            }}
-                            className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
-                        >
-                            <SlidersHorizontal size={18} />
-                        </motion.button>
-
-                        {(isAdmin || isOrgAdmin) && (
-                            <motion.button
-                                whileTap={{ scale: 0.96 }}
-                                onClick={(event) => {
-                                    onViewAnalytics?.();
-                                    triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                                }}
-                                className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
-                            >
-                                <BarChart3 size={18} />
-                            </motion.button>
-                        )}
-                        </div>
-                    )}
+                <div className="mb-3 px-1">
+                    <SearchRow
+                        placeholder="Search users..."
+                        search={filters.search || ''}
+                        onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                        entityLabel="users"
+                        onOpenFilters={onOpenFilters}
+                        onOpenStats={(isAdmin || isOrgAdmin) ? onViewAnalytics : null}
+                        statsLabel="Open analytics"
+                    />
                 </div>
 
                 {/* E. USER DIRECTORY */}
@@ -398,15 +362,16 @@ export const MobileUsers = ({
                     </AnimatePresence>
 
                     {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-                        {loading && <MobileListSkeletonRows />}
+                    <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                        {showInitialScaffoldLoading && <MobileListSkeletonRows />}
+                        <UpdatingPillRow show={isBuffering && !showInitialScaffoldLoading} />
                         {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                         {!loading && !hasMore && displayUsers.length > 0 && (
                             <MobileListEnd label="End of user list" />
                         )}
                     </div>
 
-                    {displayUsers.length === 0 && !loading && (
+                    {displayUsers.length === 0 && !loading && !showInitialScaffoldLoading && (
                         <MobileListEmpty icon={Users} label="No users found" labelTone="plain" />
                     )}
                 </div>
