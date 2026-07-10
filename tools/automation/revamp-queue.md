@@ -651,3 +651,17 @@ Notes:
   hardgate + data-contract + mojibake + donor-diff + live compile) and how to register a new
   mechanism. Suites 80/80. This is the "enforced, not just disciplined" upgrade -- the next list
   page cannot silently drop a registered mechanism.
+
+### 2026-07-10 — desktop-uiux-lane — AMBULANCES: archaeology done, constitution landed (HARNESS TEST)
+- User: "use next page to test harness if it works: ambulance page." Ran the hardened loop's
+  changelog-first step: 3 parallel scouts (historian + data-sync + donor-parity) + live-DB verify.
+- **Harness caught the trap:** ambulances is WRITE-CAPABLE (`Org Admins manage ambulances`=ALL,
+  live-verified; historian confirms create+edit admitted 2026-07-03). A blind Hospitals
+  fail-closed-create copy would have stripped legit function. Registry: 5/6 mechanisms absent
+  today (selection[exclude], keyboard-nav/scroll-reset/failed-hero[wire], arrival-toast[exclude],
+  deep-link[?add present, ?id to wire]) -- the gate will red on adoption until wired/excluded.
+- Constitution: docs/audit/AMBULANCES_REVAMP_CONSTITUTION_2026-07-10.md (harness scorecard,
+  write register, 6-mechanism plan, perks, AMB-1..10 findings, compose plan). Baseline f31f29f.
+- Data-truth bugs found: crew Json<->string mismatch (AMB-4), current_call parallel-dispatch-truth
+  (AMB-6), double status narrowing (AMB-9), base_price dead plumbing (AMB-5), location dead
+  payload (AMB-8). Next phase: DS composition per the constitution.
