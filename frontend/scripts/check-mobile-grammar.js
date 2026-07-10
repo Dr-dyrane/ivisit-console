@@ -198,7 +198,10 @@ function main() {
     const dock = fs.readFileSync(dockPath, 'utf8');
     const fnStart = dock.indexOf('getRouteOwnedMobileAction = (');
     const fnBody = fnStart >= 0 ? dock.slice(fnStart) : '';
-    const ADMITTED_FAB_ROUTES = ['/emergencies', '/visits', '/hospitals', '/ambulances', '/doctors', '/support-tickets'];
+    // /verification (Approvals) added 2026-07-10: it was in routeOwnsAction with NO branch
+    // and this list omitted it, so the collapsed-lone-pill shipped unflagged. Approvals is
+    // a first-class admin/org_admin `list`-tier surface and must own a dock action.
+    const ADMITTED_FAB_ROUTES = ['/emergencies', '/visits', '/hospitals', '/ambulances', '/doctors', '/support-tickets', '/verification'];
     const dockFatal = ADMITTED_FAB_ROUTES.filter((r) => !fnBody.includes(`startsWith('${r}')`));
     if (dockFatal.length) {
       console.log('\nDynamicBottomBar.jsx  [dock/FAB]');

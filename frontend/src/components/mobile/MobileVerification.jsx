@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Shield, Eye, CheckCircle, Ban, Building2, User, Mail, MapPin, Clock, Hash, Tag } from 'lucide-react';
 // LIST-type page, DUAL-QUEUE (providers + facilities). Composes the canon kit
 // (MOBILE_DESIGN_SYSTEM §5): heading -> KPI status chips -> queue switch -> search ->
@@ -88,6 +88,20 @@ export const MobileVerification = ({
   const [activeItem, setActiveItem] = useState(null);
   // Selection props stay accepted as dormant inventory (fail-closed estate-wide); the
   // kit MobileListRow carries no selection affordance until receiver proof.
+
+  // Dock FAB ("Review pending", DynamicBottomBar) dispatches here: the mobile surface
+  // owns the queue filter state, so the dock stays decoupled from the desktop page file.
+  // A ref holds the latest setFilters (the page hands a fresh identity each render), so we
+  // subscribe ONCE and always call the current setter — filtering to pending, the
+  // actionable subset an approver lands to act on.
+  const setFiltersRef = useRef(setFilters);
+  setFiltersRef.current = setFilters;
+  useEffect(() => {
+    const showPending = () => setFiltersRef.current?.((prev) => ({ ...prev, status: 'pending' }));
+    window.addEventListener('approvalsReviewPending', showPending);
+    return () => window.removeEventListener('approvalsReviewPending', showPending);
+  }, []);
+
   const activeStats = queueType === 'providers' ? stats : orgStats;
   const items = queueType === 'providers' ? providers : organizations;
   const sourceItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);

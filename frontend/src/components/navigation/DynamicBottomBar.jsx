@@ -263,6 +263,25 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
+    // Approvals (/verification): a REVIEW-only surface — there is no "create" here, so the
+    // FAB can't mirror the New-request/New-visit siblings. Data-sync-guided action: the
+    // approver's job is the PENDING subset, so the FAB filters the queue to pending (the
+    // items awaiting a decision) — the one dock-level action that turns a long mixed queue
+    // into the actionable list without scrolling back to the chips. Gate = canReachRoute
+    // (org_admin+ = the REVIEW tier that can see the page); approval COMMANDS stay
+    // admin-only inside the sheet. Dispatches to MobileVerification (the mounted mobile
+    // surface owns the filter state), so the dock never couples to the desktop page file.
+    // Without this branch /verification sits in routeOwnsAction with no action -> the dock
+    // collapses to a lone centered pill (the Ambulances bug).
+    if (pathname.startsWith('/verification') && canReachRoute(userRole, '/verification')) {
+        return {
+            icon: ShieldCheck,
+            label: 'Review pending',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('approvalsReviewPending'))
+        };
+    }
+
     return null;
 };
 
