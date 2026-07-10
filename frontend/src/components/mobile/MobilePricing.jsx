@@ -2,17 +2,19 @@ import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BadgeDollarSign,
-  Search,
   Eye,
   Edit,
   Trash2,
   Building2,
   Globe,
   CalendarDays,
-  Layers,
-  BarChart3
+  Layers
 } from 'lucide-react';
-import { Button } from '../ui/button';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x + haptic analytics trigger; useSkeletonWarmup covers
+// cached bottom-nav mounts; UpdatingPillRow is the background-refetch signal. No
+// onOpenFilters wired -- tabs + KPI chips are this page's whole filter grammar.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileDetailSheet } from './MobileDetailSheet';
@@ -20,10 +22,9 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEmpty } from './MobileListStates';
+import { MobileListEmpty, MobileListSkeletonRows } from './MobileListStates';
+import { useStableList } from './useStableList';
 import { statusPill } from '../../constants/vitalTracks';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { mobileSpring } from './mobileMotion';
 
 const formatLabel = (value, fallback = 'Unknown') => {
@@ -56,7 +57,6 @@ export const MobilePricing = ({
 }) => {
   const [activeItem, setActiveItem] = useState(null);
   const selectionMode = selectionEnabled && selectedIds.length > 0;
-  const { triggerFromEvent } = useFeedback();
   const projectionSummary = pricingProjection?.summary || null;
   const projectionTotalCount = Number(pricingProjection?.totalCount);
   const currentBasisLabel = pricingProjection?.readState?.basis === 'current_filter' ? 'Current' : 'Source';
@@ -114,7 +114,9 @@ export const MobilePricing = ({
   };
   const isGlobal = (item) => !item.organization_id && !item.hospital_id;
   const hasActiveRecovery = Boolean(searchTerm) || kpiFilter !== 'all';
-  const showTopSectionLoading = loading && pricing.length === 0 && allPricing.length === 0;
+  const { displayItems, isBuffering } = useStableList(pricing, loading);
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && pricing.length === 0 && allPricing.length === 0);
 
   const periodTrends = useMemo(() => ({
     globalRatio: { direction: 'flat', deltaText: currentBasisLabel },
@@ -268,30 +270,15 @@ export const MobilePricing = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              placeholder="Search pricing..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-inner bg-muted/40 text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
-            />
-          </div>
-          {onViewAnalytics && (
-            <Button
-              variant="ghost"
-              className="w-11 h-11 rounded-button bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
-              onClick={(event) => {
-                onViewAnalytics?.();
-                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-              }}
-              aria-label="Open analytics"
-            >
-              <BarChart3 size={18} />
-            </Button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder="Search pricing..."
+            search={searchTerm}
+            onSearchCommit={setSearchTerm}
+            entityLabel="pricing"
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -313,7 +300,7 @@ export const MobilePricing = ({
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {pricing.map((item) => {
+            {displayItems.map((item) => {
               const globalRule = isGlobal(item);
               const price = getItemPrice(item);
               const sourceLabel = getSourceLabel(item, globalRule);
@@ -341,7 +328,7 @@ export const MobilePricing = ({
             })}
           </AnimatePresence>
 
-          {!loading && pricing.length === 0 && (
+          {!loading && !showTopSectionLoading && displayItems.length === 0 && (
             <MobileListEmpty
               icon={BadgeDollarSign}
               label="No pricing rules found"
@@ -359,6 +346,9 @@ export const MobilePricing = ({
               recoverLabel={searchTerm ? 'Clear Search' : hasActiveRecovery ? 'Reset Filters' : undefined}
             />
           )}
+
+          {showTopSectionLoading && <MobileListSkeletonRows />}
+          <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
         </div>
 
         {activeItem && (() => {
