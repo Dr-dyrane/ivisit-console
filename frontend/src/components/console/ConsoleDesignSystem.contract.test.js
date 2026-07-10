@@ -165,6 +165,11 @@ describe('Console design system contract', () => {
     expect(src).toContain('const rangeIds = items.slice(start, end + 1).map((row) => row.id)');
     expect(src).toContain('setSelectedIds(checked ? items.map((row) => row.id) : [])');
     expect(src).toContain('const someSelected = !allSelected && selectedIds.length > 0');
+    // Prune-to-visible: ids that leave the list (filter change / row removed by a write)
+    // are dropped so a bulk action can never fire on an off-screen record. This donor
+    // mechanism was dropped when the hook was extracted and cost a real wrong-write bug
+    // on Approvals (2026-07-10 adversarial review) -- locked here so it can't drop again.
+    expect(src).toContain('const next = prev.filter((id) => items.some((row) => row.id === id));');
   });
 
   it('locks keyboard navigation and the shared day-aware time', () => {

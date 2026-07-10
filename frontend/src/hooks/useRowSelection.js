@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Row selection (donor: Requests / Users-page parity): checkbox toggle with
 // shift-range support, select-all over every visible row, indeterminate state.
@@ -46,6 +46,18 @@ export const useRowSelection = (items = []) => {
   }, [items]);
 
   const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+  // Prune ids that have LEFT the list -- a filter/search change swaps the visible rows,
+  // and a write (approve/reject/cancel) removes a row -- so a bulk action can never fire
+  // on an off-screen record the operator can no longer see (donor: Requests
+  // prune-selection). Same-ref return when nothing changed keeps this from looping.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter((id) => items.some((row) => row.id === id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [items]);
 
   const allSelected = items.length > 0 && items.every((row) => selectedIds.includes(row.id));
   const someSelected = !allSelected && selectedIds.length > 0;

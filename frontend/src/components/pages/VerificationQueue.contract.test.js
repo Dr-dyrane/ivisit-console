@@ -95,21 +95,43 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(color).not.toContain('bg-warning');
   });
 
-  it('gates selection + bulk to the providers lane (approve-only)', () => {
+  it('gives BOTH lanes multi-select + bulk, routed per queue (providers approve-only, facilities tri-state)', () => {
     const source = pageSource();
     const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
     const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
 
     expect(source).not.toContain('onDelete={() => { }}');
-    // Bulk bar renders ONLY when providers + admin (selectable), never on facilities.
-    expect(source).toContain("const selectable = canApprove && queueType === 'providers';");
+    // Multi-select + bulk on BOTH lanes for admins (facilities used to have neither).
+    expect(source).toContain('const selectable = canApprove;');
     expect(source).toContain('{selectable && (');
     // Selection uses the shared hook (Requests/Users parity).
     expect(source).toContain("from '../../hooks/useRowSelection'");
     expect(source).toContain('useRowSelection(sortedItems)');
+    // Bulk routes each id to the CORRECT service per queue -- never the F4 misfire of one
+    // queue's ids against the other's RPC. Lock the ROUTING SELECTOR and the id source,
+    // not just the branch bodies: a one-line inversion of either fully misroutes F4 while
+    // the branch-body substrings stay present (2026-07-10 adversarial review, major gap).
+    expect(source).toContain("const isProviders = queueType === 'providers';");
+    expect(source).toContain("const activeItems = queueType === 'providers' ? providers : organizations;");
+    expect(source).toContain('if (isProviders) await verifyProvider(id, true);');
+    expect(source).toContain('else await verifyOrganization(id, approved);');
+    // Facilities get a bulk Reject (real tri-state); it is queue-gated -- providers don't.
+    // Pin each button's ARGUMENT so a Reject-that-approves regression reds.
+    expect(source).toContain('title="Reject Selected"');
+    expect(source).toContain("{queueType === 'organizations' && (");
+    expect(source).toContain('onClick={() => handleBulkAction(false)}');
+    expect(source).toContain('onClick={() => handleBulkAction(true)}');
     // The FAB + bottom bar still own the /verification approval action (mobile).
     expect(fabSource).toContain("location.pathname.startsWith('/verification')");
     expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
+  });
+
+  it('auto-selects the first row for the detail rail (donor parity: no empty rail with data)', () => {
+    const source = pageSource();
+    // The focused record is DERIVED (id + fallback), so the rail is never empty when there
+    // is data -- the one gap Approvals had vs Requests/Visits/Hospitals/Ambulances.
+    expect(source).toContain('const focusedItem = useMemo(');
+    expect(source).toContain('sortedItems.find((row) => row.id === focusedItemId) || sortedItems[0] || null');
   });
 
   it('keeps the shared context panel copy aligned with Approvals naming', () => {
@@ -203,7 +225,10 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).toContain('const [stats, setStats]');
     expect(source).toContain('const [orgStats, setOrgStats]');
     expect(source).toContain('const activeStats = useMemo(');
-    expect(source).toContain("queueType === 'providers'");
+    // Pin the facility 'approved' normalization (verified -> approved). Dropping it makes
+    // the facility Approved count silently read 0; a vacuous `queueType === 'providers'`
+    // substring (24 occurrences) did NOT catch that (2026-07-10 adversarial review).
+    expect(source).toContain('approved: orgStats.verified');
     expect(source).toContain("const items = queueType === 'providers' ? providers : organizations;");
     expect(source).toContain('count: items.length');
   });
@@ -218,8 +243,9 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(modal).not.toContain('handleVerifyAction(false)');
     expect(source).not.toContain('handleVerify(provider.id, false)');
     expect(source).not.toContain('handleVerify(item.id, false)');
-    expect(source).not.toContain('handleBulkVerify(false)');
-    expect(source).not.toContain('Reject Selected');
+    // Providers bulk is approve-only: the provider branch hardcodes approve (true), so a
+    // provider can never be bulk-rejected even though the shared handler takes `approved`.
+    expect(source).toContain('if (isProviders) await verifyProvider(id, true);');
     expect(source).toContain("onReject={queueType === 'organizations'");
     // The service no longer LIES that 'rejected' == 'pending'; it is honest-empty.
     expect(providerService).not.toContain('Rejected providers are also unverified');

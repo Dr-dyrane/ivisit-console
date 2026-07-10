@@ -250,9 +250,10 @@ export const VerificationQueue = () => {
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [orgStats, setOrgStats] = useState({ pending: 0, verified: 0, rejected: 0, total: 0 });
   const [selectedProvider, setSelectedProvider] = useState(null);
-  // Right-side detail rail focus (a provider or facility record). Distinct from
-  // selectedProvider, which drives the full-detail modal. Reset on queue switch.
-  const [focusedItem, setFocusedItem] = useState(null);
+  // Right-side detail rail focus. We store only the focused id; the record is DERIVED
+  // (auto-selecting the first row when nothing is explicitly focused -- donor parity).
+  // Distinct from selectedProvider, which drives the full-detail modal.
+  const [focusedItemId, setFocusedItemId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -309,6 +310,15 @@ export const VerificationQueue = () => {
     return rows;
   }, [activeItems, sortConfig.direction]);
 
+  // Auto-select the first row for the detail rail (donor parity: Requests/Visits/
+  // Hospitals default focus to the first item so the rail is never empty when there is
+  // data). An explicit click/keyboard focus wins; otherwise it tracks the first row as
+  // the list changes (queue switch, page, sort).
+  const focusedItem = useMemo(
+    () => sortedItems.find((row) => row.id === focusedItemId) || sortedItems[0] || null,
+    [sortedItems, focusedItemId],
+  );
+
   const {
     selectedIds,
     handleSelectClick,
@@ -319,8 +329,10 @@ export const VerificationQueue = () => {
     someSelected,
   } = useRowSelection(sortedItems);
 
-  // Bulk selection is PROVIDERS-ONLY (facilities have no bulk path) and approve-only.
-  const selectable = canApprove && queueType === 'providers';
+  // Multi-select + bulk on BOTH lanes for admins. Providers are approve-only; facilities
+  // have a real tri-state, so the facility bulk bar also carries Reject -- each routed to
+  // its OWN service (no F4 misfire of one queue's ids against the other's RPC).
+  const selectable = canApprove;
 
   useEffect(() => {
     if (!canReview) {
@@ -448,7 +460,7 @@ export const VerificationQueue = () => {
   useEffect(() => {
     pagination.resetPagination();
     clearSelection();
-    setFocusedItem(null);
+    setFocusedItemId(null);
   }, [queueType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Selection is per-page (bulk approve acts on the visible page); drop it on paging.
@@ -517,34 +529,40 @@ export const VerificationQueue = () => {
     }
   };
 
-  // Bulk is PROVIDERS-ONLY and APPROVE-ONLY (2026-07-10): providers have no rejected
-  // state, so a bulk-reject was a no-op that re-wrote pending as pending. Removed.
-  const handleBulkVerify = async () => {
+  // Bulk acts on the visible-page selection. Providers are APPROVE-ONLY (no rejected
+  // state); facilities have a real tri-state, so they get bulk approve AND reject. Each
+  // id is routed to the CORRECT service per queue -- providers -> verifyProvider,
+  // facilities -> verifyOrganization -- never the F4 misfire of one against the other.
+  const handleBulkAction = async (approved) => {
     if (!canApprove) {
       toast.error('Admin approval required');
       return;
     }
     const ids = [...selectedIds];
     if (ids.length === 0) return;
+    const isProviders = queueType === 'providers';
 
     setActionLoading(true);
     let failed = 0;
     for (const id of ids) {
       try {
-        await verifyProvider(id, true);
+        if (isProviders) await verifyProvider(id, true); // providers: approve-only
+        else await verifyOrganization(id, approved);
       } catch (error) {
         failed += 1;
       }
     }
 
     clearSelection();
-    await fetchVerificationData();
+    await refetchActive();
     setActionLoading(false);
 
+    const noun = isProviders ? 'provider' : 'facility';
+    const plural = isProviders ? 'providers' : 'facilities';
     if (failed > 0) {
-      toast.error(`${failed} approval${failed === 1 ? '' : 's'} failed`);
+      toast.error(`${failed} ${approved ? 'approval' : 'rejection'}${failed === 1 ? '' : 's'} failed`);
     } else {
-      toast.success(`${ids.length} provider${ids.length === 1 ? '' : 's'} approved`);
+      toast.success(`${ids.length} ${ids.length === 1 ? noun : plural} ${approved ? 'approved' : 'rejected'}`);
     }
   };
 
@@ -719,7 +737,7 @@ export const VerificationQueue = () => {
         canApprove={canApprove}
         actionLoading={actionLoading}
         focusedItem={focusedItem}
-        setFocusedItem={setFocusedItem}
+        setFocusedId={setFocusedItemId}
         filters={filters}
         setStatusFilter={setStatusFilter}
         setSearchFilter={setSearchFilter}
@@ -747,16 +765,30 @@ export const VerificationQueue = () => {
 
       {selectable && (
         <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
-          {/* Bulk selection is providers-only, and providers are APPROVE-ONLY
-              (2026-07-10) -- so the bulk-reject action was a no-op and is removed. */}
+          {/* Providers are APPROVE-ONLY; facilities have a real tri-state, so the facility
+              bulk bar also carries Reject. Each button routes through handleBulkAction,
+              which dispatches to the correct service per queue (no F4 misfire). */}
+          {queueType === 'organizations' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleBulkAction(false)}
+              disabled={actionLoading || selectedIds.length === 0}
+              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96] disabled:opacity-40"
+              title="Reject Selected"
+              aria-label={`Reject ${selectedIds.length} selected`}
+            >
+              <Ban className="h-5 w-5" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleBulkVerify}
+            onClick={() => handleBulkAction(true)}
             disabled={actionLoading || selectedIds.length === 0}
             className="h-10 w-10 rounded-pill bg-emerald-500/15 text-emerald-600 transition-all hover:bg-emerald-500 hover:text-white active:scale-[0.96] disabled:opacity-40 dark:text-emerald-300"
             title="Approve Selected"
-            aria-label={`Approve ${selectedIds.length} selected provider${selectedIds.length === 1 ? '' : 's'}`}
+            aria-label={`Approve ${selectedIds.length} selected`}
           >
             <CheckCircle className="h-5 w-5" />
           </Button>
@@ -803,7 +835,7 @@ const ApprovalsDesktopWorkspace = ({
   canApprove,
   actionLoading,
   focusedItem,
-  setFocusedItem,
+  setFocusedId,
   filters,
   setStatusFilter,
   setSearchFilter,
@@ -845,7 +877,7 @@ const ApprovalsDesktopWorkspace = ({
   const handleListKeyDown = useListKeyboardNav({
     items,
     focusedItem,
-    setFocusedId: (id) => setFocusedItem(items.find((row) => row.id === id) || null),
+    setFocusedId,
     onOpen: onOpenRecord,
     scrollRef: listScrollRef,
     rowAttr: 'data-approval-row',
@@ -967,7 +999,7 @@ const ApprovalsDesktopWorkspace = ({
               item={item}
               queueType={queueType}
               selected={focusedItem?.id === item.id}
-              onFocus={() => setFocusedItem(item)}
+              onFocus={() => setFocusedId(item.id)}
               onOpen={onOpenRecord}
               selectable={selectable}
               checked={selectedIds.includes(item.id)}
@@ -1022,7 +1054,7 @@ const ApprovalListHeader = ({ queueType, selectable, allSelected, someSelected, 
         checked={someSelected ? 'indeterminate' : allSelected}
         onCheckedChange={onSelectAll}
         onClick={(event) => event.stopPropagation()}
-        aria-label={allSelected ? 'Clear selection' : 'Select all providers'}
+        aria-label={allSelected ? 'Clear selection' : `Select all ${queueType === 'providers' ? 'providers' : 'facilities'}`}
         className="h-4 w-4"
       />
     )}
