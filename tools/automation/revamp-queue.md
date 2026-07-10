@@ -821,3 +821,18 @@ Notes:
 - Stranded VerificationPanel = LAND it (missing receiver half of a committed-dangling context chain).
 - 5 decisions gate composition (provider reject; panel selected-card; RBAC panel gate; phantom
   notes; harden-gates-now vs discipline). Awaiting user before the big compose.
+
+### 2026-07-10 — desktop-uiux-lane — GATE HARDENING (verification prep, user chose "harden first")
+- Closed Verification-archaeology SEAM #5 (pages not in the gate maps silently skipped): the
+  mechanism-registry, interaction-completeness, and TIME-only-sort gates now iterate ONE shared
+  registry `LIST_WORKSPACE_PAGES` (page + paired modal) in ConsoleDesignSystem.contract. A page is
+  registered ONCE and covered by every list gate -- can't be in one and forgotten from another.
+- Assert-don't-skip: a registered page that isn't a SortableColumnHeader surface now REDS (was a
+  silent `continue`). Proven: non-list registered page fails listSurface; 4 real pages pass.
+- Documented the single-shared-list discipline in the registry comment: a dual-queue page (Approvals)
+  must render ONE ActivitySheet (rows swap by queue) + ONE shared header -> mechanisms (one
+  useRowSelection/useListKeyboardNav over the active queue) inherently cover both lanes. That
+  resolves seams #1 (queue-blind) + #2 (sort-count===1) via ENFORCED discipline, not just review.
+- Remaining seams handled at compose time: #3 {page,modal} disjunction already accommodates the
+  rail-write facility path; #4 build constants/verificationStatus.js + a per-page color pin.
+- 85/85 across six gold surfaces; the caret/press/etc. unaffected.

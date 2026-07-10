@@ -15,6 +15,27 @@ describe('Console design system contract', () => {
   const keyboardNav = () => read('src/hooks/useListKeyboardNav.js');
   const dayTime = () => read('src/utils/dayTime.js');
 
+  // THE SINGLE REGISTRY of adopted list-workspace pages (page + its paired
+  // write-surface modal). Every LIST-scoped estate law below -- the
+  // donor-mechanism registry, interaction-completeness, and TIME-only-sort --
+  // iterates THIS one array, so a newly-adopted list page is registered ONCE and
+  // cannot silently escape a gate. That closes the "green means not-checked" hole
+  // a per-gate page list left open (Verification archaeology seam #5, 2026-07-10):
+  // three separate maps meant a page forgotten from one silently skipped it.
+  // A page listed here MUST render exactly ONE SortableColumnHeader -- the
+  // single-shared-list discipline. For a DUAL-QUEUE page (e.g. Approvals:
+  // providers|facilities) that means ONE ActivitySheet whose rows swap by queue
+  // and ONE shared header, so the mechanisms (one useRowSelection/useListKeyboardNav
+  // over the active queue) inherently cover both queues -- NOT two side-by-side
+  // lists, which would give two headers (TIME-sort count!==1) and let a mechanism
+  // be wired to one queue only (the queue-blind seam). One list = both lanes.
+  const LIST_WORKSPACE_PAGES = [
+    { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
+    { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', modal: 'src/components/modals/VisitModal.jsx' },
+    { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', modal: 'src/components/modals/HospitalModal.jsx' },
+    { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', modal: 'src/components/modals/AmbulanceModal.jsx' },
+  ];
+
   const CONSOLE_FILES = () => ({
     primitives: primitives(),
     kpiStrip: kpiStrip(),
@@ -202,17 +223,15 @@ describe('Console design system contract', () => {
       { slug: 'arrival-toast', test: /lastInsertToastAtRef/ },                    // donor realtime INSERT toast
       { slug: 'deep-link', test: /params\.get\(|useSearchParams|location\.search/ }, // QuickSearch ?id focus
     ];
-    const surfaces = {
-      visitsPage: read('src/components/pages/VisitsPage.jsx'),
-      emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
-      todayHome: read('src/components/pages/TodayHome.jsx'),
-      hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
-      ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
-    };
-    for (const [name, src] of Object.entries(surfaces)) {
-      // Only list-workspace surfaces are in scope (TodayHome is a dashboard, not
-      // a sortable list -- it renders no SortableColumnHeader, so it is exempt).
-      if (!/SortableColumnHeader/.test(src)) continue;
+    // Iterates the ONE shared registry (LIST_WORKSPACE_PAGES) so a new list page
+    // can't be added to the interaction gate but forgotten here (or vice-versa).
+    for (const entry of LIST_WORKSPACE_PAGES) {
+      const name = entry.name;
+      const src = read(entry.page);
+      // Every registered page MUST be a sortable-list surface -- assert, don't
+      // silently skip (a registered page that lost its header must red, not pass).
+      expect({ surface: name, isListSurface: /SortableColumnHeader/.test(src) })
+        .toEqual({ surface: name, isListSurface: true });
       for (const m of MECHANISMS) {
         const present = m.test.test(src);
         const excluded = src.includes(`${m.slug} excluded by decision:`);
@@ -249,18 +268,14 @@ describe('Console design system contract', () => {
     //  - empty-branch   : `hasFilter ?` (empty vs filtered/search + recovery CTA)
     //  - submit-spinner : `animate-spin` in the write surface (the paired modal,
     //                     OR the page itself for rail-write pages like Requests)
-    const LIST_PAGES = [
-      { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
-      { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', modal: 'src/components/modals/VisitModal.jsx' },
-      { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', modal: 'src/components/modals/HospitalModal.jsx' },
-      { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', modal: 'src/components/modals/AmbulanceModal.jsx' },
-    ];
-    for (const entry of LIST_PAGES) {
+    // Same shared registry as the mechanism gate -- one place to register a page.
+    for (const entry of LIST_WORKSPACE_PAGES) {
       const src = read(entry.page);
       const modal = read(entry.modal);
-      // Only list-workspace surfaces are in scope (defensive; all four are).
-      if (!/SortableColumnHeader/.test(src)) continue;
       const checks = {
+        // A registered page MUST be a list surface -- no silent skip if it lost
+        // its header (singleTimeSort would also catch 0, but assert intent).
+        listSurface: /SortableColumnHeader/.test(src),
         controlPress: /active:scale-/.test(src),
         noStageReveal: !/initial=\{\{/.test(src),
         isFetchingSurfaced: src.includes('isFetching={isFetching}'),
