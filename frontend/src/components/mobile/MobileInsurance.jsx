@@ -1,7 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, Search, Eye, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3, User, Building2, Hash, Tag } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Shield, ShieldCheck, Eye, CheckCircle, FileCheck, Calendar, DollarSign, User, Building2, Hash, Tag } from 'lucide-react';
+// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
+// this page lacked + clear-x; useSkeletonWarmup covers cached bottom-nav mounts;
+// UpdatingPillRow is the background-refetch signal (list never re-skeletons).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
@@ -90,8 +93,9 @@ export const MobileInsurance = ({
     { id: 'expired', label: 'Expired', value: counts.expired, color: 'hsl(var(--destructive))', delta: currentLabel, direction: 'flat' }
   ];
 
-  const { displayItems: displayPolicies } = useStableList(policies, loading);
-  const showTopSectionLoading = loading && displayPolicies.length === 0;
+  const { displayItems: displayPolicies, isBuffering } = useStableList(policies, loading);
+  const warmingUp = useSkeletonWarmup();
+  const showTopSectionLoading = warmingUp || (loading && displayPolicies.length === 0);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -184,37 +188,16 @@ export const MobileInsurance = ({
           />
         </section>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-            <input
-              type="text"
-              placeholder="Search policies..."
-              value={filters?.search || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-inner bg-muted/40 text-[12px] placeholder:text-muted-foreground/30 outline-none"
-            />
-          </div>
-          {onOpenFilters && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-inner bg-muted/40 flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
-              aria-label="Open filters"
-            >
-              <SlidersHorizontal size={18} />
-            </motion.button>
-          )}
-          {onViewAnalytics && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-inner bg-muted/40 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
-              aria-label="Open analytics"
-            >
-              <BarChart3 size={18} />
-            </motion.button>
-          )}
+        <div className="mb-3 px-1">
+          <SearchRow
+            placeholder="Search policies..."
+            search={filters?.search || ''}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            entityLabel="policies"
+            onOpenFilters={onOpenFilters}
+            onOpenStats={onViewAnalytics}
+            statsLabel="Open analytics"
+          />
         </div>
 
         <MobileSectionHeader
@@ -268,10 +251,11 @@ export const MobileInsurance = ({
             })}
           </AnimatePresence>
 
-          {displayPolicies.length === 0 && <MobileListEmpty icon={Shield} label="No policies found" labelTone="plain" />}
+          {displayPolicies.length === 0 && !showTopSectionLoading && <MobileListEmpty icon={Shield} label="No policies found" labelTone="plain" />}
 
-          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-            {loading && <MobileListSkeletonRows />}
+          <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+            {showTopSectionLoading && <MobileListSkeletonRows />}
+            <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
             {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
             {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
           </div>
