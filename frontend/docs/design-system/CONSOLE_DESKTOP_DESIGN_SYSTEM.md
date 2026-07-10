@@ -5,6 +5,11 @@
 > neutral-shadow law); the canon now lives in CODE and is enforced by
 > `src/components/console/ConsoleDesignSystem.contract.test.js`. Mobile counterpart:
 > `MOBILE_DESIGN_SYSTEM.md`. Page-loop + lessons: `../ui-ux/UIUX_REVAMP_PROCESS_AND_LESSONS.md`.
+> **Extraction source-of-record:** `CANON_COMPONENT_SPECS.md` (mobile lane, same day) — the
+> verbatim gold recipes with `file:line` + `git log -S` provenance these components implement;
+> when extending the library, copy from those recipes, do not restyle. Recipes not yet
+> componentized there (DataGrid select-all/shift-range/BulkActionBar, 16-recipe button table)
+> are the next extraction targets.
 
 **The rule of this system: pages COMPOSE, they never re-implement.** A page owns only its
 DOMAIN (status vocabulary, tone maps, signal copy, grid columns, guards, data wiring). Every
