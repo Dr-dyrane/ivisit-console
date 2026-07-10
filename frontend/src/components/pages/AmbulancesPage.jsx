@@ -459,6 +459,7 @@ export const AmbulancesPage = () => {
         <MobileAmbulances
           ambulances={ambulances}
           loading={loading}
+          isFetching={isFetching}
           statistics={displayStats}
           filters={filters}
           setFilters={handleApplyFilters}
