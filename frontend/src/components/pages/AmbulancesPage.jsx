@@ -555,6 +555,8 @@ export const AmbulancesPage = () => {
           onOpenFilters={handleOpenFilters}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          errorMessage={ambulancePageError}
+          onRetry={fetchAmbulances}
           selectionEnabled={false}
         />
 

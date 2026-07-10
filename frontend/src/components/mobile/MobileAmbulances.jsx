@@ -1,31 +1,33 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
     Ambulance,
     Activity,
     MapPin,
     Eye,
     Edit,
-    Search,
-    SlidersHorizontal,
-    BarChart3,
-    BadgeCheck,
-    BadgeX,
+    Car,
+    Clock,
+    Hash,
+    Radio,
     Wrench
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
+// Canon kit re-composition (2026-07-09, pre-rebuild changelog in
+// docs/audit/FEATURE_PARITY_VS_MAIN.md): SearchRow bakes in the 300ms debounce this
+// page lacked + clear-x + haptic triggers; useSkeletonWarmup covers cached bottom-nav
+// mounts; UpdatingPillRow is the background-refetch signal. The dropdown-row
+// pseudo-sheet became the canonical MobileDetailSheet (Doctors/Insurance grammar —
+// NOT the Hospitals GroupPanel pilot; siblings hold until that look is approved).
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
+import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { mobileMotion } from './mobileMotion';
+import { statusPill } from '../../constants/vitalTracks';
 
 const ACTIVE_FLEET_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene']);
 
@@ -51,16 +53,17 @@ export const MobileAmbulances = ({
     onOpenFilters,
     hasMore,
     onLoadMore,
+    errorMessage = null,
+    onRetry,
     selectionEnabled = false,
     selectedIds = [],
     onSelect,
     onSelectAll
 }) => {
     const observerTarget = useRef(null);
-    const [expandedAmbulanceId, setExpandedAmbulanceId] = useState(null);
+    const [activeAmbulance, setActiveAmbulance] = useState(null);
     const selectionMode = selectionEnabled && selectedIds.length > 0;
     const canManage = isAdmin || isOrgAdmin;
-    const { triggerFromEvent } = useFeedback();
     const sourceAmbulances = useMemo(() => (Array.isArray(ambulances) ? ambulances : []), [ambulances]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -116,8 +119,9 @@ export const MobileAmbulances = ({
         }
     ];
 
-    const { displayItems: displayAmbulances } = useStableList(sourceAmbulances, loading);
-  const showTopSectionLoading = loading && displayAmbulances.length === 0;
+    const { displayItems: displayAmbulances, isBuffering } = useStableList(sourceAmbulances, loading);
+    const warmingUp = useSkeletonWarmup();
+    const showTopSectionLoading = warmingUp || (loading && displayAmbulances.length === 0);
 
     const getStatusColor = (status) => {
         if (status === 'available') return 'hsl(160 84% 39%)';
@@ -208,42 +212,19 @@ export const MobileAmbulances = ({
                     />
                 </section>
 
-                <div className="flex items-center gap-2 mb-3 px-1">
-                    <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
-                        <input
-                            type="text"
-                            placeholder="Search ambulances..."
-                            value={filters?.search || ''}
-                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-button bg-background/60 text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={mobileMotion.tap}
-                        onClick={(event) => {
-                            onOpenFilters?.();
-                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                        }}
-                        className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-muted-foreground/60 shadow-sm active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out dark:bg-white/[0.06]"
-                        aria-label="Filter fleet"
-                    >
-                        <SlidersHorizontal size={18} />
-                    </motion.button>
-
-                    {canManage && (
-                        <motion.button
-                            whileTap={mobileMotion.tap}
-                            onClick={(event) => {
-                                onViewAnalytics?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                            }}
-                            className="w-11 h-11 rounded-button bg-background/60 flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out dark:bg-white/[0.06]"
-                            aria-label="Open fleet statistics"
-                        >
-                            <BarChart3 size={18} />
-                        </motion.button>
-                    )}
+                <div className="mb-3 px-1">
+                    {/* SearchRow bakes the trigger aria-labels from its props:
+                        entityLabel="fleet" -> "Filter fleet"; statsLabel carries
+                        "Open fleet statistics" verbatim. */}
+                    <SearchRow
+                        placeholder="Search ambulances..."
+                        search={filters?.search || ''}
+                        onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                        entityLabel="fleet"
+                        onOpenFilters={onOpenFilters}
+                        onOpenStats={canManage ? onViewAnalytics : null}
+                        statsLabel="Open fleet statistics"
+                    />
                 </div>
 
                 <MobileSectionHeader
@@ -255,12 +236,38 @@ export const MobileAmbulances = ({
                     isAllSelected={selectionEnabled && displayAmbulances.length > 0 && selectedIds.length === displayAmbulances.length}
                 />
 
+                {errorMessage && displayAmbulances.length > 0 && (
+                    <div
+                        className="mb-3 rounded-card bg-destructive/10 p-4 text-destructive"
+                        data-testid="mobile-ambulances-degraded-state"
+                    >
+                        <p className="text-sm font-semibold">Fleet did not refresh</p>
+                        <p className="mt-1 text-xs text-destructive/75">Showing the last loaded fleet rows.</p>
+                        {onRetry && (
+                            <button
+                                type="button"
+                                onClick={onRetry}
+                                className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                            >
+                                Try again
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="space-y-1">
                     {displayAmbulances.map((ambulance) => {
                             const status = getStatus(ambulance);
                             const color = getStatusColor(status);
                             const station = ambulance.station_name || ambulance.hospital || 'No station';
                             const typeLabel = String(ambulance.type || 'Standard');
+                            const activeRun = ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route';
+                            // The defining detail rides the readable secondary line, not a
+                            // decorative blade (Pricing precedent): ETA while on a run,
+                            // vehicle identity at rest.
+                            const secondary = activeRun && ambulance.eta
+                                ? `${station} · ETA ${ambulance.eta}`
+                                : `${station} · ${ambulance.vehicle_label || ambulance.vehicle_number || 'No vehicle ID'}`;
                             return (
                                 <MobileMetricRow
                                     key={ambulance.id}
@@ -268,109 +275,79 @@ export const MobileAmbulances = ({
                                     color={color}
                                     label={typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}
                                     value={ambulance.call_sign || 'Unknown Unit'}
-                                    rightBlade={{
-                                        badge: getAvailabilityLabel(status),
-                                        direction: status === 'available' ? 'up' : 'flat',
-                                        label: ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route' ? 'ETA' : 'Vehicle',
-                                        value: ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route'
-                                            ? String(ambulance.eta || 'Unknown')
-                                            : (ambulance.vehicle_number || 'N/A'),
-                                        color
-                                    }}
-                                    statusIndicators={[
-                                        {
-                                            icon: status === 'available' ? BadgeCheck : BadgeX,
-                                            color: status === 'available' ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
-                                            label: status
-                                        },
-                                        {
-                                            icon: MapPin,
-                                            color: 'hsl(189 94% 43%)',
-                                            label: station
-                                        }
-                                    ]}
-                                    isExpanded={expandedAmbulanceId === ambulance.id}
-                                    onExpand={(id) => setExpandedAmbulanceId(prev => (prev === id ? null : id))}
+                                    secondary={secondary}
+                                    statusPill={statusPill(status, getAvailabilityLabel(status))}
+                                    // Tap opens the canonical detail bottom sheet (MobileDetailSheet),
+                                    // not an inline dropdown — the approved mobile design + the
+                                    // desktop detail-rail behaviour.
+                                    onClick={() => setActiveAmbulance(ambulance)}
                                     itemId={ambulance.id}
                                     isSelected={selectionEnabled && selectedIds.includes(ambulance.id)}
                                     onSelect={selectionEnabled ? onSelect : undefined}
                                     selectionMode={selectionMode}
-                                    expandedContent={(
-                                        <div className="space-y-4 py-3">
-                                            <div className="grid grid-cols-1 gap-2">
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                    <MapPin size={14} className="text-muted-foreground/40" />
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="eyebrow">Station</span>
-                                                        <span className="text-xs font-semibold truncate">{station}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                        <Activity size={14} className="text-muted-foreground/40" />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="eyebrow">Status</span>
-                                                            <span className="text-xs font-semibold">{getAvailabilityLabel(status)}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-button">
-                                                        <Ambulance size={14} className="text-muted-foreground/40" />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="eyebrow">ETA</span>
-                                                            <span className="text-xs font-semibold font-dashboard-numbers">{ambulance.eta || 'Unknown'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between px-1">
-                                                <div className="flex flex-col">
-                                                    <span className="eyebrow">Vehicle</span>
-                                                    <span className="text-[11px] font-mono text-foreground/40 font-normal">{ambulance.vehicle_number || 'N/A'}</span>
-                                                </div>
-                                                <Badge className="rounded-pill font-semibold text-[11px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                                                    {typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="flex gap-2 pt-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
-                                                    onClick={() => onView(ambulance)}
-                                                >
-                                                    <Eye size={16} className="text-muted-foreground" />
-                                                    <span className="text-[11px] font-semibold">Details</span>
-                                                </Button>
-                                                {canManage && (
-                                                    <>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="flex-1 h-12 rounded-button bg-background/60 flex items-center justify-center gap-2 shadow-sm active:scale-[0.96] transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground dark:bg-white/[0.06]"
-                                                            onClick={() => onEdit(ambulance)}
-                                                        >
-                                                            <Edit size={16} className="text-amber-700 dark:text-amber-300" />
-                                                            <span className="text-[11px] font-semibold">Edit</span>
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
                                 />
                             );
                     })}
 
-                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-                        {loading && <MobileListSkeletonRows />}
+                    <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                        {showTopSectionLoading && <MobileListSkeletonRows />}
+                        <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
                         {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                         {!loading && !hasMore && displayAmbulances.length > 0 && <MobileListEnd label="End of fleet list" />}
                     </div>
 
-                    {displayAmbulances.length === 0 && !loading && (
-                        <MobileListEmpty icon={Ambulance} label="No ambulances found" labelTone="plain" />
+                    {displayAmbulances.length === 0 && !loading && !showTopSectionLoading && (
+                        <MobileListEmpty
+                            icon={Ambulance}
+                            label={errorMessage ? 'Fleet did not load' : 'No ambulances found'}
+                            hint={errorMessage ? 'Try again before treating the fleet as empty.' : undefined}
+                            labelTone="plain"
+                        />
                     )}
                 </div>
+
+                {activeAmbulance && (() => {
+                    const status = getStatus(activeAmbulance);
+                    const color = getStatusColor(status);
+                    const station = activeAmbulance.station_name || activeAmbulance.hospital || 'No station';
+                    const typeLabel = String(activeAmbulance.type || 'Standard');
+                    const activeRun = ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route';
+                    // Display IDs are labels: prefer the service-projected display_id; the
+                    // truncated UUID is only a fallback, never mutation identity. Same for
+                    // the active-call reference (a label, not a link — Requests has no ?id
+                    // receiver to deep-link into).
+                    const unitId = activeAmbulance.display_id || `#${String(activeAmbulance.id || '').slice(0, 12).toUpperCase()}`;
+                    const vehicleLabel = activeAmbulance.vehicle_label
+                        || activeAmbulance.license_plate
+                        || activeAmbulance.vehicle_number
+                        || null;
+
+                    return (
+                        <MobileDetailSheet
+                            isOpen={!!activeAmbulance}
+                            onClose={() => setActiveAmbulance(null)}
+                            icon={Ambulance}
+                            iconTone={color}
+                            eyebrow={typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}
+                            title={activeAmbulance.call_sign || 'Unknown Unit'}
+                            statusPill={statusPill(status, getAvailabilityLabel(status))}
+                            islands={[
+                                { icon: MapPin, label: 'Station', value: station },
+                                activeRun && { icon: Clock, label: 'ETA', value: activeAmbulance.eta || 'Unknown' },
+                                vehicleLabel && { icon: Car, label: 'Vehicle', value: vehicleLabel },
+                                activeAmbulance.current_call && {
+                                    icon: Radio,
+                                    label: 'Active call',
+                                    value: `Request ${String(activeAmbulance.current_call).slice(0, 8).toUpperCase()}`
+                                },
+                                { icon: Activity, label: 'Status', value: getAvailabilityLabel(status) },
+                                { icon: Hash, label: 'Unit ID', value: unitId },
+                            ]}
+                            primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveAmbulance(null); onView(activeAmbulance); } }}
+                            secondary={canManage ? { icon: Edit, onClick: () => { setActiveAmbulance(null); onEdit(activeAmbulance); }, 'aria-label': `Edit ${activeAmbulance.call_sign || 'unit'}` } : undefined}
+                        />
+                    );
+                })()}
             </MobilePageShell>
         </PullToRefresh>
     );

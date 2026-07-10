@@ -200,8 +200,11 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain("label: 'En route'");
     expect(mobile).toContain("return 'Ready';");
     expect(mobile).toContain("return 'En route';");
-    expect(mobile).toContain('aria-label="Filter fleet"');
-    expect(mobile).toContain('aria-label="Open fleet statistics"');
+    // Canon kit (Wave-2 rebuild, 2026-07-09): the trigger aria-labels are now baked
+    // by SearchRow from its props — entityLabel="fleet" renders "Filter fleet";
+    // statsLabel carries "Open fleet statistics" verbatim. Same labels, new recipe.
+    expect(mobile).toContain('entityLabel="fleet"');
+    expect(mobile).toContain('statsLabel="Open fleet statistics"');
     expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />');
     expect(mobile).not.toContain('Fleet Signals');
     expect(mobile).not.toContain('Fleet Directory');

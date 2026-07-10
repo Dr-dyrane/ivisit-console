@@ -135,3 +135,39 @@ Deliberately NOT surfaced: `base_price`/`price_range` (Pricing command authority
 `image` (storage/consent unproved), `bed_availability`/`ambulance_availability` Json blobs
 (parser discipline — shape unproved), `organization_id`/`org_admin_id` (org identity is
 Page 15's blocked domain).
+
+---
+
+## Ambulances (mobile) — PRE-REBUILD changelog, audited 2026-07-09
+
+### Commit changelog (since `main` baseline)
+| Commit | What it did to MobileAmbulances |
+|---|---|
+| `f31f29ff` (= main) | 457 ln. Dropdown pseudo-sheets, FeaturedMetric + fake `growthData` + `'LIVE'` trends + `toDeltaBadge` deltas, client-side `filteredAmbulances`, selection + delete wired. |
+| `15acf6c9` checkpoint | The mass-revamp commit (−146): killed the dishonest block + client filtering; delete/selection gated. |
+| `f586f1a0`/`ece759d1`/`4ecba364`/`03aa4587`/`69986ab2` | Borderless canon, DS parity, labelTone cleanup, one-voice, batch-A sweep. |
+
+### Drops — all intentional and pinned
+Dishonest metrics block: BANNED by pins (`not.toContain` MobileFeaturedMetric/growthData/
+chartData/filteredAmbulances/`trend: 'LIVE'`/avgRating). Delete: BANNED harder than Hospitals
+(`not.toContain('onDelete')`, `not.toContain('Trash2')`) per the gate row — destructive
+delete, driver assignment, media upload, and active-trip commands stay excluded until
+receiver proof. Edit is the only surviving command (canManage). **Unintentional: none.**
+
+### Rebuild targets applied (Wave-2 grammar — NOT the Hospitals GroupPanel pilot; hold order respected)
+1. Dropdown pseudo-sheet -> MobileDetailSheet; SearchRow (300ms debounce + clear-x it
+   lacked; aria-labels preserved via entityLabel/statsLabel — pins migrated same-commit);
+   useSkeletonWarmup + UpdatingPillRow; skeleton-gated, error-aware empty state.
+2. Mobile error surface: `ambulancePageError` reached only the desktop sheet — mobile now
+   gets errorMessage + onRetry (degraded banner `mobile-ambulances-degraded-state`).
+3. Data-sync (schema carried it, UI ignored it): `display_id` as Unit ID (labels rule —
+   truncated UUID only as fallback), `vehicle_label` (license_plate || vehicle_number)
+   as Vehicle island + at-rest row secondary, `current_call` as a read-only Active-call
+   reference (a LABEL, not a link — the Requests page has no `?id` receiver to deep-link
+   into; noted as a future cross-page affordance if Requests grows one), ETA promoted to
+   the row secondary while on a run.
+4. Deliberately NOT surfaced: `crew` Json (parser discipline — shape unproved),
+   `location` PostGIS blob (unlike hospitals' scalar lat/lng), `base_price` (Pricing
+   command authority gated), `profile_id` (driver identity needs a name-join receiver;
+   enrichment candidate recorded, service change deferred to avoid the desktop lane's
+   in-flight service work).
