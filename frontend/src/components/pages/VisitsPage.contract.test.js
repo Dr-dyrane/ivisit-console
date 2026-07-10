@@ -225,9 +225,11 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext'");
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
-    // One canonical render (converted 2026-07-09): sortable header + rows, no view modes.
-    expect(page).toContain('role="columnheader"');
-    expect(page).toContain('aria-sort={isSorted');
+    // One canonical render (converted 2026-07-09): sortable header + rows from the
+    // console design system, no view modes. aria-sort/columnheader semantics are
+    // locked in ConsoleDesignSystem.contract.test.js.
+    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain('<SortableColumnHeader');
     expect(page).not.toContain('viewMode');
 
     expect(gate).toContain('Visual implementation start proof, 2026-06-29');
@@ -244,9 +246,15 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<VisitsDetailRail');
     expect(page).toContain('visit={focusedVisit}');
     expect(page).toContain('const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {');
-    expect(page).toContain('const VisitFocusRow = ({ icon: Icon, label, value }) => (');
+    // Rail anatomy composes the console DS: shell + inset hero + film rows + copy
+    // affordance + lifecycle stage strip (specs locked in the DS contract).
+    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<RailInsetHero>');
+    expect(page).toContain('<DetailLine');
+    expect(page).toContain('<CopyChip value={displayId} label="Copy record ID" />');
+    expect(page).toContain('<StageStrip');
     expect(page).toContain('onFocus={() => setFocusedVisitId(visit.id)}');
-    expect(page).toContain('aria-pressed={selected}');
+    expect(page).toContain('<ListRowShell');
     expect(page).toContain('event.stopPropagation();');
     expect(page).toContain('Outcome and delete actions are locked for now.');
 
@@ -264,18 +272,17 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("id: 'in_progress'");
     expect(page).toContain("id: 'completed'");
     expect(page).toContain("id: 'cancelled'");
-    // Donor-parity signatures (Requests gold standard): signal carries loadError for
-    // the honest failed hero; panel/strip carry isFetching for the live-chip spinner.
+    // Signal + KPI strip come from the console design system (S1.2 max-3 smart
+    // context, toggle-to-All, widths and tile spec locked in the DS contract).
+    // The page owns only the DOMAIN: signal copy, state options, pins, importance.
     expect(page).toContain('const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {');
-    expect(page).toContain('const VisitSignalPanel = ({ signal, stats, visits, kpiFilter, setKpiFilter, loading, isFetching }) => {');
-    expect(page).toContain('const VisitStateStrip = ({ stats, visits, loading, isFetching, kpiFilter, setKpiFilter }) => (');
-    expect(page).toContain('<VisitSignalPanel');
-    // KPI canon S1.2 (converted 2026-07-09): max-3 smart-context chips, actionable states
-    // pinned only while they carry signal, re-tapping the active chip returns to All.
-    expect(page).toContain('const selectPrimaryVisitStates = ({ stats, visits, kpiFilter }) => {');
+    expect(page).toContain("from '../console/SignalPanel'");
+    expect(page).toContain("from '../console/KpiStrip'");
+    expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={visitToneClass}>');
+    expect(page).toContain('<KpiStrip');
     expect(page).toContain("const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];");
-    expect(page).toContain("setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)");
-    expect(page).toContain('Loading visits');
+    expect(page).toContain('pinnedIds={PINNED_VISIT_STATE_IDS}');
+    expect(page).toContain('importance={VISIT_KPI_IMPORTANCE}');
     expect(page).toContain('Pick one record, then view details or edit scheduling.');
     expect(page).not.toContain('Bento Overview Cards');
     expect(page).not.toContain('Total Visits Card');
@@ -291,28 +298,22 @@ describe('VisitsPage admission contract', () => {
     const page = pageSource();
     const gate = gateSource();
 
-    expect(page).toContain('<VisitActivitySheet');
-    expect(page).toContain('data-testid="visits-activity-sheet"');
-    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, filterSheetOpen, loading, isFetching, failedEmpty, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (');
-    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {');
+    // The sheet, toolbar, count-row triplet, Updating pill, debounced search, and
+    // pagination all come from the console design system (locked in
+    // ConsoleDesignSystem.contract.test.js). The page owns the DOMAIN wiring below.
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('itemNoun="visits"');
+    expect(page).toContain('<SheetToolbar');
+    expect(page).toContain('searchTestId="visits-sheet-search"');
+    // Search placeholder names exactly what the service .or() can match.
+    expect(page).toContain('searchPlaceholder="Search by ID, type, facility, practitioner, or room..."');
+    expect(page).toContain("onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}");
     // Donor-parity failure states: failed-empty owns the scroller with an honest
     // destructive card; a partial failure keeps rows and shows the inline banner.
-    expect(page).toContain('const VisitLoadErrorState = ({ message, onRetry }) => (');
-    expect(page).toContain('{errorMessage && !failedEmpty && (');
-    expect(page).toContain("failedEmpty ? \"Couldn't load\" : `${pagination.totalCount} visits`");
-    expect(page).toContain('data-testid="visits-sheet-search"');
-    // Search placeholder names exactly what the service .or() can match; the input
-    // edits a debounced draft (one refetch per pause, not per keystroke).
-    expect(page).toContain('placeholder="Search by ID, type, facility, practitioner, or room..."');
-    expect(page).toContain('onChange={(event) => setSearchDraft(event.target.value)}');
-    // Background refetches surface via the Updating pill, never a re-skeleton (S1.6).
-    expect(page).toContain('{isFetching && !loading && (');
-    expect(page).toContain('role="status" aria-live="polite"');
-    expect(page).toContain('`${pagination.totalCount} visits`');
-    expect(page).toContain('`Page ${pagination.currentPage} of ${pagination.totalPages}`');
-    expect(page).toContain('<PaginationControls');
-    expect(page).toContain('totalCount={pagination.totalCount}');
-    expect(page).toContain('itemsPerPage={pagination.itemsPerPage}');
+    expect(page).toContain('const failedEmpty = Boolean(loadError) && visits.length === 0;');
+    expect(page).toContain('<LoadErrorState title="Visits did not load" message={loadError} onRetry={onRetry} />');
+    expect(page).toContain('errorBanner={loadError && !failedEmpty ? (');
+    expect(page).toContain('pagination={pagination}');
 
     expect(gate).toContain('Handled activity sheet proof, 2026-06-29');
     expect(gate).toContain('The old grid, list, and table scan modes now live inside one route-owned activity sheet with inline search');
@@ -326,12 +327,11 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('const [visitPageError, setVisitPageError] = useState(null)');
     expect(page).toContain('setVisitPageError(null)');
     expect(page).toContain("setVisitPageError('Visits could not load. Try again.')");
-    expect(page).toContain('errorMessage={visitPageError}');
+    expect(page).toContain('loadError={visitPageError}');
     expect(page).toContain('onRetry={fetchVisits}');
-    expect(page).toContain('const VisitErrorBanner = ({ message, onRetry }) => (');
-    expect(page).toContain('data-testid="visits-error-state"');
-    expect(page).toContain('Visits could not load');
-    expect(page).toContain('Retry');
+    expect(page).toContain('<ErrorBanner');
+    expect(page).toContain('title="Visits could not load"');
+    expect(page).toContain('testId="visits-error-state"');
 
     expect(mobile).toContain('errorMessage,');
     expect(mobile).toContain('onRetry,');
@@ -359,14 +359,13 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("markActionFeedback('emergency-context')");
     expect(page).toContain("markActionFeedback(`view-${visit?.id || 'unknown'}`)");
     expect(page).toContain("markActionFeedback(`edit-${visit?.id || 'unknown'}`)");
-    expect(page).toContain("data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}");
-    expect(page).toContain("data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}");
-    expect(page).toContain("data-state={active ? 'selected' : 'idle'}");
-    expect(page).toContain("{activeActionFeedback === 'create' ? 'Opening...' : 'New visit'}");
-    expect(page).toContain("{activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}");
+    // Opening/selected feedback states render inside the DS components; the page
+    // wires the feedback source (locked here) and the DS contract locks the states.
+    expect(page).toContain("opening={activeActionFeedback === 'create'}");
+    expect(page).toContain('label="New visit"');
+    expect(page).toContain("filtersOpening={activeActionFeedback === 'filters'}");
     expect(page).toContain("{viewOpening ? 'Opening...' : 'View'}");
     expect(page).toContain("{editOpening ? 'Opening...' : 'Edit'}");
-    expect(page).toContain('aria-busy={activeActionFeedback === \'create\'}');
     expect(page).toContain('aria-busy={viewOpening}');
 
     // KPI selected-state now lives in the shared MobileKPIStrip chip row; the filter
@@ -635,11 +634,14 @@ describe('VisitsPage admission contract', () => {
     // Donor-parity stage (Requests gold standard): atlas backdrop + shared wayfinding
     // dock + fixed-width detail rail.
     expect(page).toContain("const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]'");
-    expect(page).toContain('<VisitsAtlasLayer />');
-    expect(page).toContain('<ConsoleModuleRail');
+    // Stage, atlas, dock and rail widths come from the console design system
+    // (WorkspaceStage/DetailRailShell -- specs locked in the DS contract).
+    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('activePath="/visits"');
-    expect(page).toContain('lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]');
-    expect(page).toContain('data-testid="visits-activity-sheet"');
+    expect(page).toContain('moduleRailItems={moduleRailItems}');
+    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('itemNoun="visits"');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
     expect(mobile).toContain('aria-label="Filter visits"');
     expect(gate).toContain('Responsive and deep-link admission proof, 2026-07-02');
@@ -684,19 +686,19 @@ describe('VisitsPage admission contract', () => {
       expect({ name, glass: src.includes('glass-card-premium') }).toEqual({ name, glass: false });
       // Mobile is exempt from the blur ban for exactly ONE sanctioned use: the canon
       // frosted recency panel (Mobile DS v1.2 LIST grammar, donor = MobileEmergency).
-      // The desktop page is exempt for exactly the DONOR-PARITY uses (Requests gold
-      // standard stage): frosted activity sheet, detail rail, and KPI tiles -- the
-      // positive pins below lock them to those class strings. list/table/modal stay
-      // blur-free.
-      if (name !== 'mobile' && name !== 'page') {
+      // The desktop page composes the console design system, whose frosted sheet/
+      // rail/tile surfaces live (and are positively pinned) in the DS files -- so the
+      // PAGE itself carries no blur of its own.
+      if (name !== 'mobile') {
         expect({ name, blur: src.includes('backdrop-blur') }).toEqual({ name, blur: false });
       }
       expect({ name, inset: src.includes('shadow-[inset') }).toEqual({ name, inset: false });
       expect({ name, separator: src.includes('DropdownMenuSeparator') }).toEqual({ name, separator: false });
     }
     expect(mobileSource()).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl px-3 py-1.5');
-    expect(pageSource()).toContain('rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet');
-    expect(pageSource()).toContain('backdrop-blur-2xl no-scrollbar dark:bg-card/55');
+    // Donor-parity frosted surfaces live in the console DS, not the page.
+    expect(fs.readFileSync('src/components/console/ActivitySheet.jsx', 'utf8')).toContain('rounded-t-sheet bg-card/68 p-3 shadow-e3 backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet');
+    expect(fs.readFileSync('src/components/console/WorkspaceStage.jsx', 'utf8')).toContain('shadow-e3 backdrop-blur-2xl');
     expect(listSource()).not.toContain('bg-white/');
     expect(tableSource()).not.toContain('bg-white/');
   });

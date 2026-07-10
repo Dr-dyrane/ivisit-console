@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { createVisit, updateVisit, getVisit, getVisitsPageData } from '../../services/visitsService';
 import { getHospitals } from '../../services/hospitalsService';
@@ -8,35 +8,33 @@ import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/Layou
 import { usePagination } from '../../hooks/usePagination';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { Button } from '../ui/button';
-import { PaginationControls } from '../ui/PaginationControls';
-import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
+// Console design system: the workspace grammar lives in shared components --
+// pages compose the canon instead of re-remembering it.
+import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { KpiStrip } from '../console/KpiStrip';
+import { ActivitySheet, SheetToolbar, PrimaryCommand, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { Shimmer, SkeletonRows, CopyChip, StatusPill, TonedAvatar, DetailLine, StageStrip, EmptyState, ErrorBanner, LoadErrorState } from '../console/primitives';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
+import { formatDayTime } from '../../utils/dayTime';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import {
   AlertCircle,
-  ArrowUpDown,
   Calendar,
   CheckCircle,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   Clock,
-  Copy,
   Edit,
   Eye,
-  Filter,
   Hospital,
   Info,
   LayoutGrid,
-  Loader2,
   MapPin,
   PlayCircle,
   Plus,
-  RefreshCw,
-  Search,
   Stethoscope,
   User,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,31 +46,9 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
 import { formatVisitType, getVisitPatientLabel, getVisitFacilityLabel } from '../../utils/visitRowProjection';
 
-// Route-feedback window for the wayfinding dock (donor: EmergencyRequestsPage).
-const routeFeedbackMs = 320;
-
 const normalizeVisitCount = (value, fallback = 0) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
-};
-
-// Day-aware time (Requests canon): today -> time, yesterday -> "Yesterday, time",
-// this year -> "Mon D, time", older -> full date. Local day boundaries, never UTC.
-// Swap for the shared request-time util once the mobile lane's extraction lands.
-const formatVisitDayTime = (value) => {
-  if (!value) return 'No time';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No time';
-  const now = new Date();
-  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dayDelta = Math.round((startOfDay(now) - startOfDay(date)) / 86400000);
-  if (dayDelta === 0) return time;
-  if (dayDelta === 1) return `Yesterday, ${time}`;
-  if (date.getFullYear() === now.getFullYear()) {
-    return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
-  }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const visitStateOptions = [
@@ -83,7 +59,7 @@ const visitStateOptions = [
     countKey: 'total',
     tone: 'primary',
     colorClass: 'text-foreground',
-    activeClass: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
+    activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]',
   },
   {
     id: 'scheduled',
@@ -92,7 +68,7 @@ const visitStateOptions = [
     countKey: 'scheduled',
     tone: 'info',
     colorClass: 'text-cyan-700 dark:text-cyan-200',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
   },
   {
     id: 'in_progress',
@@ -101,7 +77,7 @@ const visitStateOptions = [
     countKey: 'inProgress',
     tone: 'warning',
     colorClass: 'text-amber-700 dark:text-amber-200',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
   },
   {
     id: 'completed',
@@ -110,7 +86,7 @@ const visitStateOptions = [
     countKey: 'completed',
     tone: 'clear',
     colorClass: 'text-emerald-700 dark:text-emerald-200',
-    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
+    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
   },
   {
     id: 'cancelled',
@@ -119,16 +95,13 @@ const visitStateOptions = [
     countKey: 'cancelled',
     tone: 'muted',
     colorClass: 'text-muted-foreground',
-    activeClass: 'bg-muted/36 text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+    activeClass: 'bg-muted/36 text-foreground shadow-e2',
   },
 ];
 
-// KPI canon (MANAGEMENT_PAGE_STANDARDS S1.2): at most 3 chips, smart-context selection.
-// Tiles match the Requests/Today glance tile exactly; neutral at rest, colour when selected.
-const VISIT_KPI_REST = 'bg-card/65 text-muted-foreground shadow-[0_16px_38px_rgb(0_0_0/0.08)] hover:bg-card/82 dark:bg-white/[0.055] dark:hover:bg-white/[0.085]';
+// Smart-context inputs (S1.2, enforced by the shared KpiStrip): actionable states
+// pin only while they carry signal; slots fill data-driven by count then importance.
 const VISIT_KPI_IMPORTANCE = { all: 0, scheduled: 1, in_progress: 2, completed: 3, cancelled: 4 };
-// Actionable states pin ONLY while they carry signal (count > 0); a zero-count chip
-// never occupies a slot another option could fill with real data.
 const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];
 
 const getVisitStateCount = ({ id, stats, visits }) => {
@@ -140,31 +113,6 @@ const getVisitStateCount = ({ id, stats, visits }) => {
   return normalizeVisitCount(stats?.[option.countKey], fallback);
 };
 
-const rankVisitStateOptions = ({ stats, visits }) =>
-  visitStateOptions
-    .map((option) => ({ option, count: getVisitStateCount({ id: option.id, stats, visits }) }))
-    .sort(
-      (a, b) =>
-        b.count - a.count ||
-        (VISIT_KPI_IMPORTANCE[a.option.id] ?? 9) - (VISIT_KPI_IMPORTANCE[b.option.id] ?? 9)
-    )
-    .map((entry) => entry.option);
-
-const selectPrimaryVisitStates = ({ stats, visits, kpiFilter }) => {
-  const pinned = PINNED_VISIT_STATE_IDS.filter(
-    (id) => getVisitStateCount({ id, stats, visits }) > 0
-  );
-  const chosen = new Set(pinned);
-  if (kpiFilter && !chosen.has(kpiFilter)) {
-    chosen.add(kpiFilter);
-  }
-  for (const option of rankVisitStateOptions({ stats, visits })) {
-    if (chosen.size >= 3) break;
-    chosen.add(option.id);
-  }
-  return visitStateOptions.filter((option) => chosen.has(option.id)).slice(0, 3);
-};
-
 // Default resolves to a chip that carries signal; falls back to All, never a
 // zero-count actionable chip.
 const getDefaultVisitKpi = (stats) => {
@@ -174,21 +122,20 @@ const getDefaultVisitKpi = (stats) => {
 };
 
 const visitToneClass = {
-  primary: 'bg-foreground/[0.06] text-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.06]',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
-  muted: 'bg-muted/30 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
-  danger: 'bg-destructive/14 text-destructive shadow-[0_4px_12px_rgb(0_0_0/0.07)]',
+  primary: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+  muted: 'bg-muted/30 text-muted-foreground shadow-e2',
+  danger: 'bg-destructive/14 text-destructive shadow-e2',
 };
 
-// Canonical status pills (literal palette -- the theme's info/success/warning tokens
-// all render red): scheduled cyan, active amber, done emerald, cancelled muted.
-// Pill shadows mirror the Requests statusStyles (e2 on live states, none on muted).
+// Canonical status vocabulary (literal palette -- the theme's info/success/warning
+// tokens all render red): scheduled cyan, active amber, done emerald, cancelled muted.
 const visitStatusPillClass = {
-  scheduled: 'bg-cyan-500/10 text-cyan-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-cyan-200',
-  in_progress: 'bg-amber-500/10 text-amber-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200',
-  completed: 'bg-emerald-500/10 text-emerald-700 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-emerald-200',
+  scheduled: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
+  in_progress: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  completed: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
   cancelled: 'bg-muted/40 text-muted-foreground',
 };
 
@@ -206,8 +153,7 @@ const visitStatusIcon = {
   cancelled: AlertCircle,
 };
 
-// Status-toned avatar wells (donor: getRequestAvatarClass) so a row's identity
-// block carries the same tone as its status pill.
+// Status-toned avatar wells (donor: getRequestAvatarClass).
 const getVisitAvatarClass = (visit) => {
   const status = visit?.status || 'scheduled';
   if (status === 'completed') return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
@@ -217,8 +163,7 @@ const getVisitAvatarClass = (visit) => {
   return 'bg-muted/34 text-muted-foreground';
 };
 
-// Compact lifecycle progression for the rail (donor: REQUEST_STAGE_ORDER):
-// [Scheduled, Active, Done]. Cancelled renders all-muted.
+// Lifecycle progression for the rail: [Scheduled, Active, Done]; cancelled all-muted.
 const VISIT_STAGE_ORDER = ['scheduled', 'in_progress', 'completed'];
 const VISIT_STAGE_FILL = {
   scheduled: 'bg-cyan-500',
@@ -299,31 +244,7 @@ const VISIT_EMPTY_HEADINGS = {
   cancelled: 'No cancelled visits',
 };
 
-// Ambient atlas backdrop (donor: RequestsAtlasLayer). Sanctioned ambient brand
-// tint -- backdrop-only, do NOT strip in canon audits (MANAGEMENT_PAGE_STANDARDS S0).
-const VisitsAtlasLayer = () => (
-  <div className="absolute inset-0 overflow-hidden bg-background">
-    <div
-      className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
-      style={{
-        backgroundImage:
-          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
-        backgroundSize: '260px 180px, 340px 240px, 420px 280px',
-        backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
-      }}
-    />
-    <div
-      className="absolute inset-0"
-      style={{
-        background:
-          'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
-      }}
-    />
-  </div>
-);
-
 export const VisitsPage = () => {
-  const navigate = useNavigate();
   const { user, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
@@ -366,7 +287,7 @@ export const VisitsPage = () => {
   const [visitPageError, setVisitPageError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [focusedVisitId, setFocusedVisitId] = useState(null);
-  const [routingPath, setRoutingPath] = useState(null);
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
 
   const [emergencyModal, setEmergencyModal] = useState({
     isOpen: false,
@@ -392,8 +313,7 @@ export const VisitsPage = () => {
     visits.find((visit) => visit.id === focusedVisitId) || visits[0] || null
   ), [visits, focusedVisitId]);
 
-  // Wayfinding dock (donor: Requests): the shared module rail with the current
-  // page pill; roleKind mirrors TodayHome's useRoleKind responder fork.
+  // Wayfinding dock slate mirrors TodayHome's useRoleKind responder fork.
   const roleKind = React.useMemo(() => {
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
@@ -404,17 +324,6 @@ export const VisitsPage = () => {
     () => getConsoleModuleRailItems(roleKind),
     [roleKind]
   );
-
-  const handleRailNavigate = useCallback((path) => {
-    if (!path) return;
-    setRoutingPath(path);
-    window.setTimeout(() => {
-      if (path !== window.location.pathname) {
-        navigate(path);
-      }
-      setRoutingPath(null);
-    }, routeFeedbackMs);
-  }, [navigate]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -890,8 +799,6 @@ const hasActiveVisitFilters = (filters = {}) => Boolean(
   filters.date
 );
 
-// Full-bleed stage (donor: RequestsDesktopWorkspace): atlas backdrop + shared
-// wayfinding dock + signal-over-sheet content column + fixed-width detail rail.
 const VisitsDesktopWorkspace = ({
   visits,
   loading,
@@ -926,159 +833,23 @@ const VisitsDesktopWorkspace = ({
   const failedEmpty = Boolean(loadError) && visits.length === 0;
   const listScrollRef = useRef(null);
 
-  // A page change resets the rows viewport to the top; otherwise the next page
-  // opens mid-scroll wherever the last one left off.
-  useEffect(() => {
-    listScrollRef.current?.scrollTo({ top: 0 });
-  }, [pagination.currentPage]);
-
-  // Keyboard list navigation on the rows viewport (donor: Requests): ArrowDown/ArrowUp
-  // move row focus, Enter opens details, Escape returns focus to the default. Typing
-  // surfaces and open dialogs are ignored.
-  const handleListKeyDown = useCallback((event) => {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== 'Escape') return;
-    if (event.defaultPrevented) return;
-    const target = event.target;
-    if (target instanceof HTMLElement) {
-      const tag = target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
-    }
-    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]')) return;
-
-    if (event.key === 'Escape') {
-      setFocusedVisitId(null);
-      return;
-    }
-    if (visits.length === 0) return;
-    if (event.key === 'Enter') {
-      if (focusedVisit) {
-        event.preventDefault();
-        onView(focusedVisit);
-      }
-      return;
-    }
-
-    event.preventDefault();
-    const delta = event.key === 'ArrowDown' ? 1 : -1;
-    const currentIndex = visits.findIndex((row) => row.id === focusedVisit?.id);
-    const nextIndex = currentIndex === -1
-      ? (delta > 0 ? 0 : visits.length - 1)
-      : Math.min(visits.length - 1, Math.max(0, currentIndex + delta));
-    const next = visits[nextIndex];
-    if (!next) return;
-    setFocusedVisitId(next.id);
-    listScrollRef.current?.querySelector(`[data-visit-row="${next.id}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [visits, focusedVisit, onView, setFocusedVisitId]);
+  useScrollResetOnPage(listScrollRef, pagination.currentPage);
+  const handleListKeyDown = useListKeyboardNav({
+    items: visits,
+    focusedItem: focusedVisit,
+    setFocusedId: setFocusedVisitId,
+    onOpen: onView,
+    scrollRef: listScrollRef,
+    rowAttr: 'data-visit-row',
+  });
 
   return (
-    <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
-      <VisitsAtlasLayer />
-      <ConsoleModuleRail
-        items={moduleRailItems}
-        activePath="/visits"
-        routingPath={routingPath}
-        onNavigate={onRailNavigate}
-      />
-
-      <div className="relative z-10 flex min-h-[calc(100dvh-3rem)] w-full min-w-0 flex-col gap-5 px-4 pb-8 pt-20 sm:px-5 md:pt-24 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28">
-        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
-          <VisitSignalPanel
-            signal={signal}
-            stats={stats}
-            visits={visits}
-            kpiFilter={kpiFilter}
-            setKpiFilter={setKpiFilter}
-            loading={loading}
-            isFetching={isFetching}
-          />
-
-          <VisitActivitySheet
-            filters={filters}
-            setFilters={setFilters}
-            openFilters={openFilters}
-            filterSheetOpen={filterSheetOpen}
-            loading={loading}
-            isFetching={isFetching}
-            failedEmpty={failedEmpty}
-            pagination={pagination}
-            errorMessage={loadError}
-            onRetry={onRetry}
-            onRefresh={onRefresh}
-            onCreate={onCreate}
-            canCreate={canCreate}
-            activeActionFeedback={activeActionFeedback}
-          >
-            <div
-              ref={listScrollRef}
-              tabIndex={0}
-              onKeyDown={handleListKeyDown}
-              aria-label="Visits list"
-              style={{ outline: 'none' }}
-              className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
-            >
-              {loading && <VisitSkeletonRows />}
-
-              {!loading && failedEmpty && (
-                <VisitLoadErrorState message={loadError} onRetry={onRetry} />
-              )}
-
-              {!loading && !failedEmpty && (
-                <>
-                  <VisitListHeader sortConfig={sortConfig} onSort={onSort} />
-
-                  {visits.length === 0 && !loadError && (
-                    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
-                      <Calendar className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                      <h3 className="text-xl font-semibold">
-                        {hasFilter
-                          ? 'No matching visits'
-                          : (VISIT_EMPTY_HEADINGS[kpiFilter] || 'No visits yet')}
-                      </h3>
-                      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                        {hasFilter
-                          ? 'Change filters or search again.'
-                          : 'Schedule the first visit when care is ready.'}
-                      </p>
-                      <div className="mt-5 flex items-center gap-2">
-                        {hasFilter && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => setFilters({})}
-                            className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 active:scale-95"
-                          >
-                            Show all visits
-                          </Button>
-                        )}
-                        {canCreate && !hasFilter && (
-                          <Button
-                            onClick={onCreate}
-                            data-testid="add-first-visit-btn"
-                            aria-label="Schedule your first visit"
-                            className="h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Schedule first visit
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {visits.map((visit) => (
-                    <VisitRow
-                      key={visit.id}
-                      visit={visit}
-                      selected={focusedVisit?.id === visit.id}
-                      onFocus={() => setFocusedVisitId(visit.id)}
-                      onView={onView}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
-          </VisitActivitySheet>
-        </section>
-
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/visits"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
         <VisitsDetailRail
           visit={focusedVisit}
           loading={loading}
@@ -1087,308 +858,126 @@ const VisitsDesktopWorkspace = ({
           onEdit={onEdit}
           activeActionFeedback={activeActionFeedback}
         />
-      </div>
-    </section>
-  );
-};
-
-// No entrance animation: the skeleton holds this exact layout, so the panel gets no
-// entrance motion -- content swaps in where the skeleton stood (lessons #15; the old
-// motion entrance froze this panel at 39% opacity).
-const VisitSignalPanel = ({ signal, stats, visits, kpiFilter, setKpiFilter, loading, isFetching }) => {
-  const SignalIcon = signal.icon;
-
-  return (
-    <section className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]">
-      <div className="w-full min-w-0">
-        {loading ? (
-          <div className="space-y-4">
-            <Shimmer className="h-8 w-36 rounded-pill" />
-            <Shimmer className="h-12 w-3/4 rounded-card md:h-[72px]" />
-            <Shimmer className="h-5 w-1/2 rounded-inner" />
-          </div>
-        ) : (
-          <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${visitToneClass[signal.tone] || visitToneClass.muted}`}>
-              <SignalIcon className="h-4 w-4" />
-              {signal.label}
-            </div>
-            <h1 className="text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-              {signal.headline}
-            </h1>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-              {signal.subhead}
-            </p>
-          </div>
-        )}
-
-        <VisitStateStrip
-          stats={stats}
-          visits={visits}
-          loading={loading}
-          isFetching={isFetching}
+      )}
+    >
+      <SignalPanel signal={signal} loading={loading} toneClassMap={visitToneClass}>
+        <KpiStrip
+          options={visitStateOptions}
+          getCount={(id) => getVisitStateCount({ id, stats, visits })}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
+          loading={loading}
+          isFetching={isFetching}
+          pinnedIds={PINNED_VISIT_STATE_IDS}
+          importance={VISIT_KPI_IMPORTANCE}
+          dataAttr="data-visit-state"
         />
-      </div>
-    </section>
-  );
-};
+      </SignalPanel>
 
-const VisitStateStrip = ({ stats, visits, loading, isFetching, kpiFilter, setKpiFilter }) => (
-  <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
-    {loading ? (
-      [0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5 shadow-[0_16px_38px_rgb(0_0_0/0.08)] backdrop-blur-xl sm:px-4 md:py-3 dark:bg-white/[0.055]"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 space-y-2">
-              <Shimmer className="h-3 w-16 rounded-pill" />
-              <Shimmer className="h-6 w-9 rounded-inner" />
-            </div>
-            <Shimmer className="h-7 w-7 rounded-pill" />
-          </div>
-        </div>
-      ))
-    ) : (
-      selectPrimaryVisitStates({ stats, visits, kpiFilter }).map((item) => {
-        const Icon = item.icon;
-        const active = (kpiFilter || 'all') === item.id;
-        const count = getVisitStateCount({ id: item.id, stats, visits });
-
-        return (
-          <motion.button
-            key={item.id}
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)}
-            data-visit-state={item.id}
-            data-state={active ? 'selected' : 'idle'}
-            className={`group min-h-[66px] rounded-inner px-3 py-2.5 text-left backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 sm:px-4 md:py-3 ${active ? item.activeClass : VISIT_KPI_REST}`}
-            aria-pressed={active}
-            aria-label={`Show ${item.label.toLowerCase()} visits`}
-          >
-            <span className="flex items-start justify-between gap-2">
-              <span className="min-w-0">
-                <span className="block text-[10px] font-medium leading-tight sm:text-[11px]">{item.label}</span>
-                <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
-              </span>
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
-                {active && isFetching ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Icon className="h-3.5 w-3.5" />
-                )}
-              </span>
-            </span>
-          </motion.button>
-        );
-      })
-    )}
-  </div>
-);
-
-const VisitActivitySheet = ({ filters, setFilters, openFilters, filterSheetOpen, loading, isFetching, failedEmpty, pagination, errorMessage, onRetry, onRefresh, onCreate, canCreate, activeActionFeedback, children }) => (
-  <section
-    className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
-    data-testid="visits-activity-sheet"
-  >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-    <VisitSheetToolbar
-      filters={filters}
-      setFilters={setFilters}
-      openFilters={openFilters}
-      filterSheetOpen={filterSheetOpen}
-      onRefresh={onRefresh}
-      refreshing={isFetching}
-      onCreate={onCreate}
-      canCreate={canCreate}
-      activeActionFeedback={activeActionFeedback}
-    />
-
-    <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
-      <span>{loading ? 'Loading visits' : failedEmpty ? "Couldn't load" : `${pagination.totalCount} visits`}</span>
-      <span className="flex items-center gap-2">
-        {isFetching && !loading && (
-          <span role="status" aria-live="polite" className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-            Updating
-          </span>
+      <ActivitySheet
+        loading={loading}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={pagination}
+        itemNoun="visits"
+        toolbar={(
+          <SheetToolbar
+            searchValue={filters.search}
+            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+            searchPlaceholder="Search by ID, type, facility, practitioner, or room..."
+            searchTestId="visits-sheet-search"
+            onRefresh={onRefresh}
+            refreshing={isFetching}
+            refreshNoun="visits"
+            onOpenFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasFilter}
+            filtersOpening={activeActionFeedback === 'filters'}
+            primarySlot={canCreate ? (
+              <PrimaryCommand
+                onClick={onCreate}
+                opening={activeActionFeedback === 'create'}
+                label="New visit"
+              />
+            ) : null}
+          />
         )}
-        <span>{loading ? 'One moment' : failedEmpty ? 'Retry below' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
-      </span>
-    </div>
-
-    {errorMessage && !failedEmpty && (
-      <VisitErrorBanner message={errorMessage} onRetry={onRetry} />
-    )}
-
-    {children}
-
-    <PaginationControls
-      currentPage={pagination.currentPage}
-      totalPages={pagination.totalPages}
-      totalCount={pagination.totalCount}
-      itemsPerPage={pagination.itemsPerPage}
-      onPrevPage={pagination.prevPage}
-      onNextPage={pagination.nextPage}
-      hasPrevPage={pagination.hasPrevPage}
-      hasNextPage={pagination.hasNextPage}
-      loading={loading}
-    />
-  </section>
-);
-
-// Failed-empty state (donor: RequestLoadErrorState) -- the whole list failed with
-// nothing cached, so the scroller owns an honest destructive card with retry.
-const VisitLoadErrorState = ({ message, onRetry }) => (
-  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
-    <AlertCircle className="mb-4 h-12 w-12 text-destructive/75" />
-    <h3 className="text-xl font-semibold">Visits did not load</h3>
-    <p className="mt-2 max-w-md text-sm text-muted-foreground">
-      {message || 'Try again to refresh this list.'}
-    </p>
-    <Button
-      type="button"
-      onClick={onRetry}
-      className="mt-5 h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
-    >
-      <RefreshCw className="mr-2 h-4 w-4" />
-      Retry
-    </Button>
-  </div>
-);
-
-// Partial-data notice (donor: RequestLoadNotice) -- rows are visible but the last
-// refetch failed; keep the rows and surface the failure inline.
-const VisitErrorBanner = ({ message, onRetry }) => (
-  <div
-    className="mt-3 flex flex-col gap-3 rounded-card bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between"
-    data-testid="visits-error-state"
-  >
-    <div className="flex min-w-0 items-start gap-3">
-      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive/75" />
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-foreground">Visits could not load</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{message}</p>
-      </div>
-    </div>
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={onRetry}
-      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
-    >
-      <RefreshCw className="mr-2 h-4 w-4" />
-      Retry
-    </Button>
-  </div>
-);
-
-const VisitSheetToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, onRefresh, refreshing = false, onCreate, canCreate = false, activeActionFeedback }) => {
-  // Debounced search: the input edits a local draft; the query filter commits 300ms
-  // after typing pauses -- one refetch per pause, not one per keystroke over the
-  // full visit resolution read.
-  const [searchDraft, setSearchDraft] = useState(filters.search || '');
-
-  useEffect(() => {
-    setSearchDraft(filters.search || '');
-  }, [filters.search]);
-
-  useEffect(() => {
-    if ((filters.search || '') === searchDraft) return undefined;
-    const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchDraft }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchDraft, filters.search, setFilters]);
-
-  const hasFilter = hasActiveVisitFilters(filters);
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="relative flex-1">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
-        <input
-          type="search"
-          value={searchDraft}
-          onChange={(event) => setSearchDraft(event.target.value)}
-          placeholder="Search by ID, type, facility, practitioner, or room..."
-          className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]"
-          data-testid="visits-sheet-search"
-        />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onRefresh}
-        disabled={refreshing}
-        className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
-        aria-label={refreshing ? 'Refreshing visits' : 'Refresh visits'}
-        title={refreshing ? 'Refreshing...' : 'Refresh'}
+        errorBanner={loadError && !failedEmpty ? (
+          <ErrorBanner
+            title="Visits could not load"
+            message={loadError}
+            onRetry={onRetry}
+            testId="visits-error-state"
+          />
+        ) : null}
       >
-        <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={openFilters}
-        className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-foreground/10 text-foreground scale-95' : ''}`}
-        aria-busy={activeActionFeedback === 'filters'}
-        aria-haspopup="dialog"
-        aria-expanded={filterSheetOpen}
-        data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
-      >
-        <Filter className="mr-2 h-4 w-4" />
-        {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-        {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-foreground/60" />}
-      </Button>
-      {canCreate && (
-        <Button
-          onClick={onCreate}
-          className={`h-12 rounded-button bg-foreground px-4 text-sm font-semibold text-background shadow-sm transition-all hover:bg-foreground/90 active:scale-95 ${activeActionFeedback === 'create' ? 'scale-95' : ''}`}
-          aria-busy={activeActionFeedback === 'create'}
-          data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
+        <div
+          ref={listScrollRef}
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          aria-label="Visits list"
+          style={{ outline: 'none' }}
+          className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          {activeActionFeedback === 'create' ? 'Opening...' : 'New visit'}
-        </Button>
-      )}
-    </div>
+          {loading && <SkeletonRows />}
+
+          {!loading && failedEmpty && (
+            <LoadErrorState title="Visits did not load" message={loadError} onRetry={onRetry} />
+          )}
+
+          {!loading && !failedEmpty && (
+            <>
+              <VisitListHeader sortConfig={sortConfig} onSort={onSort} />
+
+              {visits.length === 0 && !loadError && (
+                <EmptyState
+                  icon={Calendar}
+                  heading={hasFilter ? 'No matching visits' : (VISIT_EMPTY_HEADINGS[kpiFilter] || 'No visits yet')}
+                  body={hasFilter ? 'Change filters or search again.' : 'Schedule the first visit when care is ready.'}
+                >
+                  {hasFilter && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => setFilters({})}
+                      className="h-10 rounded-button bg-muted/30 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 active:scale-95"
+                    >
+                      Show all visits
+                    </Button>
+                  )}
+                  {canCreate && !hasFilter && (
+                    <Button
+                      onClick={onCreate}
+                      data-testid="add-first-visit-btn"
+                      aria-label="Schedule your first visit"
+                      className="h-10 rounded-button bg-foreground px-4 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Schedule first visit
+                    </Button>
+                  )}
+                </EmptyState>
+              )}
+
+              {visits.map((visit) => (
+                <VisitRow
+                  key={visit.id}
+                  visit={visit}
+                  selected={focusedVisit?.id === visit.id}
+                  onFocus={() => setFocusedVisitId(visit.id)}
+                  onView={onView}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      </ActivitySheet>
+    </WorkspaceStage>
   );
 };
 
 // Patient | Status | Type | Facility | Time | Action -- one canonical render
 // (Requests table idiom). Cost cut per arbitration: live data never carries it.
 const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
-
-const SortableColumnHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => {
-  const isSorted = sortConfig?.key === sortKey;
-  const direction = isSorted ? sortConfig.direction : null;
-  return (
-    // aria-sort lives on a columnheader-roled wrapper (accessibility canon).
-    <span
-      role="columnheader"
-      aria-sort={isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <button
-        type="button"
-        onClick={() => onSort?.(sortKey)}
-        data-state={isSorted ? 'sorted' : 'idle'}
-        className={`flex items-center gap-1 transition-colors hover:text-foreground active:scale-[0.96] ${className}`}
-        aria-label={`Sort by ${label}`}
-      >
-        {label}
-        {isSorted ? (
-          direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-40" />
-        )}
-      </button>
-    </span>
-  );
-};
 
 const VisitListHeader = ({ sortConfig, onSort }) => (
   <div className={`grid ${VISIT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
@@ -1406,40 +995,18 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
   const patientEmail = visit?.patient?.email || null;
   const facilityName = visit?.hospital_name || (visit?.hospital_id ? getVisitFacilityLabel(visit) : 'Unknown facility');
   const statusKey = visit?.status || 'scheduled';
-  const initial = String(patientName || '?').trim().charAt(0).toUpperCase() || '?';
-  const avatarClass = getVisitAvatarClass(visit);
 
   return (
-    <motion.div
-      layout="position"
-      className={`group mb-2 grid min-h-[80px] ${VISIT_GRID_COLS} items-center gap-2 rounded-card px-4 py-3.5 transition-[background,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'bg-card/88 shadow-[0_6px_16px_rgb(0_0_0/0.12)] dark:bg-white/[0.08]' : 'bg-card/50 hover:-translate-y-0.5 hover:bg-card/72 hover:shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:bg-white/[0.035] dark:hover:bg-white/[0.06]'}`}
-      data-visit-row={visit.id}
-      data-state={selected ? 'selected' : 'idle'}
-      role="button"
-      tabIndex={0}
-      onClick={onFocus}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        onView(visit);
-      }}
-      onContextMenu={(event) => {
-        // Cheap context-menu stand-in (donor: Requests): right-click focuses the row
-        // so the rail (the action home) reflects it.
-        event.preventDefault();
-        onFocus();
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onFocus();
-        }
-      }}
-      aria-pressed={selected}
+    <ListRowShell
+      id={visit.id}
+      dataAttrName="data-visit-row"
+      gridCols={VISIT_GRID_COLS}
+      selected={selected}
+      onFocus={onFocus}
+      onOpen={() => onView(visit)}
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${avatarClass}`}>
-          {initial}
-        </span>
+        <TonedAvatar name={patientName} className={getVisitAvatarClass(visit)} />
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-foreground">{patientName}</span>
           {patientEmail && (
@@ -1449,9 +1016,11 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
       </span>
 
       <span>
-        <span className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
-          {visitStatusLabel[statusKey] || statusKey}
-        </span>
+        <StatusPill
+          compact
+          label={visitStatusLabel[statusKey] || statusKey}
+          className={visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}
+        />
       </span>
 
       <span className="truncate text-sm text-foreground/85">{formatVisitType(visit)}</span>
@@ -1459,7 +1028,7 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
       <span className="truncate text-sm text-muted-foreground">{facilityName}</span>
 
       <span className="text-sm tabular-nums text-muted-foreground">
-        {formatVisitDayTime(visit.date || visit.created_at)}
+        {formatDayTime(visit.date || visit.created_at)}
       </span>
 
       <span className="flex justify-end">
@@ -1477,42 +1046,9 @@ const VisitRow = ({ visit, selected, onFocus, onView }) => {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </span>
-    </motion.div>
+    </ListRowShell>
   );
 };
-
-const Shimmer = ({ className = '' }) => (
-  <span className={`block animate-pulse bg-muted/38 dark:bg-white/[0.055] ${className}`} />
-);
-
-const VisitSkeletonRows = () => (
-  <div className="space-y-2">
-    {Array.from({ length: 7 }).map((_, index) => (
-      <Shimmer key={index} className="h-[80px] rounded-card" />
-    ))}
-  </div>
-);
-
-// Click-to-copy affordance for rail values the operator re-keys elsewhere (donor:
-// Requests CopyChip). Ghost pill; stopPropagation keeps the copy from bubbling.
-const CopyChip = ({ value, label }) => (
-  <button
-    type="button"
-    onClick={(event) => {
-      event.stopPropagation();
-      const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-      if (clipboard?.writeText) {
-        clipboard.writeText(String(value)).catch(() => {});
-      }
-      toast('Copied');
-    }}
-    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground active:scale-95"
-    aria-label={label}
-    title={label}
-  >
-    <Copy className="h-3 w-3" />
-  </button>
-);
 
 const getVisitDoctorLabel = (visit) => (
   visit?.doctor?.name ||
@@ -1524,8 +1060,7 @@ const getVisitDoctorLabel = (visit) => (
 const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {
   if (loading) {
     return (
-      <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <DetailRailShell>
         <Shimmer className="h-5 w-28 rounded-pill" />
         <Shimmer className="mt-6 h-24 rounded-card" />
         <div className="mt-4 space-y-3">
@@ -1533,19 +1068,19 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           <Shimmer className="h-14 rounded-card" />
           <Shimmer className="h-14 rounded-card" />
         </div>
-      </aside>
+      </DetailRailShell>
     );
   }
 
   if (!visit) {
     return (
-      <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <DetailRailShell>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No visit selected</h2>
           <p className="mt-2 text-sm text-muted-foreground">Visits will appear here when the list has results.</p>
         </div>
-      </aside>
+      </DetailRailShell>
     );
   }
 
@@ -1555,21 +1090,16 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   const railStageIndex = Math.max(0, VISIT_STAGE_ORDER.indexOf(statusKey));
   const railStageFill = VISIT_STAGE_FILL[statusKey] || 'bg-foreground/60';
   const displayId = visit.display_id || null;
-  const avatarClass = getVisitAvatarClass(visit);
   const patientName = getVisitPatientLabel(visit);
   const patientEmail = visit?.patient?.email || null;
   const roomLabel = visit.room_number ? `Room ${visit.room_number}` : 'No room';
-  const dateLabel = formatVisitDayTime(visit.date || visit.created_at);
+  const dateLabel = formatDayTime(visit.date || visit.created_at);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
-  const initial = String(patientName || '?').trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-      {/* Today-sheet surface recipe (S1.4): a recessed inset panel holds the hero block,
-          and the detail cards below read as fill-films over the pane. */}
-      <div className="mb-4 rounded-modal bg-background/55 p-3 dark:bg-white/[0.05] md:p-4">
+    <DetailRailShell>
+      <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight">Visit details</h2>
@@ -1579,16 +1109,19 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
                 <CopyChip value={displayId} label="Copy record ID" />
               </div>
             )}
-            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}`}>
-              <StatusIcon className="h-3.5 w-3.5" />
-              {visitStatusLabel[statusKey] || statusKey}
+            <div className="mt-4">
+              <StatusPill
+                icon={StatusIcon}
+                label={visitStatusLabel[statusKey] || statusKey}
+                className={visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}
+              />
             </div>
-            {/* Compact lifecycle progression: filled to the current stage; cancelled all-muted. */}
-            <div className="mt-3 flex w-[200px] max-w-full gap-1" aria-hidden="true">
-              {VISIT_STAGE_ORDER.map((stage, index) => (
-                <span key={stage} className={`h-1 flex-1 rounded-pill ${!railCancelled && index <= railStageIndex ? railStageFill : 'bg-muted/40'}`} />
-              ))}
-            </div>
+            <StageStrip
+              order={VISIT_STAGE_ORDER}
+              fillClass={railStageFill}
+              activeIndex={railStageIndex}
+              muted={railCancelled}
+            />
           </div>
           <Button
             variant="ghost"
@@ -1602,9 +1135,7 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
         </div>
 
         <div className="flex items-center gap-4">
-          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-pill text-lg font-semibold ${avatarClass}`}>
-            <span aria-hidden="true">{initial}</span>
-          </div>
+          <TonedAvatar name={patientName} className={getVisitAvatarClass(visit)} size="h-14 w-14" textSize="text-lg" />
           <div className="min-w-0">
             <p className="truncate text-lg font-semibold tracking-tight">{patientName}</p>
             <p className="mt-0.5 flex items-center gap-2 truncate text-sm text-muted-foreground">
@@ -1616,20 +1147,20 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
             )}
           </div>
         </div>
-      </div>
+      </RailInsetHero>
 
       <div className="space-y-3">
-        <VisitFocusRow icon={Calendar} label="Type" value={formatVisitType(visit)} />
-        <VisitFocusRow icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
-        <VisitFocusRow icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
-        <VisitFocusRow icon={MapPin} label="Location" value={roomLabel} />
-        <VisitFocusRow icon={User} label="Patient" value={patientName} />
+        <DetailLine icon={Calendar} label="Type" value={formatVisitType(visit)} />
+        <DetailLine icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
+        <DetailLine icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
+        <DetailLine icon={MapPin} label="Location" value={roomLabel} />
+        <DetailLine icon={User} label="Patient" value={patientName} />
       </div>
 
       <div className="mt-5 space-y-2">
         <Button
           onClick={() => onView(visit)}
-          className={`h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-all hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
+          className={`h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-e2-strong transition-all hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
           aria-busy={viewOpening}
           data-state={viewOpening ? 'opening' : 'idle'}
         >
@@ -1653,18 +1184,6 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           Outcome and delete actions are locked for now.
         </p>
       </div>
-    </aside>
+    </DetailRailShell>
   );
 };
-
-const VisitFocusRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.045] p-2.5 dark:bg-white/[0.055]">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
-      <Icon className="h-4 w-4" />
-    </span>
-    <div className="min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</p>
-    </div>
-  </div>
-);
