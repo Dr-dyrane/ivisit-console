@@ -268,6 +268,116 @@ export async function getProfiles(filter = {}) {
   }
 }
 
+// --- Server-projection envelope for the Users page (React Query, 2026-07-10) -----------
+// Unlike getProfiles (a BARE array from a 1000-row privileged load + client-side
+// filter/sort/paginate), getUsersPage returns { data, count, stats } with SERVER-SIDE
+// filter/sort/paginate + exact RBAC-scoped counts -- so the console DS ActivitySheet gets
+// a real total and the KpiStrip gets KPI-agnostic exact role/verification counts. The
+// list drops the get_all_auth_users RPC (that RPC returns every row unpaginated, which is
+// why the page loaded 1000): the DS list needs only profiles columns (role, bvn_verified,
+// provider_type, organization, created_at, username/email/phone), all on this table.
+
+const USER_SORT_FIELDS = new Set(['created_at', 'updated_at', 'username', 'email', 'role']);
+
+function applyUserListFilters(query, filter = {}) {
+  if (filter.role) {
+    const roles = Array.isArray(filter.role) ? filter.role : [filter.role];
+    if (roles.length > 0) query = query.in('role', roles);
+  }
+  if (filter.provider_type) {
+    const types = Array.isArray(filter.provider_type) ? filter.provider_type : [filter.provider_type];
+    if (types.length > 0) query = query.in('provider_type', types);
+  }
+  if (filter.verified !== undefined) {
+    query = query.eq('bvn_verified', filter.verified);
+  }
+  if (filter.search) {
+    const s = String(filter.search).replace(/[%,]/g, ' ').trim();
+    if (s) query = query.or(`username.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%,full_name.ilike.%${s}%`);
+  }
+  const range = filter.created_at || {};
+  if (range.start) query = query.gte('created_at', new Date(`${range.start}T00:00:00.000Z`).toISOString());
+  if (range.end) query = query.lte('created_at', new Date(`${range.end}T23:59:59.999Z`).toISOString());
+  return query;
+}
+
+// One RBAC-scoped exact HEAD count, respecting the sheet filters + an extra bucket predicate.
+async function getUserExactCount(baseFilter, user, extra, quiet) {
+  try {
+    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    query = applyAuthFilter(query, user, { userIdField: 'id', orgIdField: 'organization_id' });
+    query = applyUserListFilters(query, baseFilter);
+    if (extra?.role) query = query.eq('role', extra.role);
+    if (extra?.verified !== undefined) query = query.eq('bvn_verified', extra.verified);
+    const { count, error } = await query;
+    if (error) throw error;
+    return Number.isFinite(count) ? count : 0;
+  } catch (error) {
+    if (!quiet) console.error('Error fetching user exact count:', error);
+    return 0;
+  }
+}
+
+// KPI-agnostic scoped stats: the role/verification chips stay STABLE while the active KPI
+// narrows the list (statsFilter carries the sheet filters but NOT the KPI role narrowing).
+async function getUserPageStats(filter, user, quiet) {
+  const statsFilter = {
+    search: filter.search,
+    created_at: filter.created_at,
+    provider_type: filter.provider_type,
+  };
+  const [total, provider, org_admin, patient, verified] = await Promise.all([
+    getUserExactCount(statsFilter, user, {}, quiet),
+    getUserExactCount(statsFilter, user, { role: 'provider' }, quiet),
+    getUserExactCount(statsFilter, user, { role: 'org_admin' }, quiet),
+    getUserExactCount(statsFilter, user, { role: 'patient' }, quiet),
+    getUserExactCount(statsFilter, user, { verified: true }, quiet),
+  ]);
+  return { total, provider, org_admin, patient, verified };
+}
+
+/**
+ * Server-projection Users page read: { data, count, stats }. RBAC-scoped, server-side
+ * filter/sort/paginate + exact counts. The React-Query envelope the console DS consumes.
+ */
+export async function getUsersPage(filter = {}) {
+  try {
+    const user = await getCurrentUser();
+
+    const { data, count } = await withRetry(async () => {
+      let query = supabase.from(TABLE_NAME).select('*', { count: 'exact' });
+      query = applyAuthFilter(query, user, { userIdField: 'id', orgIdField: 'organization_id' });
+      query = applyUserListFilters(query, filter);
+      const sortKey = USER_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+      query = query.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+      if (filter.limit) {
+        const start = filter.offset || 0;
+        query = query.range(start, start + filter.limit - 1);
+      }
+      const result = await query;
+      if (result.error) throw result.error;
+      return result;
+    });
+
+    let enriched = data || [];
+    if (enriched.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const ids = enriched.map((p) => p.id);
+      const displayIds = await getDisplayIds(ids, { quiet: filter.quiet });
+      enriched = enriched.map((p) => ({
+        ...p,
+        display_id: p.display_id || (displayIds.get ? displayIds.get(p.id) : displayIds[p.id]) || null,
+      }));
+    }
+
+    const stats = await getUserPageStats(filter, user, filter.quiet);
+    return { data: enriched, count: count || 0, stats };
+  } catch (error) {
+    if (!filter.quiet) console.error('Error fetching users page:', error);
+    throw error;
+  }
+}
+
 /**
  * Get single profile by ID
  */
