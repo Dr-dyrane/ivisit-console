@@ -43,9 +43,11 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
     setPanelNotice('Export is unavailable until approval report authority is proved.');
   };
 
-  const panelSurface = 'bg-background/55 backdrop-blur-xs squircle-lg p-4 shadow-premium';
-  const compactSurface = 'bg-background/55 backdrop-blur-xs squircle-lg p-3 shadow-sm';
-  const actionBase = 'group rounded-xl p-3 flex flex-col items-center gap-2 shadow-sm transition-all duration-200 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.16),0_16px_40px_rgba(0,0,0,0.18)]';
+  // Canonical panel card vocabulary (matches EmergencyPanel/Requests): rounded-card big,
+  // rounded-inner compact, rounded-icon wells, rounded-pill badges, NEUTRAL shadows only.
+  const panelSurface = 'bg-background/55 backdrop-blur-xs rounded-card p-4 shadow-e2';
+  const compactSurface = 'bg-background/55 backdrop-blur-xs rounded-inner p-3 shadow-sm';
+  const actionBase = 'group rounded-inner p-3 flex flex-col items-center gap-2 shadow-sm transition-all duration-200 hover:-translate-y-0.5 focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)]';
 
   return (
     <div className="space-y-4">
@@ -68,7 +70,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
             <motion.div className={panelSurface} whileHover={{ y: -1 }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 geo-round bg-sky-500/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-icon bg-sky-500/10 flex items-center justify-center">
                     <Shield className="h-5 w-5 text-sky-600 dark:text-sky-300" />
                   </div>
                   <div>
@@ -76,7 +78,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
                     <p className="text-xs text-muted-foreground">All approval items</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
+                <span className="rounded-pill bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
                   {stats.total}
                 </span>
               </div>
@@ -85,7 +87,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
             <div className="grid grid-cols-2 gap-2">
               <motion.div className={compactSurface} whileHover={{ y: -1 }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-icon bg-amber-500/10 flex items-center justify-center">
                     <Clock className="h-4 w-4 text-amber-600 dark:text-amber-300" />
                   </div>
                   <div>
@@ -97,7 +99,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
 
               <motion.div className={compactSurface} whileHover={{ y: -1 }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-emerald-500/10 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-icon bg-emerald-500/10 flex items-center justify-center">
                     <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                   </div>
                   <div>
@@ -111,7 +113,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
             <motion.div className={panelSurface} whileHover={{ y: -1 }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 geo-round bg-cyan-500/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-icon bg-cyan-500/10 flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
                   </div>
                   <div>
@@ -119,7 +121,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
                     <p className="text-xs text-muted-foreground">Approved share</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-200">
+                <span className="rounded-pill bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-200">
                   {verificationRate}%
                 </span>
               </div>
@@ -188,7 +190,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
             <div
               role="status"
               aria-live="polite"
-              className="rounded-xl bg-muted/25 px-3 py-2 text-xs text-muted-foreground shadow-sm"
+              className="rounded-inner bg-muted/25 px-3 py-2 text-xs text-muted-foreground shadow-sm"
             >
               {panelNotice}
             </div>
@@ -214,7 +216,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
               className="space-y-3"
             >
               <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Needs review</h3>
-              <div className="bg-amber-500/10 squircle-lg p-4 shadow-sm">
+              <div className="bg-amber-500/10 rounded-card p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-300 mt-0.5" aria-hidden="true" />
                   <div>

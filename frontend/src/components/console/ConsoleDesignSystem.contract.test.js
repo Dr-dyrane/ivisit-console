@@ -207,6 +207,24 @@ describe('Console design system contract', () => {
     }
   });
 
+  it('keeps the route-owned context panels on canonical radius (Requests-panel parity)', () => {
+    // The per-domain *Panel.jsx quick-actions panels are NOT covered by the list estate
+    // laws (those gate pages), so VerificationPanel silently drifted to squircle-lg /
+    // rounded-xl / rounded-full / geo-round / shadow-premium while the other six matched
+    // the Requests reference (EmergencyPanel: rounded-card/inner/icon/button/pill, neutral
+    // shadows). A user caught it by eye (2026-07-10). Lock the canonical vocabulary so a
+    // context panel for a gated list page can't drift its card radii/shadows again.
+    const PANELS = [
+      'EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel',
+      'VerificationPanel', 'DoctorsPanel', 'UsersPanel',
+    ];
+    const DRIFT = /\bsquircle(?:-[a-z]+)?\b|\brounded-(?:xl|2xl|3xl|full)\b|\bgeo-round\b|\bshadow-premium\b/;
+    for (const name of PANELS) {
+      const src = read(`src/components/context/${name}.jsx`);
+      expect({ panel: name, drift: DRIFT.test(src) }).toEqual({ panel: name, drift: false });
+    }
+  });
+
   it('keeps every donor MECHANISM on the list-workspace surfaces (estate law: presence-or-recorded-exclusion)', () => {
     // WHY THIS EXISTS (the hole every other gate left open): per-page contract
     // pins protect decisions a page ALREADY made -- they cannot DEMAND a donor
