@@ -101,7 +101,7 @@ lane cannot front-run a gate.
 | **Organizations** (15) | exempt | intake-only, not admitted | ⛔ Gated — org identity + wallet scope + command authority |
 | **Settings** (16) | exempt | intake-only, not admitted | ⛔ Gated — own-user projection + auth/preference/billing receivers |
 | **Analytics** (13) | exempt | intake-only, not admitted | ⛔ Gated — actor-scoped projection + export scope (report surface, not a list) |
-| **Wallet** | dashboard | classified dashboard (guardrail-tested) | ✅ Done (dashboard tier) |
+| **Wallet** | dashboard | admitted · **read-only** (guarded continuation); money-moving submit / card delete / payout setup / cash approval **GATED** | ◐ **Landed with waivers** — classified dashboard-tier but via a `grammar:hero` waiver (inline finance headline, not the canon signal hero) + VitalTrack N/A; writes gated. NOT full-canon "done". |
 
 ---
 
