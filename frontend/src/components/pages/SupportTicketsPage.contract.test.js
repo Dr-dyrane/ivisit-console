@@ -135,10 +135,21 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(page).toContain('const navigate = useNavigate();');
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
-    expect(page).toContain('<SupportSignalPanel');
-    expect(page).toContain('<SupportActivitySheet');
-    expect(page).toContain('<SupportDetailRail');
-    expect(page).toContain('<PaginationControls');
+    // DS composition (mirrors DoctorsPage/UsersPage): Support now COMPOSES the shared
+    // console workspace grammar instead of the bespoke SupportSignalPanel/SupportActivitySheet/
+    // SupportDetailRail look-alikes. WorkspaceStage -> SignalPanel/KpiStrip -> one ActivitySheet
+    // with exactly one SortableColumnHeader (TIME-only sort) -> DetailRailShell/RailInsetHero rail.
+    // PaginationControls now lives INSIDE the ActivitySheet DS component, not the page.
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('<SortableColumnHeader');
+    expect(page).toContain('<DetailRailShell');
+    expect(page).toContain('<RailInsetHero');
+    expect(page).toContain('useListKeyboardNav');
+    expect(page).toContain('useScrollResetOnPage');
+    expect(page).toContain('useRowSelection');
     expect(page).toContain("params.get('add') === 'true'");
     expect(page).toContain("params.get('new') === 'true'");
     expect(page).toContain("params.delete('from')");

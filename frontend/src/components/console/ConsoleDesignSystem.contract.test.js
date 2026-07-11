@@ -41,6 +41,11 @@ describe('Console design system contract', () => {
     { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', modal: 'src/components/modals/VerificationModal.jsx' },
     { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', modal: 'src/components/modals/DoctorModal.jsx' },
     { name: 'users', page: 'src/components/pages/UsersPage.jsx', modal: 'src/components/modals/UserModal.jsx' },
+    // Support: single-shared-list status-axis page (All/Open/Active/Resolved). The paired
+    // write-surface is SupportTicketModal (create/edit); single+bulk delete and provider
+    // self-assign are restored, while status-transition (resolve/close) stays fail-closed
+    // (the per-page contract pins page.not.toContain('updateTicketStatus')).
+    { name: 'support', page: 'src/components/pages/SupportTicketsPage.jsx', modal: 'src/components/modals/SupportTicketModal.jsx' },
   ];
 
   const CONSOLE_FILES = () => ({
@@ -199,6 +204,7 @@ describe('Console design system contract', () => {
       verificationQueue: read('src/components/pages/VerificationQueue.jsx'),
       doctorsPage: read('src/components/pages/DoctorsPage.jsx'),
       usersPage: read('src/components/pages/UsersPage.jsx'),
+      supportTicketsPage: read('src/components/pages/SupportTicketsPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });
@@ -216,12 +222,23 @@ describe('Console design system contract', () => {
     // context panel for a gated list page can't drift its card radii/shadows again.
     const PANELS = [
       'EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel',
-      'VerificationPanel', 'DoctorsPanel', 'UsersPanel',
+      'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel',
     ];
     const DRIFT = /\bsquircle(?:-[a-z]+)?\b|\brounded-(?:xl|2xl|3xl|full)\b|\bgeo-round\b|\bshadow-premium\b/;
+    // No colored/bleeding shadow glow on ANY panel surface -- the gold EmergencyPanel is neutral-only
+    // (shadow-[0_4px_12px_rgb(0_0_0/0.07)]). The console-components colored-shadow law never reached
+    // the route-owned context panels, so SupportTicketsPanel shipped cyan glows (rgb(6 182 212 ...))
+    // past every structural gate until an adversarial reviewer caught it (compose-review 2026-07-10).
+    // Same regex as the component law -- colored rgb()/rgba()/tinted-hsl() inside a shadow utility.
+    const COLORED_SHADOW = (src) => (
+      /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) ||
+      /shadow-\[[^\]]*rgba\(/.test(src) ||
+      /shadow-\[[^\]]*hsl\(var\(--(?!foreground)/.test(src)
+    );
     for (const name of PANELS) {
       const src = read(`src/components/context/${name}.jsx`);
       expect({ panel: name, drift: DRIFT.test(src) }).toEqual({ panel: name, drift: false });
+      expect({ panel: name, coloredShadow: COLORED_SHADOW(src) }).toEqual({ panel: name, coloredShadow: false });
     }
 
     // Icon-well vocabulary -- the surface regression the DRIFT list CAN'T catch (user-caught
@@ -232,7 +249,7 @@ describe('Console design system contract', () => {
     // green -- the wrong canonical token in the wrong slot. ALL SEVEN route-owned panels now carry
     // the squircle well (Doctors: pill->icon, Ambulances: button->icon, both realigned 2026-07-10);
     // this locks every one of them so a panel can't drift its wells back to a circle again.
-    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel'];
+    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel'];
     // A circular fixed-size box = rounded-pill/full on an EQUAL h-N w-N (backref \1/\2), which is
     // an icon well; pill BADGES (padding-based, no equal h-N w-N) and pill DIVIDERS (h-8 w-1,
     // unequal) are legitimately allowed and do not match.
@@ -264,6 +281,7 @@ describe('Console design system contract', () => {
       { prop: 'ambulanceContext', state: 'ambulancesRouteContext' },
       { prop: 'staffContext', state: 'doctorsRouteContext' },
       { prop: 'usersContext', state: 'usersRouteContext' },
+      { prop: 'supportContext', state: 'supportTicketsRouteContext' },
     ];
     for (const p of CANON_PANELS) {
       // whole-object pass-through present...
@@ -420,6 +438,7 @@ describe('Console design system contract', () => {
       { name: 'verificationQueue', navPath: '/verification', title: 'Approvals' },
       { name: 'doctors', navPath: '/doctors', title: 'Staff' },
       { name: 'users', navPath: '/users', title: 'Users' },
+      { name: 'support', navPath: '/support-tickets', title: 'Support' },
     ];
     // Every registered list page must appear here (and vice-versa) -- no silent skip.
     expect(NAV_HEADER.map((e) => e.name).sort()).toEqual(LIST_WORKSPACE_PAGES.map((e) => e.name).sort());

@@ -7,6 +7,9 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useRowSelection } from '../../hooks/useRowSelection';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useSupportTicketsQuery } from '../../hooks/useSupportTicketsQuery';
 import { useSupportTicketsMutations, applyOptimisticUpsert, applyOptimisticRemove } from '../../hooks/useSupportTicketsMutations';
 import {
@@ -16,6 +19,17 @@ import {
   assignTicket,
 } from '../../services/supportTicketsService';
 import { handleApiError } from '../../utils/errorHandler';
+// Console design system: Support COMPOSES the shared workspace grammar (donor: Requests;
+// closest analog: Users/Staff) instead of the bespoke signal/state-strip/rail look-alikes
+// it used to inline. WorkspaceStage -> SignalPanel/KpiStrip -> one ActivitySheet +
+// ListRowShell (one Time header) -> DetailRailShell rail. The React Query data layer
+// (useSupportTicketsQuery + useSupportTicketsMutations + the support_tickets_page_changes
+// channel) is CANON and untouched -- this is a pure visual recompose.
+import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { KpiStrip } from '../console/KpiStrip';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { Shimmer, SkeletonRows, DetailLine, CopyChip, EmptyState, LoadErrorState, StatusPill } from '../console/primitives';
 import { SEOHead } from '../common/SEOHead';
 import { FilterSheet } from '../common/FilterSheet';
 import { BulkActionBar } from '../common/BulkActionBar';
@@ -23,27 +37,26 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { Button } from '../ui/button';
-import { PaginationControls } from '../ui/PaginationControls';
-import { TableSkeleton } from '../ui/skeleton';
+import { Checkbox } from '../ui/checkbox';
 import {
   AlertCircle,
-  BarChart3,
-  Check,
   CheckCircle,
   ChevronRight,
+  Clock,
   Edit,
   Eye,
   Filter,
+  Flag,
   Headphones,
+  Info,
+  Loader2,
   MessageSquare,
   Plus,
-  RefreshCw,
-  Search,
+  Tag,
   Ticket,
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { MobileSupportTickets } from '../mobile/MobileSupportTickets';
 
@@ -71,56 +84,80 @@ const CATEGORIES = [
   'medical',
 ];
 
-const supportStateOptions = [
-  {
-    id: 'all',
-    label: 'All',
-    icon: Ticket,
-    countKey: 'total',
-    tone: 'primary',
-    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    iconClass: 'text-sky-600 dark:text-sky-200',
-  },
-  {
-    id: 'open',
-    label: 'Open',
-    icon: AlertCircle,
-    countKey: 'open',
-    tone: 'warning',
-    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    iconClass: 'text-amber-600 dark:text-amber-200',
-  },
-  {
-    id: 'in_progress',
-    label: 'Active',
-    icon: Headphones,
-    countKey: 'active',
-    tone: 'info',
-    activeClass: 'bg-cyan-500/10 text-cyan-800 shadow-[0_18px_54px_rgba(6,182,212,0.16)] dark:text-cyan-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    iconClass: 'text-cyan-600 dark:text-cyan-200',
-  },
-  {
-    id: 'resolved',
-    label: 'Resolved',
-    icon: CheckCircle,
-    countKey: 'resolved',
-    tone: 'clear',
-    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    iconClass: 'text-emerald-600 dark:text-emerald-200',
-  },
+// KPI/state strip options: the STATUS axis (All / Open / Active / Resolved). `closed`
+// folds into the Resolved tone; `urgent` is a cross-cut PRIORITY overlay (row + rail pill
+// + FilterSheet), never a KPI chip. Literal palette + NEUTRAL shadows only; the shared
+// KpiStrip owns the width/tile/smart-context (max 3, pinned-while-count>0). countKey maps
+// each id onto the server stats bucket so the counts stay stable while the list narrows.
+const SUPPORT_KPI_OPTIONS = [
+  { id: 'all', label: 'All', icon: Ticket, countKey: 'total', colorClass: 'text-foreground', activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]' },
+  { id: 'open', label: 'Open', icon: AlertCircle, countKey: 'open', colorClass: 'text-amber-700 dark:text-amber-200', activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200' },
+  { id: 'in_progress', label: 'Active', icon: Headphones, countKey: 'active', colorClass: 'text-cyan-700 dark:text-cyan-200', activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200' },
+  { id: 'resolved', label: 'Resolved', icon: CheckCircle, countKey: 'resolved', colorClass: 'text-emerald-700 dark:text-emerald-200', activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200' },
 ];
+const SUPPORT_KPI_IMPORTANCE = { all: 0, open: 1, in_progress: 2, resolved: 3 };
+const PINNED_SUPPORT_KPI_IDS = ['open', 'in_progress'];
 
+// SignalPanel eyebrow tones -- literal palette, NEUTRAL e2 shadows (no colored glow).
 const supportToneClass = {
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-  muted: 'bg-muted/30 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
+  danger: 'bg-destructive/12 text-destructive shadow-e2',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
+
+// Status vocabulary -> pill tone + icon well tone. `closed` reads neutral (resolved-adjacent);
+// unknown status falls back to Open. Literal palette only (the theme status tokens render red).
+const STATUS_META = {
+  open: { label: 'Open', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200' },
+  in_progress: { label: 'Active', tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200' },
+  resolved: { label: 'Resolved', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' },
+  closed: { label: 'Closed', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' },
+};
+
+const getStatusMeta = (status) => STATUS_META[String(status || '').toLowerCase()] || STATUS_META.open;
+
+// Priority -> pill tone. `urgent` is the cross-cut overlay that reads destructive.
+const PRIORITY_TONE = {
+  low: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  normal: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+  high: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  urgent: 'bg-destructive/12 text-destructive',
+};
+
+const getPriorityMeta = (priority) => {
+  const key = String(priority || 'normal').toLowerCase();
+  const option = PRIORITIES.find((item) => item.value === key) || PRIORITIES[1];
+  return { label: option.label, tone: PRIORITY_TONE[key] || PRIORITY_TONE.normal };
+};
+
+// Person | Status | Priority | Updated | Action
+const SUPPORT_GRID_COLS = 'grid-cols-[minmax(180px,1.7fr)_minmax(92px,auto)_minmax(92px,auto)_minmax(96px,auto)_150px]';
+const SUPPORT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(180px,1.7fr)_minmax(92px,auto)_minmax(92px,auto)_minmax(96px,auto)_150px]';
+
+const SUPPORT_EMPTY_HEADINGS = {
+  all: 'No support requests',
+  open: 'No open requests',
+  in_progress: 'Nothing active right now',
+  resolved: 'No resolved requests',
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not available';
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const hasActiveSupportFilters = (filters = {}, kpiFilter = 'all') => Boolean(
+  filters.search ||
+  (Array.isArray(filters.status) && filters.status.length > 0) ||
+  (Array.isArray(filters.priority) && filters.priority.length > 0) ||
+  (Array.isArray(filters.category) && filters.category.length > 0) ||
+  (kpiFilter && kpiFilter !== 'all')
+);
 
 const normalizeCount = (value, fallback = 0) => {
   const numericValue = Number(value);
@@ -132,9 +169,11 @@ const getStatsFilters = (filters = {}) => {
   return rest;
 };
 
+// KPI count: the server stat bucket for the id, with a page-window fallback so the strip is
+// never blank before the first stats settle (open->open, in_progress->active, resolved->resolved).
 const getStateCount = ({ id, stats, tickets }) => {
   const rows = Array.isArray(tickets) ? tickets : [];
-  const option = supportStateOptions.find((item) => item.id === id) || supportStateOptions[0];
+  const option = SUPPORT_KPI_OPTIONS.find((item) => item.id === id) || SUPPORT_KPI_OPTIONS[0];
   const fallback = id === 'all'
     ? rows.length
     : rows.filter((ticket) => ticket.status === id || (id === 'in_progress' && ticket.status === 'open')).length;
@@ -142,8 +181,14 @@ const getStateCount = ({ id, stats, tickets }) => {
   return normalizeCount(stats?.[option.countKey], fallback);
 };
 
-const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly }) => {
-  const option = supportStateOptions.find((item) => item.id === kpiFilter) || supportStateOptions[0];
+// Signal adapter -> {icon,tone,label,headline,subhead}. Renders gracefully at zero (the REAL
+// live state is an empty queue) and surfaces an honest failed-hero when the load fails cold.
+const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly, loadError, hasAny }) => {
+  if (loadError && !hasAny) {
+    return { icon: AlertCircle, tone: 'danger', label: 'Load failed', headline: 'Support did not load', subhead: 'Retry to load the support queue.' };
+  }
+
+  const option = SUPPORT_KPI_OPTIONS.find((item) => item.id === kpiFilter) || SUPPORT_KPI_OPTIONS[0];
   const count = getStateCount({ id: option.id, stats, tickets });
   const noun = isProviderOnly ? 'support request' : 'ticket';
 
@@ -225,14 +270,11 @@ export const SupportTicketsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
   const [kpiFilter, setKpiFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'updated_at', direction: 'desc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
-  // Bulk-selection + destructive-confirm state (restored capability). Selection
-  // and BulkActionBar are admin/org-admin only; the ConfirmationModal gates every
-  // single/bulk delete behind an explicit "cannot be undone" confirm.
-  const [selectedIds, setSelectedIds] = useState([]);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -240,17 +282,22 @@ export const SupportTicketsPage = () => {
     onConfirm: null,
   });
   const pagination = usePagination(20);
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
   const isMountedRef = useRef(false);
   const actionFeedbackTimerRef = useRef(null);
   const deepLinkHandledRef = useRef(null);
 
+  const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : (isProvider() ? 'provider' : 'viewer'));
+  const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
+
   // --- Read path: React Query (S3 migration; mirrors DoctorsPage/HospitalsPage) ---
-  // The route-owned page projection (getSupportTicketsPage) now flows through
+  // The route-owned page projection (getSupportTicketsPage) flows through
   // useSupportTicketsQuery, so the ['support', queryFilter] cache is the single
   // store: this page reads it, the create/update mutations settle it, and realtime
   // invalidates it. The KPI status pill and sheet filters compose into one server
   // filter; stats are requested on the status-agnostic set (getStatsFilters) so the
-  // KPI counts stay stable while the list narrows.
+  // KPI counts stay stable while the list narrows. Time-only sort (sortKey/sortDirection)
+  // is threaded here; the service allowlists the sort field.
   const queryFilter = useMemo(() => {
     const routeFilters = {
       ...filters,
@@ -263,9 +310,11 @@ export const SupportTicketsPage = () => {
       statsFilter: getStatsFilters(routeFilters),
       limit: pagination.itemsPerPage,
       offset: pagination.paginationRange.start,
+      sortKey: sortConfig.key,
+      sortDirection: sortConfig.direction,
       quiet: true,
     };
-  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
+  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, sortConfig.key, sortConfig.direction]);
 
   const {
     tickets,
@@ -277,14 +326,33 @@ export const SupportTicketsPage = () => {
     refetch,
   } = useSupportTicketsQuery(queryFilter);
 
-  // RQ error object -> the page's existing degraded-state copy (kept verbatim).
+  // RQ error object -> the page's existing degraded-state copy (kept verbatim). loadError is
+  // the honest-failed-hero source threaded into the workspace signal.
   const supportError = queryError ? 'Support could not load. Try again.' : null;
+  const loadError = supportError;
   // fetchSupportTickets is now the RQ refetch (Retry on desktop, pull-to-refresh on mobile).
   const fetchSupportTickets = refetch;
 
-  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('support', tickets);
+  const ticketRows = useMemo(() => (Array.isArray(tickets) ? tickets : []), [tickets]);
+
+  // Auto-select the focused record via the console-wide shared store (never empty when data).
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('support', ticketRows);
   const focusedTicket = focusedRecord;
 
+  // Selection via the shared hook (shift-range + prune-to-visible). Selection and the
+  // BulkActionBar are admin/org-admin only; each delete is still gated behind ConfirmationModal.
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(ticketRows);
+  const selectable = canManageSupport;
+
+  const hasFilter = hasActiveSupportFilters(filters, kpiFilter);
   const analytics = useMemo(() => buildAnalytics(supportStats), [supportStats]);
 
   useEffect(() => {
@@ -301,6 +369,12 @@ export const SupportTicketsPage = () => {
   useEffect(() => {
     pagination.setTotalCount(count || 0);
   }, [count, pagination.setTotalCount]);
+
+  // A filter/sort change swaps the visible rows -- clear the selection so a bulk action can
+  // never fire on rows the operator can no longer see (prune-to-visible also backstops this).
+  useEffect(() => {
+    clearSelection();
+  }, [filters, kpiFilter, sortConfig, clearSelection]);
 
   const markActionFeedback = useCallback((actionId) => {
     if (!actionId) return;
@@ -328,6 +402,18 @@ export const SupportTicketsPage = () => {
     setFilters((current) => ({ ...current, kpiFilter: nextFilter }));
   }, [pagination.resetPagination]);
 
+  const handleSort = useCallback((key) => {
+    pagination.resetPagination();
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, [pagination.resetPagination]);
+
+  const setSearchFilter = useCallback((search) => {
+    handleApplyFilters((current) => ({ ...current, search }));
+  }, [handleApplyFilters]);
+
   const handleMobileFiltersChange = useCallback((nextFiltersOrUpdater) => {
     handleApplyFilters((current) => {
       const next = typeof nextFiltersOrUpdater === 'function'
@@ -342,12 +428,15 @@ export const SupportTicketsPage = () => {
     });
   }, [handleApplyFilters, kpiFilter]);
 
-  // Real-time updates: a support_tickets row change now invalidates the ['support']
-  // cache (the single store) instead of a manual refetch. Any mounted
-  // useSupportTicketsQuery observer converges on the next fetch. This page-level
-  // channel is the only support realtime on /support-tickets (PageDataContext
-  // excludes supportTickets from the route's startup domains), so it stays here
-  // rather than in the context.
+  // Real-time updates: a support_tickets row change invalidates the ['support'] cache (the
+  // single store) instead of a manual refetch. Any mounted useSupportTicketsQuery observer
+  // converges on the next fetch. This page-level channel is the only support realtime on
+  // /support-tickets (PageDataContext excludes supportTickets from the route's startup
+  // domains), so it stays here rather than in the context.
+  //
+  // arrival-toast excluded by decision: support realtime CONVERGES via cache invalidation
+  // (no manual refetch), so there is no INSERT refetch to throttle a toast against; the
+  // list simply refreshes in place. (PAGE_REVAMP_GATE Support ledger, 2026-07-06.)
   useEffect(() => {
     let active = true;
 
@@ -486,7 +575,6 @@ export const SupportTicketsPage = () => {
       onConfirm: async () => {
         try {
           await deleteTicketMutation.mutateAsync(ticket.id);
-          setSelectedIds((prev) => prev.filter((id) => id !== ticket.id));
           toast.success('Ticket deleted');
         } catch (error) {
           handleApiError(error, 'delete');
@@ -496,17 +584,6 @@ export const SupportTicketsPage = () => {
       },
     });
   }, [canManageSupport, closeConfirmation, deleteTicketMutation]);
-
-  const handleSelect = useCallback((id, checked) => {
-    if (!id) return;
-    setSelectedIds((prev) => (
-      checked ? Array.from(new Set([...prev, id])) : prev.filter((selectedId) => selectedId !== id)
-    ));
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    setSelectedIds(checked ? tickets.map((ticket) => ticket.id).filter(Boolean) : []);
-  }, [tickets]);
 
   // Bulk delete loops the same delete mutation over the current selection so each
   // row leaves the cache optimistically; onSettled invalidation converges once.
@@ -523,7 +600,7 @@ export const SupportTicketsPage = () => {
           for (const id of ids) {
             await deleteTicketMutation.mutateAsync(id);
           }
-          setSelectedIds([]);
+          clearSelection();
           toast.success(`${count} ticket${count === 1 ? '' : 's'} deleted`);
         } catch (error) {
           handleApiError(error, 'delete');
@@ -532,7 +609,7 @@ export const SupportTicketsPage = () => {
         }
       },
     });
-  }, [canManageSupport, closeConfirmation, deleteTicketMutation, selectedIds]);
+  }, [canManageSupport, clearSelection, closeConfirmation, deleteTicketMutation, selectedIds]);
 
   // Provider self-assign ("Assign to me"): mirrors main's canAssign = isProvider().
   const canAssign = isProvider();
@@ -566,9 +643,9 @@ export const SupportTicketsPage = () => {
 
   const supportPanelContext = useMemo(() => ({
     stats: supportStats || {},
-    recent: tickets.slice(0, 4),
+    recent: ticketRows.slice(0, 4),
     focusedTicket,
-    count: pagination.totalCount || tickets.length,
+    count: pagination.totalCount || ticketRows.length,
     loading,
     errorMessage: supportError,
     currentState: kpiFilter,
@@ -585,7 +662,7 @@ export const SupportTicketsPage = () => {
     pagination.totalCount,
     supportError,
     supportStats,
-    tickets,
+    ticketRows,
   ]);
 
   const publishSupportRouteContext = useCallback(() => {
@@ -632,7 +709,7 @@ export const SupportTicketsPage = () => {
         onClick={handleCreate}
         data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         aria-busy={activeActionFeedback === 'create'}
-        className="h-9 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
       >
         <Plus className="mr-2 h-4 w-4" />
         New ticket
@@ -641,13 +718,7 @@ export const SupportTicketsPage = () => {
   ), [activeActionFeedback, canCreate, handleCreate]);
 
   const filterButtonComponent = useMemo(() => {
-    const hasFilters = Boolean(
-      filters.search ||
-      (Array.isArray(filters.status) && filters.status.length > 0) ||
-      (Array.isArray(filters.priority) && filters.priority.length > 0) ||
-      (Array.isArray(filters.category) && filters.category.length > 0) ||
-      kpiFilter !== 'all'
-    );
+    const hasFilters = hasActiveSupportFilters(filters, kpiFilter);
 
     return (
       <Button
@@ -655,15 +726,16 @@ export const SupportTicketsPage = () => {
         variant="ghost"
         size="icon"
         onClick={handleOpenFilters}
-        data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
+        className="squircle h-9 w-9 bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
         aria-label="Filter support"
-        className="relative h-9 w-9 rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
+        aria-haspopup="dialog"
+        aria-expanded={filterSheetOpen}
       >
         <Filter className="h-4 w-4" />
-        {hasFilters && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-pill bg-primary" />}
+        {hasFilters && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
       </Button>
     );
-  }, [activeActionFeedback, filters, handleOpenFilters, kpiFilter]);
+  }, [filters, kpiFilter, filterSheetOpen, handleOpenFilters]);
 
   usePageHeader(
     isProviderOnly ? 'My support' : 'Support',
@@ -757,115 +829,71 @@ export const SupportTicketsPage = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 pb-8 pt-3 text-foreground md:px-6 lg:px-8">
+    <div className="min-h-screen text-foreground">
       <SEOHead title="Support" description="Track support requests and issue follow-up." />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_20%_0%,hsl(var(--primary)/0.16),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(14,165,233,0.14),transparent_30%)]" />
-      <div className="relative z-10 mx-auto flex w-full max-w-[1500px] gap-5 xl:gap-6">
-        <main className="min-w-0 flex-1">
-          <div className="grid gap-5 xl:grid-cols-[minmax(340px,0.72fr)_minmax(560px,1.28fr)]">
-            <SupportSignalPanel
-              signal={getSupportSignal({ stats: supportStats, tickets, kpiFilter, isProviderOnly })}
-              stats={supportStats}
-              tickets={tickets}
-              kpiFilter={kpiFilter}
-              setKpiFilter={handleKpiFilterChange}
-              loading={loading}
-            />
-            <SupportActivitySheet
-              filters={{ ...filters, kpiFilter }}
-              setFilters={handleApplyFilters}
-              openFilters={handleOpenFilters}
-              openAnalytics={canManageSupport ? handleOpenAnalytics : null}
-              loading={loading}
-              errorMessage={supportError}
-              onRetry={fetchSupportTickets}
-              pagination={pagination}
-              activeActionFeedback={activeActionFeedback}
+
+      <SupportDesktopWorkspace
+        items={ticketRows}
+        stats={supportStats}
+        loading={loading}
+        isFetching={isFetching}
+        loadError={loadError}
+        isProviderOnly={isProviderOnly}
+        canCreate={canCreate}
+        canManage={canManageSupport}
+        canAssign={canAssign}
+        canEditTicket={canEditTicket}
+        assignPending={assignTicketMutation.isPending}
+        focusedTicket={focusedTicket}
+        setFocused={setFocused}
+        filters={filters}
+        kpiFilter={kpiFilter}
+        setKpiFilter={handleKpiFilterChange}
+        setSearchFilter={setSearchFilter}
+        hasFilter={hasFilter}
+        filterSheetOpen={filterSheetOpen}
+        openFilters={handleOpenFilters}
+        onRetry={fetchSupportTickets}
+        onClearFilters={handleClearFilters}
+        pagination={pagination}
+        sortConfig={sortConfig}
+        onSort={handleSort}
+        selectable={selectable}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onAssign={handleAssign}
+        onCreate={handleCreate}
+        activeActionFeedback={activeActionFeedback}
+        moduleRailItems={visibleModuleRail}
+        routingPath={routingPath}
+        onRailNavigate={handleRailNavigate}
+      />
+
+      {selectable && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          {canManageSupport && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              disabled={selectedIds.length === 0}
+              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96] disabled:opacity-40"
+              title="Delete selected"
+              aria-label={`Delete ${selectedIds.length} selected ticket${selectedIds.length === 1 ? '' : 's'}`}
             >
-              {loading && tickets.length === 0 && <SupportSkeletonRows />}
-              {!loading && supportError && tickets.length === 0 && (
-                <SupportEmptyState
-                  title="Support did not load"
-                  copy="Try again before treating the queue as clear."
-                  actionLabel="Try again"
-                  onAction={fetchSupportTickets}
-                />
-              )}
-              {!loading && !supportError && pagination.totalCount === 0 && (
-                <SupportEmptyState
-                  title="No support requests"
-                  copy="Create a request or adjust filters to review older support work."
-                  actionLabel={canCreate ? 'New ticket' : 'Clear filters'}
-                  onAction={canCreate ? handleCreate : handleClearFilters}
-                />
-              )}
-              {tickets.length > 0 && (
-                <LayoutGroup>
-                  <div className="space-y-2">
-                    {canManageSupport && (
-                      <SupportSelectAllBar
-                        allSelected={tickets.every((ticket) => selectedIds.includes(ticket.id))}
-                        selectedCount={selectedIds.length}
-                        onSelectAll={handleSelectAll}
-                      />
-                    )}
-                    {tickets.map((ticket, index) => (
-                      <SupportTicketRow
-                        key={ticket.id}
-                        ticket={ticket}
-                        selected={isFocused(ticket.id)}
-                        index={index}
-                        canEdit={canEditTicket(ticket)}
-                        canManage={canManageSupport}
-                        canAssign={canAssign}
-                        isChecked={selectedIds.includes(ticket.id)}
-                        onSelect={handleSelect}
-                        onFocus={() => setFocused(ticket.id)}
-                        onView={handleView}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onAssign={handleAssign}
-                        activeActionFeedback={activeActionFeedback}
-                      />
-                    ))}
-                  </div>
-                </LayoutGroup>
-              )}
-            </SupportActivitySheet>
-          </div>
-        </main>
-
-        <SupportDetailRail
-          ticket={focusedTicket}
-          loading={loading}
-          canEdit={focusedTicket ? canEditTicket(focusedTicket) : false}
-          canManage={canManageSupport}
-          canAssign={canAssign}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAssign={handleAssign}
-          onCreate={handleCreate}
-          canCreate={canCreate}
-          activeActionFeedback={activeActionFeedback}
-        />
-      </div>
-
-      <BulkActionBar selectedCount={selectedIds.length} onClear={() => setSelectedIds([])}>
-        {canManageSupport && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleBulkDelete}
-            className="h-10 w-10 rounded-button bg-destructive/15 text-destructive transition-[background,color,transform] hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96]"
-            title="Delete selected"
-            aria-label={`Delete ${selectedIds.length} selected ticket${selectedIds.length === 1 ? '' : 's'}`}
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        )}
-      </BulkActionBar>
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+        </BulkActionBar>
+      )}
 
       <SupportPageModals
         modalMode={modalMode}
@@ -881,203 +909,240 @@ export const SupportTicketsPage = () => {
           handleApplyFilters(next);
         }}
         analyticsModalOpen={analyticsModalOpen}
-          setAnalyticsModalOpen={setAnalyticsModalOpen}
-          analytics={analytics}
-          confirmationModal={confirmationModal}
-          onCloseConfirmation={closeConfirmation}
-          isMobile={isMobile}
-        />
+        setAnalyticsModalOpen={setAnalyticsModalOpen}
+        analytics={analytics}
+        confirmationModal={confirmationModal}
+        onCloseConfirmation={closeConfirmation}
+        isMobile={isMobile}
+      />
     </div>
   );
 };
 
-const SupportSignalPanel = ({ signal, stats, tickets, kpiFilter, setKpiFilter, loading }) => {
-  const SignalIcon = signal.icon;
+const SupportDesktopWorkspace = ({
+  items,
+  stats,
+  loading,
+  isFetching,
+  loadError,
+  isProviderOnly,
+  canCreate,
+  canManage,
+  canAssign,
+  canEditTicket,
+  assignPending,
+  focusedTicket,
+  setFocused,
+  filters,
+  kpiFilter,
+  setKpiFilter,
+  setSearchFilter,
+  hasFilter,
+  filterSheetOpen,
+  openFilters,
+  onRetry,
+  onClearFilters,
+  pagination,
+  sortConfig,
+  onSort,
+  selectable,
+  selectedIds,
+  allSelected,
+  someSelected,
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
+  onView,
+  onEdit,
+  onDelete,
+  onAssign,
+  onCreate,
+  activeActionFeedback,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+}) => {
+  const listScrollRef = useRef(null);
+  const failedEmpty = Boolean(loadError) && items.length === 0;
+  const hasAny = items.length > 0;
+  const signal = getSupportSignal({ stats, tickets: items, kpiFilter, isProviderOnly, loadError, hasAny });
+
+  useScrollResetOnPage(listScrollRef, pagination.currentPage);
+  const handleListKeyDown = useListKeyboardNav({
+    items,
+    focusedItem: focusedTicket,
+    setFocusedId: setFocused,
+    onOpen: onView,
+    scrollRef: listScrollRef,
+    rowAttr: 'data-support-row',
+  });
 
   return (
-    <section className="relative overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/42 md:p-6 xl:min-h-[540px]">
-      <div className="absolute inset-x-10 top-0 h-36 rounded-pill bg-primary/10 blur-3xl" />
-      <div className="relative z-10 flex h-full flex-col">
-        <div className={`mb-8 flex h-14 w-14 items-center justify-center rounded-button ${supportToneClass[signal.tone] || supportToneClass.primary}`}>
-          <SignalIcon className="h-6 w-6" />
-        </div>
-        <p className="text-sm font-medium text-muted-foreground">{signal.label}</p>
-        <h1 className="mt-3 max-w-[680px] break-words text-[clamp(2.15rem,4.4vw,4.9rem)] font-semibold leading-[0.98] text-foreground">
-          {loading ? 'Loading support' : signal.headline}
-        </h1>
-        <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-          {loading ? 'One moment while the support queue loads.' : signal.subhead}
-        </p>
-
-        <SupportStateStrip
-          stats={stats}
-          tickets={tickets}
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/support-tickets"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
+        <SupportDetailRail
+          ticket={focusedTicket}
           loading={loading}
+          hasFilter={hasFilter}
+          canEdit={focusedTicket ? canEditTicket(focusedTicket) : false}
+          canManage={canManage}
+          canAssign={canAssign}
+          canCreate={canCreate}
+          assignPending={assignPending}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAssign={onAssign}
+          onCreate={onCreate}
+        />
+      )}
+    >
+      <SignalPanel signal={signal} loading={loading} toneClassMap={supportToneClass}>
+        <KpiStrip
+          options={SUPPORT_KPI_OPTIONS}
+          getCount={(id) => getStateCount({ id, stats, tickets: items })}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
-        />
-
-        <div className="mt-auto grid gap-2 pt-8 sm:grid-cols-2">
-          <SupportSignalStat label="Active" value={normalizeCount(stats?.active)} tone="info" />
-          <SupportSignalStat label="Resolved" value={normalizeCount(stats?.resolved)} tone="clear" />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const SupportStateStrip = ({ stats, tickets, loading, kpiFilter, setKpiFilter }) => (
-  <div className="mt-8 grid grid-cols-2 gap-2 2xl:grid-cols-4">
-    {supportStateOptions.map((option) => {
-      const Icon = option.icon;
-      const selected = kpiFilter === option.id;
-      const count = getStateCount({ id: option.id, stats, tickets });
-
-      return (
-        <button
-          key={option.id}
-          type="button"
-          onClick={() => setKpiFilter(option.id)}
-          data-state={selected ? 'selected' : 'idle'}
-          aria-pressed={selected}
-          className={`min-h-[82px] rounded-inner p-3 text-left transition-[background,box-shadow,transform,color] duration-200 active:scale-[0.98] ${selected ? option.activeClass : option.restClass}`}
-        >
-          <span className="flex items-center justify-between gap-2">
-            <Icon className={`h-4 w-4 ${selected ? option.iconClass : 'text-muted-foreground'}`} />
-            <span className="text-2xl font-semibold">{loading ? '...' : count}</span>
-          </span>
-          <span className="mt-2 block text-sm font-medium">{option.label}</span>
-        </button>
-      );
-    })}
-  </div>
-);
-
-const SupportSignalStat = ({ label, value, tone }) => (
-  <div className={`rounded-inner p-4 ${supportToneClass[tone] || supportToneClass.muted}`}>
-    <p className="text-xs font-medium opacity-75">{label}</p>
-    <p className="mt-1 text-2xl font-semibold">{value}</p>
-  </div>
-);
-
-const SupportActivitySheet = ({
-  filters,
-  setFilters,
-  openFilters,
-  openAnalytics,
-  loading,
-  errorMessage,
-  onRetry,
-  pagination,
-  activeActionFeedback,
-  children,
-}) => {
-  const hasFilters = Boolean(filters?.search || filters?.kpiFilter !== 'all');
-
-  return (
-    <section className="rounded-sheet bg-card/72 p-3 shadow-[0_28px_90px_rgb(0_0_0/0.14)] backdrop-blur-2xl dark:bg-card/42 md:p-4 xl:min-h-[540px]">
-      <div className="flex flex-col gap-3 p-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">Support queue</p>
-          <h2 className="text-2xl font-semibold">
-            {loading ? 'Loading support' : `${pagination.totalCount} request${pagination.totalCount === 1 ? '' : 's'}`}
-          </h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative min-w-[220px] flex-1 md:w-[260px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
-            <input
-              type="search"
-              value={filters.search || ''}
-              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-              placeholder="Search support"
-              className="h-10 w-full rounded-button bg-muted/30 pl-9 pr-3 text-sm shadow-inner transition-[background,box-shadow] placeholder:text-muted-foreground/50 focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={openFilters}
-            data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
-            className="flex h-10 w-10 items-center justify-center rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
-            aria-label="Filter support"
-          >
-            <Filter className="h-4 w-4" />
-          </button>
-          {openAnalytics && (
-            <button
-              type="button"
-              onClick={openAnalytics}
-              data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
-              className="flex h-10 w-10 items-center justify-center rounded-button bg-primary/10 text-primary transition-[background,transform] hover:bg-primary/15 active:scale-[0.98]"
-              aria-label="Open support analytics"
-            >
-              <BarChart3 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {errorMessage && (
-        <div className="mx-2 mb-3 flex items-center justify-between rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_34px_rgba(245,158,11,0.12)] dark:text-amber-100">
-          <span className="text-sm">{errorMessage}</span>
-          <button type="button" onClick={onRetry} className="rounded-button bg-background/60 px-3 py-2 text-sm font-medium">
-            Retry
-          </button>
-        </div>
-      )}
-
-      <div className="min-h-[420px] rounded-card bg-background/45 p-2 shadow-inner dark:bg-black/10">
-        {children}
-      </div>
-
-      <div className="px-2 pt-3">
-        <PaginationControls
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          totalCount={pagination.totalCount}
-          itemsPerPage={pagination.itemsPerPage}
-          onPrevPage={pagination.prevPage}
-          onNextPage={pagination.nextPage}
-          hasPrevPage={pagination.hasPrevPage}
-          hasNextPage={pagination.hasNextPage}
           loading={loading}
+          isFetching={isFetching}
+          pinnedIds={PINNED_SUPPORT_KPI_IDS}
+          importance={SUPPORT_KPI_IMPORTANCE}
+          defaultId="all"
+          dataAttr="data-support-state"
         />
-      </div>
-    </section>
+      </SignalPanel>
+
+      <ActivitySheet
+        loading={loading}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={pagination}
+        itemNoun="requests"
+        toolbar={(
+          <SheetToolbar
+            searchValue={filters.search}
+            onSearchCommit={setSearchFilter}
+            searchPlaceholder="Search support by subject or message..."
+            searchTestId="support-sheet-search"
+            onRefresh={onRetry}
+            refreshing={isFetching}
+            refreshNoun="support"
+            onOpenFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasFilter}
+          />
+        )}
+      >
+        <div
+          ref={listScrollRef}
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          aria-label="Support list"
+          style={{ outline: 'none' }}
+          className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+        >
+          <SupportListHeader
+            selectable={selectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onSelectAll={onSelectAll}
+            sortConfig={sortConfig}
+            onSort={onSort}
+          />
+
+          {loading && <SkeletonRows />}
+
+          {!loading && loadError && items.length === 0 && (
+            <LoadErrorState title="Support did not load" message={loadError} onRetry={onRetry} />
+          )}
+
+          {!loading && !loadError && Number(pagination.totalCount) === 0 && (
+            <EmptyState
+              icon={Headphones}
+              heading={hasFilter ? 'No matching requests' : (SUPPORT_EMPTY_HEADINGS[kpiFilter] || 'No support requests')}
+              body={hasFilter ? 'Change filters or search again.' : 'Support requests for this scope will appear here.'}
+            >
+              {hasFilter ? (
+                <Button
+                  variant="ghost"
+                  onClick={onClearFilters}
+                  className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                >
+                  Show all requests
+                </Button>
+              ) : (canCreate && (
+                <Button
+                  onClick={onCreate}
+                  className="rounded-pill bg-foreground px-5 font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  New ticket
+                </Button>
+              ))}
+            </EmptyState>
+          )}
+
+          {!loading && items.length > 0 && items.map((ticket) => (
+            <SupportTicketRow
+              key={ticket.id}
+              ticket={ticket}
+              selected={focusedTicket?.id === ticket.id}
+              canEdit={canEditTicket(ticket)}
+              canManage={canManage}
+              canAssign={canAssign}
+              selectable={selectable}
+              checked={selectedIds.includes(ticket.id)}
+              onToggleSelect={onToggleSelect}
+              onSelectClick={onSelectClick}
+              onFocus={() => setFocused(ticket.id)}
+              onView={onView}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAssign={onAssign}
+              activeActionFeedback={activeActionFeedback}
+            />
+          ))}
+        </div>
+      </ActivitySheet>
+    </WorkspaceStage>
   );
 };
 
-const SupportSelectAllBar = ({ allSelected, selectedCount, onSelectAll }) => (
-  <div className="flex items-center justify-between px-2 py-1">
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={allSelected}
-      onClick={() => onSelectAll(!allSelected)}
-      className="flex items-center gap-2 rounded-button px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
-    >
-      <span className={`flex h-5 w-5 items-center justify-center rounded-icon transition-colors ${allSelected ? 'bg-primary text-primary-foreground' : 'bg-muted/40 text-transparent'}`}>
-        <Check className="h-3 w-3" />
-      </span>
-      Select all
-    </button>
-    {selectedCount > 0 && (
-      <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-        {selectedCount} selected
-      </span>
+const SupportListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
+  <div className={`grid ${selectable ? SUPPORT_GRID_COLS_SELECT : SUPPORT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all tickets'}
+        className="h-4 w-4"
+      />
     )}
+    {/* Request / Status / Priority are plain labels -- only Updated (updated_at) is a
+        meaningful sort; status/priority/category belong in the FilterSheet (TIME-only sort). */}
+    <span>Request</span>
+    <span>Status</span>
+    <span>Priority</span>
+    <SortableColumnHeader label="Updated" sortKey="updated_at" sortConfig={sortConfig} onSort={onSort} />
+    <span className="justify-self-end text-right">Action</span>
   </div>
 );
 
 const SupportTicketRow = ({
   ticket,
   selected,
-  index,
   canEdit,
   canManage,
   canAssign,
-  isChecked,
-  onSelect,
+  selectable = false,
+  checked = false,
+  onToggleSelect,
+  onSelectClick,
   onFocus,
   onView,
   onEdit,
@@ -1085,234 +1150,256 @@ const SupportTicketRow = ({
   onAssign,
   activeActionFeedback,
 }) => {
-  const statusOption = STATUSES.find((item) => item.value === ticket.status) || STATUSES[0];
-  const priority = PRIORITIES.find((item) => item.value === ticket.priority) || PRIORITIES[1];
-  const rowTone = ticket.status === 'resolved' || ticket.status === 'closed'
-    ? supportToneClass.clear
-    : ticket.status === 'in_progress'
-      ? supportToneClass.info
-      : supportToneClass.warning;
+  const statusMeta = getStatusMeta(ticket.status);
+  const priorityMeta = getPriorityMeta(ticket.priority);
+  const title = ticket.subject || 'Untitled request';
 
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.025, 0.2) }}
-      role="button"
-      tabIndex={0}
-      onClick={onFocus}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onFocus();
-        }
-      }}
-      data-state={selected ? 'selected' : 'idle'}
-      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_auto] items-center gap-3 rounded-card px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+    <ListRowShell
+      id={ticket.id}
+      dataAttrName="data-support-row"
+      gridCols={selectable ? SUPPORT_GRID_COLS_SELECT : SUPPORT_GRID_COLS}
+      selected={selected}
+      onFocus={onFocus}
+      onOpen={() => onView(ticket)}
     >
-      <div className="min-w-0">
-        <div className="flex items-center gap-3">
-          {canManage && (
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={isChecked}
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelect?.(ticket.id, !isChecked);
-              }}
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-icon transition-colors ${isChecked ? 'bg-primary text-primary-foreground' : 'bg-muted/40 text-transparent hover:bg-muted/60'}`}
-              aria-label={isChecked ? `Deselect ${ticket.subject}` : `Select ${ticket.subject}`}
-            >
-              <Check className="h-3 w-3" />
-            </button>
-          )}
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-button ${rowTone}`}>
-            <MessageSquare className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-foreground">{ticket.subject}</h3>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{ticket.message || 'No message added'}</p>
-          </div>
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(ticket.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect ${title}` : `Select ${title}`}
+          className="h-4 w-4"
+        />
+      )}
+
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusMeta.tone}`}>
+          <MessageSquare className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold text-foreground" title={title}>{title}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground" title={ticket.message || undefined}>{ticket.message || 'No message added'}</div>
         </div>
       </div>
-      <span className="rounded-pill bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
-        {statusOption.label}
-      </span>
-      <span className="rounded-pill bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
-        {priority.label}
-      </span>
-      <div className="flex justify-end gap-1">
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onView(ticket);
-          }}
+
+      <div className="min-w-0">
+        <StatusPill label={statusMeta.label} className={statusMeta.tone} compact />
+      </div>
+
+      <div className="min-w-0">
+        <StatusPill label={priorityMeta.label} icon={Flag} className={priorityMeta.tone} compact />
+      </div>
+
+      <div className="text-sm font-medium text-muted-foreground">{formatDate(ticket.updated_at || ticket.created_at)}</div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(event) => { event.stopPropagation(); onView(ticket); }}
           data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
-          className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
-          aria-label={`View ${ticket.subject}`}
+          className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+          aria-label={`View ${title}`}
         >
           <Eye className="h-4 w-4" />
-        </button>
+        </Button>
         {canAssign && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAssign(ticket);
-            }}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(event) => { event.stopPropagation(); onAssign(ticket); }}
             data-state={activeActionFeedback === `assign-${ticket.id}` ? 'opening' : 'idle'}
-            className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
-            aria-label={`Assign ${ticket.subject} to me`}
+            className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+            aria-label={`Assign ${title} to me`}
           >
             <UserPlus className="h-4 w-4" />
-          </button>
+          </Button>
         )}
         {canEdit && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit(ticket);
-            }}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(event) => { event.stopPropagation(); onEdit(ticket); }}
             data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
-            className="flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
-            aria-label={`Edit ${ticket.subject}`}
+            className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+            aria-label={`Edit ${title}`}
           >
             <Edit className="h-4 w-4" />
-          </button>
+          </Button>
         )}
         {canManage && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(ticket);
-            }}
-            className="flex h-9 w-9 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-[background,color,transform] hover:bg-destructive/20 active:scale-[0.96]"
-            aria-label={`Delete ${ticket.subject}`}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(event) => { event.stopPropagation(); onDelete(ticket); }}
+            className="h-8 w-8 rounded-pill bg-destructive/10 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-95"
+            aria-label={`Delete ${title}`}
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
-    </motion.article>
+    </ListRowShell>
   );
 };
 
-const SupportDetailRail = ({ ticket, loading, canEdit, canManage, canAssign, onView, onEdit, onDelete, onAssign, onCreate, canCreate, activeActionFeedback }) => (
-  <aside className="hidden w-[340px] shrink-0 2xl:block">
-    <div className="sticky top-5 rounded-sheet bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.15)] backdrop-blur-2xl dark:bg-card/42">
-      <p className="text-sm font-medium text-muted-foreground">Focused request</p>
-      {loading && !ticket ? (
-        <div className="mt-5">
-          <TableSkeleton rows={4} />
+const RailActionButton = ({ icon: Icon, label, onClick, disabled = false, spinning = false }) => (
+  <Button
+    variant="ghost"
+    disabled={disabled}
+    className="h-11 w-full rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98] disabled:opacity-60"
+    onClick={onClick}
+  >
+    {spinning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4 text-muted-foreground" />}
+    {label}
+  </Button>
+);
+
+const SupportDetailRail = ({ ticket, loading, hasFilter, canEdit, canManage, canAssign, canCreate, assignPending, onView, onEdit, onDelete, onAssign, onCreate }) => {
+  if (loading && !ticket) {
+    return (
+      <DetailRailShell>
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Shimmer className="h-6 w-36 rounded-inner" />
+            <Shimmer className="h-6 w-24 rounded-pill" />
+          </div>
+          <Shimmer className="h-9 w-9 rounded-pill" />
         </div>
-      ) : ticket ? (
-        <>
-          <h2 className="mt-3 text-2xl font-semibold leading-tight">{ticket.subject}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">{ticket.message || 'No message was added.'}</p>
-          <div className="mt-5 space-y-2">
-            <SupportDetailFact label="Status" value={titleCase(ticket.status || 'open')} />
-            <SupportDetailFact label="Priority" value={titleCase(ticket.priority || 'normal')} />
-            <SupportDetailFact label="Category" value={titleCase(ticket.category || 'general')} />
-            <SupportDetailFact label="Created" value={ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'Not available'} />
-          </div>
-          <div className="mt-6 space-y-2">
-            <Button
-              type="button"
-              onClick={() => onView(ticket)}
-              data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
-              className="h-11 w-full rounded-button text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
-            >
-              View details
-            </Button>
-            {canEdit && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onEdit(ticket)}
-                data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
-                className="h-11 w-full rounded-button bg-muted/36 text-sm font-semibold hover:bg-muted/50"
-              >
-                Edit request
-              </Button>
-            )}
-            {canAssign && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onAssign(ticket)}
-                data-state={activeActionFeedback === `assign-${ticket.id}` ? 'opening' : 'idle'}
-                className="h-11 w-full rounded-button bg-primary/10 text-sm font-semibold text-primary hover:bg-primary/15"
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Assign to me
-              </Button>
-            )}
-            {canManage && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onDelete(ticket)}
-                className="h-11 w-full rounded-button bg-destructive/10 text-sm font-semibold text-destructive hover:bg-destructive/20"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete request
-              </Button>
-            )}
-          </div>
-          <p className="mt-5 rounded-inner bg-muted/24 p-3 text-xs leading-5 text-muted-foreground">
-            Status transitions stay backend-owned; the actions above are the proved support commands.
+        <div className="mb-5 space-y-2">
+          <Shimmer className="h-5 w-2/3 rounded-inner" />
+          <Shimmer className="h-4 w-1/2 rounded-inner" />
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (<Shimmer key={i} className="h-[52px] w-full rounded-inner" />))}
+        </div>
+      </DetailRailShell>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <DetailRailShell>
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Headphones className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No request selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            {hasFilter ? 'Requests that match your filters will appear here.' : 'Select a request to see its details here.'}
           </p>
-        </>
-      ) : (
-        <>
-          <h2 className="mt-3 text-2xl font-semibold">No request selected</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">Create a support request or change filters.</p>
           {canCreate && (
-            <Button type="button" onClick={onCreate} className="mt-5 h-11 w-full rounded-button text-sm font-semibold">
+            <Button
+              onClick={onCreate}
+              className="mt-5 h-11 rounded-button bg-foreground px-5 text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               New ticket
             </Button>
           )}
-        </>
-      )}
-    </div>
-  </aside>
-);
+        </div>
+      </DetailRailShell>
+    );
+  }
 
-const SupportDetailFact = ({ label, value }) => (
-  <div className="flex items-center justify-between rounded-inner bg-muted/24 px-3 py-2">
-    <span className="text-xs text-muted-foreground">{label}</span>
-    <span className="max-w-[170px] truncate text-sm font-medium text-foreground">{value}</span>
-  </div>
-);
+  const statusMeta = getStatusMeta(ticket.status);
+  const priorityMeta = getPriorityMeta(ticket.priority);
+  const displayId = ticket.display_id || (ticket.id ? `Request ${String(ticket.id).slice(0, 8)}` : null);
 
-const SupportSkeletonRows = () => (
-  <div className="space-y-2">
-    {[0, 1, 2, 3].map((item) => (
-      <div key={item} className="h-[88px] animate-pulse rounded-card bg-muted/26" />
-    ))}
-  </div>
-);
+  return (
+    <DetailRailShell>
+      <RailInsetHero>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold tracking-tight">Request details</h2>
+            {displayId && (
+              <div className="mt-1 flex min-w-0 items-center gap-1">
+                <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={displayId}>{displayId}</p>
+                <CopyChip value={displayId} label="Copy ticket ID" />
+              </div>
+            )}
+            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusMeta.tone}`}>
+              <Headphones className="h-3.5 w-3.5" />
+              {statusMeta.label}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+            onClick={() => onView(ticket)}
+            aria-label="Open full request details"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+        </div>
 
-const SupportEmptyState = ({ title, copy, actionLabel, onAction }) => (
-  <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-    <div className="flex h-14 w-14 items-center justify-center rounded-button bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
-      <Headphones className="h-6 w-6" />
-    </div>
-    <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
-    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
-    {onAction && (
-      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-button px-4 text-sm font-semibold">
-        <RefreshCw className="mr-2 h-4 w-4" />
-        {actionLabel}
-      </Button>
-    )}
-  </div>
-);
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold" title={ticket.subject || 'Untitled request'}>{ticket.subject || 'Untitled request'}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{ticket.message || 'No message was added.'}</p>
+        </div>
+      </RailInsetHero>
+
+      <div className="space-y-2">
+        <DetailLine icon={AlertCircle} label="Status" value={statusMeta.label} />
+        <DetailLine icon={Flag} label="Priority" value={priorityMeta.label} />
+        <DetailLine icon={Tag} label="Category" value={titleCase(ticket.category || 'general')} />
+        <DetailLine icon={Clock} label="Created" value={formatDate(ticket.created_at)} />
+        <DetailLine icon={Clock} label="Updated" value={formatDate(ticket.updated_at || ticket.created_at)} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(ticket)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        {(canEdit || canAssign) && (
+          <div className={`grid gap-3 ${canEdit && canAssign ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {canEdit && <RailActionButton icon={Edit} label="Edit" onClick={() => onEdit(ticket)} />}
+            {canAssign && (
+              <RailActionButton
+                icon={UserPlus}
+                label="Assign to me"
+                onClick={() => onAssign(ticket)}
+                disabled={assignPending}
+                spinning={assignPending}
+              />
+            )}
+          </div>
+        )}
+
+        {canManage && (
+          <Button
+            variant="ghost"
+            className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
+            onClick={() => onDelete(ticket)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete request
+          </Button>
+        )}
+
+        {/* Status transitions stay backend-owned (fail-closed by design): the console never
+            resolves/closes a ticket the app cannot reconcile. The actions above are the
+            proved support commands. */}
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground"
+        >
+          <Info className="h-4 w-4 shrink-0" />
+          Status transitions stay backend-owned; the actions above are the proved support commands.
+        </div>
+      </div>
+    </DetailRailShell>
+  );
+};
 
 const SupportPageModals = ({
   modalMode,
