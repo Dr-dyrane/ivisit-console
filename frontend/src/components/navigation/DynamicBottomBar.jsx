@@ -239,18 +239,20 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Ambulances (user arbitration 2026-07-10): unit create is fail-closed, so — like
-    // Hospitals — the FAB does the domain's REAL adjacent work. Data-sync-guided scope:
-    // the ambulances page is about the FLEET, and the providers queue is role='provider'
-    // (doctors + drivers), so the FAB scopes to provider_type='driver' via ?type=driver
-    // — "Driver approvals" now shows DRIVERS, honest to the data. Non-duplicating (the
-    // dock carries Map); gate derived from /verification RBAC.
-    if (pathname.startsWith('/ambulances') && canReachRoute(userRole, '/verification')) {
+    // Ambulances (/ambulances): the FAB mirrors the desktop's primary CTA — the LIVE "Add unit"
+    // create. Ambulances is a WRITE-CAPABLE table ("Org Admins manage ambulances" = ALL,
+    // live-verified — AmbulancesPage.jsx:318): CREATE + EDIT are legitimate for admin/org_admin,
+    // NOT fail-closed (only delete/dispatch/status/location stay gated). The earlier "unit create
+    // is fail-closed" arbitration was built on a FALSE premise and routed create away — corrected
+    // 2026-07-10. Dispatches 'openAmbulanceModal' → AmbulancesPage's own listener → handleCreate →
+    // AmbulanceModal (rendered on the mobile branch too), so a mobile admin creates a unit exactly
+    // like on desktop. Gate = canReachRoute('/ambulances') (= canManageFleet, the create authority).
+    if (pathname.startsWith('/ambulances') && canReachRoute(userRole, '/ambulances')) {
         return {
-            icon: FileCheck,
-            label: 'Driver approvals',
+            icon: Plus,
+            label: 'Add unit',
             color: 'staff',
-            to: '/verification?queue=providers&type=driver',
+            action: () => window.dispatchEvent(new CustomEvent('openAmbulanceModal'))
         };
     }
 

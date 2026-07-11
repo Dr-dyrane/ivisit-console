@@ -253,18 +253,20 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain("orphanLabel: 'Unassigned'");
     expect(mobile).toContain("type: 'coarse-recency'");
     expect(mobile).toContain('formatRelativeTime(ambulance.updated_at)');
-    // Dock/FAB grammar (user arbitration 2026-07-10): /ambulances is in routeOwnsAction,
-    // so it MUST carry a route-owned FAB or the dock collapses to a lone pill. The FAB
-    // does real adjacent work — driver approvals — parallel to the Hospitals FAB.
+    // Dock/FAB grammar (corrected 2026-07-10): /ambulances is in routeOwnsAction, so it MUST
+    // carry a route-owned FAB or the dock collapses to a lone pill. The FAB MIRRORS the desktop's
+    // primary CTA — the LIVE "Add unit" create (ambulances is write-capable: CREATE + EDIT are
+    // legitimate for admin/org_admin, AmbulancesPage.jsx:318). The earlier "Driver approvals" FAB
+    // was built on a FALSE "unit create is fail-closed" premise and is retired.
     const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
-    // RBAC (2026-07-10 audit): the to:-FAB gate is DERIVED from the destination route
-    // (canReachRoute), not a hand-kept role list, so it can't drift from /verification's
-    // minRole. Data-sync scope: ?type=driver filters the providers queue to drivers so
-    // "Driver approvals" is honest to the fleet.
-    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && canReachRoute(userRole, '/verification')");
-    expect(bottomBar).toContain("label: 'Driver approvals'");
-    expect(bottomBar).toContain("to: '/verification?queue=providers&type=driver'");
+    // RBAC: the gate is DERIVED from the route (canReachRoute('/ambulances') = canManageFleet,
+    // the create authority), not a hand-kept role list. Dispatches the page's own create listener.
+    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && canReachRoute(userRole, '/ambulances')");
+    expect(bottomBar).toContain("label: 'Add unit'");
+    expect(bottomBar).toContain("action: () => window.dispatchEvent(new CustomEvent('openAmbulanceModal'))");
     expect(bottomBar).toContain('const canReachRoute =');
+    // The retired FALSE-premise FAB must not resurface.
+    expect(bottomBar).not.toContain("label: 'Driver approvals'");
     // The /doctors FAB RBAC gap is closed (was ungated).
     expect(bottomBar).toContain("pathname.startsWith('/doctors') && ['org_admin', 'admin'].includes(userRole)");
     expect(mobile).not.toContain('Fleet signals');
