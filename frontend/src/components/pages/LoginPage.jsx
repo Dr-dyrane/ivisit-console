@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -33,6 +33,7 @@ export const LoginPage = () => {
 	const [step, setStep] = useState("email"); // email | password | options
 	const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 	const [isLoading, setIsLoading] = useState(false);
+	const submitLockRef = useRef(false);
 
 	// Form State
 	const [email, setEmail] = useState("");
@@ -61,6 +62,8 @@ export const LoginPage = () => {
 
 	const handleEmailSubmit = async (e) => {
 		e.preventDefault();
+		if (submitLockRef.current) return;
+		submitLockRef.current = true;
 		setError("");
 		setIsLoading(true);
 
@@ -128,6 +131,7 @@ export const LoginPage = () => {
 			// otherwise we keep it loading while transitioning? 
 			// Actually we need to unset it so the transition happens cleanly.
 			setIsLoading(false);
+			submitLockRef.current = false;
 		}
 	};
 
@@ -138,6 +142,8 @@ export const LoginPage = () => {
 
 	const handlePasswordSubmit = async (e) => {
 		e.preventDefault();
+		if (submitLockRef.current) return;
+		submitLockRef.current = true;
 		setError("");
 		setIsLoading(true);
 		setMfaFactorId(null);
@@ -183,11 +189,14 @@ export const LoginPage = () => {
 			toast.error("Authentication Failed");
 		} finally {
 			setIsLoading(false);
+			submitLockRef.current = false;
 		}
 	};
 
 	const handle2FASubmit = async (e) => {
 		e.preventDefault();
+		if (submitLockRef.current) return;
+		submitLockRef.current = true;
 		setError("");
 		setIsLoading(true);
 		const normalizedMfaCode = mfaCode.trim();
@@ -195,6 +204,7 @@ export const LoginPage = () => {
 		if (normalizedMfaCode.length !== 6) {
 			setError("Enter the 6-digit code.");
 			setIsLoading(false);
+			submitLockRef.current = false;
 			return;
 		}
 
@@ -207,6 +217,7 @@ export const LoginPage = () => {
 			setError("Security check expired. Sign in again.");
 			toast.error("Security check expired. Sign in again.");
 			setIsLoading(false);
+			submitLockRef.current = false;
 			return;
 		}
 
@@ -227,6 +238,7 @@ export const LoginPage = () => {
 			toast.error("Verification Failed");
 		} finally {
 			setIsLoading(false);
+			submitLockRef.current = false;
 		}
 	}
 
@@ -373,6 +385,8 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
+											aria-busy={isLoading}
+											data-state={isLoading ? "pending" : "ready"}
 											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
 										>
 											{isLoading ? (
@@ -505,6 +519,8 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
+											aria-busy={isLoading}
+											data-state={isLoading ? "pending" : "ready"}
 											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (
@@ -597,6 +613,8 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading || mfaCode.length !== 6}
+											aria-busy={isLoading}
+											data-state={isLoading ? "pending" : "ready"}
 											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (

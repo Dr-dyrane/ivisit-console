@@ -22,10 +22,10 @@ const normalizeSearch = (value = '') => String(value || '').trim().toLowerCase()
 
 const getPricingRowUpdatedAt = (row) => row.updated_at || row.created_at || null;
 
-const sortPricingRows = (a, b) => {
+const sortPricingRows = (a, b, direction = 'desc') => {
     const dateA = new Date(getPricingRowUpdatedAt(a) || 0).getTime();
     const dateB = new Date(getPricingRowUpdatedAt(b) || 0).getTime();
-    return dateB - dateA;
+    return direction === 'asc' ? dateA - dateB : dateB - dateA;
 };
 
 const normalizePricingRow = (row, family, hospitalMap) => {
@@ -96,6 +96,7 @@ export const getPricingPageData = async ({
     organizationId = null,
     search = '',
     scope = 'all',
+    sortDirection = 'desc',
     page = 1,
     pageSize = 12,
 } = {}) => {
@@ -129,7 +130,7 @@ export const getPricingPageData = async ({
         .filter((row) => !organizationId || !row.hospitalId || row.organizationId === organizationId)
         .filter((row) => matchesPricingScope(row, scope))
         .filter((row) => matchesPricingSearch(row, searchTerm))
-        .sort(sortPricingRows);
+        .sort((a, b) => sortPricingRows(a, b, sortDirection));
 
     const start = (safePage - 1) * safePageSize;
     const rows = scopedRows.slice(start, start + safePageSize);

@@ -302,11 +302,11 @@ describe('Users Page 14 admitted-to-canon contract', () => {
     expect(getPageDataStartupDomainsForRole('admin', '/users')).toEqual([]);
     expect(pageDataAccess).toContain("pathname === '/users'");
     expect(contextPanel).toContain("window.addEventListener('usersRouteContextUpdated', handleUsersRouteContext)");
-    expect(contextPanel).toContain('users={usersRouteContext?.users || []}');
-    expect(contextPanel).toContain('fetchRecentActivity={false}');
+    expect(contextPanel).toContain('<UsersPanel usersContext={usersRouteContext} />');
+    expect(usersPanel).toContain('export const UsersPanel = ({ usersContext }) =>');
+    expect(usersPanel).toContain('const context = usersContext || {};');
     expect(contextPanel).not.toContain('users={userData?.users || []}');
-    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('openUserModal'))");
-    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('openInviteUserModal'))");
+    expect(usersPanel).toContain("window.dispatchEvent(new CustomEvent('openInviteUserModal'))");
     expect(contextAction).toContain("label: 'Add user'");
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openUserModal'))");
     expect(contextFab).toContain("location.pathname.startsWith('/users')");

@@ -92,6 +92,10 @@ describe('Login Page 19 admission contract', () => {
     expect(page).not.toContain('usePageHeader');
     expect(page).not.toContain('usePageShell');
     expect(page).not.toContain('ContextPanel');
+    expect(page).toContain('const submitLockRef = useRef(false);');
+    expect(page).toContain('if (submitLockRef.current) return;');
+    expect(page).toContain('aria-busy={isLoading}');
+    expect(page).toContain('data-state={isLoading ? "pending" : "ready"}');
   });
 
   it('holds the Login surface to the squircle canon with no decorative or brand-red chrome', () => {

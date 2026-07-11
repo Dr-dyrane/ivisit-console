@@ -644,6 +644,30 @@ export const Analytics = () => {
     hasMinRole
   }), [isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin, hasMinRole]);
 
+  const analyticsRouteContext = useMemo(() => ({
+    stats,
+    timeRange,
+    loading,
+    error: analyticsLoadError,
+    sourceIssueSummary: visibleAnalyticsSourceIssueSummary,
+    subscriptionStats: resolvedSubscriptionStats,
+    subscriptionScopeLabel,
+    financeSummary,
+    financeScopeLabel,
+    hospitalCapacity: resolvedHospitalCapacity,
+    hasFinanceData,
+    roleContext,
+    canExport: false,
+  }), [analyticsLoadError, financeScopeLabel, financeSummary, hasFinanceData, loading, resolvedHospitalCapacity, resolvedSubscriptionStats, roleContext, stats, subscriptionScopeLabel, timeRange, visibleAnalyticsSourceIssueSummary]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const publishAnalyticsRouteContext = () => window.dispatchEvent(new CustomEvent('analyticsRouteContextUpdated', { detail: analyticsRouteContext }));
+    publishAnalyticsRouteContext();
+    window.addEventListener('requestAnalyticsRouteContext', publishAnalyticsRouteContext);
+    return () => window.removeEventListener('requestAnalyticsRouteContext', publishAnalyticsRouteContext);
+  }, [analyticsRouteContext]);
+
   if (isMobile && loading) {
     return <MobileAnalyticsSkeleton />;
   }

@@ -267,6 +267,7 @@ export const MobileEmergency = ({
     analyticsOpen = false,
     hasMore,
     onLoadMore,
+    currentPage = 1,
     loadError,
     onRetry,
     kpiFilter,
@@ -292,7 +293,20 @@ export const MobileEmergency = ({
     // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
     const warmingUp = useSkeletonWarmup();
-    const { displayItems } = useStableList(emergencies, loading);
+    // Server pagination returns one offset window at a time. Keep an id-keyed mobile
+    // accumulator so page 2 appends instead of replacing page 1; page 1 replaces the
+    // accumulator after filter/search reset.
+    const accumulatorRef = useRef([]);
+    if (!loading && Array.isArray(emergencies)) {
+        if (currentPage <= 1) {
+            accumulatorRef.current = emergencies;
+        } else {
+            const byId = new Map(accumulatorRef.current.map((item) => [item.id, item]));
+            emergencies.forEach((item) => byId.set(item.id, item));
+            accumulatorRef.current = Array.from(byId.values());
+        }
+    }
+    const { displayItems } = useStableList(accumulatorRef.current, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
     // Skeleton while warming up OR while the first real fetch is still pending.
     // When it clears, the whole list swaps in a single commit — no top-to-bottom assemble.

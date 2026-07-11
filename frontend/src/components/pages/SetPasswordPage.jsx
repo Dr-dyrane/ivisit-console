@@ -13,6 +13,7 @@ export const SetPasswordPage = () => {
     const navigate = useNavigate();
     const isMountedRef = useRef(true);
     const redirectTimerRef = useRef(null);
+    const submitLockRef = useRef(false);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -64,9 +65,13 @@ export const SetPasswordPage = () => {
     const handleSetPassword = async (e) => {
         e.preventDefault();
 
+        if (submitLockRef.current) return;
+        submitLockRef.current = true;
+
         if (!sessionVerified) {
             setRecoveryStatus('missing');
             toast.error("Open the latest password link and try again.");
+            submitLockRef.current = false;
             return;
         }
 
@@ -108,6 +113,7 @@ export const SetPasswordPage = () => {
             if (isMountedRef.current) {
                 setLoading(false);
             }
+            submitLockRef.current = false;
         }
     };
 
@@ -193,6 +199,8 @@ export const SetPasswordPage = () => {
                             <button
                                 type="submit"
                                 disabled={loading || !sessionVerified}
+                                aria-busy={loading}
+                                data-state={loading ? 'pending' : sessionVerified ? 'ready' : 'unavailable'}
                                 className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
                             >
                                 {loading ? (

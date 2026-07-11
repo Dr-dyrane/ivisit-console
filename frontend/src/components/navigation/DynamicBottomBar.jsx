@@ -301,6 +301,18 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
+    // Organizations (/organizations): mirror the desktop primary CTA. Organization writes are
+    // fail-closed until command authority is proved, so the page-owned event surfaces the same
+    // honest unavailable feedback on both layouts; the dock never substitutes a filter action.
+    if (pathname.startsWith('/organizations') && canReachRoute(userRole, '/organizations')) {
+        return {
+            icon: Plus,
+            label: 'Add organization',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openOrganizationModal'))
+        };
+    }
+
     // Health News (/health-news): the FAB mirrors the desktop's primary CTA -- the gated "New
     // article" button surfaced to management roles. Content authoring is FAIL-CLOSED at the write
     // layer (handleCreateUnavailable toasts "unavailable until the published feed writer is

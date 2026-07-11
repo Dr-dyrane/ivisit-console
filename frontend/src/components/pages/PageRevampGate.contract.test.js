@@ -223,14 +223,14 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Ambulances is Page 9 and is now admitted for guarded continuation');
     expect(gate).toContain('Support is Page 10 and is now admitted for guarded continuation');
     expect(gate).toContain('Health News | `/health-news` | Admitted for guarded read-only continuation after source, schema/RLS authoring block, shared shell, context-panel, read-only modal, mobile hooks, shared filter semantics, hardgate, build, and responsive Browser proof completed 2026-07-03. It is not a new global pattern source and does not admit content authoring.');
-    expect(gate).toContain('Insurance has entered Page 12 intake audit only. It is not admitted and no visual revamp is authorized until remaining admin policy command authority, billing exception authority, Storage evidence, and rendered proof blockers are closed.');
-    expect(gate).toContain('policy command recertification keeps Console create/edit/delete/status/verify exports fail-closed, and legacy policy adapter plus legacy service/hook reads now fail closed.');
-    expect(gate).toContain('Analytics is Page 13 intake audit only. It is not admitted and no visual revamp, report/export enablement, shared Requests pattern reuse, or hardgate promotion is authorized until actor-scoped analytics projection, export scope, degraded states, and source ownership are proved.');
+    expect(gate).toContain('Insurance Page 12 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending.');
+    expect(gate).toContain('first policy command recertification kept create/edit/delete/status/verify exports fail-closed; legacy policy adapter reads/realtime/coverage helpers and legacy service/hook list/detail reads now fail closed.');
+    expect(gate).toContain('Analytics Page 13 guarded source parity was completed on 2026-07-11 as a role-scoped dashboard composition.');
     expect(gate).toContain('Users is Page 14 intake audit only. It is not admitted and no visual revamp, invite/role/delete enablement, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until identity projection, invite receiver, role mutation, destructive command, and mobile metric blockers are closed.');
-    expect(gate).toContain('Organizations is Page 15 intake audit only. It is not admitted and no visual revamp, organization create/edit/delete enablement, wallet/billing metric promotion, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until organization identity, wallet scope, command authority, PageData quieting, and mobile metric blockers are closed.');
-    expect(gate).toContain('Settings is Page 16 intake audit only. It is not admitted and no visual revamp, profile/security/support/billing enablement, provider self-service promotion, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until own-user settings projection, Auth adapter, preference, billing, support handoff, and provider profile blockers are closed.');
-    expect(gate).toContain('Subscriptions is Page 17: the VISUAL-ONLY Requests-canon pass is applied to `MobileSubscriptions.jsx` (presentation only, no mutation added), but it remains command/backend intake only and is not admitted. Subscriber edit/delete/status/type, welcome/custom/bulk email send, export, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is not authorized until subscriber projection, email lifecycle, hidden shell acquisition, paid/billing semantics, and delivery-consequence blockers are closed.');
-    expect(gate).toContain('Pricing is Page 18 intake audit only. It is not admitted and no visual revamp, price create/edit/delete/bulk delete, org-wide pricing save, context-panel command promotion, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until facility scope, pricing source owner, command authority, quote consequence, PageData/shell boundaries, and selected-hospital app quote blockers are closed.');
+    expect(gate).toContain('Organizations Page 15 source parity was completed on 2026-07-11 with a canonical desktop workspace');
+    expect(gate).toContain('Settings Page 16 guarded source parity was completed on 2026-07-11 as an own-account dashboard.');
+    expect(gate).toContain('Subscriptions Page 17 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending.');
+    expect(gate).toContain('Pricing Page 18 source parity was completed on 2026-07-11 as a read-only pricing registry.');
     expect(gate).toContain('Login is Page 19 and its public-auth visual surface is admitted for guarded continuation only (`LoginPage.jsx`). It is not a Requests multi-data pattern source. No auth-flow rewrite, auth copy rewrite, OAuth/reset/MFA promotion, or Requests pattern reuse is authorized until Auth receiver ownership, Edge `check-user` deployment truth, redirect/deep-link behavior, session/onboarding redirects, MFA factor/challenge state, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Set Password is Page 20 and its public-recovery visual surface is admitted for guarded continuation only (`SetPasswordPage.jsx`). It is not a Requests multi-data pattern source. No recovery-flow rewrite, recovery copy rewrite, Auth update promotion, or Requests pattern reuse is authorized until recovery-session truth, password update receiver ownership, invalid/expired-link handling, redirect behavior, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Onboarding is Page 21 and its public-registration visual surface is admitted for guarded continuation only (the route shell `OnboardingPage.jsx`, the wizard `OnboardingWizard.jsx`, and the five step components). It is not a Requests multi-data pattern source. No registration-flow rewrite, registration copy rewrite, account/org/facility creation promotion, document upload promotion, or Requests pattern reuse is authorized until admin account receiver ownership, organization/hospital identity, existing-facility claim behavior, Storage evidence, wallet/verification consequence, and rendered public-flow proof blockers are closed.');
@@ -618,9 +618,14 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Insurance is Page 12 intake only. It is not admitted, not a reusable pattern source, and not ready for visual implementation.');
     [
       'src/components/pages/InsuranceManagementPage.jsx',
+      'src/components/pages/insurance/InsuranceDesktopWorkspace.jsx',
       'src/components/mobile/MobileInsurance.jsx',
       'src/components/context/InsurancePanel.jsx',
       'src/components/modals/InsuranceModal.jsx',
+    ].forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
+    [
       'src/components/views/InsuranceListView.jsx',
       'src/components/views/InsuranceTableView.jsx',
     ].forEach((file) => {
@@ -667,8 +672,6 @@ describe('Today/Requests revamp gate contract', () => {
       'src/components/pages/Analytics.jsx',
       'src/components/mobile/MobileAnalytics.jsx',
       'src/components/context/AnalyticsPanel.jsx',
-      'src/components/mobile/MobileUsers.jsx',
-      'src/components/context/UsersPanel.jsx',
       'src/components/pages/OrganizationsPage.jsx',
       'src/components/mobile/MobileOrganizations.jsx',
       'src/components/context/OrganizationsPanel.jsx',
@@ -681,6 +684,12 @@ describe('Today/Requests revamp gate contract', () => {
       'src/components/pages/PricingManagementPage.jsx',
       'src/components/mobile/MobilePricing.jsx',
       'src/components/context/PricingContextPanel.jsx',
+    ].forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
+    [
+      'src/components/mobile/MobileUsers.jsx',
+      'src/components/context/UsersPanel.jsx',
       'src/contexts/OnboardingContext.jsx',
       'src/services/onboardingService.js',
     ].forEach((file) => {
@@ -822,7 +831,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(fab).not.toContain("import { HealthNewsModal }");
     expect(fab).not.toContain("case 'healthNews'");
     expect(bottomBar).toContain("location.pathname.startsWith('/health-news')");
-    expect(bottomBar).not.toContain('HealthNewsModal');
+    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openHealthNewsModal'))");
     expect(bottomBar).not.toContain("case 'healthNews'");
     // Stale-pin reconciliation (2026-07-09): the generic hospitals context action
     // was REMOVED by the shell-parity pass (HospitalsPage.contract pins the ban);

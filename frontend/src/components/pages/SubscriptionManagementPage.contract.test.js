@@ -11,6 +11,34 @@ const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Subscriptions Page 17 intake contract', () => {
+  it('provides an explicit route projection and query boundary for the active revamp', () => {
+    const service = read('src/services/subscriptionService.js');
+    const queryHook = read('src/hooks/useSubscriptionsQuery.js');
+
+    expect(service).toContain('export async function getSubscriptionsPage(filter = {})');
+    expect(service).toContain("scope: 'admin_subscriber_projection'");
+    expect(service).toContain("reason: 'admin_only'");
+    expect(service).toContain("reason: 'query_failed'");
+    expect(service).toContain("select('*', { count: 'exact' })");
+    expect(service).toContain('exactSubscriberCount(filter');
+    expect(queryHook).toContain("queryKey: ['subscriptions', filter]");
+    expect(queryHook).toContain('placeholderData: (previous) => previous');
+    expect(queryHook).toContain('isPlaceholderData: query.isPlaceholderData');
+    expect(queryHook).toContain("invalidateQueries({ queryKey: ['subscriptions'] })");
+    expect(queryHook).toContain('return useCallback(');
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
+    expect(page).toContain('subscribeToSubscribers(() => invalidateSubscriptions())');
+    expect(page).toContain("distributionScope: 'exact_filtered_projection'");
+    expect(page).toContain('analytics={subscriptionAnalytics}');
+    expect(page).not.toContain('total: subscribers.length');
+    expect(page).toContain('useRowSelection(paginatedSubscribers)');
+    expect(page).toContain('const handleSelect = selection.handleToggleSelect;');
+    expect(page).toContain('const handleSelectAll = selection.handleSelectAll;');
+    expect(desktop).toContain('selection.handleSelectAll');
+    expect(desktop).toContain('selection.handleToggleSelect');
+    expect(desktop).toContain('selection.handleSelectClick');
+  });
   it('keeps Subscriptions in intake only and out of the default visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
@@ -43,6 +71,10 @@ describe('Subscriptions Page 17 intake contract', () => {
       'src/components/mobile/MobileSubscriptions.jsx',
       'src/components/context/SubscriptionsPanel.jsx',
       'src/components/modals/SubscriptionModal.jsx',
+    ].forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
+    [
       'src/components/views/SubscriptionListView.jsx',
       'src/components/views/SubscriptionTableView.jsx',
       'src/hooks/useSubscription.js',
@@ -83,10 +115,9 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(gate).toContain('mobile `Paid Conversion`, `Revenue Dynamics`, `LIVE` labels, row reveal/edit/delete');
     expect(gate).toContain('modal welcome/custom/bulk email modes, campaign template loading, hook auto fetch/realtime, direct subscriber table writes, direct Edge Function invokes, and duplicate subscriber service exports.');
 
-    for (const source of [oldPage, page]) {
+    for (const source of [oldPage]) {
       expect(source).toContain("useViewMode('subscription', 'grid')");
       expect(source).toContain('const pagination = usePagination(20);');
-      expect(source).toContain('useSubscription();');
       expect(source).toContain("window.addEventListener('openSubscriptionModal', handleOpenModal);");
       expect(source).toContain("window.addEventListener('openAnalyticsModal', handleOpenAnalytics);");
       expect(source).toContain("usePageHeader(\n    'Subscription Management'");
@@ -100,8 +131,12 @@ describe('Subscriptions Page 17 intake contract', () => {
       expect(source).toContain('<SubscriptionListView');
       expect(source).toContain('<SubscriptionTableView');
       expect(source).toContain('paidConversionRate');
-      expect(source).toContain('{isAdmin && (');
+      expect(source).toMatch(/\{isAdmin(?:\(\))? && \(/);
     }
+    expect(oldPage).toContain('useSubscription();');
+    expect(page).toContain('useSubscriptionsQuery(subscriptionQueryFilter);');
+    expect(page).toContain('<SubscriptionsDesktopWorkspace');
+    expect(page).not.toMatch(/useViewMode|SubscriptionListView|SubscriptionTableView|BulkActionBar/);
     expect(oldPage).toContain('await deleteSubscriber(subscriber.id);');
     expect(oldPage).toContain('await updateSubscriber(selectedSubscriber.id, data);');
     expect(oldPage).toContain('await createSubscriber(data);');
@@ -124,20 +159,41 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain('toast.info(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('id="subscriptions-action-feedback"');
     expect(page).toContain('aria-label="Add subscriber unavailable"');
-    expect(page).toContain('aria-label="Delete subscribers unavailable"');
+    expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).toContain('aria-label="Delete subscribers unavailable"');
     expect(page).toContain('data-state="unavailable"');
     expect(page).toContain('onEdit={null}');
     expect(page).toContain('onDelete={null}');
     expect(page).toContain('canManage={false}');
 
-    // Shared inventory that survives the VISUAL-ONLY pass (present in both baseline and current).
+    // Baseline (f31f29f) billboard inventory: the old dashboard billboard + glance-tile rail
+    // existed before the canon LIST rebuild. Preserved as EVIDENCE (oldMobile only), not canon.
+    expect(oldMobile).toContain('MobileFeaturedMetric');
+    expect(oldMobile).toContain('MobileSecondaryMetricRail');
+    expect(oldMobile).toContain("title: 'Paid Mix'");
+    expect(oldMobile).toContain('Subscriber Registry');
+
+    // The terminal end-of-list label is contract-pinned verbatim across the rebuild.
     for (const source of [oldMobile, mobile]) {
-      expect(source).toContain('MobileFeaturedMetric');
-      expect(source).toContain('MobileSecondaryMetricRail');
-      expect(source).toContain("title: 'Paid Mix'");
-      expect(source).toContain('Subscriber Registry');
       expect(source).toContain('<MobileListEnd label="End of subscriber list" />');
     }
+
+    // CANON LIST rebuild (2026-07-11): MobileSubscriptions composes the same grammar as
+    // MobileUsers / MobileSupportTickets / MobileHealthNews. The DASHBOARD billboard + glance
+    // rail are GONE (the LIST grammar bans both); the canon kit + status KPI axis replace them.
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).toContain("import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';");
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<MobileKPIStrip');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).toContain('<MobileListRow');
+    expect(mobile).toContain('useSkeletonWarmup');
+    expect(mobile).toContain('animatePageLoad={false}');
+    expect(mobile).toContain('scopeCount');
+    // The Updating pill consumes the REAL refetch signal (page-synthesised isFetching).
+    expect(mobile).toContain('isFetching');
+    expect(mobile).toContain('<UpdatingPillRow');
     // Baseline (f31f29f) old-markup evidence: revenue/live wording, all-caps blades, the
     // old inline welcome-email tile, and live edit/delete row CTAs existed before the pass.
     expect(oldMobile).toContain("delta: 'LIVE'");
@@ -150,38 +206,29 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(oldMobile).toContain('onClick={() => onEdit(sub)}');
     expect(oldMobile).toContain('onClick={() => onDelete(sub)}');
 
-    // Preserved outer-page source-voice (loaded/shown, no revenue language).
-    expect(mobile).toContain("delta: 'Shown'");
-    expect(mobile).toContain("label: 'Paid share'");
-    expect(mobile).toContain('Subscriber mix');
-    expect(mobile).toContain("subtitle: 'Type share'");
-    expect(mobile).toContain("trendText: 'Loaded'");
-
-    // NEW ENERGY (Mobile Energy Rollout, VISUAL-ONLY): the row carries the grounded status
-    // pill (S3) + secondary plan/type meta (S2) + date groups (S5). Tapping a row opens the
-    // canonical detail bottom sheet (MobileDetailSheet) that composes the subscription
-    // VitalTrack (S4) + identity islands (S6), mirroring the MobileVisits reference - not an
-    // inline dropdown. Command/backend authority stays unauthorized and fail-closed.
+    // The canonical list now carries only grounded status/type evidence. The status KPI really
+    // scopes the rows and the adaptive grouping falls back to coarse recency when one status
+    // dominates; there is no billboard-era loaded/shown metric furniture left to preserve.
     expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
     expect(mobile).toContain("import { resolveVital } from '../../constants/vitalTracks';");
-    expect(mobile).toContain("import { groupByMonth } from '../../utils/groupByMonth';");
-    expect(mobile).toContain("const vital = resolveVital('subscription', sub.status);");
+    expect(mobile).toContain("import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';");
+    expect(mobile).not.toContain("import { groupByMonth } from '../../utils/groupByMonth';");
+    expect(mobile).toContain('resolveAdaptiveGroups(displaySubscribers');
+    expect(mobile).toContain("{ type: 'coarse-recency', key: 'subscribed'");
+    expect(mobile).toContain("const vital = resolveVital('subscription', status);");
     expect(mobile).toContain('statusPill={vital?.pill}');
-    expect(mobile).toContain('groupByMonth(displaySubscribers, (sub) => sub.subscription_date || sub.created_at)');
-    expect(mobile).toContain('color={vital?.accent');
-    expect(mobile).toContain('label="Subscriber"');
-    expect(mobile).toContain("secondary={`${formatLabel(sub.type, 'Free')} plan`}");
+    expect(mobile).toContain("meta={`${planLabel(subscriber.type)} plan`}");
+    expect(mobile).toContain("markerChip={welcomed ? 'Welcome' : null}");
 
-    // Tap-opens-detail-sheet (swapped from inline expandedContent): a single MobileDetailSheet
-    // driven by activeSubscriber carries the vital track + identity islands.
+    // Tap opens one detail sheet; no inline row expansion or live write command survives.
     expect(mobile).toContain('const [activeSubscriber, setActiveSubscriber] = useState(null);');
-    expect(mobile).toContain('onClick={() => setActiveSubscriber(sub)}');
+    expect(mobile).toContain('onOpen={setActiveSubscriber}');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen={!!activeSubscriber}');
     expect(mobile).toContain('onClose={() => setActiveSubscriber(null)}');
     expect(mobile).toContain("vital={vital ? { ...vital, label: 'Subscription status' } : null}");
     expect(mobile).toContain('islands={[');
-    expect(mobile).toContain("value: formatLabel(activeSubscriber.type, 'Free')");
+    expect(mobile).toContain("value: planLabel(activeSubscriber.type)");
 
     // The inline-expand mechanism is fully removed (no dropdown state or reveal props).
     expect(mobile).not.toContain('expandedContent');
@@ -194,7 +241,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).not.toContain('label={formatLabel(sub.status)}');
 
     // Read-only lock (S7): a single Details CTA on the sheet, no live edit/delete handler.
-    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveSubscriber(null); onView(activeSubscriber); } }}");
+    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveSubscriber(null); onView?.(activeSubscriber); } }}");
     expect(mobile).not.toContain('onClick={() => onEdit(sub)}');
     expect(mobile).not.toContain('onClick={() => onDelete(sub)}');
 
@@ -232,14 +279,13 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(panel).not.toContain("new CustomEvent('openEmailActionsModal')");
     expect(panel).toContain("new CustomEvent('openSubscriptionModal')");
     expect(panel).toContain("new CustomEvent('openAnalyticsModal')");
-    expect(panel).toContain('Subscriber context');
-    expect(panel).toContain('From this page');
-    expect(panel).toContain('Free type');
-    expect(panel).toContain('Paid type');
-    expect(panel).toContain('Email off');
-    expect(panel).toContain('Recent');
-    expect(panel).not.toContain('{subscriber.email}');
-    expect(panel).toContain('rounded-card');
+    expect(panel).toContain('Subscriber scope');
+    expect(panel).toContain('Current subscriber');
+    expect(panel).toContain('Quick actions');
+    expect(panel).toContain('Recent subscribers');
+    expect(panel).toContain('subscriber.email');
+    expect(panel).toContain('subscriptionsContext');
+    expect(panel).toContain('rounded-modal');
     expect(panel).toContain('rounded-inner');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-pill');
@@ -414,12 +460,11 @@ describe('Subscriptions Page 17 intake contract', () => {
 
     expect(oldPanel).toContain("new CustomEvent('openEmailActionsModal')");
     expect(panel).not.toContain("new CustomEvent('openEmailActionsModal')");
-    expect(panel).not.toContain('subscriber.email');
+    expect(panel).toContain('subscriber.email');
     expect(panel).not.toContain('Premium');
-    expect(panel).toContain('summary = null');
-    expect(panel).toContain('Paid type');
-    expect(panel).toContain('Email off');
-    expect(panel).toContain('Broadcast unavailable');
+    expect(panel).toContain('subscriptionsContext = null');
+    expect(panel).toContain('label="Email" unavailable');
+    expect(panel).toContain("data-state={unavailable ? 'unavailable' : 'available'}");
     expect(page).not.toContain("window.addEventListener('openEmailActionsModal'");
     expect(page).not.toContain('await createSubscriber');
     expect(page).not.toContain('await updateSubscriber');
@@ -430,8 +475,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(contextPanel).not.toContain('const { subscribers } = useSubscription({ autoFetch: false, autoSubscribe: false });');
     expect(contextPanel).toContain('subscriptionsRouteContextUpdated');
     expect(contextPanel).toContain('requestSubscriptionsRouteContext');
-    expect(contextPanel).toContain('subscribers={subscriptionsRouteContext?.subscribers || []}');
-    expect(contextPanel).toContain('summary={subscriptionsRouteContext?.summary}');
+    expect(contextPanel).toContain('subscriptionsContext={subscriptionsRouteContext}');
     expect(contextFab).toContain("location.pathname.startsWith('/subscriptions')");
     expect(contextFab).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
     expect(contextFab).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");

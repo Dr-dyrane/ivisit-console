@@ -1183,6 +1183,7 @@ export const EmergencyRequestsPage = () => {
           analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          currentPage={pagination.currentPage}
           loadError={loadError}
           onRetry={fetchRequests}
           kpiFilter={selectedKpiFilter}
@@ -2096,4 +2097,3 @@ const getPrimaryRailAction = ({
     onClick: onView,
   };
 };
-

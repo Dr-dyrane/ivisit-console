@@ -1,169 +1,26 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import {
-  Users2,
-  Clock,
-  Mail,
-  Shield,
-  Send,
-  BarChart3,
-  Plus
-} from 'lucide-react';
+import { BarChart3, CheckCircle, Clock, Mail, Plus, Send, Users2 } from 'lucide-react';
 
-export const SubscriptionsPanel = ({ subscribers = [], summary = null }) => {
-  const handleOpenCreateSubscriber = () => {
-    const event = new CustomEvent('openSubscriptionModal');
-    window.dispatchEvent(event);
-  };
+const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+const date = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleDateString() : 'No date';
+const tone = (status) => status === 'active' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' : ['unsubscribed', 'bounced', 'inactive'].includes(status) ? 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
 
-  const handleOpenAnalytics = () => {
-    const event = new CustomEvent('openAnalyticsModal');
-    window.dispatchEvent(event);
-  };
+const Metric = ({ icon: Icon, label, value, className }) => <div className="rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]"><div className="flex items-center gap-2"><span className={`flex h-8 w-8 items-center justify-center rounded-icon ${className}`}><Icon className="h-4 w-4" /></span><div><p className="text-sm font-semibold">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div></div></div>;
+const Action = ({ icon: Icon, label, unavailable, onClick }) => <button type="button" onClick={onClick} aria-disabled={unavailable} data-state={unavailable ? 'unavailable' : 'available'} className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.97] dark:bg-white/[0.04]"><Icon className="h-4 w-4" /><span className="text-xs font-medium">{label}</span></button>;
 
-  const rows = Array.isArray(subscribers) ? subscribers : [];
-  const hasSummary = Boolean(summary);
-  const totalSubscribers = summary?.total ?? rows.length;
-  const activeSubscribers = summary?.active ?? rows.filter(s => s.status === 'active').length;
-  const pendingSubscribers = summary?.pending ?? rows.filter(s => s.status === 'pending').length;
-  const freeSubscribers = summary?.free ?? rows.filter(s => s.type === 'free').length;
-  const paidSubscribers = summary?.paid ?? rows.filter(s => s.type === 'paid').length;
-  const isLoading = Boolean(summary?.loading);
-  const hasError = Boolean(summary?.error);
-  const countLabel = (value) => (hasSummary || rows.length > 0 ? value : '...');
+export const SubscriptionsPanel = ({ subscriptionsContext = null }) => {
+  const rows = subscriptionsContext?.subscribers || [];
+  const summary = subscriptionsContext?.summary || {};
+  const focused = subscriptionsContext?.focusedSubscriber || rows[0] || null;
+  const loading = Boolean(summary.loading);
+  const error = summary.error;
+  if (loading && rows.length === 0) return <div className="space-y-3 py-2">{[0, 1, 2, 3].map((item) => <div key={item} className="h-16 animate-pulse rounded-inner bg-muted/35" />)}</div>;
 
-  const formatDate = (value) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Date unknown';
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
-      <div className="space-y-2">
-        <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Subscriber context</h3>
-
-        <div className="bg-emerald-500/10 p-4 rounded-card flex items-center justify-between group transition-all shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500/15 rounded-icon flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users2 className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold">Active</p>
-              <p className="text-[11px] text-muted-foreground">From this page</p>
-            </div>
-          </div>
-          <span className="inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">{countLabel(activeSubscribers)}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-amber-500/10 p-4 rounded-card group transition-all shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-amber-700 dark:text-amber-200 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-semibold text-muted-foreground">Pending</span>
-            </div>
-            <p className="font-bold text-sm">{countLabel(pendingSubscribers)}</p>
-          </div>
-
-          <div className="bg-muted p-4 rounded-card group transition-all shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <Mail className="h-4 w-4 text-muted-foreground group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] font-semibold text-muted-foreground">Total</span>
-            </div>
-            <p className="font-bold text-sm">
-              {hasSummary ? totalSubscribers : 'Source pending'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-sky-500/10 p-4 rounded-card group shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-4 w-4 text-sky-600 dark:text-sky-200 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-semibold text-muted-foreground">Free type</span>
-          </div>
-          <p className="font-bold text-sm">{countLabel(freeSubscribers)}</p>
-        </div>
-        <div className="bg-violet-500/10 p-4 rounded-card group shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-4 w-4 text-violet-700 dark:text-violet-200 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-semibold text-muted-foreground">Paid type</span>
-          </div>
-          <p className="font-bold text-sm text-violet-700 dark:text-violet-200">{countLabel(paidSubscribers)}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.96 }}
-          onClick={handleOpenCreateSubscriber}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-muted hover:bg-muted/70 transition-all group"
-        >
-          <Plus className="h-5 w-5 text-muted-foreground group-hover:rotate-90 transition-transform" />
-          <span className="text-[11px] font-semibold text-muted-foreground">Join</span>
-        </motion.button>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.96 }}
-          onClick={handleOpenAnalytics}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-sky-500/10 hover:bg-sky-500/15 transition-all group"
-        >
-          <BarChart3 className="h-5 w-5 text-sky-600 dark:text-sky-200 group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-semibold text-sky-600 dark:text-sky-200">Data</span>
-        </motion.button>
-        <button
-          type="button"
-          disabled
-          aria-label="Broadcast unavailable"
-          title="Email send needs receiver proof"
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-card bg-muted dark:bg-white/5 opacity-55 cursor-not-allowed"
-        >
-          <Send className="h-5 w-5 text-muted-foreground" />
-          <span className="text-[11px] font-semibold text-muted-foreground">Email off</span>
-        </button>
-      </div>
-
-      {(isLoading || hasError || !hasSummary) && (
-        <p className={`ml-1 text-[11px] ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
-          {hasError ? 'Summary needs retry.' : 'Waiting for page summary.'}
-        </p>
-      )}
-
-      <div className="space-y-2">
-        <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Recent</h3>
-        <div className="space-y-1">
-          {rows.slice(0, 4).map((subscriber, idx) => (
-            <div key={subscriber.id || idx} className="surface-card p-3 rounded-inner flex items-center justify-between transition-colors hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] group">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-icon flex items-center justify-center flex-shrink-0 ${
-                  subscriber.status === 'active' ? 'bg-emerald-500/15' : 'bg-amber-500/15'
-                } group-hover:scale-105 transition-transform`}>
-                  <Users2 className={`h-4 w-4 ${subscriber.status === 'active' ? 'text-emerald-700 dark:text-emerald-200' : 'text-amber-700 dark:text-amber-200'}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-xs truncate max-w-[140px]">
-                    {subscriber.full_name || subscriber.name || `Subscriber ${idx + 1}`}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {subscriber.type || 'Type unknown'} - {formatDate(subscriber.created_at)}
-                  </p>
-                </div>
-              </div>
-              <span className="inline-flex items-center text-[10px] font-semibold opacity-60">
-                {subscriber.status || 'unknown'}
-              </span>
-            </div>
-          ))}
-          {rows.length === 0 && (
-            <div className="surface-card p-3 rounded-inner text-[11px] text-muted-foreground">
-              No subscribers shown.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="space-y-5">
+    {error && <div className="rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">{error}</div>}
+    <section><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Subscriber scope</h3><span className="rounded-pill bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">{number(summary.total)}</span></div><div className="grid grid-cols-2 gap-2"><Metric icon={CheckCircle} label="Active" value={number(summary.active)} className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" /><Metric icon={Clock} label="Pending" value={number(summary.pending)} className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-200" /></div></section>
+    {focused && <section className="rounded-modal bg-background/45 p-4 dark:bg-white/[0.04]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase text-muted-foreground">Current subscriber</p><h3 className="mt-2 truncate text-base font-semibold">{focused.email || 'Unknown subscriber'}</h3><p className="mt-1 text-xs capitalize text-muted-foreground">{focused.type || 'free'} plan · {date(focused.subscription_date || focused.created_at)}</p></div><span className={`rounded-pill px-2.5 py-1 text-xs font-semibold capitalize ${tone(focused.status)}`}>{focused.status || 'pending'}</span></div><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('openFocusedSubscriptionRecord', { detail: focused }))} className="mt-4 flex h-10 w-full items-center justify-center rounded-button bg-foreground text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.98]"><Mail className="mr-2 h-4 w-4" />Open details</button></section>}
+    <section><h3 className="mb-3 text-sm font-semibold">Quick actions</h3><div className="grid grid-cols-3 gap-2"><Action icon={Plus} label="Join" unavailable onClick={() => window.dispatchEvent(new CustomEvent('openSubscriptionModal'))} /><Action icon={BarChart3} label="Analytics" onClick={() => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))} /><Action icon={Send} label="Email" unavailable onClick={() => window.dispatchEvent(new CustomEvent('openSubscriptionModal'))} /></div></section>
+    <section><h3 className="mb-3 text-sm font-semibold">Recent subscribers</h3><div className="space-y-2">{rows.slice(0, 4).map((subscriber) => <div key={subscriber.id} className="flex items-center gap-3 rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${tone(subscriber.status)}`}><Users2 className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{subscriber.email || 'Unknown subscriber'}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{subscriber.type || 'free'} · {date(subscriber.created_at)}</p></div></div>)}{rows.length === 0 && <p className="py-3 text-sm text-muted-foreground">No subscribers in this scope.</p>}</div></section>
+  </div>;
 };

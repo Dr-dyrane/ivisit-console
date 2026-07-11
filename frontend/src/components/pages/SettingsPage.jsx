@@ -103,7 +103,7 @@ export const SettingsPage = () => {
         }
     }, [isSigningOut, signOut, navigate]);
 
-    usePageHeader("Account Settings");
+    usePageHeader("Settings");
 
     const toggleDarkMode = useCallback(() => {
         toggleTheme();
@@ -126,6 +126,29 @@ export const SettingsPage = () => {
         };
         return styles[role] || styles.viewer;
     };
+
+    const settingsRouteContext = useMemo(() => ({
+        user,
+        profile,
+        displayId,
+        avatarUrl,
+        avatarFallback,
+        darkMode,
+        loading,
+        isSigningOut,
+        isProvider: isProvider(),
+        hasDoctorProfile: Boolean(doctorProfile),
+        canOpenSupport: isAdmin() || isOrgAdmin() || isProvider(),
+        billingAvailable: false,
+    }), [avatarFallback, avatarUrl, darkMode, displayId, doctorProfile, isAdmin, isOrgAdmin, isProvider, isSigningOut, loading, profile, user]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const publishSettingsRouteContext = () => window.dispatchEvent(new CustomEvent('settingsRouteContextUpdated', { detail: settingsRouteContext }));
+        publishSettingsRouteContext();
+        window.addEventListener('requestSettingsRouteContext', publishSettingsRouteContext);
+        return () => window.removeEventListener('requestSettingsRouteContext', publishSettingsRouteContext);
+    }, [settingsRouteContext]);
 
     if (isMobile) {
         return (
@@ -169,7 +192,7 @@ export const SettingsPage = () => {
     }
 
     return (
-        <div className="min-h-screen py-6 md:py-8 space-y-8 animate-in fade-in duration-500">
+        <div className="min-h-screen space-y-8 py-6 md:py-8">
             <LayoutGroup>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 grid-flow-row-dense">
 

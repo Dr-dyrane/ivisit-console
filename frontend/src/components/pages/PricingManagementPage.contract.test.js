@@ -11,7 +11,7 @@ const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Pricing Page 18 intake contract', () => {
-  it('keeps Pricing in intake only and out of the default visual hardgate', () => {
+  it('preserves Pricing intake archaeology and admits the canonical active surfaces to the visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
@@ -35,8 +35,14 @@ describe('Pricing Page 18 intake contract', () => {
 
     [
       'src/components/pages/PricingManagementPage.jsx',
+      'src/components/pages/pricing/PricingDesktopWorkspace.jsx',
       'src/components/mobile/MobilePricing.jsx',
       'src/components/context/PricingContextPanel.jsx',
+    ].forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
+
+    [
       'src/components/views/PricingTableView.jsx',
       'src/components/views/PricingListView.jsx',
       'src/services/pricingService.js',
@@ -55,6 +61,7 @@ describe('Pricing Page 18 intake contract', () => {
     const oldService = gitShowHead('frontend/src/services/pricingService.js');
 
     const page = read('src/components/pages/PricingManagementPage.jsx');
+    const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
     const mobile = read('src/components/mobile/MobilePricing.jsx');
     const panel = read('src/components/context/PricingContextPanel.jsx');
     const table = read('src/components/views/PricingTableView.jsx');
@@ -67,7 +74,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(gate).toContain('mobile `Average Service Price`, `Average Room Price`, `Pricing Dynamics`, `Avg Price`, `LIVE` labels');
     expect(gate).toContain('context-panel average/global/override counts, `getPricing()` broad hospital joins, first-hospital organization write resolution, and upsert/delete RPC payloads.');
 
-    for (const source of [oldPage, page]) {
+    for (const source of [oldPage]) {
       expect(source).toContain("useViewMode('pricing', 'grid')");
       expect(source).toContain('const pagination = usePagination(12);');
       expect(source).toContain("usePageHeader('Pricing Engine'");
@@ -78,6 +85,18 @@ describe('Pricing Page 18 intake contract', () => {
       expect(source).toContain('<AnalyticsModal');
       expect(source).toContain('No price points found');
     }
+
+    expect(page).toContain('const pagination = usePagination(12);');
+    expect(page).toContain("usePageHeader('Pricing'");
+    expect(page).not.toContain("useViewMode('pricing'");
+    expect(page).toContain('<MobilePricing');
+    expect(page).toContain('<PricingDesktopWorkspace');
+    expect(page).toContain('<AnalyticsModal');
+    expect(page).not.toContain('<PricingTableView');
+    expect(page).not.toContain('<PricingListView');
+    expect(workspace).toContain('<ActivitySheet');
+    expect(workspace).toContain('<SortableColumnHeader label="Updated"');
+    expect(workspace).toContain('Changes unavailable');
 
     expect(oldPage).toContain('saveServicePricing({');
     expect(oldPage).toContain('saveRoomPricing({');
@@ -103,6 +122,10 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('<ConfirmationModal');
     expect(page).not.toContain('<BulkActionBar');
     expect(page).not.toContain('Delete Selected Pricing Rules');
+    expect(page).toContain('useRowSelection(paginatedPricing)');
+    expect(page).toContain('const handleSelect = selection.handleToggleSelect;');
+    expect(page).toContain('const handleSelectAll = selection.handleSelectAll;');
+    expect(workspace).toContain('Changes unavailable');
     expect(page).not.toContain('Entity Config');
     expect(page).not.toContain('Item Provisioning');
 
@@ -110,13 +133,18 @@ describe('Pricing Page 18 intake contract', () => {
     expect(oldPage).toContain("getPricing('rooms', orgId)");
     expect(page).toContain('getPricingPageData({');
     expect(page).toContain('setPricingProjection(projection);');
+    expect(page).toContain("const [loadError, setLoadError] = useState(null);");
+    expect(page).toContain("setLoadError('Pricing rules could not load. Try again.');");
+    expect(page).not.toContain('setPricing([]);');
+    expect(page).toContain('Pricing did not refresh. Showing the last loaded rules.');
+    expect(mobile).toContain("label={errorMessage ? 'Pricing did not load' : 'No pricing rules found'}");
     expect(page).toContain('pagination.setTotalCount(projection.totalCount || 0);');
     expect(page).toContain('const filteredPricing = pricing;');
     expect(page).toContain('const paginatedPricing = pricing;');
     expect(page).not.toContain("getPricing('services', orgId)");
     expect(page).not.toContain("getPricing('rooms', orgId)");
 
-    for (const source of [oldMobile, mobile]) {
+    for (const source of [oldMobile]) {
       expect(source).toContain('MobileFeaturedMetric');
       expect(source).toContain('MobileSecondaryMetricRail');
       expect(source).toContain('placeholder="Search pricing..."');
@@ -134,25 +162,23 @@ describe('Pricing Page 18 intake contract', () => {
     expect(oldMobile).toContain("getItemType(item).toUpperCase()");
     expect(oldMobile).toContain("badge: globalRule ? 'GLOBAL' : 'LOCAL'");
     expect(mobile).toContain('pricingProjection = null');
-    expect(mobile).toContain('currentBasisLabel');
-    expect(mobile).toContain('projectionSummary');
-    expect(mobile).toContain('const getSectionLabel = () => {');
-    expect(mobile).toContain('const getAverageLabel = () => {');
+    expect(mobile).toContain('const summary = pricingProjection?.summary || {}');
     expect(mobile).toContain("onClick={() => setActiveTab('all')}");
-    expect(mobile).toContain("label={getSectionLabel()}");
-    expect(mobile).toContain("label: itemFamily === 'room' ? 'Night' : 'Unit'");
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<MobileListRow');
     // Tap-opens-detail-sheet: the row now opens MobileDetailSheet on tap instead of
     // expanding an inline dropdown (no MobileDetailIslands/expandedContent composition).
     expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('onClick={() => setActiveItem(item)}');
+    expect(mobile).toContain('onOpen={setActiveItem}');
     expect(mobile).not.toContain('expandedContent');
     expect(mobile).not.toContain('MobileDetailIslands');
-    expect(mobile).toContain('Pricing basis');
-    expect(mobile).toContain("title: 'Average'");
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('MobileMetricRow');
     expect(mobile).toContain('rounded-inner');
     expect(mobile).toContain('rounded-button');
-    expect(mobile).toContain('rounded-pill');
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('Pricing Dynamics');
     expect(mobile).not.toContain("title: 'Avg Price'");
@@ -181,14 +207,17 @@ describe('Pricing Page 18 intake contract', () => {
     expect(panel).not.toContain('const globalPricing = pricing.filter');
     expect(panel).not.toContain('const overrides = pricing.filter');
     expect(panel).not.toContain('const avgPrice = pricing.length > 0');
-    expect(panel).toContain("const SOURCE_PENDING_LABEL = 'Source pending';");
     expect(panel).toContain("const PRICING_UNAVAILABLE_MESSAGE = 'Pricing actions unavailable until facility scope is verified.';");
-    expect(panel).toContain('Facility scope needed');
-    expect(panel).toContain('Price actions need a selected facility before they can run.');
+    expect(panel).toContain('pricingContext = null');
+    expect(panel).toContain('pricingContext?.focusedPrice');
+    expect(panel).toContain('summary.globalFallbackCount');
+    expect(panel).toContain('summary.facilityPriceCount');
+    expect(panel).toContain('Details unavailable');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
     expect(panel).toContain('data-state="unavailable"');
-    expect(panel).toContain('rounded-card');
+    expect(panel).toContain('rounded-modal');
+    expect(panel).toContain('rounded-inner');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-pill');
     expect(panel).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
@@ -321,11 +350,15 @@ describe('Pricing Page 18 intake contract', () => {
     expect(pageDataContext).toContain("table: 'room_pricing'");
     expect(contextPanel).not.toContain('servicePricing');
     expect(contextPanel).not.toContain('roomPricing');
-    expect(contextPanel).toContain('<PricingContextPanel />');
+    expect(contextPanel).toContain('<PricingContextPanel pricingContext={pricingRouteContext} />');
+    expect(contextPanel).toContain("new CustomEvent('requestPricingRouteContext')");
     expect(panel).not.toContain("new CustomEvent('openPricingModal')");
     expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
     expect(panel).toContain('Pricing scope pending.');
     expect(panel).toContain('Pricing actions unavailable until facility scope is verified.');
+    expect(page).toContain("new CustomEvent('pricingRouteContextUpdated'");
+    expect(page).toContain("window.addEventListener('requestPricingRouteContext'");
+    expect(page).toContain('focusedPrice');
 
     expect(contextFab).toContain("location.pathname.startsWith('/pricing')");
     expect(bottomBar).toContain("location.pathname.startsWith('/pricing')");
@@ -348,11 +381,14 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).toContain('toast.info(PRICING_SCOPE_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('data-state="unavailable"');
     expect(page).toContain('aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}');
-    expect(page).toContain('aria-label={`Initialize first override unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}');
+    expect(page).toContain('<PricingDesktopWorkspace');
+    expect(page).toContain('selection={selection}');
+    expect(page).toContain('sortConfig={sortConfig}');
     expect(page).toContain('selectionEnabled={PRICING_MUTATION_COMMANDS_ENABLED}');
-    expect(page).toContain('onSelect={PRICING_MUTATION_COMMANDS_ENABLED ? handleSelect : undefined}');
+    expect(page).toContain('onSelect={handleSelect}');
+    expect(page).toContain('onSelectAll={(checked) => handleSelectAll(checked, paginatedPricing)}');
     expect(page).toContain('role="status"');
-    expect(page).toContain('aria-live="polite"');
+    expect(mobile).toContain('aria-live="polite"');
     expect(page).not.toContain('saveServicePricing');
     expect(page).not.toContain('saveRoomPricing');
     expect(page).not.toContain('deleteServicePricing');
@@ -362,10 +398,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('<BulkActionBar');
     expect(mobile).toContain("actionNotice = ''");
     expect(mobile).toContain('pricingProjection = null');
-    expect(mobile).toContain('currentBasisLabel');
     expect(mobile).not.toContain("trend: 'LIVE'");
-    expect(mobile).toContain('selectionEnabled = false');
-    expect(mobile).toContain('const selectionMode = selectionEnabled && selectedIds.length > 0;');
+    expect(mobile).not.toContain('selectionEnabled');
     expect(mobile).toContain('role="status"');
     expect(mobile).toContain('aria-live="polite"');
     expect(table).toContain('selectionEnabled = true');

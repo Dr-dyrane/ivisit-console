@@ -8,7 +8,7 @@ const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Settings Page 16 intake contract', () => {
-  it('keeps Settings in intake only and out of the default visual hardgate', () => {
+  it('preserves Settings intake archaeology and admits the guarded active surfaces', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
@@ -37,6 +37,11 @@ describe('Settings Page 16 intake contract', () => {
       'src/components/context/SettingsPanel.jsx',
       'src/components/modals/SecurityModal.jsx',
       'src/components/modals/ProfileEditModal.jsx',
+    ].forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
+
+    [
       'src/components/modals/SupportModal.jsx',
       'src/components/views/DoctorProfileCard.jsx',
       'src/hooks/useDoctorProfile.js',
@@ -85,8 +90,9 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('onOpenSupport={handleOpenSupport}');
     expect(page).toContain('onClick={handleOpenSupport}');
 
+    expect(oldPage).toContain('usePageHeader("Account Settings")');
+    expect(page).toContain('usePageHeader("Settings")');
     for (const source of [oldPage, page]) {
-      expect(source).toContain('usePageHeader("Account Settings")');
       expect(source).toContain("window.addEventListener('openProfileModal', handleOpenProfile)");
       expect(source).toContain("window.addEventListener('openSecurityModal', handleOpenSecurity)");
       expect(source).toContain("window.addEventListener('openSupportModal', handleOpenSupport)");
@@ -199,7 +205,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(gate).toContain('MobileSettings squircle/voice cleanup on 2026-07-06 converted the local identity/loading cards, avatar/display-id surfaces, role/BVN badges, theme row, and Settings-owned row labels/blades to semantic `rounded-card`, `rounded-inner`, `rounded-icon`, and `rounded-pill` tokens plus plain labels while preserving the same `MobileMetricRow` actions, Support handoff, provider profile trigger, app-local theme toggle, and sign-out pending guard.');
     expect(gate).toContain('This gives `MobileSettings.jsx` focused strict-radius and mobile source-voice proof only; it does not admit Settings, prove preference persistence, or make shared `MobileMetricRow` typography canonical.');
 
-    for (const source of [oldPanel, panel]) {
+    for (const source of [oldPanel]) {
       expect(source).toContain("label: 'Edit Profile'");
       expect(source).toContain("new Event('openProfileModal')");
       expect(source).toContain("label: 'Security'");
@@ -208,6 +214,13 @@ describe('Settings Page 16 intake contract', () => {
       expect(source).toContain("label: 'Help'");
       expect(source).toContain("new Event('openSupportModal')");
     }
+    expect(panel).toContain("label: 'Edit profile'");
+    expect(panel).toContain("new Event('openProfileModal')");
+    expect(panel).toContain("label: 'Security'");
+    expect(panel).toContain("new Event('openSecurityModal')");
+    expect(panel).toContain("label: 'Billing'");
+    expect(panel).toContain("label: 'Support'");
+    expect(panel).toContain("new Event('openSupportModal')");
     expect(oldPanel).toContain("toast.info('Billing portal coming soon')");
     expect(oldPanel).toContain('Security Health');
     expect(oldPanel).toContain('System Guard Active');
@@ -216,19 +229,18 @@ describe('Settings Page 16 intake contract', () => {
     expect(panel).not.toContain("toast.info('Billing portal coming soon')");
     expect(panel).not.toContain('disabled: true');
     expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Settings actions ready.');");
-    expect(panel).toContain("const billingUnavailableMessage = 'Billing unavailable until account plan source is verified.';");
+    expect(panel).toContain("const BILLING_UNAVAILABLE = 'Billing unavailable until account plan source is verified.';");
     expect(panel).toContain('unavailable: true');
-    expect(panel).toContain('action: () => setPanelNotice(billingUnavailableMessage)');
-    expect(panel).toContain("aria-disabled={action.unavailable ? 'true' : undefined}");
-    expect(panel).toContain('data-state={action.unavailable ? \'unavailable\' : \'ready\'}');
+    expect(panel).toContain('run: () => setPanelNotice(BILLING_UNAVAILABLE)');
+    expect(panel).toContain("aria-disabled={unavailable ? 'true' : undefined}");
+    expect(panel).toContain("data-state={unavailable ? 'unavailable' : 'ready'}");
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain('Account protection');
-    expect(panel).toContain('Review security');
-    expect(panel).toContain('Need help? Open Support from this page.');
+    expect(panel).toContain('Account evidence');
+    expect(panel).toContain('Review available');
     expect(gate).toContain('SettingsPanel squircle cleanup on 2026-07-06 converted right-panel quick actions, security/session rows, and help notice to semantic radius tokens (`rounded-card`, `rounded-icon`, `rounded-inner`) while preserving profile/security/support event bridges, unavailable Billing feedback, and the local status live region.');
     expect(gate).toContain('This is focused strict-radius source proof only; it does not admit Settings or add Page 16 to the default hardgate.');
-    expect(panel).toContain('rounded-card');
+    expect(panel).toContain('rounded-modal');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-inner');
     expect(panel).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])\b/);
@@ -377,6 +389,7 @@ describe('Settings Page 16 intake contract', () => {
     const pass8 = read('docs/implementation/console-service-alignment/passes/PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md');
     const stage5 = read('docs/implementation/console-service-alignment/services/STAGE_5_FULL_SERVICE_COVERAGE_AUDIT_2026-05-24.md');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
+    const page = read('src/components/pages/SettingsPage.jsx');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
@@ -439,7 +452,10 @@ describe('Settings Page 16 intake contract', () => {
     expect(navigation).toContain("minRole: 'viewer'");
     expect(contextPanel).toContain("'/settings': true, // Own-user settings");
     expect(contextPanel).not.toContain('getPageContextHeader'); // header slimmed — each panel owns its heading (see ContextPanelShell contract)
-    expect(contextPanel).toContain('<SettingsPanel />');
+    expect(contextPanel).toContain('<SettingsPanel settingsContext={settingsRouteContext} />');
+    expect(contextPanel).toContain("new CustomEvent('requestSettingsRouteContext')");
+    expect(page).toContain("new CustomEvent('settingsRouteContextUpdated'");
+    expect(page).toContain("window.addEventListener('requestSettingsRouteContext'");
     expect(contextFab).toContain("location.pathname.startsWith('/settings')");
     expect(bottomBar).toContain("location.pathname.startsWith('/settings')");
   });

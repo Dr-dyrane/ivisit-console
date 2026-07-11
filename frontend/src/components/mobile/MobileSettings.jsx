@@ -32,6 +32,7 @@ export const MobileSettings = ({
   isProvider,
   onOpenDoctor
 }) => {
+  // grammar:hero=account-identity-card-is-the-settings-signal-hero
   const roleLabel = profile?.role
     ? profile.role
       .replace('_', ' ')
@@ -42,7 +43,7 @@ export const MobileSettings = ({
     : { badge: 'Exit', direction: 'down', label: 'Action', value: 'Sign out', color: 'hsl(var(--destructive))' };
 
   return (
-    <MobilePageShell contentClassName="pt-4 pb-4 text-foreground">
+    <MobilePageShell animatePageLoad={false} contentClassName="pt-4 pb-4 text-foreground">
       <section className="mb-3 px-1">
         {loading ? (
           <div className="surface-card rounded-card p-4">
@@ -66,7 +67,7 @@ export const MobileSettings = ({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-black">{profile?.username || 'User Profile'}</h2>
+              <h2 className="truncate text-lg font-black">{profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || profile?.username || 'User Profile'}</h2>
               <p className="text-[11px] text-muted-foreground truncate">{user?.email || profile?.email || 'No email'}</p>
               <div className="flex items-center gap-2 mt-1.5">
                 <Badge className="rounded-pill bg-muted/40 text-muted-foreground text-[11px] font-semibold">{roleLabel}</Badge>

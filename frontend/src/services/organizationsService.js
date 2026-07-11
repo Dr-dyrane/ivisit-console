@@ -117,6 +117,167 @@ export async function getOrganizations(filter = {}) {
     }
 }
 
+// --- Bounded page projection for the Organizations route (React Query, 2026-07-11) --------
+// Unlike getOrganizations (a bare array that callers slice locally), getOrganizationsPage
+// returns { data, count, stats } with server-side search/sort/pagination and exact counts.
+// Payout readiness spans organizations + organization_wallets, so this source-only pass resolves
+// that join in a bounded client projection and fails visibly above the ceiling. A backend view/RPC
+// should replace the resolver before the registry grows beyond that bound.
+
+const ORG_SORT_FIELDS = new Set(['created_at', 'updated_at', 'name']);
+const ORG_PAYOUT_RESOLUTION_ROW_LIMIT = 5000;
+
+function applyOrganizationListFilters(query, filter = {}) {
+    if (filter.search) {
+        const s = String(filter.search).replace(/[%_,]/g, ' ').trim();
+        if (s) query = query.or(`name.ilike.%${s}%,contact_email.ilike.%${s}%,stripe_account_id.ilike.%${s}%`);
+    }
+    return query;
+}
+
+async function getOrganizationExactCount(query, quiet, label) {
+    const { count, error } = await query;
+    if (error) {
+        if (!quiet) console.error(`Error fetching ${label}:`, error);
+        throw error;
+    }
+    return Number.isFinite(count) ? count : 0;
+}
+
+async function getOrganizationPayoutBuckets(quiet) {
+    const [organizationsResult, walletsResult] = await Promise.all([
+        supabase
+            .from(TABLE_NAME)
+            .select('id', { count: 'exact' })
+            .limit(ORG_PAYOUT_RESOLUTION_ROW_LIMIT),
+        supabase
+            .from('organization_wallets')
+            .select('organization_id, balance', { count: 'exact' })
+            .limit(ORG_PAYOUT_RESOLUTION_ROW_LIMIT),
+    ]);
+
+    if (organizationsResult.error) {
+        if (!quiet) console.error('Error resolving organization payout ids:', organizationsResult.error);
+        throw organizationsResult.error;
+    }
+    if (walletsResult.error) {
+        if (!quiet) console.error('Error resolving organization payout balances:', walletsResult.error);
+        throw walletsResult.error;
+    }
+
+    const organizationIds = (organizationsResult.data || []).map((row) => row.id).filter(Boolean);
+    const walletRows = walletsResult.data || [];
+    const organizationCount = Number.isFinite(organizationsResult.count)
+        ? organizationsResult.count
+        : organizationIds.length;
+    const walletCount = Number.isFinite(walletsResult.count) ? walletsResult.count : walletRows.length;
+
+    if (organizationCount > organizationIds.length || walletCount > walletRows.length) {
+        throw new Error(
+            `Organization payout projection is larger than the client resolver limit (${ORG_PAYOUT_RESOLUTION_ROW_LIMIT}); backend organization payout projection required.`
+        );
+    }
+
+    const balanceById = new Map();
+    walletRows.forEach((wallet) => {
+        if (!wallet?.organization_id) return;
+        const balance = Number(wallet.balance);
+        balanceById.set(wallet.organization_id, Number.isFinite(balance) ? balance : 0);
+    });
+
+    const fundedIds = organizationIds.filter((id) => Number(balanceById.get(id) || 0) > 0);
+    const fundedIdSet = new Set(fundedIds);
+    const payoutGapIds = organizationIds.filter((id) => !fundedIdSet.has(id));
+
+    return { balanceById, fundedIds, payoutGapIds };
+}
+
+function applyOrganizationPayoutFilter(query, kpiFilter, payoutBuckets) {
+    if (kpiFilter === 'funded') return payoutBuckets.fundedIds.length > 0
+        ? query.in('id', payoutBuckets.fundedIds)
+        : null;
+    if (kpiFilter === 'payout_gap') return payoutBuckets.payoutGapIds.length > 0
+        ? query.in('id', payoutBuckets.payoutGapIds)
+        : null;
+    return query;
+}
+
+// KPI stats are search-scoped but KPI-agnostic: changing the active chip narrows the row list
+// while all three chip counts continue to describe the current search scope.
+async function getOrganizationPageStats(filter, quiet, payoutBuckets) {
+    let totalQuery = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    totalQuery = applyOrganizationListFilters(totalQuery, filter);
+    let fundedQuery = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    fundedQuery = applyOrganizationListFilters(fundedQuery, filter);
+    fundedQuery = applyOrganizationPayoutFilter(fundedQuery, 'funded', payoutBuckets);
+
+    const [total, funded] = await Promise.all([
+        getOrganizationExactCount(totalQuery, quiet, 'organization total count'),
+        fundedQuery
+            ? getOrganizationExactCount(fundedQuery, quiet, 'funded organization count')
+            : Promise.resolve(0),
+    ]);
+
+    return { total, funded, payoutGap: Math.max(total - funded, 0) };
+}
+
+/**
+ * Bounded Organizations page read: { data, count, stats }. Server-side search/sort/paginate
+ * plus an exact, search-scoped payout axis. The React Query envelope both layouts consume.
+ * READ-ONLY: no write path is exposed here (saveOrganization/deleteOrganization stay
+ * orphaned; the page never imports them).
+ */
+export async function getOrganizationsPage(filter = {}) {
+    try {
+        const user = await getCurrentUser();
+        // RBAC: Patients should not be calling organizations (Console only). No self-scope
+        // column exists on `organizations`, so there is no applyAuthFilter org-scope here --
+        // the /organizations route is admin-only (ProtectedRoute minRole="admin"), so the
+        // ROUTE GATE is the scope. (Gap noted; a scope is NOT invented at the service layer.)
+        if (user?.role === 'patient') {
+            return { data: [], count: 0, stats: { total: 0, funded: 0, payoutGap: 0 } };
+        }
+
+        const payoutBuckets = await getOrganizationPayoutBuckets(filter.quiet);
+        const listBucket = filter.kpiFilter === 'funded'
+            ? payoutBuckets.fundedIds
+            : filter.kpiFilter === 'payout_gap'
+                ? payoutBuckets.payoutGapIds
+                : null;
+
+        const { data, count } = await withRetry(async () => {
+            if (Array.isArray(listBucket) && listBucket.length === 0) {
+                return { data: [], count: 0, error: null };
+            }
+
+            let query = supabase.from(TABLE_NAME).select('*', { count: 'exact' });
+            query = applyOrganizationListFilters(query, filter);
+            query = applyOrganizationPayoutFilter(query, filter.kpiFilter, payoutBuckets);
+            const sortKey = ORG_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+            query = query.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+            if (filter.limit) {
+                const start = filter.offset || 0;
+                query = query.range(start, start + filter.limit - 1);
+            }
+            const result = await query;
+            if (result.error) throw result.error;
+            return result;
+        });
+
+        const rows = (data || []).map((org) => ({
+            ...org,
+            wallet_balance: payoutBuckets.balanceById.get(org.id) || 0,
+        }));
+        const stats = await getOrganizationPageStats(filter, filter.quiet, payoutBuckets);
+        return { data: rows, count: count || 0, stats };
+    } catch (error) {
+        if (!filter?.quiet) {
+            console.error('Error fetching organizations page:', error);
+        }
+        throw error;
+    }
+}
+
 /**
  * Get single organization by ID
  */

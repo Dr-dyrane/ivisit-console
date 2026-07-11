@@ -8,7 +8,7 @@ const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Analytics Page 13 intake contract', () => {
-  it('keeps Analytics in intake only and out of the default visual hardgate', () => {
+  it('preserves Analytics intake archaeology and admits the guarded active surfaces', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const navigation = read('src/config/navigation.js');
@@ -32,7 +32,7 @@ describe('Analytics Page 13 intake contract', () => {
       'src/components/mobile/MobileAnalytics.jsx',
       'src/components/context/AnalyticsPanel.jsx',
     ].forEach((file) => {
-      expect(hardgate).not.toContain(file);
+      expect(hardgate).toContain(file);
     });
   });
 
@@ -277,7 +277,10 @@ describe('Analytics Page 13 intake contract', () => {
     expect(panel).not.toContain('analyticsData.totalRequests');
     expect(panel).not.toContain('analyticsData.completionRate');
     expect(panel).not.toContain('analyticsData.avgResponseTime');
-    expect(panel).toContain("const SOURCE_PENDING_LABEL = 'Source pending';");
+    expect(panel).toContain('analyticsContext = null');
+    expect(panel).toContain('analyticsContext?.stats');
+    expect(panel).toContain('analyticsContext?.sourceIssueSummary');
+    expect(panel).toContain('Measured route projection');
     expect(panel).toContain("const ANALYTICS_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';");
     expect(panel).toContain('const [panelNotice, setPanelNotice] = useState');
     expect(panel).toContain('setPanelNotice(ANALYTICS_UNAVAILABLE_MESSAGE)');
@@ -310,6 +313,7 @@ describe('Analytics Page 13 intake contract', () => {
     const pageData = read('src/contexts/PageDataContext.jsx');
     const pageDataAccess = read('src/config/pageDataAccess.js');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
+    const page = read('src/components/pages/Analytics.jsx');
 
     expect(gate).toContain('Analytics Requests-canon blocker map:');
     expect(gate).toContain('This is a blocker map, not a design target.');
@@ -387,7 +391,10 @@ describe('Analytics Page 13 intake contract', () => {
     expect(getPageDataStartupDomainsForRole('org_admin', '/analytics')).not.toContain('analytics');
     expect(routeOwnsStartupDomains('/analytics')).toBe(true);
     expect(pageDataAccess).toContain("pathname === '/analytics'");
-    expect(contextPanel).toContain('<AnalyticsPanel />');
+    expect(contextPanel).toContain('<AnalyticsPanel analyticsContext={analyticsRouteContext} />');
+    expect(contextPanel).toContain("new CustomEvent('requestAnalyticsRouteContext')");
+    expect(page).toContain("new CustomEvent('analyticsRouteContextUpdated'");
+    expect(page).toContain("window.addEventListener('requestAnalyticsRouteContext'");
     expect(contextPanel).not.toContain('<AnalyticsPanel analyticsData={analyticsData} />');
     expect(pageData).toContain("getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })");
     expect(pageData).toContain("markDomainError('analytics', error)");

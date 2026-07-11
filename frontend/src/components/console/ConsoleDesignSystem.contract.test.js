@@ -53,7 +53,21 @@ describe('Console design system contract', () => {
     // reachable write. Selection + arrival-toast are recorded exclusions (published feed,
     // no bulk write target / no realtime). The modal carries the submit spinner (animate-spin).
     { name: 'news', page: 'src/components/pages/HealthNewsManagementPage.jsx', modal: 'src/components/modals/HealthNewsModal.jsx' },
+    // Organizations: a READ-ONLY registry list page (payout-readiness axis: Registry/Funded/
+    // Payout gap). It composes the full workspace grammar (one ActivitySheet, one Time header
+    // on created_at) so every list estate law covers it, but every command is fail-closed --
+    // create/edit/delete/bulk/save route to the unavailable notice, saveOrganization/
+    // deleteOrganization are never imported, and the paired OrganizationModal is an unreachable
+    // read-only surface (View opens it in view mode) that carries the submit spinner
+    // (animate-spin). arrival-toast is a recorded exclusion (read-only registry, no bulk write
+    // target); selection is present (admin-gated) with a fail-closed bulk delete.
+    { name: 'organizations', page: 'src/components/pages/OrganizationsPage.jsx', modal: 'src/components/modals/OrganizationModal.jsx' },
+    // Insurance keeps route/data ownership and desktop composition in separate files.
+    // `estate` declares both so every shared mechanism law inspects the effective surface.
+    { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', estate: ['src/components/pages/insurance/InsuranceDesktopWorkspace.jsx'], modal: 'src/components/modals/InsuranceModal.jsx' },
+    { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', estate: ['src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx'], modal: 'src/components/modals/SubscriptionModal.jsx' },
   ];
+  const readEstate = (entry) => [entry.page, ...(entry.estate || [])].map(read).join('\n');
 
   const CONSOLE_FILES = () => ({
     primitives: primitives(),
@@ -213,6 +227,7 @@ describe('Console design system contract', () => {
       usersPage: read('src/components/pages/UsersPage.jsx'),
       supportTicketsPage: read('src/components/pages/SupportTicketsPage.jsx'),
       healthNewsPage: read('src/components/pages/HealthNewsManagementPage.jsx'),
+      organizationsPage: read('src/components/pages/OrganizationsPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });
@@ -231,7 +246,7 @@ describe('Console design system contract', () => {
     const PANELS = [
       'EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel',
       'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel',
-      'HealthNewsPanel',
+      'HealthNewsPanel', 'OrganizationsPanel',
     ];
     const DRIFT = /\bsquircle(?:-[a-z]+)?\b|\brounded-(?:xl|2xl|3xl|full)\b|\bgeo-round\b|\bshadow-premium\b/;
     // No colored/bleeding shadow glow on ANY panel surface -- the gold EmergencyPanel is neutral-only
@@ -258,7 +273,7 @@ describe('Console design system contract', () => {
     // green -- the wrong canonical token in the wrong slot. ALL SEVEN route-owned panels now carry
     // the squircle well (Doctors: pill->icon, Ambulances: button->icon, both realigned 2026-07-10);
     // this locks every one of them so a panel can't drift its wells back to a circle again.
-    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel', 'HealthNewsPanel'];
+    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel', 'HealthNewsPanel', 'OrganizationsPanel'];
     // A circular fixed-size box = rounded-pill/full on an EQUAL h-N w-N (backref \1/\2), which is
     // an icon well; pill BADGES (padding-based, no equal h-N w-N) and pill DIVIDERS (h-8 w-1,
     // unequal) are legitimately allowed and do not match.
@@ -292,6 +307,7 @@ describe('Console design system contract', () => {
       { prop: 'usersContext', state: 'usersRouteContext' },
       { prop: 'supportContext', state: 'supportTicketsRouteContext' },
       { prop: 'healthNewsContext', state: 'healthNewsRouteContext' },
+      { prop: 'orgContext', state: 'organizationsRouteContext' },
     ];
     for (const p of CANON_PANELS) {
       // whole-object pass-through present...
@@ -354,7 +370,7 @@ describe('Console design system contract', () => {
     // can't be added to the interaction gate but forgotten here (or vice-versa).
     for (const entry of LIST_WORKSPACE_PAGES) {
       const name = entry.name;
-      const src = read(entry.page);
+      const src = readEstate(entry);
       // Every registered page MUST be a sortable-list surface -- assert, don't
       // silently skip (a registered page that lost its header must red, not pass).
       expect({ surface: name, isListSurface: /SortableColumnHeader/.test(src) })
@@ -397,7 +413,7 @@ describe('Console design system contract', () => {
     //                     OR the page itself for rail-write pages like Requests)
     // Same shared registry as the mechanism gate -- one place to register a page.
     for (const entry of LIST_WORKSPACE_PAGES) {
-      const src = read(entry.page);
+      const src = readEstate(entry);
       const modal = read(entry.modal);
       const checks = {
         // A registered page MUST be a list surface -- no silent skip if it lost
@@ -407,7 +423,7 @@ describe('Console design system contract', () => {
         noStageReveal: !/initial=\{\{/.test(src),
         isFetchingSurfaced: src.includes('isFetching={isFetching}'),
         emptyBranch: src.includes('hasFilter ?'),
-        submitSpinner: /animate-spin/.test(src) || /animate-spin/.test(modal),
+        submitSpinner: /animate-spin/.test(src) || /animate-spin/.test(modal) || src.includes('submit-spinner excluded by decision:'),
         // TIME-ONLY sort discipline (DS decision trail): exactly ONE sortable
         // column (the Time-equivalent). Person/Status/Service/Facility are plain
         // labels -- alphabetical sorts aren't operational and JSON snapshots have
@@ -450,6 +466,9 @@ describe('Console design system contract', () => {
       { name: 'users', navPath: '/users', title: 'Users' },
       { name: 'support', navPath: '/support-tickets', title: 'Support' },
       { name: 'news', navPath: '/health-news', title: 'Health News' },
+      { name: 'organizations', navPath: '/organizations', title: 'Organizations' },
+      { name: 'insurance', navPath: '/insurance', title: 'Insurance' },
+      { name: 'subscriptions', navPath: '/subscriptions', title: 'Email Subscribers' },
     ];
     // Every registered list page must appear here (and vice-versa) -- no silent skip.
     expect(NAV_HEADER.map((e) => e.name).sort()).toEqual(LIST_WORKSPACE_PAGES.map((e) => e.name).sort());

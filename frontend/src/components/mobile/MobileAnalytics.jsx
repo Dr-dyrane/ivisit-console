@@ -16,7 +16,6 @@ import {
     TrendingDown,
     Download
 } from 'lucide-react';
-import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
@@ -66,6 +65,7 @@ export const MobileAnalytics = ({
     canReadFinanceAnalytics = false,
     roleContext
 }) => {
+    // grammar:hero=MobileFeaturedMetric-is-the-signal-first-statistics-hero
     const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext || {};
     const resolvedSubscriptionStats = useMemo(
         () => ({ ...DEFAULT_SUBSCRIPTION_STATS, ...(subscriptionStats || {}) }),
@@ -181,7 +181,7 @@ export const MobileAnalytics = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
-                kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
+                animatePageLoad={false}
                 contentClassName="pt-4 pb-4 text-foreground"
             >
                     {loadError && (

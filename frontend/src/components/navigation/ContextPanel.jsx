@@ -45,12 +45,39 @@ export const ContextPanel = () => {
   const [supportTicketsRouteContext, setSupportTicketsRouteContext] = React.useState(null);
   const [organizationsRouteContext, setOrganizationsRouteContext] = React.useState(null);
   const [subscriptionsRouteContext, setSubscriptionsRouteContext] = React.useState(null);
+  const [pricingRouteContext, setPricingRouteContext] = React.useState(null);
+  const [analyticsRouteContext, setAnalyticsRouteContext] = React.useState(null);
+  const [settingsRouteContext, setSettingsRouteContext] = React.useState(null);
   const [walletRouteContext, setWalletRouteContext] = React.useState(null);
   const [healthNewsRouteContext, setHealthNewsRouteContext] = React.useState(null);
   const [insuranceRouteContext, setInsuranceRouteContext] = React.useState(null);
   const [verificationRouteContext, setVerificationRouteContext] = React.useState(null);
 
   const emergencyStats = getEmergencyStats();
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/analytics')) {
+      setAnalyticsRouteContext(null);
+      return undefined;
+    }
+    const handleAnalyticsRouteContext = (event) => setAnalyticsRouteContext(event.detail || null);
+    window.addEventListener('analyticsRouteContextUpdated', handleAnalyticsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestAnalyticsRouteContext'));
+    return () => window.removeEventListener('analyticsRouteContextUpdated', handleAnalyticsRouteContext);
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/settings')) {
+      setSettingsRouteContext(null);
+      return undefined;
+    }
+    const handleSettingsRouteContext = (event) => setSettingsRouteContext(event.detail || null);
+    window.addEventListener('settingsRouteContextUpdated', handleSettingsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestSettingsRouteContext'));
+    return () => window.removeEventListener('settingsRouteContextUpdated', handleSettingsRouteContext);
+  }, [currentPath]);
 
   // Role-based access control for context panels
   const canAccessPanel = (panelPath) => {
@@ -87,6 +114,18 @@ export const ContextPanel = () => {
   };
 
   const [emergencyRouteContext, setEmergencyRouteContext] = React.useState(null);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/pricing')) {
+      setPricingRouteContext(null);
+      return undefined;
+    }
+    const handlePricingRouteContext = (event) => setPricingRouteContext(event.detail || null);
+    window.addEventListener('pricingRouteContextUpdated', handlePricingRouteContext);
+    window.dispatchEvent(new CustomEvent('requestPricingRouteContext'));
+    return () => window.removeEventListener('pricingRouteContextUpdated', handlePricingRouteContext);
+  }, [currentPath]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -454,7 +493,7 @@ export const ContextPanel = () => {
       <MapPanel emergencyStats={emergencyStats} />
     );
   } else if (currentPath.includes('/analytics')) {
-    return renderPanelWithHeader(<AnalyticsPanel />);
+    return renderPanelWithHeader(<AnalyticsPanel analyticsContext={analyticsRouteContext} />);
   } else if (currentPath.includes('/doctors')) {
     return renderPanelWithHeader(<DoctorsPanel staffContext={doctorsRouteContext} />);
   } else if (currentPath.includes('/visits')) {
@@ -477,23 +516,20 @@ export const ContextPanel = () => {
     );
   } else if (currentPath.includes('/subscriptions')) {
     return renderPanelWithHeader(
-      <SubscriptionsPanel
-        subscribers={subscriptionsRouteContext?.subscribers || []}
-        summary={subscriptionsRouteContext?.summary}
-      />
+      <SubscriptionsPanel subscriptionsContext={subscriptionsRouteContext} />
     );
   } else if (currentPath.includes('/settings')) {
-    return renderPanelWithHeader(<SettingsPanel />);
+    return renderPanelWithHeader(<SettingsPanel settingsContext={settingsRouteContext} />);
   } else if (currentPath.includes('/pricing')) {
-    return renderPanelWithHeader(<PricingContextPanel />);
+        return renderPanelWithHeader(<PricingContextPanel pricingContext={pricingRouteContext} />);
   } else if (currentPath.includes('/wallet')) {
     return renderPanelWithHeader(<WalletPanel walletContext={walletRouteContext} />);
   } else if (currentPath.includes('/organizations')) {
+    // Whole-object pass-through (Support/Users canon): the panel reads the page's PUBLISHED
+    // shape (orgContext.stats/.recent/...) verbatim, so fresh server stats never degrade to a
+    // stale window count. (Was a renamed organizations/summary cherry-pick -- the desync seam.)
     return renderPanelWithHeader(
-      <OrganizationsPanel
-        organizations={organizationsRouteContext?.organizations || []}
-        summary={organizationsRouteContext?.summary}
-      />
+      <OrganizationsPanel orgContext={organizationsRouteContext} />
     );
   }
 

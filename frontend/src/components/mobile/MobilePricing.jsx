@@ -1,429 +1,60 @@
 import React, { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BadgeDollarSign,
-  Eye,
-  Edit,
-  Trash2,
-  Building2,
-  Globe,
-  CalendarDays,
-  Layers
-} from 'lucide-react';
-// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
-// this page lacked + clear-x + haptic analytics trigger; useSkeletonWarmup covers
-// cached bottom-nav mounts; UpdatingPillRow is the background-refetch signal. No
-// onOpenFilters wired -- tabs + KPI chips are this page's whole filter grammar.
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
+import { BadgeDollarSign, Building2, CalendarDays, Eye, Globe, Layers } from 'lucide-react';
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileDetailSheet } from './MobileDetailSheet';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEmpty, MobileListSkeletonRows } from './MobileListStates';
+import { MobileListEmpty, MobileListEnd } from './MobileListStates';
 import { useStableList } from './useStableList';
 import { statusPill } from '../../constants/vitalTracks';
-import { mobileSpring } from './mobileMotion';
+import { formatRelativeTime } from '../../utils/activityUtils';
+import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
 
-const formatLabel = (value, fallback = 'Unknown') => {
-  const text = String(value || fallback).replace(/_/g, ' ').trim();
-  return text ? text.replace(/\b\w/g, (letter) => letter.toUpperCase()) : fallback;
-};
+const formatLabel = (value, fallback = 'Unknown') => String(value || fallback).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+const amount = (item) => Number(item.amount ?? item.base_price ?? item.price_per_night ?? 0) || 0;
+const family = (item) => item.family || item._pricingType || (item.price_per_night !== undefined ? 'room' : 'service');
+const updatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
+const isGlobal = (item) => !item.organization_id && !item.hospital_id;
+const money = (item) => new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(amount(item));
 
-export const MobilePricing = ({
-  pricing = [],
-  allPricing = [],
-  loading = false,
-  activeTab = 'services',
-  setActiveTab,
-  searchTerm = '',
-  setSearchTerm,
-  kpiFilter = 'all',
-  setKpiFilter,
-  onView,
-  onEdit,
-  onDelete,
-  onRefresh,
-  canEdit,
-  onViewAnalytics,
-  actionNotice = '',
-  pricingProjection = null,
-  selectionEnabled = false,
-  selectedIds = [],
-  onSelect,
-  onSelectAll
-}) => {
+export const MobilePricing = ({ pricing = [], allPricing = [], loading = false, errorMessage = null, activeTab = 'services', setActiveTab, searchTerm = '', setSearchTerm, kpiFilter = 'all', setKpiFilter, onView, onRefresh, onViewAnalytics, actionNotice = '', pricingProjection = null }) => {
   const [activeItem, setActiveItem] = useState(null);
-  const selectionMode = selectionEnabled && selectedIds.length > 0;
-  const projectionSummary = pricingProjection?.summary || null;
-  const projectionTotalCount = Number(pricingProjection?.totalCount);
-  const currentBasisLabel = pricingProjection?.readState?.basis === 'current_filter' ? 'Current' : 'Source';
-
-  const computedAvgPrice = useMemo(() => {
-    if (!allPricing.length) return 0;
-    const total = allPricing.reduce((sum, item) => sum + getItemPrice(item), 0);
-    return total / allPricing.length;
-  }, [allPricing]);
-
-  const avgPrice = projectionSummary?.averageAmount ?? computedAvgPrice;
-
-  const counts = useMemo(() => {
-    if (projectionSummary) {
-      return {
-        all: Number.isFinite(projectionTotalCount) ? projectionTotalCount : 0,
-        global: projectionSummary.globalFallbackCount || 0,
-        override: projectionSummary.facilityPriceCount || 0
-      };
-    }
-
-    return {
-      all: allPricing.length,
-      global: allPricing.filter(item => !item.organization_id && !item.hospital_id).length,
-      override: allPricing.filter(item => item.organization_id || item.hospital_id).length
-    };
-  }, [allPricing, projectionSummary, projectionTotalCount]);
-
+  const summary = pricingProjection?.summary || {};
+  const total = Number(pricingProjection?.totalCount ?? allPricing.length ?? 0);
+  const counts = {
+    all: total,
+    global: Number(summary.globalFallbackCount ?? allPricing.filter(isGlobal).length),
+    override: Number(summary.facilityPriceCount ?? allPricing.filter((item) => !isGlobal(item)).length),
+  };
   const kpis = [
-    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' },
-    { id: 'global', label: 'Platform', value: counts.global, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' },
-    { id: 'override', label: 'Facility', value: counts.override, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' }
+    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--muted-foreground))' },
+    { id: 'global', label: 'Platform', value: counts.global, color: 'hsl(199 89% 38%)' },
+    { id: 'override', label: 'Facility', value: counts.override, color: 'hsl(162 94% 24%)' },
   ];
-
-  function getItemPrice(item) {
-    const value = item.amount ?? item.base_price ?? item.price_per_night ?? 0;
-    const amount = Number(value);
-    return Number.isFinite(amount) ? amount : 0;
-  }
-
-  const getItemName = (item) => item.name || item.service_name || item.room_name || 'Unnamed price';
-  const getItemType = (item) => item.type || item.service_type || item.room_type || 'general';
-  const getItemFamily = (item) => item.family || item._pricingType || (item.price_per_night !== undefined ? 'room' : 'service');
-  const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
-  const getSourceLabel = (item, globalRule) => item.sourceLabel || item.source_label || (globalRule ? 'platform fallback' : 'facility price');
-  const getSectionLabel = () => {
-    if (activeTab === 'services') return 'Service Pricing';
-    if (activeTab === 'rooms') return 'Room Pricing';
-    return 'Pricing';
-  };
-  const getAverageLabel = () => {
-    if (activeTab === 'services') return 'Average Service Price';
-    if (activeTab === 'rooms') return 'Average Room Price';
-    return 'Average Price';
-  };
-  const isGlobal = (item) => !item.organization_id && !item.hospital_id;
-  const hasActiveRecovery = Boolean(searchTerm) || kpiFilter !== 'all';
   const { displayItems, isBuffering } = useStableList(pricing, loading);
   const warmingUp = useSkeletonWarmup();
-  const showTopSectionLoading = warmingUp || (loading && pricing.length === 0 && allPricing.length === 0);
+  const showLoading = warmingUp || (loading && displayItems.length === 0);
+  const hasFilter = Boolean(searchTerm) || kpiFilter !== 'all';
+  const scopeCount = kpiFilter === 'global' ? counts.global : kpiFilter === 'override' ? counts.override : counts.all;
+  const groups = useMemo(() => resolveAdaptiveGroups(displayItems, [
+    { key: 'scope', assign: (item) => isGlobal(item) ? 'platform' : 'facility', labelFor: (key) => key === 'platform' ? 'Platform fallback' : 'Facility price', order: (keys) => ['facility', 'platform'].filter((key) => keys.includes(key)) },
+    { type: 'coarse-recency', key: 'updated', getDate: updatedAt },
+  ]).groups, [displayItems]);
 
-  const periodTrends = useMemo(() => ({
-    globalRatio: { direction: 'flat', deltaText: currentBasisLabel },
-    overrideLoad: { direction: 'flat', deltaText: currentBasisLabel }
-  }), [currentBasisLabel]);
-
-  return (
-    <PullToRefresh onRefresh={onRefresh}>
-      <MobilePageShell
-        animatePageLoad={false}
-        kpiStrip={(
-          <MobileKPIStrip
-            loading={showTopSectionLoading}
-            kpis={kpis}
-            activeKpi={kpiFilter}
-            onKpiClick={setKpiFilter}
-          />
-        )}
-        contentClassName="pt-4 pb-4 text-foreground"
-      >
-        <MobileFeaturedMetric
-          loading={showTopSectionLoading}
-          items={[
-            {
-              label: getAverageLabel(),
-              value: `$${avgPrice.toFixed(2)}`,
-              trend: currentBasisLabel,
-              icon: BadgeDollarSign,
-              color: 'hsl(var(--foreground))',
-              chartData: [{ value: avgPrice }]
-            },
-            {
-              label: 'Platform Ratio',
-              value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
-              trend: periodTrends.globalRatio.deltaText,
-              icon: Globe,
-              color: 'hsl(var(--foreground))',
-              chartData: [{ value: counts.global }]
-            },
-            {
-              label: 'Facility Prices',
-              value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
-              trend: periodTrends.overrideLoad.deltaText,
-              icon: Building2,
-              color: 'hsl(var(--foreground))',
-              chartData: [{ value: counts.override }]
-            },
-            {
-              label: 'Total Items',
-              value: counts.all,
-              trend: currentBasisLabel,
-              icon: Layers,
-              color: 'hsl(var(--foreground))',
-              chartData: [{ value: counts.all }]
-            }
-          ]}
-        />
-
-        <section className="mb-3">
-          <MobileSectionHeader
-            label="Pricing basis"
-            count={counts.all}
-            color="hsl(var(--foreground))"
-            labelTone="plain"
-          />
-          <MobileSecondaryMetricRail
-            loading={showTopSectionLoading}
-            items={[
-              {
-                icon: Globe,
-                title: 'Platform',
-                subtitle: 'Fallback',
-                value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
-                color: 'hsl(var(--foreground))',
-                trendDirection: periodTrends.globalRatio.direction,
-                trendText: periodTrends.globalRatio.deltaText,
-                onClick: onViewAnalytics
-              },
-              {
-                icon: Building2,
-                title: 'Facility',
-                subtitle: 'Scoped',
-                value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
-                color: 'hsl(var(--foreground))',
-                trendDirection: periodTrends.overrideLoad.direction,
-                trendText: periodTrends.overrideLoad.deltaText,
-                onClick: onViewAnalytics
-              },
-              {
-                icon: BadgeDollarSign,
-                title: 'Average',
-                subtitle: 'Current mean',
-                value: `$${avgPrice.toFixed(2)}`,
-                color: 'hsl(var(--foreground))',
-                trendDirection: 'flat',
-                trendText: currentBasisLabel,
-                onClick: onViewAnalytics
-              },
-              {
-                icon: Layers,
-                title: 'Total',
-                subtitle: 'Items',
-                value: counts.all,
-                color: 'hsl(var(--foreground))',
-                trendDirection: 'flat',
-                trendText: currentBasisLabel,
-                onClick: onViewAnalytics
-              }
-            ]}
-          />
-        </section>
-
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="p-1 rounded-inner bg-muted/20 flex relative w-full">
-            <motion.div
-              className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-button"
-              initial={false}
-              animate={{
-                left: activeTab === 'services' ? 'calc(33.333% + 2px)' : activeTab === 'rooms' ? 'calc(66.666% + 0px)' : '4px',
-                width: 'calc(33.333% - 4px)',
-              }}
-              transition={mobileSpring}
-            />
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'all'
-                ? 'text-[hsl(var(--spark)/0.92)]'
-                : 'text-muted-foreground/50'
-                }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveTab('services')}
-              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'services'
-                ? 'text-[hsl(var(--spark)/0.92)]'
-                : 'text-muted-foreground/50'
-                }`}
-            >
-              Services
-            </button>
-            <button
-              onClick={() => setActiveTab('rooms')}
-              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'rooms'
-                ? 'text-[hsl(var(--spark)/0.92)]'
-                : 'text-muted-foreground/50'
-                }`}
-            >
-              Rooms
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-3 px-1">
-          <SearchRow
-            placeholder="Search pricing..."
-            search={searchTerm}
-            onSearchCommit={setSearchTerm}
-            entityLabel="pricing"
-            onOpenStats={onViewAnalytics}
-            statsLabel="Open analytics"
-          />
-        </div>
-
-        <MobileSectionHeader
-          label={getSectionLabel()}
-          count={pricing.length}
-          color="hsl(var(--foreground))"
-          labelTone="plain"
-          onSelectAll={selectionEnabled && onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
-          isAllSelected={selectionEnabled && pricing.length > 0 && selectedIds.length === pricing.length}
-          selectionMode={selectionMode}
-          selectedCount={selectedIds.length}
-        />
-
-        {actionNotice && (
-          <p role="status" aria-live="polite" className="mb-3 rounded-inner bg-muted/15 px-4 py-3 text-xs leading-5 text-muted-foreground">
-            {actionNotice}
-          </p>
-        )}
-
-        <div className="space-y-1">
-          <AnimatePresence mode="popLayout">
-            {displayItems.map((item) => {
-              const globalRule = isGlobal(item);
-              const price = getItemPrice(item);
-              const sourceLabel = getSourceLabel(item, globalRule);
-              const itemFamily = getItemFamily(item);
-              // Price is the defining number of a config row: carry it (with its
-              // per-unit basis) on the readable secondary line, not in a decorative blade.
-              const rate = {
-                label: itemFamily === 'room' ? 'Night' : 'Unit',
-                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(price)
-              };
-              // Tap opens the detail bottom sheet (MobileDetailSheet) - the approved mobile
-              // design + desktop rail behaviour - not an inline dropdown.
-              return (
-                <MobileMetricRow
-                  key={item.id}
-                  icon={BadgeDollarSign}
-                  color="hsl(var(--foreground))"
-                  label={formatLabel(getItemType(item))}
-                  value={getItemName(item)}
-                  secondary={`${rate.value} / ${rate.label} · ${formatLabel(sourceLabel)}`}
-                  statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
-                  onClick={() => setActiveItem(item)}
-                />
-              );
-            })}
-          </AnimatePresence>
-
-          {!loading && !showTopSectionLoading && displayItems.length === 0 && (
-            <MobileListEmpty
-              icon={BadgeDollarSign}
-              label="No pricing rules found"
-              labelTone="plain"
-              reason={searchTerm ? 'search' : hasActiveRecovery ? 'filtered' : 'empty'}
-              hint={searchTerm
-                ? `No pricing matches "${searchTerm}".`
-                : hasActiveRecovery
-                  ? 'Try resetting filters to view all pricing rules.'
-                  : 'Pricing rules will appear here once configured.'}
-              onRecover={hasActiveRecovery ? () => {
-                if (searchTerm) setSearchTerm('');
-                if (kpiFilter !== 'all') setKpiFilter('all');
-              } : undefined}
-              recoverLabel={searchTerm ? 'Clear Search' : hasActiveRecovery ? 'Reset Filters' : undefined}
-            />
-          )}
-
-          {showTopSectionLoading && <MobileListSkeletonRows />}
-          <UpdatingPillRow show={isBuffering && !showTopSectionLoading} />
-        </div>
-
-        {activeItem && (() => {
-          const item = activeItem;
-          const globalRule = isGlobal(item);
-          const editable = canEdit?.(item);
-          const price = getItemPrice(item);
-          const sourceLabel = getSourceLabel(item, globalRule);
-          const itemFamily = getItemFamily(item);
-          const updatedAt = getUpdatedAt(item);
-          const facilityLabel = item.facilityName || item.facility_name;
-          const noteText = item.description || item.metadata?.description;
-          // Price is the defining number of a config record: carry it (with its
-          // per-unit basis) as the lead detail island, not in a decorative blade.
-          const rate = {
-            label: itemFamily === 'room' ? 'Night' : 'Unit',
-            value: new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(price)
-          };
-          return (
-            <MobileDetailSheet
-              isOpen
-              onClose={() => setActiveItem(null)}
-              icon={BadgeDollarSign}
-              iconTone="hsl(var(--foreground))"
-              eyebrow={formatLabel(getItemType(item))}
-              title={getItemName(item)}
-              statusPill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
-              islands={[
-                { icon: BadgeDollarSign, label: 'Price', value: `${rate.value} / ${rate.label}` },
-                item.unit ? { icon: Layers, label: 'Unit', value: item.unit } : null,
-                facilityLabel ? { icon: Building2, label: 'Facility', value: facilityLabel } : null,
-                { icon: CalendarDays, label: 'Updated', value: updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown' }
-              ]}
-              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveItem(null); onView(item); } }}
-            >
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
-                  {globalRule ? <Globe size={12} /> : <Building2 size={12} />}
-                  {formatLabel(sourceLabel)}
-                </span>
-              </div>
-
-              {noteText ? (
-                <div className="surface-card rounded-inner p-3 text-xs leading-5 text-muted-foreground">
-                  {noteText}
-                </div>
-              ) : null}
-
-              {editable && (
-                <div className="flex gap-2">
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => onEdit(item)}
-                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-muted/40 text-xs font-semibold text-foreground transition-colors hover:bg-muted/60"
-                  >
-                    <Edit size={15} />
-                    Edit
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => onDelete(item)}
-                    aria-label="Delete pricing rule"
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
-                  >
-                    <Trash2 size={15} />
-                  </motion.button>
-                </div>
-              )}
-            </MobileDetailSheet>
-          );
-        })()}
-      </MobilePageShell>
-    </PullToRefresh>
-  );
+  return <PullToRefresh onRefresh={onRefresh}><MobilePageShell animatePageLoad={false} contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"><div className="relative z-10 space-y-3">
+    <MobileHeading title="Pricing" noun="rule" count={scopeCount} summary={showLoading ? 'Loading pricing...' : `${scopeCount} ${scopeCount === 1 ? 'rule' : 'rules'}`} />
+    <MobileKPIStrip loading={showLoading} kpis={kpis} activeKpi={kpiFilter} onKpiClick={setKpiFilter} />
+    <section className="px-4">
+      <div className="mb-3 grid grid-cols-3 gap-1 rounded-inner bg-muted/20 p-1" role="tablist" aria-label="Pricing family"><button type="button" onClick={() => setActiveTab('all')} aria-selected={activeTab === 'all'} className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>All</button><button type="button" onClick={() => setActiveTab('services')} aria-selected={activeTab === 'services'} className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'services' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Services</button><button type="button" onClick={() => setActiveTab('rooms')} aria-selected={activeTab === 'rooms'} className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'rooms' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Rooms</button></div>
+      <SearchRow placeholder="Search pricing..." search={searchTerm} onSearchCommit={setSearchTerm} entityLabel="pricing" onOpenStats={onViewAnalytics} statsLabel="Open analytics" />
+      <UpdatingPillRow show={isBuffering && !showLoading} />
+      {actionNotice && <p role="status" aria-live="polite" className="mt-3 rounded-inner bg-muted/20 px-4 py-3 text-xs text-muted-foreground">{actionNotice}</p>}
+      <div className="mt-3 space-y-[18px]">{showLoading ? <SkeletonGroupPanel rows={6} /> : groups.map((group) => <GroupPanel key={group.key} label={group.label} count={group.items.length}>{group.items.map((item, index) => <React.Fragment key={item.id}><MobileListRow item={item} dataAttr="data-mobile-pricing-row" onOpen={setActiveItem} ariaLabel={`${item.name || item.service_name || item.room_name || 'Pricing rule'}, ${money(item)}`} orbClass={isGlobal(item) ? 'bg-sky-500/12 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'} icon={isGlobal(item) ? Globe : Building2} title={item.name || item.service_name || item.room_name || 'Unnamed price'} meta={`${money(item)} / ${family(item) === 'room' ? 'night' : 'unit'}`} time={formatRelativeTime(updatedAt(item))} pill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))} />{index < group.items.length - 1 && <Hairline />}</React.Fragment>)}</GroupPanel>)}</div>
+      {!showLoading && displayItems.length === 0 && <MobileListEmpty icon={BadgeDollarSign} label={errorMessage ? 'Pricing did not load' : 'No pricing rules found'} reason={errorMessage ? 'error' : searchTerm ? 'search' : hasFilter ? 'filtered' : 'empty'} hint={errorMessage || (searchTerm ? `No pricing matches "${searchTerm}".` : hasFilter ? 'Reset filters to view all pricing rules.' : 'Pricing rules for this scope will appear here.')} onRecover={errorMessage ? onRefresh : hasFilter ? () => { setSearchTerm(''); setKpiFilter('all'); } : undefined} recoverLabel={errorMessage ? 'Try Again' : searchTerm ? 'Clear Search' : hasFilter ? 'Reset Filters' : undefined} />}
+      {!showLoading && displayItems.length > 0 && <MobileListEnd label="End of pricing list" />}
+    </section>
+  </div>
+  {activeItem && <MobileDetailSheet isOpen onClose={() => setActiveItem(null)} icon={BadgeDollarSign} iconTone="hsl(var(--foreground))" eyebrow={formatLabel(family(activeItem))} title={activeItem.name || activeItem.service_name || activeItem.room_name || 'Unnamed price'} statusPill={statusPill(activeItem.status || (activeItem.is_active ? 'active' : 'inactive'))} islands={[{ icon: BadgeDollarSign, label: 'Price', value: `${money(activeItem)} / ${family(activeItem) === 'room' ? 'night' : 'unit'}` }, activeItem.unit ? { icon: Layers, label: 'Unit', value: activeItem.unit } : null, (activeItem.facilityName || activeItem.facility_name) ? { icon: Building2, label: 'Facility', value: activeItem.facilityName || activeItem.facility_name } : { icon: Globe, label: 'Scope', value: 'Platform fallback' }, { icon: CalendarDays, label: 'Updated', value: updatedAt(activeItem) ? new Date(updatedAt(activeItem)).toLocaleDateString() : 'Date unknown' }]} primary={{ label: 'Details', icon: Eye, onClick: () => { const item = activeItem; setActiveItem(null); onView(item); } }} />}
+  </MobilePageShell></PullToRefresh>;
 };
-

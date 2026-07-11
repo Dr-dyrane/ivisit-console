@@ -1,88 +1,26 @@
 import React, { useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-  BarChart3,
-  Building2,
-  Download,
-  DollarSign,
-  Plus,
-} from 'lucide-react';
+import { BarChart3, BadgeDollarSign, Building2, Download, Eye, Globe, Plus } from 'lucide-react';
 
-const SOURCE_PENDING_LABEL = 'Source pending';
 const PRICING_UNAVAILABLE_MESSAGE = 'Pricing actions unavailable until facility scope is verified.';
+const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+const money = (item) => new Intl.NumberFormat('en-US', { style: 'currency', currency: item?.currency || 'USD' }).format(Number(item?.amount ?? item?.base_price ?? item?.price_per_night ?? 0) || 0);
+const isGlobal = (item) => !item?.hospital_id && !item?.hospitalId;
 
-const pricingSignals = [
-  { label: 'Facility prices', Icon: Building2 },
-  { label: 'Room prices', Icon: DollarSign },
-  { label: 'Quote impact', Icon: BarChart3 },
-];
+const Action = ({ icon: Icon, label, onClick, wide }) => <button type="button" onClick={onClick} aria-disabled="true" data-state="unavailable" title={PRICING_UNAVAILABLE_MESSAGE} className={`${wide ? 'col-span-2' : ''} flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.97] dark:bg-white/[0.04]`}><Icon className="h-4 w-4" /><span className="text-xs font-medium">{label}</span></button>;
 
-export const PricingContextPanel = () => {
-  const [panelNotice, setPanelNotice] = useState('Pricing scope pending.');
+export const PricingContextPanel = ({ pricingContext = null }) => {
+  const [notice, setNotice] = useState('Pricing scope pending.');
+  const rows = pricingContext?.recentPricing || pricingContext?.pricing || [];
+  const summary = pricingContext?.summary || {};
+  const focused = pricingContext?.focusedPrice || rows[0] || null;
+  const unavailable = useCallback(() => setNotice(PRICING_UNAVAILABLE_MESSAGE), []);
+  if (pricingContext?.loading && rows.length === 0) return <div className="space-y-3 py-2">{[0, 1, 2, 3].map((item) => <div key={item} className="h-16 animate-pulse rounded-inner bg-muted/35" />)}</div>;
 
-  const handleUnavailableAction = useCallback(() => {
-    setPanelNotice(PRICING_UNAVAILABLE_MESSAGE);
-  }, []);
-
-  return (
-    <div className="space-y-4">
-      {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
-      <div className="space-y-2">
-        <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Pricing scope</h3>
-
-        <div className="flex items-start gap-3 rounded-card bg-muted/20 p-4 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-icon bg-muted/35">
-            <DollarSign className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-semibold">Facility scope needed</p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              Price actions need a selected facility before they can run.
-            </p>
-          </div>
-        </div>
-
-        {pricingSignals.map(({ label, Icon }) => (
-          <div key={label} className="flex items-center justify-between rounded-card bg-muted/15 p-4 transition-colors hover:bg-muted/25 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-icon bg-muted/30">
-                <Icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <span className="text-sm font-semibold">{label}</span>
-            </div>
-            <span className="rounded-pill bg-muted/40 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {SOURCE_PENDING_LABEL}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Actions</h3>
-        <div className="grid grid-cols-2 gap-2">
-          <PanelAction icon={Plus} label="Add item" onClick={handleUnavailableAction} />
-          <PanelAction icon={BarChart3} label="Reports" onClick={handleUnavailableAction} />
-          <PanelAction icon={Download} label="Bulk sync" onClick={handleUnavailableAction} wide />
-        </div>
-        <p role="status" aria-live="polite" className="px-1 text-xs leading-5 text-muted-foreground">
-          {panelNotice}
-        </p>
-      </div>
-    </div>
-  );
+  return <div className="space-y-5">
+    {pricingContext?.error && <div className="rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">{pricingContext.error}</div>}
+    <section><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Pricing scope</h3><span className="rounded-pill bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">{number(pricingContext?.totalCount)}</span></div><div className="grid grid-cols-2 gap-2"><div className="rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]"><Globe className="mb-2 h-4 w-4 text-sky-700 dark:text-sky-200" /><p className="text-sm font-semibold">{number(summary.globalFallbackCount)}</p><p className="text-xs text-muted-foreground">Platform</p></div><div className="rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]"><Building2 className="mb-2 h-4 w-4 text-emerald-700 dark:text-emerald-200" /><p className="text-sm font-semibold">{number(summary.facilityPriceCount)}</p><p className="text-xs text-muted-foreground">Facility</p></div></div></section>
+    {focused && <section className="rounded-modal bg-background/45 p-4 dark:bg-white/[0.04]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase text-muted-foreground">Current rule</p><h3 className="mt-2 truncate text-base font-semibold">{focused.name || focused.service_name || focused.room_name || 'Pricing rule'}</h3><p className="mt-1 text-xs text-muted-foreground">{money(focused)} · {isGlobal(focused) ? 'Platform fallback' : focused.facilityName || 'Facility price'}</p></div><span className={`flex h-9 w-9 items-center justify-center rounded-icon ${isGlobal(focused) ? 'bg-sky-500/10 text-sky-700' : 'bg-emerald-500/10 text-emerald-700'}`}>{isGlobal(focused) ? <Globe className="h-4 w-4" /> : <Building2 className="h-4 w-4" />}</span></div><button type="button" onClick={unavailable} className="mt-4 flex h-10 w-full items-center justify-center rounded-button bg-foreground text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.98]"><Eye className="mr-2 h-4 w-4" />Details unavailable</button></section>}
+    <section><h3 className="mb-3 text-sm font-semibold">Actions</h3><div className="grid grid-cols-2 gap-2"><Action icon={Plus} label="Add item" onClick={unavailable} /><Action icon={BarChart3} label="Reports" onClick={unavailable} /><Action icon={Download} label="Bulk sync" onClick={unavailable} wide /></div><p role="status" aria-live="polite" className="mt-2 px-1 text-xs text-muted-foreground">{notice}</p></section>
+    <section><h3 className="mb-3 text-sm font-semibold">Recent rules</h3><div className="space-y-2">{rows.slice(0, 4).map((item) => <div key={`${item.family || item._pricingType}-${item.id}`} className="flex items-center gap-3 rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${isGlobal(item) ? 'bg-sky-500/10 text-sky-700' : 'bg-emerald-500/10 text-emerald-700'}`}><BadgeDollarSign className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.name || item.service_name || item.room_name || 'Pricing rule'}</p><p className="mt-1 text-xs text-muted-foreground">{money(item)} · {isGlobal(item) ? 'Platform' : 'Facility'}</p></div></div>)}{rows.length === 0 && <p className="py-3 text-sm text-muted-foreground">No pricing rules in this scope.</p>}</div></section>
+  </div>;
 };
-
-const PanelAction = ({ icon: Icon, label, onClick, wide = false }) => (
-  <motion.button
-    type="button"
-    whileTap={{ scale: 0.96 }}
-    onClick={onClick}
-    aria-disabled="true"
-    data-state="unavailable"
-    title={PRICING_UNAVAILABLE_MESSAGE}
-    className={`${wide ? 'col-span-2' : ''} flex flex-col items-center justify-center gap-2 rounded-card bg-muted/25 p-4 text-muted-foreground transition-colors hover:bg-muted/35`}
-  >
-    <Icon className="h-5 w-5" />
-    <span className="text-xs font-semibold">{label}</span>
-  </motion.button>
-);

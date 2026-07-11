@@ -9,6 +9,102 @@ import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
+const EMPTY_SUBSCRIPTION_STATS = Object.freeze({
+  total: 0,
+  active: 0,
+  pending: 0,
+  unsubscribed: 0,
+  paid: 0,
+  free: 0,
+  newUsers: 0,
+  welcomeSent: 0,
+  exactCounts: true,
+  scope: 'admin_subscriber_projection',
+});
+const TERMINAL_SUBSCRIBER_STATUSES = ['unsubscribed', 'bounced', 'inactive', 'cancelled', 'expired'];
+
+const applySubscriberBaseFilters = (query, filter = {}) => {
+  let next = query;
+  if (filter.search) next = next.ilike('email', `%${String(filter.search).trim()}%`);
+  if (Array.isArray(filter.status) && filter.status.length > 0) next = next.in('status', filter.status);
+  if (Array.isArray(filter.type) && filter.type.length > 0) next = next.in('type', filter.type);
+  if (filter.welcomeEmailSent === 'sent') next = next.eq('welcome_email_sent', true);
+  if (filter.welcomeEmailSent === 'pending') next = next.eq('welcome_email_sent', false);
+  if (filter.dateRange && filter.dateRange !== 'all') {
+    const days = { '7d': 7, '30d': 30, '90d': 90 }[filter.dateRange];
+    if (days) next = next.gte('created_at', new Date(Date.now() - days * 86400000).toISOString());
+  }
+  return next;
+};
+
+const applySubscriberKpiFilter = (query, kpiFilter = 'all') => {
+  switch (kpiFilter) {
+    case 'active': return query.eq('status', 'active');
+    case 'pending': return query.not('status', 'eq', 'active').not('status', 'in', `(${TERMINAL_SUBSCRIBER_STATUSES.join(',')})`);
+    case 'unsubscribed': return query.in('status', TERMINAL_SUBSCRIBER_STATUSES);
+    case 'new': return query.eq('new_user', true);
+    case 'paid': return query.eq('type', 'paid');
+    case 'free': return query.eq('type', 'free');
+    default: return query;
+  }
+};
+
+const exactSubscriberCount = async (filter, applyBucket = (query) => query) => {
+  let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+  query = applySubscriberBaseFilters(query, filter);
+  query = applyBucket(query);
+  const { count, error } = await query;
+  if (error) throw error;
+  return Number(count || 0);
+};
+
+export async function getSubscriptionsPage(filter = {}) {
+  const limit = Math.min(Math.max(Number(filter.limit) || 20, 1), 100);
+  const offset = Math.max(Number(filter.offset) || 0, 0);
+  const sortKey = ['created_at', 'subscription_date'].includes(filter.sortKey) ? filter.sortKey : 'created_at';
+  const ascending = filter.sortDirection === 'asc';
+
+  try {
+    const user = await getCurrentUser();
+    if (user?.role !== 'admin') {
+      return { data: [], count: 0, denied: true, failed: false, reason: 'admin_only', stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false } };
+    }
+
+    let rowsQuery = supabase.from(TABLE_NAME).select('*', { count: 'exact' });
+    rowsQuery = applySubscriberBaseFilters(rowsQuery, filter);
+    rowsQuery = applySubscriberKpiFilter(rowsQuery, filter.kpiFilter);
+    rowsQuery = rowsQuery.order(sortKey, { ascending, nullsFirst: false }).range(offset, offset + limit - 1);
+
+    const [rowsResult, total, active, pending, unsubscribed, paid, free, newUsers, welcomeSent] = await Promise.all([
+      rowsQuery,
+      exactSubscriberCount(filter),
+      exactSubscriberCount(filter, (query) => query.eq('status', 'active')),
+      exactSubscriberCount(filter, (query) => query.not('status', 'eq', 'active').not('status', 'in', `(${TERMINAL_SUBSCRIBER_STATUSES.join(',')})`)),
+      exactSubscriberCount(filter, (query) => query.in('status', TERMINAL_SUBSCRIBER_STATUSES)),
+      exactSubscriberCount(filter, (query) => query.eq('type', 'paid')),
+      exactSubscriberCount(filter, (query) => query.eq('type', 'free')),
+      exactSubscriberCount(filter, (query) => query.eq('new_user', true)),
+      exactSubscriberCount(filter, (query) => query.eq('welcome_email_sent', true)),
+    ]);
+    if (rowsResult.error) throw rowsResult.error;
+
+    return {
+      data: rowsResult.data || [],
+      count: Number(rowsResult.count || 0),
+      denied: false,
+      failed: false,
+      reason: null,
+      stats: { total, active, pending, unsubscribed, paid, free, newUsers, welcomeSent, exactCounts: true, scope: 'admin_subscriber_projection' },
+    };
+  } catch (error) {
+    if (!filter.quiet) console.error('Subscriber page query error:', error);
+    return {
+      data: [], count: 0, denied: false, failed: true, reason: 'query_failed',
+      errorMessage: error?.message || 'Subscriber projection failed.',
+      stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false },
+    };
+  }
+}
 const WRITABLE_FIELDS = new Set([
   'email',
   'type',

@@ -23,42 +23,61 @@ Page 22 Onboarding Success (`efac625`).
 
 ## Active queue (priority order)
 
-1. **Page 19 Login** — split into two sub-tasks by capability
-   - 1a. Chrome cleanup — executor: `headless` · status: `todo`
-     - `LoginPage.jsx` has ~6 non-canonical tokens (blur/glow/heavy-shadow/glass/non-canonical radius).
-       Convert to calm canonical tokens; keep OAuth/reset/MFA logic + copy. Source + strict-radius
-       only (no admission, no hardgate add) — exactly like the Page 21 chrome cleanup (`afe71b2`).
-   - 1b. Rendered admission — executor: `browser` · status: `blocked`
-     - `/login` REDIRECTS signed-in users to `/` (LoginPage.jsx L54-55), so the form only renders
-       signed-out. Needs a signed-out session (sign-out disrupts the user's active login, or use a
-       separate/incognito browser context). Then admit gate Page 19 + test + add to hardgate.
+1. **Authenticated parity proof for Pages 12-18**
+   - executor: `browser` - status: `blocked`
+   - Insurance, Analytics, Organizations, Settings, Subscriptions, and Pricing have source parity,
+     focused contracts, grammar/hardgate coverage, and green production builds. Prove desktop/mobile
+     surfaces with authorized roles. Record denied, failed, stale, empty, populated, focus, selection,
+     filter, right-pane, and unavailable-command behavior. Do not weaken RLS or manufacture data.
 
-   GENERAL RULE for public/auth pages (Login/Onboarding/Set-Password): the source-side chrome
-   cleanup is `headless`-doable; the rendered *admission* is `browser` + needs a signed-out session.
+2. **Public/auth rendered proof**
+   - executor: `browser` - status: `blocked`
+   - Login requires a signed-out context; Set Password requires a real recovery session; Onboarding
+     requires signed-out/pending state and must not be submitted during visual proof. Login and Set
+     Password have duplicate-submit locks and explicit pending semantics.
 
-2. **Page 21 Onboarding** — wizard rendered proof + admit
-   - executor: `browser` · status: `blocked` (chrome cleaned `afe71b2`; not admitted)
-   - blocker: wizard renders only for signed-out/pending users; needs a signed-out session.
-     Do NOT submit the form (live account/org/Storage writes). Flow receivers are `backend`-blocked.
+3. **Backend authority and app consequence**
+   - executor: `backend` - status: `blocked`
+   - Prove named RLS/RPC/Edge/Storage receivers and reflected reads before enabling Insurance,
+     Organization, subscriber/email, Pricing, analytics export, billing, or provider-profile commands.
+     Pricing also requires selected-facility patient quote comparison against `ivisit-app`.
 
-3. **Page 20 Set Password** — visual pass + rendered proof
-   - executor: `browser` · status: `blocked`
-   - blocker: form renders only under a recovery deep-link session; auth receiver `backend`-blocked.
+4. **Final repository checkpoint**
+   - executor: `headless` - status: `in_progress`
+   - Reconcile current-state summaries, run broad contracts/estate/grammar/hardgate/encoding/build,
+     review the dirty diff without reverting user work, and create coherent resumable commits.
 
-4. **Contract-test hardening** — lock any admitted fail-closed/canonical rule lacking a test
-   - executor: `headless` · status: `todo`
-   - do: scan admitted/intake pages for a stated fail-closed or source-pending rule with no
-     matching `.contract.test.js` assertion; add it. (Last audit found intake guards covered —
-     verify and fill any gap. This is the loop's main safe work.)
+## Parked backend commands (visual/read-only parity remains source-closable)
+Pages 12-18 still require named receivers, RLS/RPC/Edge authority, and reconciled
+`ivisit-app` consequences before blocked commands can be enabled. That does not block a
+read-only visual revamp when the route projection is proved and unsupported commands fail closed.
 
-## Parked — `backend`-blocked (NOT source-closable; loop must NOT attempt)
-Page 12 Insurance · 13 Analytics · 14 Users · 15 Organizations · 16 Settings ·
-17 Subscriptions · 18 Pricing. Each needs a named server projection owner + receiver/RLS/RPC/Edge
-authority + `ivisit-app` app-consequence proof. All source-closable safety cleanups are already
-done (fail-closed commands, no fake metrics, quieted reads). Only document blockers; do not
-admit or enable.
+- Page 12 Insurance: source composition complete on 2026-07-11; authenticated rendered proof pending.
+- Page 15 Organizations: source composition complete on 2026-07-11; authenticated rendered proof pending.
+- Page 17 Subscriptions: source composition complete on 2026-07-11; authenticated rendered proof pending.
+- Pages 13 Analytics, 16 Settings, and 18 Pricing: source composition complete on 2026-07-11;
+  authenticated rendered proof pending. Page 14 Users retains its existing guarded source state
+  and separate identity-command authority blockers.
 
 ## Live claims / run log
+
+### 2026-07-11 - Insurance read-only parity composition
+- Added the authority/preservation constitution and retained patient-owned policy commands as fail-closed.
+- Replaced the legacy desktop density modes with the shared list workspace, one `created_at` sort,
+  selection with unavailable bulk mutation, keyboard navigation, filter state, and a focused detail rail.
+- Promoted mobile Insurance to full LIST grammar and rebuilt the route context panel without private
+  Card surfaces or entrance motion.
+- Registered the route, desktop composition, mobile, panel, and modal in the shared estate and UI
+  hardgate. Source contracts and production checks pass; authenticated desktop/mobile proof remains open.
+
+### 2026-07-11 - Subscriptions read-only parity composition
+- Added an admin-scoped page projection with exact counts, explicit denied/failed envelopes, server
+  filters/sort/pagination, TanStack cache ownership, and route-owned realtime invalidation.
+- Replaced desktop density modes with the shared list workspace, one Joined sort, shared selection,
+  unavailable bulk mutation, keyboard navigation, and a focused detail rail.
+- Kept mobile on the full LIST grammar and rebuilt the context panel around whole route context.
+- Subscriber and email commands remain fail-closed. Source contracts and hardgates pass;
+  authenticated desktop/mobile proof remains open.
 
 ### 2026-07-07 — headless revamp loop — Page 10 Support chrome cleanup — BLOCKED (reverted)
 - **Attempted slice:** canon token-level chrome cleanup on the 7 Support surfaces
