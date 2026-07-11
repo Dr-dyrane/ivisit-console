@@ -37,6 +37,7 @@ import {
   Clock,
   Edit,
   Eye,
+  Filter,
   IdCard,
   Info,
   Mail,
@@ -47,7 +48,7 @@ import {
   ShieldCheck,
   Stethoscope,
   Trash2,
-  Truck,
+  Ambulance,
   UserCheck,
   UserRound,
   Users,
@@ -76,9 +77,12 @@ const getRoleMeta = (role) => {
 
 // provider_type persona icon (doctor vs driver) -- the split that legitimately lives on
 // Users (live-DB 2026-07-10: providers are ~50/50 doctor/driver), unlike Staff (all doctors).
+// A driver/paramedic reads as a RESPONDER (ambulance), a doctor as a CLINICIAN (stethoscope)
+// -- the SAME persona vocabulary as MobileUsers / MobileVerification (canon, single-source).
+// 'paramedic' previously fell through to the generic person mark.
 const getProviderTypeIcon = (providerType) => {
   const type = String(providerType || '').toLowerCase();
-  if (type.includes('driver') || type.includes('ambulance')) return Truck;
+  if (type.includes('driver') || type.includes('ambulance') || type.includes('paramedic')) return Ambulance;
   if (type.includes('doctor') || type.includes('physician') || type.includes('nurse') || type.includes('specialist')) return Stethoscope;
   return UserRound;
 };
@@ -471,7 +475,7 @@ export const UsersPage = () => {
       aria-haspopup="dialog"
       aria-expanded={filterSheetOpen}
     >
-      <Users className="h-4 w-4" />
+      <Filter className="h-4 w-4" />
       {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
     </Button>
   ), [filterSheetOpen, hasFilter]);
@@ -492,7 +496,7 @@ export const UsersPage = () => {
     ) : null
   ), [canManage, handleInvite, usersCommandNotice]);
 
-  usePageHeader('User Management', headerActions, null, filterButtonComponent);
+  usePageHeader('Users', headerActions, null, filterButtonComponent);
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -598,7 +602,7 @@ export const UsersPage = () => {
 
   return (
     <div className="min-h-screen text-foreground">
-      <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
+      <SEOHead title="Users" description="Manage user profiles, roles, and verifications." />
       {usersCommandNotice && (
         <div id="users-action-feedback" role="status" aria-live="polite" className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
           {usersCommandNotice}

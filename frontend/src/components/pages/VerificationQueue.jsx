@@ -43,6 +43,7 @@ import {
   Shield,
   ShieldAlert,
   FileCheck,
+  Filter,
   ChevronRight,
   Info,
   Eye,
@@ -54,7 +55,7 @@ import {
   Loader2,
   Building2,
   Stethoscope,
-  Truck,
+  Ambulance,
   UserRound,
   Phone,
 } from 'lucide-react';
@@ -138,10 +139,13 @@ const formatAppliedDate = (value) => {
 };
 
 // Provider persona signal (F10): the FAB scopes drivers vs doctors by provider_type,
-// but the card never surfaced it. doctor -> Stethoscope, driver -> Truck, else person.
+// but the card never surfaced it. A driver/paramedic reads as a RESPONDER (ambulance),
+// a doctor as a CLINICIAN (stethoscope) -- the SAME persona vocabulary as MobileUsers /
+// MobileVerification (canon, single-source). 'paramedic' previously fell through to the
+// generic person mark.
 const getProviderTypeIcon = (providerType) => {
   const type = String(providerType || '').toLowerCase();
-  if (type.includes('driver') || type.includes('ambulance')) return Truck;
+  if (type.includes('driver') || type.includes('ambulance') || type.includes('paramedic')) return Ambulance;
   if (type.includes('doctor') || type.includes('physician')) return Stethoscope;
   return UserRound;
 };
@@ -576,7 +580,7 @@ export const VerificationQueue = () => {
       aria-haspopup="dialog"
       aria-expanded={filterSheetOpen}
     >
-      <Shield className="h-4 w-4" />
+      <Filter className="h-4 w-4" />
       {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
     </Button>
   ), [filterSheetOpen, hasFilter]);

@@ -333,4 +333,66 @@ describe('Console design system contract', () => {
       }
     }
   });
+
+  it('binds every list page title + filter icon to the navbar canon (estate law)', () => {
+    // WHY THIS EXISTS: two navbar-RELATIONSHIP drifts slipped every structural gate
+    // and needed a user correction (2026-07-10) -- the "green means the navbar was
+    // never checked" hole:
+    //  (1) the header FILTER button rendered a DOMAIN icon (Approvals=Shield,
+    //      Staff/Users=Users) instead of the canon funnel. The gold pages all render
+    //      the lucide Filter glyph (Requests via the `Filter as FilterIcon` alias,
+    //      Visits/Hospitals/Ambulances directly) -- the filter affordance must read
+    //      as "filter", not as the page's subject.
+    //  (2) Users named itself "User Management" (desktop SEOHead + usePageHeader)
+    //      while the navbar label -- AND its own mobile SEOHead -- said "Users", so
+    //      the page disagreed with the nav item that routes to it.
+    // config/navigation.js is the SINGLE SOURCE OF TRUTH for a page's name. This gate
+    // binds each page's SEOHead title(s) and usePageHeader literal (where present) to
+    // that label, and forces the header filter button onto the canon Filter icon, so
+    // neither can drift again without reddening. Same one-place-to-register discipline
+    // as the mechanism/interaction gates -- keyed by LIST_WORKSPACE_PAGES name.
+    const nav = read('src/config/navigation.js');
+    const NAV_HEADER = [
+      { name: 'requests', navPath: '/emergencies', title: 'Requests' },
+      { name: 'visits', navPath: '/visits', title: 'Visits' },
+      { name: 'hospitals', navPath: '/hospitals', title: 'Hospitals' },
+      { name: 'ambulances', navPath: '/ambulances', title: 'Ambulances' },
+      { name: 'verificationQueue', navPath: '/verification', title: 'Approvals' },
+      { name: 'doctors', navPath: '/doctors', title: 'Staff' },
+      { name: 'users', navPath: '/users', title: 'Users' },
+    ];
+    // Every registered list page must appear here (and vice-versa) -- no silent skip.
+    expect(NAV_HEADER.map((e) => e.name).sort()).toEqual(LIST_WORKSPACE_PAGES.map((e) => e.name).sort());
+
+    for (const entry of NAV_HEADER) {
+      const pageEntry = LIST_WORKSPACE_PAGES.find((p) => p.name === entry.name);
+      const src = read(pageEntry.page);
+
+      // (a) navbar declares this exact label for the route -- the source of truth.
+      const navLabel = (nav.match(new RegExp(`path: '${entry.navPath}'[^}]*?label: '([^']*)'`)) || [])[1];
+      expect({ route: entry.navPath, navLabel }).toEqual({ route: entry.navPath, navLabel: entry.title });
+
+      // (b) EVERY SEOHead title on the page (mobile + desktop) equals the nav label.
+      // Users drifted precisely here: mobile 'Users' vs desktop 'User Management'.
+      const seoTitles = [...src.matchAll(/<SEOHead\s+title="([^"]*)"/g)].map((m) => m[1]);
+      expect({ page: entry.name, hasSeo: seoTitles.length > 0 }).toEqual({ page: entry.name, hasSeo: true });
+      for (const t of seoTitles) {
+        expect({ page: entry.name, seoTitle: t }).toEqual({ page: entry.name, seoTitle: entry.title });
+      }
+
+      // (c) if the page names itself via usePageHeader('<literal>'), it equals the nav
+      // label too (Approvals/Staff/Users use the inline literal; Requests/Visits pass
+      // an empty/object title -- the hero carries the name -- so nothing to bind here).
+      const headerLiteral = (src.match(/usePageHeader\('([^']*)'/) || [])[1];
+      if (headerLiteral !== undefined) {
+        expect({ page: entry.name, headerLiteral }).toEqual({ page: entry.name, headerLiteral: entry.title });
+      }
+
+      // (d) the header filter button's glyph is the canon lucide Filter (or its
+      // FilterIcon alias) -- never a domain icon (Shield/Users/Stethoscope/...).
+      const filterIcon = (src.match(/aria-label="Filter[^"]*"[\s\S]{0,160}?<([A-Za-z]\w*) className="h-4 w-4"/) || [])[1];
+      expect({ page: entry.name, canonFilterIcon: /^Filter(Icon)?$/.test(filterIcon || '') })
+        .toEqual({ page: entry.name, canonFilterIcon: true });
+    }
+  });
 });

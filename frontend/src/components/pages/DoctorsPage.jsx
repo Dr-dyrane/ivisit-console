@@ -35,6 +35,7 @@ import {
   Clock,
   Edit,
   Eye,
+  Filter,
   Hospital,
   IdCard,
   Info,
@@ -504,7 +505,7 @@ export const DoctorsPage = () => {
       aria-haspopup="dialog"
       aria-expanded={filterSheetOpen}
     >
-      <Users className="h-4 w-4" />
+      <Filter className="h-4 w-4" />
       {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
     </Button>
   ), [filterSheetOpen, hasFilter]);
