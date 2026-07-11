@@ -129,17 +129,21 @@ a generic "Provider" (Decisions log + §5 + §10).
   — and is **RBAC-gated** via `canReachRoute` (the SAME truth the route guard uses,
   `getProtectedRoutesForRole`, never a hand-kept role list that drifts). The four shapes:
     - **REAL create** where the command is proved — New request / New visit / Add unit (live table).
-    - **GATED create** where the desktop shows a gated create button — Users "Add user", Subscriptions
-      "Add subscriber". Dispatch the PAGE'S OWN create-modal event (`openUserModal` /
-      `openSubscriptionModal`) so the tap surfaces the honest "not ready" feedback, exactly like that
-      desktop button. A fail-closed command is NOT a reason to drop the primary action — it's a reason
-      to show it honestly gated.
+    - **GATED create** where a create RECEIVER EXISTS but is fail-closed — Users "Add user",
+      Subscriptions "Add subscriber", Health News "New article". Dispatch the PAGE'S OWN create-modal
+      event (`openUserModal` / `openSubscriptionModal` / `openHealthNewsModal`) so the tap surfaces the
+      honest "not ready" feedback. A fail-closed command is NOT a reason to drop the primary action —
+      it's a reason to show it honestly gated. The DECIDING test is "does a create receiver exist in the
+      service", NOT "does the desktop currently render the button": if the receiver exists, SURFACE the
+      gated button on BOTH lanes (make `canManage*` a role check, keep the click fail-closed) rather than
+      hiding it. Hiding it is the inconsistency Health News shipped (exempt) while its peer Subscriptions
+      surfaced the gated "Add subscriber" from the SAME fail-closed bucket — corrected 2026-07-10.
     - **REVIEW / NAVIGATE** where that IS the primary action — Approvals "Review pending"; Hospitals
       "Facility approvals" (adjacent work, chosen because facility create is permanently dropped).
-    - **HONEST EXEMPTION** (lone pill, `FAB_EXEMPT_ROUTES` + reason) where the desktop is READ-ONLY /
-      shows no primary CTA — Insurance (a "Read-only" marker, no create receiver), Health News (create
-      hidden behind fail-closed `canManageContent`), plus action-less routes (/settings, /map,
-      /wallet, /pricing).
+    - **HONEST EXEMPTION** (lone pill, `FAB_EXEMPT_ROUTES` + reason) ONLY where NO create receiver
+      exists at all — Insurance (a "Read-only" marker; no create/edit/delete RLS/RPC per its authority
+      decision), plus genuinely action-less routes (/settings, /map, /wallet, /pricing). If a create
+      receiver exists (even gated), it is a gated-create FAB, not an exemption.
   **DON'T fake a create** where the DESKTOP hides it (that invents an affordance the desktop doesn't
   show → prefer the exemption). **DON'T leave a suppressing route branch-less** (dead lone pill). And —
   the mistake this rule was hardened around — **DON'T make the FAB a "Filter X"**: the canon `SearchRow`

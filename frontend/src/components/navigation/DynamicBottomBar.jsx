@@ -301,15 +301,27 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Health News (/health-news) & Insurance (/insurance) are READ-ONLY on desktop right now, so
-    // their desktop shows NO primary create to mirror: HealthNews renders no header button
-    // (canManageContent is fail-closed), and Insurance shows only a "Read-only" marker (no
-    // create/edit/delete receiver — INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07). A filter
-    // FAB here would only DUPLICATE the SearchRow's own in-page filter trigger, so the honest
-    // mirror of a read-only desktop is a bare dock (lone centered pill). Both are declared in
-    // FAB_EXEMPT_ROUTES (check-mobile-grammar.js) so the FAB-completeness guard accepts the
-    // intentional lone pill instead of flagging it. When a write receiver is proved and the
-    // desktop surfaces its gated create, add a create branch here (the Users/Subscriptions shape).
+    // Health News (/health-news): the FAB mirrors the desktop's primary CTA -- the gated "New
+    // article" button surfaced to management roles. Content authoring is FAIL-CLOSED at the write
+    // layer (handleCreateUnavailable toasts "unavailable until the published feed writer is
+    // approved" + handleSave throws; the createHealthNews receiver EXISTS but is NOT admitted), so
+    // dispatching 'openHealthNewsModal' hits the page's own listener and surfaces the honest "not
+    // ready" feedback -- NOT a redundant filter, exactly like Subscriptions' "Add subscriber".
+    // Gate = management roles (who see the gated button; canManageContent = isAdmin||isOrgAdmin).
+    if (pathname.startsWith('/health-news') && ['org_admin', 'admin'].includes(userRole)) {
+        return {
+            icon: Newspaper,
+            label: 'New article',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openHealthNewsModal'))
+        };
+    }
+
+    // Insurance (/insurance) is READ-ONLY: the desktop shows only a "Read-only" marker, and unlike
+    // Health News there is NO create receiver at all to surface (INSURANCE_COMMAND_AUTHORITY_DECISION
+    // 2026-07-07 -- no create/edit/delete/verify RLS/RPC). A filter FAB would only duplicate the
+    // SearchRow's in-page filter, so the honest mirror is a bare dock (lone pill) -- declared in
+    // FAB_EXEMPT_ROUTES so the completeness guard accepts it.
 
     // Subscriptions (/subscriptions): the FAB mirrors the desktop's primary CTA — the gated
     // "Add subscriber" button (SubscriptionManagementPage, isAdmin, data-state="unavailable").

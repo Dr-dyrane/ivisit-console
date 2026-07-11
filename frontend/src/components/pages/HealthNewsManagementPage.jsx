@@ -5,6 +5,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { getHealthNewsPage } from '../../services/healthNewsService';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
@@ -234,7 +235,13 @@ export const HealthNewsManagementPage = () => {
 
   const { viewMode, setViewMode } = useViewMode('health-news-page', 'table');
   const pagination = usePagination(20);
-  const canManageContent = false;
+  const { isAdmin, isOrgAdmin } = useAuth();
+  // Authoring stays FAIL-CLOSED at the write layer: handleCreateUnavailable toasts "unavailable
+  // until the published feed writer is approved" and handleSave throws. canManageContent controls
+  // only whether the GATED "New article" affordance is VISIBLE -- surfaced to management roles so
+  // the primary action is discoverable + honestly gated, consistent with Subscriptions'
+  // "Add subscriber" (same fail-closed governance bucket). No write authority is granted.
+  const canManageContent = isAdmin() || isOrgAdmin();
 
   // Shared focused-record store: most-urgent-at-rest fallback + consistent toggle.
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', healthNews);

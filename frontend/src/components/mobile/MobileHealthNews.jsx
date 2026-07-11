@@ -137,10 +137,11 @@ export const MobileHealthNews = ({
   // query layer; the page synthesises isFetching = loading over a non-empty feed).
   const refetching = isFetching || false;
 
-  // NOTE: no dock-FAB filter listener - /health-news is read-only (FAB_EXEMPT_ROUTES), so
-  // it owns no dock FAB and there is no 'openHealthNewsFilter'/dock-FAB event to bind. The
-  // SearchRow below owns the in-page filter trigger via onOpenFilters; a filter FAB would
-  // only duplicate it. See check-mobile-grammar.js FAB_EXEMPT_ROUTES['/health-news'].
+  // NOTE: the dock FAB is a GATED "New article" (DynamicBottomBar) -- content authoring is
+  // fail-closed (the page's handleCreateUnavailable + handleSave throw), so the FAB dispatches
+  // 'openHealthNewsModal' to the page and surfaces the honest "not ready" feedback, like
+  // Subscriptions' "Add subscriber". This LIST stays read-only (the detail sheet's only CTA is
+  // Details); the SearchRow owns the in-page filter -- so the FAB is a create, never a filter.
 
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
