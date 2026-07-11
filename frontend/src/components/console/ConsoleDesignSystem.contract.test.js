@@ -226,14 +226,13 @@ describe('Console design system contract', () => {
 
     // Icon-well vocabulary -- the surface regression the DRIFT list CAN'T catch (user-caught
     // 2026-07-10): the gold EmergencyPanel renders metric-card icon wells as SQUIRCLES
-    // (`rounded-icon surface-card`), NOT circular `rounded-pill` boxes. UsersPanel had been
-    // copied from DoctorsPanel and regressed to circular pill wells + flat rounded-card compacts;
-    // `rounded-pill`/`rounded-card` are valid tokens so the DRIFT gate stayed green -- the wrong
-    // canonical token in the wrong slot. Lock the squircle well for the panels confirmed on the
-    // gold vocabulary (+ the now-fixed Users). NOT yet enforced on DoctorsPanel (circular pill
-    // wells) or AmbulancesPanel (rounded-button wells) -- both still diverge and are tracked for a
-    // follow-up; DoctorsPanel is owned by a concurrent lane this session so it is not touched here.
-    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'VerificationPanel', 'UsersPanel'];
+    // (`rounded-icon surface-card`), NOT circular `rounded-pill` (or squircle-ish `rounded-button`)
+    // boxes. UsersPanel had been copied from DoctorsPanel and regressed to circular pill wells;
+    // `rounded-pill`/`rounded-card`/`rounded-button` are valid tokens so the DRIFT gate stayed
+    // green -- the wrong canonical token in the wrong slot. ALL SEVEN route-owned panels now carry
+    // the squircle well (Doctors: pill->icon, Ambulances: button->icon, both realigned 2026-07-10);
+    // this locks every one of them so a panel can't drift its wells back to a circle again.
+    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel'];
     // A circular fixed-size box = rounded-pill/full on an EQUAL h-N w-N (backref \1/\2), which is
     // an icon well; pill BADGES (padding-based, no equal h-N w-N) and pill DIVIDERS (h-8 w-1,
     // unequal) are legitimately allowed and do not match.

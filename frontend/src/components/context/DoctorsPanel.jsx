@@ -51,7 +51,7 @@ export const DoctorsPanel = ({ staffContext }) => {
   };
 
   const panelSurface = 'surface-card rounded-card p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
-  const compactSurface = 'surface-card rounded-card p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
+  const compactSurface = 'surface-card rounded-inner p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
   const actionBase = 'group flex flex-col items-center justify-center gap-2 rounded-button p-3 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-all duration-200 focus-visible:bg-foreground/10';
   const eyebrow = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground';
 
@@ -63,7 +63,7 @@ export const DoctorsPanel = ({ staffContext }) => {
 
         <motion.div className={panelSurface} whileHover={{ y: -1 }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-pill bg-sky-500/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-icon bg-sky-500/10 flex items-center justify-center">
               <Stethoscope className="h-5 w-5 text-sky-600 dark:text-sky-300" aria-hidden="true" />
             </div>
             <div>
@@ -79,7 +79,7 @@ export const DoctorsPanel = ({ staffContext }) => {
         <div className="grid grid-cols-2 gap-2">
           <motion.div className={compactSurface} whileHover={{ y: -1 }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-pill bg-cyan-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-icon bg-cyan-500/10 flex items-center justify-center">
                 <UserCheck className="h-4 w-4 text-cyan-600 dark:text-cyan-300" aria-hidden="true" />
               </div>
               <div>
@@ -91,7 +91,7 @@ export const DoctorsPanel = ({ staffContext }) => {
 
           <motion.div className={compactSurface} whileHover={{ y: -1 }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-pill bg-emerald-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-icon bg-emerald-500/10 flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" />
               </div>
               <div>
@@ -165,11 +165,11 @@ export const DoctorsPanel = ({ staffContext }) => {
           {!context.loading && visibleStaff.map((staff, idx) => (
             <motion.div
               key={staff.id || idx}
-              className="surface-card p-3 rounded-button flex items-center justify-between shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-colors hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] group"
+              className="surface-card p-3 rounded-inner flex items-center justify-between shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-colors hover:bg-foreground/[0.08] dark:hover:bg-white/[0.10] group"
               whileHover={{ y: -1 }}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-pill flex items-center justify-center flex-shrink-0 ${getStatusTone(staff.status)} group-hover:scale-105 transition-transform`}>
+                <div className={`w-8 h-8 rounded-icon flex items-center justify-center flex-shrink-0 ${getStatusTone(staff.status)} group-hover:scale-105 transition-transform`}>
                   <Stethoscope className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">

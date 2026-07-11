@@ -60,7 +60,7 @@ const dispatchPanelEvent = (eventName) => {
 
 const FleetMetric = ({ icon: Icon, label, value, tone }) => (
   <div className={`rounded-inner p-3 ${tone}`}>
-    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-button bg-background/45">
+    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-icon bg-background/45">
       <Icon className="h-4 w-4" />
     </div>
     <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
@@ -109,7 +109,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
         {stateCopy ? (
           <div className="rounded-card bg-muted/24 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-background/55 text-muted-foreground">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-background/55 text-muted-foreground">
                 <StateIcon className={`h-5 w-5 ${contextState === 'loading' ? 'animate-spin' : ''}`} />
               </div>
               <div className="min-w-0">
@@ -122,7 +122,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
           <div className="rounded-card surface-card p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
                   <Ambulance className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
@@ -182,7 +182,7 @@ export const AmbulancesPanel = ({ ambulanceContext }) => {
                 className="flex items-center justify-between gap-3 rounded-inner bg-muted/22 p-3 transition-colors hover:bg-muted/34"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button ${tone}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-icon ${tone}`}>
                     <Ambulance className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
