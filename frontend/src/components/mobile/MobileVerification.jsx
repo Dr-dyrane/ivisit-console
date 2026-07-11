@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Shield, Eye, CheckCircle, Ban, Building2, User, Mail, MapPin, Clock, Hash, Tag, X } from 'lucide-react';
+import { Shield, Eye, CheckCircle, Ban, Building2, Ambulance, Stethoscope, Mail, MapPin, Clock, Hash, Tag, X } from 'lucide-react';
 // LIST-type page, DUAL-QUEUE (providers + facilities). Composes the canon kit
 // (MOBILE_DESIGN_SYSTEM §5): heading -> KPI status chips -> queue switch -> search ->
 // grouped list -> tap opens MobileDetailSheet (Approve/Reject in the footer CTA group).
@@ -50,6 +50,24 @@ const tokenLabel = (value, fallback = '') => {
   const text = String(value || fallback).replace(/[_-]+/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
+// A provider's SUB-PERSONA is its data (profiles.provider_type): a driver/paramedic reads
+// as a RESPONDER (ambulance/cyan), a doctor as a CLINICIAN (stethoscope/amber) -- never a
+// single generic "Provider" glyph for both. The providers queue is role='provider' with no
+// type filter (verificationService select('*')), so provider_type IS on every row here.
+// Mirrors the MobileUsers persona helpers (the reference implementation). Facilities have no
+// persona split -- they keep the Building2 mark + status-tinted orb.
+const AMBULANCE_TYPES = new Set(['driver', 'paramedic', 'ambulance', 'ambulance_service']);
+const isResponder = (providerType) => AMBULANCE_TYPES.has(String(providerType || '').toLowerCase());
+const providerPersonaIcon = (providerType) => (isResponder(providerType) ? Ambulance : Stethoscope);
+const providerPersonaOrb = (providerType) => (
+  isResponder(providerType)
+    ? 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300'
+    : 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
+);
+const providerPersonaTone = (providerType) => (isResponder(providerType) ? 'hsl(189 94% 43%)' : 'hsl(38 92% 50%)');
+// Honest sub-type label where present (Driver / Doctor / Paramedic), else the generic role.
+const providerPersonaLabel = (providerType) => (providerType ? tokenLabel(providerType) : 'Provider');
 
 const isPendingItem = (item, queueType) => (queueType === 'providers'
   ? !item?.bvn_verified
@@ -165,7 +183,9 @@ export const MobileVerification = ({
     const pending = isPendingItem(item, queueType);
     const isProviders = queueType === 'providers';
     const title = isProviders ? (item.username || item.email || 'Unknown') : (item.name || 'Unknown');
-    const facet = isProviders ? tokenLabel(item.role, 'provider') : tokenLabel(item.type, 'facility');
+    // Providers read as their SUB-PERSONA (Driver / Doctor / Paramedic), never a generic
+    // "Provider" -- the persona is derived from provider_type, per the persona-pass rule.
+    const facet = isProviders ? providerPersonaLabel(item.provider_type) : tokenLabel(item.type, 'facility');
     const detail = isProviders ? (item.email || 'No email') : (item.address || 'No address');
     return (
       <MobileListRow
@@ -173,8 +193,8 @@ export const MobileVerification = ({
         dataAttr="data-mobile-approval-row"
         onOpen={setActiveItem}
         ariaLabel={`${title}, ${pending ? 'pending' : statusKey}`}
-        orbClass={orbClassFor(statusKey)}
-        icon={isProviders ? User : Building2}
+        orbClass={isProviders ? providerPersonaOrb(item.provider_type) : orbClassFor(statusKey)}
+        icon={isProviders ? providerPersonaIcon(item.provider_type) : Building2}
         title={title}
         meta={`${facet} · ${detail}`}
         time={formatRelativeTime(item.created_at)}
@@ -360,16 +380,16 @@ export const MobileVerification = ({
             <MobileDetailSheet
               isOpen={!!activeItem}
               onClose={() => setActiveItem(null)}
-              icon={isProviders ? User : Building2}
-              iconTone={vital.tone}
-              eyebrow={isProviders ? 'Provider' : 'Facility'}
+              icon={isProviders ? providerPersonaIcon(item.provider_type) : Building2}
+              iconTone={isProviders ? providerPersonaTone(item.provider_type) : vital.tone}
+              eyebrow={isProviders ? providerPersonaLabel(item.provider_type) : 'Facility'}
               title={title}
               statusPill={vital.pill}
               vital={{ steps: vital.steps, currentKey: vital.currentKey, tone: vital.tone, cancelled: vital.cancelled, label: 'Verification' }}
               islands={isProviders ? [
                 item.email && { icon: Mail, label: 'Email', value: item.email, href: `mailto:${item.email}` },
                 { icon: Tag, label: 'Role', value: tokenLabel(item.role, 'provider') },
-                item.provider_type && { icon: Tag, label: 'Type', value: tokenLabel(item.provider_type) },
+                item.provider_type && { icon: providerPersonaIcon(item.provider_type), label: 'Type', value: tokenLabel(item.provider_type) },
                 appliedAt && { icon: Clock, label: 'Applied', value: appliedAt },
                 { icon: Hash, label: 'ID', value: idValue },
               ] : [
