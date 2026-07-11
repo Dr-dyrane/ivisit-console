@@ -36,7 +36,7 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
     <div className="space-y-4">
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <div className="h-8 w-8 animate-pulse rounded-pill bg-muted/40" />
+          <div className="h-8 w-8 animate-pulse rounded-icon bg-muted/40" />
         </div>
       ) : (
         <>
@@ -126,7 +126,9 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 <Card key={news.id} className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-pill bg-emerald-500" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-emerald-500/15 text-emerald-500">
+                        <Newspaper className="h-4 w-4" />
+                      </div>
                       <div>
                         <p className="font-normal text-sm truncate max-w-[120px]">{news.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">

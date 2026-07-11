@@ -93,16 +93,22 @@ describe('HealthNewsManagementPage intake audit contract', () => {
 
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain("usePageFooter(null, 'status', false)");
-    expect(page).toContain('HealthNewsSignalPanel');
-    expect(page).toContain('HealthNewsActivitySheet');
-    expect(page).toContain('HealthNewsDetailRail');
-    expect(page).toContain('data-testid="health-news-activity-sheet"');
-    expect(page).toContain("useViewMode('health-news-page', 'table')");
-    expect(page).toContain('<ViewToggle');
+    // DS composition (2026-07-10): the bespoke signal/state-strip/grid-card/rail
+    // look-alikes are replaced by the shared console workspace grammar.
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel');
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('<DetailRailShell');
+    expect(page).toContain('<RailInsetHero');
+    expect(page).toContain('<SortableColumnHeader');
     expect(page).not.toContain('<BulkActionBar');
     expect(page).not.toContain('<ConfirmationModal');
-    expect(page).toContain('<HealthNewsListView');
-    expect(page).toContain('<HealthNewsTableView');
+    // View-mode toggle + grid/list/table density switch retired: one shared list.
+    expect(page).not.toContain('useViewMode');
+    expect(page).not.toContain('<ViewToggle');
+    expect(page).not.toContain('<HealthNewsListView');
+    expect(page).not.toContain('<HealthNewsTableView');
   });
 
   it('locks Health News to a route-owned published-feed projection before visual admission', () => {
@@ -110,10 +116,17 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     const service = serviceSource();
     const modal = modalSource();
     const gate = gateSource();
+    const hook = fs.readFileSync('src/hooks/useHealthNewsQuery.js', 'utf8');
 
-    expect(page).toContain('getHealthNewsPage');
+    // Read path is now the FRESH React Query projection hook (mirrors useSupportTicketsQuery).
+    // useHealthNews.js stays absent (see below); the page reads the hook, the hook wraps the
+    // route-owned getHealthNewsPage projection. No page-level fetch loop, no write mutations.
+    expect(page).toContain('useHealthNewsQuery');
+    expect(hook).toContain('getHealthNewsPage');
+    expect(hook).not.toMatch(/createHealthNews|updateHealthNews|deleteHealthNews|toggleHealthNewsPublish|useMutation/);
     expect(page).toContain('HEALTH_NEWS_EMPTY_STATS');
-    expect(page).toContain('setHealthNewsError');
+    expect(page).toContain('healthNewsError');
+    expect(page).toContain('loadError');
     expect(page).toContain('Health news could not load. Try again.');
     expect(page).toContain('statsFilter');
     expect(page).toContain("key: 'created_at'");
@@ -178,13 +191,18 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     const gate = gateSource();
 
     expect(page).toContain('getNewsSignal');
-    expect(page).toContain('newsStateOptions');
-    expect(page).toContain('HealthNewsStateStrip');
-    expect(page).toContain('HealthNewsSheetToolbar');
-    expect(page).toContain('HealthNewsErrorBanner');
-    expect(page).toContain('HealthNewsGridCard');
+    expect(page).toContain('NEWS_KPI_OPTIONS');
+    // Bespoke look-alikes deleted -> shared DS grammar (SheetToolbar/KpiStrip/ListRowShell/
+    // LoadErrorState replace the state-strip, sheet-toolbar, grid-card, and error-banner).
+    expect(page).not.toContain('HealthNewsStateStrip');
+    expect(page).not.toContain('HealthNewsSheetToolbar');
+    expect(page).not.toContain('HealthNewsErrorBanner');
+    expect(page).not.toContain('HealthNewsGridCard');
+    expect(page).toContain('<SheetToolbar');
+    expect(page).toContain('<ListRowShell');
+    expect(page).toContain('<LoadErrorState');
     expect(page).toContain('health-news-sheet-search');
-    expect(page).toContain('health-news-detail-rail');
+    expect(page).toContain('health-news-list');
     expect(page).not.toContain('<Card');
     expect(page).not.toContain('footerContent');
 

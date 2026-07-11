@@ -1,18 +1,36 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
-import { usePagination } from '../../hooks/usePagination';
-import { useViewMode } from '../../hooks/useViewMode';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { getHealthNewsPage } from '../../services/healthNewsService';
+import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
+import { useHealthNewsQuery } from '../../hooks/useHealthNewsQuery';
+// Console design system: Health News COMPOSES the shared workspace grammar (donor:
+// Requests; closest analog: Support/Users) instead of the bespoke signal/state-strip/
+// grid-card/rail look-alikes it used to inline. WorkspaceStage -> SignalPanel/KpiStrip
+// -> one ActivitySheet + ListRowShell (one Time header) -> DetailRailShell rail.
+//
+// AUTHORITY (no parallel truth): this page is READ-ONLY. The published feed is a
+// projection the console reads, never writes. "New article" is FAIL-CLOSED but VISIBLE
+// to management roles (canManageContent gates only the button's visibility);
+// handleCreateUnavailable toasts + opens nothing, and handleSave THROWS. The service
+// write fns (create/update/delete/toggle/bulk) exist but stay UN-IMPORTED -- their
+// existence is why the mobile FAB is gated-visible, not FAB_EXEMPT.
+import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { KpiStrip } from '../console/KpiStrip';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { Shimmer, SkeletonRows, DetailLine, CopyChip, EmptyState, LoadErrorState, StatusPill } from '../console/primitives';
+import { SEOHead } from '../common/SEOHead';
+import { FilterSheet } from '../common/FilterSheet';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
-import { PaginationControls } from '../ui/PaginationControls';
 import {
   AlertCircle,
-  BarChart3,
   Calendar,
   ChevronRight,
   Clock,
@@ -20,22 +38,12 @@ import {
   File,
   Filter,
   Globe,
+  Info,
   Newspaper,
   Plus,
-  RefreshCw,
-  Search,
   Tag,
 } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { HealthNewsModal } from '../modals/HealthNewsModal';
-import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { ViewToggle } from '../common/ViewToggle';
-import { FilterSheet } from '../common/FilterSheet';
-import { HealthNewsListView } from '../views/HealthNewsListView';
-import { HealthNewsTableView } from '../views/HealthNewsTableView';
-import { SEOHead } from '../common/SEOHead';
 import { MobileHealthNews } from '../mobile/MobileHealthNews';
 
 const CATEGORIES = [
@@ -47,6 +55,10 @@ const SOURCES = [
   'Government Health', 'WHO Update', 'CDC Alert', 'Medical News'
 ];
 
+// Recency window (7 days) -- MUST mirror healthNewsService.RECENT_NEWS_WINDOW_MS. The
+// service scopes "recent" on created_at because there is NO published_at column.
+const RECENT_NEWS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 const HEALTH_NEWS_EMPTY_STATS = {
   total: 0,
   published: 0,
@@ -56,87 +68,66 @@ const HEALTH_NEWS_EMPTY_STATS = {
   categories: 0,
   exactCounts: true,
   scope: 'published_feed',
-  draftUnavailable: true
+  draftUnavailable: true,
 };
 
-const newsStateOptions = [
-  {
-    id: 'all',
-    label: 'Feed',
-    icon: Newspaper,
-    countKey: 'total',
-    tone: 'primary',
-    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-sky-700 dark:text-sky-200',
-  },
-  {
-    id: 'published',
-    label: 'Readable',
-    icon: Eye,
-    countKey: 'published',
-    tone: 'clear',
-    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-emerald-700 dark:text-emerald-200',
-  },
-  {
-    id: 'medical',
-    label: 'Medical',
-    icon: Tag,
-    countKey: 'medical',
-    tone: 'info',
-    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-cyan-700 dark:text-cyan-200',
-  },
-  {
-    id: 'recent',
-    label: 'Recent',
-    icon: Clock,
-    countKey: 'recent',
-    tone: 'warning',
-    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.14)] dark:text-amber-200',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-amber-700 dark:text-amber-200',
-  },
-  {
-    id: 'draft',
-    label: 'Drafts',
-    icon: File,
-    countKey: 'draft',
-    tone: 'muted',
-    activeClass: 'bg-muted/36 text-foreground shadow-[0_18px_54px_rgb(0_0_0/0.10)]',
-    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
-    colorClass: 'text-muted-foreground',
-  },
+// KPI/state strip axis = category-partition + recency-overlay, published-feed scoped.
+// Feed(total) / Readable(published, == total under scope) / Medical(category==='medical')
+// / Recent(created_at within 7d) / Drafts(LOCKED dead chip -- draft always 0 under the
+// published scope, kept as an honest "authoring locked" chip). Literal palette +
+// NEUTRAL shadows only (shadow-e2); the shared KpiStrip owns width/tile/smart-context.
+//
+// LIVE-DB NOTE (verified): only 2 seed rows (Infrastructure, Logistics), both published,
+// stale (2026-02-22). So medical=0 and recent(7d)=0 are LEGITIMATE zeros, not a bug --
+// (1) 'medical' matches lowercase category==='medical' but live values are Title-Case;
+// (2) recency uses created_at (no published_at column). Do NOT force the axis non-zero.
+const NEWS_KPI_OPTIONS = [
+  { id: 'all', label: 'Feed', icon: Newspaper, countKey: 'total', colorClass: 'text-sky-700 dark:text-sky-200', activeClass: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200' },
+  { id: 'published', label: 'Readable', icon: Eye, countKey: 'published', colorClass: 'text-emerald-700 dark:text-emerald-200', activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200' },
+  { id: 'medical', label: 'Medical', icon: Tag, countKey: 'medical', colorClass: 'text-cyan-700 dark:text-cyan-200', activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200' },
+  { id: 'recent', label: 'Recent', icon: Clock, countKey: 'recent', colorClass: 'text-amber-700 dark:text-amber-200', activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200' },
+  { id: 'draft', label: 'Drafts', icon: File, countKey: 'draft', colorClass: 'text-muted-foreground', activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]' },
 ];
+const NEWS_KPI_IMPORTANCE = { all: 0, medical: 1, recent: 2, published: 3, draft: 4 };
+const PINNED_NEWS_KPI_IDS = ['recent'];
 
+// SignalPanel eyebrow tones -- literal palette, NEUTRAL e2 shadows (no colored glow).
 const newsToneClass = {
-  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
-  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
-  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
-  muted: 'bg-muted/30 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+  danger: 'bg-destructive/12 text-destructive shadow-e2',
 };
+
+// Status pill tone. Under the published-feed scope every row reads Published; Draft is
+// kept for honesty if the projection ever surfaces one.
+const getStatusMeta = (published) => (published === false
+  ? { label: 'Draft', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200' }
+  : { label: 'Published', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' });
+
+// Title | Source | Category | Status | Published(date, sortable) | Action -- read-only
+// (no selection column: this is a published feed with no bulk write target).
+const NEWS_GRID_COLS = 'grid-cols-[minmax(200px,1.9fr)_minmax(120px,1fr)_minmax(96px,auto)_minmax(96px,auto)_minmax(112px,auto)_96px]';
 
 const normalizeCount = (value, fallback = 0) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
-const hasAppliedFilters = (filters = {}) => Boolean(
+const hasAppliedFilters = (filters = {}, kpiFilter = 'all') => Boolean(
   filters.search ||
   filters.published !== undefined ||
   filters.category ||
   filters.source ||
   filters.created_at ||
-  (filters.kpiFilter && filters.kpiFilter !== 'all')
+  (kpiFilter && kpiFilter !== 'all')
 );
 
 const getStateCount = ({ id, stats, news }) => {
   const rows = Array.isArray(news) ? news : [];
-  const option = newsStateOptions.find((item) => item.id === id) || newsStateOptions[0];
+  const option = NEWS_KPI_OPTIONS.find((item) => item.id === id) || NEWS_KPI_OPTIONS[0];
   const fallback = id === 'all'
     ? rows.length
     : rows.filter((item) => {
@@ -145,7 +136,7 @@ const getStateCount = ({ id, stats, news }) => {
       if (id === 'draft') return item.published === false;
       if (id === 'recent') {
         const created = new Date(item.created_at || 0).getTime();
-        return Number.isFinite(created) && created >= Date.now() - (7 * 24 * 60 * 60 * 1000);
+        return Number.isFinite(created) && created >= Date.now() - RECENT_NEWS_WINDOW_MS;
       }
       return true;
     }).length;
@@ -153,9 +144,16 @@ const getStateCount = ({ id, stats, news }) => {
   return normalizeCount(stats?.[option.countKey], fallback);
 };
 
-const getNewsSignal = ({ stats, news, kpiFilter }) => {
+// Signal adapter -> {icon,tone,label,headline,subhead}. Renders gracefully at zero (the
+// REAL live state is a 2-row stale feed) and surfaces an honest failed-hero on a cold
+// load failure. The Drafts branch stays the honest "authoring locked" signal.
+const getNewsSignal = ({ stats, news, kpiFilter, loadError, hasAny }) => {
+  if (loadError && !hasAny) {
+    return { icon: AlertCircle, tone: 'danger', label: 'Load failed', headline: 'Health news did not load', subhead: 'Retry to load the published feed.' };
+  }
+
   const activeId = kpiFilter || 'all';
-  const option = newsStateOptions.find((item) => item.id === activeId) || newsStateOptions[0];
+  const option = NEWS_KPI_OPTIONS.find((item) => item.id === activeId) || NEWS_KPI_OPTIONS[0];
   const count = getStateCount({ id: option.id, stats, news });
 
   if (option.id === 'published') {
@@ -184,7 +182,7 @@ const getNewsSignal = ({ stats, news, kpiFilter }) => {
       tone: 'warning',
       label: 'Recent',
       headline: count > 0 ? `${count} recent item${count === 1 ? '' : 's'}` : 'No recent items',
-      subhead: count > 0 ? 'Recent means published within the current seven day window.' : 'New published items will appear here.',
+      subhead: count > 0 ? 'Recent means created within the current seven day window.' : 'New published items will appear here.',
     };
   }
 
@@ -207,53 +205,121 @@ const getNewsSignal = ({ stats, news, kpiFilter }) => {
   };
 };
 
-const getNewsDate = (news) => {
-  if (!news?.created_at) return 'No date';
-  try {
-    return new Date(news.created_at).toLocaleDateString();
-  } catch {
-    return 'No date';
-  }
+const formatDate = (value) => {
+  if (!value) return 'No date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No date';
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export const HealthNewsManagementPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile } = useNavigation();
-  const [healthNews, setHealthNews] = useState([]);
+  const { isAdmin, isOrgAdmin } = useAuth();
+
   const [mobileNewsFeed, setMobileNewsFeed] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [healthNewsError, setHealthNewsError] = useState(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({});
+  const [kpiFilter, setKpiFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedNews, setSelectedNews] = useState(null);
   const [modalMode, setModalMode] = useState(null);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [filters, setFilters] = useState({ kpiFilter: 'all' });
-  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [stats, setStats] = useState(HEALTH_NEWS_EMPTY_STATS);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const actionFeedbackTimerRef = useRef(null);
+  const deepLinkHandledRef = useRef(null);
 
-  const { viewMode, setViewMode } = useViewMode('health-news-page', 'table');
   const pagination = usePagination(20);
-  const { isAdmin, isOrgAdmin } = useAuth();
-  // Authoring stays FAIL-CLOSED at the write layer: handleCreateUnavailable toasts "unavailable
-  // until the published feed writer is approved" and handleSave throws. canManageContent controls
-  // only whether the GATED "New article" affordance is VISIBLE -- surfaced to management roles so
-  // the primary action is discoverable + honestly gated, consistent with Subscriptions'
-  // "Add subscriber" (same fail-closed governance bucket). No write authority is granted.
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
+
+  // Authoring stays FAIL-CLOSED at the write layer: handleCreateUnavailable toasts
+  // "unavailable until the published feed writer is approved" and handleSave throws.
+  // canManageContent controls ONLY whether the GATED "New article" affordance is VISIBLE
+  // -- surfaced to management roles so the primary action is discoverable + honestly
+  // gated (same fail-closed governance bucket as Subscriptions' "Add subscriber"). No
+  // write authority is granted.
   const canManageContent = isAdmin() || isOrgAdmin();
 
-  // Shared focused-record store: most-urgent-at-rest fallback + consistent toggle.
-  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', healthNews);
+  const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : 'viewer');
+  const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
+
+  // --- Read path: React Query (mirrors SupportTicketsPage / DoctorsPage) ---
+  // The route-owned published-feed projection (getHealthNewsPage) flows through
+  // useHealthNewsQuery, so the ['healthNews', queryFilter] cache is the single store.
+  // The KPI category pill and sheet filters compose into one server filter; stats are
+  // requested on the status-agnostic set (statsFilter) so the KPI counts stay stable
+  // while the list narrows. Time-only sort (created_at) is threaded here.
+  const queryFilter = useMemo(() => {
+    const routeFilters = { ...filters, kpiFilter };
+    const statsFilter = { ...routeFilters };
+    delete statsFilter.kpiFilter;
+    delete statsFilter.published;
+
+    return {
+      ...routeFilters,
+      statsFilter,
+      limit: pagination.itemsPerPage,
+      offset: pagination.paginationRange.start,
+      sortKey: sortConfig.key,
+      sortDirection: sortConfig.direction,
+      quiet: true,
+    };
+  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, sortConfig.key, sortConfig.direction]);
+
+  const {
+    data: healthNews,
+    count,
+    stats: pageStats,
+    loading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useHealthNewsQuery(queryFilter);
+
+  const stats = pageStats || HEALTH_NEWS_EMPTY_STATS;
+  // RQ error object -> the page's degraded-state copy. loadError is the honest-failed-hero
+  // source threaded into the workspace signal.
+  const healthNewsError = queryError ? 'Health news could not load. Try again.' : null;
+  const loadError = healthNewsError;
+  // fetchHealthNews is now the RQ refetch (Retry on desktop, pull-to-refresh on mobile).
+  const fetchHealthNews = refetch;
+
+  const newsRows = useMemo(() => (Array.isArray(healthNews) ? healthNews : []), [healthNews]);
+
+  // Auto-select the focused record via the console-wide shared store (never empty when data).
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', newsRows);
   const focusedNews = focusedRecord;
 
-  const handleFocusNews = useCallback((news) => setFocused(news?.id || null), [setFocused]);
+  const hasFilter = hasAppliedFilters(filters, kpiFilter);
+
+  // selection excluded by decision: PAGE_REVAMP_GATE Page 11 Admission - Health News --
+  // read-only published feed, no bulk write target (no useRowSelection / delete surface).
+  // arrival-toast excluded by decision: PAGE_REVAMP_GATE Page 11 Admission - Health News --
+  // published feed with near-zero inserts and no page-level realtime channel; there is no
+  // INSERT refetch to throttle a toast against (mirrors the Support exclusion, 2026-07-03).
 
   useEffect(() => () => {
     if (actionFeedbackTimerRef.current) {
       window.clearTimeout(actionFeedbackTimerRef.current);
     }
   }, []);
+
+  // Keep the shared pagination store's total in sync with the RQ count.
+  useEffect(() => {
+    pagination.setTotalCount(count || 0);
+  }, [count, pagination.setTotalCount]);
+
+  // Mobile infinite feed: accumulate pages (page 1 replaces, later pages append de-duped);
+  // the mobile lane owns MobileHealthNews and reads this accumulated `articles` list.
+  useEffect(() => {
+    if (!isMobile) return;
+    setMobileNewsFeed((prev) => (
+      pagination.currentPage === 1
+        ? newsRows
+        : [...prev, ...newsRows.filter((item) => !prev.some((existing) => existing.id === item.id))]
+    ));
+  }, [isMobile, pagination.currentPage, newsRows]);
 
   const markActionFeedback = useCallback((actionId) => {
     if (!actionId) return;
@@ -277,54 +343,42 @@ export const HealthNewsManagementPage = () => {
   }, [pagination.resetPagination]);
 
   const handleKpiFilterChange = useCallback((nextFilter) => {
-    handleApplyFilters((current) => ({ ...current, kpiFilter: nextFilter }));
+    pagination.resetPagination();
+    setMobileNewsFeed([]);
+    setKpiFilter(nextFilter);
+  }, [pagination.resetPagination]);
+
+  // Bridge for MobileHealthNews: it routes KPI selection through the filters object
+  // (setFilters(prev => ({ ...prev, kpiFilter: id }))), but kpiFilter is SEPARATE state that
+  // queryFilter's { ...filters, kpiFilter } shorthand overrides back to its own value -- so a
+  // mobile KPI tap would be silently dropped without this. Mirror the Support bridge: lift any
+  // incoming filters.kpiFilter into setKpiFilter so mobile chips actually narrow the feed.
+  const handleMobileFiltersChange = useCallback((nextFiltersOrUpdater) => {
+    handleApplyFilters((current) => {
+      const next = typeof nextFiltersOrUpdater === 'function'
+        ? nextFiltersOrUpdater({ ...current, kpiFilter })
+        : nextFiltersOrUpdater;
+      if (next?.kpiFilter !== undefined) {
+        setKpiFilter(next.kpiFilter);
+      }
+      return next || current;
+    });
+  }, [handleApplyFilters, kpiFilter]);
+
+  const handleSort = useCallback((key) => {
+    pagination.resetPagination();
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, [pagination.resetPagination]);
+
+  const setSearchFilter = useCallback((search) => {
+    handleApplyFilters((current) => ({ ...current, search }));
   }, [handleApplyFilters]);
 
-  const fetchHealthNews = useCallback(async () => {
-    try {
-      setLoading(true);
-      setHealthNewsError(null);
-
-      const statsFilter = { ...filters };
-      delete statsFilter.kpiFilter;
-      delete statsFilter.published;
-
-      const { data, count, stats: pageStats } = await getHealthNewsPage({
-        ...filters,
-        statsFilter,
-        limit: pagination.itemsPerPage,
-        offset: pagination.paginationRange.start,
-        quiet: true,
-      });
-
-      const pageData = data || [];
-      setStats(pageStats || HEALTH_NEWS_EMPTY_STATS);
-      pagination.setTotalCount(count || 0);
-      setHealthNews(pageData);
-      if (isMobile) {
-        setMobileNewsFeed(prev =>
-          pagination.currentPage === 1
-            ? pageData
-            : [...prev, ...pageData.filter(item => !prev.some(existing => existing.id === item.id))]
-        );
-      }
-    } catch (error) {
-      console.error('Error fetching health news:', error);
-      setHealthNewsError('Health news could not load. Try again.');
-      setHealthNews([]);
-      setMobileNewsFeed([]);
-      setStats(HEALTH_NEWS_EMPTY_STATS);
-      pagination.setTotalCount(0);
-      handleApiError(error, 'fetch');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, isMobile, pagination.currentPage, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount]);
-
-  useEffect(() => {
-    fetchHealthNews();
-  }, [fetchHealthNews, pagination.currentPage]);
-
+  // Authoring is fail-closed but VISIBLE. Both the ?create=true deep-link and the mobile
+  // dock FAB (openHealthNewsModal) route to this SAME honest toast -- no modal, no write.
   const handleCreateUnavailable = useCallback(() => {
     markActionFeedback('create-unavailable');
     toast.info('Content authoring is unavailable until the published feed writer is approved.');
@@ -332,22 +386,22 @@ export const HealthNewsManagementPage = () => {
 
   const handleView = useCallback((news) => {
     markActionFeedback(`view-${news?.id || 'unknown'}`);
-    if (news?.id) setFocused(news.id);
+    if (news?.id && !isFocused(news.id)) setFocused(news.id);
     setSelectedNews(news);
     setModalMode('view');
-  }, [markActionFeedback, setFocused]);
+  }, [markActionFeedback, setFocused, isFocused]);
 
+  // handleSave THROWS: there is no reachable write. The modal's submit affordance is an
+  // honest spinner over an action that always fails closed (kept for parity; never wired
+  // to the create/update service writers).
   const handleSave = useCallback(async () => {
     throw new Error('Health news authoring is unavailable.');
   }, []);
 
-  const handleModalClose = useCallback((shouldRefresh) => {
+  const handleModalClose = useCallback(() => {
     setModalMode(null);
     setSelectedNews(null);
-    if (shouldRefresh) {
-      fetchHealthNews();
-    }
-  }, [fetchHealthNews]);
+  }, []);
 
   const handleOpenFilters = useCallback(() => {
     markActionFeedback('filters');
@@ -359,33 +413,39 @@ export const HealthNewsManagementPage = () => {
     setAnalyticsModalOpen(true);
   }, [markActionFeedback]);
 
+  const handleClearFilters = useCallback(() => {
+    handleKpiFilterChange('all');
+    handleApplyFilters({});
+  }, [handleApplyFilters, handleKpiFilterChange]);
+
+  // Republish the whole-object panel context (consumed verbatim by HealthNewsPanel via
+  // healthNewsContext pass-through -- already canon; no reshape).
   const healthNewsPanelContext = useMemo(() => ({
-    articles: healthNews,
-    recentNews: healthNews.slice(0, 3),
+    articles: newsRows,
+    recentNews: newsRows.slice(0, 3),
     focusedNews,
     stats,
-    count: pagination.totalCount || healthNews.length,
+    count: pagination.totalCount || newsRows.length,
     currentPage: pagination.currentPage,
     totalPages: pagination.totalPages,
     filters,
-    hasFilters: hasAppliedFilters(filters),
+    hasFilters: hasAppliedFilters(filters, kpiFilter),
     loading,
     errorMessage: healthNewsError,
-    viewMode,
     canManageContent,
     scope: stats?.scope || 'published_feed',
   }), [
     canManageContent,
     filters,
     focusedNews,
-    healthNews,
     healthNewsError,
+    kpiFilter,
     loading,
+    newsRows,
     pagination.currentPage,
     pagination.totalCount,
     pagination.totalPages,
     stats,
-    viewMode,
   ]);
 
   const publishHealthNewsRouteContext = useCallback(() => {
@@ -407,16 +467,18 @@ export const HealthNewsManagementPage = () => {
     };
   }, [publishHealthNewsRouteContext]);
 
+  // Deep link (?create=true) + the mobile dock FAB (openHealthNewsModal) both route to the
+  // SAME fail-closed toast -- create is never reachable from either entry point.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('create') === 'true') {
+    const deepLinkKey = `${location.pathname}${location.search}`;
+    if (params.get('create') === 'true' && deepLinkHandledRef.current !== deepLinkKey) {
+      deepLinkHandledRef.current = deepLinkKey;
       handleCreateUnavailable();
       navigate('/health-news', { replace: true });
     }
 
-    const handleOpenModal = () => {
-      handleCreateUnavailable();
-    };
+    const handleOpenModal = () => handleCreateUnavailable();
 
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openHealthNewsModal', handleOpenModal);
@@ -427,18 +489,14 @@ export const HealthNewsManagementPage = () => {
       window.removeEventListener('openHealthNewsModal', handleOpenModal);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [handleCreateUnavailable, handleOpenAnalytics, handleOpenFilters, location.search, navigate]);
-
-  const getStatusBadge = (published) => {
-    return published ? 'bg-emerald-500/16 text-emerald-500' : 'bg-amber-500/16 text-amber-500';
-  };
+  }, [handleCreateUnavailable, handleOpenAnalytics, handleOpenFilters, location.pathname, location.search, navigate]);
 
   const filterSchema = useMemo(() => [
     {
       key: 'search',
       type: 'text',
       label: 'Search',
-      placeholder: 'Search health news'
+      placeholder: 'Search health news',
     },
     {
       key: 'published',
@@ -446,20 +504,20 @@ export const HealthNewsManagementPage = () => {
       label: 'Published Status',
       options: [
         { value: true, label: 'Published' },
-        { value: false, label: 'Draft' }
-      ]
+        { value: false, label: 'Draft' },
+      ],
     },
     {
       key: 'category',
       type: 'select',
       label: 'Category',
-      options: CATEGORIES.map(cat => ({ value: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) }))
+      options: CATEGORIES.map((cat) => ({ value: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) })),
     },
     {
       key: 'source',
       type: 'select',
       label: 'Source',
-      options: SOURCES.map(source => ({ value: source, label: source }))
+      options: SOURCES.map((source) => ({ value: source, label: source })),
     },
     {
       key: 'created_at',
@@ -470,53 +528,43 @@ export const HealthNewsManagementPage = () => {
         { label: 'Today', value: 'today' },
         { label: 'Last 7 Days', value: '7days' },
         { label: 'Last 30 Days', value: '30days' },
-        { label: 'This Month', value: 'month' }
-      ]
-    }
+        { label: 'This Month', value: 'month' },
+      ],
+    },
   ], []);
 
-  const viewToggleComponent = useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} tone="neutral" />
-  ), [viewMode, setViewMode]);
+  const headerActions = useMemo(() => (
+    canManageContent ? (
+      <Button
+        type="button"
+        onClick={handleCreateUnavailable}
+        aria-busy={activeActionFeedback === 'create-unavailable'}
+        data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'idle'}
+        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        New article
+      </Button>
+    ) : null
+  ), [activeActionFeedback, canManageContent, handleCreateUnavailable]);
 
   const filterButtonComponent = useMemo(() => (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       onClick={handleOpenFilters}
-      className={`relative h-9 w-9 rounded-button bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98] ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+      className="squircle h-9 w-9 bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
       aria-label="Filter health news"
-      aria-busy={activeActionFeedback === 'filters'}
-      data-state={activeActionFeedback === 'filters' ? 'opening' : hasAppliedFilters(filters) ? 'filtered' : 'idle'}
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
     >
       <Filter className="h-4 w-4" />
-      {hasAppliedFilters(filters) && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-pill bg-primary" />}
+      {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500" />}
     </Button>
-  ), [activeActionFeedback, filters, handleOpenFilters]);
+  ), [handleOpenFilters, filterSheetOpen, hasFilter]);
 
-  const headerActions = useMemo(() => {
-    if (canManageContent) {
-      return (
-        <Button
-          onClick={handleCreateUnavailable}
-          aria-busy={activeActionFeedback === 'create-unavailable'}
-          data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'idle'}
-          className="h-9 rounded-button px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New article
-        </Button>
-      );
-    }
-    return null;
-  }, [activeActionFeedback, canManageContent, handleCreateUnavailable]);
-
-  usePageHeader(
-    'Health News',
-    headerActions,
-    !isMobile ? viewToggleComponent : null,
-    filterButtonComponent
-  );
+  usePageHeader('Health News', headerActions, null, filterButtonComponent);
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -527,11 +575,12 @@ export const HealthNewsManagementPage = () => {
         <MobileHealthNews
           articles={mobileNewsFeed}
           stats={stats}
-          filters={filters}
-          setFilters={handleApplyFilters}
+          filters={{ ...filters, kpiFilter }}
+          setFilters={handleMobileFiltersChange}
           onView={handleView}
           onRefresh={fetchHealthNews}
           loading={loading}
+          isFetching={isFetching}
           errorMessage={healthNewsError}
           onRetry={fetchHealthNews}
           onOpenFilters={handleOpenFilters}
@@ -540,7 +589,6 @@ export const HealthNewsManagementPage = () => {
           analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
-          isFetching={loading && mobileNewsFeed.length > 0}
         />
 
         {modalMode && (
@@ -559,8 +607,7 @@ export const HealthNewsManagementPage = () => {
           filterSchema={filterSchema}
           onApply={handleApplyFilters}
           initialValues={filters}
-          viewToggle={null}
-          isMobile={true}
+          isMobile
         />
 
         <AnalyticsModal
@@ -574,96 +621,35 @@ export const HealthNewsManagementPage = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 pb-8 pt-3 text-foreground md:px-6 lg:px-8">
+    <div className="min-h-screen text-foreground">
       <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_20%_0%,hsl(var(--primary)/0.15),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(6,182,212,0.12),transparent_30%)]" />
-      <div className="relative z-10 mx-auto grid w-full max-w-[1500px] gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <main className="min-w-0">
-          <HealthNewsSignalPanel
-            stats={stats}
-            news={healthNews}
-            loading={loading}
-            kpiFilter={filters.kpiFilter || 'all'}
-            setKpiFilter={handleKpiFilterChange}
-          />
 
-          <HealthNewsActivitySheet
-            filters={filters}
-            setFilters={handleApplyFilters}
-            openFilters={handleOpenFilters}
-            openAnalytics={handleOpenAnalytics}
-            loading={loading}
-            pagination={pagination}
-            errorMessage={healthNewsError}
-            onRetry={fetchHealthNews}
-            activeActionFeedback={activeActionFeedback}
-            viewToggle={viewToggleComponent}
-          >
-            {loading && healthNews.length === 0 && <TableSkeleton rows={6} />}
-            {!loading && healthNewsError && healthNews.length === 0 && (
-              <HealthNewsEmptyState
-                title="Health news did not load"
-                copy="Try again before treating the published feed as clear."
-                actionLabel="Retry"
-                onAction={fetchHealthNews}
-              />
-            )}
-            {!loading && !healthNewsError && pagination.totalCount === 0 && (
-              <HealthNewsEmptyState
-                title={hasAppliedFilters(filters) ? 'No matching articles' : 'No published articles'}
-                copy={hasAppliedFilters(filters) ? 'Clear filters or search a different source.' : 'Published health news will appear here when available.'}
-                actionLabel={hasAppliedFilters(filters) ? 'Clear filters' : null}
-                onAction={hasAppliedFilters(filters) ? () => handleApplyFilters({ kpiFilter: 'all' }) : null}
-              />
-            )}
-            {healthNews.length > 0 && (
-              <>
-                {viewMode === 'grid' && (
-                  <LayoutGroup>
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3" data-testid="health-news-grid">
-                      {healthNews.map((news, index) => (
-                        <HealthNewsGridCard
-                          key={news.id}
-                          news={news}
-                          index={index}
-                          selected={isFocused(news.id)}
-                          onFocus={() => setFocused(news.id)}
-                          onView={handleView}
-                          activeActionFeedback={activeActionFeedback}
-                        />
-                      ))}
-                    </div>
-                  </LayoutGroup>
-                )}
-                {viewMode === 'list' && (
-                  <HealthNewsListView
-                    healthNews={healthNews}
-                    onView={handleView}
-                    onFocus={handleFocusNews}
-                    getStatusBadge={getStatusBadge}
-                    isMobile={isMobile}
-                  />
-                )}
-                {viewMode === 'table' && (
-                  <HealthNewsTableView
-                    healthNews={healthNews}
-                    onView={handleView}
-                    onFocus={handleFocusNews}
-                    getStatusBadge={getStatusBadge}
-                  />
-                )}
-              </>
-            )}
-          </HealthNewsActivitySheet>
-        </main>
-
-        <HealthNewsDetailRail
-          news={focusedNews}
-          loading={loading}
-          onView={handleView}
-          activeActionFeedback={activeActionFeedback}
-        />
-      </div>
+      <HealthNewsDesktopWorkspace
+        items={newsRows}
+        stats={stats}
+        loading={loading}
+        isFetching={isFetching}
+        loadError={loadError}
+        focusedNews={focusedNews}
+        setFocused={setFocused}
+        filters={filters}
+        kpiFilter={kpiFilter}
+        setKpiFilter={handleKpiFilterChange}
+        setSearchFilter={setSearchFilter}
+        hasFilter={hasFilter}
+        filterSheetOpen={filterSheetOpen}
+        openFilters={handleOpenFilters}
+        onRetry={fetchHealthNews}
+        onClearFilters={handleClearFilters}
+        pagination={pagination}
+        sortConfig={sortConfig}
+        onSort={handleSort}
+        onView={handleView}
+        activeActionFeedback={activeActionFeedback}
+        moduleRailItems={visibleModuleRail}
+        routingPath={routingPath}
+        onRailNavigate={handleRailNavigate}
+      />
 
       {modalMode && (
         <HealthNewsModal
@@ -681,8 +667,7 @@ export const HealthNewsManagementPage = () => {
         filterSchema={filterSchema}
         onApply={handleApplyFilters}
         initialValues={filters}
-        viewToggle={isMobile ? viewToggleComponent : null}
-        isMobile={isMobile}
+        isMobile={false}
       />
 
       <AnalyticsModal
@@ -695,399 +680,319 @@ export const HealthNewsManagementPage = () => {
   );
 };
 
-const HealthNewsSignalPanel = ({ stats, news, loading, kpiFilter, setKpiFilter }) => {
-  const signal = loading
-    ? {
-      icon: Newspaper,
-      tone: 'muted',
-      label: 'Loading',
-      headline: 'Loading health news',
-      subhead: 'One moment while the published feed loads.',
-    }
-    : getNewsSignal({ stats, news, kpiFilter });
-  const SignalIcon = signal.icon;
+const HealthNewsDesktopWorkspace = ({
+  items,
+  stats,
+  loading,
+  isFetching,
+  loadError,
+  focusedNews,
+  setFocused,
+  filters,
+  kpiFilter,
+  setKpiFilter,
+  setSearchFilter,
+  hasFilter,
+  filterSheetOpen,
+  openFilters,
+  onRetry,
+  onClearFilters,
+  pagination,
+  sortConfig,
+  onSort,
+  onView,
+  activeActionFeedback,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+}) => {
+  const listScrollRef = useRef(null);
+  const failedEmpty = Boolean(loadError) && items.length === 0;
+  const hasAny = items.length > 0;
+  const signal = getNewsSignal({ stats, news: items, kpiFilter, loadError, hasAny });
+
+  useScrollResetOnPage(listScrollRef, pagination.currentPage);
+  const handleListKeyDown = useListKeyboardNav({
+    items,
+    focusedItem: focusedNews,
+    setFocusedId: setFocused,
+    onOpen: onView,
+    scrollRef: listScrollRef,
+    rowAttr: 'data-health-news-row',
+  });
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.42 }}
-      className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]"
-    >
-      <div className="min-w-0">
-        <div className="max-w-3xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${newsToneClass[signal.tone] || newsToneClass.muted}`}>
-            <SignalIcon className="h-4 w-4" />
-            {signal.label}
-          </div>
-          <h1 className="max-w-3xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-            {signal.headline}
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-            {signal.subhead}
-          </p>
-        </div>
-
-        <HealthNewsStateStrip
-          stats={stats}
-          news={news}
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/health-news"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
+        <HealthNewsDetailRail
+          news={focusedNews}
           loading={loading}
+          hasFilter={hasFilter}
+          onView={onView}
+          activeActionFeedback={activeActionFeedback}
+        />
+      )}
+    >
+      <SignalPanel signal={signal} loading={loading} toneClassMap={newsToneClass}>
+        <KpiStrip
+          options={NEWS_KPI_OPTIONS}
+          getCount={(id) => getStateCount({ id, stats, news: items })}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
+          loading={loading}
+          isFetching={isFetching}
+          pinnedIds={PINNED_NEWS_KPI_IDS}
+          importance={NEWS_KPI_IMPORTANCE}
+          defaultId="all"
+          dataAttr="data-health-news-state"
         />
-      </div>
-    </motion.section>
-  );
-};
+      </SignalPanel>
 
-const HealthNewsStateStrip = ({ stats, news, loading, kpiFilter, setKpiFilter }) => (
-  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-5">
-    {newsStateOptions.map((item) => {
-      const Icon = item.icon;
-      const active = (kpiFilter || 'all') === item.id;
-      const count = loading ? '...' : getStateCount({ id: item.id, stats, news });
-
-      return (
-        <motion.button
-          key={item.id}
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform,color] duration-200 ${active ? item.activeClass : item.restClass}`}
-          aria-pressed={active}
-          aria-label={`Show ${item.label.toLowerCase()} health news`}
-          data-state={active ? 'selected' : 'idle'}
-        >
-          <span className="flex items-start justify-between gap-2">
-            <span className="min-w-0">
-              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
-              <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
-            </span>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
-              <Icon className="h-4 w-4" />
-            </span>
-          </span>
-        </motion.button>
-      );
-    })}
-  </div>
-);
-
-const HealthNewsActivitySheet = ({
-  filters,
-  setFilters,
-  openFilters,
-  openAnalytics,
-  loading,
-  pagination,
-  errorMessage,
-  onRetry,
-  activeActionFeedback,
-  viewToggle,
-  children,
-}) => (
-  <section
-    className="mt-2 flex min-h-[520px] flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet"
-    data-testid="health-news-activity-sheet"
-  >
-    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-    <HealthNewsSheetToolbar
-      filters={filters}
-      setFilters={setFilters}
-      openFilters={openFilters}
-      openAnalytics={openAnalytics}
-      activeActionFeedback={activeActionFeedback}
-      viewToggle={viewToggle}
-    />
-
-    <div className="mt-3 flex items-center justify-between gap-3 px-2 text-xs font-semibold text-muted-foreground">
-      <span>{loading ? 'Loading feed' : `${pagination.totalCount} article${pagination.totalCount === 1 ? '' : 's'}`}</span>
-      <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
-    </div>
-
-    {errorMessage && (
-      <HealthNewsErrorBanner message={errorMessage} onRetry={onRetry} />
-    )}
-
-    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-inner bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
-      {children}
-    </div>
-
-    <PaginationControls
-      currentPage={pagination.currentPage}
-      totalPages={pagination.totalPages}
-      totalCount={pagination.totalCount}
-      itemsPerPage={pagination.itemsPerPage}
-      onPrevPage={pagination.prevPage}
-      onNextPage={pagination.nextPage}
-      hasPrevPage={pagination.hasPrevPage}
-      hasNextPage={pagination.hasNextPage}
-      loading={loading}
-    />
-  </section>
-);
-
-const HealthNewsSheetToolbar = ({ filters, setFilters, openFilters, openAnalytics, activeActionFeedback, viewToggle }) => {
-  const hasFilter = hasAppliedFilters(filters);
-
-  return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-      <div className="relative flex-1">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
-        <input
-          type="search"
-          value={filters.search || ''}
-          onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
-          placeholder="Search health news"
-          className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-[background,box-shadow] placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
-          data-testid="health-news-sheet-search"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          onClick={openFilters}
-          className={`h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-[background,color,transform] hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
-          aria-busy={activeActionFeedback === 'filters'}
-          data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilter ? 'filtered' : 'idle'}
-        >
-          <Filter className="mr-2 h-4 w-4" />
-          {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
-          {hasFilter && <span className="ml-2 h-2 w-2 rounded-pill bg-primary" />}
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={openAnalytics}
-          className={`h-12 rounded-button bg-primary/10 px-4 text-sm font-semibold text-primary shadow-sm transition-[background,transform] hover:bg-primary/15 active:scale-95 ${activeActionFeedback === 'analytics' ? 'scale-95' : ''}`}
-          aria-busy={activeActionFeedback === 'analytics'}
-          data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
-        >
-          <BarChart3 className="mr-2 h-4 w-4" />
-          Analytics
-        </Button>
-        <div className="hidden lg:block">
-          {viewToggle}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const HealthNewsErrorBanner = ({ message, onRetry }) => (
-  <div
-    className="mt-3 flex flex-col gap-3 rounded-card bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_2px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
-    data-testid="health-news-error-state"
-  >
-    <div className="flex min-w-0 items-start gap-3">
-      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-sm font-semibold">Health news could not load</p>
-        <p className="mt-1 text-xs leading-5 opacity-80">{message}</p>
-      </div>
-    </div>
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={onRetry}
-      className="h-10 shrink-0 rounded-button bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
-    >
-      <RefreshCw className="mr-2 h-4 w-4" />
-      Retry
-    </Button>
-  </div>
-);
-
-const HealthNewsEmptyState = ({ title, copy, actionLabel, onAction }) => (
-  <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
-    <div className="flex h-14 w-14 items-center justify-center rounded-icon bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
-      <Newspaper className="h-6 w-6" />
-    </div>
-    <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
-    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
-    {onAction && actionLabel && (
-      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-button px-4 text-sm font-semibold">
-        <RefreshCw className="mr-2 h-4 w-4" />
-        {actionLabel}
-      </Button>
-    )}
-  </div>
-);
-
-const HealthNewsGridCard = ({ news, index, selected, onFocus, onView, activeActionFeedback }) => {
-  const statusTone = news.published ? newsToneClass.clear : newsToneClass.warning;
-  const viewOpening = activeActionFeedback === `view-${news.id}`;
-
-  return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.025, 0.18) }}
-      role="button"
-      tabIndex={0}
-      onClick={onFocus}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onFocus();
-        }
-      }}
-      data-state={selected ? 'selected' : 'idle'}
-      className={`flex min-h-[244px] cursor-pointer flex-col rounded-card p-4 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusTone}`}>
-          <Newspaper className="h-5 w-5" />
-        </span>
-        <span className="rounded-pill bg-background/45 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-          {news.published ? 'Published' : 'Draft'}
-        </span>
-      </div>
-
-      <h3 className="mt-5 line-clamp-3 text-xl font-semibold tracking-tight text-foreground">
-        {news.title || 'Untitled article'}
-      </h3>
-      <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
-        {news.source || 'Unknown source'}
-      </p>
-
-      <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
-        <HealthNewsFact icon={Tag} label="Category" value={news.category || 'General'} />
-        <HealthNewsFact icon={Calendar} label="Published" value={getNewsDate(news)} />
-      </div>
-
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={(event) => {
-          event.stopPropagation();
-          onView(news);
-        }}
-        aria-busy={viewOpening}
-        data-state={viewOpening ? 'opening' : 'idle'}
-        className={`mt-4 h-11 rounded-button bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background hover:text-primary active:scale-95 ${viewOpening ? 'scale-95 text-primary' : ''}`}
+      <ActivitySheet
+        loading={loading}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={pagination}
+        itemNoun="articles"
+        toolbar={(
+          <SheetToolbar
+            searchValue={filters.search}
+            onSearchCommit={setSearchFilter}
+            searchPlaceholder="Search health news by title, source, or category..."
+            searchTestId="health-news-sheet-search"
+            onRefresh={onRetry}
+            refreshing={isFetching}
+            refreshNoun="health news"
+            onOpenFilters={openFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasFilter}
+          />
+        )}
       >
-        <Eye className="mr-2 h-4 w-4" />
-        {viewOpening ? 'Opening' : 'Details'}
-        <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
-      </Button>
-    </motion.article>
+        <div
+          ref={listScrollRef}
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          aria-label="Health news list"
+          style={{ outline: 'none' }}
+          className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+          data-testid="health-news-list"
+        >
+          <HealthNewsListHeader sortConfig={sortConfig} onSort={onSort} />
+
+          {loading && <SkeletonRows />}
+
+          {!loading && loadError && items.length === 0 && (
+            <LoadErrorState title="Health news did not load" message={loadError} onRetry={onRetry} />
+          )}
+
+          {!loading && !loadError && Number(pagination.totalCount) === 0 && (
+            <EmptyState
+              icon={Newspaper}
+              heading={hasFilter ? 'No matching articles' : 'No published articles'}
+              body={hasFilter ? 'Clear filters or search a different source.' : 'Published health news will appear here when available.'}
+            >
+              {hasFilter && (
+                <Button
+                  variant="ghost"
+                  onClick={onClearFilters}
+                  className="rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                >
+                  Show all articles
+                </Button>
+              )}
+            </EmptyState>
+          )}
+
+          {!loading && items.length > 0 && items.map((news) => (
+            <HealthNewsRow
+              key={news.id}
+              news={news}
+              selected={focusedNews?.id === news.id}
+              onFocus={() => setFocused(news.id)}
+              onView={onView}
+              activeActionFeedback={activeActionFeedback}
+            />
+          ))}
+        </div>
+      </ActivitySheet>
+    </WorkspaceStage>
   );
 };
 
-const HealthNewsFact = ({ icon: Icon, label, value }) => (
-  <div className="flex min-w-0 items-center gap-2 rounded-inner bg-background/42 p-3">
-    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-    <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-semibold">{value}</p>
-    </div>
+const HealthNewsListHeader = ({ sortConfig, onSort }) => (
+  <div className={`grid ${NEWS_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {/* Title / Source / Category / Status are plain labels -- only Published (created_at)
+        is a meaningful sort; the rest belong in the FilterSheet (TIME-only sort). */}
+    <span>Title</span>
+    <span>Source</span>
+    <span>Category</span>
+    <span>Status</span>
+    <SortableColumnHeader label="Published" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
+    <span className="justify-self-end text-right">Action</span>
   </div>
 );
 
-const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) => {
-  if (loading) {
-    return (
-      <aside className="hidden min-h-0 xl:flex xl:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-sheet bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-          <div className="h-5 w-28 rounded-pill bg-muted/40" />
-          <div className="mt-6 h-24 rounded-inner bg-muted/28" />
-          <div className="mt-4 space-y-3">
-            <div className="h-14 rounded-inner bg-muted/24" />
-            <div className="h-14 rounded-inner bg-muted/24" />
-            <div className="h-14 rounded-inner bg-muted/24" />
-          </div>
+const HealthNewsRow = ({ news, selected, onFocus, onView, activeActionFeedback }) => {
+  const statusMeta = getStatusMeta(news.published);
+  const title = news.title || 'Untitled article';
+
+  return (
+    <ListRowShell
+      id={news.id}
+      dataAttrName="data-health-news-row"
+      gridCols={NEWS_GRID_COLS}
+      selected={selected}
+      onFocus={onFocus}
+      onOpen={() => onView(news)}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusMeta.tone}`}>
+          <Newspaper className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold text-foreground" title={title}>{title}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground" title={news.source || undefined}>{news.source || 'Unknown source'}</div>
         </div>
-      </aside>
+      </div>
+
+      <div className="min-w-0 truncate text-sm font-medium text-muted-foreground" title={news.source || undefined}>{news.source || 'Unknown source'}</div>
+
+      <div className="min-w-0 truncate text-sm font-medium capitalize text-muted-foreground">{news.category || 'General'}</div>
+
+      <div className="min-w-0">
+        <StatusPill label={statusMeta.label} className={statusMeta.tone} compact />
+      </div>
+
+      <div className="text-sm font-medium text-muted-foreground">{formatDate(news.created_at)}</div>
+
+      <div className="flex items-center justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(event) => { event.stopPropagation(); onView(news); }}
+          data-state={activeActionFeedback === `view-${news.id}` ? 'opening' : 'idle'}
+          className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
+          aria-label={`View ${title}`}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      </div>
+    </ListRowShell>
+  );
+};
+
+const HealthNewsDetailRail = ({ news, loading, hasFilter, onView, activeActionFeedback }) => {
+  if (loading && !news) {
+    return (
+      <DetailRailShell>
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Shimmer className="h-6 w-36 rounded-inner" />
+            <Shimmer className="h-6 w-24 rounded-pill" />
+          </div>
+          <Shimmer className="h-9 w-9 rounded-pill" />
+        </div>
+        <div className="mb-5 space-y-2">
+          <Shimmer className="h-5 w-2/3 rounded-inner" />
+          <Shimmer className="h-4 w-1/2 rounded-inner" />
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (<Shimmer key={i} className="h-[52px] w-full rounded-inner" />))}
+        </div>
+      </DetailRailShell>
     );
   }
 
   if (!news) {
     return (
-      <aside className="hidden min-h-0 xl:flex xl:flex-col">
-        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-sheet bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-          <Newspaper className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
-          <h2 className="text-lg font-semibold">No article selected</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Published items will appear here when the feed has results.</p>
+      <DetailRailShell>
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Newspaper className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No article selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            {hasFilter ? 'Articles that match your filters will appear here.' : 'Select an article to see its details here.'}
+          </p>
         </div>
-      </aside>
+      </DetailRailShell>
     );
   }
 
-  const viewOpening = activeActionFeedback === `view-${news.id}`;
+  const statusMeta = getStatusMeta(news.published);
   const hostLabel = news.source_host || news.source || 'Unknown source';
+  const displayId = news.id ? `Article ${String(news.id).slice(0, 8)}` : null;
+  const viewOpening = activeActionFeedback === `view-${news.id}`;
 
   return (
-    <aside className="hidden min-h-0 xl:flex xl:flex-col" data-testid="health-news-detail-rail">
-      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-sheet bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
-        <div className="flex items-center justify-between gap-3">
-          <span className={`${news.published ? 'bg-emerald-500/16 text-emerald-600 dark:text-emerald-300' : 'bg-amber-500/16 text-amber-600 dark:text-amber-300'} inline-flex items-center rounded-pill px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
-            {news.published ? 'Published' : 'Draft'}
-          </span>
-          <span className="rounded-pill bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Focus
-          </span>
-        </div>
-
-        <div className="mt-6 rounded-card bg-background/42 p-5 shadow-[inset_0_2px_0_hsl(var(--foreground)/0.06)]">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-icon bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
-              <Newspaper className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Current source</p>
-              <h2 className="mt-1 line-clamp-3 text-2xl font-semibold tracking-tight">
-                {news.title || 'Untitled article'}
-              </h2>
-              <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                {getNewsDate(news)}
-              </p>
+    <DetailRailShell>
+      <RailInsetHero>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold tracking-tight">Article details</h2>
+            {displayId && (
+              <div className="mt-1 flex min-w-0 items-center gap-1">
+                <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={displayId}>{displayId}</p>
+                <CopyChip value={news.id} label="Copy article ID" />
+              </div>
+            )}
+            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusMeta.tone}`}>
+              <Newspaper className="h-3.5 w-3.5" />
+              {statusMeta.label}
             </div>
           </div>
-        </div>
-
-        <div className="mt-5 flex-1 space-y-3 overflow-y-auto pr-1 no-scrollbar">
-          <HealthNewsFocusRow icon={Globe} label="Source" value={hostLabel} />
-          <HealthNewsFocusRow icon={Tag} label="Category" value={news.category || 'General'} />
-          <HealthNewsFocusRow icon={Clock} label="Time" value={news.time || 'No time'} />
-          <HealthNewsFocusRow icon={Eye} label="URL" value={news.source_url_valid ? 'Valid link' : 'No valid link'} />
-
-          <div className="rounded-inner bg-muted/22 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Record</p>
-            <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{news.id}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-2">
           <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
             onClick={() => onView(news)}
-            className={`h-12 w-full rounded-button bg-foreground text-sm font-semibold text-background shadow-[0_18px_46px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.01] hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
-            aria-busy={viewOpening}
-            data-state={viewOpening ? 'opening' : 'idle'}
+            aria-label="Open full article details"
           >
-            <Eye className="mr-2 h-4 w-4" />
-            {viewOpening ? 'Opening' : 'View details'}
-            <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
+            <Info className="h-4 w-4" />
           </Button>
-          <p className="rounded-inner bg-muted/24 p-3 text-center text-[11px] leading-relaxed text-muted-foreground">
-            Writing, publish changes, imports, and deletion stay locked until the content receiver is proved.
+        </div>
+
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold" title={news.title || 'Untitled article'}>{news.title || 'Untitled article'}</h3>
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            {formatDate(news.created_at)}
           </p>
         </div>
+      </RailInsetHero>
+
+      <div className="space-y-2">
+        <DetailLine icon={Globe} label="Source" value={hostLabel} />
+        <DetailLine icon={Tag} label="Category" value={news.category || 'General'} />
+        <DetailLine icon={Clock} label="Published" value={formatDate(news.created_at)} />
+        <DetailLine icon={Eye} label="Link" value={news.source_url_valid ? 'Valid link' : 'No valid link'} />
       </div>
-    </aside>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(news)}
+          data-state={viewOpening ? 'opening' : 'idle'}
+          aria-busy={viewOpening}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          {viewOpening ? 'Opening' : 'View details'}
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        {/* Writing stays backend-owned (fail-closed by design): the console never creates,
+            publishes, imports, or deletes a source the app cannot reconcile. */}
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground"
+        >
+          <Info className="h-4 w-4 shrink-0" />
+          Writing, publish changes, imports, and deletion stay locked until the content receiver is proved.
+        </div>
+      </div>
+    </DetailRailShell>
   );
 };
-
-const HealthNewsFocusRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-inner bg-muted/24 p-3">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-background/45 text-muted-foreground">
-      <Icon className="h-4 w-4" />
-    </div>
-    <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-semibold">{value}</p>
-    </div>
-  </div>
-);

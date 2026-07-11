@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ModalShell } from '../ui/ModalShell';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { ExternalLink, Globe, Newspaper, Plus, Edit, FileText, File, FileCheck } from 'lucide-react';
+import { ExternalLink, Globe, Newspaper, Plus, Edit, FileText, File, FileCheck, Loader2 } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
   'general', 'medical', 'research', 'wellness', 'emergency', 'policy'
@@ -266,9 +266,15 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
             <Button
               type="submit"
               disabled={loading}
+              aria-busy={loading}
               className="rounded-button bg-foreground hover:bg-foreground/90 text-background font-semibold px-8 shadow-lg shadow-black/10"
             >
-              {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (isCreate ? 'Create Article' : 'Save Changes')}
             </Button>
           )}
 

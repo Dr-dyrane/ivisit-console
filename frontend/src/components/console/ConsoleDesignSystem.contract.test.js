@@ -46,6 +46,13 @@ describe('Console design system contract', () => {
     // self-assign are restored, while status-transition (resolve/close) stays fail-closed
     // (the per-page contract pins page.not.toContain('updateTicketStatus')).
     { name: 'support', page: 'src/components/pages/SupportTicketsPage.jsx', modal: 'src/components/modals/SupportTicketModal.jsx' },
+    // Health News: a READ-ONLY published-feed list page. It composes the full workspace
+    // grammar (one ActivitySheet, one Time header on created_at) so every list estate law
+    // covers it, but authoring is fail-closed -- "New article" is gated-visible and routes
+    // to an honest toast, handleSave throws, and the paired HealthNewsModal never reaches a
+    // reachable write. Selection + arrival-toast are recorded exclusions (published feed,
+    // no bulk write target / no realtime). The modal carries the submit spinner (animate-spin).
+    { name: 'news', page: 'src/components/pages/HealthNewsManagementPage.jsx', modal: 'src/components/modals/HealthNewsModal.jsx' },
   ];
 
   const CONSOLE_FILES = () => ({
@@ -205,6 +212,7 @@ describe('Console design system contract', () => {
       doctorsPage: read('src/components/pages/DoctorsPage.jsx'),
       usersPage: read('src/components/pages/UsersPage.jsx'),
       supportTicketsPage: read('src/components/pages/SupportTicketsPage.jsx'),
+      healthNewsPage: read('src/components/pages/HealthNewsManagementPage.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });
@@ -223,6 +231,7 @@ describe('Console design system contract', () => {
     const PANELS = [
       'EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel',
       'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel',
+      'HealthNewsPanel',
     ];
     const DRIFT = /\bsquircle(?:-[a-z]+)?\b|\brounded-(?:xl|2xl|3xl|full)\b|\bgeo-round\b|\bshadow-premium\b/;
     // No colored/bleeding shadow glow on ANY panel surface -- the gold EmergencyPanel is neutral-only
@@ -249,7 +258,7 @@ describe('Console design system contract', () => {
     // green -- the wrong canonical token in the wrong slot. ALL SEVEN route-owned panels now carry
     // the squircle well (Doctors: pill->icon, Ambulances: button->icon, both realigned 2026-07-10);
     // this locks every one of them so a panel can't drift its wells back to a circle again.
-    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel'];
+    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel', 'HealthNewsPanel'];
     // A circular fixed-size box = rounded-pill/full on an EQUAL h-N w-N (backref \1/\2), which is
     // an icon well; pill BADGES (padding-based, no equal h-N w-N) and pill DIVIDERS (h-8 w-1,
     // unequal) are legitimately allowed and do not match.
@@ -282,6 +291,7 @@ describe('Console design system contract', () => {
       { prop: 'staffContext', state: 'doctorsRouteContext' },
       { prop: 'usersContext', state: 'usersRouteContext' },
       { prop: 'supportContext', state: 'supportTicketsRouteContext' },
+      { prop: 'healthNewsContext', state: 'healthNewsRouteContext' },
     ];
     for (const p of CANON_PANELS) {
       // whole-object pass-through present...
@@ -439,6 +449,7 @@ describe('Console design system contract', () => {
       { name: 'doctors', navPath: '/doctors', title: 'Staff' },
       { name: 'users', navPath: '/users', title: 'Users' },
       { name: 'support', navPath: '/support-tickets', title: 'Support' },
+      { name: 'news', navPath: '/health-news', title: 'Health News' },
     ];
     // Every registered list page must appear here (and vice-versa) -- no silent skip.
     expect(NAV_HEADER.map((e) => e.name).sort()).toEqual(LIST_WORKSPACE_PAGES.map((e) => e.name).sort());
