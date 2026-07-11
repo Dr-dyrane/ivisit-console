@@ -529,8 +529,11 @@ export const HealthNewsManagementPage = () => {
           onRetry={fetchHealthNews}
           onOpenFilters={handleOpenFilters}
           onViewAnalytics={handleOpenAnalytics}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          isFetching={loading && mobileNewsFeed.length > 0}
         />
 
         {modalMode && (

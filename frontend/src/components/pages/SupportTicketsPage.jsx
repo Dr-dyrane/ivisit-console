@@ -272,6 +272,7 @@ export const SupportTicketsPage = () => {
     count,
     stats: supportStats,
     loading,
+    isFetching,
     error: queryError,
     refetch,
   } = useSupportTicketsQuery(queryFilter);
@@ -717,13 +718,17 @@ export const SupportTicketsPage = () => {
           onDelete={handleDelete}
           onAssign={handleAssign}
           canAssign={canAssign}
+          canEditTicket={canEditTicket}
           onRefresh={fetchSupportTickets}
           canManage={canManageSupport}
           loading={loading}
+          isFetching={isFetching}
           errorMessage={supportError}
           onRetry={fetchSupportTickets}
           onOpenFilters={handleOpenFilters}
           onViewAnalytics={canManageSupport ? handleOpenAnalytics : null}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />

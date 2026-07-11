@@ -53,11 +53,11 @@ const MANIFEST = {
   //    removal is the next rebuild — tracked as debt, not blocked) ──
   'MobileAmbulances.jsx': { tier: 'list' },
   'MobileDoctors.jsx': { tier: 'list' },
-  'MobileHealthNews.jsx': { tier: 'list-migrating' },
+  'MobileHealthNews.jsx': { tier: 'list' },
   'MobileInsurance.jsx': { tier: 'list-migrating' },
   'MobilePricing.jsx': { tier: 'list-migrating' },
   'MobileSubscriptions.jsx': { tier: 'list-migrating' },
-  'MobileSupportTickets.jsx': { tier: 'list-migrating' },
+  'MobileSupportTickets.jsx': { tier: 'list' },
   'MobileUsers.jsx': { tier: 'list' },
   'MobileVerification.jsx': { tier: 'list' },
   // ── Exempt (not a canon list/dashboard page) ──

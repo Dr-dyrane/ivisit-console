@@ -1,280 +1,465 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CheckCircle, Clock, Edit, Eye, Headphones, Tag, Trash2, User, UserPlus } from 'lucide-react';
-// Canon kit migration (Wave 2, 2026-07-09): SearchRow bakes in the 300ms debounce
-// this page lacked + clear-x; useSkeletonWarmup covers cached bottom-nav mounts;
-// UpdatingPillRow is the background-refetch signal (list never re-skeletons).
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow } from './canon';
-import { Button } from '../ui/button';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
+import {
+    Headphones,
+    CheckCircle,
+    Eye,
+    Edit,
+    Trash2,
+    User,
+    AlertTriangle,
+    Tag,
+    Clock,
+    MessageSquare,
+    UserPlus
+} from 'lucide-react';
+// LIST-type page, LIFECYCLE expression (MOBILE_DESIGN_SYSTEM Sec 5) -- rebuilt to canon
+// 2026-07-10, mirroring MobileUsers exactly (same 5-stage state machine, same canon kit).
+// Support is a GENUINE lifecycle (open -> in_progress -> resolved -> closed), so status is a
+// real grouping + KPI-pill axis (unlike the degenerate Doctors/Users status that fell to
+// recency). Phase A's server projection (getSupportTicketsPageStats) supplies EXACT scoped
+// counts (total/open/inProgress/resolved/closed/urgent/active), so the KPI strip renders
+// MEASURED stats -- no loaded-row hedge.
+// COMMAND AUTHORITY (scout contract): create + edit are WORKING (create owned by the dock
+// FAB 'New ticket'; edit gated per-row by canEditTicket = isAdmin||isOrgAdmin OR provider
+// owns the row). Provider self-assign is a WORKING admitted status-carrying write (sets
+// assigned_to + status='in_progress'). Single delete is WORKING but GATED to canManage
+// (isAdmin||isOrgAdmin). Free status transition (updateTicketStatus) is service-inventory
+// only and NEVER wired here. Bulk selection stays DESKTOP-ONLY by design -- this mobile
+// carries no row-selection state / selection bar.
+// grammar:loadmore-append=id-keyed-accumulator -- the page query is WINDOWED (offset =
+// paginationRange.start), so each page REPLACES `tickets`; the accumulatorRef below stitches
+// windows into the growing list (see MobileUsers). Load-more APPENDS, never replaces.
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListSkeletonRows } from './MobileListStates';
-import { useLoadMoreControl } from './useLoadMoreControl';
+import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
 import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 import { resolveVital } from '../../constants/vitalTracks';
-import { groupByMonth } from '../../utils/groupByMonth';
+import { formatRelativeTime } from '../../utils/activityUtils';
+import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
+
+const metricValue = (value, fallback = 0) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+};
 
 const priorityLabel = (value) => {
-  const text = String(value || 'normal').replace('_', ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
+    const text = String(value || 'normal').replace(/[_-]+/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 const categoryLabel = (value) => {
-  const text = String(value || 'general').replace(/[_-]+/g, ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
+    const text = String(value || 'general').replace(/[_-]+/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
+// Normalized row surfaces customer_name (= row.customer_name || row.requester_name); the
+// extra fallbacks keep the sheet honest for any un-normalized shape.
 const requesterName = (ticket) =>
-  ticket?.requester_name || ticket?.user_name || ticket?.name || ticket?.email || ticket?.user?.email || 'Unknown requester';
+    ticket?.customer_name || ticket?.requester_name || ticket?.user_name || ticket?.name || ticket?.email || ticket?.user?.email || 'Unknown requester';
 
-const createdLabel = (ticket) => {
-  const value = ticket?.created_at;
-  if (!value) return 'Unknown date';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Unknown date';
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const openedLabel = (ticket) => {
+    const value = ticket?.created_at;
+    if (!value) return 'Unknown date';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'Unknown date';
+    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export const MobileSupportTickets = ({
-  tickets = [],
-  stats,
-  filters,
-  setFilters,
-  onView,
-  onEdit,
-  onDelete,
-  onAssign,
-  canAssign = false,
-  onRefresh,
-  canManage = false,
-  loading = false,
-  errorMessage = null,
-  onRetry,
-  onOpenFilters,
-  onViewAnalytics,
-  hasMore = false,
-  onLoadMore,
-}) => {
-  const [activeTicket, setActiveTicket] = useState(null);
-  const observerTarget = useRef(null);
-  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
-  const { displayItems, isBuffering } = useStableList(tickets, loading);
-  const warmingUp = useSkeletonWarmup();
-  const showSkeleton = warmingUp || (loading && displayItems.length === 0);
+const isResolved = (status) => status === 'resolved' || status === 'closed';
+const statusIcon = (status) => (isResolved(status) ? CheckCircle : Headphones);
 
-  useEffect(() => {
-    if (!hasMore) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) triggerLoad();
-      },
-      { threshold: 0.1, rootMargin: '120px' }
-    );
-    if (observerTarget.current) observer.observe(observerTarget.current);
-    return () => observer.disconnect();
-  }, [hasMore, triggerLoad]);
+// Status-tinted orb. Literal hues (the semantic tokens collapse to brand red); the orb hue
+// MATCHES the row's own pill (resolveVital('support', status).pill) so the row reads as one
+// tone. open=cyan, in_progress=amber, resolved=emerald, closed=slate (the vitalTracks
+// support domain tones).
+const orbClassFor = (status) => {
+    switch (status) {
+        case 'open': return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300';
+        case 'in_progress': return 'bg-amber-500/12 text-amber-700 dark:text-amber-300';
+        case 'resolved': return 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300';
+        case 'closed': return 'bg-muted/40 text-muted-foreground';
+        default: return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300';
+    }
+};
 
-  const counts = useMemo(() => ({
-    total: Number(stats?.total) || tickets.length,
-    open: Number(stats?.open) || tickets.filter((ticket) => ticket.status === 'open').length,
-    active: Number(stats?.active) || tickets.filter((ticket) => ticket.status === 'open' || ticket.status === 'in_progress').length,
-    resolved: Number(stats?.resolved) || tickets.filter((ticket) => ticket.status === 'resolved').length,
-  }), [stats, tickets]);
+// Lifecycle spine order for the status grouping: open -> in_progress -> resolved -> closed.
+const STATUS_ORDER = ['open', 'in_progress', 'resolved', 'closed'];
+const statusRank = (status) => {
+    const index = STATUS_ORDER.indexOf(status);
+    return index === -1 ? STATUS_ORDER.length : index;
+};
 
-  // Semantic tokens (--success/--warning/--info) collapse to crimson in this theme
-  // (red-token trap); status hues use the raw vitalTracks accents instead.
-  const kpis = [
-    { id: 'all', label: 'Requests', value: counts.total, color: 'hsl(var(--muted-foreground))' },
-    { id: 'open', label: 'Open', value: counts.open, color: 'hsl(26 90% 37%)' },
-    { id: 'in_progress', label: 'Active', value: counts.active, color: 'hsl(200 98% 39%)' },
-    { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(162 94% 24%)' },
-  ];
-
-  // Date-grouped feed (rollout S5): newest-first. Grouping is render-only; the month
-  // header carries a tabular count (group-header canon, DS v1.2 §3).
-  const groupedTickets = useMemo(
-    () => groupByMonth(displayItems, (ticket) => ticket?.created_at),
-    [displayItems]
-  );
-  const monthCounts = useMemo(() => {
-    const monthTotals = {};
-    let current = null;
-    groupedTickets.forEach(({ header }) => {
-      if (header) current = header;
-      if (current) monthTotals[current] = (monthTotals[current] || 0) + 1;
-    });
-    return monthTotals;
-  }, [groupedTickets]);
-
-  return (
-    <PullToRefresh onRefresh={onRefresh}>
-      <MobilePageShell
-        animatePageLoad={false}
-        kpiStrip={(
-          <MobileKPIStrip
-            loading={showSkeleton}
-            kpis={kpis}
-            activeKpi={filters?.kpiFilter || 'all'}
-            onKpiClick={(id) => setFilters((current) => ({ ...current, kpiFilter: id }))}
-          />
-        )}
-        contentClassName="pt-4 pb-4 text-foreground"
-      >
-        <section className="mb-3 rounded-card surface-card p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-foreground/[0.06] text-foreground dark:bg-white/[0.08]">
-              <Headphones className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-muted-foreground">Support</p>
-              <h2 className="mt-1 text-2xl font-semibold leading-tight text-foreground">
-                {counts.active > 0 ? `${counts.active} active request${counts.active === 1 ? '' : 's'}` : 'Support queue is clear'}
-              </h2>
-              <p className="mt-2 text-sm leading-5 text-muted-foreground">
-                {errorMessage || 'Review one request, then open details when more context is needed.'}
-              </p>
-            </div>
-          </div>
-          {errorMessage && onRetry && (
-            <Button
-              type="button"
-              onClick={onRetry}
-              className="mt-4 h-10 rounded-button px-4 text-sm font-semibold"
-            >
-              Try again
-            </Button>
-          )}
-        </section>
-
-        <div className="mb-3 px-1">
-          <SearchRow
-            placeholder="Search support"
-            search={filters?.search || ''}
-            onSearchCommit={(value) => setFilters((current) => ({ ...current, search: value }))}
-            entityLabel="support requests"
-            onOpenFilters={onOpenFilters}
-            onOpenStats={onViewAnalytics}
-            statsLabel="Open support analytics"
-          />
-        </div>
-
-        <MobileSectionHeader
-          label="Support queue"
-          count={Number(stats?.total) || displayItems.length}
-          color="hsl(var(--muted-foreground))"
-          labelTone="plain"
+// Atlas stage (donor recipe: MobileUsersAtlasLayer; ambient brand tint is sanctioned
+// expression, Lesson 18).
+const MobileSupportAtlasLayer = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
+        <div
+            className="absolute inset-0 opacity-[0.28] dark:opacity-[0.22]"
+            style={{
+                backgroundImage:
+                    'linear-gradient(118deg, transparent 0 46%, hsl(var(--foreground) / 0.055) 46% 49%, transparent 49%), linear-gradient(32deg, transparent 0 42%, hsl(var(--foreground) / 0.045) 42% 45%, transparent 45%), linear-gradient(154deg, transparent 0 64%, hsl(var(--primary) / 0.07) 64% 67%, transparent 67%)',
+                backgroundSize: '250px 178px, 330px 236px, 410px 276px',
+                backgroundPosition: '18px 10px, -72px 48px, 16% 38%',
+            }}
         />
+        <div
+            className="absolute inset-0"
+            style={{
+                background:
+                    'radial-gradient(circle at 20% 32%, hsl(var(--primary) / 0.10), transparent 28%), radial-gradient(circle at 82% 62%, hsl(var(--foreground) / 0.055), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.18), hsl(var(--background)) 92%)',
+            }}
+        />
+    </div>
+);
 
-        <div className="space-y-1">
-          <AnimatePresence mode="popLayout">
-            {/* Date-grouped feed (rollout S5): newest-first, a sentence-case bold month
-                header + tabular count at each boundary (group-header canon, DS v1.2 §3 —
-                the eyebrow is detail furniture only). Grouping is render-only. */}
-            {groupedTickets.map(({ item: ticket, header }) => {
-              const vital = resolveVital('support', ticket.status);
-              const resolved = ticket.status === 'resolved' || ticket.status === 'closed';
+// Filter-trigger truth: any committed narrowing counts (search, KPI status, or the sheet's
+// status/priority/category multiselects), so the trigger's filtered state never lies.
+const hasActiveSupportFilters = (filters = {}) => Boolean(
+    filters?.search ||
+    (filters?.kpiFilter && filters.kpiFilter !== 'all') ||
+    (Array.isArray(filters?.status) && filters.status.length > 0) ||
+    (Array.isArray(filters?.priority) && filters.priority.length > 0) ||
+    (Array.isArray(filters?.category) && filters.category.length > 0)
+);
 
-              return (
-                <React.Fragment key={ticket.id}>
-                  {header && (
-                    <div className="flex items-center justify-between px-2 pb-1 pt-3">
-                      <span className="text-[13px] font-bold leading-[17px] text-muted-foreground">{header}</span>
-                      <span className="text-[13px] font-bold text-muted-foreground/60 tabular-nums">{monthCounts[header]}</span>
-                    </div>
-                  )}
-                  {/* Tap opens the detail bottom sheet (MobileDetailSheet) — the approved
-                      mobile design + desktop detail-rail behaviour — not an inline dropdown. */}
-                  <MobileMetricRow
-                    icon={resolved ? CheckCircle : Headphones}
-                    color={vital?.accent || 'hsl(var(--muted-foreground))'}
-                    label="Support request"
-                    value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
-                    secondary={`${priorityLabel(ticket.priority)} priority · ${categoryLabel(ticket.category)}`}
-                    statusPill={vital?.pill}
-                    onClick={() => setActiveTicket(ticket)}
-                  />
-                </React.Fragment>
-              );
-            })}
-          </AnimatePresence>
+/**
+ * MobileSupportTickets -- the support queue on the canon LIST grammar. Server-owned
+ * search/KPI (the page refetches); this component renders + the working commands
+ * (create via dock FAB, edit/assign/delete via the detail sheet) keep their exact gates.
+ */
+export const MobileSupportTickets = ({
+    tickets = [],
+    stats,
+    filters,
+    setFilters,
+    onView,
+    onEdit,
+    onDelete,
+    onAssign,
+    canAssign = false,
+    canEditTicket,
+    onRefresh,
+    canManage = false,
+    loading = false,
+    isFetching = false,
+    errorMessage = null,
+    onRetry,
+    onOpenFilters,
+    onViewAnalytics,
+    filterSheetOpen = false,
+    analyticsOpen = false,
+    hasMore = false,
+    onLoadMore,
+}) => {
+    const observerTarget = useRef(null);
+    const [activeTicket, setActiveTicket] = useState(null);
+    // Background-refetch signal (KPI switch / search / pull-refresh keep loading=false).
+    const refetching = isFetching || false;
+    const sourceTickets = useMemo(() => (Array.isArray(tickets) ? tickets : []), [tickets]);
 
-          {displayItems.length === 0 && !loading && (
-            <MobileListEmpty
-              icon={Headphones}
-              label={errorMessage ? 'Support did not load' : 'No support requests'}
-              hint={errorMessage ? 'Try again before treating support as clear.' : 'Use New ticket when you need support.'}
-              labelTone="plain"
+    // Per-row edit gate: honor the finer canEditTicket (isAdmin||isOrgAdmin OR provider owns
+    // the row) when the page passes it; fall back to canManage otherwise.
+    const editAllowed = (ticket) => (typeof canEditTicket === 'function' ? canEditTicket(ticket) : canManage);
+
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
+    useEffect(() => {
+        if (!hasMore) return;
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting) triggerLoad();
+            },
+            { threshold: 0.1, rootMargin: '120px' }
+        );
+        if (observerTarget.current) observer.observe(observerTarget.current);
+        return () => observer.disconnect();
+    }, [hasMore, triggerLoad]);
+
+    // Load-more ACCUMULATES (id-keyed store): the page query is WINDOWED (offset =
+    // paginationRange.start), so each page REPLACES `tickets`; this stitches windows into the
+    // growing list. Scope change (search/kpi/filters) resets; same-scope non-empty appends;
+    // same-scope settled-empty clears (kills placeholder poisoning).
+    const filterSignature = JSON.stringify({
+        search: filters?.search || '',
+        kpi: filters?.kpiFilter || 'all',
+        status: filters?.status || [],
+        priority: filters?.priority || [],
+        category: filters?.category || [],
+    });
+    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map(), lastSource: null });
+    const ticketRows = useMemo(() => {
+        const store = accumulatorRef.current;
+        const reset = () => { store.order = []; store.byId = new Map(); };
+        const absorb = (row) => {
+            const id = row?.id;
+            if (id === null || id === undefined) return;
+            if (!store.byId.has(id)) store.order.push(id);
+            store.byId.set(id, row);
+        };
+        if (store.signature !== filterSignature) {
+            store.signature = filterSignature;
+            store.lastSource = sourceTickets;
+            reset();
+            sourceTickets.forEach(absorb);
+        } else if (store.lastSource !== sourceTickets) {
+            store.lastSource = sourceTickets;
+            if (sourceTickets.length === 0) reset();
+            else sourceTickets.forEach(absorb);
+        }
+        return store.order.map((id) => store.byId.get(id));
+    }, [sourceTickets, filterSignature]);
+
+    const { displayItems: displayTickets, isBuffering } = useStableList(ticketRows, loading);
+    const warmingUp = useSkeletonWarmup();
+    const showTopSectionLoading = warmingUp || (loading && displayTickets.length === 0);
+
+    // MEASURED, server-scoped counts (getSupportTicketsPageStats) -- a real lifecycle
+    // partition, exactly the desktop supportStateOptions axis. Chip hues are SINGLE-SOURCED
+    // from the row orb/pill tones (open=cyan, in_progress=amber, resolved=emerald) so a chip
+    // and the rows it filters read as ONE hue, NOT the --success/--warning/--info tokens
+    // (red-token trap). The 'in_progress' chip COUNT is stats.active (open + in_progress),
+    // exactly as desktop's 'Active' chip does. URGENT is an OVERLAY (a per-row markerChip),
+    // never a status chip: the page hardcodes kpiFilter -> status, so an 'urgent' chip would
+    // send status='urgent' (empty set).
+    const ticketKPIs = [
+        { id: 'all', label: 'All', value: metricValue(stats?.total, sourceTickets.length), color: 'hsl(var(--muted-foreground))' },
+        { id: 'open', label: 'Open', value: metricValue(stats?.open, 0), color: 'hsl(200 98% 39%)' },
+        { id: 'in_progress', label: 'Active', value: metricValue(stats?.active, 0), color: 'hsl(26 90% 37%)' },
+        { id: 'resolved', label: 'Resolved', value: metricValue(stats?.resolved, 0), color: 'hsl(162 94% 24%)' },
+    ];
+
+    // Count integrity (Sec 5): the heading tracks the ACTIVE KPI scope, never the raw total.
+    // in_progress maps to the REAL scoped count `inProgress` (NOT `active` = open+inProgress):
+    // when the Active chip is selected the list is server-scoped to status='in_progress' only,
+    // so the heading must count in_progress rows. The chip keeps the wider `active` glance
+    // count (desktop parity); the heading tells the truth about what is actually in the list.
+    const kpiToKey = { all: 'total', open: 'open', in_progress: 'inProgress', resolved: 'resolved' };
+    const activeKpi = filters?.kpiFilter || 'all';
+    const scopeCount = activeKpi === 'all'
+        ? metricValue(stats?.total, sourceTickets.length)
+        : metricValue(stats?.[kpiToKey[activeKpi]], 0);
+
+    const hasFilter = hasActiveSupportFilters(filters);
+
+    // Adaptive, DATA-DRIVEN grouping: STATUS is the genuine lifecycle spine here (unlike the
+    // degenerate Doctors/Users status). The scorer keeps it only if healthy (2-8 groups,
+    // <=50% singletons, <=85% max share) and self-corrects two ways: (1) an all-resolved
+    // tenant exceeds the 85% cap -> coarse-recency; (2) when a STATUS KPI chip is active the
+    // server returns a single status, so status-grouping is 100% one bucket -> coarse-recency
+    // (group-by-opened within the scoped status). Labels come from vitalTracks support.status
+    // so panel headers match the row pills. Grouping is render-only; server sort stays
+    // created_at desc.
+    const { groups: ticketGroups } = useMemo(() => resolveAdaptiveGroups(displayTickets, [
+        {
+            key: 'status',
+            assign: (t) => t.status || 'open',
+            labelFor: (k) => resolveVital('support', k)?.pill?.label ?? k,
+            order: (keys) => keys.slice().sort((a, b) => statusRank(a) - statusRank(b)),
+            orphanLabel: 'Other',
+        },
+        { type: 'coarse-recency', key: 'opened', getDate: (t) => t.created_at },
+    ]), [displayTickets]);
+
+    const renderTicketRow = (ticket) => {
+        const status = ticket.status || 'open';
+        const priority = ticket.priority || 'normal';
+        const urgent = priority === 'urgent' || priority === 'high';
+        const vital = resolveVital('support', status);
+        return (
+            <MobileListRow
+                item={ticket}
+                dataAttr="data-mobile-support-row"
+                onOpen={setActiveTicket}
+                ariaLabel={`${ticket.subject || 'Support request'}, ${vital?.pill?.label || status}`}
+                orbClass={orbClassFor(status)}
+                icon={statusIcon(status)}
+                title={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
+                meta={`${priorityLabel(priority)} priority · ${categoryLabel(ticket.category)}`}
+                time={formatRelativeTime(ticket.created_at)}
+                markerChip={urgent ? priorityLabel(priority) : null}
+                pill={vital?.pill}
             />
-          )}
+        );
+    };
 
-          <div ref={observerTarget} className="flex min-h-[64px] flex-col items-center justify-center gap-2">
-            {showSkeleton && <MobileListSkeletonRows />}
-            <UpdatingPillRow show={isBuffering && !showSkeleton} />
-            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
-            {!loading && !hasMore && displayItems.length > 0 && <MobileListEnd label="End of support queue" />}
-          </div>
-        </div>
-
-        {activeTicket && (() => {
-          const status = activeTicket.status;
-          const vital = resolveVital('support', status);
-          const resolved = status === 'resolved' || status === 'closed';
-          return (
-            <MobileDetailSheet
-              isOpen={!!activeTicket}
-              onClose={() => setActiveTicket(null)}
-              icon={resolved ? CheckCircle : Headphones}
-              iconTone={vital?.tone}
-              eyebrow="Support request"
-              title={activeTicket.subject || `Ticket ${String(activeTicket.id || '').slice(0, 8)}`}
-              statusPill={vital?.pill}
-              vital={vital ? { ...vital, label: 'Ticket status' } : null}
-              islands={[
-                { icon: User, label: 'Requester', value: requesterName(activeTicket) },
-                { icon: AlertTriangle, label: 'Priority', value: `${priorityLabel(activeTicket.priority)}` },
-                { icon: Tag, label: 'Category', value: categoryLabel(activeTicket.category) },
-                { icon: Clock, label: 'Opened', value: createdLabel(activeTicket) },
-              ]}
-              primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveTicket(null); onView?.(activeTicket); } }}
-              secondary={canManage ? { icon: Edit, onClick: () => { setActiveTicket(null); onEdit?.(activeTicket); }, 'aria-label': `Edit ${activeTicket.subject || 'support request'}` } : undefined}
+    return (
+        <PullToRefresh onRefresh={onRefresh}>
+            <MobilePageShell
+                animatePageLoad={false}
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
-              {activeTicket.message && (
-                <div className="rounded-inner surface-card p-3 text-xs leading-5 text-muted-foreground">
-                  {activeTicket.message}
+                <MobileSupportAtlasLayer />
+                <div className="relative z-10 space-y-3">
+                    <MobileHeading
+                        title="Support"
+                        noun="request"
+                        count={scopeCount}
+                        showSkeleton={showTopSectionLoading}
+                        failedEmpty={Boolean(errorMessage) && displayTickets.length === 0}
+                    />
+
+                    <MobileKPIStrip
+                        loading={showTopSectionLoading}
+                        kpis={ticketKPIs}
+                        activeKpi={activeKpi}
+                        onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+                    />
+
+                    <section className="px-4">
+                        <SearchRow
+                            placeholder="Search support"
+                            search={filters?.search || ''}
+                            onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                            entityLabel="support requests"
+                            onOpenFilters={onOpenFilters}
+                            filterSheetOpen={filterSheetOpen}
+                            hasFilter={hasFilter}
+                            onOpenStats={onViewAnalytics}
+                            statsOpen={analyticsOpen}
+                            statsLabel="Open support analytics"
+                        />
+
+                        <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
+
+                        <div className="mt-3 space-y-2">
+                            {errorMessage && displayTickets.length > 0 && (
+                                <div
+                                    className="rounded-card bg-destructive/10 p-4 text-destructive"
+                                    data-testid="mobile-support-degraded-state"
+                                >
+                                    <p className="text-sm font-semibold">Support did not refresh</p>
+                                    <p className="mt-1 text-xs text-destructive/75">Showing the last loaded support rows.</p>
+                                    {onRetry && (
+                                        <button
+                                            type="button"
+                                            onClick={onRetry}
+                                            className="mt-3 h-9 rounded-inner bg-destructive/10 px-4 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 active:scale-[0.96]"
+                                        >
+                                            Try again
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Group-shaped skeleton (Sec 5.2): mirrors the panel 1:1 for replace-in-place. */}
+                            {showTopSectionLoading ? (
+                                <SkeletonGroupPanel rows={6} />
+                            ) : (
+                                <div className="space-y-[18px]">
+                                    {ticketGroups.map((group) => (
+                                        <GroupPanel key={group.key} label={group.label} count={group.items.length}>
+                                            {group.items.map((ticket, index) => (
+                                                <React.Fragment key={ticket.id}>
+                                                    {renderTicketRow(ticket)}
+                                                    {index < group.items.length - 1 && <Hairline />}
+                                                </React.Fragment>
+                                            ))}
+                                        </GroupPanel>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
+                                {refetching && !showTopSectionLoading && hasMore && displayTickets.length > 0 && <MobileListLoadingMore />}
+                                {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                                {!loading && !hasMore && displayTickets.length > 0 && <MobileListEnd label="End of support queue" />}
+                            </div>
+
+                            {displayTickets.length === 0 && !loading && !showTopSectionLoading && (
+                                <MobileListEmpty
+                                    icon={Headphones}
+                                    label={errorMessage ? 'Support did not load' : 'No support requests'}
+                                    reason={filters?.search ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                                    hint={errorMessage
+                                        ? 'Try again before treating the queue as clear.'
+                                        : filters?.search
+                                            ? `No support requests match "${filters.search}".`
+                                            : hasFilter
+                                                ? 'Try clearing filters to see the full queue.'
+                                                : 'Use New ticket when you need support.'}
+                                    onRecover={!errorMessage && (filters?.search || hasFilter)
+                                        ? () => setFilters(prev => ({ ...prev, search: '', kpiFilter: 'all', status: [], priority: [], category: [] }))
+                                        : undefined}
+                                    recoverLabel={!errorMessage && filters?.search ? 'Clear Search' : !errorMessage && hasFilter ? 'Reset Filters' : undefined}
+                                    labelTone="plain"
+                                />
+                            )}
+                        </div>
+                    </section>
                 </div>
-              )}
-              {(canAssign || canManage) && (
-                <div className="flex gap-2 pt-1">
-                  {canAssign && (
-                    <button
-                      type="button"
-                      onClick={() => { setActiveTicket(null); onAssign?.(activeTicket); }}
-                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-foreground/[0.06] text-sm font-semibold text-foreground transition-all active:scale-[0.96] hover:bg-foreground/10 dark:bg-white/[0.08]"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Assign to me
-                    </button>
-                  )}
-                  {canManage && (
-                    <button
-                      type="button"
-                      onClick={() => { setActiveTicket(null); onDelete?.(activeTicket); }}
-                      aria-label={`Delete ${activeTicket.subject || 'support request'}`}
-                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform active:scale-[0.96] hover:bg-destructive/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </button>
-                  )}
-                </div>
-              )}
-            </MobileDetailSheet>
-          );
-        })()}
-      </MobilePageShell>
-    </PullToRefresh>
-  );
+
+                {/* Tap-opened record detail bottom sheet. Support IS a lifecycle domain, so the
+                    sheet carries the VitalTrack; status the pill, priority/category the islands. */}
+                {activeTicket && (() => {
+                    const ticket = activeTicket;
+                    const status = ticket.status || 'open';
+                    const vital = resolveVital('support', status);
+
+                    return (
+                        <MobileDetailSheet
+                            isOpen={!!activeTicket}
+                            onClose={() => setActiveTicket(null)}
+                            icon={statusIcon(status)}
+                            iconTone={vital?.tone}
+                            eyebrow="Support request"
+                            title={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
+                            statusPill={vital?.pill}
+                            vital={vital ? { ...vital, label: 'Ticket status' } : null}
+                            islands={[
+                                { icon: User, label: 'Requester', value: requesterName(ticket) },
+                                { icon: AlertTriangle, label: 'Priority', value: priorityLabel(ticket.priority) },
+                                { icon: Tag, label: 'Category', value: categoryLabel(ticket.category) },
+                                { icon: Clock, label: 'Opened', value: openedLabel(ticket) },
+                            ]}
+                            primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveTicket(null); onView?.(ticket); } }}
+                            secondary={editAllowed(ticket) ? { icon: Edit, onClick: () => { setActiveTicket(null); onEdit?.(ticket); }, 'aria-label': `Edit ${ticket.subject || 'support request'}` } : undefined}
+                        >
+                            {ticket.message && (
+                                <div className="rounded-inner surface-card p-3 text-xs leading-5 text-muted-foreground">
+                                    <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/70">
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        Message
+                                    </span>
+                                    {ticket.message}
+                                </div>
+                            )}
+                            {/* Provider self-assign ('Assign to me') sets assigned_to + status='in_progress'
+                                (the only status-carrying write reachable from the UI -- an admitted assignment,
+                                not a free transition). Delete stays GATED to canManage (isAdmin||isOrgAdmin);
+                                the page confirms via ConfirmationModal before the audited mutation. */}
+                            {(canAssign || canManage) && (
+                                <div className="flex gap-2 pt-1">
+                                    {canAssign && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveTicket(null); onAssign?.(ticket); }}
+                                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-foreground/[0.06] text-sm font-semibold text-foreground transition-all active:scale-[0.96] hover:bg-foreground/10 dark:bg-white/[0.08]"
+                                        >
+                                            <UserPlus className="h-4 w-4" />
+                                            Assign to me
+                                        </button>
+                                    )}
+                                    {canManage && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setActiveTicket(null); onDelete?.(ticket); }}
+                                            aria-label={`Delete ${ticket.subject || 'support request'}`}
+                                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform active:scale-[0.96] hover:bg-destructive/20"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </MobileDetailSheet>
+                    );
+                })()}
+            </MobilePageShell>
+        </PullToRefresh>
+    );
 };

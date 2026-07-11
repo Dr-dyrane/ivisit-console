@@ -278,7 +278,20 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(mobile).toContain('PullToRefresh');
     expect(mobile).toContain('useLoadMoreControl');
     expect(mobile).toContain('MobileKPIStrip');
-    expect(mobile).toContain('MobileFeaturedMetric');
+    // Canon LIST anatomy (rebuilt 2026-07-10 mirroring MobileUsers): heading + KPI strip +
+    // SearchRow + adaptive GroupPanel + group-shaped skeleton + warm-up + Updating pill.
+    // The MobileFeaturedMetric billboard and MobileSecondaryMetricRail glance rail are
+    // DASHBOARD furniture the list grammar FATALLY bans - the rebuild removes both.
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).toContain('useSkeletonWarmup');
+    expect(mobile).toContain('UpdatingPillRow');
+    expect(mobile).toContain('animatePageLoad={false}');
+    expect(mobile).toContain('isFetching');
+    expect(mobile).toContain('resolveAdaptiveGroups');
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
     expect(mobile).toContain('const sourceArticles = useMemo(() => (Array.isArray(articles) ? articles : []), [articles]);');
     expect(mobile).toContain('useStableList(sourceArticles, loading)');
     expect(mobile).not.toContain('filteredArticles');
@@ -295,9 +308,12 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(mobile).not.toContain('Total Articles');
     expect(mobile).not.toContain('News Registry');
     expect(mobile).not.toContain('Writer blocked');
-    expect(mobile).toContain('Feed Summary');
-    expect(mobile).toContain('Article List');
-    expect(mobile).toContain('Authoring locked');
+    // Retired with the billboard/rail: 'Feed Summary' + 'Authoring locked' were the
+    // MobileSecondaryMetricRail copy, 'Article List' the MobileSectionHeader label. The
+    // grouped panel renders adaptive CATEGORY / recency headers instead.
+    expect(mobile).not.toContain('Feed Summary');
+    expect(mobile).not.toContain('Article List');
+    expect(mobile).not.toContain('Authoring locked');
     expect(mobile).not.toContain('selectedIds');
     expect(mobile).not.toContain('onTogglePublish');
     expect(mobile).not.toContain('onDelete');

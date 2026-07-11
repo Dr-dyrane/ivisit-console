@@ -230,34 +230,74 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(modal).not.toContain('assigned_to');
   });
 
-  it('keeps mobile Support recomposed without fake live metrics or destructive controls', () => {
+  it('recomposes mobile Support to the canon LIST while preserving f31f29f affordances', () => {
     const mobile = mobileSource();
+    const oldMobile = headSource('frontend/src/components/mobile/MobileSupportTickets.jsx');
 
+    // Preservation baseline (f31f29f): the affordances that MUST survive the rebuild are
+    // proven to have existed on the old mobile surface. The rebuild keeps every working
+    // affordance and drops only the by-design regressions (fake live metrics, bulk select).
+    expect(oldMobile).toContain('PullToRefresh');
+    expect(oldMobile).toContain('useLoadMoreControl');
+    expect(oldMobile).toContain('MobileKPIStrip');
+    expect(oldMobile).toContain('onOpenFilters');
+    expect(oldMobile).toContain('onViewAnalytics');
+    expect(oldMobile).toContain('onAssign');
+    expect(oldMobile).toContain('onDelete');
+    expect(oldMobile).toContain('Trash2');
+    // Baseline carried the by-design regressions this rebuild removes: fake live metrics
+    // (billboard + glance rail + 'LIVE' deltas) and mobile bulk selection.
+    expect(oldMobile).toContain('MobileFeaturedMetric');
+    expect(oldMobile).toContain('MobileSecondaryMetricRail');
+    expect(oldMobile).toContain('LIVE');
+    expect(oldMobile).toContain('selectedIds');
+
+    // Canon LIST composition (mirrors MobileUsers exactly): heading + KPI strip + canon
+    // SearchRow + grouped panel + group-shaped skeleton + warm-up + Updating pill on the
+    // REAL refetch signal (isFetching) + id-keyed load-more accumulator, all mount-motion-free.
+    expect(mobile).toContain('MobileHeading');
+    expect(mobile).toContain('SearchRow');
+    expect(mobile).toContain('GroupPanel');
+    expect(mobile).toContain('SkeletonGroupPanel');
+    expect(mobile).toContain('useSkeletonWarmup');
+    expect(mobile).toContain('UpdatingPill');
+    expect(mobile).toContain('MobileListRow');
+    expect(mobile).toContain('resolveAdaptiveGroups');
+    expect(mobile).toContain('animatePageLoad={false}');
+    expect(mobile).toContain('isFetching');
+    expect(mobile).toContain('accumulatorRef');
+
+    // Preserved working affordances: search/filter/analytics triggers, pull-to-refresh,
+    // load-more, and the KPI status axis.
     expect(mobile).toContain('PullToRefresh');
     expect(mobile).toContain('useLoadMoreControl');
     expect(mobile).toContain('MobileKPIStrip');
-    expect(mobile).toContain('MobileMetricRow');
     expect(mobile).toContain('onOpenFilters');
     expect(mobile).toContain('onViewAnalytics');
     expect(mobile).toContain('Details');
     expect(mobile).toContain('Edit');
-    // Tap opens the canonical detail bottom sheet (MobileDetailSheet), not an inline
-    // dropdown accordion — mirrors the proven MobileVisits pattern.
+    // Tap opens the canonical detail bottom sheet (MobileDetailSheet) via the canon row's
+    // onOpen, not an inline dropdown accordion -- mirrors the proven MobileUsers pattern.
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('onClick={() => setActiveTicket');
+    expect(mobile).toContain('onOpen={setActiveTicket}');
+    expect(mobile).toContain('setActiveTicket(null)');
+    // Working commands preserved: provider self-assign + gated single delete on the sheet.
+    expect(mobile).toContain('onDelete');
+    expect(mobile).toContain('onAssign');
+    expect(mobile).toContain('Trash2');
+
+    // By-design drops: no inline accordion, no fake live metrics, no dashboard furniture,
+    // no mobile bulk selection, and off the floating MobileMetricRow cards.
     expect(mobile).not.toContain('expandedContent');
     expect(mobile).not.toContain('isExpanded');
     expect(mobile).not.toContain('onExpand');
     expect(mobile).not.toContain('chartData');
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('LIVE');
-    // Bulk selection stays desktop-only, so mobile carries no selection state.
     expect(mobile).not.toContain('selectedIds');
-    // Restored: the mobile detail sheet exposes provider self-assign + a gated
-    // delete affordance (single-record, confirmed on the page via ConfirmationModal).
-    expect(mobile).toContain('onDelete');
-    expect(mobile).toContain('onAssign');
-    expect(mobile).toContain('Trash2');
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('MobileMetricRow');
   });
 
   it('keeps the Support right panel route-owned and hardgate-clean', () => {
