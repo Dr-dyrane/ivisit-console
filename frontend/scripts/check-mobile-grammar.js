@@ -58,7 +58,7 @@ const MANIFEST = {
   'MobilePricing.jsx': { tier: 'list-migrating' },
   'MobileSubscriptions.jsx': { tier: 'list-migrating' },
   'MobileSupportTickets.jsx': { tier: 'list-migrating' },
-  'MobileUsers.jsx': { tier: 'list-migrating' },
+  'MobileUsers.jsx': { tier: 'list' },
   'MobileVerification.jsx': { tier: 'list' },
   // ── Exempt (not a canon list/dashboard page) ──
   'MobileWallet.jsx': { tier: 'dashboard' },

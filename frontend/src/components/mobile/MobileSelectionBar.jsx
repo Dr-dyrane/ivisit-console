@@ -16,10 +16,10 @@ import { X } from 'lucide-react';
  * @param {Function} onClear      clear-selection handler (the X)
  * @param {React.ReactNode} [children] the page's action control(s)
  */
-export const MobileSelectionBar = ({ count = 0, onSelectAll, onClear, children }) => {
+export const MobileSelectionBar = ({ count = 0, onSelectAll, onClear, children, frosted = true }) => {
   if (!count) return null;
   return (
-    <div className="sticky top-2 z-30 flex items-center gap-2 rounded-inner bg-background/85 px-3 py-2 shadow-sm backdrop-blur-xl">
+    <div className={`sticky top-2 z-30 flex items-center gap-2 rounded-inner bg-background/85 px-3 py-2 shadow-sm${frosted ? ' backdrop-blur-xl' : ''}`}>
       <span className="text-[13px] font-semibold text-foreground tabular-nums">{count} selected</span>
       {onSelectAll && (
         <button

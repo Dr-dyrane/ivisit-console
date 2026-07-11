@@ -543,8 +543,14 @@ export const UsersPage = () => {
           isOrgAdmin={isOrgAdmin()}
           canDelete={false}
           onOpenFilters={() => setFilterSheetOpen(true)}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
+          isFetching={isFetching}
+          errorMessage={loadError}
+          onRetry={fetchUsers}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          selectionEnabled={selectable}
           selectedIds={selectedIds}
           onSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}

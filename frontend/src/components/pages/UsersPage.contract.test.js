@@ -135,27 +135,38 @@ describe('Users Page 14 admitted-to-canon contract', () => {
     expect(page).toContain('data-state="unavailable"');
     expect((page.match(/window\.addEventListener\('openUserModal'/g) || []).length).toBe(1);
 
+    // oldMobile (f31f29f baseline) is the billboard; the CURRENT mobile is the canon LIST
+    // rebuild (2026-07-10 — Users mobile admitted after Phase A proved the server-stats
+    // projection, closing the mobile-metric blocker). Shared invariants on both; the
+    // billboard primitives are baseline-only, the canon anatomy is current-only.
     for (const source of [oldMobile, mobile]) {
-      expect(source).toContain('MobileFeaturedMetric');
       expect(source).toContain('selectedIds = []');
       expect(source).toContain('onDelete(user)');
       expect(source).toContain('<PullToRefresh');
       expect(source).toContain('<MobileKPIStrip');
-      expect(source).toContain('<MobileMetricRow');
     }
+    // Retired billboard/rail primitives (baseline-only).
+    expect(oldMobile).toContain('MobileFeaturedMetric');
+    expect(oldMobile).toContain('<MobileMetricRow');
     expect(oldMobile).toContain('const growthData = useMemo(() => [');
     expect(oldMobile).toContain("trend: formatSignedPercent(verificationRate - 50) || 'LIVE'");
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('<MobileMetricRow');
     expect(mobile).not.toContain('const growthData = useMemo(() => [');
-    expect(mobile).not.toContain("trend: formatSignedPercent(verificationRate - 50) || 'LIVE'");
     expect(mobile).not.toContain("'LIVE'");
+    // Phase A gives MEASURED server stats — the loaded-row visible/source-pending hedge is gone.
+    expect(mobile).not.toContain('hasMeasuredStatistics');
+    expect(mobile).not.toContain('User Summary');
     expect(mobile).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
-    expect(mobile).toContain('const hasMeasuredStatistics = Boolean(statistics && (');
-    expect(mobile).toContain("label: hasMeasuredStatistics ? 'Total Users' : 'Visible Users'");
-    expect(mobile).toContain("label: hasMeasuredStatistics ? 'Active Users' : 'Visible Active'");
-    expect(mobile).toContain("label=\"User Summary\"");
-    expect(mobile).toContain("subtitle: hasMeasuredStatistics ? 'Last 30 days' : 'Source pending'");
-    // Tap now opens the canonical detail bottom sheet (MobileDetailSheet) instead of an
-    // inline-expand dropdown; the delete gate stays fail-closed inside that sheet.
+    // Canon LIST anatomy: grouped panel + tap->sheet; blur-free Users surfaces (frosted={false}).
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<MobileListRow');
+    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).toContain('frosted={false}');
+    expect(mobile).not.toContain('backdrop-blur');
+    // Tap opens the canonical detail bottom sheet; the delete gate stays fail-closed.
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('setActiveUser');
     expect(mobile).not.toContain('expandedContent');
