@@ -13,12 +13,12 @@ import { useHealthNewsQuery } from '../../hooks/useHealthNewsQuery';
 // grid-card/rail look-alikes it used to inline. WorkspaceStage -> SignalPanel/KpiStrip
 // -> one ActivitySheet + ListRowShell (one Time header) -> DetailRailShell rail.
 //
-// AUTHORITY (no parallel truth): this page is READ-ONLY. The published feed is a
-// projection the console reads, never writes. "New article" is FAIL-CLOSED but VISIBLE
-// to management roles (canManageContent gates only the button's visibility);
-// handleCreateUnavailable toasts + opens nothing, and handleSave THROWS. The service
-// write fns (create/update/delete/toggle/bulk) exist but stay UN-IMPORTED -- their
-// existence is why the mobile FAB is gated-visible, not FAB_EXEMPT.
+// AUTHORITY (no parallel truth): this page's feed is READ-ONLY -- a projection the console reads,
+// never writes. "New article" is a VISIBLE authoring AFFORDANCE (canManageContent gates its
+// visibility to management roles): New article, the mobile FAB (openHealthNewsModal), and
+// ?create=true all OPEN the compose modal, but handleSave stays FAIL-CLOSED (throws) -- the console
+// INSERT is RLS-denied (public-read-only feed) until the backend admits an admin/org_admin write
+// policy. The create/update/delete/toggle/bulk service fns stay UN-IMPORTED -- no write is reachable.
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
 import { SignalPanel } from '../console/SignalPanel';
 import { KpiStrip } from '../console/KpiStrip';
@@ -43,7 +43,6 @@ import {
   Plus,
   Tag,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { MobileHealthNews } from '../mobile/MobileHealthNews';
 
 const CATEGORIES = [
@@ -233,12 +232,11 @@ export const HealthNewsManagementPage = () => {
   const pagination = usePagination(20);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
-  // Authoring stays FAIL-CLOSED at the write layer: handleCreateUnavailable toasts
-  // "unavailable until the published feed writer is approved" and handleSave throws.
-  // canManageContent controls ONLY whether the GATED "New article" affordance is VISIBLE
-  // -- surfaced to management roles so the primary action is discoverable + honestly
-  // gated (same fail-closed governance bucket as Subscriptions' "Add subscriber"). No
-  // write authority is granted.
+  // Authoring is VISIBLE but stays FAIL-CLOSED at the write layer: handleCreate OPENS the compose
+  // modal, but handleSave throws "unavailable until the published feed writer is approved" -- no
+  // write is reachable (RLS-denied). canManageContent controls ONLY whether the "New article"
+  // affordance is VISIBLE, surfaced to management roles so the primary action is discoverable +
+  // honestly gated (same governance bucket as Subscriptions' "Add subscriber"). No write authority.
   const canManageContent = isAdmin() || isOrgAdmin();
 
   const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : 'viewer');
@@ -377,11 +375,15 @@ export const HealthNewsManagementPage = () => {
     handleApplyFilters((current) => ({ ...current, search }));
   }, [handleApplyFilters]);
 
-  // Authoring is fail-closed but VISIBLE. Both the ?create=true deep-link and the mobile
-  // dock FAB (openHealthNewsModal) route to this SAME honest toast -- no modal, no write.
-  const handleCreateUnavailable = useCallback(() => {
-    markActionFeedback('create-unavailable');
-    toast.info('Content authoring is unavailable until the published feed writer is approved.');
+  // Authoring is fail-closed AT THE WRITE LAYER, but the create AFFORDANCE is VISIBLE: New article,
+  // the mobile dock FAB (openHealthNewsModal), and the ?create=true deep-link all OPEN the compose
+  // modal so the operator sees the form. handleSave stays fail-closed -- the console's authenticated
+  // INSERT is RLS-denied (health_news is a public-read-only feed) + the schema lacks the modal's
+  // extra fields, so no write is ever reachable until the backend admits an admin/org_admin policy.
+  const handleCreate = useCallback(() => {
+    markActionFeedback('create');
+    setSelectedNews(null);
+    setModalMode('create');
   }, [markActionFeedback]);
 
   const handleView = useCallback((news) => {
@@ -391,11 +393,12 @@ export const HealthNewsManagementPage = () => {
     setModalMode('view');
   }, [markActionFeedback, setFocused, isFocused]);
 
-  // handleSave THROWS: there is no reachable write. The modal's submit affordance is an
-  // honest spinner over an action that always fails closed (kept for parity; never wired
-  // to the create/update service writers).
+  // handleSave stays FAIL-CLOSED: the create modal OPENS, but submit always fails closed -- there is
+  // no reachable write (never wired to the create/update service writers). The console INSERT is
+  // RLS-denied and the schema lacks the modal's extra fields, so authoring is blocked until the
+  // backend adds a write policy. The modal's error handler surfaces this message on submit.
   const handleSave = useCallback(async () => {
-    throw new Error('Health news authoring is unavailable.');
+    throw new Error('Content authoring is unavailable until the published feed writer is approved.');
   }, []);
 
   const handleModalClose = useCallback(() => {
@@ -467,18 +470,18 @@ export const HealthNewsManagementPage = () => {
     };
   }, [publishHealthNewsRouteContext]);
 
-  // Deep link (?create=true) + the mobile dock FAB (openHealthNewsModal) both route to the
-  // SAME fail-closed toast -- create is never reachable from either entry point.
+  // Deep link (?create=true) + the mobile dock FAB (openHealthNewsModal) both OPEN the compose
+  // modal (handleCreate) -- the reintegrated authoring entry points; the write stays fail-closed.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const deepLinkKey = `${location.pathname}${location.search}`;
     if (params.get('create') === 'true' && deepLinkHandledRef.current !== deepLinkKey) {
       deepLinkHandledRef.current = deepLinkKey;
-      handleCreateUnavailable();
+      handleCreate();
       navigate('/health-news', { replace: true });
     }
 
-    const handleOpenModal = () => handleCreateUnavailable();
+    const handleOpenModal = () => handleCreate();
 
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openHealthNewsModal', handleOpenModal);
@@ -489,7 +492,7 @@ export const HealthNewsManagementPage = () => {
       window.removeEventListener('openHealthNewsModal', handleOpenModal);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [handleCreateUnavailable, handleOpenAnalytics, handleOpenFilters, location.pathname, location.search, navigate]);
+  }, [handleCreate, handleOpenAnalytics, handleOpenFilters, location.pathname, location.search, navigate]);
 
   const filterSchema = useMemo(() => [
     {
@@ -537,16 +540,16 @@ export const HealthNewsManagementPage = () => {
     canManageContent ? (
       <Button
         type="button"
-        onClick={handleCreateUnavailable}
-        aria-busy={activeActionFeedback === 'create-unavailable'}
-        data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'idle'}
+        onClick={handleCreate}
+        aria-busy={activeActionFeedback === 'create'}
+        data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
       >
         <Plus className="mr-2 h-4 w-4" />
         New article
       </Button>
     ) : null
-  ), [activeActionFeedback, canManageContent, handleCreateUnavailable]);
+  ), [activeActionFeedback, canManageContent, handleCreate]);
 
   const filterButtonComponent = useMemo(() => (
     <Button
