@@ -52,13 +52,6 @@ export const ContextPanel = () => {
 
   const emergencyStats = getEmergencyStats();
 
-  // Default filters for panels that require them
-  const filters = {
-    status: 'all',
-    role: 'all',
-    search: ''
-  };
-
   // Role-based access control for context panels
   const canAccessPanel = (panelPath) => {
     // Define role access rules for each panel
@@ -448,34 +441,10 @@ export const ContextPanel = () => {
       <EmergencyPanel requestContext={emergencyRouteContext} />
     );
   } else if (currentPath.includes('/users')) {
-    return renderPanelWithHeader(<UsersPanel
-      users={usersRouteContext?.users || []}
-      statistics={usersRouteContext?.statistics}
-      filters={filters}
-      recentUsers={usersRouteContext?.recentUsers || []}
-      fetchRecentActivity={false}
-      onViewUser={(user) => {
-        // Navigate to user detail or open modal
-        console.log('View user:', user);
-      }}
-      onCreateUser={() => {
-        // Trigger create user modal
-        window.dispatchEvent(new CustomEvent('openUserModal'));
-      }}
-      onInviteUser={() => {
-        // Trigger invite user modal
-        window.dispatchEvent(new CustomEvent('openInviteUserModal'));
-      }}
-      onViewAnalytics={() => {
-        // Open analytics modal
-        window.dispatchEvent(new CustomEvent('openUserAnalytics', {
-          detail: {
-            users: usersRouteContext?.users || [],
-            statistics: usersRouteContext?.statistics
-          }
-        }));
-      }}
-    />);
+    // Whole-object pass-through (Doctors/Staff canon): the panel reads the page's PUBLISHED
+    // shape (context.stats/.recent/...) verbatim. Cherry-picking renamed sub-props here is what
+    // desynced Users -- the page publishes stats/recent, not statistics/recentUsers.
+    return renderPanelWithHeader(<UsersPanel usersContext={usersRouteContext} />);
   } else if (currentPath.includes('/hospitals')) {
     return renderPanelWithHeader(<HospitalsPanel hospitalContext={hospitalsRouteContext} />);
   } else if (currentPath.includes('/ambulances')) {

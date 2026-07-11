@@ -225,6 +225,47 @@ describe('Console design system contract', () => {
     }
   });
 
+  it('routes each canon panel its WHOLE page context -- no renamed cherry-picks (estate law)', () => {
+    // WHY THIS EXISTS: the Users context pane desynced (2026-07-10, user-caught) because
+    // ContextPanel cherry-picked the published route context into RENAMED props --
+    // statistics={usersRouteContext?.statistics}, recentUsers={usersRouteContext?.recentUsers} --
+    // that the page never publishes (after the React Query migration the page publishes
+    // stats/recent). Those props arrived undefined and UsersPanel silently fell back to counting
+    // the 25-row PAGE WINDOW instead of the true server totals, and the Trust-score block never
+    // rendered. Every OTHER canon panel receives the WHOLE published object under a single
+    // <name>Context prop (staffContext={doctorsRouteContext}, requestContext={emergencyRouteContext},
+    // ...), so the page's published keys reach the panel verbatim -- a single-source contract with
+    // no seam where fresh server stats can degrade to a stale window count. This locks that
+    // pass-through: a canon panel cannot be re-wired to read a renamed sub-key the page never emits.
+    const cp = read('src/components/navigation/ContextPanel.jsx');
+    const CANON_PANELS = [
+      { prop: 'requestContext', state: 'emergencyRouteContext' },
+      { prop: 'visitContext', state: 'visitsRouteContext' },
+      { prop: 'hospitalContext', state: 'hospitalsRouteContext' },
+      { prop: 'ambulanceContext', state: 'ambulancesRouteContext' },
+      { prop: 'staffContext', state: 'doctorsRouteContext' },
+      { prop: 'usersContext', state: 'usersRouteContext' },
+    ];
+    for (const p of CANON_PANELS) {
+      // whole-object pass-through present...
+      expect({ prop: p.prop, passThrough: cp.includes(`${p.prop}={${p.state}}`) })
+        .toEqual({ prop: p.prop, passThrough: true });
+      // ...and NO cherry-pick of a renamed sub-key off that route-context state.
+      expect({ prop: p.prop, cherryPick: new RegExp(`${p.state}\\?\\.`).test(cp) })
+        .toEqual({ prop: p.prop, cherryPick: false });
+    }
+    // Consume side: Users mirrors the Doctors template -- one context prop read by the SAME keys
+    // the page publishes (context.stats / context.recent), never the old renamed statistics/recentUsers.
+    const usersPanel = read('src/components/context/UsersPanel.jsx');
+    expect(usersPanel).toContain('usersContext');
+    expect(usersPanel).toContain('context.stats');
+    expect(usersPanel).toContain('context.recent');
+    // The old broken interface: a `.statistics` member read or a `recentUsers` prop identifier.
+    // (Property-access for `statistics` so plain prose can't trip it; identifier for recentUsers.)
+    expect({ panel: 'UsersPanel', staleKeys: /\.statistics\b|\brecentUsers\b/.test(usersPanel) })
+      .toEqual({ panel: 'UsersPanel', staleKeys: false });
+  });
+
   it('keeps every donor MECHANISM on the list-workspace surfaces (estate law: presence-or-recorded-exclusion)', () => {
     // WHY THIS EXISTS (the hole every other gate left open): per-page contract
     // pins protect decisions a page ALREADY made -- they cannot DEMAND a donor
