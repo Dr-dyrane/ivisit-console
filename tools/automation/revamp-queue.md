@@ -61,6 +61,18 @@ read-only visual revamp when the route projection is proved and unsupported comm
 
 ## Live claims / run log
 
+### 2026-07-11 - Login desktop/mobile rendered proof and authenticated blocker
+- Reused the in-app browser at `127.0.0.1:3000/login` in a signed-out session.
+- Desktop `1280x720` rendered the public sign-in form with no horizontal overflow or framework
+  overlay. The primary submit exposed `data-state="ready"` and `aria-busy="false"`.
+- Mobile `390x844` rendered the same form with no horizontal or vertical overflow; the email input
+  was focused and the 56px submit control remained fully inside the viewport. The viewport override
+  was reset after proof.
+- Browser diagnostics reported `Invalid Refresh Token: Refresh Token Not Found`, confirming stale
+  local auth state and no usable authenticated session. Pages 12-18 cannot receive honest rendered
+  role proof until the user signs in with an authorized account. No credentials were inferred,
+  submitted, or read from environment files.
+
 ### 2026-07-11 - Insurance read-only parity composition
 - Added the authority/preservation constitution and retained patient-owned policy commands as fail-closed.
 - Replaced the legacy desktop density modes with the shared list workspace, one `created_at` sort,
