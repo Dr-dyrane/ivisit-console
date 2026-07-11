@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
+import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { X, Shield, User, Phone, Mail, Calendar, CheckCircle, FileText, AlertTriangle, Ban, Clock } from 'lucide-react';
+import { Shield, User, Phone, Mail, Calendar, CheckCircle, FileText, AlertTriangle, Ban, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { getAvatarFallback } from '../../lib/avatarUtils';
@@ -103,65 +103,28 @@ export const VerificationModal = ({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-3xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-modal bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-amber-400/15 rounded-icon">
-                  <Shield className="h-6 w-6 text-amber-700 dark:text-amber-200" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {mode === 'view' ? 'Provider Details' : 'Verification Review'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    {provider.display_id && (
-                      <span className="inline-flex items-center rounded-pill bg-muted/30 text-foreground/70 font-mono text-[10px] px-2 py-0.5">
-                        {provider.display_id}
-                      </span>
-                    )}
-                    <span className={`inline-flex items-center rounded-pill font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
-                      {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {formData.username || 'Unknown Provider'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                aria-label="Close provider details"
-                className="h-10 w-10 rounded-pill bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="p-2 md:p-8 pt-1 md:pt-2 overflow-y-auto max-h-[calc(100dvh-9rem)] md:max-h-[calc(90vh-120px)] space-y-4 md:space-y-6 no-scrollbar">
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={mode === 'view' ? 'Provider Details' : 'Verification Review'}
+      subtitle={formData.username || 'Unknown Provider'}
+      icon={<Shield className="h-6 w-6 text-amber-700 dark:text-amber-200" />}
+      badge={
+        <div className="flex items-center gap-2">
+          {provider?.display_id && (
+            <span className="inline-flex items-center rounded-pill bg-muted/30 text-foreground/70 font-mono text-[10px] px-2 py-0.5">
+              {provider.display_id}
+            </span>
+          )}
+          <span className={`inline-flex items-center rounded-pill font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
+            {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
+          </span>
+        </div>
+      }
+      size="lg"
+      managed
+    >
+            <div className="p-2 md:p-8 pt-2 overflow-y-auto flex-1 min-h-0 space-y-4 md:space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Profile Overview */}
@@ -335,10 +298,7 @@ export const VerificationModal = ({
                 </div>
               </form>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </ModalShell>
   );
 };
 
