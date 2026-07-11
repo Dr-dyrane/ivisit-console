@@ -43,6 +43,9 @@ export const MobileInsurance = ({
   const [activePolicy, setActivePolicy] = useState(null);
   const observerTarget = useRef(null);
 
+  // NOTE: no dock-FAB filter listener — /insurance is read-only, so it owns no dock FAB
+  // (FAB_EXEMPT_ROUTES). The SearchRow below owns the in-page filter trigger via onOpenFilters.
+
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
   useEffect(() => {

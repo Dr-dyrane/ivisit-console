@@ -146,16 +146,9 @@ export const MobileUsers = ({
     const canManage = Boolean(isAdmin || isOrgAdmin);
     const refetching = isFetching || false;
 
-    // Dock FAB ("Filter users", DynamicBottomBar) opens the filter sheet — the mobile
-    // surface owns the trigger, so the dock stays decoupled from the desktop page file. A
-    // ref holds the latest onOpenFilters (fresh identity each render); subscribe once.
-    const onOpenFiltersRef = useRef(onOpenFilters);
-    onOpenFiltersRef.current = onOpenFilters;
-    useEffect(() => {
-        const openFilters = () => onOpenFiltersRef.current?.();
-        window.addEventListener('openUsersFilter', openFilters);
-        return () => window.removeEventListener('openUsersFilter', openFilters);
-    }, []);
+    // NOTE: the dock FAB is "Add user" (the page's primary action), NOT a filter — the
+    // SearchRow below already renders the in-page filter trigger via onOpenFilters, so a
+    // filter FAB would duplicate it. No 'openUsersFilter' listener is needed here.
     const sourceUsers = useMemo(() => (Array.isArray(users) ? users : []), [users]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });

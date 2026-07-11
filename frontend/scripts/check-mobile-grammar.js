@@ -253,24 +253,104 @@ function main() {
     }
   }
 
-  // Dock / FAB completeness (added 2026-07-10 — the user's point: "isn't the bottom bar +
-  // FAB part of the harness?"). A route in DynamicBottomBar's `routeOwnsAction` list
-  // SUPPRESSES the generic context FAB; if it then provides NO `getRouteOwnedMobileAction`
-  // branch, the dock collapses to a lone centered pill (the Ambulances bug). Every
-  // ADMITTED list route must carry a route-owned FAB action (real work or an honest gate).
+  // Dock / FAB completeness (added 2026-07-10; DERIVED not hand-listed 2026-07-10b — the
+  // /users lone-pill escaped the old hand-list). A route SUPPRESSES the generic context FAB
+  // two ways: (a) it is in DynamicBottomBar's `routeOwnsAction` chain, OR (b) its page calls
+  // `usePageShell({ hideFab: true })`. If a suppressing route then provides NO
+  // `getRouteOwnedMobileAction` branch AND is not exempted, the dock collapses to a lone
+  // centered pill (the Ambulances/Users bug). We derive the FULL suppressing set from BOTH
+  // sources so a NEW hideFab page (or a NEW routeOwnsAction entry) can't slip through the way
+  // the hand-list `ADMITTED_FAB_ROUTES` let /users through. Every suppressing route must own a
+  // branch (real work or an honest gate) OR be in FAB_EXEMPT_ROUTES with a reason.
+  //
+  // FAB_EXEMPT_ROUTES — routes that legitimately own NO dock FAB action. Each carries a reason;
+  // removing a route here (or its branch) reds the build. Kept honest: only non-list surfaces
+  // and fail-closed pages whose whole filter grammar is already inline get an exemption.
+  const FAB_EXEMPT_ROUTES = {
+    '/map': 'map surface — full-bleed interactive canvas with its own control grammar (layers/refiner); no list to filter, no create (MobileMap is grammar-exempt), so no dock FAB',
+    '/settings': 'settings form, not a data list — no create/filter/review dock action (MobileSettings is grammar-exempt)',
+    '/organizations': 'Page 15 gate-blocked (not admitted); MobileOrganizations is grammar-exempt (no canon composition yet) — no dock action until the surface is admitted',
+    '/wallet': 'signal-first DASHBOARD (tiles NAVIGATE, they never filter a list); financial commands are fail-closed so no create — no dock FAB (MobileWallet is dashboard-tier)',
+    '/pricing': "pricing commands are fail-closed; MobilePricing's whole filter grammar is inline tabs + KPI chips (no filter sheet to open), so there is no single dock-level filter/review action — the inline controls own it",
+    '/health-news': 'read-only on desktop right now — HealthNewsManagementPage renders NO create button (canManageContent is fail-closed), so there is no primary CTA to mirror; a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a content receiver is proved and the desktop surfaces its gated create.',
+    '/insurance': 'read-only on desktop right now — InsuranceManagementPage shows only a "Read-only" marker, no create (INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07: no create/edit/delete/verify receiver); a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a policy receiver is proved.',
+  };
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
+  const appPath = path.join(__dirname, '..', 'src', 'App.js');
+  const pagesDir = path.join(__dirname, '..', 'src', 'components', 'pages');
   if (fs.existsSync(dockPath)) {
     const dock = fs.readFileSync(dockPath, 'utf8');
+
+    // The DERIVED suppressing set (both sources feed one Set).
+    const suppress = new Set();
+
+    // (a) Parse the `routeOwnsAction` assignment: every `startsWith('/x')` + the `=== '/'` case.
+    const ownsMatch = dock.match(/routeOwnsAction\s*=([\s\S]*?);/);
+    const ownsBlock = ownsMatch ? ownsMatch[1] : '';
+    let sm;
+    const startsRe = /startsWith\('([^']+)'\)/g;
+    while ((sm = startsRe.exec(ownsBlock)) !== null) suppress.add(sm[1]);
+    if (/pathname\s*===\s*'\/'/.test(ownsBlock)) suppress.add('/');
+
+    // (b) Pages calling `usePageShell({ ... hideFab: true ... })` → their route via App.js.
+    //     Build component→route from `<Route path="/x" element={ ... <PageComponent ... }>`,
+    //     then map each hideFab page file (basename === exported component) to its route.
+    const compToRoute = {};
+    if (fs.existsSync(appPath)) {
+      const app = fs.readFileSync(appPath, 'utf8');
+      const routeRe = /<Route\s+path="([^"]+)"\s+element=\{([^}]+)\}/g;
+      let rm;
+      while ((rm = routeRe.exec(app)) !== null) {
+        const routePath = rm[1];
+        let cm;
+        const compRe = /<([A-Z]\w+)/g;
+        while ((cm = compRe.exec(rm[2])) !== null) {
+          if (cm[1] === 'ProtectedRoute') continue; // guard wrapper, not the page
+          compToRoute[cm[1]] = routePath;
+        }
+      }
+    }
+    const hideFabRe = /usePageShell\(\{[^}]*hideFab:\s*true[^}]*\}\)/;
+    const unmappedHideFab = [];
+    if (fs.existsSync(pagesDir)) {
+      for (const file of fs.readdirSync(pagesDir)) {
+        if (!/\.jsx$/.test(file) || /\.test\./.test(file)) continue;
+        const src = fs.readFileSync(path.join(pagesDir, file), 'utf8');
+        if (!hideFabRe.test(src)) continue;
+        const comp = file.replace(/\.jsx$/, '');
+        const route = compToRoute[comp];
+        if (route) suppress.add(route);
+        // A hideFab page with no direct <Route> (e.g. TodayHome renders under BentoHome at
+        // '/') is expected — '/' is already captured via routeOwnsAction. Only report an
+        // unmapped hideFab page whose route ISN'T otherwise in the suppress set.
+        else unmappedHideFab.push(comp);
+      }
+    }
+
+    // Which suppressing routes carry a getRouteOwnedMobileAction branch? `/` is special-cased
+    // (its branch is `pathname === '/'`, not a `startsWith`).
     const fnStart = dock.indexOf('getRouteOwnedMobileAction = (');
     const fnBody = fnStart >= 0 ? dock.slice(fnStart) : '';
-    // /verification (Approvals) added 2026-07-10: it was in routeOwnsAction with NO branch
-    // and this list omitted it, so the collapsed-lone-pill shipped unflagged. Approvals is
-    // a first-class admin/org_admin `list`-tier surface and must own a dock action.
-    const ADMITTED_FAB_ROUTES = ['/emergencies', '/visits', '/hospitals', '/ambulances', '/doctors', '/support-tickets', '/verification'];
-    const dockFatal = ADMITTED_FAB_ROUTES.filter((r) => !fnBody.includes(`startsWith('${r}')`));
+    const hasBranch = (r) => (r === '/'
+      ? /pathname\s*===\s*'\/'/.test(fnBody)
+      : fnBody.includes(`startsWith('${r}')`));
+
+    const dockFatal = [...suppress]
+      .filter((r) => !hasBranch(r) && !(r in FAB_EXEMPT_ROUTES))
+      .sort();
     if (dockFatal.length) {
       console.log('\nDynamicBottomBar.jsx  [dock/FAB]');
-      dockFatal.forEach((r) => { console.log(`  ✗ FATAL  ${r} is in routeOwnsAction but has NO getRouteOwnedMobileAction branch -> the dock collapses to a lone pill (left-pill + FAB grammar broken)`); fatalCount++; });
+      dockFatal.forEach((r) => {
+        console.log(`  ✗ FATAL  ${r} suppresses the generic context FAB (routeOwnsAction and/or usePageShell hideFab:true) but has NO getRouteOwnedMobileAction branch and is not in FAB_EXEMPT_ROUTES -> the dock collapses to a lone centered pill. Add a startsWith('${r}') branch (filter / review / to:-navigate, gated by canReachRoute) or exempt it in FAB_EXEMPT_ROUTES with a reason.`);
+        fatalCount++;
+      });
+    }
+    // A hideFab page we couldn't map to a route AND whose route we never derived is a blind
+    // spot in the mapping heuristic — surface it (non-fatal) so the derivation stays honest.
+    const trulyUnmapped = unmappedHideFab.filter((c) => c !== 'TodayHome');
+    if (trulyUnmapped.length) {
+      console.log('\nDynamicBottomBar.jsx  [dock/FAB]  (mapping note)');
+      trulyUnmapped.forEach((c) => { console.log(`  ⚠ warn   ${c}.jsx uses usePageShell({ hideFab:true }) but no <Route> maps to it — verify its route is covered by the suppress derivation`); warnCount++; });
     }
   }
 

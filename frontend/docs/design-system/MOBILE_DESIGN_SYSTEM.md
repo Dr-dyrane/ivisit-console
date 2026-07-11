@@ -12,7 +12,7 @@
 > **Authority:** where the older `APPLE_GLASS_DESIGN_SYSTEM.md` / `DYRANE_UI_DESIGN_SYSTEM.md`
 > disagree with this doc, **this doc wins** for mobile. They are kept for history.
 
-Status: **DRAFT v1.3 — 2026-07-10.** Layers 4 (components) largely ✅ from the rollout;
+Status: **DRAFT v1.4 — 2026-07-10.** Layers 4 (components) largely ✅ from the rollout;
 Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation work.
 **v1.1 (2026-07-09):** the Requests-proven canon is folded in — surface token system (§2), loading &
 refetch model (§5), KPI-scope + empty/error rules (§5), search field + Updating pill (§3),
@@ -24,6 +24,10 @@ context-aware top bar (§6). Second reference page: `src/components/mobile/Mobil
 non-scale value renders TRANSPARENT and slips every source-string gate), the harness checks
 STRUCTURE not COMPUTED render, and the active KPI/filter chip tints with its OWN hue, not global
 brand. Folded into the Decisions log + §3 (chip) + §9 (enforcement).
+**v1.4 (2026-07-10):** two top-of-chain page-close rules folded in — every FAB-suppressing
+list/dashboard route OWNS a dock FAB or carries an honest exemption (Decisions log + §6 + §9 + §10),
+and persona-pass renders a provider's SUB-PERSONA from `provider_type` (responder/clinician), never
+a generic "Provider" (Decisions log + §5 + §10).
 
 ---
 
@@ -116,6 +120,45 @@ brand. Folded into the Decisions log + §3 (chip) + §9 (enforcement).
   tone. **DON'T:** paint every active chip crimson. Supersedes the earlier "`.on` = brand" reading
   of the chip element (§3); the one-loud-`bg-primary` law (§0/§2) stays reserved for the route
   FAB, not the filter row.
+- **2026-07-10 · Every list/dashboard page OWNS a dock FAB (or an honest exemption), and that FAB
+  MIRRORS the desktop's primary CTA** — the mobile dock is a LEFT nav-pill + a route FAB
+  (`DynamicBottomBar`). A route in `routeOwnsAction` OR setting `usePageShell({hideFab:true})`
+  SUPPRESSES the generic context FAB — so if `getRouteOwnedMobileAction` returns nothing the dock
+  collapses to a **LONE CENTERED PILL**, the recurring failure (Ambulances, Approvals, Users all hit
+  it). The FAB action **MIRRORS THE DESKTOP PAGE'S PRIMARY HEADER CTA** — same command, same authority
+  — and is **RBAC-gated** via `canReachRoute` (the SAME truth the route guard uses,
+  `getProtectedRoutesForRole`, never a hand-kept role list that drifts). The four shapes:
+    - **REAL create** where the command is proved — New request / New visit / Add unit (live table).
+    - **GATED create** where the desktop shows a gated create button — Users "Add user", Subscriptions
+      "Add subscriber". Dispatch the PAGE'S OWN create-modal event (`openUserModal` /
+      `openSubscriptionModal`) so the tap surfaces the honest "not ready" feedback, exactly like that
+      desktop button. A fail-closed command is NOT a reason to drop the primary action — it's a reason
+      to show it honestly gated.
+    - **REVIEW / NAVIGATE** where that IS the primary action — Approvals "Review pending"; Hospitals
+      "Facility approvals" (adjacent work, chosen because facility create is permanently dropped).
+    - **HONEST EXEMPTION** (lone pill, `FAB_EXEMPT_ROUTES` + reason) where the desktop is READ-ONLY /
+      shows no primary CTA — Insurance (a "Read-only" marker, no create receiver), Health News (create
+      hidden behind fail-closed `canManageContent`), plus action-less routes (/settings, /map,
+      /wallet, /pricing).
+  **DON'T fake a create** where the DESKTOP hides it (that invents an affordance the desktop doesn't
+  show → prefer the exemption). **DON'T leave a suppressing route branch-less** (dead lone pill). And —
+  the mistake this rule was hardened around — **DON'T make the FAB a "Filter X"**: the canon `SearchRow`
+  already renders the in-page filter trigger (`onOpenFilters`), so a filter FAB just DUPLICATES an
+  affordance already on the page. (Users shipped "Filter users"; it propagated to Health News /
+  Insurance / Subscriptions before it was caught and corrected to Add-user / gated-create / exemption.)
+  A **FIRST-CLASS page-close requirement, checked on EVERY page** (§6, §9, §10), enforced by the
+  FAB-completeness guard in `scripts/check-mobile-grammar.js`: the suppressing-route set is **DERIVED**
+  from `routeOwnsAction` + the `usePageShell({hideFab:true})` pages, and each such route must have a
+  `getRouteOwnedMobileAction` branch OR a `FAB_EXEMPT_ROUTES` entry, else FATAL.
+- **2026-07-10 · Persona-pass: a provider's avatar/label is its SUB-PERSONA, not a generic
+  "Provider"** — a driver/paramedic is a **RESPONDER** (ambulance icon, cyan orb), a doctor a
+  **CLINICIAN** (stethoscope, amber orb). Derive the sub-persona from `profiles.provider_type`
+  (`AMBULANCE_TYPES = {driver, paramedic, ambulance, ambulance_service}` → responder, else
+  clinician), **never schema-first**. **DO:** split wherever the record CARRIES `provider_type`
+  (Users, provider Approvals) — the row/sheet label reads "Driver", never the generic "Provider".
+  **DON'T:** fabricate the split where the data lacks it (the `doctors` table is 100% doctors — no
+  responder/clinician split there). Canonical implementation: the `MobileUsers.jsx` persona helpers
+  (`isResponder` / `personaIcon` / `personaOrbClass` / `personaLabel`).
 
 ## 0. Principles (the feel)
 
@@ -247,6 +290,12 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
   list. Every KPI selection **including `all`** is enumerated on every dependent surface
   (count, empty copy, hero); fallbacks are neutral, never a specific entity. ✅ (Requests) —
   apply per page
+- **Persona-pass identity:** a provider record renders its **SUB-PERSONA** derived from
+  `provider_type` — RESPONDER (driver/paramedic → ambulance icon, cyan) vs CLINICIAN (doctor →
+  stethoscope, amber), never a single generic "Provider" (Decisions log 2026-07-10). Split ONLY
+  where the data carries `provider_type` (Users, provider Approvals); never fabricate it where it
+  is absent (the `doctors` table is all doctors). Reference: `MobileUsers.jsx` persona helpers. ✅
+  (Users) — apply wherever provider records surface
 
 ### Page-type grammar — LIST vs DASHBOARD (canon, locked 2026-07-09)
 
@@ -317,6 +366,14 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 ## 6. Navigation
 
 - **Mobile:** frosted **island** (nav pill) + route **FAB** (`DynamicBottomBar`) — the app's split. ✅
+- **Every FAB-suppressing route OWNS a dock action** (locked 2026-07-10; Decisions log). A route in
+  `routeOwnsAction` or `usePageShell({hideFab:true})` suppresses the generic context FAB, so
+  `getRouteOwnedMobileAction` MUST return an action for it — otherwise the dock collapses to a lone
+  centered pill (Ambulances/Approvals/Users bug). The action MIRRORS the desktop's primary CTA and is
+  RBAC-gated (`canReachRoute`): a real or gated create where the desktop shows one, review/navigate
+  where that IS the primary action, or an explicit `FAB_EXEMPT_ROUTES` exemption (with reason) for
+  read-only / action-less routes — NEVER a "Filter X" that duplicates the SearchRow's in-page filter.
+  First-class page-close requirement — enforced by the FAB-completeness guard (§9), checked on every page.
 - **Dock slots rank by OPERATIONAL importance per role** (locked 2026-07-09;
   `src/config/mobileNavigation.js`). Settings never holds a slot by right — the avatar sheet
   owns overflow (`MOBILE_NAV_CHROME.overflowOwner: 'avatar'`; no bottom menu button). Admin
@@ -369,6 +426,7 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 
 - `check-ui-surface-hardgate.js --strict-radius` (radius ladder + no legacy geometry/borders) — **target: green on every mobile page**.
 - `check-mobile-grammar.js` — anatomy + pinned source strings + motion-token pin + **bare-opacity guard**: a bare `bg-/text-/border-/ring-*/N` whose `N` is not in `theme.opacity` fails (it would compile TRANSPARENT — Decisions log 2026-07-10). Use a scale value, a `theme.extend.opacity` step, or bracket `/[0.NN]`.
+- `check-mobile-grammar.js` — **FAB-completeness guard** (Decisions log 2026-07-10): the suppressing-route set is DERIVED from `DynamicBottomBar`'s `routeOwnsAction` + the `usePageShell({hideFab:true})` pages (no hand-list), and every such route MUST have a `getRouteOwnedMobileAction` branch OR a `FAB_EXEMPT_ROUTES` entry with a reason — else the dock collapses to a lone centered pill and it is FATAL.
 - `check-mojibake.js` on touched files.
 - Contract tests per page lock the composition (rows, sheet, borderless).
 - **The harness proves STRUCTURE, not COMPUTED RENDERING** (Decisions log 2026-07-10). Every gate above reads source strings; none can see that a class failed to compile. For a "revamped to perfection" sign-off, additionally verify COMPUTED surfaces live — `getComputedStyle` of the orb / panel / status disc — a green harness is necessary, not sufficient.
@@ -378,6 +436,8 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 ## 10. Parity checklist (Apple HIG / ivisit-app) — per new surface
 
 - [ ] ≥44pt tap targets · safe-area insets honored
+- [ ] dock FAB owned by the route (§6/§9) — the FAB MIRRORS the desktop's primary CTA (real/gated create, or review/navigate; RBAC-gated by `canReachRoute`), or an honest `FAB_EXEMPT_ROUTES` exemption for a read-only/action-less route — NEVER a "Filter X" (the SearchRow already owns the in-page filter) and never a lone centered pill
+- [ ] provider records render their SUB-PERSONA from `provider_type` (responder/clinician, §5) — never a generic "Provider"; split only where the data carries it
 - [ ] ONE page grammar, matching page identity (LIST vs DASHBOARD, §5) — chips filter, tiles navigate, never mixed
 - [ ] no all-caps subtext/subheadings — section labels sentence-case or omitted; `.eyebrow` only in established detail furniture (§3)
 - [ ] GROUND/RAISED/GLASS surfaces (§2) · no borders / outlines / accent bars · hairline `/0.08` intra-group only

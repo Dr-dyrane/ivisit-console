@@ -59,6 +59,9 @@ export const MobileHealthNews = ({
   const [activeArticle, setActiveArticle] = useState(null);
   const observerTarget = useRef(null);
 
+  // NOTE: no dock-FAB filter listener — /health-news is read-only, so it owns no dock FAB
+  // (FAB_EXEMPT_ROUTES). The SearchRow below owns the in-page filter trigger via onOpenFilters.
+
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
   useEffect(() => {

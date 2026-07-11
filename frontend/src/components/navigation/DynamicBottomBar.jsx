@@ -25,7 +25,6 @@ import {
     Building2,
     Newspaper,
     LifeBuoy,
-    Filter,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -283,16 +282,44 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Users (/users): a directory with FAIL-CLOSED commands (invite/delete unproved), so the
-    // FAB can't create. The data-driven action is FILTER — narrow an 800+ user directory by
-    // role / verification / date. Gate = canReachRoute (org_admin+, the route's minRole).
-    // Dispatches to MobileUsers (which owns the filter-sheet trigger), decoupled from the page.
-    if (pathname.startsWith('/users') && canReachRoute(userRole, '/users')) {
+    // Users (/users): the FAB is the PRIMARY action — ADD USER — mirroring the desktop page's
+    // primary CTA (UsersPage's gated "Add user" button) and the sibling create FABs ("Add
+    // staff", "New visit"). It must NOT be a "Filter" FAB: the canon SearchRow already renders
+    // an in-page filter trigger (its onOpenFilters), so a filter FAB duplicates an affordance
+    // that's already on the page. Invite is FAIL-CLOSED (identity authority unproved), so
+    // dispatching 'openUserModal' hits the page's own listener (UsersPage.jsx) and surfaces the
+    // honest "invites not ready" feedback — exactly like the desktop button. Gate = management
+    // roles (org_admin/admin, who add users), matching the desktop create gate.
+    if (pathname.startsWith('/users') && ['org_admin', 'admin'].includes(userRole)) {
         return {
-            icon: Filter,
-            label: 'Filter users',
+            icon: Plus,
+            label: 'Add user',
             color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openUsersFilter'))
+            action: () => window.dispatchEvent(new CustomEvent('openUserModal'))
+        };
+    }
+
+    // Health News (/health-news) & Insurance (/insurance) are READ-ONLY on desktop right now, so
+    // their desktop shows NO primary create to mirror: HealthNews renders no header button
+    // (canManageContent is fail-closed), and Insurance shows only a "Read-only" marker (no
+    // create/edit/delete receiver — INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07). A filter
+    // FAB here would only DUPLICATE the SearchRow's own in-page filter trigger, so the honest
+    // mirror of a read-only desktop is a bare dock (lone centered pill). Both are declared in
+    // FAB_EXEMPT_ROUTES (check-mobile-grammar.js) so the FAB-completeness guard accepts the
+    // intentional lone pill instead of flagging it. When a write receiver is proved and the
+    // desktop surfaces its gated create, add a create branch here (the Users/Subscriptions shape).
+
+    // Subscriptions (/subscriptions): the FAB mirrors the desktop's primary CTA — the gated
+    // "Add subscriber" button (SubscriptionManagementPage, isAdmin, data-state="unavailable").
+    // Create is FAIL-CLOSED, so dispatching 'openSubscriptionModal' (the page's OWN listener)
+    // surfaces the honest "not ready" feedback exactly like that button — NOT a redundant filter
+    // (the SearchRow already carries the in-page filter trigger). Gate = canReachRoute (admin).
+    if (pathname.startsWith('/subscriptions') && canReachRoute(userRole, '/subscriptions')) {
+        return {
+            icon: Plus,
+            label: 'Add subscriber',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openSubscriptionModal'))
         };
     }
 

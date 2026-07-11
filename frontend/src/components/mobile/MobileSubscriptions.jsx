@@ -42,6 +42,10 @@ export const MobileSubscriptions = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  // NOTE: the dock FAB is "Add subscriber" (the page's primary CTA), dispatched as
+  // 'openSubscriptionModal' to SubscriptionManagementPage's own listener — NOT a filter (the
+  // SearchRow below owns the in-page filter trigger via onOpenFilters).
+
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
   useEffect(() => {
