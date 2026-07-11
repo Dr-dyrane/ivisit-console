@@ -64,7 +64,10 @@ export const SupportTicketsPanel = ({ supportContext }) => {
   const active = toCount(stats.active ?? stats.inProgress ?? stats.in_progress, 0);
   const resolved = toCount(stats.resolved, 0);
   const loading = Boolean(context.loading);
-  const canCreate = context.canCreate !== false;
+  // Fail-CLOSED default (consistent with EmergencyPanel/WalletPanel): before the page's
+  // route-context event fires, context = {} and the create control stays DISABLED until the
+  // page proves authority (SupportTicketsPage publishes canCreate). Never fail-open.
+  const canCreate = context.canCreate === true;
   const canViewStats = context.canManage === true;
   const [panelNotice, setPanelNotice] = React.useState('Support actions ready.');
 

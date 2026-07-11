@@ -26,7 +26,10 @@ export const DoctorsPanel = ({ staffContext }) => {
   const context = staffContext || {};
   const stats = context.stats || { totalDoctors: 0, onCall: 0, available: 0, busy: 0 };
   const visibleStaff = Array.isArray(context.recent) ? context.recent : [];
-  const canManage = context.canManage !== false;
+  // Fail-CLOSED default (consistent with EmergencyPanel/WalletPanel): before the page's
+  // route-context event fires, context = {} and the create control stays DISABLED until the
+  // page proves authority (DoctorsPage publishes canManage: canManageStaff). Never fail-open.
+  const canManage = context.canManage === true;
 
   const handleCreateStaff = () => {
     if (!canManage) {

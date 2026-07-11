@@ -65,6 +65,12 @@ const RESPONDER_PROVIDER_TYPES = ['driver', 'paramedic', 'ambulance', 'ambulance
 // the current page so the dock always shows where you are. Longest prefix wins;
 // routes not listed here (login, unknown) never morph.
 const MORPH_ROUTE_SLOTS = [
+  // /emergencies and /map are core reachable routes (org_admin can reach both) but are NOT
+  // resting slots on every slate — without a morph entry the dock shows no active pill and no
+  // morph there, so an org_admin can't tell where they are (wayfinding gap, 2026-07-10).
+  // Labels match the resting-slate copy; icons resolve via DynamicBottomBar navIcons.
+  { prefix: '/emergencies', id: 'emergencies', path: '/emergencies', label: 'Requests' },
+  { prefix: '/map', id: 'map', path: '/map', label: 'Map' },
   { prefix: '/verification', id: 'approvals', path: '/verification', label: 'Approvals' },
   { prefix: '/doctors', id: 'staff', path: '/doctors', label: 'Staff' },
   { prefix: '/visits', id: 'visits', path: '/visits', label: 'Visits' },

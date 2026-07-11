@@ -48,7 +48,10 @@ export const VisitsPanel = ({ visitContext }) => {
   const active = toCount(stats.inProgress ?? stats.in_progress ?? stats.pending, 0);
   const completed = toCount(stats.completed, 0);
   const loading = Boolean(context.loading);
-  const canCreate = context.canCreate !== false;
+  // Fail-CLOSED default (consistent with EmergencyPanel/WalletPanel): before the page's
+  // route-context event fires, context = {} and the create control stays DISABLED until the
+  // page proves authority (VisitsPage publishes canCreate: canCreateVisits). Never fail-open.
+  const canCreate = context.canCreate === true;
   const [panelNotice, setPanelNotice] = React.useState('Visit actions ready.');
 
   const handleCreateVisit = () => {
