@@ -280,6 +280,12 @@ export async function getProfiles(filter = {}) {
 const USER_SORT_FIELDS = new Set(['created_at', 'updated_at', 'username', 'email', 'role']);
 
 function applyUserListFilters(query, filter = {}) {
+  // KPI role conflicts with the sheet role filter -> the list is GENUINELY empty (donor:
+  // doctorsService zero-row sentinel). Stats stay KPI-agnostic (getUserPageStats' statsFilter
+  // omits forceEmpty), so the role chips remain stable while the conflicting list empties.
+  if (filter.forceEmpty) {
+    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
   if (filter.role) {
     const roles = Array.isArray(filter.role) ? filter.role : [filter.role];
     if (roles.length > 0) query = query.in('role', roles);
@@ -292,7 +298,7 @@ function applyUserListFilters(query, filter = {}) {
     query = query.eq('bvn_verified', filter.verified);
   }
   if (filter.search) {
-    const s = String(filter.search).replace(/[%,]/g, ' ').trim();
+    const s = String(filter.search).replace(/[%_,]/g, ' ').trim();
     if (s) query = query.or(`username.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%,full_name.ilike.%${s}%`);
   }
   const range = filter.created_at || {};

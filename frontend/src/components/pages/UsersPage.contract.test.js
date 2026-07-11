@@ -123,6 +123,10 @@ describe('Users Page 14 admitted-to-canon contract', () => {
     expect(page).toContain('const handleDeleteUnavailable = useCallback(() => {');
     expect(page).toContain('setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);');
+    // Lock that CREATE and INVITE (not just delete) route to the fail-closed handler -- a
+    // regression wiring a real create/invite would otherwise green (2026-07-10 review).
+    expect(page).toContain('const handleInvite = useCallback(() => handleIdentityActionUnavailable()');
+    expect(page).toContain('const handleCreate = useCallback(() => handleIdentityActionUnavailable()');
     expect(page).toContain('const handleViewAnalytics = useCallback(() => setAnalyticsModalOpen(true)');
     expect(page).toContain('const confirmDelete = useCallback(() => handleDeleteUnavailable()');
     expect(page).toContain('const handleBulkDelete = useCallback(() => handleDeleteUnavailable()');
