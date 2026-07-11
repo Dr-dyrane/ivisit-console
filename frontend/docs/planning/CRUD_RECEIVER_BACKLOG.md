@@ -97,3 +97,37 @@ The mobile dock FAB already surfaces these as **gated-create** affordances (User
 Subscriptions "Add subscriber", Health News "New article") that open to the honest "not ready"
 feedback — so when a receiver lands, only the page handler + gate doc + contract flip; the FAB is
 already correct (see `MOBILE_DESIGN_SYSTEM.md` FAB canon + `fab-mirrors-desktop-cta`).
+
+---
+
+## Receiver groups + build order — 2026-07-10 multi-agent audit
+
+A 5-reader audit of the 10 **concluded** pages classified every write action: **~37 already
+persist, 33 are fail-closed**, clustering into **15 receiver groups**. Grouping the backlog by the
+*shared backend receiver* makes the build one-receiver-unblocks-many, not one-page-at-a-time.
+
+### DO NOT BUILD — correct-by-design read-only mirrors (3 groups)
+Gated, but must **stay** gated — the truth is owned elsewhere and the console is a faithful
+read-only mirror. Do **not** build a receiver or "enable" these:
+- **dispatch-live-truth** — Ambulances trip-status / current-call / live-location / trip commands, Hospitals bed reservations + ER wait time. Owned by **Requests / Map / driver app**, fed by live activity (`AMB-6`, `F3`; fields read-only, "…stays in Requests").
+- **care-flow-clinical-ownership** — Requests *edit*, Visits *practitioner assignment*. Owned by the **ivisit-app care flow**; the console update RPCs exist but the fields are read-only by design.
+- **facility-edit-scope** — Hospitals out-of-org `org_admin` edit. The receiver *works*; the toast is an intentional client-side mirror of `update_hospital_by_admin`'s server-side org-scope refusal (`F5`).
+
+### BUILD — real receiver debt (12 groups), heaviest first
+| Receiver group | Pages · actions | What must land (app → DB/RLS → console) |
+|---|---|---|
+| **identity-authority** (6) | Users: add / invite / create / delete · Approvals: edit provider identity | invite-user Edge Fn proven + `profiles` INSERT/DELETE RLS (today owner-only; only `bvn_verified` admin-writable) → fix `modalMode` never set to invite/create + `onInvited`↔`onInviteSuccess` prop mismatch; add a delete path (no `deleteProfile` fn exists) |
+| **content-authoring** (5) | Health News: create / edit / delete / publish / import | `health_news` write RLS + body columns (`description`/`content`/`icon`/`url`) + an ivisit-app feed consumer → un-import the dormant create/update/delete/toggle/bulk writers, drop the `handleSave` throw (`task_7904085e`) |
+| **facility-write-authority** (3) | Hospitals: create / delete / import | `hospitals` INSERT policy + create RPC + proven DELETE authority (`delete_hospital_by_admin`, `createHospital`/`deleteHospital` exist, dormant) → re-mount create modal, un-disable bulk delete, wire import |
+| **visit-terminal-outcome** (2) | Visits: complete/cancel · delete | app visit-outcome authority + DB status write (completed/cancelled/no-show) + hard-delete proof (`completeVisit`/`deleteVisit` dormant) → re-enable disabled SelectItems + add terminal values to the whitelist |
+| **ambulance-fleet-write-tooling** (2) | Ambulances: bulk delete · import | *No app/DB gap* — create/edit already persist (RLS ALL). Delete needs an authorization decision (`deleteAmbulance` dormant); import is just unbuilt batch UI over the working insert |
+| **finance-cash-settlement** (1) | Requests: process cash settlement | Pass-2 Finance receiver (app settlement ledger + DB RPC/RLS) → flip hardcoded `canProcessCash`, replace the `toast.info` stub |
+| **support-status-transition** (1) | Support: resolve / close | a support status receiver → import the dormant `updateTicketStatus`, add a status control, restore `status` to the edit allowlist |
+| **approvals-export-authority** (1) | Approvals: export | an approval-report export endpoint + authority (panel export currently an inline notice) |
+| **provider-reject-state** (1) | Approvals: reject provider | a provider verification tri-state (`rejected` column) — today only a `bvn_verified` boolean (facilities already have the tri-state) |
+| **driver-assignment-proof** (1) | Ambulances: assign driver | a drivers/provider receiver + DB station link (`assignDriverToAmbulance` dormant) |
+| **storage-media-policy** (1) | Ambulances: unit image upload | a Supabase Storage bucket + RLS upload policy |
+| **staff-scheduling** (1) | Staff: schedule staff | a scheduling receiver (DB shifts + app) → wire the existing `StaffScheduler`/`StaffSchedulingModal` onto `/doctors` |
+
+### Cheapest to admit — dormant service fn already exists (just needs the backend receiver + a few lines of wiring)
+`updateTicketStatus` (Support resolve/close) · `createHealthNews`/`updateHealthNews`/… (Health News) · `deleteAmbulance` (Ambulances) · `createHospital`/`deleteHospital` (Hospitals) · `completeVisit`/`deleteVisit` (Visits) · the invite-user Edge Function (Users). For these the console side is trivial — the gate is purely the backend receiver + authority.
