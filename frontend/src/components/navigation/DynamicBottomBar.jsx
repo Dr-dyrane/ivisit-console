@@ -25,6 +25,7 @@ import {
     Building2,
     Newspaper,
     LifeBuoy,
+    Filter,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -279,6 +280,19 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
             label: 'Review pending',
             color: 'staff',
             action: () => window.dispatchEvent(new CustomEvent('approvalsReviewPending'))
+        };
+    }
+
+    // Users (/users): a directory with FAIL-CLOSED commands (invite/delete unproved), so the
+    // FAB can't create. The data-driven action is FILTER — narrow an 800+ user directory by
+    // role / verification / date. Gate = canReachRoute (org_admin+, the route's minRole).
+    // Dispatches to MobileUsers (which owns the filter-sheet trigger), decoupled from the page.
+    if (pathname.startsWith('/users') && canReachRoute(userRole, '/users')) {
+        return {
+            icon: Filter,
+            label: 'Filter users',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openUsersFilter'))
         };
     }
 

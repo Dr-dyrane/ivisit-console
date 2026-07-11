@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useRef, useState } from 'react';
 import {
     Users,
     Stethoscope,
+    Ambulance,
     Shield,
     ShieldCheck,
     UserRound,
@@ -48,19 +49,36 @@ const roleLabel = (role) => {
     return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-const roleIcon = (role) => (
-    role === 'provider' ? Stethoscope
-        : (role === 'admin' || role === 'org_admin') ? Shield
-            : role === 'patient' ? UserRound
-                : User
+// A provider's SUB-PERSONA is its data (provider_type): a driver/paramedic reads as a
+// RESPONDER (ambulance), a doctor as a CLINICIAN (stethoscope). Never a single "provider"
+// avatar for both — persona-pass rule: derive the sub-persona from provider_type, never
+// schema-first. (Users reads profiles.provider_type, which the Doctors `doctors` table lacks.)
+const AMBULANCE_TYPES = new Set(['driver', 'paramedic', 'ambulance', 'ambulance_service']);
+const isResponder = (providerType) => AMBULANCE_TYPES.has(String(providerType || '').toLowerCase());
+
+// The row/sheet facet: the provider SUB-TYPE where present (Driver / Doctor / Paramedic),
+// else the role. So a driver reads "Driver", never the generic "Provider".
+const personaLabel = (role, providerType) => (
+    role === 'provider' && providerType ? roleLabel(providerType) : roleLabel(role)
 );
 
-// Role-tinted orb (literal hues — the semantic tokens collapse to brand red).
-const orbClassForRole = (role) => (
-    role === 'provider' ? 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
-        : (role === 'admin' || role === 'org_admin') ? 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
-            : 'bg-muted/40 text-muted-foreground'
-);
+const personaIcon = (role, providerType) => {
+    if (role === 'provider') return isResponder(providerType) ? Ambulance : Stethoscope;
+    return (role === 'admin' || role === 'org_admin') ? Shield : role === 'patient' ? UserRound : User;
+};
+
+// Persona-tinted orb (literal hues — the semantic tokens collapse to brand red). Responder
+// (cyan) vs clinician (amber) are visibly distinct; org roles sky, patient muted.
+const personaOrbClass = (role, providerType) => {
+    if (role === 'provider') {
+        return isResponder(providerType)
+            ? 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300'
+            : 'bg-amber-500/12 text-amber-700 dark:text-amber-300';
+    }
+    return (role === 'admin' || role === 'org_admin')
+        ? 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
+        : 'bg-muted/40 text-muted-foreground';
+};
 
 // Atlas stage (donor recipe: MobileDoctorsAtlasLayer; ambient brand tint is sanctioned
 // expression, Lesson 18).
@@ -127,6 +145,17 @@ export const MobileUsers = ({
     const [activeUser, setActiveUser] = useState(null);
     const canManage = Boolean(isAdmin || isOrgAdmin);
     const refetching = isFetching || false;
+
+    // Dock FAB ("Filter users", DynamicBottomBar) opens the filter sheet — the mobile
+    // surface owns the trigger, so the dock stays decoupled from the desktop page file. A
+    // ref holds the latest onOpenFilters (fresh identity each render); subscribe once.
+    const onOpenFiltersRef = useRef(onOpenFilters);
+    onOpenFiltersRef.current = onOpenFilters;
+    useEffect(() => {
+        const openFilters = () => onOpenFiltersRef.current?.();
+        window.addEventListener('openUsersFilter', openFilters);
+        return () => window.removeEventListener('openUsersFilter', openFilters);
+    }, []);
     const sourceUsers = useMemo(() => (Array.isArray(users) ? users : []), [users]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -215,17 +244,18 @@ export const MobileUsers = ({
 
     const renderUserRow = (user) => {
         const role = user.role || 'patient';
+        const providerType = user.providerType || user.provider_type;
         const verified = Boolean(user.bvn_verified);
         return (
             <MobileListRow
                 item={user}
                 dataAttr="data-mobile-user-row"
                 onOpen={setActiveUser}
-                ariaLabel={`${user.full_name || user.username || 'Unknown user'}, ${roleLabel(role)}`}
-                orbClass={orbClassForRole(role)}
-                icon={roleIcon(role)}
+                ariaLabel={`${user.full_name || user.username || 'Unknown user'}, ${personaLabel(role, providerType)}`}
+                orbClass={personaOrbClass(role, providerType)}
+                icon={personaIcon(role, providerType)}
                 title={user.full_name || user.username || 'Unknown User'}
-                meta={`${roleLabel(role)} · ${user.organization_name || 'Independent'}`}
+                meta={`${personaLabel(role, providerType)} · ${user.organization_name || 'Independent'}`}
                 time={formatRelativeTime(user.created_at)}
                 markerChip={verified ? 'KYC' : null}
                 pill={statusPill(verified ? 'verified' : 'pending')}
@@ -370,17 +400,19 @@ export const MobileUsers = ({
                 {activeUser && (() => {
                     const user = activeUser;
                     const role = user.role || 'patient';
+                    const providerType = user.providerType || user.provider_type;
                     const verified = Boolean(user.bvn_verified);
-                    const joined = user.created_at ? formatRelativeTime(user.created_at) : null;
                     const idValue = user.display_id || `#${String(user.id || '').slice(0, 12).toUpperCase()}`;
 
                     return (
                         <MobileDetailSheet
                             isOpen={!!activeUser}
                             onClose={() => setActiveUser(null)}
-                            icon={roleIcon(role)}
-                            iconTone={role === 'provider' ? 'hsl(38 92% 50%)' : (role === 'admin' || role === 'org_admin') ? 'hsl(199 89% 48%)' : 'hsl(var(--muted-foreground))'}
-                            eyebrow={roleLabel(role)}
+                            icon={personaIcon(role, providerType)}
+                            iconTone={role === 'provider'
+                                ? (isResponder(providerType) ? 'hsl(189 94% 43%)' : 'hsl(38 92% 50%)')
+                                : (role === 'admin' || role === 'org_admin') ? 'hsl(199 89% 48%)' : 'hsl(var(--muted-foreground))'}
+                            eyebrow={personaLabel(role, providerType)}
                             title={user.full_name || user.username || 'Unknown User'}
                             statusPill={statusPill(verified ? 'verified' : 'pending')}
                             islands={[
@@ -388,6 +420,7 @@ export const MobileUsers = ({
                                 user.phone && { icon: Phone, label: 'Phone', value: user.phone },
                                 { icon: Building, label: 'Organization', value: user.organization_name || 'Independent' },
                                 { icon: Shield, label: 'Role', value: roleLabel(role) },
+                                role === 'provider' && providerType && { icon: personaIcon(role, providerType), label: 'Type', value: roleLabel(providerType) },
                                 { icon: verified ? ShieldCheck : Shield, label: 'KYC', value: verified ? 'Verified' : 'Pending' },
                                 { icon: Hash, label: 'ID', value: idValue },
                             ]}
