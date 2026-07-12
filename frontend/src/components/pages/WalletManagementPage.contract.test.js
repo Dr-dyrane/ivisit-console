@@ -442,8 +442,10 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain('<MobileHeading');
     expect(mobile).toContain('<MobileKPIStrip');
     expect(mobile).toContain('interactive={false}');
-    expect(mobile).toContain("label: 'Loaded in'");
-    expect(mobile).toContain("label: 'Loaded out'");
+    expect(mobile).toContain("label: 'Credit'");
+    expect(mobile).toContain("label: 'Debit'");
+    expect(mobile).not.toContain("label: 'Loaded in'");
+    expect(mobile).not.toContain("label: 'Loaded out'");
     expect(mobile).toContain("label: 'Needs review'");
     expect(mobile).toContain("label: 'Transactions'");
     expect(mobile).toContain("label: 'Patient payments'");

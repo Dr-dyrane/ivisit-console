@@ -279,8 +279,8 @@ export const MobileWallet = ({
     const needsReview = payments.filter((payment) => String(payment.status || '').toLowerCase() !== 'completed').length;
 
     return [
-      { id: 'money-in', label: 'Loaded in', value: formatCurrency(moneyIn, wallet?.currency), color: readyColor },
-      { id: 'money-out', label: 'Loaded out', value: formatCurrency(moneyOut, wallet?.currency), color: neutralColor },
+      { id: 'credit', label: 'Credit', value: formatCurrency(moneyIn, wallet?.currency), color: readyColor },
+      { id: 'debit', label: 'Debit', value: formatCurrency(moneyOut, wallet?.currency), color: neutralColor },
       { id: 'needs-review', label: 'Needs review', value: needsReview, color: waitingColor },
     ];
   }, [formatCurrency, ledger, payments, wallet?.currency]);
