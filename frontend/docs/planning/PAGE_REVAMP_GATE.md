@@ -92,6 +92,11 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   destructive red for ordinary request totals, case-type ordering, dominant-case evidence, or the
   mobile higher-demand band; red remains available for source failure, declined/cancelled outcomes,
   and genuinely critical telemetry.
+- Source-closable checkpoint on 2026-07-12 is complete through `b41c007f`. The full current suite is
+  53 suites / 408 tests, and database-types encoding, mojibake, data contract, 115-file UI hardgate,
+  34-file mobile grammar, and production build pass. This is not rendered admission: Payments and
+  Insurance still require the fresh manual Requests comparison, the remaining mobile/desktop matrix
+  requires authenticated device proof, and blocked commands require backend/app-consequence evidence.
 - Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
   Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
   and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates

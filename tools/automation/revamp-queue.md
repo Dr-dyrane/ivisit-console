@@ -94,9 +94,11 @@ Page 22 Onboarding Success (`efac625`).
      Pricing also requires selected-facility patient quote comparison against `ivisit-app`.
 
 5. **Final repository checkpoint**
-   - executor: `headless` - status: `in_progress`
-   - Reconcile current-state summaries, run broad contracts/estate/grammar/hardgate/encoding/build,
-     review the dirty diff without reverting user work, and create coherent resumable commits.
+   - executor: `headless` - status: `done` (2026-07-12 source checkpoint)
+   - Current source-closable parity work is reconciled through `b41c007f`: broad contracts,
+     list/donor estate laws, mobile grammar, UI hardgate, database/encoding checks, and production build
+     pass. Reopen this item only for a rendered defect or newly proved backend receiver; static green
+     does not complete the manual mobile, desktop, public/auth, or backend gates above.
 
 ## Parked backend commands (visual/read-only parity remains source-closable)
 Pages 12-18 still require named receivers, RLS/RPC/Edge authority, and reconciled
