@@ -55,9 +55,13 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 52 suites / 389 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 52 suites / 390 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
+- Background-token recurrence closed on 2026-07-12: the Tailwind opacity scale now defines every
+  numeric background modifier used by active source, including previously silent `3`, `6`, `38`,
+  `44`, `46`, `48`, `58`, `62`, `76`, and `86` steps. The design-system contract scans all source
+  files and fails when a future `bg-*/N` modifier is not in Tailwind defaults or the configured scale.
 - Rendered proof remains open and is being performed manually because the visible in-app browser tab is
   not attaching to the automation bridge. Do not claim visual completion until the manual matrix records
   populated, empty, failed/stale, navigation, FAB, filter/tab, detail-sheet, and safe-area behavior.
@@ -67,6 +71,11 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   were removed pending authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
   uses donor-shaped multi-group loading, and renders a genuine failed-load recovery instead of a false
   empty result. These are source fixes, not rendered admission; both pages require human retest.
+- Finance command mount closure on 2026-07-12: `GlobalFinancialModals` remains source inventory for
+  its named Edge receivers but is no longer imported or mounted by `AppLayout`, and the generic context
+  action hook no longer dispatches `openTopUpModal`. Add funds, withdrawal, and card setup therefore
+  cannot be opened from dormant global chrome while receiver authority and reflected app consequence
+  remain unproved.
 - Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
   Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
   and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates
@@ -77,9 +86,10 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   receiver-backed recenter/send/close controls with role gates and safe-area positioning. Settings
   retains grounded account identity/contact, device theme, support routing, pending sign-out, and
   unavailable billing. Focused contracts and static gates pass; rendered admission is still open.
-- Desktop counterpart source recheck closed the recurring focused-card radius drift in Insurance,
-  Pricing, Subscriptions, Map, and Settings right panes by replacing modal radius with canonical card
-  radius and adding a cross-panel contract. Pricing row/keyboard activation now selects read-only
+- Desktop counterpart source recheck closed the recurring focused-card radius drift in Analytics,
+  Insurance, Pricing, Subscriptions, Map, and Settings right panes by replacing modal radius with
+  canonical card radius and adding a cross-panel contract covering every mounted right-pane panel,
+  including the Today/Requests donors, Organizations, and Payments. Pricing row/keyboard activation now selects read-only
   evidence directly; redundant unavailable detail buttons were removed from its rail/context focus
   card. Payments retains its proved `?tab=&id=` deep links; other new URL contracts remain unproved.
 - Canonical deep-link debt closed on 2026-07-12: Visits accepts Quick Search `?id=` as an alias for
@@ -287,13 +297,13 @@ Current state:
 - Ambulances is Page 9 and is now admitted for guarded continuation after rendered context-panel proof, tablet proof, mobile polish proof, interaction proof, hardgate, build, encoding, and local cleanup. It is not a new global pattern source.
 - Support is Page 10 and is now admitted for guarded continuation after source conversion, route-owned data proof, desktop/mobile modal proof, right-panel route-context cleanup, hardgate, build, encoding, and local cleanup. It is not a new global pattern source.
 - Health News is Page 11 and is now admitted for guarded read-only continuation after source conversion, schema/RLS authoring block proof, responsive Browser proof, shell command cleanup, hardgate, build, encoding, and local cleanup. It is not a new global pattern source, and it does not admit content authoring.
-- Insurance Page 12 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending. The route now composes the shared desktop list workspace with selection, one `created_at` sort, filter state, refetch/error/empty feedback, keyboard navigation, and a focused detail rail. Mobile is on the full LIST grammar, and the route-owned context panel consumes whole policy and billing context. Policy create/edit/delete/verify, billing mutation, Storage upload, and export remain fail-closed until their separate backend authority and app-consequence blockers are proved.
+- Insurance Page 12 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending. The route now composes the shared desktop list workspace without selection while mutation authority is absent, with one `created_at` sort, filter state, refetch/error/empty feedback, keyboard navigation, and a focused detail rail. Mobile is on the full LIST grammar, and the route-owned context panel consumes whole policy and billing context. Policy create/edit/delete/verify, billing mutation, Storage upload, and export remain fail-closed until their separate backend authority and app-consequence blockers are proved.
 - Analytics Page 13 guarded source parity was completed on 2026-07-11 as a role-scoped dashboard composition. The route publishes measured statistics, loading/stale/partial-source state, and role scope to the whole-context right panel; mobile is admitted as dashboard grammar; page/mobile/panel are in the default hardgate. Report/export remains unavailable until a receiver and export scope are proved, and authenticated admin/org-admin/provider/sponsor rendered proof remains pending.
 - Users is Page 14 intake audit only. It is not admitted and no visual revamp, invite/role/delete enablement, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until identity projection, invite receiver, role mutation, destructive command, and mobile metric blockers are closed.
 - Organizations Page 15 source parity was completed on 2026-07-11 with a canonical desktop workspace, full mobile LIST grammar, route-owned whole-context panel, structural feedback states, and fail-closed organization commands. Authenticated rendered proof and backend create/edit/delete authority remain pending.
 - Settings Page 16 guarded source parity was completed on 2026-07-11 as an own-account dashboard. Desktop/mobile share the full-name/avatar identity chain, the route publishes whole account context to the right panel, staged entrance motion is removed, mobile passes dashboard grammar, and active surfaces/modals are hardgated. Billing remains unavailable; Auth/profile/avatar/provider receivers retain their separate authority contracts; authenticated viewer/provider/admin rendered proof remains pending.
 - Subscriptions Page 17 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending. `getSubscriptionsPage()` now owns admin-scoped server search/filter/sort/range, exact count and KPI buckets, and denied/failed envelopes through `useSubscriptionsQuery()`. Desktop composes the shared list workspace with selection, one Joined time sort, feedback states, keyboard navigation, and a focused rail; mobile is on the full LIST grammar; the context panel consumes the whole route projection. Subscriber writes, status/type changes, welcome/custom/bulk email, export, and delivery claims remain fail-closed until receiver, consent, audit, and app-consequence authority is proved.
-- Pricing Page 18 source parity was completed on 2026-07-11 as a read-only pricing registry. Desktop uses the canonical workspace with selection and unavailable bulk feedback, one full-projection updated-time sort, family/scope/search controls, and a focused rail; mobile is full LIST grammar; the panel consumes whole route context. Mutations remain blocked pending explicit facility authority and selected-hospital patient quote consequence; authenticated rendered proof remains pending.
+- Pricing Page 18 source parity was completed on 2026-07-11 as a read-only pricing registry. Desktop uses the canonical workspace without selection or bulk controls while mutation authority is absent, with one full-projection updated-time sort, family/scope/search controls, and a focused rail; mobile is full LIST grammar; the panel consumes whole route context. Mutations remain blocked pending explicit facility authority and selected-hospital patient quote consequence; authenticated rendered proof remains pending.
 - Login is Page 19 and its public-auth visual surface is admitted for guarded continuation only (`LoginPage.jsx`). It is not a Requests multi-data pattern source. No auth-flow rewrite, auth copy rewrite, OAuth/reset/MFA promotion, or Requests pattern reuse is authorized until Auth receiver ownership, Edge `check-user` deployment truth, redirect/deep-link behavior, session/onboarding redirects, MFA factor/challenge state, and rendered public-flow proof blockers are closed.
 - Login rendered proof follow-up on 2026-07-11 reused the signed-out in-app browser. Desktop `1280x720` and mobile `390x844` rendered without horizontal overflow or framework overlay; mobile also had no vertical overflow, and the primary submit reported `ready` with `aria-busy=false`. The temporary mobile viewport was reset. Browser diagnostics exposed a stale `Invalid Refresh Token: Refresh Token Not Found` error, so no authenticated role session was available for Pages 12-18 proof; no credentials were inferred or submitted.
 - Set Password is Page 20 and its public-recovery visual surface is admitted for guarded continuation only (`SetPasswordPage.jsx`). It is not a Requests multi-data pattern source. No recovery-flow rewrite, recovery copy rewrite, Auth update promotion, or Requests pattern reuse is authorized until recovery-session truth, password update receiver ownership, invalid/expired-link handling, redirect behavior, and rendered public-flow proof blockers are closed.

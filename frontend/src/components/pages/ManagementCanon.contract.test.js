@@ -54,13 +54,26 @@ describe('Management pages canon chrome-clean contract', () => {
     });
   }
 
-  it('keeps focused right-pane cards on the card radius rather than modal radius', () => {
+  it('keeps every mounted right-pane panel on card radius rather than modal radius', () => {
     const panels = [
+      'src/components/context/AmbulancesPanel.jsx',
+      'src/components/context/AnalyticsPanel.jsx',
+      'src/components/context/DashboardPanel.jsx',
+      'src/components/context/DoctorsPanel.jsx',
+      'src/components/context/EmergencyPanel.jsx',
+      'src/components/context/HealthNewsPanel.jsx',
+      'src/components/context/HospitalsPanel.jsx',
       'src/components/context/InsurancePanel.jsx',
+      'src/components/context/OrganizationsPanel.jsx',
       'src/components/context/PricingContextPanel.jsx',
       'src/components/context/SubscriptionsPanel.jsx',
       'src/components/context/MapPanel.jsx',
       'src/components/context/SettingsPanel.jsx',
+      'src/components/context/SupportTicketsPanel.jsx',
+      'src/components/context/UsersPanel.jsx',
+      'src/components/context/VerificationPanel.jsx',
+      'src/components/context/VisitsPanel.jsx',
+      'src/components/context/WalletPanel.jsx',
     ];
 
     for (const file of panels) {

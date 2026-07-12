@@ -5,6 +5,7 @@ import { getProtectedRoutesForRole, getRouteProtection } from '../../config/rout
 
 describe('WalletManagementPage Payments contract', () => {
   const pageSource = () => fs.readFileSync('src/components/pages/WalletManagementPage.jsx', 'utf8');
+  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
   const mobileSource = () => fs.readFileSync('src/components/mobile/MobileWallet.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/walletService.js', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
@@ -13,6 +14,7 @@ describe('WalletManagementPage Payments contract', () => {
   const modalsSource = () => fs.readFileSync('src/components/modals/GlobalFinancialModals.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
+  const mobileNavMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
 
   it('keeps the Payments route at org-admin scope while preserving the /wallet route', () => {
     expect(getRouteProtection('/wallet')).toEqual({
@@ -77,7 +79,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('Backfill error');
   });
 
-  it('guards Payments money actions before calling Edge receivers', () => {
+  it('keeps dormant Payments command inventory guarded before Edge receivers', () => {
     const modals = modalsSource();
 
     expect(modals).toContain('const activeWallet = eventWallet || contextWallet;');
@@ -109,13 +111,21 @@ describe('WalletManagementPage Payments contract', () => {
     expect(modals).not.toContain('const stripePromise =');
   });
 
-  it('passes route-owned wallet data into global Payments modals', () => {
+  it('keeps unproved global Payments modals out of the mounted shell', () => {
+    const app = appSource();
     const page = pageSource();
     const modals = modalsSource();
+    const contextAction = contextActionSource();
+    const mobileNavMenu = mobileNavMenuSource();
 
+    expect(app).not.toContain('import { GlobalFinancialModals }');
+    expect(app).not.toContain('<GlobalFinancialModals />');
     expect(page).not.toContain("new CustomEvent('openTopUpModal'");
     expect(page).not.toContain("new CustomEvent('openWithdrawModal'");
     expect(page).not.toContain("new CustomEvent('openBillingModal'");
+    expect(contextAction).not.toContain("new CustomEvent('openTopUpModal'");
+    expect(mobileNavMenu).not.toContain("'openTopUpModal'");
+    expect(mobileNavMenu).not.toContain("'openWithdrawModal'");
     expect(page).toContain("window.addEventListener('paymentsDataChanged', handlePaymentsDataChanged)");
     expect(page).toContain("window.removeEventListener('paymentsDataChanged', handlePaymentsDataChanged)");
     expect(modals).toContain('setEventWallet(event.detail?.wallet || null);');
@@ -152,7 +162,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(walletPanel).not.toContain('walletData');
   });
 
-  it('keeps Payments financial commands behind named service receivers', () => {
+  it('keeps dormant Payments command inventory behind named service receivers', () => {
     const service = serviceSource();
     const modals = modalsSource();
 

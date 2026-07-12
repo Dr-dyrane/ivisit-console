@@ -27,7 +27,8 @@ describe('Navigation shell contract', () => {
     expect(app).toContain('{!pageShellConfig?.hideFab && <ContextAwareFAB />}');
     expect(app).toContain('<DynamicBottomBar />');
     expect(app).toContain('<ConsoleStartupOverlay disabled={hideNav} />');
-    expect(app).toContain('<GlobalFinancialModals />');
+    expect(app).not.toContain('<GlobalFinancialModals />');
+    expect(app).not.toContain('import { GlobalFinancialModals }');
     expect(app).toContain('const isBleedPage = !hideNav && pageShellConfig?.bleed;');
     expect(app).toContain('className={isBleedPage ? "" : "md:p-6"}');
     expect(app).toContain('hidden md:block');

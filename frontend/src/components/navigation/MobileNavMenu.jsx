@@ -62,7 +62,7 @@ export const MobileNavMenu = ({ onClose }) => {
             'openSupportTicketModal', 'openInsuranceModal', 'openFilters',
             'openProfileModal', 'openSecurityModal', 'openSupportModal',
             'openSubscriptionModal', 'openEmailActionsModal', 'openPricingModal',
-            'openOrganizationModal', 'openTopUpModal', 'openWithdrawModal',
+            'openOrganizationModal',
             'openUserAnalytics', 'openVisitAnalytics',
             'openUserModal', 'openInviteUserModal', 'exportAnalytics', 'exportLedger',
         ];

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 
 // Console design system contract: the architecture rules the user kept having to
 // repeat now live in components and are LOCKED here. If a rule needs to change,
@@ -85,6 +86,34 @@ describe('Console design system contract', () => {
     expect(config).toContain("'e2-strong': '0 6px 16px rgb(0 0 0 / 0.12)'");
     expect(config).toContain("'e2-lift': '0 16px 38px rgb(0 0 0 / 0.08)'");
     expect(config).toContain("e3: '0 12px 32px rgb(0 0 0 / 0.10)'");
+  });
+
+  it('defines every numeric background-opacity modifier used by source', () => {
+    const defaultOpacitySteps = new Set(['0', '5', '10', '20', '25', '30', '40', '50', '60', '70', '75', '80', '90', '95', '100']);
+    const configuredOpacitySteps = new Set([
+      ...defaultOpacitySteps,
+      ...Object.keys(require('../../../tailwind.config.js').theme.extend.opacity || {}),
+    ]);
+    const undefinedSteps = new Set();
+
+    const scan = (directory) => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const fullPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          scan(fullPath);
+          continue;
+        }
+        if (!/\.(js|jsx|ts|tsx)$/.test(entry.name)) continue;
+
+        const source = fs.readFileSync(fullPath, 'utf8');
+        for (const match of source.matchAll(/\bbg-[^\s"'`]+\/(\d+)\b/g)) {
+          if (!configuredOpacitySteps.has(match[1])) undefinedSteps.add(match[1]);
+        }
+      }
+    };
+
+    scan('src');
+    expect([...undefinedSteps].sort((left, right) => Number(left) - Number(right))).toEqual([]);
   });
 
   it('keeps every console component on NEUTRAL shadows -- no colored/bleeding glows', () => {

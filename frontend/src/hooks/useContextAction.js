@@ -143,15 +143,6 @@ export const useContextAction = (openModal) => {
             color: 'primary',
             action: () => openModal('emailActions')
         };
-    } else if (currentPath.includes('/wallet')) {
-        return {
-            icon: ArrowUpCircle,
-            label: 'Add funds',
-            color: 'success',
-            action: () => {
-                window.dispatchEvent(new CustomEvent('openTopUpModal'));
-            }
-        };
     } else if (currentPath.includes('/pricing')) {
         return {
             icon: ArrowUpCircle,

@@ -35,6 +35,10 @@ Page 22 Onboarding Success (`efac625`).
      and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
      a two-group replace-in-place skeleton, and distinguishes failed load from true empty. Both pages
      remain pending a fresh human render check; do not mark wave one complete from static gates.
+   - Payments authority follow-up unmounted `GlobalFinancialModals` from the app shell and removed the
+     dormant generic `openTopUpModal` dispatch. Named Edge receiver code remains inactive inventory,
+     but no global add-funds, withdrawal, or card-setup listener is mounted while consequence proof is
+     absent.
    - Pricing and Subscriptions source recheck on 2026-07-12 closed the same donor drift before manual
      proof: Pricing gained the atlas ground and multi-group skeleton, removed duplicate parent error
      copy, and removed a mobile Details CTA that only reached an unavailable command. Subscriptions
@@ -54,12 +58,13 @@ Page 22 Onboarding Success (`efac625`).
 
 2. **Desktop counterpart rendered proof**
    - executor: `browser` - status: `blocked`
-   - Insurance, Pricing, Payments, Analytics, Live Map, and Settings have authority-safe desktop source
-     parity. Prove list/workspace focus, sorting, stale/error states, right-pane context, deep links, and
-     fail-closed commands with authorized roles.
-   - Source recheck on 2026-07-12 corrected the recurring context-card radius miss across Insurance,
-     Pricing, Subscriptions, Map, and Settings: focused right-pane cards now use `rounded-card`, with
-     a cross-panel contract banning `rounded-modal` in those contexts. Pricing row/keyboard activation
+   - Insurance, Pricing, Payments, Analytics, Live Map, Settings, Organizations, and Subscriptions have
+     authority-safe desktop source parity. Prove list/workspace focus, sorting, stale/error states,
+     right-pane context, deep links, and fail-closed commands with authorized roles.
+   - Source recheck on 2026-07-12 corrected the recurring context-card radius miss across Analytics,
+     Insurance, Pricing, Subscriptions, Map, and Settings: focused right-pane cards now use
+     `rounded-card`, with a cross-panel contract banning `rounded-modal` across every mounted context
+     pane, including Today/Requests, Organizations, and Payments. Pricing row/keyboard activation
      now focuses read-only evidence instead of invoking unavailable feedback; redundant command-shaped
      detail buttons were removed from the rail and focused context card. Deep-link focus remains proved
      for Payments only; do not invent URL contracts for the other pages without the desktop proof pass.
@@ -113,9 +118,13 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 52 Jest suites / 389 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 52 Jest suites / 390 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
+- Estate background-token audit found ten numeric opacity modifiers used by source but absent from
+  Tailwind (`3`, `6`, `38`, `44`, `46`, `48`, `58`, `62`, `76`, `86`). They are now configured, and
+  `ConsoleDesignSystem.contract.test.js` scans all source numeric `bg-*/N` modifiers against the
+  Tailwind default plus extended scale so authored tints cannot silently compile away again.
 - Rendered/manual proof remains open. Payments and Insurance explicitly failed their first visual check
   and await retest after remediation. Health News still intentionally has no desktop or mobile selection.
 

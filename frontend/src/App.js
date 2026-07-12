@@ -15,7 +15,6 @@ import { DynamicBottomBar } from "./components/navigation/DynamicBottomBar";
 import { ProtectedRoute, UnauthorizedPage } from "./components/common/ProtectedRoute";
 import { ConsoleStartupOverlay } from "./components/common/ConsoleStartupOverlay";
 import { Toaster } from "./components/ui/sonner";
-import { GlobalFinancialModals } from "./components/modals/GlobalFinancialModals";
 import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
@@ -278,7 +277,6 @@ const AppLayout = ({ children }) => (
 				<LayoutProvider>
 					<AppShell>
 						{children}
-						<GlobalFinancialModals />
 					</AppShell>
 				</LayoutProvider>
 			</NavigationProvider>
