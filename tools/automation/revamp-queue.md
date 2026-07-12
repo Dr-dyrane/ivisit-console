@@ -983,3 +983,24 @@ Notes:
 - Remaining seams handled at compose time: #3 {page,modal} disjunction already accommodates the
   rail-write facility path; #4 build constants/verificationStatus.js + a per-page color pin.
 - 85/85 across six gold surfaces; the caret/press/etc. unaffected.
+
+### 2026-07-12 - payments step-back audit - LANDED AT SOURCE LEVEL
+- Re-read the full Payments route after the mobile hierarchy, controls, context ownership, detail
+  modal, and Credit/Debit KPI passes. Four quiet misses remained: generic analytics language and
+  denominators, refunded payments counted as Needs review, unsorted mixed recent activity, and a
+  failed payment-method read rendered as a truthful zero.
+- Closed the semantic gaps: `AnalyticsModal` has a Payments mode with Sources and Payment lifecycle;
+  completion percentages use patient-payment count, lifecycle bars use lifecycle count, and source
+  distribution uses the explicit loaded window. Payment status and ledger type comparisons are
+  case-normalized, with completed/pending/refunded/failed/declined and credit/debit tones kept apart.
+- Closed the acquisition gap: the estimate the user removed from the mobile hierarchy was still
+  fetched from trailing ledger credits and repeated as `Projection returned` in both right panes.
+  `getWalletPageData()` no longer requests it, the route no longer stores it, and neither panel echoes
+  it. Removing a rejected metric now means removing its acquisition and every secondary rendering.
+- Context-panel records now retain their source kind, merge chronologically, and render card-read
+  failure as `Unavailable`. Money/card commands remain visible only as disabled authority inventory;
+  no unproved receiver was enabled.
+- Contract proof: Payments 24/24. Estate proof: 53 suites / 413 tests, 115-file UI hardgate,
+  34-file strict mobile grammar, data contract, database-type encoding, and production build pass.
+- Rendered admission remains manual: retest populated/empty/degraded Payments, both source tabs,
+  search/filter/stats FAB, context actions, detail sheet/receipt, dock clearance, and safe areas.

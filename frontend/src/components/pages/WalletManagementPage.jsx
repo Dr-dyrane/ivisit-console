@@ -52,7 +52,6 @@ export const WalletManagementPage = () => {
     const [loading, setLoading] = useState(true);
     const [wallet, setWallet] = useState(null);
     const [ledger, setLedger] = useState([]);
-    const [projection, setProjection] = useState(0);
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [payments, setPayments] = useState([]);
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -71,7 +70,6 @@ export const WalletManagementPage = () => {
         wallet: 'unavailable',
         ledger: 'unavailable',
         payments: 'unavailable',
-        projection: 'unavailable',
         paymentMethods: 'unavailable',
     });
     const hasLoadedRef = useRef(false);
@@ -109,7 +107,6 @@ export const WalletManagementPage = () => {
             if (!canUpdateRouteState()) return;
             setWallet(data.wallet);
             setLedger((current) => data.readState.ledger === 'failed' ? current : data.ledger);
-            setProjection((current) => data.readState.projection === 'failed' ? current : data.projection);
             setPaymentMethods((current) => data.readState.paymentMethods === 'failed' ? current : data.paymentMethods);
             setPayments((current) => data.readState.payments === 'failed' ? current : data.payments);
             setHasMore((current) => ({
@@ -206,7 +203,6 @@ export const WalletManagementPage = () => {
         wallet,
         ledger: ledger.slice(0, 4),
         payments: payments.slice(0, 4),
-        projection,
         paymentMethods,
         readState,
         hasMore,
@@ -233,7 +229,6 @@ export const WalletManagementPage = () => {
         loading,
         paymentMethods,
         payments,
-        projection,
         readState,
         hasMore,
         wallet,
@@ -326,25 +321,40 @@ export const WalletManagementPage = () => {
         }));
     }, [activeTab]);
 
-    const loadedAnalytics = useMemo(() => ({
-        total: ledger.length + payments.length,
-        active: payments.filter((payment) => payment.status === 'completed').length,
-        recent: payments.filter((payment) => {
+    const loadedAnalytics = useMemo(() => {
+        const byStatus = payments.reduce((counts, payment) => {
+            const status = String(payment.status || 'unknown').toLowerCase();
+            counts[status] = (counts[status] || 0) + 1;
+            return counts;
+        }, {});
+        const completed = byStatus.completed || 0;
+        const needsReview = payments.filter((payment) => !['completed', 'refunded'].includes(String(payment.status || '').toLowerCase())).length;
+        const recent = payments.filter((payment) => {
             if (!payment.created_at) return false;
             const createdAt = new Date(payment.created_at);
             const cutoff = new Date();
             cutoff.setDate(cutoff.getDate() - 30);
             return !Number.isNaN(createdAt.getTime()) && createdAt >= cutoff;
-        }).length,
-        byCategory: {
-            ledger: ledger.length,
-            payments: payments.length,
-            methods: readState.paymentMethods === 'ready' ? paymentMethods.length : 0,
-        },
-        visibleCount: ledger.length + payments.length,
-        distributionScope: 'loaded_preview',
-        distributionLabel: 'Loaded records only',
-    }), [ledger.length, paymentMethods.length, payments, readState.paymentMethods]);
+        }).length;
+
+        return {
+            total: ledger.length + payments.length,
+            completed,
+            active: completed,
+            needsReview,
+            recent,
+            paymentCount: payments.length,
+            lifecycleCount: payments.length,
+            byCategory: {
+                transactions: ledger.length,
+                patient_payments: payments.length,
+            },
+            byStatus,
+            visibleCount: ledger.length + payments.length,
+            distributionScope: 'loaded_preview',
+            distributionLabel: 'Loaded records only',
+        };
+    }, [ledger.length, payments]);
 
     if (isMobile) {
         return (
@@ -388,7 +398,7 @@ export const WalletManagementPage = () => {
                 <AnalyticsModal
                     open={analyticsModalOpen}
                     onClose={() => setAnalyticsModalOpen(false)}
-                    type="generic"
+                    type="payments"
                     analytics={loadedAnalytics}
                 />
 
@@ -414,7 +424,6 @@ export const WalletManagementPage = () => {
             <PaymentsDesktopWorkspace
                 loading={loading}
                 wallet={wallet}
-                projection={projection}
                 ledger={ledger}
                 payments={payments}
                 paymentMethods={paymentMethods}
@@ -443,7 +452,7 @@ export const WalletManagementPage = () => {
             <AnalyticsModal
                 open={analyticsModalOpen}
                 onClose={() => setAnalyticsModalOpen(false)}
-                type="generic"
+                type="payments"
                 analytics={loadedAnalytics}
             />
         </div>
@@ -478,7 +487,9 @@ const PaymentReceiptDialog = ({
             ? 'bg-destructive/10 text-destructive'
             : paymentStatus === 'refunded'
                 ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200'
-                : 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
+                : paymentStatus === 'pending'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200'
+                    : 'bg-muted/30 text-muted-foreground';
 
     return (
         <ModalShell
@@ -677,7 +688,6 @@ const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) =>
 const PaymentsDesktopWorkspace = ({
     loading,
     wallet,
-    projection,
     ledger,
     payments,
     paymentMethods,
@@ -788,7 +798,6 @@ const PaymentsDesktopWorkspace = ({
                     entryKind={activeTab}
                     loading={loading}
                     wallet={wallet}
-                    projection={projection}
                     paymentMethods={paymentMethods}
                     readState={readState}
                     ledgerCount={ledger.length}
@@ -1025,7 +1034,9 @@ const PaymentRow = ({
     formatPaymentDescription,
 }) => {
     const isPayment = activeTab === 'payments';
-    const isCredit = isPayment ? item.status === 'completed' : item.transaction_type === 'credit';
+    const paymentStatus = String(item.status || '').toLowerCase();
+    const transactionType = String(item.transaction_type || '').toLowerCase();
+    const isCredit = isPayment ? paymentStatus === 'completed' : transactionType === 'credit';
     const Icon = isPayment ? CreditCard : isCredit ? ArrowDownLeft : ArrowUpRight;
     const amountPrefix = !isPayment ? (isCredit ? '+' : '-') : '';
     const label = isPayment ? formatPaymentMethod(item) : titleCase(item.transaction_type || 'transaction');
@@ -1034,10 +1045,22 @@ const PaymentRow = ({
         ? item.emergency_requests?.hospitals?.name || `ID: ${item.id?.slice(0, 8) || 'payment'}`
         : `Ref: ${item.reference_id?.slice(0, 8) || 'N/A'}`;
     const tone = isPayment
-        ? item.status === 'completed' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-100' : 'bg-amber-500/12 text-amber-700 dark:text-amber-100'
+        ? paymentStatus === 'completed'
+            ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-100'
+            : ['failed', 'declined'].includes(paymentStatus)
+                ? 'bg-destructive/10 text-destructive'
+                : paymentStatus === 'refunded'
+                    ? 'bg-sky-500/12 text-sky-700 dark:text-sky-100'
+                    : 'bg-amber-500/12 text-amber-700 dark:text-amber-100'
         : isCredit ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-100' : 'bg-foreground/[0.055] text-muted-foreground';
     const statusTone = isPayment
-        ? item.status === 'completed' ? paymentToneClass.success : item.status === 'failed' ? paymentToneClass.danger : paymentToneClass.warning
+        ? paymentStatus === 'completed'
+            ? paymentToneClass.success
+            : ['failed', 'declined'].includes(paymentStatus)
+                ? paymentToneClass.danger
+                : paymentStatus === 'refunded'
+                    ? paymentToneClass.info
+                    : paymentToneClass.warning
         : isCredit ? paymentToneClass.success : paymentToneClass.muted;
 
     return (
@@ -1091,7 +1114,6 @@ const PaymentDetailRail = ({
     entryKind,
     loading,
     wallet,
-    projection,
     paymentMethods,
     readState,
     ledgerCount,
@@ -1115,12 +1137,22 @@ const PaymentDetailRail = ({
     }
 
     const isPayment = entryKind === 'payments';
-    const isCredit = isPayment ? entry?.status === 'completed' : entry?.transaction_type === 'credit';
+    const paymentStatus = String(entry?.status || '').toLowerCase();
+    const transactionType = String(entry?.transaction_type || '').toLowerCase();
+    const isCredit = isPayment ? paymentStatus === 'completed' : transactionType === 'credit';
     const statusLabel = entry
         ? isPayment ? titleCase(entry.status || 'unknown') : titleCase(entry.transaction_type || 'transaction')
         : 'Read only';
     const statusTone = entry
-        ? isPayment && entry.status === 'failed' ? paymentToneClass.danger : isCredit ? paymentToneClass.success : paymentToneClass.muted
+        ? isPayment
+            ? ['failed', 'declined'].includes(paymentStatus)
+                ? paymentToneClass.danger
+                : isCredit
+                    ? paymentToneClass.success
+                    : paymentStatus === 'refunded'
+                        ? paymentToneClass.info
+                        : paymentToneClass.warning
+            : isCredit ? paymentToneClass.success : paymentToneClass.muted
         : paymentToneClass.muted;
     const description = entry
         ? isPayment ? formatPaymentDescription(entry) : entry.description || 'Transaction'
@@ -1190,15 +1222,9 @@ const PaymentDetailRail = ({
                     <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not returned'}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{ledgerCount} transactions and {paymentsCount} patient payments loaded, up to 50 per source.</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Projection returned</p>
-                        <p className="mt-1 text-sm font-semibold">{readState?.projection === 'ready' ? formatCurrency(projection || 0) : 'Unavailable'}</p>
-                    </div>
-                    <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
-                        <p className="mt-1 text-sm font-semibold">{readState?.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable'}</p>
-                    </div>
+                <div className="rounded-inner bg-muted/22 p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
+                    <p className="mt-1 text-sm font-semibold">{readState?.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable'}</p>
                 </div>
             </div>
 

@@ -85,6 +85,15 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   desktop stays centered with shared focus, backdrop, chrome suppression, radius, scroll, and close
   behavior. Payment currency and completed lifecycle timestamps remain row-owned; fee copy reads
   `ivisit_fee_amount` or says `Not recorded` rather than asserting `Included`.
+- Payments step-back audit on 2026-07-12: Wallet analytics now owns a Payments vocabulary and uses
+  patient-payment counts for completion/lifecycle denominators instead of generic active/diversity
+  semantics. Refunded rows no longer inflate Needs review, backend status/type comparisons are
+  case-normalized, and completed/pending/refunded/failed/declined tones stay distinct across mobile,
+  desktop rows, detail rail, and receipt. The context panel now merges ledger and payment records by
+  timestamp and reports an unavailable card read honestly instead of zero. The rejected trailing
+  7-day-to-30-day estimate was also removed from the route fetch and both right-panel echoes, not just
+  hidden from the mobile header. Static proof after this closure: 53 suites / 413 tests, 115-file UI
+  hardgate, 34-file strict mobile grammar, data contract, database-type encoding, and production build.
 - Navbar/FAB ownership recurrence closed on 2026-07-12: `routeOwnsShellAction()` is now the single
   route registry consumed by `DynamicBottomBar`, `ContextAwareFAB`, and `MobileNavMenu`. Pricing,
   Subscriptions, Organizations, Users, and other route-owned surfaces no longer rehost duplicate

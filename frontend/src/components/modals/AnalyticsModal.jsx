@@ -60,6 +60,11 @@ const PHASES_CONFIG = {
     { id: 'status', label: 'Lifecycle' },
     { id: 'trends', label: 'Volume' },
   ],
+  payments: [
+    { id: 'summary', label: 'Summary' },
+    { id: 'distribution', label: 'Sources' },
+    { id: 'lifecycle', label: 'Payment lifecycle' },
+  ],
   generic: [
     { id: 'summary', label: 'Summary' },
     { id: 'distribution', label: 'Distribution' },
@@ -79,6 +84,7 @@ const TYPE_LABELS = {
   user: 'Users',
   subscription: 'Subscriptions',
   visit: 'Visits',
+  payments: 'Payments',
   generic: 'Statistics',
 };
 
@@ -94,6 +100,7 @@ const SHARE_LABELS = {
   user: 'Verified',
   subscription: 'Active',
   visit: 'Completed',
+  payments: 'Completed',
 };
 
 // Modal section-card canon (adapted to opaque-DOM tokens): translucent panel, borderless,
@@ -135,7 +142,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   const getDataSetTotal = (dataSet = {}) => (
     Object.values(dataSet).reduce((sum, value) => sum + (Number(value) || 0), 0)
   );
-  const isVisibleScopedDistribution = analytics.distributionScope === 'visible_page';
+  const isVisibleScopedDistribution = ['visible_page', 'loaded_preview'].includes(analytics.distributionScope);
 
   const nextPhase = () => setPhase(p => Math.min(p + 1, phases.length - 1));
   const prevPhase = () => setPhase(p => Math.max(p - 1, 0));
@@ -181,6 +188,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         { label: 'Completed', value: getCount(analytics.completed), trend: getTrendPercentage(analytics.completed, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
         { label: 'Scheduled', value: getCount(analytics.scheduled), icon: Clock, color: 'hsl(199 89% 48%)' },
         { label: 'In progress', value: getCount(analytics.inProgress), icon: Activity, color: 'hsl(38 92% 50%)' }
+      ],
+      payments: [
+        { label: 'Loaded records', value: genericTotal, icon: BarChart3, color: 'hsl(199 89% 48%)' },
+        { label: 'Completed', value: getCount(analytics.completed), trend: getTrendPercentage(analytics.completed, analytics.paymentCount), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Needs review', value: getCount(analytics.needsReview), icon: AlertTriangle, color: getCount(analytics.needsReview) > 0 ? 'hsl(38 92% 50%)' : 'hsl(var(--muted-foreground))' },
+        { label: 'Recent payments', value: getCount(analytics.recent), icon: Clock, color: 'hsl(199 89% 48%)' }
       ],
       ambulance: [
         { label: 'Units', value: genericTotal, icon: Activity, color: 'hsl(199 89% 48%)' },
@@ -250,7 +263,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">
               {getSafePercentage(
                 analytics.active || analytics.published || analytics.verifiedUsers || analytics.resolved || analytics.completed,
-                analytics.total || analytics.totalUsers
+                type === 'payments' ? analytics.paymentCount : (analytics.total || analytics.totalUsers)
               )}
             </span>
             <span className="eyebrow mt-1 text-muted-foreground/55">{SHARE_LABELS[type] || 'Share'}</span>
@@ -325,10 +338,15 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   };
 
   const renderDetailsPhase = () => {
-    const dataSet = analytics.byCategory || analytics.byStatus || analytics.byTier || analytics.hospitalStats || {};
-    const scopedTotal = isVisibleScopedDistribution
-      ? (Number(analytics.visibleCount) || getDataSetTotal(dataSet) || 1)
-      : (analytics.total || analytics.totalUsers || 100);
+    const isLifecyclePhase = phases[phase]?.id === 'lifecycle';
+    const dataSet = isLifecyclePhase
+      ? (analytics.byStatus || {})
+      : (analytics.byCategory || analytics.byStatus || analytics.byTier || analytics.hospitalStats || {});
+    const scopedTotal = isLifecyclePhase
+      ? (Number(analytics.lifecycleCount) || getDataSetTotal(dataSet) || 1)
+      : isVisibleScopedDistribution
+        ? (Number(analytics.visibleCount) || getDataSetTotal(dataSet) || 1)
+        : (analytics.total || analytics.totalUsers || 100);
 
     return (
       <motion.div

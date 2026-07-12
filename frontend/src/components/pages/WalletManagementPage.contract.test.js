@@ -7,6 +7,7 @@ describe('WalletManagementPage Payments contract', () => {
   const pageSource = () => fs.readFileSync('src/components/pages/WalletManagementPage.jsx', 'utf8');
   const appSource = () => fs.readFileSync('src/App.js', 'utf8');
   const mobileSource = () => fs.readFileSync('src/components/mobile/MobileWallet.jsx', 'utf8');
+  const analyticsModalSource = () => fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/walletService.js', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
@@ -168,6 +169,11 @@ describe('WalletManagementPage Payments contract', () => {
     expect(walletPanel).not.toContain("new CustomEvent('openBillingModal'");
     expect(walletPanel).not.toContain('usePageData');
     expect(walletPanel).not.toContain('walletData');
+    expect(walletPanel).toContain("map((item) => ({ kind: 'ledger', item }))");
+    expect(walletPanel).toContain("map((item) => ({ kind: 'payment', item }))");
+    expect(walletPanel).toContain('.sort((left, right) => new Date(right.item.created_at || 0).getTime() - new Date(left.item.created_at || 0).getTime())');
+    expect(walletPanel).toContain('const cardState = readState.paymentMethods === \'ready\' ? paymentMethods.length : \'Unavailable\';');
+    expect(walletPanel).toContain('{cardState}');
   });
 
   it('keeps dormant Payments command inventory behind named service receivers', () => {
@@ -183,7 +189,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(service).toContain("body: { action: 'set-payout-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
     expect(service).toContain('Promise.allSettled([');
     expect(service).toContain('listPaymentMethods(isAdmin ? null : organizationId)');
-    expect(service).toContain('getProjectedRevenue(isAdmin ? null : organizationId, { throwOnError: true })');
+    expect(service).not.toContain('getProjectedRevenue(isAdmin ? null : organizationId, { throwOnError: true })');
     expect(service).toContain("wallet: wallet ? 'ready' : 'missing'");
     expect(modals).toContain('topUpWallet(parsedAmount');
     expect(modals).toContain('withdrawFunds(parsedAmount');
@@ -201,6 +207,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(service).toContain("body: { action: 'delete-payment-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
     expect(page).toContain('Cards returned');
     expect(panel).toContain("readState.paymentMethods === 'ready'");
+    expect(panel).toContain("paymentMethods.length : 'Unavailable'");
     expect(page).not.toContain('deletePaymentMethod');
     expect(page).not.toContain('Card removed.');
     expect(page).not.toContain('onDeleteMethod');
@@ -389,8 +396,20 @@ describe('WalletManagementPage Payments contract', () => {
     expect(service).toContain('safeLimit + 1');
     expect(service).toContain('ledgerRows.length > safeLimit');
     expect(service).toContain('paymentRows.length > safeLimit');
-    expect(service).toContain("projection: projectionResult.status === 'fulfilled' ? projectionResult.value : null");
+    expect(service).not.toContain('projectionResult');
     expect(service).toContain("partialFailure: Object.values(readState).some((state) => state === 'failed')");
+  });
+
+  it('does not reacquire or re-present the rejected 30-day estimate on the Payments route', () => {
+    const page = pageSource();
+    const panel = walletPanelSource();
+    const service = serviceSource();
+
+    expect(service).not.toContain('getProjectedRevenue(isAdmin ? null : organizationId');
+    expect(page).not.toContain('Projection returned');
+    expect(page).not.toContain('readState?.projection');
+    expect(panel).not.toContain('Projection returned');
+    expect(panel).not.toContain('readState.projection');
   });
 
   it('preserves row currency and lifecycle timestamp truth across payment surfaces', () => {
@@ -414,9 +433,34 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('<span>Included</span>');
     expect(page).not.toContain('<span>Subtotal</span>');
     expect(mobile).toContain('const rowCurrency = isLedger ? wallet?.currency : item.currency;');
-    expect(mobile).toContain("label: item.status === 'completed' ? 'Processed' : 'Recorded'");
+    expect(mobile).toContain("label: isCompletedPayment(item) ? 'Processed' : 'Recorded'");
     expect(mobile).toContain('item.processed_at || item.updated_at || item.created_at');
     expect(mobile).not.toContain("label: 'Paid'");
+  });
+
+  it('uses payment-owned analytics and lifecycle denominators instead of generic dashboard language', () => {
+    const page = pageSource();
+    const analyticsModal = analyticsModalSource();
+
+    expect(page.match(/type="payments"/g)?.length).toBe(2);
+    expect(page).not.toContain('type="generic"');
+    expect(page).toContain('const byStatus = payments.reduce((counts, payment) => {');
+    expect(page).toContain("!['completed', 'refunded'].includes(String(payment.status || '').toLowerCase())");
+    expect(page).toContain('paymentCount: payments.length');
+    expect(page).toContain('lifecycleCount: payments.length');
+    expect(page).toContain('transactions: ledger.length');
+    expect(page).toContain('patient_payments: payments.length');
+    expect(page).not.toContain('methods: readState.paymentMethods');
+
+    expect(analyticsModal).toContain('payments: [');
+    expect(analyticsModal).toContain("{ id: 'lifecycle', label: 'Payment lifecycle' }");
+    expect(analyticsModal).toContain("payments: 'Payments'");
+    expect(analyticsModal).toContain("{ label: 'Loaded records', value: genericTotal");
+    expect(analyticsModal).toContain("{ label: 'Completed', value: getCount(analytics.completed)");
+    expect(analyticsModal).toContain("{ label: 'Needs review', value: getCount(analytics.needsReview)");
+    expect(analyticsModal).toContain("['visible_page', 'loaded_preview'].includes(analytics.distributionScope)");
+    expect(analyticsModal).toContain("type === 'payments' ? analytics.paymentCount");
+    expect(analyticsModal).toContain('Number(analytics.lifecycleCount)');
   });
 
   it('keeps transaction export scoped to visible ledger rows without completeness claims', () => {
@@ -447,6 +491,8 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).not.toContain("label: 'Loaded in'");
     expect(mobile).not.toContain("label: 'Loaded out'");
     expect(mobile).toContain("label: 'Needs review'");
+    expect(mobile).toContain("!['completed', 'refunded'].includes(normalizedValue(payment?.status))");
+    expect(mobile).toContain("const normalizedValue = (value) => String(value || '').toLowerCase();");
     expect(mobile).toContain("label: 'Transactions'");
     expect(mobile).toContain("label: 'Patient payments'");
     expect(mobile).toContain('role="tablist"');

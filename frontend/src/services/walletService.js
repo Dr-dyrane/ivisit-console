@@ -105,9 +105,8 @@ export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin =
     const wallet = await resolveWalletForProfile({ profile, isAdmin });
     const safeLimit = Math.max(1, Number(limit) || 50);
 
-    const [paymentMethodsResult, projectionResult, ledgerResult, paymentsResult] = await Promise.allSettled([
+    const [paymentMethodsResult, ledgerResult, paymentsResult] = await Promise.allSettled([
         listPaymentMethods(isAdmin ? null : organizationId),
-        getProjectedRevenue(isAdmin ? null : organizationId, { throwOnError: true }),
         getWalletLedger(wallet?.id, safeLimit + 1),
         getWalletPayments({ organizationId, isOrgAdmin, limit: safeLimit + 1 }),
     ]);
@@ -118,14 +117,12 @@ export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin =
         wallet: wallet ? 'ready' : 'missing',
         ledger: !wallet ? 'unavailable' : ledgerResult.status === 'fulfilled' ? 'ready' : 'failed',
         payments: paymentsResult.status === 'fulfilled' ? 'ready' : 'failed',
-        projection: projectionResult.status === 'fulfilled' ? 'ready' : 'failed',
         paymentMethods: paymentMethodsResult.status === 'fulfilled' ? 'ready' : 'failed',
     };
 
     return {
         wallet,
         ledger: ledgerRows.slice(0, safeLimit),
-        projection: projectionResult.status === 'fulfilled' ? projectionResult.value : null,
         paymentMethods: paymentMethodsResult.status === 'fulfilled' ? paymentMethodsResult.value : [],
         payments: paymentRows.slice(0, safeLimit),
         hasMore: {

@@ -2,7 +2,6 @@ import React from 'react';
 import {
     ArrowUpRight,
     ArrowDownLeft,
-    TrendingUp,
     BarChart3,
     CreditCard,
     Download,
@@ -17,7 +16,6 @@ export const WalletPanel = ({ walletContext }) => {
         wallet = null,
         ledger = [],
         payments = [],
-        projection = 0,
         paymentMethods = [],
         readState = {},
         hasMore = {},
@@ -63,8 +61,13 @@ export const WalletPanel = ({ walletContext }) => {
         window.dispatchEvent(new CustomEvent('openWalletAnalytics'));
     };
 
-    const recentActivity = [...ledger.slice(0, 3), ...payments.slice(0, 2)].slice(0, 4);
-    const cardState = readState.paymentMethods === 'ready' ? `${paymentMethods.length} returned` : 'Unavailable';
+    const recentActivity = [
+        ...ledger.slice(0, 4).map((item) => ({ kind: 'ledger', item })),
+        ...payments.slice(0, 4).map((item) => ({ kind: 'payment', item })),
+    ]
+        .sort((left, right) => new Date(right.item.created_at || 0).getTime() - new Date(left.item.created_at || 0).getTime())
+        .slice(0, 4);
+    const cardState = readState.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable';
     const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not returned';
     const transactionsCount = counts.ledger ?? ledger.length;
     const patientPaymentsCount = counts.payments ?? payments.length;
@@ -101,17 +104,8 @@ export const WalletPanel = ({ walletContext }) => {
                 <div className="grid gap-2">
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="h-3.5 w-3.5 text-sky-700 transition-transform dark:text-sky-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Projection returned</span>
-                        </div>
-                        <p className="text-sm font-semibold tracking-tight">
-                            {readState.projection === 'ready' ? formatCurrency(projection || 0) : 'Unavailable'}
-                        </p>
-                    </div>
-                    <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
-                        <div className="flex items-center gap-2">
                             <History className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Activity loaded</span>
+                            <span className="text-xs font-medium text-muted-foreground">Loaded records</span>
                         </div>
                         <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{transactionsCount + patientPaymentsCount}</p>
                     </div>
@@ -205,7 +199,7 @@ export const WalletPanel = ({ walletContext }) => {
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
-                        <p className="mt-1 text-xl font-semibold">{paymentMethods.length}</p>
+                        <p className="mt-1 text-xl font-semibold">{cardState}</p>
                     </div>
                 </div>
             </div>
@@ -213,15 +207,17 @@ export const WalletPanel = ({ walletContext }) => {
             <div className="space-y-2">
                 <h3 className="px-1 text-sm font-semibold text-muted-foreground">Recent loaded records</h3>
                 <div className="space-y-1">
-                    {recentActivity.map((item) => {
-                        const isPatientPayment = Boolean(item.payment_method || item.emergency_request_id);
-                        const isCredit = isPatientPayment ? item.status === 'completed' : item.transaction_type === 'credit';
+                    {recentActivity.map(({ kind, item }) => {
+                        const isPatientPayment = kind === 'payment';
+                        const isCredit = isPatientPayment
+                            ? String(item.status || '').toLowerCase() === 'completed'
+                            : String(item.transaction_type || '').toLowerCase() === 'credit';
                         const description = isPatientPayment
                             ? item.display_id || 'Patient payment'
                             : item.description || 'Transaction';
 
                         return (
-                        <div key={item.id} className="flex items-center justify-between rounded-inner bg-muted/22 p-3 transition-all hover:bg-muted/34">
+                        <div key={`${kind}-${item.id}`} className="flex items-center justify-between rounded-inner bg-muted/22 p-3 transition-all hover:bg-muted/34">
                             <div className="flex items-center gap-3">
                                 <div className={`flex h-8 w-8 items-center justify-center rounded-icon ${isCredit ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-100' : 'bg-muted/20'}`}>
                                     {isPatientPayment ? <CreditCard className="h-4 w-4" /> : isCredit ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4 opacity-60" />}

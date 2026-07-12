@@ -39,7 +39,9 @@ import { formatRelativeTime } from '../../utils/activityUtils';
 // grammar:search=Search and filters narrow the explicitly loaded route window only.
 
 const readyColor = 'hsl(160 84% 39%)';
-const waitingColor = 'hsl(199 89% 48%)';
+const waitingColor = 'hsl(38 92% 50%)';
+const infoColor = 'hsl(199 89% 48%)';
+const dangerColor = 'hsl(var(--destructive))';
 const neutralColor = 'hsl(215 16% 47%)';
 
 const MobileWalletAtlasLayer = () => (
@@ -96,6 +98,10 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
 };
+
+const normalizedValue = (value) => String(value || '').toLowerCase();
+const isCompletedPayment = (payment) => normalizedValue(payment?.status) === 'completed';
+const needsPaymentReview = (payment) => !['completed', 'refunded'].includes(normalizedValue(payment?.status));
 
 const matchesDateRange = (value, range = {}) => {
   if (!range.start && !range.end) return true;
@@ -276,7 +282,7 @@ export const MobileWallet = ({
     const moneyOut = ledger
       .filter((entry) => String(entry.transaction_type || '').toLowerCase() === 'debit')
       .reduce((total, entry) => total + Math.abs(Number(entry.amount || 0)), 0);
-    const needsReview = payments.filter((payment) => String(payment.status || '').toLowerCase() !== 'completed').length;
+    const needsReview = payments.filter(needsPaymentReview).length;
 
     return [
       { id: 'credit', label: 'Credit', value: formatCurrency(moneyIn, wallet?.currency), color: readyColor },
@@ -287,7 +293,8 @@ export const MobileWallet = ({
 
   const renderActivityRow = (item) => {
     const isLedger = activeTab === 'ledger';
-    const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
+    const paymentStatus = normalizedValue(item.status);
+    const isCredit = isLedger ? normalizedValue(item.transaction_type) === 'credit' : isCompletedPayment(item);
     const amount = Math.abs(Number(item.amount || 0));
     const rowCurrency = isLedger ? wallet?.currency : item.currency;
     const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount, rowCurrency)}`;
@@ -296,6 +303,17 @@ export const MobileWallet = ({
     const secondary = isLedger
       ? signedAmount
       : `${signedAmount} / ${facilityName === 'Hospital unavailable' ? methodLabel : facilityName}`;
+    const orbClass = isLedger
+      ? isCredit
+        ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'
+        : 'bg-foreground/[0.07] text-muted-foreground dark:bg-white/[0.08]'
+      : isCredit
+        ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'
+        : ['failed', 'declined'].includes(paymentStatus)
+          ? 'bg-destructive/10 text-destructive'
+          : paymentStatus === 'refunded'
+            ? 'bg-sky-500/12 text-sky-700 dark:text-sky-200'
+            : 'bg-amber-500/12 text-amber-700 dark:text-amber-200';
 
     return (
       <MobileListRow
@@ -303,9 +321,7 @@ export const MobileWallet = ({
         dataAttr="data-mobile-payment-row"
         onOpen={(entry) => setActiveEntry({ kind: activeTab, item: entry })}
         ariaLabel={`${isLedger ? 'Transaction' : 'Patient payment'}, ${signedAmount}`}
-        orbClass={isCredit
-          ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'
-          : 'bg-sky-500/12 text-sky-700 dark:text-sky-200'}
+        orbClass={orbClass}
         icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
         title={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
         meta={secondary}
@@ -447,8 +463,17 @@ export const MobileWallet = ({
         {activeEntry && (() => {
           const { item, kind } = activeEntry;
           const isLedger = kind === 'ledger';
-          const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
-          const iconTone = isLedger ? (isCredit ? readyColor : neutralColor) : (isCredit ? readyColor : waitingColor);
+          const paymentStatus = normalizedValue(item.status);
+          const isCredit = isLedger ? normalizedValue(item.transaction_type) === 'credit' : isCompletedPayment(item);
+          const iconTone = isLedger
+            ? (isCredit ? readyColor : neutralColor)
+            : isCredit
+              ? readyColor
+              : ['failed', 'declined'].includes(paymentStatus)
+                ? dangerColor
+                : paymentStatus === 'refunded'
+                  ? infoColor
+                  : waitingColor;
           const amount = Math.abs(Number(item.amount || 0));
           const entryCurrency = isLedger ? wallet?.currency : item.currency;
           const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount, entryCurrency)}`;
@@ -479,8 +504,8 @@ export const MobileWallet = ({
                 { icon: Building, label: 'Facility', value: facilityName },
                 {
                   icon: Clock,
-                  label: item.status === 'completed' ? 'Processed' : 'Recorded',
-                  value: formatDateTime(item.status === 'completed' ? item.processed_at || item.updated_at || item.created_at : item.created_at),
+                  label: isCompletedPayment(item) ? 'Processed' : 'Recorded',
+                  value: formatDateTime(isCompletedPayment(item) ? item.processed_at || item.updated_at || item.created_at : item.created_at),
                 },
               ]}
               primary={!isLedger && onOpenPayment ? {
