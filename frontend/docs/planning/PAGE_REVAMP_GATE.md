@@ -80,6 +80,11 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   action hook no longer dispatches `openTopUpModal`. Add funds, withdrawal, and card setup therefore
   cannot be opened from dormant global chrome while receiver authority and reflected app consequence
   remain unproved.
+- Payment details modal alignment on 2026-07-12: the Wallet route's private Radix `DialogContent` was
+  replaced by the shared `ModalShell`. Mobile now opens as the canonical safe-area bottom sheet and
+  desktop stays centered with shared focus, backdrop, chrome suppression, radius, scroll, and close
+  behavior. Payment currency and completed lifecycle timestamps remain row-owned; fee copy reads
+  `ivisit_fee_amount` or says `Not recorded` rather than asserting `Included`.
 - Navbar/FAB ownership recurrence closed on 2026-07-12: `routeOwnsShellAction()` is now the single
   route registry consumed by `DynamicBottomBar`, `ContextAwareFAB`, and `MobileNavMenu`. Pricing,
   Subscriptions, Organizations, Users, and other route-owned surfaces no longer rehost duplicate

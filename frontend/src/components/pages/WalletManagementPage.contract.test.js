@@ -398,8 +398,21 @@ describe('WalletManagementPage Payments contract', () => {
     const mobile = mobileSource();
 
     expect(page).toContain('formatCurrency(payment.amount, payment.currency)');
+    expect(page).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(page).toContain('<ModalShell');
+    expect(page).toContain('title="Payment details"');
+    expect(page).toContain('size="md"');
+    expect(page).toContain('managed');
+    expect(page).not.toContain('<DialogContent');
+    expect(page).not.toContain('<DialogTitle');
+    expect(page).not.toContain('<DialogDescription');
     expect(page).toContain('isPayment ? item.currency : undefined');
     expect(page).toContain('isPayment ? entry.currency : undefined');
+    expect(page).toContain("const lifecycleLabel = isCompleted ? 'Processed' : 'Recorded';");
+    expect(page).toContain('payment?.processed_at || payment?.updated_at || payment?.created_at');
+    expect(page).toContain("{hasRecordedFee ? formatCurrency(feeValue, payment?.currency) : 'Not recorded'}");
+    expect(page).not.toContain('<span>Included</span>');
+    expect(page).not.toContain('<span>Subtotal</span>');
     expect(mobile).toContain('const rowCurrency = isLedger ? wallet?.currency : item.currency;');
     expect(mobile).toContain("label: item.status === 'completed' ? 'Processed' : 'Recorded'");
     expect(mobile).toContain('item.processed_at || item.updated_at || item.created_at');

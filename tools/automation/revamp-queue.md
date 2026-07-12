@@ -140,6 +140,11 @@ read-only visual revamp when the route projection is proved and unsupported comm
   owned. Git archaeology found historical Add funds/Credit Main, Withdraw, and Payment cards commands but
   no separate create-wallet receiver; all three are visible only as disabled context actions because the
   Pass 2 audit still records top-up confirmation, payout reservation/reflection, and card authorization gaps.
+- Payment details no longer owns private Radix dialog chrome. It now composes the current `ModalShell`, so
+  desktop centering and mobile bottom-sheet alignment, safe areas, focus trap/restore, swipe dismissal,
+  backdrop, app-chrome suppression, radius, and close footer follow the same contract as other revamped
+  detail modals. The modal uses each payment's currency, labels completed timestamps as Processed, and
+  renders `ivisit_fee_amount` only when recorded instead of claiming an unproved included fee.
 - Promoted Pricing from `list-migrating` to full LIST grammar with structural skeletons, a real
   refetch signal, growing-window load more, grouped rows, degraded/error states, and a route-owned
   Add Pricing FAB that reaches the existing fail-closed page handler.
