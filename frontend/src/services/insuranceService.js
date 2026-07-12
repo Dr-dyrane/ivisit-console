@@ -157,11 +157,11 @@ export function normalizeInsurancePolicy(record) {
     front_image_url: details.front_image_url || '',
     back_image_url: details.back_image_url || '',
     linked_payment_method: linkedPaymentSnapshot || record.linked_payment_method || null,
-    coverage_amount:
-      details.coverage_amount ??
-      (record.coverage_percentage !== null && record.coverage_percentage !== undefined
+    coverage_amount: details.coverage_amount ?? record.coverage_amount ?? null,
+    coverage_percentage:
+      record.coverage_percentage !== null && record.coverage_percentage !== undefined
         ? Number(record.coverage_percentage)
-        : 0),
+        : null,
   };
 }
 

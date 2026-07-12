@@ -57,6 +57,15 @@ Page 22 Onboarding Success (`efac625`).
      gained multi-group loading, KPI/filter separation, KPI-empty recovery, and moved fail-closed FAB
      feedback inside the canonical page shell. Focused contracts, mobile grammar, and UI hardgate pass;
      rendered admission remains open.
+   - Pricing and Insurance follow-up on 2026-07-12 found three static-green defects before the next
+     render: Insurance used axis-level KPI totals as the heading count even when search/sheet facets
+     narrowed the query, ordinary refetches reused the load-more indicator, and policy coverage
+     percentage could render as a dollar amount. The route now passes its exact active-query count,
+     load-more has dedicated state, and the normalized projection plus mobile sheet/full detail modal
+     render `coverage_percentage` as a rate. Pricing now ignores stale overlapping responses, separates
+     load-more from ordinary refetch, and carries facility/platform identity in each row. The full proof
+     is 53 suites / 409 tests plus a successful production build; both pages still require the user's
+     Requests side-by-side mobile verdict before admission.
    - Wave three: Analytics, Live Map, and Settings. Verify truthful source labels, map control states,
      full-bleed/safe-area behavior, identity/account actions, and unavailable report/billing behavior.
    - Wave-three source recheck closed Analytics shell drift: loading now stays inside MobilePageShell,
@@ -132,7 +141,7 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 53 Jest suites / 408 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 53 Jest suites / 409 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
 - Estate background-token audit found ten numeric opacity modifiers used by source but absent from

@@ -145,8 +145,12 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).toContain('page: isMobile ? 1 : pagination.currentPage');
     expect(page).toContain('pageSize: isMobile ? mobilePageSize : pagination.itemsPerPage');
     expect(page).toContain('hasMore={pagination.hasNextPage}');
-    expect(page).toContain('onLoadMore={pagination.nextPage}');
-    expect(page).toContain('isLoadingMore={isLoadingMore}');
+    expect(page).toContain('onLoadMore={handleMobileLoadMore}');
+    expect(page).toContain('isLoadingMore={mobileLoadingMore}');
+    expect(page).toContain('const fetchRequestRef = useRef(0);');
+    expect(page).toContain('fetchRequestRef.current === requestId');
+    expect(page).toContain('const mobileIsFetching = isFetching && !mobileLoadingMore;');
+    expect(mobile).toContain("item.facilityName || item.facility_name || 'Facility price'");
     expect(page).toContain('const isFetching = loading && hasPricingRows;');
     expect(page).toContain('isFetching={isFetching}');
     expect(workspace).toContain('refreshing={isFetching}');

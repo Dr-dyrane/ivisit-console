@@ -99,6 +99,7 @@ export const InsuranceManagementPage = () => {
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [commandNotice, setCommandNotice] = useState(null);
+  const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   // Filter state - includes search
@@ -175,6 +176,7 @@ export const InsuranceManagementPage = () => {
     } finally {
       if (canUpdateRouteState()) {
         setLoading(false);
+        setMobileLoadingMore(false);
       }
     }
   }, [
@@ -305,6 +307,7 @@ export const InsuranceManagementPage = () => {
 
   useEffect(() => {
     pagination.resetPagination();
+    setMobileLoadingMore(false);
   }, [filterKey, pagination.resetPagination]);
 
   useEffect(() => {
@@ -474,6 +477,12 @@ export const InsuranceManagementPage = () => {
     setModalMode('view');
   }, [isFocused, setFocused]);
 
+  const handleMobileLoadMore = useCallback(() => {
+    if (loading || !pagination.hasNextPage) return;
+    setMobileLoadingMore(true);
+    pagination.nextPage();
+  }, [loading, pagination.hasNextPage, pagination.nextPage]);
+
   const handleFocusPolicy = useCallback((policy) => setFocused(policy?.id ?? null), [setFocused]);
 
   const handleViewAnalytics = useCallback(() => {
@@ -598,16 +607,18 @@ export const InsuranceManagementPage = () => {
           onView={handleView}
           onRefresh={fetchInsurancePage}
           loading={loading && !hasMobileRows}
-          isFetching={loading && hasMobileRows}
+          isFetching={loading && hasMobileRows && !mobileLoadingMore}
           error={error}
           onRetry={fetchInsurancePage}
           stats={insuranceStats}
+          count={insurancePage.count}
           onOpenFilters={() => setFilterSheetOpen(true)}
           onViewAnalytics={handleViewAnalytics}
           filterSheetOpen={filterSheetOpen}
           analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          onLoadMore={handleMobileLoadMore}
+          isLoadingMore={mobileLoadingMore}
         />
 
         <InsuranceModal

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -70,7 +70,10 @@ export const PricingManagementPage = () => {
 
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
     const [actionNotice, setActionNotice] = useState('');
+    const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
     const [pricingProjection, setPricingProjection] = useState(EMPTY_PRICING_PROJECTION);
+    const isMountedRef = useRef(false);
+    const fetchRequestRef = useRef(0);
     const pricingSummary = pricingProjection.summary || EMPTY_PRICING_SUMMARY;
     const pricingTotalCount = pricingProjection.totalCount || 0;
     const pricingAnalytics = useMemo(() => ({
@@ -88,7 +91,20 @@ export const PricingManagementPage = () => {
         pricingTotalCount
     ]);
 
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            fetchRequestRef.current += 1;
+        };
+    }, []);
+
     const fetchPricing = useCallback(async () => {
+        const requestId = fetchRequestRef.current + 1;
+        fetchRequestRef.current = requestId;
+        const canUpdateRouteState = () => isMountedRef.current && fetchRequestRef.current === requestId;
+        if (!canUpdateRouteState()) return;
+
         setLoading(true);
         setLoadError(null);
         try {
@@ -104,15 +120,20 @@ export const PricingManagementPage = () => {
                 pageSize: isMobile ? mobilePageSize : pagination.itemsPerPage
             }));
 
+            if (!canUpdateRouteState()) return;
             setPricing(projection.rows);
             setPricingProjection(projection);
             pagination.setTotalCount(projection.totalCount || 0);
         } catch (error) {
+            if (!canUpdateRouteState()) return;
             console.error('Error fetching pricing:', error);
             toast.error('Failed to load pricing data');
             setLoadError('Pricing rules could not load. Try again.');
         } finally {
-            setLoading(false);
+            if (canUpdateRouteState()) {
+                setLoading(false);
+                setMobileLoadingMore(false);
+            }
         }
     }, [
         activeTab,
@@ -128,17 +149,18 @@ export const PricingManagementPage = () => {
     ]);
 
     useEffect(() => {
-        fetchPricing();
-    }, [fetchPricing]);
-
-    useEffect(() => {
         pagination.resetPagination();
+        setMobileLoadingMore(false);
     }, [
         activeTab,
         kpiFilter,
         pagination.resetPagination,
         searchTerm
     ]);
+
+    useEffect(() => {
+        fetchPricing();
+    }, [fetchPricing]);
 
     // Role-based editing rules
     const canEdit = useCallback((item) => {
@@ -203,10 +225,16 @@ export const PricingManagementPage = () => {
 
     const paginatedPricing = pricing;
 
+    const handleMobileLoadMore = useCallback(() => {
+        if (loading || !pagination.hasNextPage) return;
+        setMobileLoadingMore(true);
+        pagination.nextPage();
+    }, [loading, pagination.hasNextPage, pagination.nextPage]);
+
     const hasPricingRows = paginatedPricing.length > 0;
     const initialLoading = loading && !hasPricingRows;
     const isFetching = loading && hasPricingRows;
-    const isLoadingMore = isFetching && pagination.currentPage > 1;
+    const mobileIsFetching = isFetching && !mobileLoadingMore;
     // Header & Footer
     const headerActions = useMemo(() => (
         <Button
@@ -258,8 +286,8 @@ export const PricingManagementPage = () => {
                     allPricing={pricing}
                     pricingProjection={pricingProjection}
                     loading={initialLoading}
-                    isFetching={isFetching}
-                    isLoadingMore={isLoadingMore}
+                    isFetching={mobileIsFetching}
+                    isLoadingMore={mobileLoadingMore}
                     errorMessage={loadError}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
@@ -269,7 +297,7 @@ export const PricingManagementPage = () => {
                     setKpiFilter={setKpiFilter}
                     onRefresh={fetchPricing}
                     hasMore={pagination.hasNextPage}
-                    onLoadMore={pagination.nextPage}
+                    onLoadMore={handleMobileLoadMore}
                     onViewAnalytics={() => setAnalyticsModalOpen(true)}
                     actionNotice={actionNotice}
                 />

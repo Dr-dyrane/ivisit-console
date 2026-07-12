@@ -267,7 +267,7 @@ export const MobilePricing = ({
                           : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'}
                         icon={isGlobal(item) ? Globe : Building2}
                         title={item.name || item.service_name || item.room_name || 'Unnamed price'}
-                        meta={`${money(item)} / ${family(item) === 'room' ? 'night' : 'unit'}`}
+                        meta={`${money(item)} / ${family(item) === 'room' ? 'night' : 'unit'} / ${isGlobal(item) ? 'Platform fallback' : item.facilityName || item.facility_name || 'Facility price'}`}
                         time={formatRelativeTime(updatedAt(item))}
                         pill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
                       />

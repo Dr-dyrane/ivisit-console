@@ -39,6 +39,12 @@ const formatMoney = (value) => {
   return number > 0 ? `$${number.toLocaleString()}` : 'Not set';
 };
 
+const formatPercentage = (value) => {
+  if (value === null || value === undefined || value === '') return 'Not recorded';
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? `${numericValue.toLocaleString()}%` : 'Not recorded';
+};
+
 const getStatusClass = (status) => {
   switch (String(status || '').toLowerCase()) {
     case 'active':
@@ -158,7 +164,7 @@ export const InsuranceModal = ({
 
               <Section icon={<Calendar />} title="Coverage">
                 <Field label="Plan type" value={formatText(policy.policy_type || policy.coverage_type || policy.plan_type)} />
-                <Field label="Coverage amount" value={formatMoney(policy.coverage_amount)} />
+                <Field label="Coverage percentage" value={formatPercentage(policy.coverage_percentage)} />
                 <Field label="Start date" value={formatDate(policy.start_date)} />
                 <Field label="End date" value={formatDate(policy.end_date)} />
               </Section>

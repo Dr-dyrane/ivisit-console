@@ -6,7 +6,7 @@ import {
   Clock,
   AlertTriangle,
   Calendar,
-  DollarSign,
+  Percent,
   User,
   Building2,
   Hash,
@@ -73,8 +73,11 @@ const formatPlanType = (policy) => {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
 };
 
-const coverageLabel = (policy) =>
-  policy?.coverage_amount != null ? `$${Number(policy.coverage_amount).toLocaleString()}` : null;
+const coverageLabel = (policy) => {
+  if (policy?.coverage_percentage === null || policy?.coverage_percentage === undefined || policy?.coverage_percentage === '') return null;
+  const value = Number(policy?.coverage_percentage);
+  return Number.isFinite(value) ? `${value.toLocaleString()}%` : null;
+};
 
 const expiresLabel = (policy) => {
   if (!policy?.end_date) return null;
@@ -165,8 +168,10 @@ export const MobileInsurance = ({
   onOpenFilters,
   onViewAnalytics,
   stats,
+  count,
   hasMore = false,
   onLoadMore,
+  isLoadingMore = false,
   filterSheetOpen = false,
   analyticsOpen = false,
   isFetching = false
@@ -177,7 +182,11 @@ export const MobileInsurance = ({
   // skeletoning; the page passes isFetching so the Updating pill uses the REAL signal).
   const refetching = isFetching || false;
 
-  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({
+    hasMore,
+    loading: loading || refetching || isLoadingMore,
+    onLoadMore,
+  });
 
   useEffect(() => {
     if (!hasMore) return;
@@ -213,14 +222,11 @@ export const MobileInsurance = ({
     { id: 'unverified', label: 'Unverified', value: metricValue(stats?.unverified, 0), color: 'hsl(215 16% 47%)' },
   ];
 
-  // Count integrity (Sec 5): the heading tracks the ACTIVE KPI scope, never the raw total.
-  // Every key is a REAL stats key (no phantom key) -- the server hard-scopes to the same
-  // narrowing the chip advertises, so the heading count matches the rows in the list.
-  const kpiToKey = { all: 'total', active: 'active', pending: 'pending', expired: 'expired', unverified: 'unverified' };
+  // The route count is exact for the complete active query (KPI + search + sheet facets).
+  // KPI values remain axis-level navigation counts, but they cannot replace this heading
+  // count once another narrowing facet is active.
   const activeKpi = filters?.kpiFilter || 'all';
-  const scopeCount = activeKpi === 'all'
-    ? metricValue(stats?.total, policies.length)
-    : metricValue(stats?.[kpiToKey[activeKpi]], 0);
+  const scopeCount = metricValue(count, policies.length);
 
   // 'policy' pluralizes irregularly (policy -> policies), so the count line is composed here
   // rather than through MobileHeading's naive +s (which would render "policys").
@@ -355,8 +361,8 @@ export const MobileInsurance = ({
               )}
 
               <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
-                {refetching && !showTopSectionLoading && hasMore && displayPolicies.length > 0 && <MobileListLoadingMore />}
-                {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                {isLoadingMore && !showTopSectionLoading && hasMore && displayPolicies.length > 0 && <MobileListLoadingMore />}
+                {!loading && !isLoadingMore && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
                 {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
               </div>
 
@@ -417,7 +423,7 @@ export const MobileInsurance = ({
                 { icon: Building2, label: 'Provider', value: activePolicy.provider_name },
                 { icon: Hash, label: 'Policy number', value: activePolicy.policy_number },
                 { icon: Tag, label: 'Plan type', value: planType },
-                { icon: DollarSign, label: 'Coverage', value: coverageLabel(activePolicy) },
+                { icon: Percent, label: 'Coverage rate', value: coverageLabel(activePolicy) },
                 { icon: Calendar, label: 'Expires', value: expiresLabel(activePolicy) },
                 { icon: ShieldCheck, label: 'Verification', value: activePolicy.verified ? 'Verified' : 'Not verified' },
               ]}

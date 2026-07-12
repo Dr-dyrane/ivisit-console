@@ -55,7 +55,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 53 suites / 408 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 53 suites / 409 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
 - Background-token recurrence closed on 2026-07-12: the Tailwind opacity scale now defines every
@@ -93,7 +93,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   mobile higher-demand band; red remains available for source failure, declined/cancelled outcomes,
   and genuinely critical telemetry.
 - Source-closable checkpoint on 2026-07-12 is complete through `b41c007f`. The full current suite is
-  53 suites / 408 tests, and database-types encoding, mojibake, data contract, 115-file UI hardgate,
+  53 suites / 409 tests, and database-types encoding, mojibake, data contract, 115-file UI hardgate,
   34-file mobile grammar, and production build pass. This is not rendered admission: Payments and
   Insurance still require the fresh manual Requests comparison, the remaining mobile/desktop matrix
   requires authenticated device proof, and blocked commands require backend/app-consequence evidence.

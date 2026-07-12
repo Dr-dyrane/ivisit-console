@@ -5,6 +5,7 @@ const read = (relativePath) => fs.readFileSync(path.join(__dirname, relativePath
 const page = read('InsuranceManagementPage.jsx');
 const desktop = read('insurance/InsuranceDesktopWorkspace.jsx');
 const mobile = read('../mobile/MobileInsurance.jsx');
+const modal = read('../modals/InsuranceModal.jsx');
 const service = read('../../services/insuranceService.js');
 const panel = read('../context/InsurancePanel.jsx');
 const authority = read('../../../docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md');
@@ -83,7 +84,22 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(mobile).toContain('label="Policies did not load"');
     expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
     expect(mobile).toContain('mobile-insurance-degraded-state');
+    expect(page).toContain('count={insurancePage.count}');
+    expect(mobile).toContain('const scopeCount = metricValue(count, policies.length);');
+    expect(page).toContain('isLoadingMore={mobileLoadingMore}');
+    expect(mobile).toContain('loading: loading || refetching || isLoadingMore');
     expect(mobile).not.toMatch(/onDelete|onEdit|onVerify|MobileFeaturedMetric|MobileSecondaryMetricRail/);
+  });
+
+  it('renders canonical coverage percentage without relabelling it as currency', () => {
+    expect(service).toContain('coverage_amount: details.coverage_amount ?? record.coverage_amount ?? null');
+    expect(service).toContain('coverage_percentage:');
+    expect(mobile).toContain("label: 'Coverage rate'");
+    expect(mobile).toContain('policy?.coverage_percentage');
+    expect(modal).toContain('label="Coverage percentage"');
+    expect(modal).not.toContain('label="Coverage amount"');
+    expect(desktop).toContain('label="Coverage rate"');
+    expect(desktop).toContain('policy.coverage_percentage');
   });
 
   it('keeps analytics explicitly scoped to visible rows', () => {
