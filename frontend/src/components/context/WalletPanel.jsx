@@ -8,6 +8,8 @@ import {
     Download,
     History,
     AlertCircle,
+    Plus,
+    LockKeyhole,
 } from 'lucide-react';
 
 export const WalletPanel = ({ walletContext }) => {
@@ -25,6 +27,7 @@ export const WalletPanel = ({ walletContext }) => {
         loadError = '',
         hasLoaded = false,
         roleLabel = 'Hospital admin',
+        canManage = false,
     } = walletContext || {};
     const [panelStatus, setPanelStatus] = React.useState('');
 
@@ -138,6 +141,48 @@ export const WalletPanel = ({ walletContext }) => {
                     {panelStatus || 'Loaded records are read-only. Money and card changes remain unavailable.'}
                 </p>
             </div>
+
+            {canManage && (
+                <div className="space-y-2">
+                    <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Wallet actions</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button
+                            type="button"
+                            disabled
+                            aria-describedby="wallet-action-authority"
+                            title="Add funds is unavailable until payment confirmation and wallet reflection are proved."
+                            className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-center text-xs font-semibold leading-tight">Add funds</span>
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            aria-describedby="wallet-action-authority"
+                            title="Withdraw is unavailable until balance reservation and payout reflection are proved."
+                            className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
+                        >
+                            <ArrowUpRight className="h-4 w-4" />
+                            <span className="text-center text-xs font-semibold leading-tight">Withdraw</span>
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            aria-describedby="wallet-action-authority"
+                            title="Payment cards are unavailable until organization authority is proved."
+                            className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
+                        >
+                            <CreditCard className="h-4 w-4" />
+                            <span className="text-center text-xs font-semibold leading-tight">Payment cards</span>
+                        </button>
+                    </div>
+                    <p id="wallet-action-authority" className="flex items-start gap-2 px-1 text-xs leading-5 text-muted-foreground">
+                        <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        These historical commands remain locked until backend authority and reflected results are proved.
+                    </p>
+                </div>
+            )}
 
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">

@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileWallet } from '../mobile/MobileWallet';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
 import { SignalPanel } from '../console/SignalPanel';
@@ -38,6 +39,17 @@ import { SkeletonRows, CopyChip, StatusPill, DetailLine, EmptyState, ErrorBanner
 import { useListKeyboardNav } from '../../hooks/useListKeyboardNav';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 
+const createWalletFilters = () => ({
+    ledger: {
+        transactionType: 'all',
+        dateRange: { start: '', end: '' },
+    },
+    payments: {
+        status: 'all',
+        paymentMethod: 'all',
+        dateRange: { start: '', end: '' },
+    },
+});
 
 export const WalletManagementPage = () => {
     const { profile, isAdmin, isOrgAdmin } = useAuth();
@@ -51,6 +63,9 @@ export const WalletManagementPage = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [activeTab, setActiveTab] = useState('ledger');
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+    const [mobileSearch, setMobileSearch] = useState('');
+    const [mobileFilters, setMobileFilters] = useState(createWalletFilters);
     const [loadError, setLoadError] = useState('');
     const [hasLoaded, setHasLoaded] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
@@ -254,6 +269,68 @@ export const WalletManagementPage = () => {
         setMobileLimit((current) => current + 20);
     }, [activeTab, hasMore, isFetching, loading, mobileLoadingMore]);
 
+    const activeMobileFilters = mobileFilters[activeTab];
+    const mobileFilterSchema = useMemo(() => {
+        const dateFilter = {
+            key: 'dateRange',
+            type: 'date',
+            label: 'Recorded date',
+        };
+
+        if (activeTab === 'ledger') {
+            return [
+                {
+                    key: 'transactionType',
+                    type: 'select',
+                    label: 'Transaction type',
+                    options: [
+                        { label: 'All transactions', value: 'all' },
+                        { label: 'Credit', value: 'credit' },
+                        { label: 'Debit', value: 'debit' },
+                    ],
+                },
+                dateFilter,
+            ];
+        }
+
+        return [
+            {
+                key: 'status',
+                type: 'select',
+                label: 'Payment status',
+                options: [
+                    { label: 'All statuses', value: 'all' },
+                    { label: 'Pending', value: 'pending' },
+                    { label: 'Completed', value: 'completed' },
+                    { label: 'Failed', value: 'failed' },
+                    { label: 'Refunded', value: 'refunded' },
+                    { label: 'Declined', value: 'declined' },
+                ],
+            },
+            {
+                key: 'paymentMethod',
+                type: 'select',
+                label: 'Payment method',
+                options: [
+                    { label: 'All methods', value: 'all' },
+                    { label: 'Cash', value: 'cash' },
+                    { label: 'Card', value: 'card' },
+                    { label: 'Wallet', value: 'wallet' },
+                ],
+            },
+            dateFilter,
+        ];
+    }, [activeTab]);
+    const handleApplyMobileFilters = useCallback((nextFilters) => {
+        setMobileFilters((current) => ({ ...current, [activeTab]: nextFilters }));
+    }, [activeTab]);
+    const handleClearMobileFilters = useCallback(() => {
+        setMobileFilters((current) => ({
+            ...current,
+            [activeTab]: createWalletFilters()[activeTab],
+        }));
+    }, [activeTab]);
+
     const loadedAnalytics = useMemo(() => ({
         total: ledger.length + payments.length,
         active: payments.filter((payment) => payment.status === 'completed').length,
@@ -289,11 +366,18 @@ export const WalletManagementPage = () => {
                     payments={payments}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
+                    search={mobileSearch}
+                    onSearchCommit={setMobileSearch}
+                    filters={activeMobileFilters}
+                    onOpenFilters={() => setFilterSheetOpen(true)}
+                    filterSheetOpen={filterSheetOpen}
+                    onClearFilters={handleClearMobileFilters}
+                    onOpenStats={() => setAnalyticsModalOpen(true)}
+                    statsOpen={analyticsModalOpen}
                     onRefresh={fetchData}
                     hasMore={Boolean(hasMore[activeTab])}
                     isLoadingMore={mobileLoadingMore}
                     onLoadMore={handleMobileLoadMore}
-                    onExport={handleExport}
                     onOpenPayment={setSelectedPayment}
                     formatCurrency={formatCurrency}
                 />
@@ -311,6 +395,19 @@ export const WalletManagementPage = () => {
                     onClose={() => setAnalyticsModalOpen(false)}
                     type="generic"
                     analytics={loadedAnalytics}
+                />
+
+                <FilterSheet
+                    isOpen={filterSheetOpen}
+                    onOpenChange={setFilterSheetOpen}
+                    filterSchema={mobileFilterSchema}
+                    onApply={handleApplyMobileFilters}
+                    initialValues={activeMobileFilters}
+                    resetValues={createWalletFilters()[activeTab]}
+                    resetLabel="Clear"
+                    title={activeTab === 'ledger' ? 'Transaction filters' : 'Payment filters'}
+                    viewToggle={null}
+                    isMobile={true}
                 />
             </>
         );

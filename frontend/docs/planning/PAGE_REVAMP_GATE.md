@@ -69,9 +69,10 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   populated, empty, failed/stale, navigation, FAB, filter/tab, detail-sheet, and safe-area behavior.
 - First manual side-by-side result: Payments and Insurance are not green against Requests. Payments was
   remediated again with the shared KPI strip, grouped feed/detail mechanics, route-owned Payment Stats FAB,
-  growing loaded window, explicit source failure states, and per-payment currency. Export remains local to
-  the Transactions feed; active add-funds, withdrawal, and card-management event dispatches were removed
-  pending authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
+  growing loaded window, explicit source failure states, and per-payment currency. Loaded-scope search,
+  source-aware filters, and analytics now own the row beneath the source tabs; CSV export belongs to the
+  context panel. Add-funds, withdrawal, and card-management controls remain disabled there pending
+  authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
   uses donor-shaped multi-group loading, and renders a genuine failed-load recovery instead of a false
   empty result. These are source fixes, not rendered admission; both pages require human retest.
 - Finance command mount closure on 2026-07-12: `GlobalFinancialModals` remains source inventory for

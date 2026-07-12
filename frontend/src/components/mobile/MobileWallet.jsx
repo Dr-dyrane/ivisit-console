@@ -7,7 +7,6 @@ import {
   CreditCard,
   Eye,
   EyeOff,
-  FileDown,
   Hash,
   History,
   ShieldCheck,
@@ -18,6 +17,7 @@ import {
   Hairline,
   MobileHeading,
   MobileListRow,
+  SearchRow,
   SkeletonGroupList,
   UpdatingPillRow,
   useSkeletonWarmup,
@@ -36,6 +36,7 @@ import { formatRelativeTime } from '../../utils/activityUtils';
 // source tabs, and a Requests-shaped grouped activity feed. Money-moving commands
 // remain unavailable and are never inferred from optimistic browser state.
 // grammar:loadmore-append=WalletManagementPage owns the growing server window.
+// grammar:search=Search and filters narrow the explicitly loaded route window only.
 
 const readyColor = 'hsl(160 84% 39%)';
 const waitingColor = 'hsl(199 89% 48%)';
@@ -96,6 +97,20 @@ const formatDateTime = (value) => {
   return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
 };
 
+const matchesDateRange = (value, range = {}) => {
+  if (!range.start && !range.end) return true;
+  const time = new Date(value || '').getTime();
+  if (Number.isNaN(time)) return false;
+  const start = range.start ? new Date(`${range.start}T00:00:00`).getTime() : null;
+  const end = range.end ? new Date(`${range.end}T23:59:59.999`).getTime() : null;
+  return (start === null || time >= start) && (end === null || time <= end);
+};
+
+const hasWalletFilters = (filters = {}) => Object.entries(filters).some(([key, value]) => {
+  if (key === 'dateRange') return Boolean(value?.start || value?.end);
+  return Boolean(value && value !== 'all');
+});
+
 const WalletActivityTabs = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'ledger', label: 'Transactions' },
@@ -147,11 +162,9 @@ const WalletSkeleton = () => (
     </section>
     <section className="px-4">
       <div className="mb-3 h-11 w-full rounded-inner bg-muted/20 shimmer" />
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="space-y-2">
-          <div className="h-4 w-28 rounded-pill bg-muted/25 shimmer" />
-          <div className="h-3 w-20 rounded-pill bg-muted/15 shimmer" />
-        </div>
+      <div className="mb-3 flex items-center gap-2">
+        <div className="h-9 flex-1 rounded-inner bg-muted/20 shimmer" />
+        <div className="h-9 w-9 rounded-button bg-muted/20 shimmer" />
         <div className="h-9 w-9 rounded-button bg-muted/20 shimmer" />
       </div>
       <SkeletonGroupList groups={2} rowsPerGroup={[3, 2]} trailing="timePill" />
@@ -170,11 +183,18 @@ export const MobileWallet = ({
   payments = [],
   activeTab = 'ledger',
   setActiveTab,
+  search = '',
+  onSearchCommit,
+  filters = {},
+  onOpenFilters,
+  filterSheetOpen = false,
+  onClearFilters,
+  onOpenStats,
+  statsOpen = false,
   onRefresh,
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
-  onExport,
   onOpenPayment,
   formatCurrency,
 }) => {
@@ -183,7 +203,43 @@ export const MobileWallet = ({
   const [showBalance, setShowBalance] = useState(true);
   const warmingUp = useSkeletonWarmup();
   const showSkeleton = warmingUp || (loading && !hasLoaded);
-  const items = activeTab === 'ledger' ? ledger : payments;
+  const sourceItems = activeTab === 'ledger' ? ledger : payments;
+  const normalizedSearch = search.trim().toLowerCase();
+  const hasFilter = hasWalletFilters(filters);
+  const items = useMemo(() => sourceItems.filter((item) => {
+    if (!matchesDateRange(item.created_at, filters.dateRange)) return false;
+
+    if (activeTab === 'ledger') {
+      const transactionType = String(item.transaction_type || '').toLowerCase();
+      if (filters.transactionType && filters.transactionType !== 'all' && transactionType !== filters.transactionType) return false;
+      if (!normalizedSearch) return true;
+      return [
+        item.description,
+        item.transaction_type,
+        item.reference_id,
+        item.external_reference,
+        item.amount,
+      ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+    }
+
+    const status = String(item.status || '').toLowerCase();
+    const paymentMethod = String(item.payment_method || '').toLowerCase();
+    if (filters.status && filters.status !== 'all' && status !== filters.status) return false;
+    if (filters.paymentMethod && filters.paymentMethod !== 'all' && paymentMethod !== filters.paymentMethod) return false;
+    if (!normalizedSearch) return true;
+    return [
+      item.display_id,
+      item.payment_method,
+      item.status,
+      item.amount,
+      item.user_details?.first_name,
+      item.user_details?.last_name,
+      item.user_details?.email,
+      item.user_details?.phone,
+      item.emergency_requests?.service_type,
+      item.emergency_requests?.hospitals?.name,
+    ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+  }), [activeTab, filters, normalizedSearch, sourceItems]);
   const activityGroups = useMemo(() => buildMonthGroups(items), [items]);
   const activeReadState = readState?.[activeTab] || 'unavailable';
   const activeUnavailable = activeReadState !== 'ready';
@@ -307,25 +363,19 @@ export const MobileWallet = ({
 
             <section className="px-4">
               <WalletActivityTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+              <SearchRow
+                placeholder={activeTab === 'ledger' ? 'Search transactions...' : 'Search patient payments...'}
+                search={search}
+                onSearchCommit={onSearchCommit}
+                entityLabel={activeTab === 'ledger' ? 'transactions' : 'patient payments'}
+                onOpenFilters={onOpenFilters}
+                filterSheetOpen={filterSheetOpen}
+                hasFilter={hasFilter}
+                onOpenStats={onOpenStats}
+                statsOpen={statsOpen}
+                statsLabel="Open payment analytics"
+              />
               <UpdatingPillRow show={Boolean(isFetching) && !isLoadingMore} />
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-foreground">Payment activity</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {items.length} loaded {activeTab === 'ledger' ? 'transactions' : 'patient payments'}
-                  </p>
-                </div>
-                {activeTab === 'ledger' && onExport && items.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={onExport}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button surface-card text-muted-foreground transition-transform active:scale-[0.96]"
-                    aria-label="Export visible transactions"
-                  >
-                    <FileDown className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
 
               {errorMessage && hasLoaded && (
                 <div className="mb-4 rounded-card bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
@@ -369,13 +419,23 @@ export const MobileWallet = ({
                   icon={activeTab === 'ledger' ? History : ShieldCheck}
                   label={activeUnavailable
                     ? `${activeTab === 'ledger' ? 'Transactions' : 'Patient payments'} unavailable`
+                    : normalizedSearch
+                      ? `No matching ${activeTab === 'ledger' ? 'transactions' : 'patient payments'}`
+                      : hasFilter
+                        ? `No ${activeTab === 'ledger' ? 'transactions' : 'patient payments'} match these filters`
                     : activeTab === 'ledger'
                       ? 'No transactions yet'
                       : 'No patient payments yet'}
-                  reason={activeUnavailable ? 'error' : 'empty'}
-                  hint={activeUnavailable ? 'Retry to load this payment activity.' : 'Payment activity will appear here after it is recorded.'}
-                  onRecover={activeUnavailable ? onRefresh : undefined}
-                  recoverLabel={activeUnavailable ? 'Try Again' : undefined}
+                  reason={activeUnavailable ? 'error' : normalizedSearch ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                  hint={activeUnavailable
+                    ? 'Retry to load this payment activity.'
+                    : normalizedSearch
+                      ? `No loaded activity matches "${search}".`
+                      : hasFilter
+                        ? 'Clear filters to view the loaded activity.'
+                        : 'Payment activity will appear here after it is recorded.'}
+                  onRecover={activeUnavailable ? onRefresh : normalizedSearch ? () => onSearchCommit('') : hasFilter ? onClearFilters : undefined}
+                  recoverLabel={activeUnavailable ? 'Try Again' : normalizedSearch ? 'Clear Search' : hasFilter ? 'Clear Filters' : undefined}
                   labelTone="plain"
                 />
               )}

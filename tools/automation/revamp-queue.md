@@ -33,7 +33,7 @@ Page 22 Onboarding Success (`efac625`).
      Requests. The user-rendered correction now declares a HYBRID grammar: shared title/balance hierarchy,
      loaded finance KPIs, separate activity-source tabs, Requests' grouped feed/detail-sheet mechanics,
      a route-owned Payment Stats FAB,
-     and feed-local visible-transaction export. It distinguishes missing/failed source truth from zero,
+     and context-owned visible-transaction export. It distinguishes missing/failed source truth from zero,
      preserves per-payment currency, grows the loaded window, and removes active add-funds, withdrawal,
      and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
      a two-group replace-in-place skeleton, and distinguishes failed load from true empty. Both pages
@@ -130,10 +130,16 @@ read-only visual revamp when the route projection is proved and unsupported comm
 - Reworked Payments after direct user review exposed donor-system drift. It now uses the named HYBRID
   mobile grammar (shared title/balance row + loaded finance KPIs + separate source tabs + Requests grouped
   feed/detail sheet), assigns Payment
-  Stats to the bottom FAB, keeps export local to Transactions, and limits side-menu actions to Stats and
-  Export. Service/page state now exposes missing/failed projections instead of false zeroes, detects more
+  Stats to the bottom FAB, keeps transaction export in the context panel, and limits active side-menu actions to
+  Stats and Export. Service/page state now exposes missing/failed projections instead of false zeroes, detects more
   rows with a growing window, preserves loaded records on partial refresh failure, and formats patient
   payments in their row currency. Production build and focused contracts pass; manual render remains open.
+- The next rendered review removed the redundant Payment activity/count/export row. Payments now follows
+  the confirmed control grammar under its source tabs: loaded-window search, source-aware FilterSheet
+  (credit/debit/date or canonical payment status/method/date), and analytics. CSV export is context-panel
+  owned. Git archaeology found historical Add funds/Credit Main, Withdraw, and Payment cards commands but
+  no separate create-wallet receiver; all three are visible only as disabled context actions because the
+  Pass 2 audit still records top-up confirmation, payout reservation/reflection, and card authorization gaps.
 - Promoted Pricing from `list-migrating` to full LIST grammar with structural skeletons, a real
   refetch signal, growing-window load more, grouped rows, degraded/error states, and a route-owned
   Add Pricing FAB that reaches the existing fail-closed page handler.

@@ -155,6 +155,11 @@ describe('WalletManagementPage Payments contract', () => {
     expect(walletPanel).toContain("new CustomEvent('openWalletAnalytics')");
     expect(walletPanel).toContain("new CustomEvent('exportLedger')");
     expect(walletPanel).toContain('Loaded records are read-only. Money and card changes remain unavailable.');
+    expect(walletPanel).toContain('These historical commands remain locked until backend authority and reflected results are proved.');
+    expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Add funds</span>');
+    expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Withdraw</span>');
+    expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Payment cards</span>');
+    expect(walletPanel.match(/disabled/g)?.length).toBeGreaterThanOrEqual(4);
     expect(walletPanel).not.toContain('handleTopUp');
     expect(walletPanel).not.toContain('handleWithdraw');
     expect(walletPanel).not.toContain('handleCards');
@@ -377,6 +382,10 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('hasMore={Boolean(hasMore[activeTab])}');
     expect(page).toContain('onLoadMore={handleMobileLoadMore}');
     expect(page).toContain('readState={readState}');
+    expect(page).toContain('search={mobileSearch}');
+    expect(page).toContain('filters={activeMobileFilters}');
+    expect(page).toContain('<FilterSheet');
+    expect(page).toContain("title={activeTab === 'ledger' ? 'Transaction filters' : 'Payment filters'}");
     expect(service).toContain('safeLimit + 1');
     expect(service).toContain('ledgerRows.length > safeLimit');
     expect(service).toContain('paymentRows.length > safeLimit');
@@ -399,11 +408,16 @@ describe('WalletManagementPage Payments contract', () => {
 
   it('keeps transaction export scoped to visible ledger rows without completeness claims', () => {
     const page = pageSource();
+    const panel = walletPanelSource();
+    const mobile = mobileSource();
 
     expect(page).toContain('ivisit_transactions_');
     expect(page).toContain("toast.success('Transactions exported.');");
     expect(page).toContain("window.addEventListener('exportLedger', handleExportEvent);");
     expect(page).toContain("window.removeEventListener('exportLedger', handleExportEvent);");
+    expect(panel).toContain("new CustomEvent('exportLedger')");
+    expect(mobile).not.toContain('Export visible transactions');
+    expect(mobile).not.toContain('<FileDown');
     expect(page).not.toContain('All transactions exported');
     expect(page).not.toContain('Full ledger');
   });
@@ -426,7 +440,11 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain('Recorded balance');
     expect(mobile).not.toContain('30-day estimate');
     expect(mobile).not.toContain('statusLabel=');
-    expect(mobile).toContain('aria-label="Export visible transactions"');
+    expect(mobile).toContain('<SearchRow');
+    expect(mobile).toContain('onOpenFilters={onOpenFilters}');
+    expect(mobile).toContain('onOpenStats={onOpenStats}');
+    expect(mobile).toContain('Search and filters narrow the explicitly loaded route window only.');
+    expect(mobile).not.toContain('<h2 className="text-sm font-semibold text-foreground">Payment activity</h2>');
     expect(mobile).toContain('<MobileListLoadMore');
     expect(mobile).toContain('End of loaded payment activity');
     expect(mobile).not.toContain('<MobileActionRail');

@@ -165,7 +165,7 @@ function lintHybrid(src) {
   if (!has(src, 'useSkeletonWarmup')) fatal.push('missing useSkeletonWarmup');
   if (!has(src, 'isFetching')) fatal.push('missing background-refetch signal');
   if (!hasTag(src, 'MobileDetailSheet')) fatal.push('missing activity detail sheet');
-  if (hasTag(src, 'SearchRow')) fatal.push('HYBRID carries SearchRow without a proved server-search contract');
+  if (hasTag(src, 'SearchRow') && !waived(src, 'search')) fatal.push('HYBRID SearchRow must name its loaded/server scope owner');
   if (!has(src, 'animatePageLoad={false}')) fatal.push('missing animatePageLoad={false}');
   if (hasAny(src, ['useLoadMoreControl', 'onLoadMore']) && !waived(src, 'loadmore-append')) {
     fatal.push('load-more needs an explicit growing-window/accumulator owner');
