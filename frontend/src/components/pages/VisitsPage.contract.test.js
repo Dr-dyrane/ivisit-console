@@ -108,7 +108,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<FilterSheet');
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
-    expect(page).toContain('const viewVisitId = urlParams.get(\'view\')');
+    expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
     expect(page).toContain(".channel('visits')");
     expect(page).toContain('setTotalCount(pageData.count || 0)');
     expect(page).toContain('createVisit({');
@@ -656,10 +656,16 @@ describe('VisitsPage admission contract', () => {
     const page = pageSource();
     const mobile = mobileSource();
     const gate = gateSource();
+    const hospitalsService = fs.readFileSync('src/services/hospitalsService.js', 'utf8');
 
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
-    expect(page).toContain('const viewVisitId = urlParams.get(\'view\')');
+    expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
     expect(page).toContain('const visitData = await getVisit(viewVisitId)');
+    expect(page).toContain("import { getHospitalOptions } from '../../services/hospitalsService';");
+    expect(page).toContain('getHospitalOptions()');
+    expect(page).not.toContain('getHospitals()');
+    expect(hospitalsService).toContain('export async function getHospitalOptions()');
+    expect(hospitalsService).toContain(".select('id, name')");
     // Converted 2026-07-09: the responsive scan surface is the single canonical row
     // list inside the activity sheet (grid cards retired with the density variants).
     // Donor-parity stage (Requests gold standard): atlas backdrop + shared wayfinding

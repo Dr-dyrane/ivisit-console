@@ -113,7 +113,7 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 51 Jest suites / 378 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 51 Jest suites / 379 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
 - Rendered/manual proof remains open. Payments and Insurance explicitly failed their first visual check
@@ -541,12 +541,13 @@ Notes:
 ### 2026-07-09 — desktop-uiux-lane — SHELL-PARITY AUDIT LANDED + queue items for donor lanes
 - Report: `frontend/docs/audit/HOSPITALS_SHELL_PARITY_AUDIT_2026-07-09.md` (5 sections, top-10).
   Hospitals is AHEAD on: working `?id=` deep link (UUID or display_id), RQ optimistic writes.
-- **QUEUE (Visits lane):** QuickSearch emits `/visits?id=` but VisitsPage reads `?view=`
-  (searchService.js:125 vs VisitsPage.jsx:256-277) — deep link silently dead; adopt the
-  Hospitals `?id` idiom (HospitalsPage.jsx:287-307). Also: `VisitsPage.jsx:468` unbounded
-  `getHospitals()` for a dropdown — needs a narrow `getHospitalOptions()` (`select('id, name')`).
-- **QUEUE (Requests lane):** no URL-param handler at all — add `?id=` (donor should not trail
-  its consumers). **QUEUE (estate):** NotificationCard renders chevrons but never navigates for
+- **RESOLVED 2026-07-12 (Visits lane):** VisitsPage accepts QuickSearch `/visits?id=` while
+  preserving the historical `?view=` contract; both resolve through `getVisit()`. The visit form
+  now uses RLS-scoped `getHospitalOptions()` with `select('id, name')` instead of loading full
+  hospital operational rows for a selector.
+- **RESOLVED 2026-07-12 (Requests lane):** QuickSearch `/emergencies?id=` opens read-only request
+  detail through current projection evidence or scoped `getEmergencyRequest()`, including UUID or
+  display-id support and honest denied/error feedback. **QUEUE (estate):** NotificationCard renders chevrons but never navigates for
   ANY type; when fixed, hospital notifications target `/hospitals?id=<id>` (already works).
 - **QUEUE (backend/allowlist):** RECONCILED — all 23 hospital update fields verified against the
   live SET clause; only `emergency_wait_time_minutes` silently drops (the settled F3 field).

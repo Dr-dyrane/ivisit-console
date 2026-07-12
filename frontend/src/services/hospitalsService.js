@@ -348,6 +348,22 @@ export async function getHospitals(filter = {}) {
 }
 
 /**
+ * Narrow facility identity projection for selectors owned by other domains.
+ * Database RLS remains the visibility owner; callers receive no operational fields.
+ */
+export async function getHospitalOptions() {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('id, name')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  });
+}
+
+/**
  * Route-owned Hospitals page projection.
  * Keeps list, exact count, filters, pagination, display IDs, and page stats in one service boundary.
  */

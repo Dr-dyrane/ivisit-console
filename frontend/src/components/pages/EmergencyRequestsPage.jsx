@@ -9,6 +9,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import {
   cancelEmergencyRequest,
+  getEmergencyRequest,
   getUserActivePaymentMethods,
   retryPaymentWithDifferentMethod,
 } from '../../services/emergencyService';
@@ -68,6 +69,7 @@ import {
   isCashPaymentMethod,
 } from '../../utils/emergencyRequestMapper';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
+import { useLocation } from 'react-router-dom';
 
 const EMPTY_REQUEST_FILTERS = Object.freeze({
   search: '',
@@ -460,6 +462,7 @@ const railPrimaryActionClass = {
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId, profile, user, loading: authLoading } = useAuth();
   const { isMobile } = useNavigation();
+  const location = useLocation();
 
   const currentUser = useMemo(() => ({
     isAdmin: () => isAdmin(),
@@ -650,12 +653,6 @@ export const EmergencyRequestsPage = () => {
     };
   }, [queryClient]);
 
-  // deep-link excluded by decision: QuickSearch emits /emergencies without an
-  // ?id focus param today, so this page carries no URL deep-link handler (the
-  // donor of the idiom is HospitalsPage's params.get('id')). Adding the ?id
-  // handler here is a queued donor-lane item (revamp-queue 2026-07-09,
-  // "deep-link debts Hospitals exposes"); until then this is a recorded,
-  // cited exclusion, not a silent omission.
   const handleCreateEmergency = useCallback(() => {
     setSelectedRequest(null);
     setIsEmergencyModalOpen(true);
@@ -983,6 +980,40 @@ export const EmergencyRequestsPage = () => {
     setSelectedRequest(request);
     setIsDetailsModalOpen(true);
   }, []);
+
+  const openedDeepLinkRef = useRef(null);
+  useEffect(() => {
+    const requestId = new URLSearchParams(location.search).get('id');
+    if (!requestId || !authReady || openedDeepLinkRef.current === requestId) return undefined;
+
+    const loadedRequest = requests.find((request) => request.id === requestId || request.display_id === requestId);
+    if (loadedRequest) {
+      openedDeepLinkRef.current = requestId;
+      handleViewDetails(loadedRequest);
+      return undefined;
+    }
+
+    let active = true;
+    openedDeepLinkRef.current = requestId;
+    getEmergencyRequest(requestId)
+      .then((request) => {
+        if (!active) return;
+        if (!request) {
+          toast.info('Request is unavailable in your current scope.');
+          return;
+        }
+        handleViewDetails(request);
+      })
+      .catch(() => {
+        if (!active) return;
+        openedDeepLinkRef.current = null;
+        toast.error('Failed to load request details.');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authReady, handleViewDetails, location.search, requests]);
 
   const handleCloseEmergencyModal = () => {
     setIsEmergencyModalOpen(false);

@@ -90,6 +90,18 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(serviceSource).not.toContain('.limit(1000)');
   });
 
+  it('opens Quick Search request deep links through the scoped single-record owner', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const searchSource = fs.readFileSync('src/services/searchService.js', 'utf8');
+
+    expect(searchSource).toContain('path: `/emergencies?id=${e.id}`');
+    expect(pageSource).toContain("new URLSearchParams(location.search).get('id')");
+    expect(pageSource).toContain('getEmergencyRequest(requestId)');
+    expect(pageSource).toContain("request.id === requestId || request.display_id === requestId");
+    expect(pageSource).toContain("toast.info('Request is unavailable in your current scope.')");
+    expect(pageSource).not.toContain('deep-link excluded by decision:');
+  });
+
   it('keeps legacy Requests density views out of the active route renderer', () => {
     const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
     const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');

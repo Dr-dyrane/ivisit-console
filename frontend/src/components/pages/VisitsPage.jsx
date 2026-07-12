@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { createVisit, updateVisit, getVisit, getVisitsPageData } from '../../services/visitsService';
-import { getHospitals } from '../../services/hospitalsService';
+import { getHospitalOptions } from '../../services/hospitalsService';
 import { getProfiles } from '../../services/profilesService';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -255,7 +255,8 @@ export const VisitsPage = () => {
   // Handle URL parameter to open specific visit modal
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
-    const viewVisitId = urlParams.get('view');
+    // Preserve the historical ?view= contract and accept Quick Search's canonical ?id= link.
+    const viewVisitId = urlParams.get('view') || urlParams.get('id');
 
     if (viewVisitId) {
       // Fetch the specific visit and open modal
@@ -466,7 +467,7 @@ export const VisitsPage = () => {
       try {
         const [patientsData, hospitalsData] = await Promise.all([
           getProfiles({ role: 'patient' }),
-          getHospitals()
+          getHospitalOptions()
         ]);
         setPatients(patientsData || []);
         setHospitals(hospitalsData || []);

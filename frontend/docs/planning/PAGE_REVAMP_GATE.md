@@ -55,7 +55,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 51 suites / 378 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 51 suites / 379 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
 - Rendered proof remains open and is being performed manually because the visible in-app browser tab is
@@ -82,6 +82,12 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   radius and adding a cross-panel contract. Pricing row/keyboard activation now selects read-only
   evidence directly; redundant unavailable detail buttons were removed from its rail/context focus
   card. Payments retains its proved `?tab=&id=` deep links; other new URL contracts remain unproved.
+- Canonical deep-link debt closed on 2026-07-12: Visits accepts Quick Search `?id=` as an alias for
+  its preserved `?view=` contract and still reads through `getVisit()`. Its form now gets facility
+  identities from narrow RLS-scoped `getHospitalOptions()` (`id`, `name`) rather than full hospital
+  rows. Requests now handles Quick
+  Search `/emergencies?id=` through loaded projection evidence or scoped `getEmergencyRequest()`
+  (UUID/display id), then opens the existing read-only detail modal with honest unavailable/error copy.
 - Health News remains explicitly excluded from desktop and mobile selection.
 
 ## Today Canon Profile And Completion - 2026-07-09
