@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationCard } from './NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { getNotifications, markNotificationAsRead, subscribeToNotifications } from '../../services/notificationService';
 
@@ -94,7 +95,7 @@ function groupNotificationsByDay(notifications, now = new Date()) {
 
 // Shared grouped renderer for both the desktop dropdown and the mobile Sheet.
 // One card per single-item day; one panel with hairline-separated rows otherwise.
-const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
+const NotificationGroupList = ({ notifications, onDismiss, onMarkRead, onOpenNotification }) => {
   const groups = useMemo(() => groupNotificationsByDay(notifications), [notifications]);
 
   return (
@@ -119,6 +120,7 @@ const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
                 notification={group.items[0]}
                 onDismiss={onDismiss}
                 onMarkRead={onMarkRead}
+                onOpenNotification={onOpenNotification}
               />
             </AnimatePresence>
           ) : (
@@ -130,6 +132,7 @@ const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
                     notification={notification}
                     onDismiss={onDismiss}
                     onMarkRead={onMarkRead}
+                    onOpenNotification={onOpenNotification}
                     grouped
                     showDivider={index > 0}
                   />
@@ -146,6 +149,7 @@ const NotificationGroupList = ({ notifications, onDismiss, onMarkRead }) => {
 export const NotificationCenter = () => {
   const { user } = useAuth();
   const { isMobile } = useNavigation();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -252,6 +256,11 @@ export const NotificationCenter = () => {
     );
   }, [markNotificationsReadOptimistically, notifications]);
 
+  const handleOpenNotification = useCallback((destination) => {
+    setIsOpen(false);
+    navigate(destination);
+  }, [navigate]);
+
   return (
     <div className="relative">
       <Button
@@ -315,6 +324,7 @@ export const NotificationCenter = () => {
                   notifications={notifications}
                   onDismiss={handleDismiss}
                   onMarkRead={handleMarkRead}
+                  onOpenNotification={handleOpenNotification}
                 />
               )}
             </div>
@@ -392,6 +402,7 @@ export const NotificationCenter = () => {
                         notifications={notifications}
                         onDismiss={handleDismiss}
                         onMarkRead={handleMarkRead}
+                        onOpenNotification={handleOpenNotification}
                       />
                     )}
                   </div>

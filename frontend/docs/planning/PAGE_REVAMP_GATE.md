@@ -55,7 +55,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 51 suites / 379 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 52 suites / 389 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
 - Rendered proof remains open and is being performed manually because the visible in-app browser tab is

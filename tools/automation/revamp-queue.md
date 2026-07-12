@@ -113,7 +113,7 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 51 Jest suites / 379 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 52 Jest suites / 389 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
 - Rendered/manual proof remains open. Payments and Insurance explicitly failed their first visual check
@@ -547,8 +547,12 @@ Notes:
   hospital operational rows for a selector.
 - **RESOLVED 2026-07-12 (Requests lane):** QuickSearch `/emergencies?id=` opens read-only request
   detail through current projection evidence or scoped `getEmergencyRequest()`, including UUID or
-  display-id support and honest denied/error feedback. **QUEUE (estate):** NotificationCard renders chevrons but never navigates for
-  ANY type; when fixed, hospital notifications target `/hospitals?id=<id>` (already works).
+  display-id support and honest denied/error feedback.
+- **RESOLVED 2026-07-12 (notification navigation):** Notification cards now resolve live-record
+  targets only for the proved Ambulance, Doctor, Hospital, Visit, and Emergency `?id=` contracts,
+  close the notification surface, and navigate on pointer or keyboard activation. Deleted,
+  targetless, malformed, User, Verification, and Health News rows do not advertise an unproved
+  destination; unread inert rows remain mark-read controls.
 - **QUEUE (backend/allowlist):** RECONCILED — all 23 hospital update fields verified against the
   live SET clause; only `emergency_wait_time_minutes` silently drops (the settled F3 field).
   No other lying edit fields. See DATA_SYNC §12b.

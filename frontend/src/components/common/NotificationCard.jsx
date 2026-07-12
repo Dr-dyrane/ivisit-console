@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { resolveNotificationDestination } from './notificationRoutes';
 import {
   Ambulance,
   Stethoscope,
@@ -83,6 +84,7 @@ export const NotificationCard = ({
   notification,
   onDismiss,
   onMarkRead,
+  onOpenNotification,
   grouped = false,
   showDivider = false,
 }) => {
@@ -90,11 +92,13 @@ export const NotificationCard = ({
   const tone = signalConfig[notification.color] || neutralTone;
   const isUnread = !notification.read;
   const displayTime = notification.timestamp || notification.created_at;
-  const hasActionTarget = Boolean(notification.action_data || notification.target_id);
+  const destination = resolveNotificationDestination(notification);
+  const canActivate = isUnread || Boolean(destination);
   const pillTone = resolveNewPillTone(notification, tone);
 
   const handleActivate = () => {
     if (isUnread) onMarkRead(notification.id);
+    if (destination) onOpenNotification(destination);
   };
 
   // Standalone rows carry their own surface + unread/read tone; grouped rows are
@@ -103,9 +107,9 @@ export const NotificationCard = ({
 
   const row = (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label="Mark notification as read"
+      role={canActivate ? 'button' : undefined}
+      tabIndex={canActivate ? 0 : undefined}
+      aria-label={destination ? `Open ${notification.title || 'notification'}` : (isUnread ? 'Mark notification as read' : undefined)}
       onClick={handleActivate}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -113,7 +117,7 @@ export const NotificationCard = ({
           handleActivate();
         }
       }}
-      className="group relative w-full cursor-pointer p-3.5 transition-colors hover:bg-muted/20 dark:hover:bg-white/[0.04]"
+      className={`group relative w-full p-3.5 transition-colors ${canActivate ? 'cursor-pointer hover:bg-muted/20 dark:hover:bg-white/[0.04]' : ''}`}
     >
       <div className="flex items-start gap-3">
         {/* Circular icon well — type-tinted, pill radius. */}
@@ -134,7 +138,7 @@ export const NotificationCard = ({
           <span className="text-[11px] text-muted-foreground/70">{formatNotificationTime(displayTime)}</span>
           {isUnread ? (
             <span className={`mt-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${pillTone}`}>New</span>
-          ) : hasActionTarget ? (
+          ) : destination ? (
             <ChevronRight className="mt-1 h-4 w-4 text-muted-foreground/50" />
           ) : null}
         </div>

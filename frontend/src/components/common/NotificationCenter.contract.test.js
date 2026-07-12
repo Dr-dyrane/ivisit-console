@@ -24,6 +24,7 @@ describe('NotificationCenter quiet startup contract', () => {
   it('keeps notifications as shared shell chrome with immediate feedback', () => {
     const centerSource = fs.readFileSync('src/components/common/NotificationCenter.jsx', 'utf8');
     const cardSource = fs.readFileSync('src/components/common/NotificationCard.jsx', 'utf8');
+    const routeSource = fs.readFileSync('src/components/common/notificationRoutes.js', 'utf8');
     const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
 
     expect(centerSource).toContain('<Sheet open={isOpen} onOpenChange={setIsOpen}>');
@@ -52,8 +53,15 @@ describe('NotificationCenter quiet startup contract', () => {
     // never the red-resolving semantic tokens, and never a drawn left accent bar.
     expect(cardSource).toContain('bg-emerald-500/15');
     expect(cardSource).not.toContain('inset_4px_0_0');
-    expect(cardSource).toContain('aria-label="Mark notification as read"');
+    expect(cardSource).toContain("destination ? `Open ${notification.title || 'notification'}`");
     expect(cardSource).toContain('aria-label="Dismiss notification"');
+    expect(cardSource).toContain('resolveNotificationDestination(notification)');
+    expect(centerSource).toContain('const navigate = useNavigate()');
+    expect(centerSource).toContain('setIsOpen(false);');
+    expect(centerSource).toContain('navigate(destination);');
+    expect(routeSource).toContain("notification.action_type === 'deleted'");
+    expect(routeSource).toContain("emergency_request: '/emergencies'");
+    expect(routeSource).not.toContain("news: '/health-news'");
     expect(cardSource).not.toContain('border-');
     expect(cardSource).not.toContain('variant="outline"');
 
