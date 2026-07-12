@@ -47,6 +47,10 @@ Page 22 Onboarding Success (`efac625`).
      single updated-time sort, keyboard focus, loading/refetch/empty behavior, selection exclusion,
      navbar title, SEO title, and recorded no-deep-link/no-write-surface decisions. Payments remains
      dashboard-tier rather than being forced into the list registry.
+   - Cross-surface status colors now align for Subscriptions (active emerald, pending cyan,
+     unsubscribed neutral, bounced destructive). Analytics ordinary totals/dominance and the mobile
+     higher-demand band no longer consume destructive red; failure, cancelled/declined, bounced, and
+     critical telemetry meanings retain it.
    - Pricing and Subscriptions source recheck on 2026-07-12 closed the same donor drift before manual
      proof: Pricing gained the atlas ground and multi-group skeleton, removed duplicate parent error
      copy, and removed a mobile Details CTA that only reached an unavailable command. Subscriptions

@@ -295,8 +295,8 @@ export const SubscriptionManagementPage = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'active': return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
-      case 'unsubscribed': return 'bg-destructive/20 text-destructive';
-      case 'pending': return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
+      case 'unsubscribed': return 'bg-muted/60 text-muted-foreground';
+      case 'pending': return 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200';
       case 'bounced': return 'bg-destructive/20 text-destructive';
       default: return 'bg-muted text-muted-foreground';
     }

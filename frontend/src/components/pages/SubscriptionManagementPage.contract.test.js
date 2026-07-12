@@ -165,6 +165,9 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain('onEdit={null}');
     expect(page).toContain('onDelete={null}');
     expect(page).toContain('canManage={false}');
+    expect(page).toContain("case 'pending': return 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200';");
+    expect(page).toContain("case 'unsubscribed': return 'bg-muted/60 text-muted-foreground';");
+    expect(page).toContain("case 'bounced': return 'bg-destructive/20 text-destructive';");
 
     // Baseline (f31f29f) billboard inventory: the old dashboard billboard + glance-tile rail
     // existed before the canon LIST rebuild. Preserved as EVIDENCE (oldMobile only), not canon.

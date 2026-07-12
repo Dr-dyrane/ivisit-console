@@ -227,6 +227,10 @@ describe('Analytics Page 13 intake contract', () => {
     expect(mobile).not.toContain('defaultChartData');
     expect(mobile).not.toContain("'LIVE'");
     expect(mobile).not.toContain("dominantType?.name || 'Cardiac'");
+    expect(mobile).not.toContain('bg-destructive/60');
+    expect(page).not.toContain('typePalette = [CHART_COLORS.destructive');
+    expect(page).not.toContain('"Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive');
+    expect(page).not.toContain('text-3xl font-bold text-destructive">{dominantType.name}');
     expect(mobile).not.toContain('progress: 75');
     expect(mobile).not.toContain('progress: 60');
     expect(mobile).not.toContain('(financeSummary.total / (resolvedStats.totalEmergencies || 1)).toFixed(0)');

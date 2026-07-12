@@ -87,6 +87,11 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   keyboard focus, one updated-time sort header, refetch/error/empty behavior, selection exclusion,
   navbar title alignment, and its explicit no-deep-link/no-arrival-toast/no-write-spinner decisions.
   The page now owns `SEOHead("Pricing")` and immediate press feedback on its fail-closed primary action.
+- Status-color recurrence closed on 2026-07-12: Subscriptions desktop now matches mobile (`active`
+  emerald, `pending` cyan, `unsubscribed` neutral, `bounced` destructive). Analytics no longer uses
+  destructive red for ordinary request totals, case-type ordering, dominant-case evidence, or the
+  mobile higher-demand band; red remains available for source failure, declined/cancelled outcomes,
+  and genuinely critical telemetry.
 - Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
   Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
   and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates

@@ -370,7 +370,7 @@ export const MobileAnalytics = ({
                                         {demandHeatmap.map((item, idx) => (
                                             <div key={item.hour || idx} className="aspect-square relative">
                                                 <div
-                                                    className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-destructive/60' :
+                                                    className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-amber-500/60' :
                                                         item.value > 50 ? 'bg-amber-500/40' :
                                                             item.value > 30 ? 'bg-sky-500/20' :
                                                                 'bg-foreground/[0.05] dark:bg-white/[0.07]'
@@ -391,7 +391,7 @@ export const MobileAnalytics = ({
                                 <div className="mt-8 flex justify-between items-center text-muted-foreground">
                                     <div className="flex gap-4">
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-pill bg-destructive/60" />
+                                            <div className="w-1.5 h-1.5 rounded-pill bg-amber-500/60" />
                                             <span className="text-[11px] font-medium">Higher</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">

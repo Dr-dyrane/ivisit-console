@@ -472,7 +472,7 @@ export const Analytics = () => {
       }))
       .sort((a, b) => b.value - a.value);
 
-    const typePalette = [CHART_COLORS.destructive, CHART_COLORS.warning, CHART_COLORS.info, CHART_COLORS.secondary, CHART_COLORS.primary];
+    const typePalette = [CHART_COLORS.info, CHART_COLORS.warning, CHART_COLORS.secondary, CHART_COLORS.primary];
     const sortedTypes = Object.entries(typeCounts)
       .map(([name, value], idx) => ({
         name: name.replace(/\b\w/g, (l) => l.toUpperCase()),
@@ -754,7 +754,7 @@ export const Analytics = () => {
           {/* Stat Cards - Row 1 - Role-based visibility */}
           {/* Admin see system-wide stats */}
           {isAdmin() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
             { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
             { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
@@ -828,7 +828,7 @@ export const Analytics = () => {
 
           {/* Sponsor see system-wide stats */}
           {isSponsor() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "rounded-inner" },
             { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
             { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "rounded-inner" },
           ].map((stat, idx) => (
@@ -1804,7 +1804,7 @@ export const Analytics = () => {
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="w-12 h-12 rounded-pill surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <AlertTriangle className="h-6 w-6 text-destructive" />
+                      <AlertTriangle className="h-6 w-6 text-sky-700 dark:text-sky-200" />
                     </div>
                   </div>
                 </div>
@@ -1813,8 +1813,8 @@ export const Analytics = () => {
                   <h3 className="font-bold text-xl tracking-tight">Dominant System Case</h3>
                   {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-3xl font-bold text-destructive">{dominantType.name}</span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-destructive/10 text-destructive font-semibold">
+                      <span className="text-3xl font-bold text-sky-700 dark:text-sky-200">{dominantType.name}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-inner bg-sky-500/10 text-sky-700 font-semibold dark:text-sky-200">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
                       </span>
                     </div>
@@ -1840,7 +1840,7 @@ export const Analytics = () => {
                       <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                       <Bar
                         dataKey="value"
-                        fill={CHART_COLORS.destructive}
+                        fill={CHART_COLORS.info}
                         radius={[0, 8, 8, 0]}
                         animationDuration={1500}
                       >
