@@ -15,6 +15,8 @@ export const MobileKPIStrip = ({
     kpis,
     onKpiClick,
     activeKpi,
+    interactive = true,
+    ariaLabel = 'Key performance indicators',
     animateOnMount = true,
     loading = false,
     loadingCount = 4
@@ -69,12 +71,15 @@ export const MobileKPIStrip = ({
             {/* Rail: overflow-x, hidden scrollbars, same height */}
             <div
                 className="flex gap-2 overflow-x-auto no-scrollbar"
+                role={interactive ? undefined : 'list'}
+                aria-label={interactive ? undefined : ariaLabel}
                 {...bind}
             >
                 {allKpis.map((kpi, idx) => {
                     const isActive = activeKpi === kpi.id;
                     const hasCount = kpi.value !== undefined && kpi.value !== null && kpi.value !== '';
                     const chipColor = kpi.color || 'hsl(var(--primary))';
+                    const Chip = interactive ? motion.button : motion.div;
                     // Compact state CHIP (rounded-pill): dot + label + count.
                     // Active = a subtle TINT of the chip's OWN status hue (borderless fill,
                     // no brand-red): "Needs attention" reads red, "Available" reads emerald,
@@ -82,12 +87,13 @@ export const MobileKPIStrip = ({
                     // Label stays text-foreground so contrast holds on every hue + both themes.
                     // Replaces the old stat-rectangle — Mobile DS "state filter = chip row".
                     return (
-                        <motion.button
+                        <Chip
                             key={kpi.id || idx}
-                            whileTap={{ scale: 0.96 }}
+                            {...(interactive ? { type: 'button' } : { role: 'listitem' })}
+                            whileTap={interactive ? { scale: 0.96 } : undefined}
                             transition={mobileMotion.quick}
-                            onClick={isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
-                            aria-pressed={isActive}
+                            onClick={!interactive || isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
+                            aria-pressed={interactive ? isActive : undefined}
                             data-state={isActive ? 'selected' : 'idle'}
                             className={`shrink-0 flex items-center gap-2 rounded-pill px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition-[background,transform] duration-200 ease-out ${isActive
                                 ? 'text-foreground'
@@ -111,7 +117,7 @@ export const MobileKPIStrip = ({
                                     {kpi.value}
                                 </span>
                             )}
-                        </motion.button>
+                        </Chip>
                     );
                 })}
             </div>

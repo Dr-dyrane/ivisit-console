@@ -38,8 +38,8 @@ const MOBILE_DIR = path.join(__dirname, '..', 'src', 'components', 'mobile');
 //                    tiles / metric rails (those are DASHBOARD furniture).
 //   dashboard     — signal-first hero; NO search / KPI filter chips (tiles navigate,
 //                   they never filter a list).
-//   hybrid        — signal-first hero + KPI-controlled grouped feed. Used when a
-//                   dashboard owns one operational activity stream (Payments).
+//   hybrid        — primary finance value + read-only KPIs + source tabs + grouped
+//                   feed. Used when a domain owns one operational stream (Payments).
 //   list-migrating— Wave-2 floor (SearchRow + warm-up) but not yet on the grouped
 //                   panel; rail/featured tolerated as REPORTED DEBT, not a failure.
 //   exempt        — primitives, shells, sheets, or pages out of the mobile canon
@@ -156,8 +156,10 @@ function lintDashboard(src) {
 function lintHybrid(src) {
   const fatal = [];
   const warn = [];
-  if (!hasTag(src, 'MobileHero') && !waived(src, 'hero')) fatal.push('missing MobileHero (HYBRID signal owner)');
-  if (!hasTag(src, 'MobileKPIStrip')) fatal.push('missing MobileKPIStrip (HYBRID feed selector)');
+  if (!hasTag(src, 'MobileHeading') && !waived(src, 'heading')) fatal.push('missing MobileHeading (HYBRID page identity owner)');
+  if (!hasTag(src, 'MobileKPIStrip')) fatal.push('missing MobileKPIStrip (HYBRID finance KPIs)');
+  if (!has(src, 'interactive={false}')) fatal.push('HYBRID finance KPIs must not impersonate source tabs');
+  if (!has(src, 'role="tablist"')) fatal.push('missing separate source tablist below finance KPIs');
   if (!hasAnyTag(src, ['GroupPanel', 'GroupedList'])) fatal.push('missing grouped activity feed');
   if (!hasAnyTag(src, ['SkeletonGroupPanel', 'SkeletonGroupList']) && !waived(src, 'skeleton')) fatal.push('missing group-shaped feed skeleton');
   if (!has(src, 'useSkeletonWarmup')) fatal.push('missing useSkeletonWarmup');

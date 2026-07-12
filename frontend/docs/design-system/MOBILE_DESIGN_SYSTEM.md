@@ -85,7 +85,7 @@ a generic "Provider" (Decisions log + §5 + §10).
   signal-first hero + 2-up glance NAVIGATION tiles + action-row sheet with in-place expansion +
   generous `space-y-8` rhythm. Dashboard tiles NAVIGATE — they never filter; no KPI filter
   strips on dashboards, no glance tiles on lists. HYBRID (`MobileWallet.jsx`) is the constrained
-  Today-signal + Requests-feed composition. Full grammar in §5.
+  shared heading + read-only finance KPIs + source tabs + Requests-feed composition. Full grammar in §5.
 - **2026-07-09 · Mobile surfaces are prop-driven presentation** — the mobile surface of a
   desktop page holds ZERO data logic; the desktop page stays the single model owner (counts,
   signal copy, context-panel publishing) and passes the computed model down (anti-drift: one
@@ -310,13 +310,13 @@ not permission to combine arbitrary furniture.
 | | **LIST-type** | **DASHBOARD-type** | **HYBRID-type** |
 |---|---|---|---|
 | Reference | `src/components/mobile/MobileEmergency.jsx` (Requests) | `src/components/mobile/MobileToday.jsx` (Today) | `src/components/mobile/MobileWallet.jsx` (Payments) |
-| Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) | Today-style signal hero → one KPI strip controlling one operational feed → Requests-style grouped rows → row tap → detail sheet |
-| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page | KPI chips switch the feed's proved source dimension; counts and analytics remain explicitly loaded-scope unless a server total is proved |
+| Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) | shared title row + local visibility control → primary value → read-only finance KPIs → separate source tabs → Requests-style grouped rows → row tap → detail sheet |
+| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page | KPIs summarize proved finance fields and never impersonate the source tabs; values remain explicitly loaded-scope unless a server aggregate is proved |
 | Disclosure | detail bottom sheet per record (`MobileDetailSheet`) | action rows expand **in place** (chevron rotate + revealed action pill); a dashboard never opens record sheets | detail bottom sheet per record; route-owned FAB handles the one global read action, while source-specific commands remain local to the feed |
 | Rhythm | grouped panels, `space-y-[18px]` | generous `space-y-8` — welcoming, easy on the eye, guiding | compact hero-to-KPI-to-feed rhythm; grouped panels retain LIST spacing |
 
 No KPI filter strips on dashboards; no glance tiles on lists. HYBRID is reserved for a page with
-one genuine signal owner and one operational record stream, and must be declared in
+one primary domain value and one operational record stream, and must be declared in
 `scripts/check-mobile-grammar.js`. All grammars share the loading model below: skeletons mirror
 the final anatomy, background refetch preserves loaded truth, and append loading has its own state.
 

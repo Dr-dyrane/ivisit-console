@@ -284,7 +284,6 @@ export const WalletManagementPage = () => {
                     errorMessage={loadError}
                     hasLoaded={hasLoaded}
                     wallet={wallet}
-                    projection={projection}
                     readState={readState}
                     ledger={ledger}
                     payments={payments}

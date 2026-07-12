@@ -16,9 +16,10 @@ import {
 import {
   GroupPanel,
   Hairline,
-  MobileHero,
+  MobileHeading,
   MobileListRow,
   SkeletonGroupList,
+  UpdatingPillRow,
   useSkeletonWarmup,
 } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
@@ -31,17 +32,10 @@ import { statusPill } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
 import { formatRelativeTime } from '../../utils/activityUtils';
 
-// HYBRID grammar: a Today-shaped finance signal leads into a Requests-shaped KPI
-// selector and grouped activity feed. Money-moving commands remain unavailable and
-// are never inferred from optimistic browser state.
+// HYBRID grammar: the shared list-page heading leads into read-only finance KPIs,
+// source tabs, and a Requests-shaped grouped activity feed. Money-moving commands
+// remain unavailable and are never inferred from optimistic browser state.
 // grammar:loadmore-append=WalletManagementPage owns the growing server window.
-
-const signalTone = {
-  success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
-  warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
-  info: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
-  muted: 'bg-muted/35 text-muted-foreground',
-};
 
 const readyColor = 'hsl(160 84% 39%)';
 const waitingColor = 'hsl(199 89% 48%)';
@@ -102,18 +96,57 @@ const formatDateTime = (value) => {
   return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
 };
 
+const WalletActivityTabs = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    { id: 'ledger', label: 'Transactions' },
+    { id: 'payments', label: 'Patient payments' },
+  ];
+
+  return (
+    <div
+      className="mb-3 grid grid-cols-2 gap-1 rounded-inner bg-muted/20 p-1"
+      role="tablist"
+      aria-label="Payment activity source"
+    >
+      {tabs.map((tab) => {
+        const selected = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            onClick={() => setActiveTab(tab.id)}
+            aria-selected={selected}
+            className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${selected
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 const WalletSkeleton = () => (
-  <div className="space-y-6" aria-label="Loading payments">
-    <section className="space-y-3 px-4">
-      <div className="h-7 w-24 rounded-pill bg-muted/25 shimmer" />
-      <div className="h-8 w-56 rounded-inner bg-muted/25 shimmer" />
-      <div className="h-4 w-full max-w-xs rounded-inner bg-muted/20 shimmer" />
+  <div className="space-y-3" aria-label="Loading payments">
+    <section className="px-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="h-7 w-28 rounded-inner bg-muted/25 shimmer" />
+        <div className="h-11 w-11 rounded-icon bg-muted/20 shimmer" />
+      </div>
+      <div className="mt-4 h-9 w-44 rounded-inner bg-muted/25 shimmer" />
+      <div className="mt-2 h-4 w-28 rounded-inner bg-muted/20 shimmer" />
     </section>
     <section className="flex gap-2 px-4 py-3">
+      <div className="h-9 w-28 rounded-pill bg-muted/20 shimmer" />
+      <div className="h-9 w-28 rounded-pill bg-muted/20 shimmer" />
       <div className="h-9 w-32 rounded-pill bg-muted/20 shimmer" />
-      <div className="h-9 w-36 rounded-pill bg-muted/20 shimmer" />
     </section>
     <section className="px-4">
+      <div className="mb-3 h-11 w-full rounded-inner bg-muted/20 shimmer" />
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="space-y-2">
           <div className="h-4 w-28 rounded-pill bg-muted/25 shimmer" />
@@ -132,7 +165,6 @@ export const MobileWallet = ({
   errorMessage = null,
   hasLoaded = false,
   wallet,
-  projection,
   readState = {},
   ledger = [],
   payments = [],
@@ -181,40 +213,21 @@ export const MobileWallet = ({
     }).format(value);
   }, [wallet?.balance, wallet?.currency]);
 
-  const signal = useMemo(() => {
-    if (errorMessage && !hasLoaded) {
-      return {
-        icon: Wallet,
-        tone: 'warning',
-        label: 'Payments',
-        headline: 'Payments did not load',
-        subhead: 'Retry to load balance and payment activity.',
-      };
-    }
-    if (readState?.wallet !== 'ready') {
-      return {
-        icon: Wallet,
-        tone: 'warning',
-        label: 'Payments',
-        headline: 'Balance unavailable',
-        subhead: errorMessage || 'No wallet balance was returned for this scope. Loaded activity remains review-only.',
-      };
-    }
-    return {
-      icon: ShieldCheck,
-      tone: 'success',
-      label: 'Payments',
-      headline: showBalance ? `${compactBalance} balance` : 'Balance hidden',
-      subhead: errorMessage
-        ? 'Some payment information is unavailable. Showing preserved loaded records.'
-        : 'Review the recorded balance and loaded payment activity for this scope.',
-    };
-  }, [compactBalance, errorMessage, hasLoaded, readState?.wallet, showBalance]);
+  const kpis = useMemo(() => {
+    const moneyIn = ledger
+      .filter((entry) => String(entry.transaction_type || '').toLowerCase() === 'credit')
+      .reduce((total, entry) => total + Math.abs(Number(entry.amount || 0)), 0);
+    const moneyOut = ledger
+      .filter((entry) => String(entry.transaction_type || '').toLowerCase() === 'debit')
+      .reduce((total, entry) => total + Math.abs(Number(entry.amount || 0)), 0);
+    const needsReview = payments.filter((payment) => String(payment.status || '').toLowerCase() !== 'completed').length;
 
-  const kpis = useMemo(() => [
-    { id: 'ledger', label: 'Transactions', value: ledger.length, color: 'hsl(215 16% 47%)' },
-    { id: 'payments', label: 'Patient payments', value: payments.length, color: 'hsl(199 89% 48%)' },
-  ], [ledger.length, payments.length]);
+    return [
+      { id: 'money-in', label: 'Loaded in', value: formatCurrency(moneyIn, wallet?.currency), color: readyColor },
+      { id: 'money-out', label: 'Loaded out', value: formatCurrency(moneyOut, wallet?.currency), color: neutralColor },
+      { id: 'needs-review', label: 'Needs review', value: needsReview, color: waitingColor },
+    ];
+  }, [formatCurrency, ledger, payments, wallet?.currency]);
 
   const renderActivityRow = (item) => {
     const isLedger = activeTab === 'ledger';
@@ -258,40 +271,43 @@ export const MobileWallet = ({
             <WalletSkeleton />
           ) : (
             <div className="space-y-3">
-            <MobileHero
-              toneClass={signalTone[signal.tone] || signalTone.muted}
-              icon={signal.icon}
-              statusLabel={signal.label}
-              headline={signal.headline}
-              subhead={signal.subhead}
-              isFetching={Boolean(isFetching)}
+            <MobileHeading
+              title="Payments"
+              noun="payment"
+              count={payments.length}
+              hideSummary
+              trailing={(
+                <button
+                  type="button"
+                  onClick={() => setShowBalance((current) => !current)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon text-muted-foreground transition-colors hover:bg-foreground/[0.06] active:scale-[0.96]"
+                  aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+                  aria-pressed={!showBalance}
+                >
+                  {showBalance ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              )}
             >
-              <button
-                type="button"
-                onClick={() => setShowBalance((current) => !current)}
-                className="inline-flex h-9 items-center gap-2 rounded-pill surface-card px-3 text-xs font-semibold text-muted-foreground active:scale-[0.96]"
-                aria-label={showBalance ? 'Hide balance' : 'Show balance'}
-              >
-                {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {showBalance ? 'Hide balance' : 'Show balance'}
-              </button>
-              <span className="inline-flex h-9 items-center rounded-pill surface-card px-3 text-xs font-medium text-muted-foreground">
-                {readState?.projection === 'ready'
-                  ? `30-day estimate ${showBalance ? formatCurrency(projection || 0) : '****'}`
-                  : '30-day estimate unavailable'}
-              </span>
-            </MobileHero>
+              <p className="mt-3 text-3xl font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
+                {readState?.wallet === 'ready'
+                  ? showBalance ? compactBalance : 'Balance hidden'
+                  : 'Balance unavailable'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Recorded balance</p>
+            </MobileHeading>
 
             <MobileKPIStrip
               kpis={kpis}
-              activeKpi={activeTab}
-              onKpiClick={setActiveTab}
+              interactive={false}
+              ariaLabel="Loaded payment KPIs"
               loading={false}
-              loadingCount={2}
+              loadingCount={3}
               animateOnMount={false}
             />
 
             <section className="px-4">
+              <WalletActivityTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+              <UpdatingPillRow show={Boolean(isFetching) && !isLoadingMore} />
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-sm font-semibold text-foreground">Payment activity</h2>

@@ -30,8 +30,9 @@ Page 22 Onboarding Success (`efac625`).
      and route-owned FAB feedback. Subscriptions must occupy the fourth pill slot while active and its
      Add Subscriber FAB must fail closed. Insurance remains read-only with no fabricated create FAB.
    - Manual side-by-side verdict on 2026-07-12: Payments and Insurance were NOT visually green against
-     Requests. The second Payments remediation now declares a HYBRID grammar: Today's signal hierarchy,
-     Requests' shared KPI strip/grouped feed/detail-sheet mechanics, a route-owned Payment Stats FAB,
+     Requests. The user-rendered correction now declares a HYBRID grammar: shared title/balance hierarchy,
+     loaded finance KPIs, separate activity-source tabs, Requests' grouped feed/detail-sheet mechanics,
+     a route-owned Payment Stats FAB,
      and feed-local visible-transaction export. It distinguishes missing/failed source truth from zero,
      preserves per-payment currency, grows the loaded window, and removes active add-funds, withdrawal,
      and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
@@ -126,8 +127,9 @@ read-only visual revamp when the route projection is proved and unsupported comm
 ## Live claims / run log
 
 ### 2026-07-12 - Mobile priority waves and desktop counterpart orchestration
-- Reworked Payments a second time after direct user review exposed donor-system drift. It now uses the
-  named HYBRID mobile grammar (Today signal + Requests KPI/grouped feed/detail sheet), assigns Payment
+- Reworked Payments after direct user review exposed donor-system drift. It now uses the named HYBRID
+  mobile grammar (shared title/balance row + loaded finance KPIs + separate source tabs + Requests grouped
+  feed/detail sheet), assigns Payment
   Stats to the bottom FAB, keeps export local to Transactions, and limits side-menu actions to Stats and
   Export. Service/page state now exposes missing/failed projections instead of false zeroes, detects more
   rows with a growing window, preserves loaded records on partial refresh failure, and formats patient

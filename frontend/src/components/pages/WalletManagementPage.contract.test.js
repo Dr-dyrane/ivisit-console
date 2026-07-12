@@ -227,8 +227,8 @@ describe('WalletManagementPage Payments contract', () => {
 
     expect(page).toContain("label: 'Cards returned'");
     expect(page).toContain('Money changes unavailable');
-    expect(mobile).toContain("label: 'Payments'");
-    expect(mobile).toContain("headline: 'Balance unavailable'");
+    expect(mobile).toContain('title="Payments"');
+    expect(mobile).toContain("'Balance unavailable'");
     expect(mobile).not.toContain("label: 'No saved cards'");
     expect(mobile).not.toContain("label: 'Add funds'");
     expect(mobile).not.toContain("label: 'Withdraw'");
@@ -412,14 +412,24 @@ describe('WalletManagementPage Payments contract', () => {
     const mobile = mobileSource();
 
     expect(mobile).toContain('<MobileWalletAtlasLayer />');
+    expect(mobile).toContain('<MobileHeading');
     expect(mobile).toContain('<MobileKPIStrip');
+    expect(mobile).toContain('interactive={false}');
+    expect(mobile).toContain("label: 'Loaded in'");
+    expect(mobile).toContain("label: 'Loaded out'");
+    expect(mobile).toContain("label: 'Needs review'");
     expect(mobile).toContain("label: 'Transactions'");
     expect(mobile).toContain("label: 'Patient payments'");
+    expect(mobile).toContain('role="tablist"');
+    expect(mobile).toContain('aria-label="Payment activity source"');
+    expect(mobile).toContain("aria-label={showBalance ? 'Hide balance' : 'Show balance'}");
+    expect(mobile).toContain('Recorded balance');
+    expect(mobile).not.toContain('30-day estimate');
+    expect(mobile).not.toContain('statusLabel=');
     expect(mobile).toContain('aria-label="Export visible transactions"');
     expect(mobile).toContain('<MobileListLoadMore');
     expect(mobile).toContain('End of loaded payment activity');
     expect(mobile).not.toContain('<MobileActionRail');
-    expect(mobile).not.toContain('role="tablist"');
     expect(mobile).not.toContain('onTopUp');
     expect(mobile).not.toContain('onWithdraw');
     expect(mobile).not.toContain('onOpenBilling');

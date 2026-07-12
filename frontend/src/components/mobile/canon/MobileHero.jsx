@@ -7,7 +7,17 @@ import { UpdatingPill } from './Loading';
 // List-page heading: title + honest count line (ME:311-322 / MV:300-311).
 // Copy derivation is baked so every page states loading/failure/count the same
 // way: 'Loading requests...' / 'Requests did not load' / '3 requests'.
-export const MobileHeading = ({ title, noun, count, showSkeleton, failedEmpty, summary = null }) => {
+export const MobileHeading = ({
+  title,
+  noun,
+  count,
+  showSkeleton,
+  failedEmpty,
+  summary = null,
+  hideSummary = false,
+  trailing = null,
+  children = null,
+}) => {
   const nounPlural = `${noun}s`;
   const line = summary != null
     ? summary
@@ -19,8 +29,12 @@ export const MobileHeading = ({ title, noun, count, showSkeleton, failedEmpty, s
 
   return (
     <section className="px-4">
-      <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">{title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{line}</p>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground">{title}</h1>
+        {trailing}
+      </div>
+      {!hideSummary && <p className="mt-1 text-sm text-muted-foreground">{line}</p>}
+      {children}
     </section>
   );
 };

@@ -42,8 +42,9 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 User-directed priority now closes mobile before the remaining rendered desktop pass:
 
 - Wave one: Insurance, Pricing, and Payments. Insurance stays read-only; Pricing is promoted to full
-  LIST grammar and keeps pricing writes fail-closed; Payments uses the named HYBRID grammar: Today's
-  signal hierarchy plus Requests' KPI-controlled grouped feed and detail sheets. It never presents
+  LIST grammar and keeps pricing writes fail-closed; Payments uses the named HYBRID grammar: the shared
+  title/balance hierarchy, loaded finance KPIs, separate source tabs, and Requests' grouped feed/detail
+  sheets. It never presents
   loaded finance evidence as a global exact total.
 - Subscriptions finishing pass: `/subscriptions` morphs into the fourth bottom-pill slot while active,
   the dock uses the Subscribers label and Mail icon, SmartHeader uses Email Subscribers, and the
