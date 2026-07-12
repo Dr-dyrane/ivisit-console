@@ -103,25 +103,38 @@ export const getWalletContextData = async ({ profile, isAdmin = false, ledgerLim
 export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin = false, limit = 50 } = {}) => {
     const organizationId = profile?.organization_id || null;
     const wallet = await resolveWalletForProfile({ profile, isAdmin });
+    const safeLimit = Math.max(1, Number(limit) || 50);
 
-    const [
-        paymentMethods,
-        projection,
-        ledger,
-        payments,
-    ] = await Promise.all([
-        listPaymentMethods(isAdmin ? null : organizationId, { quiet: true }),
-        getProjectedRevenue(isAdmin ? null : organizationId, { quiet: true }),
-        getWalletLedger(wallet?.id, limit),
-        getWalletPayments({ organizationId, isOrgAdmin, limit }),
+    const [paymentMethodsResult, projectionResult, ledgerResult, paymentsResult] = await Promise.allSettled([
+        listPaymentMethods(isAdmin ? null : organizationId),
+        getProjectedRevenue(isAdmin ? null : organizationId, { throwOnError: true }),
+        getWalletLedger(wallet?.id, safeLimit + 1),
+        getWalletPayments({ organizationId, isOrgAdmin, limit: safeLimit + 1 }),
     ]);
+
+    const ledgerRows = ledgerResult.status === 'fulfilled' ? ledgerResult.value : [];
+    const paymentRows = paymentsResult.status === 'fulfilled' ? paymentsResult.value : [];
+    const readState = {
+        wallet: wallet ? 'ready' : 'missing',
+        ledger: !wallet ? 'unavailable' : ledgerResult.status === 'fulfilled' ? 'ready' : 'failed',
+        payments: paymentsResult.status === 'fulfilled' ? 'ready' : 'failed',
+        projection: projectionResult.status === 'fulfilled' ? 'ready' : 'failed',
+        paymentMethods: paymentMethodsResult.status === 'fulfilled' ? 'ready' : 'failed',
+    };
 
     return {
         wallet,
-        ledger,
-        projection,
-        paymentMethods,
-        payments,
+        ledger: ledgerRows.slice(0, safeLimit),
+        projection: projectionResult.status === 'fulfilled' ? projectionResult.value : null,
+        paymentMethods: paymentMethodsResult.status === 'fulfilled' ? paymentMethodsResult.value : [],
+        payments: paymentRows.slice(0, safeLimit),
+        hasMore: {
+            ledger: ledgerRows.length > safeLimit,
+            payments: paymentRows.length > safeLimit,
+        },
+        readState,
+        partialFailure: Object.values(readState).some((state) => state === 'failed'),
+        limit: safeLimit,
     };
 };
 
@@ -303,6 +316,7 @@ export const getProjectedRevenue = async (organizationId = null, options = {}) =
         if (!options?.quiet) {
             console.error('Error calculating projection:', error);
         }
+        if (options?.throwOnError) throw error;
         return 0;
     }
 };

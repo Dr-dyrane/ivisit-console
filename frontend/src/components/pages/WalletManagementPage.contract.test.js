@@ -15,6 +15,7 @@ describe('WalletManagementPage Payments contract', () => {
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
   const mobileNavMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
+  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
 
   it('keeps the Payments route at org-admin scope while preserving the /wallet route', () => {
     expect(getRouteProtection('/wallet')).toEqual({
@@ -151,10 +152,12 @@ describe('WalletManagementPage Payments contract', () => {
     expect(contextPanel).not.toContain('walletData');
 
     expect(walletPanel).toContain('export const WalletPanel = ({ walletContext }) =>');
-    expect(walletPanel).toContain('Add funds is unavailable until the payment consequence is proved.');
-    expect(walletPanel).toContain('Withdraw is unavailable until the payout consequence is proved.');
-    expect(walletPanel).toContain('Card changes are unavailable until setup authority is proved.');
+    expect(walletPanel).toContain("new CustomEvent('openWalletAnalytics')");
     expect(walletPanel).toContain("new CustomEvent('exportLedger')");
+    expect(walletPanel).toContain('Loaded records are read-only. Money and card changes remain unavailable.');
+    expect(walletPanel).not.toContain('handleTopUp');
+    expect(walletPanel).not.toContain('handleWithdraw');
+    expect(walletPanel).not.toContain('handleCards');
     expect(walletPanel).not.toContain("new CustomEvent('openTopUpModal'");
     expect(walletPanel).not.toContain("new CustomEvent('openWithdrawModal'");
     expect(walletPanel).not.toContain("new CustomEvent('openBillingModal'");
@@ -173,8 +176,10 @@ describe('WalletManagementPage Payments contract', () => {
     expect(service).toContain("body: { action: 'list-payment-methods', organization_id: organizationId }");
     expect(service).toContain("body: { action: 'delete-payment-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
     expect(service).toContain("body: { action: 'set-payout-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
-    expect(service).toContain('listPaymentMethods(isAdmin ? null : organizationId, { quiet: true })');
-    expect(service).toContain('getProjectedRevenue(isAdmin ? null : organizationId, { quiet: true })');
+    expect(service).toContain('Promise.allSettled([');
+    expect(service).toContain('listPaymentMethods(isAdmin ? null : organizationId)');
+    expect(service).toContain('getProjectedRevenue(isAdmin ? null : organizationId, { throwOnError: true })');
+    expect(service).toContain("wallet: wallet ? 'ready' : 'missing'");
     expect(modals).toContain('topUpWallet(parsedAmount');
     expect(modals).toContain('withdrawFunds(parsedAmount');
     expect(modals).toContain('createSetupIntent(organizationId)');
@@ -190,7 +195,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(service).toContain('export const deletePaymentMethod = async');
     expect(service).toContain("body: { action: 'delete-payment-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
     expect(page).toContain('Cards returned');
-    expect(panel).toContain('Read-only provider response');
+    expect(panel).toContain("readState.paymentMethods === 'ready'");
     expect(page).not.toContain('deletePaymentMethod');
     expect(page).not.toContain('Card removed.');
     expect(page).not.toContain('onDeleteMethod');
@@ -222,8 +227,9 @@ describe('WalletManagementPage Payments contract', () => {
 
     expect(page).toContain("label: 'Cards returned'");
     expect(page).toContain('Money changes unavailable');
-    expect(mobile).toContain("label: 'No saved cards'");
-    expect(mobile).toContain('Card information is read-only while payment authority is being verified.');
+    expect(mobile).toContain("label: 'Payments'");
+    expect(mobile).toContain("headline: 'Balance unavailable'");
+    expect(mobile).not.toContain("label: 'No saved cards'");
     expect(mobile).not.toContain("label: 'Add funds'");
     expect(mobile).not.toContain("label: 'Withdraw'");
     expect(mobile).not.toContain("label: 'Link card'");
@@ -258,7 +264,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(activeSurface).toContain('Patient Payments');
     expect(activeSurface).toContain('Add funds');
     expect(activeSurface).toContain('Payment cards');
-    expect(activeSurface).toContain('Manage cards');
+    expect(activeSurface).not.toContain('Manage cards');
     expect(activeSurface).toContain('No transactions yet');
     expect(activeSurface).toContain('No patient payments yet');
     expect(activeSurface).toContain("if (pathname.startsWith('/wallet')) return 'Payments';");
@@ -337,8 +343,8 @@ describe('WalletManagementPage Payments contract', () => {
 
     expect(page).toContain('Money changes unavailable');
     expect(page).toContain('receiver authority and reflected app consequences are proved');
-    expect(panel).toContain('Money and card changes are unavailable pending authority proof.');
-    expect(panel).toContain('aria-disabled="true"');
+    expect(panel).toContain('Loaded records are read-only. Money and card changes remain unavailable.');
+    expect(panel).not.toContain('aria-disabled="true"');
     expect(desktopSurface).not.toContain('useRowSelection');
     expect(desktopSurface).not.toContain('BulkActionBar');
     expect(desktopSurface).not.toContain('selectedIds');
@@ -360,14 +366,35 @@ describe('WalletManagementPage Payments contract', () => {
     expect(panel).toContain('Showing preserved loaded records.');
   });
 
-  it('exposes honest refresh state to the mobile owner without changing MobileWallet', () => {
+  it('exposes honest refresh and growing-window state to the mobile owner', () => {
     const page = pageSource();
+    const service = serviceSource();
 
     expect(page).toContain('<MobileWallet');
-    expect(page).toContain('isFetching={isFetching}');
-    expect(page).toContain('loadError={loadError}');
+    expect(page).toContain('isFetching={isFetching && !mobileLoadingMore}');
     expect(page).toContain('errorMessage={loadError}');
     expect(page).toContain('onRefresh={fetchData}');
+    expect(page).toContain('hasMore={Boolean(hasMore[activeTab])}');
+    expect(page).toContain('onLoadMore={handleMobileLoadMore}');
+    expect(page).toContain('readState={readState}');
+    expect(service).toContain('safeLimit + 1');
+    expect(service).toContain('ledgerRows.length > safeLimit');
+    expect(service).toContain('paymentRows.length > safeLimit');
+    expect(service).toContain("projection: projectionResult.status === 'fulfilled' ? projectionResult.value : null");
+    expect(service).toContain("partialFailure: Object.values(readState).some((state) => state === 'failed')");
+  });
+
+  it('preserves row currency and lifecycle timestamp truth across payment surfaces', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+
+    expect(page).toContain('formatCurrency(payment.amount, payment.currency)');
+    expect(page).toContain('isPayment ? item.currency : undefined');
+    expect(page).toContain('isPayment ? entry.currency : undefined');
+    expect(mobile).toContain('const rowCurrency = isLedger ? wallet?.currency : item.currency;');
+    expect(mobile).toContain("label: item.status === 'completed' ? 'Processed' : 'Recorded'");
+    expect(mobile).toContain('item.processed_at || item.updated_at || item.created_at');
+    expect(mobile).not.toContain("label: 'Paid'");
   });
 
   it('keeps transaction export scoped to visible ledger rows without completeness claims', () => {
@@ -385,10 +412,14 @@ describe('WalletManagementPage Payments contract', () => {
     const mobile = mobileSource();
 
     expect(mobile).toContain('<MobileWalletAtlasLayer />');
-    expect(mobile).toContain("label: 'Export visible'");
-    expect(mobile).toContain("label: 'Transactions shown'");
-    expect(mobile).toContain("label: 'Payments shown'");
-    expect(mobile).toContain('patient payment${payments.length === 1 ? \'\' : \'s\'} loaded for review.');
+    expect(mobile).toContain('<MobileKPIStrip');
+    expect(mobile).toContain("label: 'Transactions'");
+    expect(mobile).toContain("label: 'Patient payments'");
+    expect(mobile).toContain('aria-label="Export visible transactions"');
+    expect(mobile).toContain('<MobileListLoadMore');
+    expect(mobile).toContain('End of loaded payment activity');
+    expect(mobile).not.toContain('<MobileActionRail');
+    expect(mobile).not.toContain('role="tablist"');
     expect(mobile).not.toContain('onTopUp');
     expect(mobile).not.toContain('onWithdraw');
     expect(mobile).not.toContain('onOpenBilling');
@@ -397,7 +428,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
     expect(mobile).toContain('const [activeEntry, setActiveEntry] = useState(null);');
     expect(mobile).toContain('<MobileListRow');
-    expect(mobile).toContain('onOpen={setActiveEntry}');
+    expect(mobile).toContain('setActiveEntry({ kind: activeTab, item: entry })');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen');
     expect(mobile).toContain('onClose={() => setActiveEntry(null)}');
@@ -411,5 +442,19 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).not.toContain('setExpandedId');
     expect(mobile).not.toContain('isExpanded=');
     expect(mobile).not.toContain('onExpand=');
+  });
+
+  it('assigns the route-owned mobile Stats FAB without exposing money commands', () => {
+    const page = pageSource();
+    const dock = bottomBarSource();
+    const menu = mobileNavMenuSource();
+
+    expect(dock).toContain("pathname.startsWith('/wallet')");
+    expect(dock).toContain("label: 'Payment stats'");
+    expect(dock).toContain("new CustomEvent('openWalletAnalytics')");
+    expect(page).toContain("window.addEventListener('openWalletAnalytics', handleOpenAnalytics)");
+    expect(menu).toContain("'openWalletAnalytics'");
+    expect(dock).not.toContain("label: 'Add funds'");
+    expect(dock).not.toContain("label: 'Withdraw'");
   });
 });

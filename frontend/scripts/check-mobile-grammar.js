@@ -21,7 +21,7 @@
  * an unclassified page is a FATAL error, so a NEW page (e.g. Wallet) cannot ship
  * without a conscious grammar declaration, and declaring `list` forces the anatomy.
  *
- * Canon: docs/design-system/MOBILE_DESIGN_SYSTEM.md §5 (LIST vs DASHBOARD + the
+ * Canon: docs/design-system/MOBILE_DESIGN_SYSTEM.md §5 (LIST vs DASHBOARD vs HYBRID + the
  * DIRECTORY expression). Run: `node scripts/check-mobile-grammar.js` (add --strict
  * to make WARNINGS fatal too).
  */
@@ -38,6 +38,8 @@ const MOBILE_DIR = path.join(__dirname, '..', 'src', 'components', 'mobile');
 //                    tiles / metric rails (those are DASHBOARD furniture).
 //   dashboard     — signal-first hero; NO search / KPI filter chips (tiles navigate,
 //                   they never filter a list).
+//   hybrid        — signal-first hero + KPI-controlled grouped feed. Used when a
+//                   dashboard owns one operational activity stream (Payments).
 //   list-migrating— Wave-2 floor (SearchRow + warm-up) but not yet on the grouped
 //                   panel; rail/featured tolerated as REPORTED DEBT, not a failure.
 //   exempt        — primitives, shells, sheets, or pages out of the mobile canon
@@ -61,7 +63,7 @@ const MANIFEST = {
   'MobileUsers.jsx': { tier: 'list' },
   'MobileVerification.jsx': { tier: 'list' },
   // ── Exempt (not a canon list/dashboard page) ──
-  'MobileWallet.jsx': { tier: 'dashboard' },
+  'MobileWallet.jsx': { tier: 'hybrid' },
   'MobileOrganizations.jsx': { tier: 'list' },
   'MobileDashboard.jsx': { tier: 'exempt', reason: 'legacy shell, superseded by MobileToday' },
   'MobileAnalytics.jsx': { tier: 'dashboard', reason: 'role-scoped statistics dashboard with KPI, featured metrics, and expandable report sections' },
@@ -148,6 +150,24 @@ function lintDashboard(src) {
   if (hasTag(src, 'SearchRow')) fatal.push('DASHBOARD carries SearchRow — dashboards do not search/filter a list (§5)');
   if (hasTag(src, 'MobileKPIStrip')) fatal.push('DASHBOARD carries MobileKPIStrip filter chips — dashboard tiles NAVIGATE, they never filter (§5)');
   if (!has(src, 'animatePageLoad={false}')) fatal.push('missing animatePageLoad={false} (§5/§7 — no mount entrance fade)');
+  return { fatal, warn };
+}
+
+function lintHybrid(src) {
+  const fatal = [];
+  const warn = [];
+  if (!hasTag(src, 'MobileHero') && !waived(src, 'hero')) fatal.push('missing MobileHero (HYBRID signal owner)');
+  if (!hasTag(src, 'MobileKPIStrip')) fatal.push('missing MobileKPIStrip (HYBRID feed selector)');
+  if (!hasAnyTag(src, ['GroupPanel', 'GroupedList'])) fatal.push('missing grouped activity feed');
+  if (!hasAnyTag(src, ['SkeletonGroupPanel', 'SkeletonGroupList']) && !waived(src, 'skeleton')) fatal.push('missing group-shaped feed skeleton');
+  if (!has(src, 'useSkeletonWarmup')) fatal.push('missing useSkeletonWarmup');
+  if (!has(src, 'isFetching')) fatal.push('missing background-refetch signal');
+  if (!hasTag(src, 'MobileDetailSheet')) fatal.push('missing activity detail sheet');
+  if (hasTag(src, 'SearchRow')) fatal.push('HYBRID carries SearchRow without a proved server-search contract');
+  if (!has(src, 'animatePageLoad={false}')) fatal.push('missing animatePageLoad={false}');
+  if (hasAny(src, ['useLoadMoreControl', 'onLoadMore']) && !waived(src, 'loadmore-append')) {
+    fatal.push('load-more needs an explicit growing-window/accumulator owner');
+  }
   return { fatal, warn };
 }
 
@@ -269,7 +289,6 @@ function main() {
   const FAB_EXEMPT_ROUTES = {
     '/map': 'map surface — full-bleed interactive canvas with its own control grammar (layers/refiner); no list to filter, no create (MobileMap is grammar-exempt), so no dock FAB',
     '/settings': 'own-account dashboard — no create/filter/review dock action; profile and security actions stay route-owned',
-    '/wallet': 'signal-first DASHBOARD (tiles NAVIGATE, they never filter a list); financial commands are fail-closed so no create — no dock FAB (MobileWallet is dashboard-tier)',
     '/insurance': 'read-only on desktop right now — InsuranceManagementPage shows only a "Read-only" marker, no create (INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07: no create/edit/delete/verify receiver); a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a policy receiver is proved.',
   };
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
@@ -376,7 +395,8 @@ function main() {
     const src = fs.readFileSync(path.join(MOBILE_DIR, file), 'utf8');
     const linter = entry.tier === 'list' ? lintList
       : entry.tier === 'dashboard' ? lintDashboard
-        : lintListMigrating;
+        : entry.tier === 'hybrid' ? lintHybrid
+          : lintListMigrating;
     const { fatal, warn } = linter(src);
 
     if (fatal.length || warn.length) {

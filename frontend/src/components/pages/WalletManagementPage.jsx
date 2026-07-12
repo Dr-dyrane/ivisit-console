@@ -54,9 +54,34 @@ export const WalletManagementPage = () => {
     const [loadError, setLoadError] = useState('');
     const [hasLoaded, setHasLoaded] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
+    const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
+    const [mobileLimit, setMobileLimit] = useState(20);
+    const [hasMore, setHasMore] = useState({ ledger: false, payments: false });
+    const [readState, setReadState] = useState({
+        wallet: 'unavailable',
+        ledger: 'unavailable',
+        payments: 'unavailable',
+        projection: 'unavailable',
+        paymentMethods: 'unavailable',
+    });
     const hasLoadedRef = useRef(false);
+    const isMountedRef = useRef(false);
+    const fetchRequestRef = useRef(0);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            fetchRequestRef.current += 1;
+        };
+    }, []);
 
     const fetchData = useCallback(async () => {
+        const requestId = fetchRequestRef.current + 1;
+        fetchRequestRef.current = requestId;
+        const canUpdateRouteState = () => isMountedRef.current && fetchRequestRef.current === requestId;
+        if (!canUpdateRouteState()) return;
+
         if (hasLoadedRef.current) {
             setIsFetching(true);
         } else {
@@ -68,25 +93,36 @@ export const WalletManagementPage = () => {
                 profile,
                 isAdmin: isAdmin(),
                 isOrgAdmin: isOrgAdmin(),
-                limit: 50,
+                limit: isMobile ? mobileLimit : 50,
             });
 
+            if (!canUpdateRouteState()) return;
             setWallet(data.wallet);
-            setLedger(data.ledger);
-            setProjection(data.projection);
-            setPaymentMethods(data.paymentMethods);
-            setPayments(data.payments);
+            setLedger((current) => data.readState.ledger === 'failed' ? current : data.ledger);
+            setProjection((current) => data.readState.projection === 'failed' ? current : data.projection);
+            setPaymentMethods((current) => data.readState.paymentMethods === 'failed' ? current : data.paymentMethods);
+            setPayments((current) => data.readState.payments === 'failed' ? current : data.payments);
+            setHasMore((current) => ({
+                ledger: data.readState.ledger === 'failed' ? current.ledger : Boolean(data.hasMore?.ledger),
+                payments: data.readState.payments === 'failed' ? current.payments : Boolean(data.hasMore?.payments),
+            }));
+            setReadState(data.readState);
+            setLoadError(data.partialFailure ? 'Some payment information could not refresh.' : '');
             hasLoadedRef.current = true;
             setHasLoaded(true);
         } catch (error) {
+            if (!canUpdateRouteState()) return;
             const message = error?.message || 'Payments could not load. Please try again.';
             setLoadError(message);
             toast.error('Payments could not load. Please try again.');
         } finally {
-            setLoading(false);
-            setIsFetching(false);
+            if (canUpdateRouteState()) {
+                setLoading(false);
+                setIsFetching(false);
+                setMobileLoadingMore(false);
+            }
         }
-    }, [profile, isAdmin, isOrgAdmin]);
+    }, [isAdmin, isMobile, isOrgAdmin, mobileLimit, profile]);
 
     useEffect(() => {
         fetchData();
@@ -122,16 +158,24 @@ export const WalletManagementPage = () => {
     useEffect(() => {
         const handleExportEvent = () => handleExport();
         const handlePaymentsDataChanged = () => fetchData();
+        const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
         window.addEventListener('exportLedger', handleExportEvent);
         window.addEventListener('paymentsDataChanged', handlePaymentsDataChanged);
+        window.addEventListener('openWalletAnalytics', handleOpenAnalytics);
         return () => {
             window.removeEventListener('exportLedger', handleExportEvent);
             window.removeEventListener('paymentsDataChanged', handlePaymentsDataChanged);
+            window.removeEventListener('openWalletAnalytics', handleOpenAnalytics);
         };
     }, [fetchData, handleExport]);
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
+    const formatCurrency = (amount, currency = wallet?.currency || 'USD') => {
+        const safeCurrency = String(currency || wallet?.currency || 'USD').toUpperCase();
+        try {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: safeCurrency }).format(amount || 0);
+        } catch {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+        }
     };
     const formatServiceTypeLabel = (serviceType) => {
         if (!serviceType || typeof serviceType !== 'string') return null;
@@ -154,6 +198,8 @@ export const WalletManagementPage = () => {
         payments: payments.slice(0, 4),
         projection,
         paymentMethods,
+        readState,
+        hasMore,
         counts: {
             ledger: ledger.length,
             payments: payments.length,
@@ -178,6 +224,8 @@ export const WalletManagementPage = () => {
         paymentMethods,
         payments,
         projection,
+        readState,
+        hasMore,
         wallet,
     ]);
 
@@ -200,26 +248,54 @@ export const WalletManagementPage = () => {
         };
     }, [publishWalletRouteContext]);
 
+    const handleMobileLoadMore = useCallback(() => {
+        if (loading || isFetching || mobileLoadingMore || !hasMore[activeTab]) return;
+        setMobileLoadingMore(true);
+        setMobileLimit((current) => current + 20);
+    }, [activeTab, hasMore, isFetching, loading, mobileLoadingMore]);
+
+    const loadedAnalytics = useMemo(() => ({
+        total: ledger.length + payments.length,
+        active: payments.filter((payment) => payment.status === 'completed').length,
+        recent: payments.filter((payment) => {
+            if (!payment.created_at) return false;
+            const createdAt = new Date(payment.created_at);
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 30);
+            return !Number.isNaN(createdAt.getTime()) && createdAt >= cutoff;
+        }).length,
+        byCategory: {
+            ledger: ledger.length,
+            payments: payments.length,
+            methods: readState.paymentMethods === 'ready' ? paymentMethods.length : 0,
+        },
+        visibleCount: ledger.length + payments.length,
+        distributionScope: 'loaded_preview',
+        distributionLabel: 'Loaded records only',
+    }), [ledger.length, paymentMethods.length, payments, readState.paymentMethods]);
+
     if (isMobile) {
         return (
             <>
-                <SEOHead title="Payments" description="Review balance, cards, and payment activity." />
+                <SEOHead title="Payments" description="Review balance and loaded payment activity." />
                 <MobileWallet
                     loading={loading}
-                    isFetching={isFetching}
-                    loadError={loadError}
+                    isFetching={isFetching && !mobileLoadingMore}
                     errorMessage={loadError}
+                    hasLoaded={hasLoaded}
                     wallet={wallet}
                     projection={projection}
-                    paymentMethods={paymentMethods}
+                    readState={readState}
                     ledger={ledger}
                     payments={payments}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     onRefresh={fetchData}
+                    hasMore={Boolean(hasMore[activeTab])}
+                    isLoadingMore={mobileLoadingMore}
+                    onLoadMore={handleMobileLoadMore}
                     onExport={handleExport}
                     onOpenPayment={setSelectedPayment}
-                    onViewAnalytics={() => setAnalyticsModalOpen(true)}
                     formatCurrency={formatCurrency}
                 />
 
@@ -235,22 +311,7 @@ export const WalletManagementPage = () => {
                     open={analyticsModalOpen}
                     onClose={() => setAnalyticsModalOpen(false)}
                     type="generic"
-                    analytics={{
-                        total: ledger.length + payments.length,
-                        active: (wallet?.balance || 0) > 0 ? 1 : 0,
-                        recent: payments.filter(p => {
-                            if (!p.created_at) return false;
-                            const d = new Date(p.created_at);
-                            const cutoff = new Date();
-                            cutoff.setDate(cutoff.getDate() - 30);
-                            return d >= cutoff;
-                        }).length,
-                        byCategory: {
-                            ledger: ledger.length,
-                            payments: payments.length,
-                            methods: paymentMethods.length
-                        }
-                    }}
+                    analytics={loadedAnalytics}
                 />
             </>
         );
@@ -266,6 +327,7 @@ export const WalletManagementPage = () => {
                 ledger={ledger}
                 payments={payments}
                 paymentMethods={paymentMethods}
+                readState={readState}
                 loadError={loadError}
                 hasLoaded={hasLoaded}
                 isFetching={isFetching}
@@ -291,22 +353,7 @@ export const WalletManagementPage = () => {
                 open={analyticsModalOpen}
                 onClose={() => setAnalyticsModalOpen(false)}
                 type="generic"
-                analytics={{
-                    total: ledger.length + payments.length,
-                    active: (wallet?.balance || 0) > 0 ? 1 : 0,
-                    recent: payments.filter(p => {
-                        if (!p.created_at) return false;
-                        const d = new Date(p.created_at);
-                        const cutoff = new Date();
-                        cutoff.setDate(cutoff.getDate() - 30);
-                        return d >= cutoff;
-                    }).length,
-                    byCategory: {
-                        ledger: ledger.length,
-                        payments: payments.length,
-                        methods: paymentMethods.length
-                    }
-                }}
+                analytics={loadedAnalytics}
             />
         </div>
     );
@@ -353,7 +400,7 @@ const PaymentReceiptDialog = ({
                             <div className="mt-5 rounded-card bg-background/42 p-5 dark:bg-white/[0.05]">
                                 <div className="text-sm font-medium text-muted-foreground">Amount</div>
                                 <div className="mt-2 text-4xl font-semibold tracking-tight">
-                                    {formatCurrency(payment.amount)}
+                                    {formatCurrency(payment.amount, payment.currency)}
                                 </div>
                                 <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                                     <Clock className="h-3.5 w-3.5" />
@@ -526,6 +573,7 @@ const PaymentsDesktopWorkspace = ({
     ledger,
     payments,
     paymentMethods,
+    readState,
     loadError,
     hasLoaded,
     isFetching,
@@ -634,6 +682,7 @@ const PaymentsDesktopWorkspace = ({
                     wallet={wallet}
                     projection={projection}
                     paymentMethods={paymentMethods}
+                    readState={readState}
                     ledgerCount={ledger.length}
                     paymentsCount={payments.length}
                     onOpenReceipt={onPaymentOpen}
@@ -916,7 +965,7 @@ const PaymentRow = ({
 
             <div className="text-right">
                 <div className="text-base font-semibold text-foreground">
-                    {amountPrefix} {formatCurrency(Math.abs(Number(item.amount || 0)))}
+                    {amountPrefix} {formatCurrency(Math.abs(Number(item.amount || 0)), isPayment ? item.currency : undefined)}
                 </div>
                 <div className="mt-1 text-[11px] font-medium text-muted-foreground">{formatTime(item.created_at)}</div>
             </div>
@@ -936,6 +985,7 @@ const PaymentDetailRail = ({
     wallet,
     projection,
     paymentMethods,
+    readState,
     ledgerCount,
     paymentsCount,
     onOpenReceipt,
@@ -967,7 +1017,9 @@ const PaymentDetailRail = ({
     const description = entry
         ? isPayment ? formatPaymentDescription(entry) : entry.description || 'Transaction'
         : 'No record selected';
-    const amount = entry ? formatCurrency(Math.abs(Number(entry.amount || 0))) : 'Not selected';
+    const amount = entry
+        ? formatCurrency(Math.abs(Number(entry.amount || 0)), isPayment ? entry.currency : undefined)
+        : 'Not selected';
     const scopeLabel = isPayment
         ? entry?.emergency_requests?.hospitals?.name || 'Current role scope'
         : 'Wallet ledger';
@@ -1026,18 +1078,18 @@ const PaymentDetailRail = ({
 
             <div className="mt-5 space-y-3">
                 <div className="rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
-                    <p className="text-xs font-medium text-muted-foreground">Available balance</p>
+                    <p className="text-xs font-medium text-muted-foreground">Recorded balance</p>
                     <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not returned'}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{ledgerCount} transactions and {paymentsCount} patient payments loaded, up to 50 per source.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Projection returned</p>
-                        <p className="mt-1 text-sm font-semibold">{formatCurrency(projection || 0)}</p>
+                        <p className="mt-1 text-sm font-semibold">{readState?.projection === 'ready' ? formatCurrency(projection || 0) : 'Unavailable'}</p>
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
-                        <p className="mt-1 text-sm font-semibold">{paymentMethods.length}</p>
+                        <p className="mt-1 text-sm font-semibold">{readState?.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable'}</p>
                     </div>
                 </div>
             </div>

@@ -17,7 +17,7 @@ Layers 1/3/7 (tokens·motion / elements / interaction) are the open foundation w
 **v1.1 (2026-07-09):** the Requests-proven canon is folded in — surface token system (§2), loading &
 refetch model (§5), KPI-scope + empty/error rules (§5), search field + Updating pill (§3),
 dialog-name a11y (§7). Reference page: `src/components/mobile/MobileEmergency.jsx`.
-**v1.2 (2026-07-09):** the Today-proven dashboard canon — page-type grammar LIST vs DASHBOARD (§5),
+**v1.2 (2026-07-09, extended 2026-07-12):** the Today-proven dashboard canon — page-type grammar LIST vs DASHBOARD vs named HYBRID (§5),
 no-all-caps typography (§3), prop-driven mobile presentation (§8), dock-slot ranking +
 context-aware top bar (§6). Second reference page: `src/components/mobile/MobileToday.jsx`.
 **v1.3 (2026-07-10):** the surface-hygiene canon — bare slash-opacity is a design token (a
@@ -79,12 +79,13 @@ a generic "Provider" (Decisions log + §5 + §10).
   Requests' recency labels). `.eyebrow` (the uppercase micro-label) survives ONLY as established
   detail furniture (sheet captions, fact-tile labels) — never as a section subheading.
   Supersedes the earlier "eyebrow for captions everywhere" reading of §1/§3. Full vocabulary in §3.
-- **2026-07-09 · Page-type grammar (LIST vs DASHBOARD)** — the mobile canon has TWO reference
-  implementations, chosen by page identity and never mixed. LIST (`MobileEmergency.jsx`): KPI
+- **2026-07-09 · Page-type grammar (LIST vs DASHBOARD; HYBRID added 2026-07-12)** — the mobile canon has
+  declared reference implementations chosen by page identity. LIST (`MobileEmergency.jsx`): KPI
   chip rail + search + grouped recency list + detail sheets. DASHBOARD (`MobileToday.jsx`):
   signal-first hero + 2-up glance NAVIGATION tiles + action-row sheet with in-place expansion +
   generous `space-y-8` rhythm. Dashboard tiles NAVIGATE — they never filter; no KPI filter
-  strips on dashboards, no glance tiles on lists. Full grammar in §5.
+  strips on dashboards, no glance tiles on lists. HYBRID (`MobileWallet.jsx`) is the constrained
+  Today-signal + Requests-feed composition. Full grammar in §5.
 - **2026-07-09 · Mobile surfaces are prop-driven presentation** — the mobile surface of a
   desktop page holds ZERO data logic; the desktop page stays the single model owner (counts,
   signal copy, context-panel publishing) and passes the computed model down (anti-drift: one
@@ -301,21 +302,23 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
   is absent (the `doctors` table is all doctors). Reference: `MobileUsers.jsx` persona helpers. ✅
   (Users) — apply wherever provider records surface
 
-### Page-type grammar — LIST vs DASHBOARD (canon, locked 2026-07-09)
+### Page-type grammar — LIST vs DASHBOARD vs HYBRID (canon, extended 2026-07-12)
 
-Every mobile page speaks ONE of two grammars, chosen by page identity — never mixed.
+Every mobile page declares ONE grammar, chosen by page identity. HYBRID is a named composition,
+not permission to combine arbitrary furniture.
 
-| | **LIST-type** | **DASHBOARD-type** |
-|---|---|---|
-| Reference | `src/components/mobile/MobileEmergency.jsx` (Requests) | `src/components/mobile/MobileToday.jsx` (Today) |
-| Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) |
-| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page |
-| Disclosure | detail bottom sheet per record (`MobileDetailSheet`) | action rows expand **in place** (chevron rotate + revealed action pill); a dashboard never opens record sheets |
-| Rhythm | grouped panels, `space-y-[18px]` | generous `space-y-8` — welcoming, easy on the eye, guiding |
+| | **LIST-type** | **DASHBOARD-type** | **HYBRID-type** |
+|---|---|---|---|
+| Reference | `src/components/mobile/MobileEmergency.jsx` (Requests) | `src/components/mobile/MobileToday.jsx` (Today) | `src/components/mobile/MobileWallet.jsx` (Payments) |
+| Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) | Today-style signal hero → one KPI strip controlling one operational feed → Requests-style grouped rows → row tap → detail sheet |
+| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page | KPI chips switch the feed's proved source dimension; counts and analytics remain explicitly loaded-scope unless a server total is proved |
+| Disclosure | detail bottom sheet per record (`MobileDetailSheet`) | action rows expand **in place** (chevron rotate + revealed action pill); a dashboard never opens record sheets | detail bottom sheet per record; route-owned FAB handles the one global read action, while source-specific commands remain local to the feed |
+| Rhythm | grouped panels, `space-y-[18px]` | generous `space-y-8` — welcoming, easy on the eye, guiding | compact hero-to-KPI-to-feed rhythm; grouped panels retain LIST spacing |
 
-No KPI filter strips on dashboards; no glance tiles on lists. A page that seems to want both
-is two pages. (Both grammars share the same loading model below — Today's skeleton mirrors
-its hero/tiles/sheet 1:1 exactly as Requests' mirrors its grouped list.)
+No KPI filter strips on dashboards; no glance tiles on lists. HYBRID is reserved for a page with
+one genuine signal owner and one operational record stream, and must be declared in
+`scripts/check-mobile-grammar.js`. All grammars share the loading model below: skeletons mirror
+the final anatomy, background refetch preserves loaded truth, and append loading has its own state.
 
 **DIRECTORY expression of the LIST grammar** (locked 2026-07-09; reference
 `src/components/mobile/MobileHospitals.jsx`). Feeds (Requests/Visits) bucket by RECENCY

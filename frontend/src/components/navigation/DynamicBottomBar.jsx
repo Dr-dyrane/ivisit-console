@@ -318,6 +318,19 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
+    // Payments is read-only while money movement remains unproved. Its route-level
+    // command is therefore the scoped statistics view, not Add funds or Withdraw.
+    // Export stays local to the Transactions feed because it does not apply to the
+    // Patient payments KPI.
+    if (pathname.startsWith('/wallet') && canReachRoute(userRole, '/wallet')) {
+        return {
+            icon: BarChart3,
+            label: 'Payment stats',
+            color: 'primary',
+            action: () => window.dispatchEvent(new CustomEvent('openWalletAnalytics'))
+        };
+    }
+
     // Insurance (/insurance) is READ-ONLY: the desktop shows only a "Read-only" marker, and unlike
     // Health News there is NO create receiver at all to surface (INSURANCE_COMMAND_AUTHORITY_DECISION
     // 2026-07-07 -- no create/edit/delete/verify RLS/RPC). A filter FAB would only duplicate the

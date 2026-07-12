@@ -1,9 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  BarChart3,
   Building,
   Clock,
   CreditCard,
@@ -20,23 +18,23 @@ import {
   Hairline,
   MobileHero,
   MobileListRow,
-  SkeletonGroupPanel,
+  SkeletonGroupList,
   useSkeletonWarmup,
 } from './canon';
+import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEmpty, MobileListEnd } from './MobileListStates';
-import { MobileActionRail } from './MobileActionRail';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
+import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
 import { formatRelativeTime } from '../../utils/activityUtils';
 
-// DASHBOARD grammar: a finance signal and navigational glance tiles lead into a
-// read-only temporal feed. Money-moving commands remain owned by their existing
-// receivers and are never inferred from optimistic browser state.
+// HYBRID grammar: a Today-shaped finance signal leads into a Requests-shaped KPI
+// selector and grouped activity feed. Money-moving commands remain unavailable and
+// are never inferred from optimistic browser state.
+// grammar:loadmore-append=WalletManagementPage owns the growing server window.
 
 const signalTone = {
   success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
@@ -98,6 +96,12 @@ const buildMonthGroups = (items) => {
   return groups;
 };
 
+const formatDateTime = (value) => {
+  if (!value) return 'Not recorded';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
+};
+
 const WalletSkeleton = () => (
   <div className="space-y-6" aria-label="Loading payments">
     <section className="space-y-3 px-4">
@@ -105,66 +109,66 @@ const WalletSkeleton = () => (
       <div className="h-8 w-56 rounded-inner bg-muted/25 shimmer" />
       <div className="h-4 w-full max-w-xs rounded-inner bg-muted/20 shimmer" />
     </section>
-    <section className="grid grid-cols-2 gap-3 px-4">
-      <div className="h-24 rounded-card bg-muted/20 shimmer" />
-      <div className="h-24 rounded-card bg-muted/20 shimmer" />
+    <section className="flex gap-2 px-4 py-3">
+      <div className="h-9 w-32 rounded-pill bg-muted/20 shimmer" />
+      <div className="h-9 w-36 rounded-pill bg-muted/20 shimmer" />
     </section>
     <section className="px-4">
-      <SkeletonGroupPanel rows={4} />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-4 w-28 rounded-pill bg-muted/25 shimmer" />
+          <div className="h-3 w-20 rounded-pill bg-muted/15 shimmer" />
+        </div>
+        <div className="h-9 w-9 rounded-button bg-muted/20 shimmer" />
+      </div>
+      <SkeletonGroupList groups={2} rowsPerGroup={[3, 2]} trailing="timePill" />
     </section>
   </div>
 );
-
-const GlanceTile = ({ item, active, onPress }) => {
-  const Icon = item.icon;
-  return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.988 }}
-      onClick={(event) => onPress(event, item)}
-      className={`min-h-[92px] rounded-card p-4 text-left transition-colors ${
-        active ? 'bg-sky-500/10 text-sky-800 dark:text-sky-100' : 'surface-card text-foreground'
-      }`}
-      aria-pressed={active}
-    >
-      <span className="flex items-start justify-between gap-3">
-        <span className="min-w-0">
-          <span className="block text-xs font-semibold text-muted-foreground">{item.label}</span>
-          <span className="mt-2 block truncate text-2xl font-semibold tracking-normal">{item.value}</span>
-        </span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/45">
-          <Icon className="h-4 w-4" />
-        </span>
-      </span>
-    </motion.button>
-  );
-};
 
 export const MobileWallet = ({
   loading = false,
   isFetching = false,
   errorMessage = null,
+  hasLoaded = false,
   wallet,
   projection,
-  paymentMethods = [],
+  readState = {},
   ledger = [],
   payments = [],
   activeTab = 'ledger',
   setActiveTab,
   onRefresh,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
   onExport,
   onOpenPayment,
-  onViewAnalytics,
   formatCurrency,
 }) => {
+  const observerTarget = useRef(null);
   const [activeEntry, setActiveEntry] = useState(null);
   const [showBalance, setShowBalance] = useState(true);
-  const { triggerFromEvent } = useFeedback();
   const warmingUp = useSkeletonWarmup();
-  const hasSettledData = Boolean(wallet) || ledger.length > 0 || payments.length > 0 || paymentMethods.length > 0;
-  const showSkeleton = warmingUp || (loading && !hasSettledData);
+  const showSkeleton = warmingUp || (loading && !hasLoaded);
   const items = activeTab === 'ledger' ? ledger : payments;
   const activityGroups = useMemo(() => buildMonthGroups(items), [items]);
+  const activeReadState = readState?.[activeTab] || 'unavailable';
+  const activeUnavailable = activeReadState !== 'ready';
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({
+    hasMore,
+    loading: loading || isFetching || isLoadingMore,
+    onLoadMore,
+  });
+
+  useEffect(() => {
+    if (!hasMore) return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) triggerLoad();
+    }, { threshold: 0.1, rootMargin: '120px' });
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, [hasMore, triggerLoad]);
 
   const compactBalance = useMemo(() => {
     const value = Number(wallet?.balance || 0);
@@ -178,66 +182,46 @@ export const MobileWallet = ({
   }, [wallet?.balance, wallet?.currency]);
 
   const signal = useMemo(() => {
-    if (errorMessage && !hasSettledData) {
+    if (errorMessage && !hasLoaded) {
       return {
         icon: Wallet,
         tone: 'warning',
-        label: 'Unavailable',
+        label: 'Payments',
         headline: 'Payments did not load',
-        subhead: errorMessage,
+        subhead: 'Retry to load balance and payment activity.',
       };
     }
-    if (paymentMethods.length === 0) {
+    if (readState?.wallet !== 'ready') {
       return {
-        icon: CreditCard,
+        icon: Wallet,
         tone: 'warning',
-        label: 'No saved cards',
-        headline: showBalance ? `${compactBalance} available` : 'Balance hidden',
-        subhead: 'Card information is read-only while payment authority is being verified.',
+        label: 'Payments',
+        headline: 'Balance unavailable',
+        subhead: errorMessage || 'No wallet balance was returned for this scope. Loaded activity remains review-only.',
       };
     }
     return {
       icon: ShieldCheck,
       tone: 'success',
-      label: 'Ready',
-      headline: showBalance ? `${compactBalance} available` : 'Balance hidden',
-      subhead: payments.length > 0
-        ? `${payments.length} patient payment${payments.length === 1 ? '' : 's'} loaded for review.`
-        : 'Review transactions, saved cards, and patient payment evidence.',
+      label: 'Payments',
+      headline: showBalance ? `${compactBalance} balance` : 'Balance hidden',
+      subhead: errorMessage
+        ? 'Some payment information is unavailable. Showing preserved loaded records.'
+        : 'Review the recorded balance and loaded payment activity for this scope.',
     };
-  }, [compactBalance, errorMessage, hasSettledData, paymentMethods.length, payments.length, showBalance]);
+  }, [compactBalance, errorMessage, hasLoaded, readState?.wallet, showBalance]);
 
-  const glanceItems = useMemo(() => [
-    { id: 'ledger', label: 'Transactions shown', value: ledger.length, icon: History, tab: 'ledger' },
-    { id: 'payments', label: 'Payments shown', value: payments.length, icon: ShieldCheck, tab: 'payments' },
+  const kpis = useMemo(() => [
+    { id: 'ledger', label: 'Transactions', value: ledger.length, color: 'hsl(215 16% 47%)' },
+    { id: 'payments', label: 'Patient payments', value: payments.length, color: 'hsl(199 89% 48%)' },
   ], [ledger.length, payments.length]);
-
-  const railActions = useMemo(() => {
-    const actions = [];
-    if (onExport && activeTab === 'ledger') {
-      actions.push({ id: 'export', label: 'Export visible', icon: FileDown, onClick: onExport, tone: 'neutral' });
-    }
-    if (onViewAnalytics) {
-      actions.push({ id: 'analytics', label: 'Stats', icon: BarChart3, onClick: onViewAnalytics, tone: 'spark' });
-    }
-    return actions;
-  }, [activeTab, onExport, onViewAnalytics]);
-
-  const handleGlancePress = (event, item) => {
-    triggerFromEvent(event, {
-      variant: FEEDBACK_TYPES.CLICK,
-      color: 'hsl(var(--foreground))',
-      haptic: true,
-      sound: true,
-    });
-    setActiveTab(item.tab);
-  };
 
   const renderActivityRow = (item) => {
     const isLedger = activeTab === 'ledger';
     const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
     const amount = Math.abs(Number(item.amount || 0));
-    const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount)}`;
+    const rowCurrency = isLedger ? wallet?.currency : item.currency;
+    const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount, rowCurrency)}`;
     const methodLabel = formatServiceTypeLabel(item.payment_method) || 'Card';
     const facilityName = item.emergency_requests?.hospitals?.name || 'Hospital unavailable';
     const secondary = isLedger
@@ -248,7 +232,7 @@ export const MobileWallet = ({
       <MobileListRow
         item={item}
         dataAttr="data-mobile-payment-row"
-        onOpen={setActiveEntry}
+        onOpen={(entry) => setActiveEntry({ kind: activeTab, item: entry })}
         ariaLabel={`${isLedger ? 'Transaction' : 'Patient payment'}, ${signedAmount}`}
         orbClass={isCredit
           ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200'
@@ -273,7 +257,7 @@ export const MobileWallet = ({
           {showSkeleton ? (
             <WalletSkeleton />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-3">
             <MobileHero
               toneClass={signalTone[signal.tone] || signalTone.muted}
               icon={signal.icon}
@@ -292,46 +276,42 @@ export const MobileWallet = ({
                 {showBalance ? 'Hide balance' : 'Show balance'}
               </button>
               <span className="inline-flex h-9 items-center rounded-pill surface-card px-3 text-xs font-medium text-muted-foreground">
-                Next 30 days {showBalance ? formatCurrency(projection || 0) : '****'}
+                {readState?.projection === 'ready'
+                  ? `30-day estimate ${showBalance ? formatCurrency(projection || 0) : '****'}`
+                  : '30-day estimate unavailable'}
               </span>
             </MobileHero>
 
-            <section className="grid grid-cols-2 gap-3 px-4">
-              {glanceItems.map((item) => (
-                <GlanceTile
-                  key={item.id}
-                  item={item}
-                  active={activeTab === item.tab}
-                  onPress={handleGlancePress}
-                />
-              ))}
-            </section>
+            <MobileKPIStrip
+              kpis={kpis}
+              activeKpi={activeTab}
+              onKpiClick={setActiveTab}
+              loading={false}
+              loadingCount={2}
+              animateOnMount={false}
+            />
 
             <section className="px-4">
-              <MobileActionRail actions={railActions} className="px-0" />
-
-              <div className="mb-4 grid grid-cols-2 gap-1 rounded-inner bg-muted/20 p-1" role="tablist" aria-label="Payment activity">
-                <button
-                  type="button"
-                  role="tab"
-                  onClick={() => setActiveTab('ledger')}
-                  aria-selected={activeTab === 'ledger'}
-                  className={`h-10 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
-                >
-                  Transactions
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  onClick={() => setActiveTab('payments')}
-                  aria-selected={activeTab === 'payments'}
-                  className={`h-10 rounded-button text-xs font-semibold transition-all active:scale-[0.96] ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
-                >
-                  Patients
-                </button>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-foreground">Payment activity</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {items.length} loaded {activeTab === 'ledger' ? 'transactions' : 'patient payments'}
+                  </p>
+                </div>
+                {activeTab === 'ledger' && onExport && items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={onExport}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button surface-card text-muted-foreground transition-transform active:scale-[0.96]"
+                    aria-label="Export visible transactions"
+                  >
+                    <FileDown className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
-              {errorMessage && hasSettledData && (
+              {errorMessage && hasLoaded && (
                 <div className="mb-4 rounded-card bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
                   <p className="text-sm font-semibold">Payments did not refresh</p>
                   <p className="mt-1 text-xs opacity-80">Showing the last loaded payment activity.</p>
@@ -358,34 +338,44 @@ export const MobileWallet = ({
                 ))}
               </div>
 
+              <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
+                {isLoadingMore && items.length > 0 && <MobileListLoadingMore />}
+                {!loading && !isLoadingMore && hasMore && (
+                  <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />
+                )}
+                {!loading && !hasMore && items.length > 0 && (
+                  <MobileListEnd label="End of loaded payment activity" />
+                )}
+              </div>
+
               {!loading && items.length === 0 && (
                 <MobileListEmpty
                   icon={activeTab === 'ledger' ? History : ShieldCheck}
-                  label={errorMessage
-                    ? 'Payments did not load'
+                  label={activeUnavailable
+                    ? `${activeTab === 'ledger' ? 'Transactions' : 'Patient payments'} unavailable`
                     : activeTab === 'ledger'
                       ? 'No transactions yet'
                       : 'No patient payments yet'}
-                  reason={errorMessage ? 'error' : 'empty'}
-                  hint={errorMessage || 'Payment activity will appear here after it is recorded.'}
-                  onRecover={errorMessage ? onRefresh : undefined}
-                  recoverLabel={errorMessage ? 'Try Again' : undefined}
+                  reason={activeUnavailable ? 'error' : 'empty'}
+                  hint={activeUnavailable ? 'Retry to load this payment activity.' : 'Payment activity will appear here after it is recorded.'}
+                  onRecover={activeUnavailable ? onRefresh : undefined}
+                  recoverLabel={activeUnavailable ? 'Try Again' : undefined}
                   labelTone="plain"
                 />
               )}
-              {!loading && items.length > 0 && <MobileListEnd label="End of payment activity" />}
             </section>
             </div>
           )}
         </div>
 
         {activeEntry && (() => {
-          const item = activeEntry;
-          const isLedger = activeTab === 'ledger';
+          const { item, kind } = activeEntry;
+          const isLedger = kind === 'ledger';
           const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
           const iconTone = isLedger ? (isCredit ? readyColor : neutralColor) : (isCredit ? readyColor : waitingColor);
           const amount = Math.abs(Number(item.amount || 0));
-          const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount)}`;
+          const entryCurrency = isLedger ? wallet?.currency : item.currency;
+          const signedAmount = `${isLedger ? (isCredit ? '+' : '-') : ''}${formatCurrency(amount, entryCurrency)}`;
           const typeLabel = formatServiceTypeLabel(item.transaction_type) || 'Transaction';
           const methodLabel = formatServiceTypeLabel(item.payment_method) || 'Card';
           const facilityName = item.emergency_requests?.hospitals?.name || 'Hospital unavailable';
@@ -406,12 +396,16 @@ export const MobileWallet = ({
                 { icon: isCredit ? ArrowDownLeft : ArrowUpRight, label: 'Type', value: typeLabel },
                 { icon: Wallet, label: 'Amount', value: signedAmount },
                 referenceValue && { icon: Hash, label: 'Reference', value: referenceValue },
-                { icon: Clock, label: 'Recorded', value: new Date(item.created_at).toLocaleString() },
+                { icon: Clock, label: 'Recorded', value: formatDateTime(item.created_at) },
               ] : [
-                { icon: Wallet, label: 'Amount', value: formatCurrency(amount) },
+                { icon: Wallet, label: 'Amount', value: formatCurrency(amount, item.currency) },
                 { icon: CreditCard, label: 'Method', value: methodLabel },
                 { icon: Building, label: 'Facility', value: facilityName },
-                { icon: Clock, label: 'Paid', value: new Date(item.created_at).toLocaleString() },
+                {
+                  icon: Clock,
+                  label: item.status === 'completed' ? 'Processed' : 'Recorded',
+                  value: formatDateTime(item.status === 'completed' ? item.processed_at || item.updated_at || item.created_at : item.created_at),
+                },
               ]}
               primary={!isLedger && onOpenPayment ? {
                 label: 'Details',

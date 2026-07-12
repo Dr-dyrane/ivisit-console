@@ -30,8 +30,10 @@ Page 22 Onboarding Success (`efac625`).
      and route-owned FAB feedback. Subscriptions must occupy the fourth pill slot while active and its
      Add Subscriber FAB must fail closed. Insurance remains read-only with no fabricated create FAB.
    - Manual side-by-side verdict on 2026-07-12: Payments and Insurance were NOT visually green against
-     Requests. Source remediation now gives Payments the shared atlas ground, balanced glance tiles,
-     grouped-row rhythm, and read-only export/stats actions; it removes active add-funds, withdrawal,
+     Requests. The second Payments remediation now declares a HYBRID grammar: Today's signal hierarchy,
+     Requests' shared KPI strip/grouped feed/detail-sheet mechanics, a route-owned Payment Stats FAB,
+     and feed-local visible-transaction export. It distinguishes missing/failed source truth from zero,
+     preserves per-payment currency, grows the loaded window, and removes active add-funds, withdrawal,
      and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
      a two-group replace-in-place skeleton, and distinguishes failed load from true empty. Both pages
      remain pending a fresh human render check; do not mark wave one complete from static gates.
@@ -46,7 +48,7 @@ Page 22 Onboarding Success (`efac625`).
    - Pricing is now included in the shared desktop list-workspace estate registry, which locks its
      single updated-time sort, keyboard focus, loading/refetch/empty behavior, selection exclusion,
      navbar title, SEO title, and recorded no-deep-link/no-write-surface decisions. Payments remains
-     dashboard-tier rather than being forced into the list registry.
+     hybrid-tier rather than being forced into the list registry.
    - Cross-surface status colors now align for Subscriptions (active emerald, pending cyan,
      unsubscribed neutral, bounced destructive). Analytics ordinary totals/dominance and the mobile
      higher-demand band no longer consume destructive red; failure, cancelled/declined, bounced, and
@@ -64,7 +66,7 @@ Page 22 Onboarding Success (`efac625`).
      load-more has dedicated state, and the normalized projection plus mobile sheet/full detail modal
      render `coverage_percentage` as a rate. Pricing now ignores stale overlapping responses, separates
      load-more from ordinary refetch, and carries facility/platform identity in each row. The full proof
-     is 53 suites / 409 tests plus a successful production build; both pages still require the user's
+     is 53 suites / 411 tests plus a successful production build; both pages still require the user's
      Requests side-by-side mobile verdict before admission.
    - Wave three: Analytics, Live Map, and Settings. Verify truthful source labels, map control states,
      full-bleed/safe-area behavior, identity/account actions, and unavailable report/billing behavior.
@@ -124,6 +126,12 @@ read-only visual revamp when the route projection is proved and unsupported comm
 ## Live claims / run log
 
 ### 2026-07-12 - Mobile priority waves and desktop counterpart orchestration
+- Reworked Payments a second time after direct user review exposed donor-system drift. It now uses the
+  named HYBRID mobile grammar (Today signal + Requests KPI/grouped feed/detail sheet), assigns Payment
+  Stats to the bottom FAB, keeps export local to Transactions, and limits side-menu actions to Stats and
+  Export. Service/page state now exposes missing/failed projections instead of false zeroes, detects more
+  rows with a growing window, preserves loaded records on partial refresh failure, and formats patient
+  payments in their row currency. Production build and focused contracts pass; manual render remains open.
 - Promoted Pricing from `list-migrating` to full LIST grammar with structural skeletons, a real
   refetch signal, growing-window load more, grouped rows, degraded/error states, and a route-owned
   Add Pricing FAB that reaches the existing fail-closed page handler.
@@ -141,7 +149,7 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 53 Jest suites / 409 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 53 Jest suites / 411 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
 - Estate background-token audit found ten numeric opacity modifiers used by source but absent from

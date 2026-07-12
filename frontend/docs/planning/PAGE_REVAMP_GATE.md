@@ -42,8 +42,9 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 User-directed priority now closes mobile before the remaining rendered desktop pass:
 
 - Wave one: Insurance, Pricing, and Payments. Insurance stays read-only; Pricing is promoted to full
-  LIST grammar and keeps pricing writes fail-closed; Payments uses the dashboard grammar and never
-  presents loaded/latest-50 finance evidence as a global exact total.
+  LIST grammar and keeps pricing writes fail-closed; Payments uses the named HYBRID grammar: Today's
+  signal hierarchy plus Requests' KPI-controlled grouped feed and detail sheets. It never presents
+  loaded finance evidence as a global exact total.
 - Subscriptions finishing pass: `/subscriptions` morphs into the fourth bottom-pill slot while active,
   the dock uses the Subscribers label and Mail icon, SmartHeader uses Email Subscribers, and the
   route-owned Add Subscriber FAB reaches the same fail-closed handler as the desktop primary action.
@@ -55,7 +56,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 53 suites / 409 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 53 suites / 411 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
 - Background-token recurrence closed on 2026-07-12: the Tailwind opacity scale now defines every
@@ -66,9 +67,10 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   not attaching to the automation bridge. Do not claim visual completion until the manual matrix records
   populated, empty, failed/stale, navigation, FAB, filter/tab, detail-sheet, and safe-area behavior.
 - First manual side-by-side result: Payments and Insurance are not green against Requests. Payments was
-  remediated with the shared atlas ground, balanced dashboard tiles, donor-density grouped rows, and only
-  read-only export/statistics actions; active add-funds, withdrawal, and card-management event dispatches
-  were removed pending authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
+  remediated again with the shared KPI strip, grouped feed/detail mechanics, route-owned Payment Stats FAB,
+  growing loaded window, explicit source failure states, and per-payment currency. Export remains local to
+  the Transactions feed; active add-funds, withdrawal, and card-management event dispatches were removed
+  pending authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
   uses donor-shaped multi-group loading, and renders a genuine failed-load recovery instead of a false
   empty result. These are source fixes, not rendered admission; both pages require human retest.
 - Finance command mount closure on 2026-07-12: `GlobalFinancialModals` remains source inventory for
@@ -93,7 +95,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   mobile higher-demand band; red remains available for source failure, declined/cancelled outcomes,
   and genuinely critical telemetry.
 - Source-closable checkpoint on 2026-07-12 is complete through `b41c007f`. The full current suite is
-  53 suites / 409 tests, and database-types encoding, mojibake, data contract, 115-file UI hardgate,
+  53 suites / 411 tests, and database-types encoding, mojibake, data contract, 115-file UI hardgate,
   34-file mobile grammar, and production build pass. This is not rendered admission: Payments and
   Insurance still require the fresh manual Requests comparison, the remaining mobile/desktop matrix
   requires authenticated device proof, and blocked commands require backend/app-consequence evidence.

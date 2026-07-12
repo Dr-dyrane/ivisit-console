@@ -3,12 +3,11 @@ import {
     ArrowUpRight,
     ArrowDownLeft,
     TrendingUp,
+    BarChart3,
     CreditCard,
-    ShieldCheck,
     Download,
     History,
     AlertCircle,
-    LockKeyhole,
 } from 'lucide-react';
 
 export const WalletPanel = ({ walletContext }) => {
@@ -18,6 +17,8 @@ export const WalletPanel = ({ walletContext }) => {
         payments = [],
         projection = 0,
         paymentMethods = [],
+        readState = {},
+        hasMore = {},
         counts = {},
         loading = false,
         isFetching = false,
@@ -27,29 +28,21 @@ export const WalletPanel = ({ walletContext }) => {
     } = walletContext || {};
     const [panelStatus, setPanelStatus] = React.useState('');
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: wallet?.currency || 'USD',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+    const formatCurrency = (amount, currency = wallet?.currency || 'USD') => {
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: String(currency || wallet?.currency || 'USD').toUpperCase(),
+                maximumFractionDigits: 0
+            }).format(amount || 0);
+        } catch {
+            return 'Amount unavailable';
+        }
     };
 
     const announce = (message) => {
         setPanelStatus(message);
         window.setTimeout(() => setPanelStatus(''), 2200);
-    };
-
-    const handleTopUp = () => {
-        announce('Add funds is unavailable until the payment consequence is proved.');
-    };
-
-    const handleWithdraw = () => {
-        announce('Withdraw is unavailable until the payout consequence is proved.');
-    };
-
-    const handleCards = () => {
-        announce('Card changes are unavailable until setup authority is proved.');
     };
 
     const handleExport = () => {
@@ -62,8 +55,13 @@ export const WalletPanel = ({ walletContext }) => {
         window.dispatchEvent(new CustomEvent('exportLedger'));
     };
 
+    const handleStats = () => {
+        announce('Opening loaded payment statistics.');
+        window.dispatchEvent(new CustomEvent('openWalletAnalytics'));
+    };
+
     const recentActivity = [...ledger.slice(0, 3), ...payments.slice(0, 2)].slice(0, 4);
-    const cardState = `${paymentMethods.length} returned`;
+    const cardState = readState.paymentMethods === 'ready' ? `${paymentMethods.length} returned` : 'Unavailable';
     const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not returned';
     const transactionsCount = counts.ledger ?? ledger.length;
     const patientPaymentsCount = counts.payments ?? payments.length;
@@ -85,13 +83,13 @@ export const WalletPanel = ({ walletContext }) => {
             <div className="space-y-3">
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Payments overview</h3>
                 <div className="relative overflow-hidden rounded-card surface-card p-5 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
-                    <p className="mb-1 text-sm font-medium text-muted-foreground">Available balance</p>
+                    <p className="mb-1 text-sm font-medium text-muted-foreground">Recorded balance</p>
                     <h2 className="text-4xl font-semibold tracking-tight text-foreground">
                         {balanceLabel}
                     </h2>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="rounded-pill bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
-                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'Saved results' : 'Current read'}
+                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'Saved results' : wallet ? 'Current read' : 'Unavailable'}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
                     </div>
@@ -103,14 +101,16 @@ export const WalletPanel = ({ walletContext }) => {
                             <TrendingUp className="h-3.5 w-3.5 text-sky-700 transition-transform dark:text-sky-100" />
                             <span className="text-xs font-medium text-muted-foreground">Projection returned</span>
                         </div>
-                        <p className="text-sm font-semibold tracking-tight">{formatCurrency(projection || 0)}</p>
+                        <p className="text-sm font-semibold tracking-tight">
+                            {readState.projection === 'ready' ? formatCurrency(projection || 0) : 'Unavailable'}
+                        </p>
                     </div>
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <CreditCard className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Cards returned</span>
+                            <History className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
+                            <span className="text-xs font-medium text-muted-foreground">Activity loaded</span>
                         </div>
-                        <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{cardState}</p>
+                        <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{transactionsCount + patientPaymentsCount}</p>
                     </div>
                 </div>
             </div>
@@ -119,28 +119,11 @@ export const WalletPanel = ({ walletContext }) => {
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Panel actions</h3>
                 <div className="grid grid-cols-2 gap-2">
                 <button
-                    onClick={handleTopUp}
-                    aria-disabled="true"
+                    onClick={handleStats}
                     className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 text-muted-foreground transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
-                    <LockKeyhole className="h-5 w-5 transition-transform" />
-                    <span className="text-sm font-semibold">Add funds</span>
-                </button>
-                <button
-                    onClick={handleWithdraw}
-                    aria-disabled="true"
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
-                >
-                    <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform" />
-                    <span className="text-sm font-semibold">Withdraw</span>
-                </button>
-                <button
-                    onClick={handleCards}
-                    aria-disabled="true"
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
-                >
-                    <CreditCard className="h-5 w-5 text-muted-foreground transition-transform" />
-                    <span className="text-sm font-semibold">Manage cards</span>
+                    <BarChart3 className="h-5 w-5 transition-transform" />
+                    <span className="text-sm font-semibold">Stats</span>
                 </button>
                 <button
                     onClick={handleExport}
@@ -152,7 +135,7 @@ export const WalletPanel = ({ walletContext }) => {
                 </button>
                 </div>
                 <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">
-                    {panelStatus || 'Money and card changes are unavailable pending authority proof.'}
+                    {panelStatus || 'Loaded records are read-only. Money and card changes remain unavailable.'}
                 </p>
             </div>
 
@@ -168,10 +151,12 @@ export const WalletPanel = ({ walletContext }) => {
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Transactions loaded</p>
                         <p className="mt-1 text-xl font-semibold">{transactionsCount}</p>
+                        {hasMore.ledger && <p className="mt-1 text-[10px] text-muted-foreground">More available on the page</p>}
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Patient payments loaded</p>
                         <p className="mt-1 text-xl font-semibold">{patientPaymentsCount}</p>
+                        {hasMore.payments && <p className="mt-1 text-[10px] text-muted-foreground">More available on the page</p>}
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
                         <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
@@ -204,7 +189,7 @@ export const WalletPanel = ({ walletContext }) => {
                                 </div>
                             </div>
                             <span className={`text-xs font-semibold ${isCredit ? 'text-emerald-700 dark:text-emerald-100' : ''}`}>
-                                {!isPatientPayment && (isCredit ? '+' : '-')} {formatCurrency(Math.abs(item.amount))}
+                                {!isPatientPayment && (isCredit ? '+' : '-')} {formatCurrency(Math.abs(item.amount), isPatientPayment ? item.currency : wallet?.currency)}
                             </span>
                         </div>
                     );
@@ -217,13 +202,6 @@ export const WalletPanel = ({ walletContext }) => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-card bg-muted/24 p-4">
-                <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-                <div className="min-w-0">
-                    <p className="text-sm font-semibold">{cardState}</p>
-                    <p className="truncate text-xs leading-tight text-muted-foreground">Read-only provider response</p>
-                </div>
-            </div>
         </div>
     );
 };
