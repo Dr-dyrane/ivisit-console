@@ -148,37 +148,36 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).not.toMatch(/\buppercase\b/);
     expect(page).not.toContain('tracking-widest');
 
-    for (const source of [oldMobile, mobile]) {
-      expect(source).toContain('MobilePageShell');
-      expect(source).toContain('MobileMetricRow');
-      expect(source).toContain('label="Account"');
-      expect(source).toContain('label="Preferences"');
-      expect(source).toContain('label="Security"');
-      expect(source).toContain('Dark Mode');
-      expect(source).toContain('Change Password');
-      expect(source).toContain('Help Center');
-      expect(source).toContain('Professional Profile');
-      expect(source).toContain('Sign Out');
-    }
+    expect(oldMobile).toContain('MobilePageShell');
+    expect(oldMobile).toContain('MobileMetricRow');
+    expect(oldMobile).toContain('label="Account"');
+    expect(oldMobile).toContain('label="Preferences"');
+    expect(oldMobile).toContain('label="Security"');
+    expect(oldMobile).toContain('Dark Mode');
+    expect(oldMobile).toContain('Change Password');
+    expect(oldMobile).toContain('Help Center');
+    expect(oldMobile).toContain('Professional Profile');
+    expect(oldMobile).toContain('Sign Out');
     expect(oldMobile).toContain("label=\"PROFILE\"");
     expect(oldMobile).toContain("label=\"EMAIL\"");
     expect(oldMobile).toContain("label=\"PHONE\"");
     expect(oldMobile).toContain("badge: 'BOUND'");
     expect(oldMobile).toContain("badge: profile?.phone ? 'VERIFIED' : 'MISSING'");
     expect(oldMobile).toContain("badge: 'EXIT'");
-    expect(mobile).toContain('label="Profile"');
-    expect(mobile).toContain('label="Email"');
-    expect(mobile).toContain('label="Phone"');
-    expect(mobile).toContain('label="Access"');
-    expect(mobile).toContain('label="Support"');
-    expect(mobile).toContain('label="Doctor"');
-    expect(mobile).toContain('label="Session"');
-    expect(mobile).toContain("badge: 'Bound'");
-    expect(mobile).toContain("badge: profile?.phone ? 'Verified' : 'Missing'");
-    expect(mobile).toContain("badge: 'Exit'");
-    expect(mobile).toContain("badge: 'Open'");
-    expect(mobile).toContain("badge: 'View'");
-    expect(mobile).toContain('labelTone="plain"');
+    expect(mobile).toContain('const SettingsSkeleton = () =>');
+    expect(mobile).toContain('const ActionRow = ({');
+    expect(mobile).toContain('const InfoRow = ({ icon: Icon, title, value, toneClass }) =>');
+    expect(mobile).toContain('<Section label="Account">');
+    expect(mobile).toContain('<Section label="Preferences">');
+    expect(mobile).toContain('<Section label="Security and help">');
+    expect(mobile).toContain('<Section label="Session">');
+    expect(mobile).toContain('title="Edit profile"');
+    expect(mobile).toContain('Dark mode');
+    expect(mobile).toContain('title="Password and authentication"');
+    expect(mobile).toContain('title="Support"');
+    expect(mobile).toContain('title="Professional profile"');
+    expect(mobile).toContain('Identity verified');
+    expect(mobile).not.toContain("profile?.phone ? 'Verified' : 'Missing'");
     expect(mobile).toContain('rounded-card');
     expect(mobile).toContain('rounded-inner');
     expect(mobile).toContain('rounded-icon');
@@ -196,11 +195,10 @@ describe('Settings Page 16 intake contract', () => {
     expect(mobile).not.toContain("badge: 'WAIT'");
     expect(mobile).not.toContain("badge: 'EXIT'");
     expect(mobile).toContain('isSigningOut = false');
-    expect(mobile).toContain('const signOutBlade = isSigningOut');
-    expect(mobile).toContain("badge: 'Wait'");
-    expect(mobile).toContain("value={isSigningOut ? 'Signing out...' : 'Sign Out'}");
-    expect(mobile).toContain('onClick={isSigningOut ? undefined : onSignOut}');
-    expect(mobile).toContain('rightBlade={signOutBlade}');
+    expect(mobile).toContain("title={isSigningOut ? 'Signing out' : 'Sign out'}");
+    expect(mobile).toContain('pending={isSigningOut}');
+    expect(mobile).toContain("data-state={pending ? 'pending' : 'idle'}");
+    expect(mobile).toContain('aria-busy={pending}');
     expect(gate).toContain('The session row now accepts the Settings-owned sign-out pending state, removes the row click while pending, and shows a `Wait` status blade until the auth receiver resolves.');
     expect(gate).toContain('MobileSettings squircle/voice cleanup on 2026-07-06 converted the local identity/loading cards, avatar/display-id surfaces, role/BVN badges, theme row, and Settings-owned row labels/blades to semantic `rounded-card`, `rounded-inner`, `rounded-icon`, and `rounded-pill` tokens plus plain labels while preserving the same `MobileMetricRow` actions, Support handoff, provider profile trigger, app-local theme toggle, and sign-out pending guard.');
     expect(gate).toContain('This gives `MobileSettings.jsx` focused strict-radius and mobile source-voice proof only; it does not admit Settings, prove preference persistence, or make shared `MobileMetricRow` typography canonical.');
@@ -240,7 +238,8 @@ describe('Settings Page 16 intake contract', () => {
     expect(panel).toContain('Review available');
     expect(gate).toContain('SettingsPanel squircle cleanup on 2026-07-06 converted right-panel quick actions, security/session rows, and help notice to semantic radius tokens (`rounded-card`, `rounded-icon`, `rounded-inner`) while preserving profile/security/support event bridges, unavailable Billing feedback, and the local status live region.');
     expect(gate).toContain('This is focused strict-radius source proof only; it does not admit Settings or add Page 16 to the default hardgate.');
-    expect(panel).toContain('rounded-modal');
+    expect(panel).toContain('rounded-card');
+    expect(panel).not.toContain('rounded-modal');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-inner');
     expect(panel).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])\b/);
@@ -458,5 +457,20 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain("window.addEventListener('requestSettingsRouteContext'");
     expect(contextFab).toContain("location.pathname.startsWith('/settings')");
     expect(bottomBar).toContain("location.pathname.startsWith('/settings')");
+  });
+
+  it('keeps the desktop account dashboard calm and avoids inferred status claims', () => {
+    const page = read('src/components/pages/SettingsPage.jsx');
+
+    expect(page).not.toContain("from 'framer-motion'");
+    expect(page).not.toContain('<motion.div');
+    expect(page).not.toContain('<LayoutGroup>');
+    expect(page).not.toContain('bg-gradient-to-');
+    expect(page).not.toContain('title="Online"');
+    expect(page).not.toContain("? 'Strong' : 'Standard'");
+    expect(page).not.toContain('phone && <Badge');
+    expect(page).toContain('Review password and authentication options');
+    expect(page).toContain('Plan unavailable');
+    expect(page).toContain('Billing source not verified');
   });
 });

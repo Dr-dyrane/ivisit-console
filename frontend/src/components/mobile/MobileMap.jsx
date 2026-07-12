@@ -9,6 +9,7 @@ import {
     Phone,
     Send,
     CheckCheck,
+    Loader2,
     X
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -33,12 +34,27 @@ import mobileMotion from './mobileMotion';
  * Canon #20: Premium Lightness
  */
 
-// Sentence-case a raw status token ('in_progress' -> 'In progress'). DS v1.2 §3:
-// no all-caps subtext — status values render sentence-case, not .toUpperCase().
+// Sentence-case a raw status token ('in_progress' -> 'In progress').
+// Status values render sentence-case, not .toUpperCase().
 const statusLabel = (value, fallback = '') => {
     const text = String(value || fallback).replace(/[_-]+/g, ' ');
     return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
+const formatRequestTime = (value) => {
+    if (!value) return 'Time not recorded';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Time not recorded';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const ambulanceStatusTone = (value) => {
+    const status = String(value || '').toLowerCase();
+    if (status === 'available') return 'text-emerald-600 dark:text-emerald-300';
+    if (['assigned', 'busy', 'en_route', 'in_use'].includes(status)) return 'text-amber-600 dark:text-amber-300';
+    return 'text-foreground/70';
+};
+
 export const MobileMap = ({
     mapData,
     toggleLayer,
@@ -63,45 +79,25 @@ export const MobileMap = ({
     setIsSwitchingMap,
     fallbackMap
 }) => {
-    const { selectedMarker, showLayers, loading } = mapData;
+    const { selectedMarker, showLayers, loading, error } = mapData;
     const { isAdmin, isOrgAdmin } = useAuth();
     const canManageRequests = Boolean(isAdmin?.() || isOrgAdmin?.());
     const [mapCommand, setMapCommand] = useState(null);
     const [confirmClose, setConfirmClose] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [mapNotice, setMapNotice] = useState('');
 
-    // Compact map filters for the top overlay.
-    const mapKPIs = useMemo(() => [
-        {
-            id: 'all',
-            label: 'Emergencies',
-            value: filteredRequests.length,
-            color: 'hsl(var(--destructive))'
-        },
-        {
-            id: 'ambulance',
-            label: 'Units ready',
-            value: processedAmbulances.filter(a => a.status === 'available').length,
-            color: 'hsl(160 84% 39%)' // emerald-500
-        },
-        {
-            id: 'bed',
-            label: 'Hospitals',
-            value: processedHospitals.length,
-            color: 'hsl(188 94% 43%)' // cyan-500
-        },
-        {
-            id: 'routes',
-            label: 'Routes',
-            value: activeRoutes.length,
-            color: 'hsl(199 89% 48%)' // sky-500
-        },
-        {
-            id: 'markers',
-            label: 'Markers',
-            value: allMarkers.length,
-            color: 'hsl(258 90% 66%)' // violet-500
-        }
-    ], [filteredRequests, processedAmbulances, processedHospitals, activeRoutes.length, allMarkers.length]);
+    // These controls filter request service types. Their counts intentionally mirror
+    // the route-owned MapPanel contract instead of unrelated map entity totals.
+    const mapKPIs = useMemo(() => {
+        const requests = Array.isArray(mapData?.emergencyRequests) ? mapData.emergencyRequests : [];
+        return [
+            { id: 'all', label: 'All', value: requests.length },
+            { id: 'ambulance', label: 'Ambulance', value: requests.filter((item) => item?.service_type === 'ambulance').length },
+            { id: 'bed', label: 'Bed', value: requests.filter((item) => item?.service_type === 'bed').length },
+            { id: 'critical_care', label: 'Critical care', value: requests.filter((item) => item?.service_type === 'critical_care').length },
+        ];
+    }, [mapData?.emergencyRequests]);
 
     // Format selected marker for the sheet
     const patientData = selectedMarker?.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
@@ -126,14 +122,34 @@ export const MobileMap = ({
         }
     };
 
+    const handleRefresh = async () => {
+        if (isRefreshing || loading) return;
+        setIsRefreshing(true);
+        setMapNotice('Updating map data');
+        try {
+            await refresh?.();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const handleFilter = (item) => {
+        setFilter?.(item.id);
+        setMapNotice(`${item.label} requests shown`);
+    };
+
+    const hasMapPoints = allMarkers.length > 0;
+    const showInitialLoading = loading && !hasMapPoints;
+    const showRefreshState = (loading || isRefreshing) && hasMapPoints;
+
     return (
         <div className="fixed inset-0 z-[20] bg-background overflow-hidden">
             {/* 1. Main map layer */}
             <div className="absolute inset-0 pt-12">
                 {isSwitchingMap && (
-                    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-                        <h3 className="text-xl font-medium mb-2">Syncing Map...</h3>
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm" role="status" aria-live="polite">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-foreground/70" />
+                        <h3 className="text-sm font-semibold">Switching map</h3>
                     </div>
                 )}
 
@@ -211,17 +227,20 @@ export const MobileMap = ({
 
             </div>
 
-            <div className="absolute left-3 right-3 top-14 z-[80] pointer-events-auto">
+            <div className="absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+3.5rem)] z-[80] pointer-events-auto">
                 <div className="chrome-glass rounded-card p-2">
                     <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                        {mapKPIs.slice(0, 4).map((item) => {
+                        {mapKPIs.map((item) => {
                             const isActive = (mapData?.filter || 'all') === item.id;
                             return (
                                 <button
                                     key={item.id}
                                     type="button"
-                                    onClick={() => setFilter?.(item.id || 'all')}
-                                    className={`min-w-[5.2rem] rounded-inner px-3 py-2 text-left transition-all active:scale-[0.96] ${isActive ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/[0.04] text-foreground/78'}`}
+                                    onClick={() => handleFilter(item)}
+                                    disabled={isSwitchingMap}
+                                    aria-pressed={isActive}
+                                    aria-label={`${item.label} requests, ${item.value}`}
+                                    className={`min-h-12 min-w-[5.2rem] rounded-inner px-3 py-2 text-left transition-all active:scale-[0.96] disabled:opacity-50 ${isActive ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/[0.05] text-foreground/78'}`}
                                 >
                                     <span className="block text-[11px] font-medium opacity-70">
                                         {item.label}
@@ -236,18 +255,64 @@ export const MobileMap = ({
                 </div>
             </div>
 
+            <AnimatePresence mode="wait">
+                {(showInitialLoading || showRefreshState || error || (!loading && !hasMapPoints)) && (
+                    <motion.div
+                        key={error ? 'error' : showInitialLoading ? 'loading' : showRefreshState ? 'refreshing' : 'empty'}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.16 }}
+                        className="pointer-events-auto absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+8.5rem)] z-[75]"
+                    >
+                        <div className="chrome-glass flex min-h-12 items-center gap-3 rounded-card px-4 py-3 shadow-[0_12px_32px_rgb(0_0_0/0.16)]">
+                            {!error && (showInitialLoading || showRefreshState) && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-foreground/70" />}
+                            {error && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />}
+                            <p className="min-w-0 flex-1 text-xs font-medium text-foreground/80" role={error ? 'alert' : 'status'} aria-live="polite">
+                                {error
+                                    ? 'Map data could not be refreshed.'
+                                    : showInitialLoading
+                                        ? 'Loading map data'
+                                        : showRefreshState
+                                            ? 'Updating map data'
+                                            : 'No map points are available in this scope.'}
+                            </p>
+                            {error && (
+                                <button
+                                    type="button"
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing || loading}
+                                    className="min-h-10 rounded-button bg-foreground/[0.08] px-3 text-xs font-semibold text-foreground active:scale-[0.96] disabled:opacity-50"
+                                >
+                                    Retry
+                                </button>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {mapNotice && !error && !loading && !isRefreshing && (
+                <p className="sr-only" role="status" aria-live="polite">{mapNotice}</p>
+            )}
+
             {/* 3. Floating map controls */}
-            <div className={`absolute right-4 flex flex-col items-end gap-3 z-[100] transition-all ${selectedMarker ? 'bottom-[25rem]' : 'bottom-24'}`}>
+            <div
+                className="absolute right-4 z-[100] flex flex-col items-end gap-3 transition-[bottom] duration-200"
+                style={{ bottom: selectedMarker ? 'calc(env(safe-area-inset-bottom) + 44dvh + 6.25rem)' : 'calc(env(safe-area-inset-bottom) + 6rem)' }}
+            >
                 <motion.button
                     whileTap={mobileMotion.press.control}
                     onClick={(e) => {
                         e.stopPropagation();
-                        refresh();
+                        handleRefresh();
                     }}
-                    className="w-12 h-12 rounded-button chrome-glass flex items-center justify-center pointer-events-auto"
-                    aria-label="Refresh map"
+                    disabled={loading || isRefreshing}
+                    className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button chrome-glass disabled:opacity-60"
+                    aria-label={loading || isRefreshing ? 'Refreshing map' : 'Refresh map'}
+                    aria-busy={loading || isRefreshing}
                 >
-                    <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-foreground/70`} />
+                    <RefreshCw size={20} className={`${loading || isRefreshing ? 'animate-spin' : ''} text-foreground/70`} />
                 </motion.button>
 
                 <motion.button
@@ -261,7 +326,7 @@ export const MobileMap = ({
                             toast.info("Location not ready");
                         }
                     }}
-                    className="w-12 h-12 rounded-button chrome-glass flex items-center justify-center pointer-events-auto"
+                    className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button chrome-glass"
                     aria-label="Center map"
                 >
                     <Navigation size={20} className="text-foreground/60" />
@@ -281,9 +346,10 @@ export const MobileMap = ({
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={mobileMotion.spring}
-                        className="fixed bottom-20 left-4 right-4 z-40"
+                        className="fixed left-3 right-3 z-40"
+                        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
                     >
-                        <div className="chrome-glass rounded-sheet p-0 overflow-hidden relative">
+                        <div className="chrome-glass relative max-h-[44dvh] overflow-y-auto rounded-sheet p-0 overscroll-contain">
                             {/* Drag Handle */}
                             <div className="w-12 h-1.5 bg-foreground/20 rounded-pill mx-auto my-3" />
 
@@ -309,7 +375,7 @@ export const MobileMap = ({
                                             {selectedMarker.type} - {selectedMarker.data.status || 'Active'}
                                         </p>
                                         <h3 className="text-lg font-semibold tracking-tight truncate">
-                                            {patientData?.name || selectedMarker.data.name || selectedMarker.data.call_sign || `#${selectedMarker.data.id?.slice(-6)}`}
+                                            {patientData?.name || selectedMarker.data.name || selectedMarker.data.call_sign || (selectedMarker.data.id ? `#${selectedMarker.data.id.slice(-6)}` : 'Map point')}
                                         </h3>
                                     </div>
                                 </header>
@@ -319,12 +385,12 @@ export const MobileMap = ({
                                     {selectedMarker.type === 'emergency' && (
                                         <>
                                             <div className="flex items-center gap-2">
-                                                <span className={`inline-flex rounded-pill px-2.5 py-1 font-semibold text-[11px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"
+                                                <span className={`inline-flex rounded-pill px-2.5 py-1 font-semibold text-[11px] ${String(selectedMarker.data.priority || '').toLowerCase() === "critical" ? "bg-destructive text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"
                                                     }`}>
-                                                    {statusLabel(selectedMarker.data.priority)}
+                                                    {statusLabel(selectedMarker.data.priority, 'Not recorded')}
                                                 </span>
                                                 <span className="text-[11px] text-muted-foreground font-medium">
-                                                    Requested: {new Date(selectedMarker.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    Requested: {formatRequestTime(selectedMarker.data.created_at)}
                                                 </span>
                                             </div>
 
@@ -386,7 +452,7 @@ export const MobileMap = ({
                                                 )}
                                                 {!canManageRequests && (
                                                     <div className="flex-1 rounded-button bg-muted/25 px-4 py-3 text-xs font-medium text-muted-foreground">
-                                                        Review this request from Requests.
+                                                        Request actions are available to authorized operators.
                                                     </div>
                                                 )}
                                             </div>
@@ -397,13 +463,13 @@ export const MobileMap = ({
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="p-4 bg-muted/20 rounded-card text-center">
                                                 <p className="eyebrow mb-1">Status</p>
-                                                <p className={`text-sm font-semibold ${selectedMarker.data.status === 'available' ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
-                                                    {statusLabel(selectedMarker.data.status)}
+                                                <p className={`text-sm font-semibold ${ambulanceStatusTone(selectedMarker.data.status)}`}>
+                                                    {statusLabel(selectedMarker.data.status, 'Not recorded')}
                                                 </p>
                                             </div>
                                             <div className="p-4 bg-muted/20 rounded-card text-center">
                                                 <p className="eyebrow mb-1">Vehicle</p>
-                                                <p className="text-sm font-semibold">{selectedMarker.data.vehicle_number}</p>
+                                                <p className="text-sm font-semibold">{selectedMarker.data.vehicle_number || 'Not recorded'}</p>
                                             </div>
                                         </div>
                                     )}
@@ -412,17 +478,17 @@ export const MobileMap = ({
                                         <>
                                             <div className="p-4 bg-muted/20 rounded-card">
                                                 <p className="text-xs text-muted-foreground leading-relaxed italic">
-                                                    {selectedMarker.data.address}
+                                                    {selectedMarker.data.address || 'No address recorded'}
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="p-4 bg-sky-500/[0.08] rounded-card">
                                                     <p className="eyebrow mb-1">Beds</p>
-                                                    <p className="text-xl font-semibold text-sky-600 dark:text-sky-300">{selectedMarker.data.available_beds || 0}</p>
+                                                    <p className={`${selectedMarker.data.available_beds == null ? 'text-sm' : 'text-xl'} font-semibold text-sky-600 dark:text-sky-300`}>{selectedMarker.data.available_beds ?? 'Not recorded'}</p>
                                                 </div>
                                                 <div className="p-4 bg-muted/20 rounded-card">
                                                     <p className="eyebrow mb-1">Fleet</p>
-                                                    <p className="text-xl font-semibold">{selectedMarker.data.ambulances_count || 0}</p>
+                                                    <p className={`${selectedMarker.data.ambulances_count == null ? 'text-sm' : 'text-xl'} font-semibold`}>{selectedMarker.data.ambulances_count ?? 'Not recorded'}</p>
                                                 </div>
                                             </div>
                                         </>

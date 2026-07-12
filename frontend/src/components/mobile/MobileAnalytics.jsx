@@ -9,18 +9,15 @@ import {
     Wallet,
     Hospital,
     Ambulance,
-    TrendingUp,
-    BarChart3,
-    PieChart as PieChartIcon,
-    Zap,
-    TrendingDown,
     Download
 } from 'lucide-react';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
+import { MobileAnalyticsSkeleton } from './MobileSkeleton';
+import { UpdatingPill } from './canon/Loading';
+import { formatSignedPercent } from '../../utils/metricsUtils';
 
 const SOURCE_PENDING_LABEL = 'Source pending';
 const DEFAULT_SUBSCRIPTION_STATS = {
@@ -32,7 +29,7 @@ const DEFAULT_SUBSCRIPTION_STATS = {
     welcomeEmailsSent: 0,
     paidConversionRate: 0,
 };
-const DEFAULT_FINANCE_SUMMARY = { total: 0, weeklyAvg: 0, today: 0, health: 0 };
+const DEFAULT_FINANCE_SUMMARY = { total: 0, weeklyAvg: 0, today: 0 };
 const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
 
 /**
@@ -63,7 +60,9 @@ export const MobileAnalytics = ({
     financeScopeLabel = SOURCE_PENDING_LABEL,
     canReadSubscriptionAnalytics = false,
     canReadFinanceAnalytics = false,
-    roleContext
+    roleContext,
+    isLoading = false,
+    isFetching = false
 }) => {
     // grammar:hero=MobileFeaturedMetric-is-the-signal-first-statistics-hero
     const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext || {};
@@ -110,10 +109,9 @@ export const MobileAnalytics = ({
 
     const hasMeasuredSuccess = resolvedStats.totalEmergencies > 0 || Number(stats?.successRate) > 0;
     const hasMeasuredAvgTime = Number(resolvedStats.avgResponseTime) > 0;
-    const successDelta = hasMeasuredSuccess ? Number(resolvedStats.successRate) - 80 : null;
     const successValue = hasMeasuredSuccess ? `${resolvedStats.successRate}%` : SOURCE_PENDING_LABEL;
     const avgTimeValue = hasMeasuredAvgTime ? `${resolvedStats.avgResponseTime.toFixed(1)}m` : SOURCE_PENDING_LABEL;
-    const successTrendBadge = formatSignedPercent(successDelta) || SOURCE_PENDING_LABEL;
+    const successTrendBadge = SOURCE_PENDING_LABEL;
     const hospitalCapacityPercent = resolvedHospitalCapacity.total > 0
         ? Math.round((resolvedHospitalCapacity.occupied / resolvedHospitalCapacity.total) * 100)
         : 0;
@@ -156,34 +154,65 @@ export const MobileAnalytics = ({
         return responseTimeData.map(d => ({ value: d.avgTime }));
     }, [responseTimeData]);
 
-    // Semantic tokens (--success/--warning/--info/--secondary) collapse to crimson in
-    // this theme (red-token trap); status hues use the raw vitalTracks accents instead.
-    const getKPIData = () => {
-        if (isAdmin || isOrgAdmin || isSponsor) {
-            return [
-                { label: 'Success', value: successValue, color: 'hsl(162 94% 24%)', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
-                { label: 'Avg time', value: avgTimeValue, color: 'hsl(200 98% 39%)', delta: responseTrend.badge, direction: responseTrend.direction },
-                { label: 'Total', value: resolvedStats.totalEmergencies, color: 'hsl(var(--destructive))', delta: demandTrend.badge, direction: demandTrend.direction },
-                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-                { label: 'Subs', value: subscriberKpiValue, color: 'hsl(200 98% 39%)', delta: subscriptionScopeLabel, direction: 'flat' }
-            ];
-        }
-        return [
-            { label: 'My success', value: successValue, color: 'hsl(162 94% 24%)', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
-            { label: 'Responses', value: resolvedStats.totalEmergencies, color: 'hsl(var(--muted-foreground))', delta: demandTrend.badge, direction: demandTrend.direction },
-            { label: 'Avg time', value: avgTimeValue, color: 'hsl(200 98% 39%)', delta: responseTrend.badge, direction: responseTrend.direction },
-            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
-            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--muted-foreground))', delta: SOURCE_PENDING_LABEL, direction: 'flat' }
-        ];
-    };
+    const featuredItems = [
+        {
+            label: 'Average response',
+            value: avgTimeValue,
+            trend: responseTrend.badge,
+            icon: Clock,
+            color: 'hsl(200 98% 39%)',
+            chartData: sparklineData
+        },
+        {
+            label: isProvider ? 'Completion in scope' : 'Request completion',
+            value: successValue,
+            trend: successTrendBadge,
+            icon: CheckCircle2,
+            color: 'hsl(162 94% 24%)',
+            chartData: []
+        },
+        {
+            label: isProvider ? 'Your requests' : 'Requests in scope',
+            value: resolvedStats.totalEmergencies,
+            trend: demandTrend.badge,
+            icon: AlertTriangle,
+            color: 'hsl(199 89% 38%)',
+            chartData: []
+        },
+        canReadSubscriptionAnalytics
+            ? {
+                label: 'Active subscribers',
+                value: subscriberKpiValue,
+                trend: subscriptionScopeLabel,
+                icon: Users,
+                color: 'hsl(200 98% 39%)',
+                chartData: []
+            }
+            : {
+                label: 'Hospitals in scope',
+                value: resolvedStats.totalHospitals,
+                trend: SOURCE_PENDING_LABEL,
+                icon: Hospital,
+                color: 'hsl(var(--muted-foreground))',
+                chartData: []
+            }
+    ];
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                contentClassName="pt-4 pb-4 text-foreground"
+                contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-4 text-foreground"
             >
+                    {isLoading ? (
+                        <MobileAnalyticsSkeleton />
+                    ) : (
+                        <>
+                    {isFetching && (
+                        <div className="mb-3 flex justify-end px-3">
+                            <UpdatingPill />
+                        </div>
+                    )}
                     {loadError && (
                         <section
                             data-testid="mobile-analytics-error-state"
@@ -191,16 +220,19 @@ export const MobileAnalytics = ({
                             className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive"
                         >
                             <div className="flex items-center justify-between gap-3">
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-sm font-semibold">Statistics did not load.</p>
-                                    <p className="mt-1 text-xs text-destructive/75">Retry when the source is available.</p>
+                                    <p className="mt-1 break-words text-xs text-destructive/75">Retry when the source is available.</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
+                                    disabled={isFetching}
+                                    data-state={isFetching ? 'loading' : 'ready'}
+                                    aria-busy={isFetching}
                                     className="shrink-0 rounded-pill bg-destructive/10 px-4 py-2 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
                                 >
-                                    Retry
+                                    {isFetching ? 'Retrying' : 'Retry'}
                                 </button>
                             </div>
                         </section>
@@ -210,94 +242,65 @@ export const MobileAnalytics = ({
                             data-testid="mobile-analytics-source-state"
                             role="status"
                             aria-live="polite"
-                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive"
+                            className="mx-3 mb-4 rounded-card bg-muted/30 px-4 py-3 text-foreground"
                         >
                             <div className="flex items-center justify-between gap-3">
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-sm font-semibold">{sourceIssueSummary.title}</p>
-                                    <p className="mt-1 text-xs text-destructive/75">{sourceIssueSummary.detail}</p>
+                                    <p className="mt-1 break-words text-xs text-muted-foreground">{sourceIssueSummary.detail}</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={onRetry || onRefresh}
-                                    className="shrink-0 rounded-pill bg-destructive/10 px-4 py-2 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
+                                    disabled={isFetching}
+                                    data-state={isFetching ? 'loading' : 'ready'}
+                                    aria-busy={isFetching}
+                                    className="shrink-0 rounded-pill bg-muted/45 px-4 py-2 text-xs font-semibold text-foreground transition-all hover:bg-muted/60 active:scale-[0.96]"
                                 >
-                                    Retry
+                                    {isFetching ? 'Refreshing' : 'Retry'}
                                 </button>
                             </div>
                         </section>
                     )}
                     {/* HERO FEATURED METRICS */}
-                    <MobileFeaturedMetric
-                        items={[
-                            {
-                                label: isProvider ? 'Personal performance' : 'Impact velocity',
-                                value: isProvider ? successValue : avgTimeValue,
-                                trend: hasMeasuredAvgTime ? (resolvedStats.avgResponseTime < 10 ? 'Current' : 'Watch') : SOURCE_PENDING_LABEL,
-                                icon: isProvider ? Activity : Clock,
-                                color: isProvider ? 'hsl(162 94% 24%)' : 'hsl(200 98% 39%)',
-                                chartData: sparklineData
-                            },
-                            {
-                                label: 'System success',
-                                value: successValue,
-                                trend: successTrendBadge,
-                                icon: CheckCircle2,
-                                color: 'hsl(162 94% 24%)',
-                                chartData: sparklineData
-                            },
-                            {
-                                label: 'Demand',
-                                value: resolvedStats.totalEmergencies,
-                                trend: demandTrend.badge,
-                                icon: AlertTriangle,
-                                color: 'hsl(var(--destructive))',
-                                chartData: sparklineData
-                            },
-                            {
-                                label: 'Network capacity',
-                                value: resolvedStats.totalHospitals,
-                                trend: SOURCE_PENDING_LABEL,
-                                icon: Hospital,
-                                color: 'hsl(200 98% 39%)',
-                                chartData: []
-                            }
-                        ]}
-                    />
+                    <MobileFeaturedMetric items={featuredItems} />
 
                     {/* IMPACT SUMMARY */}
                     <section>
-                        <MobileSectionHeader label="System impact" color="hsl(var(--muted-foreground))" labelTone="plain" />
+                        <MobileSectionHeader label="Request activity" color="hsl(var(--muted-foreground))" labelTone="plain" />
                         <div className="space-y-0.5">
                             <MobileMetricRow
                                 icon={AlertTriangle}
-                                label={isProvider ? "Your cases" : "Total emergencies"}
+                                label={isProvider ? "Your requests" : "Requests in scope"}
                                 value={resolvedStats.totalEmergencies}
                                 rightBlade={{
                                     badge: demandTrend.badge,
                                     direction: demandTrend.direction,
-                                    label: 'Pressure',
-                                    value: `${resolvedStats.totalEmergencies} Load`,
-                                    color: 'hsl(var(--destructive))'
+                                    label: 'Window',
+                                    value: `${resolvedStats.totalEmergencies} requests`,
+                                    color: 'hsl(199 89% 38%)'
                                 }}
-                                color="hsl(var(--destructive))"
-                                description="Life-threatening requests"
+                                color="hsl(199 89% 38%)"
+                                description="Measured request records in the active scope"
                                 expandedContent={
                                     <div className="space-y-4 py-3">
                                         <div className="flex flex-col gap-1 px-1">
                                             <span className="text-[11px] font-medium text-muted-foreground">Case type distribution</span>
-                                            <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="text-destructive font-semibold">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
+                                            <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="font-semibold text-sky-700 dark:text-sky-200">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {emergencyTypes.map((type, i) => (
                                                 <div key={i} className="flex flex-col gap-1 p-3 surface-card rounded-inner">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-[11px] font-medium text-muted-foreground">{type.name}</span>
-                                                        {type.isDominant && <div className="w-1.5 h-1.5 rounded-pill bg-destructive" />}
+                                                        {type.isDominant && <div className="h-1.5 w-1.5 rounded-pill bg-sky-500" />}
                                                     </div>
-                                                    <span className="text-lg font-semibold tracking-tighter">{type.value}</span>
+                                                    <span className="text-lg font-semibold">{type.value}</span>
                                                 </div>
                                             ))}
+                                            {emergencyTypes.length === 0 && (
+                                                <p className="col-span-2 py-4 text-center text-xs text-muted-foreground">Type distribution is {SOURCE_PENDING_LABEL.toLowerCase()}.</p>
+                                            )}
                                         </div>
                                     </div>
                                 }
@@ -308,13 +311,13 @@ export const MobileAnalytics = ({
                                 value={successValue}
                                 rightBlade={{
                                     badge: successValue,
-                                    label: 'Fulfillment',
+                                    label: 'Completion',
                                     value: successValue,
-                                    direction: hasMeasuredSuccess && resolvedStats.successRate >= 85 ? 'up' : hasMeasuredSuccess ? 'down' : 'flat',
+                                    direction: 'flat',
                                     color: 'hsl(162 94% 24%)'
                                 }}
                                 color="hsl(162 94% 24%)"
-                                description="Fulfillment rate"
+                                description="Completed requests in the active scope"
                                 expandedContent={
                                     <div className="space-y-3 py-3">
                                         {requestsByStatus.map((status, i) => (
@@ -324,10 +327,10 @@ export const MobileAnalytics = ({
                                                         <div className="w-1.5 h-1.5 rounded-pill" style={{ backgroundColor: status.color }} />
                                                         <span className="text-muted-foreground">{status.name}</span>
                                                     </div>
-                                                    <span className="text-foreground/80 font-semibold tabular-nums">{status.value} units</span>
+                                                    <span className="text-foreground/80 font-semibold tabular-nums">{status.value} requests</span>
                                                 </div>
                                                 <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
                                                     <div
                                                         className="h-full"
                                                         style={{ width: `${(status.value / Math.max(resolvedStats.totalEmergencies, 1)) * 100}%`, backgroundColor: status.color, opacity: 0.6 }}
@@ -335,62 +338,68 @@ export const MobileAnalytics = ({
                                                 </div>
                                             </div>
                                         ))}
+                                        {requestsByStatus.length === 0 && (
+                                            <p className="py-4 text-center text-xs text-muted-foreground">Status distribution is {SOURCE_PENDING_LABEL.toLowerCase()}.</p>
+                                        )}
                                     </div>
                                 }
                             />
                         </div>
                     </section>
 
-                    {/* PEAK DEMAND HEATMAP (Admin/Org Admin/Sponsor) */}
+                    {/* REQUEST DISTRIBUTION (Admin/Org Admin/Sponsor) */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Demand velocity" color="hsl(var(--destructive))" labelTone="plain" />
+                            <MobileSectionHeader label="Request distribution" color="hsl(var(--muted-foreground))" labelTone="plain" />
                             <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
-                                    <Activity size={40} className="text-destructive" />
+                                    <Activity size={40} className="text-muted-foreground" />
                                 </div>
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="space-y-1">
-                                        <p className="text-[11px] font-medium text-destructive">Load distribution</p>
-                                        <h4 className="text-xl font-medium tracking-tight">Peak heatmap</h4>
+                                        <p className="text-[11px] font-medium text-muted-foreground">Requests by hour</p>
+                                        <h4 className="text-xl font-medium">Activity heatmap</h4>
                                     </div>
-                                    <div className="px-3 py-1 bg-destructive/10 rounded-pill">
-                                        <span className="text-[11px] font-semibold text-destructive">{SOURCE_PENDING_LABEL}</span>
+                                    <div className="rounded-pill bg-muted/30 px-3 py-1">
+                                        <span className="text-[11px] font-semibold text-muted-foreground">{timeRange || SOURCE_PENDING_LABEL}</span>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-6 gap-1.5">
-                                    {demandHeatmap.map((item, idx) => (
-                                        <div key={idx} className="aspect-square relative group">
-                                            <div
-                                                className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-destructive/60' :
-                                                    item.value > 50 ? 'bg-amber-500/40' :
-                                                        item.value > 30 ? 'bg-sky-500/20' :
-                                                            'bg-foreground/[0.05] dark:bg-white/[0.07]'
-                                                    }`}
-                                            />
-                                            {/* Minimal hour indicator for key times */}
-                                            {(idx % 6 === 0) && (
-                                                <span className="absolute -bottom-4 left-0 text-[11px] font-medium text-muted-foreground/60">
-                                                    {item.hour}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                {demandHeatmap.length > 0 ? (
+                                    <div className="grid grid-cols-6 gap-1.5">
+                                        {demandHeatmap.map((item, idx) => (
+                                            <div key={item.hour || idx} className="aspect-square relative">
+                                                <div
+                                                    className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-destructive/60' :
+                                                        item.value > 50 ? 'bg-amber-500/40' :
+                                                            item.value > 30 ? 'bg-sky-500/20' :
+                                                                'bg-foreground/[0.05] dark:bg-white/[0.07]'
+                                                        }`}
+                                                />
+                                                {(idx % 6 === 0) && (
+                                                    <span className="absolute -bottom-4 left-0 text-[11px] font-medium text-muted-foreground/60">
+                                                        {item.hour}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="py-8 text-center text-sm text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
+                                )}
 
                                 <div className="mt-8 flex justify-between items-center text-muted-foreground">
                                     <div className="flex gap-4">
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-1.5 h-1.5 rounded-pill bg-destructive/60" />
-                                            <span className="text-[11px] font-medium">Critical</span>
+                                            <span className="text-[11px] font-medium">Higher</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-1.5 h-1.5 rounded-pill bg-foreground/15" />
-                                            <span className="text-[11px] font-medium">Idle</span>
+                                            <span className="text-[11px] font-medium">Lower</span>
                                         </div>
                                     </div>
-                                    <span className="text-[11px] font-medium italic">{SOURCE_PENDING_LABEL}</span>
+                                    <span className="text-[11px] font-medium">Scoped requests</span>
                                 </div>
                             </div>
                         </section>
@@ -399,17 +408,17 @@ export const MobileAnalytics = ({
                     {/* INFRASTRUCTURE CAPACITY */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Strategic assets" color="hsl(200 98% 39%)" labelTone="plain" />
+                            <MobileSectionHeader label="Network scope" color="hsl(200 98% 39%)" labelTone="plain" />
                             <div className="space-y-0.5">
                                 <MobileMetricRow
                                     icon={Hospital}
-                                    label="Medical facilities"
+                                    label="Hospitals in scope"
                                     value={resolvedStats.totalHospitals}
                                     rightBlade={{
                                         badge: resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL,
                                         label: 'Capacity',
                                         value: `${resolvedHospitalCapacity.total} Beds`,
-                                        direction: (resolvedHospitalCapacity.occupied / Math.max(resolvedHospitalCapacity.total || 0, 1)) < 0.8 ? 'up' : 'down',
+                                        direction: 'flat',
                                         color: 'hsl(200 98% 39%)'
                                     }}
                                     color="hsl(200 98% 39%)"
@@ -418,11 +427,11 @@ export const MobileAnalytics = ({
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="p-3 surface-card rounded-inner">
                                                     <p className="text-[11px] font-medium text-muted-foreground mb-1">Total capacity</p>
-                                                    <p className="text-lg font-semibold tracking-tighter">{resolvedHospitalCapacity.total} Beds</p>
+                                                    <p className="text-lg font-semibold">{resolvedHospitalCapacity.total} Beds</p>
                                                 </div>
                                                 <div className="p-3 surface-card rounded-inner">
                                                     <p className="text-[11px] font-medium text-muted-foreground mb-1">ICU reserved</p>
-                                                    <p className="text-lg font-semibold tracking-tighter text-sky-700 dark:text-sky-300">{resolvedHospitalCapacity.icu}</p>
+                                                    <p className="text-lg font-semibold text-sky-700 dark:text-sky-300">{resolvedHospitalCapacity.icu}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-2 px-1">
@@ -431,7 +440,7 @@ export const MobileAnalytics = ({
                                                     <span className="text-xs font-semibold tabular-nums">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
                                                 </div>
                                                 <div className="h-1.5 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
                                                     <div className="h-full bg-sky-500/60" style={{ width: `${hospitalCapacityPercent}%` }} />
                                                 </div>
                                             </div>
@@ -440,58 +449,38 @@ export const MobileAnalytics = ({
                                 />
                                 <MobileMetricRow
                                     icon={Ambulance}
-                                    label="Fleet readiness"
+                                    label="Ambulances in scope"
                                     value={resolvedStats.totalAmbulances}
                                     rightBlade={{
                                         badge: SOURCE_PENDING_LABEL,
-                                        label: 'Readiness source',
+                                        label: 'Availability',
                                         value: SOURCE_PENDING_LABEL,
                                         direction: 'flat',
                                         color: 'hsl(162 94% 24%)'
                                     }}
                                     color="hsl(162 94% 24%)"
-                                    expandedContent={
-                                        <div className="space-y-4 py-3">
-                                            <div className="p-3 surface-card rounded-inner flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Readiness source</p>
-                                                    <p className="text-lg font-semibold tracking-tighter">{SOURCE_PENDING_LABEL}</p>
-                                                </div>
-                                                <span className="inline-flex items-center rounded-pill surface-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">Pending</span>
-                                            </div>
-                                            <div className="space-y-2 px-1">
-                                                <div className="flex justify-between items-baseline text-muted-foreground">
-                                                    <span className="text-[11px] font-medium">Deployment ratio</span>
-                                                    <span className="text-xs font-semibold">{SOURCE_PENDING_LABEL}</span>
-                                                </div>
-                                                <div className="h-1.5 w-full surface-card rounded-pill overflow-hidden">
-                                                    <div className="h-full bg-emerald-500/60" style={{ width: 0 }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
                                 />
                             </div>
                         </section>
                     )}
 
-                    {/* SYSTEM PERFORMANCE & SEARCH (Reveal Gradually) */}
+                    {/* UNVERIFIED TELEMETRY SOURCES */}
                     <section className="mt-3">
-                        <MobileSectionHeader label="System health" color="hsl(var(--muted-foreground))" labelTone="plain" />
+                        <MobileSectionHeader label="Additional sources" color="hsl(var(--muted-foreground))" labelTone="plain" />
                         <div className="space-y-0.5">
                             <MobileMetricRow
-                                icon={TrendingUp}
-                                label="Search analytics"
-                                value={successValue}
+                                icon={Activity}
+                                label="Search telemetry"
+                                value={SOURCE_PENDING_LABEL}
                                 rightBlade={{
-                                    badge: responseTrend.badge,
-                                    label: 'Status',
-                                    value: avgTimeValue,
-                                    direction: responseTrend.direction,
+                                    badge: SOURCE_PENDING_LABEL,
+                                    label: 'Source',
+                                    value: SOURCE_PENDING_LABEL,
+                                    direction: 'flat',
                                     color: 'hsl(200 98% 39%)'
                                 }}
                                 color="hsl(200 98% 39%)"
-                                description="Pattern efficiency"
+                                description="No verified search telemetry source"
                                 expandedContent={
                                     <div className="grid grid-cols-2 gap-2 py-3">
                                         {[
@@ -505,7 +494,7 @@ export const MobileAnalytics = ({
                                                     <span className="text-[11px] font-medium text-muted-foreground">{m.label}</span>
                                                     <span className="text-[11px] font-semibold text-muted-foreground">{m.change}</span>
                                                 </div>
-                                                <span className="text-lg font-semibold tracking-tighter">{m.value}</span>
+                                                <span className="text-lg font-semibold">{m.value}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -513,17 +502,17 @@ export const MobileAnalytics = ({
                             />
                             <MobileMetricRow
                                 icon={Activity}
-                                label="Performance vitals"
+                                label="Platform telemetry"
                                 value={SOURCE_PENDING_LABEL}
                                 rightBlade={{
-                                    badge: responseTrend.badge,
-                                    label: 'Status',
-                                    value: responseTrend.badge === SOURCE_PENDING_LABEL ? SOURCE_PENDING_LABEL : responseTrend.direction === 'up' ? 'Improving' : responseTrend.direction === 'down' ? 'Watch' : 'Current',
-                                    direction: responseTrend.direction,
+                                    badge: SOURCE_PENDING_LABEL,
+                                    label: 'Source',
+                                    value: SOURCE_PENDING_LABEL,
+                                    direction: 'flat',
                                     color: 'hsl(162 94% 24%)'
                                 }}
                                 color="hsl(162 94% 24%)"
-                                description="Infrastructure health"
+                                description="No verified platform telemetry source"
                                 expandedContent={
                                     <div className="space-y-4 py-4">
                                         {[
@@ -538,7 +527,7 @@ export const MobileAnalytics = ({
                                                     <span className="text-foreground">{p.value}</span>
                                                 </div>
                                                 <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
                                                     <div
                                                         className={`h-full ${p.status === 'excellent' ? 'bg-emerald-500/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-sky-500/60'}`}
                                                         style={{ width: `${p.progress}%` }}
@@ -552,32 +541,18 @@ export const MobileAnalytics = ({
                         </div>
                     </section>
 
-                    {/* FISCAL PERFORMANCE (Admin/Sponsor until org finance scope is proved) */}
+                    {/* FINANCE SCOPE (Admin/Sponsor until org finance scope is proved) */}
                     {canReadFinanceAnalytics && (
                         <section className="mt-3">
-                            <MobileSectionHeader label="Fiscal trajectory" color="hsl(26 90% 37%)" labelTone="plain" />
+                            <MobileSectionHeader label="Finance scope" color="hsl(26 90% 37%)" labelTone="plain" />
                             <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-5">
                                     <Wallet size={60} className="text-emerald-500" />
                                 </div>
 
-                                <div className="flex justify-between items-center mb-8">
-                                    <div>
-                                        <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 mb-1">Revenue stream</p>
-                                        <h4 className="text-3xl font-semibold tracking-tighter">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
-                                    </div>
-                                    <div className="relative w-14 h-14 flex items-center justify-center">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-foreground/10" />
-                                            <circle
-                                                cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent"
-                                                strokeDasharray={151}
-                                                strokeDashoffset={151 - (151 * resolvedFinanceSummary.health / 100)}
-                                                className="text-emerald-500"
-                                            />
-                                        </svg>
-                                        <span className="absolute text-[11px] font-semibold tabular-nums">{Math.round(resolvedFinanceSummary.health)}%</span>
-                                    </div>
+                                <div className="mb-8 min-w-0 pr-12">
+                                    <p className="mb-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">Recorded total</p>
+                                    <h4 className="break-words text-3xl font-semibold">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
                                 </div>
 
                                 <div className="space-y-5">
@@ -588,7 +563,7 @@ export const MobileAnalytics = ({
                                                 <span className="text-foreground/80 tabular-nums">{m.value}</span>
                                             </div>
                                             <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                {/* No data entrance (canon §3): the bar holds its measured width. */}
+                                                {/* No data entrance (canon section 3): the bar holds its measured width. */}
                                                 <div
                                                     className="h-full opacity-60"
                                                     style={{ backgroundColor: m.color, width: `${m.progress}%` }}
@@ -624,8 +599,11 @@ export const MobileAnalytics = ({
                             </p>
                         )}
                         <motion.button
+                            type="button"
                             whileTap={{ scale: 0.96 }}
                             onClick={handleExport}
+                            data-state="unavailable"
+                            aria-disabled="true"
                             aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
                             className="w-full surface-card py-4 rounded-button flex items-center justify-center gap-3 transition-all"
                         >
@@ -636,9 +614,11 @@ export const MobileAnalytics = ({
                             id="mobile-analytics-export-feedback"
                             className="text-center text-[11px] font-medium text-muted-foreground mt-6"
                         >
-                            Report scope pending - {new Date().toLocaleDateString()}
+                            Report scope pending - no verified receiver
                         </p>
                     </section>
+                        </>
+                    )}
             </MobilePageShell>
         </PullToRefresh>
     );

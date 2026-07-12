@@ -49,7 +49,7 @@ import {
 // the full accumulated window and this component renders useStableList(policies, loading)
 // DIRECTLY (no client accumulatorRef). useStableList holds the last settled set so a refetch
 // never flashes the list to empty.
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupList } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { PullToRefresh } from './PullToRefresh';
@@ -141,7 +141,6 @@ const MobileInsuranceAtlasLayer = () => (
 // The KPI chips are a separate axis (status + verification overlay), not this signal.
 const hasActiveInsuranceFilters = (filters = {}) => Boolean(
   filters?.search ||
-  (filters?.kpiFilter && filters.kpiFilter !== 'all') ||
   (Array.isArray(filters?.status) && filters.status.length > 0) ||
   (Array.isArray(filters?.type) && filters.type.length > 0) ||
   (filters?.verified && filters.verified !== 'all') ||
@@ -232,6 +231,8 @@ export const MobileInsurance = ({
       : `${scopeCount} ${scopeCount === 1 ? 'policy' : 'policies'}`;
 
   const hasFilter = hasActiveInsuranceFilters(filters);
+  const kpiEmptyCause = activeKpi !== 'all' && !filters?.search && !hasFilter;
+  const activeKpiLabel = insuranceKPIs.find((item) => item.id === activeKpi)?.label || 'selected';
 
   // Adaptive, DATA-DRIVEN grouping: STATUS is the genuine lifecycle spine for insurance
   // (pending -> active -> expired; inactive), so it is the primary group (mirrors Support).
@@ -269,7 +270,7 @@ export const MobileInsurance = ({
         orbClass={orbClassFor(status)}
         icon={statusIcon(status)}
         title={policy.policy_holder_name || policy.policy_number || 'Unnamed policy'}
-        meta={planType ? `${providerLabel} · ${planType}` : providerLabel}
+        meta={planType ? `${providerLabel} / ${planType}` : providerLabel}
         time={formatRelativeTime(policy.created_at)}
         markerChip={policy.verified ? 'Verified' : null}
         pill={vital?.pill}
@@ -337,7 +338,7 @@ export const MobileInsurance = ({
 
               {/* Group-shaped skeleton (Sec 5.2): mirrors the panel 1:1 for replace-in-place. */}
               {showTopSectionLoading ? (
-                <SkeletonGroupPanel rows={6} />
+                <SkeletonGroupList groups={2} rowsPerGroup={[3, 2]} trailing="timePill" />
               ) : (
                 <div className="space-y-[18px]">
                   {policyGroups.map((group) => (
@@ -359,20 +360,34 @@ export const MobileInsurance = ({
                 {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
               </div>
 
-              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && (
+              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && error && (
+                <MobileListEmpty
+                  icon={Shield}
+                  label="Policies did not load"
+                  reason="error"
+                  hint="Something went wrong loading insurance policies."
+                  onRecover={onRetry}
+                  recoverLabel="Retry"
+                  labelTone="plain"
+                />
+              )}
+
+              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && !error && (
                 <MobileListEmpty
                   icon={Shield}
                   label="No policies found"
-                  reason={filters?.search ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                  reason={filters?.search ? 'search' : hasFilter || kpiEmptyCause ? 'filtered' : 'empty'}
                   hint={filters?.search
                     ? `No policies match "${filters.search}".`
                     : hasFilter
                       ? 'Try clearing filters to see the full policy list.'
+                      : kpiEmptyCause
+                        ? `No policies in the ${activeKpiLabel} scope.`
                       : 'Policy records for this scope will appear here.'}
-                  onRecover={(filters?.search || hasFilter)
+                  onRecover={(filters?.search || hasFilter || kpiEmptyCause)
                     ? () => setFilters(prev => ({ ...prev, search: '', kpiFilter: 'all', status: [], type: [], verified: '', created_at: { start: '', end: '' } }))
                     : undefined}
-                  recoverLabel={filters?.search ? 'Clear Search' : hasFilter ? 'Reset Filters' : undefined}
+                  recoverLabel={filters?.search ? 'Clear Search' : hasFilter ? 'Reset Filters' : kpiEmptyCause ? 'Show all policies' : undefined}
                   labelTone="plain"
                 />
               )}

@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useRowSelection } from '../../hooks/useRowSelection';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { InsuranceDesktopWorkspace } from './insurance/InsuranceDesktopWorkspace';
@@ -15,7 +14,6 @@ import {
   subscribeToInsurancePolicies,
 } from '../../services/insuranceService';
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
 import { InsuranceModal } from '../modals/InsuranceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
@@ -115,7 +113,6 @@ export const InsuranceManagementPage = () => {
   const hasActiveFilters = useMemo(() => hasActiveInsuranceFilters(filters), [filters]);
   const insurancePolicies = insurancePage.data || [];
   const insuranceStats = insurancePage.stats || EMPTY_INSURANCE_PAGE.stats;
-  const selection = useRowSelection(insurancePolicies);
   const moduleRailItems = useMemo(() => getConsoleModuleRailItems({ isAdmin: isAdmin() }), [isAdmin]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
@@ -594,46 +591,24 @@ export const InsuranceManagementPage = () => {
       <div className="min-h-screen">
         <SEOHead title="Insurance" description="Review insurance policy evidence and claim outcomes." />
 
-        {error && !loading && !hasMobileRows ? (
-          <div className="px-4 pt-24 pb-8" data-testid="mobile-insurance-error-state">
-            {commandNotice && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
-              >
-                {commandNotice}
-              </div>
-            )}
-            <Card className="rounded-card bg-card p-6 text-center">
-              <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <h3 className="font-bold text-lg mb-2">Insurance could not load</h3>
-              <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button onClick={fetchInsurancePage} variant="outline" className="squircle">
-                Try again
-              </Button>
-            </Card>
-          </div>
-        ) : (
-          <MobileInsurance
-            policies={mobileVisiblePolicies}
-            filters={filters}
-            setFilters={setFilters}
-            onView={handleView}
-            onRefresh={fetchInsurancePage}
-            loading={loading}
-            isFetching={loading}
-            error={error}
-            onRetry={fetchInsurancePage}
-            stats={insuranceStats}
-            onOpenFilters={() => setFilterSheetOpen(true)}
-            onViewAnalytics={handleViewAnalytics}
-            filterSheetOpen={filterSheetOpen}
-            analyticsOpen={analyticsModalOpen}
-            hasMore={pagination.hasNextPage}
-            onLoadMore={pagination.nextPage}
-          />
-        )}
+        <MobileInsurance
+          policies={mobileVisiblePolicies}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onRefresh={fetchInsurancePage}
+          loading={loading && !hasMobileRows}
+          isFetching={loading && hasMobileRows}
+          error={error}
+          onRetry={fetchInsurancePage}
+          stats={insuranceStats}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={handleViewAnalytics}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+        />
 
         <InsuranceModal
           isOpen={!!modalMode}
@@ -686,8 +661,6 @@ export const InsuranceManagementPage = () => {
         focusedPolicy={focusedPolicy}
         setFocused={setFocused}
         onView={handleView}
-        selection={selection}
-        onUnavailable={showPolicyCommandUnavailable}
         moduleRailItems={moduleRailItems}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}

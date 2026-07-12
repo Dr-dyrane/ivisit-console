@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -10,11 +11,12 @@ import {
     CreditCard,
     Building,
     ShieldCheck,
-    TrendingUp,
     History,
     RefreshCw,
     Wallet,
-    Loader2
+    AlertCircle,
+    Info,
+    LockKeyhole,
 } from 'lucide-react';
 import { getWalletPageData } from '../../services/walletService';
 import { Button } from '../ui/button';
@@ -29,6 +31,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MobileWallet } from '../mobile/MobileWallet';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { SEOHead } from '../common/SEOHead';
+import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
+import { SignalPanel } from '../console/SignalPanel';
+import { ActivitySheet, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { SkeletonRows, CopyChip, StatusPill, DetailLine, EmptyState, ErrorBanner, LoadErrorState } from '../console/primitives';
+import { useListKeyboardNav } from '../../hooks/useListKeyboardNav';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 
 
 export const WalletManagementPage = () => {
@@ -43,9 +51,18 @@ export const WalletManagementPage = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [activeTab, setActiveTab] = useState('ledger');
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+    const [loadError, setLoadError] = useState('');
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+    const hasLoadedRef = useRef(false);
 
     const fetchData = useCallback(async () => {
-        setLoading(true);
+        if (hasLoadedRef.current) {
+            setIsFetching(true);
+        } else {
+            setLoading(true);
+        }
+        setLoadError('');
         try {
             const data = await getWalletPageData({
                 profile,
@@ -59,10 +76,15 @@ export const WalletManagementPage = () => {
             setProjection(data.projection);
             setPaymentMethods(data.paymentMethods);
             setPayments(data.payments);
+            hasLoadedRef.current = true;
+            setHasLoaded(true);
         } catch (error) {
+            const message = error?.message || 'Payments could not load. Please try again.';
+            setLoadError(message);
             toast.error('Payments could not load. Please try again.');
         } finally {
             setLoading(false);
+            setIsFetching(false);
         }
     }, [profile, isAdmin, isOrgAdmin]);
 
@@ -84,18 +106,6 @@ export const WalletManagementPage = () => {
         document.body.removeChild(link);
         toast.success('Transactions exported.');
     }, [ledger, wallet?.currency]);
-
-    const handleTopUpTrigger = () => {
-        window.dispatchEvent(new CustomEvent('openTopUpModal', { detail: { wallet } }));
-    };
-
-    const handleWithdrawTrigger = () => {
-        window.dispatchEvent(new CustomEvent('openWithdrawModal', { detail: { wallet } }));
-    };
-
-    const handleBillingTrigger = () => {
-        window.dispatchEvent(new CustomEvent('openBillingModal', { detail: { wallet } }));
-    };
 
     const headerActions = useMemo(() => (
         <span className="hidden md:inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -150,6 +160,9 @@ export const WalletManagementPage = () => {
             cards: paymentMethods.length,
         },
         loading,
+        isFetching,
+        loadError,
+        hasLoaded,
         activeTab,
         roleLabel: isAdmin() ? 'Platform admin' : 'Hospital admin',
         canManage: isAdmin() || isOrgAdmin(),
@@ -158,6 +171,9 @@ export const WalletManagementPage = () => {
         isAdmin,
         isOrgAdmin,
         ledger,
+        loadError,
+        hasLoaded,
+        isFetching,
         loading,
         paymentMethods,
         payments,
@@ -190,6 +206,9 @@ export const WalletManagementPage = () => {
                 <SEOHead title="Payments" description="Review balance, cards, and payment activity." />
                 <MobileWallet
                     loading={loading}
+                    isFetching={isFetching}
+                    loadError={loadError}
+                    errorMessage={loadError}
                     wallet={wallet}
                     projection={projection}
                     paymentMethods={paymentMethods}
@@ -198,14 +217,10 @@ export const WalletManagementPage = () => {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     onRefresh={fetchData}
-                    onTopUp={handleTopUpTrigger}
-                    onWithdraw={handleWithdrawTrigger}
-                    onOpenBilling={handleBillingTrigger}
+                    onExport={handleExport}
                     onOpenPayment={setSelectedPayment}
                     onViewAnalytics={() => setAnalyticsModalOpen(true)}
                     formatCurrency={formatCurrency}
-                    isAdmin={isAdmin()}
-                    isOrgAdmin={isOrgAdmin()}
                 />
 
                 <PaymentReceiptDialog
@@ -251,12 +266,13 @@ export const WalletManagementPage = () => {
                 ledger={ledger}
                 payments={payments}
                 paymentMethods={paymentMethods}
+                loadError={loadError}
+                hasLoaded={hasLoaded}
+                isFetching={isFetching}
+                roleKind={isAdmin() ? 'admin' : 'org_admin'}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 fetchData={fetchData}
-                onTopUp={handleTopUpTrigger}
-                onWithdraw={handleWithdrawTrigger}
-                onBilling={handleBillingTrigger}
                 onPaymentOpen={setSelectedPayment}
                 formatCurrency={formatCurrency}
                 formatPaymentMethod={formatPaymentMethod}
@@ -410,47 +426,27 @@ const ReceiptLine = ({ icon: Icon, label, value, detail }) => (
 );
 
 const paymentToneClass = {
-    success: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:bg-emerald-300/15 dark:text-emerald-100',
-    warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:bg-amber-300/15 dark:text-amber-100',
-    info: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:bg-sky-300/15 dark:text-sky-100',
-    muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
+    success: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:bg-emerald-300/15 dark:text-emerald-100',
+    warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:bg-amber-300/15 dark:text-amber-100',
+    danger: 'bg-destructive/10 text-destructive shadow-e2',
+    info: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:bg-sky-300/15 dark:text-sky-100',
+    muted: 'bg-foreground/[0.055] text-muted-foreground shadow-e2 dark:bg-white/[0.06] dark:text-slate-200',
 };
 
 const metricToneClass = {
     success: {
-        active: 'bg-emerald-500/14 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.18)] dark:text-emerald-100',
+        active: 'bg-emerald-500/12 text-emerald-700 shadow-e2 dark:text-emerald-100',
         rest: 'bg-muted/30 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-100',
     },
     info: {
-        active: 'bg-sky-500/14 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.18)] dark:text-sky-100',
+        active: 'bg-sky-500/12 text-sky-700 shadow-e2 dark:text-sky-100',
         rest: 'bg-muted/30 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-100',
     },
     muted: {
-        active: 'bg-foreground/[0.08] text-foreground shadow-[0_18px_54px_rgba(0,0,0,0.12)]',
+        active: 'bg-foreground/[0.08] text-foreground shadow-e2',
         rest: 'bg-muted/30 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
     },
 };
-
-const PaymentsAtlasLayer = () => (
-    <div className="absolute inset-0 overflow-hidden bg-background">
-        <div
-            className="absolute inset-0 opacity-[0.32] dark:opacity-[0.24]"
-            style={{
-                backgroundImage:
-                    'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--success) / 0.08) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--info) / 0.08) 64% 67%, transparent 67%)',
-                backgroundSize: '260px 180px, 340px 240px, 420px 280px',
-                backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
-            }}
-        />
-        <div
-            className="absolute inset-0"
-            style={{
-                background:
-                    'linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%), linear-gradient(90deg, hsl(var(--success) / 0.08), transparent 36%, hsl(var(--info) / 0.08))',
-            }}
-        />
-    </div>
-);
 
 const formatDate = (value) => {
     if (!value) return 'No date';
@@ -481,44 +477,45 @@ const formatCompactCurrency = (amount, currency = 'USD') => {
     }).format(value);
 };
 
-const getPaymentSignal = ({ loading, wallet, paymentMethods, payments }) => {
-    if (loading && !wallet) {
+const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) => {
+    const loadedCount = ledger.length + payments.length;
+
+    if (loadError && !hasLoaded) {
         return {
-            icon: Loader2,
-            spin: true,
-            tone: 'muted',
-            label: 'Loading',
-            headline: 'Payments are loading',
-            subhead: 'Balance, cards, and recent activity will appear here.',
+            icon: AlertCircle,
+            tone: 'danger',
+            label: 'Load failed',
+            headline: 'Payments did not load',
+            subhead: 'No financial values are being inferred. Retry from the activity sheet.',
         };
     }
 
-    if (paymentMethods.length === 0) {
+    if (loadError) {
         return {
-            icon: CreditCard,
+            icon: AlertCircle,
             tone: 'warning',
-            label: 'Cards needed',
-            headline: 'Add a card to keep payments ready',
-            subhead: 'Add a saved card before adding funds.',
+            label: 'Saved results',
+            headline: 'Showing the last loaded payment records',
+            subhead: 'The latest refresh failed, so visible values may be out of date.',
         };
     }
 
-    if (payments.length > 0) {
+    if (!wallet && loadedCount === 0) {
         return {
-            icon: ShieldCheck,
-            tone: 'success',
-            label: 'Ready',
-            headline: `${payments.length} patient payment${payments.length === 1 ? '' : 's'}`,
-            subhead: 'Open patient payments or review transactions from the sheet.',
+            icon: Wallet,
+            tone: 'muted',
+            label: 'No wallet returned',
+            headline: 'No payment records are available',
+            subhead: 'This role scope returned no wallet, transactions, or patient payments.',
         };
     }
 
     return {
-        icon: Wallet,
-        tone: 'info',
-        label: 'Ready',
-        headline: 'Balance is ready',
-        subhead: 'Review transactions, add funds, or manage saved cards.',
+        icon: ShieldCheck,
+        tone: 'success',
+        label: 'Read only',
+        headline: `${loadedCount} payment record${loadedCount === 1 ? '' : 's'} loaded`,
+        subhead: 'Review the latest returned records. Money-changing commands stay unavailable until their consequence is proved.',
     };
 };
 
@@ -529,84 +526,215 @@ const PaymentsDesktopWorkspace = ({
     ledger,
     payments,
     paymentMethods,
+    loadError,
+    hasLoaded,
+    isFetching,
+    roleKind,
     activeTab,
     setActiveTab,
     fetchData,
-    onTopUp,
-    onWithdraw,
-    onBilling,
     onPaymentOpen,
     formatCurrency,
     formatPaymentMethod,
     formatPaymentDescription,
 }) => {
-    const signal = getPaymentSignal({ loading, wallet, paymentMethods, payments });
-    const activeItems = activeTab === 'ledger' ? ledger : payments;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+    const [focusedId, setFocusedIdState] = useState(searchParams.get('id'));
+    const listScrollRef = useRef(null);
+    const { routingPath, handleRailNavigate } = useWayfindingNav();
+    const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
+    const signal = getPaymentSignal({ loadError, hasLoaded, wallet, ledger, payments });
+    const rawItems = activeTab === 'ledger' ? ledger : payments;
+    const activeItems = useMemo(() => [...rawItems].sort((left, right) => {
+        const leftTime = new Date(left.created_at || 0).getTime();
+        const rightTime = new Date(right.created_at || 0).getTime();
+        return sortConfig.direction === 'asc' ? leftTime - rightTime : rightTime - leftTime;
+    }), [rawItems, sortConfig.direction]);
+    const focusedEntry = activeItems.find((item) => item.id === focusedId) || null;
+    const failedEmpty = Boolean(loadError) && activeItems.length === 0;
+    const itemNoun = activeTab === 'ledger' ? 'loaded transactions' : 'loaded patient payments';
+    const pagination = useMemo(() => ({
+        currentPage: 1,
+        totalPages: 1,
+        totalCount: activeItems.length,
+        itemsPerPage: Math.max(activeItems.length, 1),
+        prevPage: () => {},
+        nextPage: () => {},
+        hasPrevPage: false,
+        hasNextPage: false,
+    }), [activeItems.length]);
+
+    useEffect(() => {
+        const requestedTab = searchParams.get('tab');
+        if ((requestedTab === 'ledger' || requestedTab === 'payments') && requestedTab !== activeTab) {
+            setActiveTab(requestedTab);
+        }
+    }, [activeTab, searchParams, setActiveTab]);
+
+    useEffect(() => {
+        const requestedId = searchParams.get('id');
+        if (requestedId && activeItems.some((item) => item.id === requestedId)) {
+            setFocusedIdState(requestedId);
+            return;
+        }
+        setFocusedIdState((current) => activeItems.some((item) => item.id === current) ? current : (activeItems[0]?.id || null));
+    }, [activeItems, searchParams]);
+
+    const setFocusedId = useCallback((id) => {
+        setFocusedIdState(id);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set('tab', activeTab);
+        if (id) nextParams.set('id', id);
+        else nextParams.delete('id');
+        setSearchParams(nextParams, { replace: true });
+    }, [activeTab, searchParams, setSearchParams]);
+
+    const handleTabChange = useCallback((tab) => {
+        setActiveTab(tab);
+        setFocusedIdState(null);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set('tab', tab);
+        nextParams.delete('id');
+        setSearchParams(nextParams, { replace: true });
+    }, [searchParams, setActiveTab, setSearchParams]);
+
+    const handleOpen = useCallback((item) => {
+        setFocusedId(item.id);
+        if (activeTab === 'payments') onPaymentOpen(item);
+    }, [activeTab, onPaymentOpen, setFocusedId]);
+
+    const handleSort = useCallback(() => {
+        setSortConfig((current) => ({
+            key: 'created_at',
+            direction: current.direction === 'desc' ? 'asc' : 'desc',
+        }));
+    }, []);
+
+    const handleListKeyDown = useListKeyboardNav({
+        items: activeItems,
+        focusedItem: focusedEntry,
+        setFocusedId,
+        onOpen: handleOpen,
+        scrollRef: listScrollRef,
+        rowAttr: 'data-payment-row',
+    });
 
     return (
-        <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
-            <PaymentsAtlasLayer />
-
-            <div className="relative z-10 flex min-h-[calc(100dvh-3rem)] w-full min-w-0 flex-col gap-5 px-4 pb-8 pt-20 sm:px-5 md:pt-24 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28">
-                <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
-                    <PaymentsSignalPanel
-                        signal={signal}
-                        wallet={wallet}
-                        projection={projection}
-                        ledger={ledger}
-                        payments={payments}
-                        paymentMethods={paymentMethods}
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        onBilling={onBilling}
-                        formatCurrency={formatCurrency}
-                    />
-
-                    <PaymentsSheet
-                        loading={loading}
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        activeItems={activeItems}
-                        fetchData={fetchData}
-                        onPaymentOpen={onPaymentOpen}
-                        formatCurrency={formatCurrency}
-                        formatPaymentMethod={formatPaymentMethod}
-                        formatPaymentDescription={formatPaymentDescription}
-                    />
-                </section>
-
+        <WorkspaceStage
+            moduleRailItems={moduleRailItems}
+            activePath="/wallet"
+            routingPath={routingPath}
+            onRailNavigate={handleRailNavigate}
+            rail={(
                 <PaymentDetailRail
+                    entry={focusedEntry}
+                    entryKind={activeTab}
+                    loading={loading}
                     wallet={wallet}
                     projection={projection}
                     paymentMethods={paymentMethods}
-                    onTopUp={onTopUp}
-                    onWithdraw={onWithdraw}
-                    onBilling={onBilling}
+                    ledgerCount={ledger.length}
+                    paymentsCount={payments.length}
+                    onOpenReceipt={onPaymentOpen}
                     formatCurrency={formatCurrency}
+                    formatPaymentMethod={formatPaymentMethod}
+                    formatPaymentDescription={formatPaymentDescription}
                 />
-            </div>
-        </section>
+            )}
+        >
+            <SignalPanel signal={signal} loading={loading} toneClassMap={paymentToneClass}>
+                <PaymentsMetricStrip
+                    wallet={wallet}
+                    ledger={ledger}
+                    payments={payments}
+                    paymentMethods={paymentMethods}
+                    activeTab={activeTab}
+                    setActiveTab={handleTabChange}
+                />
+            </SignalPanel>
+
+            <ActivitySheet
+                loading={loading}
+                isFetching={isFetching}
+                failedEmpty={failedEmpty}
+                pagination={pagination}
+                itemNoun={itemNoun}
+                loadingLabel="Loading payment records"
+                toolbar={(
+                    <PaymentsToolbar
+                        activeTab={activeTab}
+                        setActiveTab={handleTabChange}
+                        loading={loading}
+                        isFetching={isFetching}
+                        onRefresh={fetchData}
+                    />
+                )}
+                errorBanner={loadError && !failedEmpty ? (
+                    <ErrorBanner
+                        title="Payments refresh failed"
+                        message={`${loadError} Existing rows are preserved and may be out of date.`}
+                        onRetry={fetchData}
+                        testId="payments-error-state"
+                    />
+                ) : null}
+            >
+                <div
+                    ref={listScrollRef}
+                    tabIndex={0}
+                    onKeyDown={handleListKeyDown}
+                    aria-label={activeTab === 'ledger' ? 'Transaction history list' : 'Patient payments list'}
+                    style={{ outline: 'none' }}
+                    className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
+                >
+                    {loading && <SkeletonRows />}
+                    {!loading && failedEmpty && (
+                        <LoadErrorState title="Payments did not load" message={loadError} onRetry={fetchData} />
+                    )}
+                    {!loading && !failedEmpty && (
+                        <>
+                            <PaymentsListHeader sortConfig={sortConfig} onSort={handleSort} />
+                            {activeItems.length === 0 && !loadError && (
+                                <EmptyState
+                                    icon={History}
+                                    heading={activeTab === 'ledger' ? 'No transactions returned' : 'No patient payments returned'}
+                                    body="This is an empty result for the current role scope, not a global financial total."
+                                />
+                            )}
+                            {activeItems.map((item) => (
+                                <PaymentRow
+                                    key={item.id}
+                                    item={item}
+                                    activeTab={activeTab}
+                                    selected={focusedEntry?.id === item.id}
+                                    onFocus={() => setFocusedId(item.id)}
+                                    onOpen={() => handleOpen(item)}
+                                    formatCurrency={formatCurrency}
+                                    formatPaymentMethod={formatPaymentMethod}
+                                    formatPaymentDescription={formatPaymentDescription}
+                                />
+                            ))}
+                        </>
+                    )}
+                </div>
+            </ActivitySheet>
+        </WorkspaceStage>
     );
 };
 
-const PaymentsSignalPanel = ({
-    signal,
+const PaymentsMetricStrip = ({
     wallet,
-    projection,
     ledger,
     payments,
     paymentMethods,
     activeTab,
     setActiveTab,
-    onBilling,
-    formatCurrency,
 }) => {
-    const SignalIcon = signal.icon;
     const metrics = [
         {
             id: 'balance',
             label: 'Balance',
-            value: formatCompactCurrency(wallet?.balance || 0, wallet?.currency || 'USD'),
+            value: wallet ? formatCompactCurrency(wallet.balance, wallet.currency || 'USD') : 'Not returned',
             icon: Wallet,
             tone: 'info',
             tab: 'ledger',
@@ -614,7 +742,7 @@ const PaymentsSignalPanel = ({
         },
         {
             id: 'ledger',
-            label: 'Transactions',
+            label: 'Transactions loaded',
             value: ledger.length,
             icon: History,
             tone: 'muted',
@@ -623,7 +751,7 @@ const PaymentsSignalPanel = ({
         },
         {
             id: 'payments',
-            label: 'Patient payments',
+            label: 'Payments loaded',
             value: payments.length,
             icon: ShieldCheck,
             tone: 'success',
@@ -632,40 +760,16 @@ const PaymentsSignalPanel = ({
         },
         {
             id: 'cards',
-            label: 'Cards',
+            label: 'Cards returned',
             value: paymentMethods.length,
             icon: CreditCard,
             tone: paymentMethods.length > 0 ? 'success' : 'muted',
-            onClick: onBilling,
+            onClick: () => {},
         },
     ];
 
     return (
-        <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.42 }}
-            className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]"
-        >
-            <div className="min-w-0">
-                <div className="max-w-2xl">
-                    <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${paymentToneClass[signal.tone] || paymentToneClass.muted}`}>
-                        <SignalIcon className={`h-4 w-4 ${signal.spin ? 'animate-spin' : ''}`} />
-                        {signal.label}
-                    </div>
-                    <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
-                        {signal.headline}
-                    </h1>
-                    <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-                        {signal.subhead}
-                    </p>
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-pill bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
-                        <TrendingUp className="h-3.5 w-3.5" />
-                        Next 30 days {formatCurrency(projection || 0)}
-                    </div>
-                </div>
-
-                <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
                     {metrics.map((item) => {
                         const Icon = item.icon;
                         const active = item.tab ? activeTab === item.tab : false;
@@ -678,6 +782,7 @@ const PaymentsSignalPanel = ({
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={item.onClick}
+                                disabled={item.id === 'cards'}
                                 className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? tone.active : tone.rest}`}
                                 aria-pressed={active}
                             >
@@ -693,112 +798,71 @@ const PaymentsSignalPanel = ({
                             </motion.button>
                         );
                     })}
-                </div>
-            </div>
-        </motion.section>
+        </div>
     );
 };
 
-const PaymentsSheet = ({
-    loading,
+const PaymentsToolbar = ({
     activeTab,
     setActiveTab,
-    activeItems,
-    fetchData,
-    onPaymentOpen,
-    formatCurrency,
-    formatPaymentMethod,
-    formatPaymentDescription,
+    loading,
+    isFetching,
+    onRefresh,
 }) => (
-    <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
-        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-
-        <div className="flex items-center gap-3">
-            <div className="flex flex-1 rounded-inner bg-muted/30 p-1">
-                {[
-                    { id: 'ledger', label: 'Transaction History', icon: History },
-                    { id: 'payments', label: 'Patient Payments', icon: ShieldCheck },
-                ].map((item) => {
-                    const Icon = item.icon;
-                    const active = activeTab === item.id;
-
-                    return (
-                        <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setActiveTab(item.id)}
-                            className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-button px-3 text-sm font-semibold transition-all active:scale-[0.98] ${active ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground hover:text-foreground'}`}
-                            aria-pressed={active}
-                        >
-                            <Icon className="h-4 w-4" />
-                            <span className="hidden sm:inline">{item.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
-
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchData}
-                className="h-12 w-12 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-95 dark:hover:text-sky-100"
-                aria-label="Refresh payments"
-            >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
+    <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 rounded-inner bg-muted/30 p-1">
+            {[
+                { id: 'ledger', label: 'Transaction History', icon: History },
+                { id: 'payments', label: 'Patient Payments', icon: ShieldCheck },
+            ].map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                    <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-button px-3 text-sm font-semibold transition-all active:scale-[0.98] ${active ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground hover:text-foreground'}`}
+                        aria-pressed={active}
+                    >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                    </button>
+                );
+            })}
         </div>
-
-        <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
-            <span>{loading ? 'Loading payments' : `${activeItems.length} ${activeTab === 'ledger' ? 'transactions' : 'patient payments'}`}</span>
-            <span>{activeTab === 'ledger' ? 'Balance activity' : 'Patient receipts'}</span>
-        </div>
-
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
-            {loading && <PaymentSkeletonRows />}
-
-            {!loading && activeItems.length === 0 && (
-                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
-                    <History className="mb-4 h-12 w-12 text-muted-foreground/65" />
-                    <h3 className="text-xl font-semibold">No {activeTab === 'ledger' ? 'transactions' : 'patient payments'} yet</h3>
-                    <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                        {activeTab === 'ledger' ? 'Add funds or wait for payment activity.' : 'Completed patient payments will appear here.'}
-                    </p>
-                </div>
-            )}
-
-            {!loading && activeItems.length > 0 && (
-                <AnimatePresence mode="popLayout">
-                    {activeItems.map((item, index) => (
-                        <PaymentRow
-                            key={item.id}
-                            item={item}
-                            index={index}
-                            activeTab={activeTab}
-                            onPaymentOpen={onPaymentOpen}
-                            formatCurrency={formatCurrency}
-                            formatPaymentMethod={formatPaymentMethod}
-                            formatPaymentDescription={formatPaymentDescription}
-                        />
-                    ))}
-                </AnimatePresence>
-            )}
-        </div>
+        <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRefresh}
+            disabled={loading || isFetching}
+            className="h-12 w-12 shrink-0 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
+            aria-label={isFetching ? 'Refreshing payments' : 'Refresh payments'}
+        >
+            <RefreshCw className={`h-4 w-4 ${loading || isFetching ? 'animate-spin' : ''}`} />
+        </Button>
     </div>
 );
 
-const PaymentSkeletonRows = () => (
-    <div className="space-y-2">
-        {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="h-[78px] rounded-inner bg-muted/20 shimmer" />
-        ))}
+const PAYMENT_GRID_COLS = 'grid-cols-[minmax(180px,1.35fr)_minmax(110px,0.75fr)_minmax(110px,0.8fr)_108px_124px_78px]';
+
+const PaymentsListHeader = ({ sortConfig, onSort }) => (
+    <div className={`grid ${PAYMENT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+        <span>Activity</span>
+        <span>Status</span>
+        <span>Scope</span>
+        <SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
+        <span className="text-right">Amount</span>
+        <span className="justify-self-end text-right">Action</span>
     </div>
 );
 
 const PaymentRow = ({
     item,
-    index,
     activeTab,
-    onPaymentOpen,
+    selected,
+    onFocus,
+    onOpen,
     formatCurrency,
     formatPaymentMethod,
     formatPaymentDescription,
@@ -815,8 +879,19 @@ const PaymentRow = ({
     const tone = isPayment
         ? item.status === 'completed' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-100' : 'bg-amber-500/12 text-amber-700 dark:text-amber-100'
         : isCredit ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-100' : 'bg-foreground/[0.055] text-muted-foreground';
-    const content = (
-        <>
+    const statusTone = isPayment
+        ? item.status === 'completed' ? paymentToneClass.success : item.status === 'failed' ? paymentToneClass.danger : paymentToneClass.warning
+        : isCredit ? paymentToneClass.success : paymentToneClass.muted;
+
+    return (
+        <ListRowShell
+            id={item.id}
+            dataAttrName="data-payment-row"
+            gridCols={PAYMENT_GRID_COLS}
+            selected={selected}
+            onFocus={onFocus}
+            onOpen={onOpen}
+        >
             <div className="flex min-w-0 items-center gap-3">
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${tone}`}>
                     <Icon className="h-5 w-5" />
@@ -827,15 +902,17 @@ const PaymentRow = ({
                 </span>
             </div>
 
-            <div className="hidden min-w-0 items-center gap-2 md:flex">
-                <span className={`inline-flex max-w-full rounded-pill px-3 py-1 text-xs font-semibold ${tone}`}>
+            <div className="min-w-0">
+                <span className={`inline-flex max-w-full rounded-pill px-3 py-1 text-xs font-semibold ${statusTone}`}>
                     <span className="truncate">{label}</span>
                 </span>
             </div>
 
-            <div className="hidden text-sm font-medium text-muted-foreground md:block">
-                {formatDate(item.created_at)}
+            <div className="truncate text-sm font-medium text-muted-foreground">
+                {isPayment ? item.emergency_requests?.hospitals?.name || 'Current role scope' : 'Wallet ledger'}
             </div>
+
+            <div className="text-sm font-medium text-muted-foreground">{formatDate(item.created_at)}</div>
 
             <div className="text-right">
                 <div className="text-base font-semibold text-foreground">
@@ -844,150 +921,136 @@ const PaymentRow = ({
                 <div className="mt-1 text-[11px] font-medium text-muted-foreground">{formatTime(item.created_at)}</div>
             </div>
 
-            <span className="hidden h-9 items-center gap-1 rounded-pill bg-background/45 px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all group-hover:bg-foreground group-hover:text-background md:inline-flex">
-                {isPayment ? 'Details' : 'Logged'}
+            <span className="justify-self-end inline-flex h-9 items-center gap-1 rounded-pill bg-background/45 px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all group-hover:bg-foreground group-hover:text-background">
+                {isPayment ? 'Receipt' : 'Read only'}
                 {isPayment && <ArrowRight className="h-3.5 w-3.5" />}
             </span>
-        </>
-    );
-
-    if (isPayment) {
-        return (
-            <motion.button
-                type="button"
-                layout
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-                onClick={() => onPaymentOpen(item)}
-                className="group mb-2 grid min-h-[78px] w-full grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-inner bg-muted/22 px-4 py-3 text-left transition-all duration-200 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)] active:scale-[0.995]"
-            >
-                {content}
-            </motion.button>
-        );
-    }
-
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
-            className="group mb-2 grid min-h-[78px] grid-cols-[minmax(150px,1.2fr)_minmax(110px,0.7fr)_96px_120px_82px] items-center gap-2 rounded-inner bg-muted/22 px-4 py-3 transition-all duration-200 hover:bg-muted/34"
-        >
-            {content}
-        </motion.div>
+        </ListRowShell>
     );
 };
 
 const PaymentDetailRail = ({
+    entry,
+    entryKind,
+    loading,
     wallet,
     projection,
     paymentMethods,
-    onTopUp,
-    onWithdraw,
-    onBilling,
+    ledgerCount,
+    paymentsCount,
+    onOpenReceipt,
     formatCurrency,
-}) => (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
-
-        <div className="mb-5">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Payment actions</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">One action at a time.</p>
+    formatPaymentMethod,
+    formatPaymentDescription,
+}) => {
+    if (loading) {
+        return (
+            <DetailRailShell>
+                <div className="space-y-3">
+                    <div className="h-24 animate-pulse rounded-modal bg-muted/30" />
+                    <div className="h-14 animate-pulse rounded-card bg-muted/25" />
+                    <div className="h-14 animate-pulse rounded-card bg-muted/25" />
+                    <div className="h-14 animate-pulse rounded-card bg-muted/25" />
                 </div>
-                <span className={`inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${paymentMethods.length > 0 ? paymentToneClass.success : paymentToneClass.warning}`}>
-                    {paymentMethods.length > 0 ? 'Cards ready' : 'Cards needed'}
-                </span>
-            </div>
+            </DetailRailShell>
+        );
+    }
 
-            <div className="mt-5 rounded-card bg-background/42 p-5 dark:bg-white/[0.05]">
-                <div className="text-sm font-medium text-muted-foreground">Available balance</div>
-                <div className="mt-2 text-4xl font-semibold tracking-tight">{formatCurrency(wallet?.balance || 0)}</div>
-                <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    Updated {wallet?.updated_at ? formatTime(wallet.updated_at) : 'just now'}
-                </div>
-            </div>
-        </div>
+    const isPayment = entryKind === 'payments';
+    const isCredit = isPayment ? entry?.status === 'completed' : entry?.transaction_type === 'credit';
+    const statusLabel = entry
+        ? isPayment ? titleCase(entry.status || 'unknown') : titleCase(entry.transaction_type || 'transaction')
+        : 'Read only';
+    const statusTone = entry
+        ? isPayment && entry.status === 'failed' ? paymentToneClass.danger : isCredit ? paymentToneClass.success : paymentToneClass.muted
+        : paymentToneClass.muted;
+    const description = entry
+        ? isPayment ? formatPaymentDescription(entry) : entry.description || 'Transaction'
+        : 'No record selected';
+    const amount = entry ? formatCurrency(Math.abs(Number(entry.amount || 0))) : 'Not selected';
+    const scopeLabel = isPayment
+        ? entry?.emergency_requests?.hospitals?.name || 'Current role scope'
+        : 'Wallet ledger';
 
-        <div className="grid grid-cols-2 gap-3">
-            <Button
-                className="h-12 rounded-button bg-emerald-500 text-white font-semibold shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
-                onClick={onTopUp}
-            >
-                <ArrowDownLeft className="mr-2 h-4 w-4" />
-                Add funds
-            </Button>
-            <Button
-                variant="ghost"
-                className="h-12 rounded-button bg-muted/30 font-semibold text-foreground transition-all hover:bg-muted/45 active:scale-[0.98]"
-                onClick={onWithdraw}
-            >
-                <ArrowUpRight className="mr-2 h-4 w-4" />
-                Withdraw
-            </Button>
-        </div>
-
-        <Button
-            variant="ghost"
-            className="mt-3 h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-sky-500/10 hover:text-sky-700 active:scale-[0.98] dark:hover:text-sky-100"
-            onClick={onBilling}
-        >
-            <CreditCard className="mr-2 h-4 w-4" />
-            {paymentMethods.length > 0 ? 'Manage cards' : 'Link card'}
-            <ChevronRightIcon />
-        </Button>
-
-        <div className="mt-5 rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <h3 className="text-sm font-semibold">Saved cards</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">{paymentMethods.length} ready</p>
-                </div>
-                <span className="rounded-pill bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
-                    Cards
-                </span>
-            </div>
-
-            <div className="mt-3 space-y-2">
-                {paymentMethods.length === 0 && (
-                    <div className="rounded-inner bg-muted/22 px-4 py-5 text-center text-sm font-medium text-muted-foreground">
-                        No saved cards
-                    </div>
-                )}
-                {paymentMethods.map((method) => (
-                    <div key={method.id} className="group flex items-center justify-between gap-3 rounded-inner bg-muted/22 px-4 py-3">
-                        <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{method.card?.brand || 'Card'} **** {method.card?.last4}</div>
-                            <div className="mt-1 text-xs text-muted-foreground">Expires {method.card?.exp_month}/{method.card?.exp_year}</div>
+    return (
+        <DetailRailShell>
+            <RailInsetHero>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h2 className="text-xl font-semibold tracking-tight">{isPayment ? 'Payment details' : 'Transaction details'}</h2>
+                        {entry?.id && (
+                            <div className="mt-1 flex min-w-0 items-center gap-1">
+                                <p className="truncate font-mono text-[11px] font-medium tracking-wide text-muted-foreground" title={entry.id}>{entry.id}</p>
+                                <CopyChip value={entry.id} label="Copy payment record ID" />
+                            </div>
+                        )}
+                        <div className="mt-4">
+                            <StatusPill label={statusLabel} className={statusTone} />
                         </div>
-                        <span className="shrink-0 rounded-pill bg-background/55 px-3 py-1 text-[11px] font-semibold text-muted-foreground dark:bg-white/[0.06]">
-                            Saved
-                        </span>
                     </div>
-                ))}
-            </div>
-        </div>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-sky-500/10 text-sky-700 dark:text-sky-100">
+                        {isPayment ? <CreditCard className="h-5 w-5" /> : <History className="h-5 w-5" />}
+                    </span>
+                </div>
+                <div className="mt-5 rounded-card bg-background/45 p-4 dark:bg-white/[0.05]">
+                    <p className="text-xs font-medium text-muted-foreground">Amount</p>
+                    <p className="mt-1 text-3xl font-semibold tracking-tight">{amount}</p>
+                    <p className="mt-2 truncate text-sm font-medium text-muted-foreground">{description}</p>
+                </div>
+            </RailInsetHero>
 
-        <div className="mt-5 rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
-            <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-100">
-                    <TrendingUp className="h-4 w-4" />
-                </span>
-                <div>
-                    <div className="text-sm font-semibold">Next 30 days</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{formatCurrency(projection || 0)} projected</div>
+            {entry ? (
+                <div className="space-y-3">
+                    <DetailLine icon={Clock} label="Recorded" value={`${formatDate(entry.created_at)} at ${formatTime(entry.created_at)}`} />
+                    <DetailLine icon={Building} label="Scope" value={scopeLabel} />
+                    <DetailLine icon={isPayment ? CreditCard : History} label={isPayment ? 'Method' : 'Reference'} value={isPayment ? titleCase(formatPaymentMethod(entry)) : entry.reference_id || 'Not returned'} />
+                </div>
+            ) : (
+                <div className="flex min-h-[180px] flex-col items-center justify-center rounded-card bg-muted/18 p-6 text-center">
+                    <Info className="mb-3 h-8 w-8 text-muted-foreground/60" />
+                    <p className="text-sm font-semibold">No record selected</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Choose a loaded row to inspect its source fields.</p>
+                </div>
+            )}
+
+            {isPayment && entry && (
+                <Button
+                    onClick={() => onOpenReceipt(entry)}
+                    className="mt-5 h-12 w-full rounded-card bg-foreground text-sm font-semibold text-background shadow-e2-strong transition-all hover:bg-foreground/90 active:scale-95"
+                >
+                    <Info className="mr-2 h-4 w-4" />
+                    Open receipt
+                    <ArrowRight className="ml-auto h-4 w-4 opacity-70" />
+                </Button>
+            )}
+
+            <div className="mt-5 space-y-3">
+                <div className="rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
+                    <p className="text-xs font-medium text-muted-foreground">Available balance</p>
+                    <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not returned'}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{ledgerCount} transactions and {paymentsCount} patient payments loaded, up to 50 per source.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-inner bg-muted/22 p-3">
+                        <p className="text-[11px] font-semibold text-muted-foreground">Projection returned</p>
+                        <p className="mt-1 text-sm font-semibold">{formatCurrency(projection || 0)}</p>
+                    </div>
+                    <div className="rounded-inner bg-muted/22 p-3">
+                        <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
+                        <p className="mt-1 text-sm font-semibold">{paymentMethods.length}</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </aside>
-);
 
-const ChevronRightIcon = () => (
-    <ArrowRight className="ml-auto h-4 w-4" />
-);
+            <div className="mt-5 rounded-card bg-amber-500/10 p-4 text-amber-800 dark:text-amber-100">
+                <div className="flex items-start gap-3">
+                    <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold">Money changes unavailable</p>
+                        <p className="mt-1 text-xs leading-5 text-amber-800/80 dark:text-amber-100/75">Add funds, withdraw, and card changes stay locked until receiver authority and reflected app consequences are proved.</p>
+                    </div>
+                </div>
+            </div>
+        </DetailRailShell>
+    );
+};

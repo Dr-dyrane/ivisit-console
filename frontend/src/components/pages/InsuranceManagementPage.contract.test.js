@@ -14,8 +14,7 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(authority).toContain('There is no admin policy create/edit/delete/verify RPC.');
     expect(page).toContain("showPolicyCommandUnavailable('Add policy')");
     expect(page).not.toMatch(/createInsurancePolicy|updateInsurancePolicy|deleteInsurancePolicy|verifyInsurancePolicy/);
-    expect(desktop).toContain('data-state="unavailable"');
-    expect(desktop).toContain("onUnavailable('Bulk policy changes')");
+    expect(desktop).toContain('selection excluded by decision');
   });
 
   it('preserves service-owned filtering, sort, exact counts, pagination, and failure envelopes', () => {
@@ -58,12 +57,11 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop).toContain('filtersActive={hasFilter}');
   });
 
-  it('restores desktop selection while keeping mutation unavailable', () => {
-    expect(page).toContain('useRowSelection(insurancePolicies)');
-    expect(desktop).toContain('selection.handleSelectAll');
-    expect(desktop).toContain('selection.handleToggleSelect');
-    expect(desktop).toContain('selection.handleSelectClick');
-    expect(desktop).toContain('Changes unavailable');
+  it('does not advertise selection without policy mutation authority', () => {
+    expect(page).not.toContain('useRowSelection(insurancePolicies)');
+    expect(desktop).not.toContain('<Checkbox');
+    expect(desktop).not.toContain('Changes unavailable');
+    expect(desktop).toContain('selection excluded by decision');
   });
 
   it('publishes whole route context and keeps focused-record detail behavior', () => {
@@ -81,6 +79,9 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(mobile).toContain('<GroupPanel');
     expect(mobile).toContain('<MobileListRow');
     expect(mobile).toContain('<MobileDetailSheet');
+    expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
+    expect(mobile).toContain('label="Policies did not load"');
+    expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
     expect(mobile).toContain('mobile-insurance-degraded-state');
     expect(mobile).not.toMatch(/onDelete|onEdit|onVerify|MobileFeaturedMetric|MobileSecondaryMetricRail/);
   });
@@ -89,5 +90,10 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(page).toContain("distributionScope: 'visible_page'");
     expect(page).toContain("distributionLabel: 'Visible page only'");
     expect(page).toContain('visibleAnalyticsPolicies');
+  });
+
+  it('keeps desktop search copy aligned with the proved service search contract', () => {
+    expect(desktop).toContain('Search policy, provider, or plan...');
+    expect(desktop).not.toContain('Search holder, policy, or provider...');
   });
 });

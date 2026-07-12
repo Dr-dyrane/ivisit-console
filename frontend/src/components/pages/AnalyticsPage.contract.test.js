@@ -258,6 +258,15 @@ describe('Analytics Page 13 intake contract', () => {
     expect(page).toContain('sourceIssueSummary={visibleAnalyticsSourceIssueSummary}');
     expect(page).toContain('canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}');
     expect(page).toContain('canReadFinanceAnalytics={canReadFinanceAnalytics}');
+    expect(page).toContain('const analyticsIsFetching = analyticsRefreshNotice === ANALYTICS_REFRESH_PENDING_MESSAGE;');
+    expect(page).toContain('isLoading={loading && !analyticsSnapshotReadyRef.current}');
+    expect(mobile).toContain('contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-4 text-foreground"');
+    expect(mobile).toContain('{isLoading ? (');
+    expect(mobile).not.toContain('if (isLoading) return <MobileAnalyticsSkeleton />;');
+    expect(mobile).not.toContain('text-destructive font-semibold');
+    expect(page).toContain('isFetching={analyticsIsFetching}');
+    expect(mobile).toContain('isFetching = false');
+    expect(mobile).toContain('<UpdatingPill />');
     expect(oldMobile).toContain('Generate Analytics Report');
     expect(mobile).not.toContain('Generate Analytics Report');
     expect(mobile).toContain('Report unavailable');

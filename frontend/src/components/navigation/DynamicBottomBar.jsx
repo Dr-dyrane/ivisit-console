@@ -25,6 +25,8 @@ import {
     Building2,
     Newspaper,
     LifeBuoy,
+    Mail,
+    DollarSign,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -112,6 +114,8 @@ const DynamicBottomBarContent = () => {
         organizations: Building2,
         news: Newspaper,
         support: LifeBuoy,
+        subscriptions: Mail,
+        pricing: DollarSign,
     };
 
     return (
@@ -346,6 +350,17 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
             label: 'Add subscriber',
             color: 'staff',
             action: () => window.dispatchEvent(new CustomEvent('openSubscriptionModal'))
+        };
+    }
+
+    // Pricing mirrors the desktop primary action. The page owns this event and
+    // reports the command unavailable until facility-scoped authority is proved.
+    if (pathname.startsWith('/pricing') && canReachRoute(userRole, '/pricing')) {
+        return {
+            icon: Plus,
+            label: 'Add pricing',
+            color: 'staff',
+            action: () => window.dispatchEvent(new CustomEvent('openPricingModal'))
         };
     }
 

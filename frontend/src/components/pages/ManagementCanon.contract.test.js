@@ -53,4 +53,20 @@ describe('Management pages canon chrome-clean contract', () => {
       }
     });
   }
+
+  it('keeps focused right-pane cards on the card radius rather than modal radius', () => {
+    const panels = [
+      'src/components/context/InsurancePanel.jsx',
+      'src/components/context/PricingContextPanel.jsx',
+      'src/components/context/SubscriptionsPanel.jsx',
+      'src/components/context/MapPanel.jsx',
+      'src/components/context/SettingsPanel.jsx',
+    ];
+
+    for (const file of panels) {
+      const src = read(file);
+      expect({ file, hasCardRadius: src.includes('rounded-card') }).toEqual({ file, hasCardRadius: true });
+      expect({ file, hasModalRadius: src.includes('rounded-modal') }).toEqual({ file, hasModalRadius: false });
+    }
+  });
 });

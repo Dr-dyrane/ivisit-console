@@ -34,7 +34,7 @@ import { Users, Mail, Crown, BadgeCheck, Clock, Eye, Trash2 } from 'lucide-react
 // filteredSubscribers.slice(0, page*itemsPerPage)); each load-more grows the SAME prefix, so the
 // window only ever appends -- no client id-keyed accumulator is needed (useStableList holds the
 // last settled set so a refetch never flashes to empty).
-import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
+import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupList } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileSelectionBar } from './MobileSelectionBar';
@@ -109,11 +109,10 @@ const MobileSubscriptionsAtlasLayer = () => (
     </div>
 );
 
-// Filter-trigger truth: any committed narrowing counts (search, KPI status, or the sheet's
-// status/type/welcome/date filters), so the trigger's filtered state never lies.
+// Filter-trigger truth mirrors Requests: KPI scope is visible in its own chip and does not
+// falsely light the separate filter-sheet button.
 const hasActiveSubscriptionFilters = (filters = {}) => Boolean(
     filters?.search ||
-    (filters?.kpiFilter && filters.kpiFilter !== 'all') ||
     (Array.isArray(filters?.status) && filters.status.length > 0) ||
     (Array.isArray(filters?.type) && filters.type.length > 0) ||
     filters?.welcomeEmailSent ||
@@ -145,6 +144,7 @@ export const MobileSubscriptions = ({
     onViewAnalytics,
     filterSheetOpen = false,
     analyticsOpen = false,
+    actionNotice = '',
     selectionEnabled = false,
     selectedIds = [],
     onSelect,
@@ -208,6 +208,8 @@ export const MobileSubscriptions = ({
         : metricValue(stats?.[kpiToKey[activeKpi]], 0);
 
     const hasFilter = hasActiveSubscriptionFilters(filters);
+    const kpiEmptyCause = activeKpi !== 'all' && !filters?.search && !hasFilter;
+    const activeKpiLabel = subscriberKPIs.find((item) => item.id === activeKpi)?.label || 'selected';
 
     // Welcome-email OVERLAY (Support 'urgent' precedent): a per-row markerChip, NOT a KPI chip.
     // Rendered only when welcome_email_sent DISTRIBUTES across the loaded set (some sent, some
@@ -317,6 +319,17 @@ export const MobileSubscriptions = ({
 
                         <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
+                        {actionNotice && (
+                            <p
+                                id="subscriptions-action-feedback"
+                                className="mt-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+                                role="status"
+                                aria-live="polite"
+                            >
+                                {actionNotice}
+                            </p>
+                        )}
+
                         <div className="mt-3 space-y-2">
                             {selectionActive && (
                                 <MobileSelectionBar
@@ -359,7 +372,7 @@ export const MobileSubscriptions = ({
 
                             {/* Group-shaped skeleton (section 5.2): mirrors the panel 1:1 for replace-in-place. */}
                             {showTopSectionLoading ? (
-                                <SkeletonGroupPanel rows={6} />
+                                <SkeletonGroupList groups={2} rowsPerGroup={[3, 2]} trailing="timePill" />
                             ) : (
                                 <div className="space-y-[18px]">
                                     {subscriberGroups.map((group) => (
@@ -385,18 +398,20 @@ export const MobileSubscriptions = ({
                                 <MobileListEmpty
                                     icon={Users}
                                     label={errorMessage ? 'Subscribers did not load' : 'No subscribers found'}
-                                    reason={filters?.search ? 'search' : hasFilter ? 'filtered' : 'empty'}
+                                    reason={filters?.search ? 'search' : hasFilter || kpiEmptyCause ? 'filtered' : 'empty'}
                                     hint={errorMessage
                                         ? 'Try again before treating the list as empty.'
                                         : filters?.search
                                             ? `No subscribers match "${filters.search}".`
                                             : hasFilter
                                                 ? 'Try clearing filters to see every subscriber.'
+                                                : kpiEmptyCause
+                                                    ? `No subscribers in the ${activeKpiLabel} scope.`
                                                 : 'Subscribers will appear here once they register.'}
-                                    onRecover={!errorMessage && (filters?.search || hasFilter)
+                                    onRecover={!errorMessage && (filters?.search || hasFilter || kpiEmptyCause)
                                         ? () => setFilters(prev => ({ ...prev, search: '', kpiFilter: 'all', status: [], type: [], welcomeEmailSent: '', dateRange: 'all' }))
                                         : errorMessage ? onRetry : undefined}
-                                    recoverLabel={!errorMessage && filters?.search ? 'Clear Search' : !errorMessage && hasFilter ? 'Reset Filters' : errorMessage ? 'Try again' : undefined}
+                                    recoverLabel={!errorMessage && filters?.search ? 'Clear Search' : !errorMessage && hasFilter ? 'Reset Filters' : !errorMessage && kpiEmptyCause ? 'Show all subscribers' : errorMessage ? 'Try again' : undefined}
                                     labelTone="plain"
                                 />
                             )}

@@ -23,26 +23,60 @@ Page 22 Onboarding Success (`efac625`).
 
 ## Active queue (priority order)
 
-1. **Authenticated parity proof for Pages 12-18**
-   - executor: `browser` - status: `blocked`
-   - Insurance, Analytics, Organizations, Settings, Subscriptions, and Pricing have source parity,
-     focused contracts, grammar/hardgate coverage, and green production builds. Prove desktop/mobile
-     surfaces with authorized roles. Record denied, failed, stale, empty, populated, focus, selection,
-     filter, right-pane, and unavailable-command behavior. Do not weaken RLS or manufacture data.
+1. **Manual mobile parity proof for the 2026-07-12 priority waves**
+   - executor: `browser` / human - status: `in_progress`
+   - Wave one: Insurance, Pricing, Payments, and Subscriptions. Verify loading, stale/error/empty,
+     search/filter/tab state, row-to-sheet behavior, bottom-pill current-route state, side-menu title,
+     and route-owned FAB feedback. Subscriptions must occupy the fourth pill slot while active and its
+     Add Subscriber FAB must fail closed. Insurance remains read-only with no fabricated create FAB.
+   - Manual side-by-side verdict on 2026-07-12: Payments and Insurance were NOT visually green against
+     Requests. Source remediation now gives Payments the shared atlas ground, balanced glance tiles,
+     grouped-row rhythm, and read-only export/stats actions; it removes active add-funds, withdrawal,
+     and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
+     a two-group replace-in-place skeleton, and distinguishes failed load from true empty. Both pages
+     remain pending a fresh human render check; do not mark wave one complete from static gates.
+   - Pricing and Subscriptions source recheck on 2026-07-12 closed the same donor drift before manual
+     proof: Pricing gained the atlas ground and multi-group skeleton, removed duplicate parent error
+     copy, and removed a mobile Details CTA that only reached an unavailable command. Subscriptions
+     gained multi-group loading, KPI/filter separation, KPI-empty recovery, and moved fail-closed FAB
+     feedback inside the canonical page shell. Focused contracts, mobile grammar, and UI hardgate pass;
+     rendered admission remains open.
+   - Wave three: Analytics, Live Map, and Settings. Verify truthful source labels, map control states,
+     full-bleed/safe-area behavior, identity/account actions, and unavailable report/billing behavior.
+   - Wave-three source recheck closed Analytics shell drift: loading now stays inside MobilePageShell,
+     the page reserves bottom-dock clearance, and ordinary request counts/dominance no longer use
+     destructive red. Map recenter and emergency commands remain receiver-backed and role-gated;
+     Settings retains grounded identity/contact evidence, pending sign-out, proved support routing,
+     and unavailable billing. Three focused suites / 19 tests, grammar, and hardgate pass. Rendered
+     proof remains required.
+   - The user is testing these surfaces manually. The in-app browser is visible but its control bridge
+     currently exposes zero tabs, so automated screenshots/interactions remain unavailable.
 
-2. **Public/auth rendered proof**
+2. **Desktop counterpart rendered proof**
+   - executor: `browser` - status: `blocked`
+   - Insurance, Pricing, Payments, Analytics, Live Map, and Settings have authority-safe desktop source
+     parity. Prove list/workspace focus, sorting, stale/error states, right-pane context, deep links, and
+     fail-closed commands with authorized roles.
+   - Source recheck on 2026-07-12 corrected the recurring context-card radius miss across Insurance,
+     Pricing, Subscriptions, Map, and Settings: focused right-pane cards now use `rounded-card`, with
+     a cross-panel contract banning `rounded-modal` in those contexts. Pricing row/keyboard activation
+     now focuses read-only evidence instead of invoking unavailable feedback; redundant command-shaped
+     detail buttons were removed from the rail and focused context card. Deep-link focus remains proved
+     for Payments only; do not invent URL contracts for the other pages without the desktop proof pass.
+
+3. **Public/auth rendered proof**
    - executor: `browser` - status: `blocked`
    - Login requires a signed-out context; Set Password requires a real recovery session; Onboarding
      requires signed-out/pending state and must not be submitted during visual proof. Login and Set
      Password have duplicate-submit locks and explicit pending semantics.
 
-3. **Backend authority and app consequence**
+4. **Backend authority and app consequence**
    - executor: `backend` - status: `blocked`
    - Prove named RLS/RPC/Edge/Storage receivers and reflected reads before enabling Insurance,
      Organization, subscriber/email, Pricing, analytics export, billing, or provider-profile commands.
      Pricing also requires selected-facility patient quote comparison against `ivisit-app`.
 
-4. **Final repository checkpoint**
+5. **Final repository checkpoint**
    - executor: `headless` - status: `in_progress`
    - Reconcile current-state summaries, run broad contracts/estate/grammar/hardgate/encoding/build,
      review the dirty diff without reverting user work, and create coherent resumable commits.
@@ -60,6 +94,30 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and separate identity-command authority blockers.
 
 ## Live claims / run log
+
+### 2026-07-12 - Mobile priority waves and desktop counterpart orchestration
+- Promoted Pricing from `list-migrating` to full LIST grammar with structural skeletons, a real
+  refetch signal, growing-window load more, grouped rows, degraded/error states, and a route-owned
+  Add Pricing FAB that reaches the existing fail-closed page handler.
+- Rebuilt mobile Payments onto the Today dashboard rhythm: one source-scoped signal, navigational
+  glance tiles, grouped transaction/payment evidence, structural loading, stale/error preservation,
+  and read-only detail sheets. After the first manual comparison failed, the page adopted the shared
+  atlas ground and removed mounted money/card commands until receiver and consequence proof exists.
+- Kept mobile Insurance read-only and moved terminal/degraded failures into its canonical LIST surface.
+- Added Pricing and Subscriptions to the current-route morph registry. Subscriptions now occupies the
+  fourth bottom-pill slot while active, uses the Mail icon, keeps the Email Subscribers navbar title,
+  and retains the route-owned Add Subscriber fail-closed FAB.
+- Reworked mobile Analytics, Live Map, and Settings without inventing source truth: Analytics removed
+  synthetic benchmark/readiness claims; Map removed the unsupported Units ready claim while preserving
+  full-bleed renderers and proved controls; Settings removed phone-verification/security-strength claims
+  and gained grouped account sections plus pending sign-out feedback.
+- Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
+  parity without editing mobile files. Unsupported writes remain hidden or fail closed.
+- Broad proof: 51 Jest suites / 378 tests passed; database-types encoding, mojibake, data-contract,
+  115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
+  new phantom columns; the seven grandfathered onboarding references remain baselined debt.
+- Rendered/manual proof remains open. Payments and Insurance explicitly failed their first visual check
+  and await retest after remediation. Health News still intentionally has no desktop or mobile selection.
 
 ### 2026-07-11 - Login desktop/mobile rendered proof and authenticated blocker
 - Reused the in-app browser at `127.0.0.1:3000/login` in a signed-out session.

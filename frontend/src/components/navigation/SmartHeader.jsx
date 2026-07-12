@@ -118,7 +118,7 @@ export const SmartHeader = () => {
         if (pathname.startsWith('/health-news')) return 'Health News';
         if (pathname.startsWith('/support-tickets')) return 'Support';
         if (pathname.startsWith('/insurance')) return 'Insurance';
-        if (pathname.startsWith('/subscriptions')) return 'Subscriptions';
+        if (pathname.startsWith('/subscriptions')) return 'Email Subscribers';
         if (pathname.startsWith('/wallet')) return 'Payments';
         if (pathname.startsWith('/pricing')) return 'Pricing';
         return 'Back';

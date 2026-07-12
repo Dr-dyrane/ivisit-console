@@ -6,7 +6,6 @@ import { KpiStrip } from '../../console/KpiStrip';
 import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../../console/ActivitySheet';
 import { DetailLine, EmptyState, LoadErrorState, Shimmer, StatusPill } from '../../console/primitives';
 import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../../hooks/useListKeyboardNav';
 
 const OPTIONS = [
@@ -17,7 +16,7 @@ const OPTIONS = [
   { id: 'unverified', label: 'Unverified', icon: Eye, countKey: 'unverified', colorClass: 'text-muted-foreground', activeClass: 'bg-foreground/[0.055] text-foreground shadow-e2 dark:bg-white/[0.06]' },
 ];
 const IMPORTANCE = { all: 0, active: 1, pending: 2, expired: 3, unverified: 4 };
-const GRID = 'grid-cols-[28px_minmax(210px,1.8fr)_minmax(120px,1fr)_minmax(100px,auto)_minmax(105px,auto)_96px]';
+const GRID = 'grid-cols-[minmax(210px,1.8fr)_minmax(120px,1fr)_minmax(100px,auto)_minmax(105px,auto)_96px]';
 const TONES = { primary: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200', clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200', warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200', danger: 'bg-destructive/12 text-destructive shadow-e2', muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' };
 
 const count = (stats, rows, id) => {
@@ -32,7 +31,7 @@ const statusTone = (status) => status === 'active' ? 'bg-emerald-500/10 text-eme
 const date = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleDateString() : 'Not set';
 const money = (value) => Number.isFinite(Number(value)) ? `$${Number(value).toLocaleString()}` : 'Not set';
 
-export const InsuranceDesktopWorkspace = ({ rows, stats, loading, isFetching, error, filters, setFilters, filterSheetOpen, openFilters, retry, clearFilters, pagination, sortConfig, onSort, focusedPolicy, setFocused, onView, selection, onUnavailable, moduleRailItems, routingPath, onRailNavigate }) => {
+export const InsuranceDesktopWorkspace = ({ rows, stats, loading, isFetching, error, filters, setFilters, filterSheetOpen, openFilters, retry, clearFilters, pagination, sortConfig, onSort, focusedPolicy, setFocused, onView, moduleRailItems, routingPath, onRailNavigate }) => {
   const listRef = useRef(null);
   const loadError = error;
   const failedEmpty = Boolean(loadError) && rows.length === 0;
@@ -41,6 +40,8 @@ export const InsuranceDesktopWorkspace = ({ rows, stats, loading, isFetching, er
   // deep-link excluded by decision: no canonical policy URL contract is proved yet.
   // submit-spinner excluded by decision: the reachable modal is read-only and no
   // policy submit receiver exists; unavailable commands never enter a pending state.
+  // selection excluded by decision: policy mutation and bulk command authority are
+  // unproved, so read-only evidence rows do not advertise selectable work.
   const active = filters.kpiFilter || 'all';
   const activeOption = OPTIONS.find((option) => option.id === active) || OPTIONS[0];
   const activeCount = count(stats, rows, active);
@@ -55,22 +56,19 @@ export const InsuranceDesktopWorkspace = ({ rows, stats, loading, isFetching, er
     <SignalPanel signal={signal} loading={loading} toneClassMap={TONES}>
       <KpiStrip options={OPTIONS} getCount={(id) => count(stats, rows, id)} kpiFilter={active} setKpiFilter={(id) => setFilters((prev) => ({ ...prev, kpiFilter: id }))} loading={loading} isFetching={isFetching} pinnedIds={['active', 'unverified']} importance={IMPORTANCE} defaultId="all" dataAttr="data-insurance-state" />
     </SignalPanel>
-    <ActivitySheet loading={loading} isFetching={isFetching} failedEmpty={failedEmpty} pagination={pagination} itemNoun="policies" toolbar={<SheetToolbar searchValue={filters.search} onSearchCommit={(search) => setFilters((prev) => ({ ...prev, search }))} searchPlaceholder="Search holder, policy, or provider..." searchTestId="insurance-sheet-search" onRefresh={retry} refreshing={isFetching} refreshNoun="policies" onOpenFilters={openFilters} filterSheetOpen={filterSheetOpen} filtersActive={hasFilter} />} errorBanner={error && rows.length ? <div className="mt-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Insurance did not refresh. Showing the last loaded policy rows.</div> : null}>
+    <ActivitySheet loading={loading} isFetching={isFetching} failedEmpty={failedEmpty} pagination={pagination} itemNoun="policies" toolbar={<SheetToolbar searchValue={filters.search} onSearchCommit={(search) => setFilters((prev) => ({ ...prev, search }))} searchPlaceholder="Search policy, provider, or plan..." searchTestId="insurance-sheet-search" onRefresh={retry} refreshing={isFetching} refreshNoun="policies" onOpenFilters={openFilters} filterSheetOpen={filterSheetOpen} filtersActive={hasFilter} />} errorBanner={error && rows.length ? <div className="mt-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Insurance did not refresh. Showing the last loaded policy rows.</div> : null}>
       <div ref={listRef} tabIndex={0} onKeyDown={onKeyDown} aria-label="Insurance policies list" style={{ outline: 'none' }} className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]" data-testid="insurance-list">
         <div className={`grid ${GRID} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
-          <Checkbox checked={selection.someSelected ? 'indeterminate' : selection.allSelected} onCheckedChange={selection.handleSelectAll} aria-label={selection.allSelected ? 'Clear policy selection' : 'Select all policies'} className="h-4 w-4" />
           <span>Policy</span><span>Provider</span><span>Status</span><SortableColumnHeader label="Added" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} /><span className="justify-self-end">Action</span>
         </div>
         {loading && <div className="space-y-2">{Array.from({ length: 7 }, (_, index) => <Shimmer key={index} className="h-[80px] rounded-card" />)}</div>}
         {!loading && failedEmpty && <LoadErrorState title="Insurance did not load" message={error} onRetry={retry} />}
         {!loading && !error && pagination.totalCount === 0 && <EmptyState icon={Shield} heading={hasFilter ? 'No matching policies' : 'No policies'} body={hasFilter ? 'Change filters or search again.' : 'Policy records for this scope will appear here.'}>{hasFilter && <Button variant="ghost" onClick={clearFilters} className="rounded-pill bg-muted/30 px-5 font-semibold active:scale-95">Show all policies</Button>}</EmptyState>}
         {!loading && rows.map((policy) => <ListRowShell key={policy.id} id={policy.id} dataAttrName="data-insurance-row" gridCols={GRID} selected={focusedPolicy?.id === policy.id} onFocus={() => setFocused(policy.id)} onOpen={() => onView(policy)}>
-          <Checkbox checked={selection.selectedIds.includes(policy.id)} onCheckedChange={(value) => selection.handleToggleSelect(policy.id, value)} onClick={(event) => { selection.handleSelectClick(event); event.stopPropagation(); }} aria-label={`Select ${policy.policy_holder_name || policy.policy_number || 'policy'}`} className="h-4 w-4" />
           <div className="flex min-w-0 items-center gap-3"><span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusTone(policy.status)}`}><Shield className="h-4 w-4" /></span><div className="min-w-0"><div className="truncate text-[15px] font-semibold">{policy.policy_holder_name || 'Unnamed holder'}</div><div className="mt-1 truncate font-mono text-xs text-muted-foreground">{policy.policy_number || 'No policy number'}</div></div></div>
           <span className="truncate text-sm text-muted-foreground">{policy.provider_name || 'Unknown provider'}</span><StatusPill label={policy.status || 'pending'} className={statusTone(policy.status)} compact /><span className="text-sm text-muted-foreground">{date(policy.created_at)}</span><Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); onView(policy); }} className="h-8 w-8 justify-self-end rounded-pill bg-background/45 text-muted-foreground hover:bg-foreground hover:text-background" aria-label="View policy"><Eye className="h-4 w-4" /></Button>
         </ListRowShell>)}
       </div>
-      {selection.selectedIds.length > 0 && <div className="mt-3 flex items-center justify-between rounded-inner bg-muted/30 px-4 py-3 text-sm"><span>{selection.selectedIds.length} selected</span><Button variant="ghost" data-state="unavailable" onClick={() => onUnavailable('Bulk policy changes')} className="rounded-pill bg-background/60 font-semibold">Changes unavailable</Button></div>}
     </ActivitySheet>
   </WorkspaceStage>;
 };

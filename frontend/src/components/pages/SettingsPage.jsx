@@ -8,7 +8,6 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Mail, Shield, LogOut, Moon, Sun, Smartphone, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
 import { Switch } from '../ui/switch';
-import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { handleAuthError } from "../../utils/errorHandler";
 import { getAvatarUrl, getAvatarFallback, markAvatarUrlAsFailed } from '../../lib/avatarUtils';
@@ -193,28 +192,12 @@ export const SettingsPage = () => {
 
     return (
         <div className="min-h-screen space-y-8 py-6 md:py-8">
-            <LayoutGroup>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 grid-flow-row-dense">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 grid-flow-row-dense">
 
                     {/* Main Profile Identity Card - Spans 2 cols on Large, 1 on Mobile */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="col-span-1 lg:col-span-2"
-                    >
-                        <div className="group relative h-full overflow-hidden rounded-card bg-card/80 shadow-[0_24px_80px_rgb(0_0_0/0.10)]">
-                            {/* Dynamic Background Pattern */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-muted/40 via-transparent to-muted/40 opacity-50" />
-                            <div className="absolute inset-0 opacity-[0.03]"
-                                style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
-                                }}
-                            />
-
-                            {/* Header Banner */}
-                            <div className="h-40 bg-gradient-to-r from-muted/40 via-background/50 to-background/50 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                            </div>
+                    <div className="col-span-1 lg:col-span-2">
+                        <div className="group relative h-full overflow-hidden rounded-card bg-card/80 shadow-sm">
+                            <div className="h-32 bg-muted/35" />
 
                             <div className="px-6 md:px-10 pb-10 -mt-20 relative z-10">
                                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8">
@@ -232,15 +215,12 @@ export const SettingsPage = () => {
                                                 {avatarFallback}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-pill bg-background/85 shadow-sm" title="Online">
-                                            <span className="h-3 w-3 rounded-pill bg-emerald-500 pulse-dot" />
-                                        </div>
                                     </div>
 
                                     <div className="text-center md:text-left flex-1 min-w-0 w-full space-y-1.5">
                                         {/* Primary Identity - Full Name (No Truncation) */}
                                         <div className="space-y-1">
-                                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight break-words">
+                                            <h2 className="text-3xl font-bold text-foreground leading-tight break-words">
                                                 {profile?.full_name
                                                     || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
                                                     || profile?.username
@@ -299,7 +279,6 @@ export const SettingsPage = () => {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <p className="font-mono font-bold text-lg tracking-tight">{profile?.phone || 'Not Linked'}</p>
-                                            {profile?.phone && <Badge variant="outline" className="rounded-pill bg-muted text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">Verified</Badge>}
                                         </div>
                                     </div>
 
@@ -317,31 +296,21 @@ export const SettingsPage = () => {
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Doctor Professional Profile */}
                     {isProvider() && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="col-span-1 lg:col-span-2"
-                        >
+                        <div className="col-span-1 lg:col-span-2">
                             <DoctorProfileCard />
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Right Column Layout */}
                     <div className="space-y-6 flex flex-col">
 
                         {/* App Preferences */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="flex-1"
-                        >
-                            <div className="flex h-full flex-col rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)]">
+                        <div className="flex-1">
+                            <div className="flex h-full flex-col rounded-card bg-card/75 p-6 shadow-sm">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="rounded-icon surface-raised p-3 text-orange-500">
                                         <Laptop className="h-6 w-6" />
@@ -392,16 +361,11 @@ export const SettingsPage = () => {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
 
                         {/* Security Snapshot */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="flex-1"
-                        >
-                            <div className="relative h-full overflow-hidden rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)]">
+                        <div className="flex-1">
+                            <div className="relative h-full overflow-hidden rounded-card bg-card/75 p-6 shadow-sm">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-4">
                                         <div className="rounded-icon surface-raised p-3 text-blue-500">
@@ -409,7 +373,7 @@ export const SettingsPage = () => {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-xl leading-none">Security</h3>
-                                            <p className="text-sm text-muted-foreground mt-1">Status: {user?.app_metadata?.providers?.includes('phone') || user?.app_metadata?.aad ? 'Strong' : 'Standard'}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">Review password and authentication options</p>
                                         </div>
                                     </div>
                                 </div>
@@ -439,10 +403,9 @@ export const SettingsPage = () => {
                                     </Button>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 </div>
-            </LayoutGroup>
 
             {/* Modals */}
             <ProfileEditModal

@@ -4,12 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { getPricingPageData } from '../../services/pricingService';
-import { PaginationControls } from '../ui/PaginationControls';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { usePagination } from '../../hooks/usePagination';
-import { useRowSelection } from '../../hooks/useRowSelection';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobilePricing } from '../mobile/MobilePricing';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
@@ -86,14 +84,15 @@ export const PricingManagementPage = () => {
         setLoadError(null);
         try {
             const orgId = isOrgAdmin() ? profile?.organization_id || null : null;
+            const mobilePageSize = pagination.currentPage * pagination.itemsPerPage;
             const projection = normalizePricingProjection(await getPricingPageData({
                 family: activeTab,
                 organizationId: orgId,
                 search: searchTerm,
                 scope: kpiFilter,
                 sortDirection: sortConfig.direction,
-                page: pagination.currentPage,
-                pageSize: pagination.itemsPerPage
+                page: isMobile ? 1 : pagination.currentPage,
+                pageSize: isMobile ? mobilePageSize : pagination.itemsPerPage
             }));
 
             setPricing(projection.rows);
@@ -108,6 +107,7 @@ export const PricingManagementPage = () => {
         }
     }, [
         activeTab,
+        isMobile,
         isOrgAdmin,
         kpiFilter,
         pagination.currentPage,
@@ -123,13 +123,10 @@ export const PricingManagementPage = () => {
     }, [fetchPricing]);
 
     useEffect(() => {
-        if (pagination.currentPage !== 1) {
-            pagination.resetPagination();
-        }
+        pagination.resetPagination();
     }, [
         activeTab,
         kpiFilter,
-        pagination.currentPage,
         pagination.resetPagination,
         searchTerm
     ]);
@@ -196,11 +193,11 @@ export const PricingManagementPage = () => {
     const filteredPricing = pricing;
 
     const paginatedPricing = pricing;
-    const selection = useRowSelection(paginatedPricing);
-    const { selectedIds } = selection;
-    const handleSelect = selection.handleToggleSelect;
-    const handleSelectAll = selection.handleSelectAll;
 
+    const hasPricingRows = paginatedPricing.length > 0;
+    const initialLoading = loading && !hasPricingRows;
+    const isFetching = loading && hasPricingRows;
+    const isLoadingMore = isFetching && pagination.currentPage > 1;
     // Header & Footer
     const headerActions = useMemo(() => (
         <Button
@@ -250,42 +247,22 @@ export const PricingManagementPage = () => {
                     pricing={paginatedPricing}
                     allPricing={pricing}
                     pricingProjection={pricingProjection}
-                    loading={loading}
+                    loading={initialLoading}
+                    isFetching={isFetching}
+                    isLoadingMore={isLoadingMore}
+                    errorMessage={loadError}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     kpiFilter={kpiFilter}
                     setKpiFilter={setKpiFilter}
-                    onView={openModal}
-                    onEdit={openModal}
-                    onDelete={handleDelete}
                     onRefresh={fetchPricing}
-                    canEdit={canEdit}
+                    hasMore={pagination.hasNextPage}
+                    onLoadMore={pagination.nextPage}
                     onViewAnalytics={() => setAnalyticsModalOpen(true)}
                     actionNotice={actionNotice}
-                    selectionEnabled={PRICING_MUTATION_COMMANDS_ENABLED}
-                    selectedIds={selectedIds}
-                    onSelect={handleSelect}
-                    onSelectAll={(checked) => handleSelectAll(checked, paginatedPricing)}
                 />
-
-                {loadError && pricing.length > 0 && (
-                    <p role="status" className="mx-4 mb-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-                        Pricing did not refresh. Showing the last loaded rules.
-                    </p>
-                )}
-
-                <PaginationControls
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    onPrevPage={pagination.prevPage}
-                    onNextPage={pagination.nextPage}
-                    hasPrevPage={pagination.hasPrevPage}
-                    hasNextPage={pagination.hasNextPage}
-                    loading={loading}
-                />
-
                 <AnalyticsModal
                     open={analyticsModalOpen}
                     onClose={() => setAnalyticsModalOpen(false)}
@@ -311,7 +288,8 @@ export const PricingManagementPage = () => {
             rows={paginatedPricing}
             summary={pricingSummary}
             totalCount={pricingTotalCount}
-            loading={loading}
+            loading={initialLoading}
+            isFetching={isFetching}
             error={loadError}
             filters={desktopFilters}
             setFilters={setDesktopFilters}
@@ -321,9 +299,6 @@ export const PricingManagementPage = () => {
             onSort={(key) => setSortConfig((prev) => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }))}
             focusedPrice={focusedPrice}
             setFocused={setFocused}
-            onView={openModal}
-            selection={selection}
-            onUnavailable={showPricingCommandUnavailable}
             moduleRailItems={moduleRailItems}
             routingPath={routingPath}
             onRailNavigate={handleRailNavigate}

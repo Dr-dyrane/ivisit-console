@@ -79,9 +79,10 @@ const MORPH_ROUTE_SLOTS = [
   { prefix: '/hospitals', id: 'hospitals', path: '/hospitals', label: 'Hospitals' },
   { prefix: '/ambulances', id: 'ambulances', path: '/ambulances', label: 'Ambulances' },
   { prefix: '/wallet', id: 'payments', path: '/wallet', label: 'Payments' },
-  // /pricing and /subscriptions are deliberately ABSENT: their page contracts lock
-  // those paths out of the mobile nav config entirely (desk-admin surfaces) — they
-  // keep the resting slate instead of morphing.
+  { prefix: '/pricing', id: 'pricing', path: '/pricing', label: 'Pricing' },
+  { prefix: '/subscriptions', id: 'subscriptions', path: '/subscriptions', label: 'Subscribers' },
+  // Admin management routes morph into the fourth slot while active so the dock
+  // always shows the current page. Route guards remain the access authority.
   { prefix: '/insurance', id: 'insurance', path: '/insurance', label: 'Insurance' },
   { prefix: '/users', id: 'users', path: '/users', label: 'Users' },
   { prefix: '/organizations', id: 'organizations', path: '/organizations', label: 'Organizations' },

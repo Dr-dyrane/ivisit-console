@@ -12,6 +12,7 @@ describe('GodModeMap Live Map contract', () => {
   const layerControlsSource = () => fs.readFileSync('src/components/map/MapLayerControls.jsx', 'utf8');
   const fallbackSource = () => fs.readFileSync('src/components/map/MapFallback.jsx', 'utf8');
   const mapContextSource = () => fs.readFileSync('src/contexts/MapContext.jsx', 'utf8');
+  const mapPanelSource = () => fs.readFileSync('src/components/context/MapPanel.jsx', 'utf8');
   const layoutContextSource = () => fs.readFileSync('src/contexts/LayoutContext.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
@@ -227,6 +228,7 @@ describe('GodModeMap Live Map contract', () => {
       markerSource(),
       layerControlsSource(),
       fallbackSource(),
+      mapPanelSource(),
     ].join('\n');
 
     expect(activeSurface).not.toMatch(/\sborder(?:-[^\s"'`]+)?(?=\s|$)/);
@@ -235,5 +237,27 @@ describe('GodModeMap Live Map contract', () => {
     expect(activeSurface).not.toMatch(/\sdivide(?:-[^\s"'`]+)?(?=\s|$)/);
     expect(activeSurface).not.toMatch(/\s(?:h|w)-px(?=\s|$)/);
     expect(activeSurface).not.toMatch(/(?:^|[^0-9])(?:0\.5|1)px\b/);
+  });
+
+  it('keeps the desktop context panel route-owned and free of fabricated or unproved actions', () => {
+    const panel = mapPanelSource();
+
+    expect(panel).toContain('const { mapData, setFilter, setSelectedMarker, recenterMap, refresh } = useMapContext()');
+    expect(panel).toContain("loading = false");
+    expect(panel).toContain("error = null");
+    expect(panel).toContain('aria-label="Loading live map context"');
+    expect(panel).toContain('role="alert"');
+    expect(panel).toContain('aria-busy={loading');
+    expect(panel).toContain('aria-pressed={activeFilter === filter.key}');
+    expect(panel).toContain('Fleet visible');
+    expect(panel).toContain('Hospitals visible');
+    expect(panel).not.toContain('handleExportMapData');
+    expect(panel).not.toContain('Export Data');
+    expect(panel).not.toContain('4.2m');
+    expect(panel).not.toContain('12 -');
+    expect(panel).not.toContain('Real-time Tracking');
+    expect(panel).not.toContain('Alert Radius');
+    expect(panel).not.toContain('Contact emergency location');
+    expect(panel).not.toContain('Call ambulance unit directly');
   });
 });

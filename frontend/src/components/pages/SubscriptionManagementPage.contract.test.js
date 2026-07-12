@@ -62,7 +62,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(routes).toContain("minRole: 'admin'");
     expect(routes).toContain("resource: 'subscriptions'");
     expect(navigation).toContain("{ id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Email Subscribers', resource: 'subscriptions', minRole: 'admin' }");
-    expect(mobileNavigation).not.toContain("path: '/subscriptions'");
+    expect(mobileNavigation).toContain("{ prefix: '/subscriptions', id: 'subscriptions', path: '/subscriptions', label: 'Subscribers' }");
     expect(routeOwnsStartupDomains('/subscriptions')).toBe(true);
     expect(getPageDataStartupDomainsForRole('admin', '/subscriptions')).toEqual([]);
 
@@ -157,7 +157,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain("const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber changes are not ready until subscriber authority is verified.';");
     expect(page).toContain('setSubscriptionCommandNotice(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
-    expect(page).toContain('id="subscriptions-action-feedback"');
+    expect(mobile).toContain('id="subscriptions-action-feedback"');
+    expect(page).toContain('actionNotice={subscriptionCommandNotice}');
     expect(page).toContain('aria-label="Add subscriber unavailable"');
     expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).toContain('aria-label="Delete subscribers unavailable"');
     expect(page).toContain('data-state="unavailable"');
@@ -182,11 +183,11 @@ describe('Subscriptions Page 17 intake contract', () => {
     // rail are GONE (the LIST grammar bans both); the canon kit + status KPI axis replace them.
     expect(mobile).not.toContain('MobileFeaturedMetric');
     expect(mobile).not.toContain('MobileSecondaryMetricRail');
-    expect(mobile).toContain("import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';");
+    expect(mobile).toContain("import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupList } from './canon';");
     expect(mobile).toContain('<MobileHeading');
     expect(mobile).toContain('<MobileKPIStrip');
     expect(mobile).toContain('<GroupPanel');
-    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).toContain('<SkeletonGroupList');
     expect(mobile).toContain('<MobileListRow');
     expect(mobile).toContain('useSkeletonWarmup');
     expect(mobile).toContain('animatePageLoad={false}');
@@ -214,6 +215,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain("import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';");
     expect(mobile).not.toContain("import { groupByMonth } from '../../utils/groupByMonth';");
     expect(mobile).toContain('resolveAdaptiveGroups(displaySubscribers');
+    expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
+    expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
     expect(mobile).toContain("{ type: 'coarse-recency', key: 'subscribed'");
     expect(mobile).toContain("const vital = resolveVital('subscription', status);");
     expect(mobile).toContain('statusPill={vital?.pill}');
@@ -285,7 +288,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(panel).toContain('Recent subscribers');
     expect(panel).toContain('subscriber.email');
     expect(panel).toContain('subscriptionsContext');
-    expect(panel).toContain('rounded-modal');
+    expect(panel).toContain('rounded-card');
+    expect(panel).not.toContain('rounded-modal');
     expect(panel).toContain('rounded-inner');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-pill');
@@ -480,6 +484,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(contextFab).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
     expect(contextFab).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(bottomBar).toContain("location.pathname.startsWith('/subscriptions')");
+    expect(bottomBar).toContain("label: 'Add subscriber'");
+    expect(bottomBar).toContain("new CustomEvent('openSubscriptionModal')");
     expect(bottomBar).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
     expect(bottomBar).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(analytics).not.toContain('useSubscription');

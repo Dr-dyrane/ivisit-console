@@ -49,7 +49,6 @@ import { DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, getAnalyticsIntakePage } from '..
 import { Wallet } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { MobileAnalytics } from '../mobile/MobileAnalytics';
-import { MobileAnalyticsSkeleton } from '../mobile/MobileSkeleton';
 import { SEOHead } from '../common/SEOHead';
 
 const CHART_COLORS = {
@@ -660,6 +659,8 @@ export const Analytics = () => {
     canExport: false,
   }), [analyticsLoadError, financeScopeLabel, financeSummary, hasFinanceData, loading, resolvedHospitalCapacity, resolvedSubscriptionStats, roleContext, stats, subscriptionScopeLabel, timeRange, visibleAnalyticsSourceIssueSummary]);
 
+  const analyticsIsFetching = analyticsRefreshNotice === ANALYTICS_REFRESH_PENDING_MESSAGE;
+
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const publishAnalyticsRouteContext = () => window.dispatchEvent(new CustomEvent('analyticsRouteContextUpdated', { detail: analyticsRouteContext }));
@@ -667,10 +668,6 @@ export const Analytics = () => {
     window.addEventListener('requestAnalyticsRouteContext', publishAnalyticsRouteContext);
     return () => window.removeEventListener('requestAnalyticsRouteContext', publishAnalyticsRouteContext);
   }, [analyticsRouteContext]);
-
-  if (isMobile && loading) {
-    return <MobileAnalyticsSkeleton />;
-  }
 
   if (isMobile) {
     return (
@@ -699,6 +696,8 @@ export const Analytics = () => {
           canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}
           canReadFinanceAnalytics={canReadFinanceAnalytics}
           roleContext={roleContext}
+          isLoading={loading && !analyticsSnapshotReadyRef.current}
+          isFetching={analyticsIsFetching}
         />
         <AnalyticsModal
           open={analyticsModalOpen}

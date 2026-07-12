@@ -46,7 +46,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
       <div className="grid grid-cols-2 gap-2"><Metric icon={CheckCircle} label="Active" value={number(stats.active)} tone="bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" /><Metric icon={Clock} label="Pending" value={number(stats.pending)} tone="bg-cyan-500/10 text-cyan-700 dark:text-cyan-200" /></div>
     </section>
 
-    {focused && <section className="rounded-modal bg-background/45 p-4 dark:bg-white/[0.04]">
+    {focused && <section className="rounded-card bg-background/45 p-4 dark:bg-white/[0.04]">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase text-muted-foreground">Current policy</p><h3 className="mt-2 truncate text-base font-semibold">{focused.policy_holder_name || focused.policy_number || 'Unnamed policy'}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{focused.provider_name || 'Unknown provider'}</p></div><span className={`rounded-pill px-2.5 py-1 text-xs font-semibold capitalize ${statusTone(focused.status)}`}>{focused.status || 'pending'}</span></div>
       <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('openFocusedInsuranceRecord', { detail: focused }))} className="mt-4 flex h-10 w-full items-center justify-center rounded-button bg-foreground text-sm font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.98]"><Eye className="mr-2 h-4 w-4" />Open details</button>
     </section>}

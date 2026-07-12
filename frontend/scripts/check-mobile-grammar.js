@@ -55,7 +55,7 @@ const MANIFEST = {
   'MobileDoctors.jsx': { tier: 'list' },
   'MobileHealthNews.jsx': { tier: 'list' },
   'MobileInsurance.jsx': { tier: 'list' },
-  'MobilePricing.jsx': { tier: 'list-migrating' },
+  'MobilePricing.jsx': { tier: 'list' },
   'MobileSubscriptions.jsx': { tier: 'list' },
   'MobileSupportTickets.jsx': { tier: 'list' },
   'MobileUsers.jsx': { tier: 'list' },
@@ -270,7 +270,6 @@ function main() {
     '/map': 'map surface — full-bleed interactive canvas with its own control grammar (layers/refiner); no list to filter, no create (MobileMap is grammar-exempt), so no dock FAB',
     '/settings': 'own-account dashboard — no create/filter/review dock action; profile and security actions stay route-owned',
     '/wallet': 'signal-first DASHBOARD (tiles NAVIGATE, they never filter a list); financial commands are fail-closed so no create — no dock FAB (MobileWallet is dashboard-tier)',
-    '/pricing': "pricing commands are fail-closed; MobilePricing's whole filter grammar is inline tabs + KPI chips (no filter sheet to open), so there is no single dock-level filter/review action — the inline controls own it",
     '/insurance': 'read-only on desktop right now — InsuranceManagementPage shows only a "Read-only" marker, no create (INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07: no create/edit/delete/verify receiver); a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a policy receiver is proved.',
   };
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');

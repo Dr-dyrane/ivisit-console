@@ -37,6 +37,53 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 - No page admission status changed from this re-anchor. It is a proof-mechanism repair only: the default UI hardgate, the strict-radius revamp hardgate for the Today/Requests pair, and the full contract suite pass against the now-committed source.
 - Future rule: if the preservation baseline is ever re-pinned to a newer pre-change commit, update this note and the contract-test baseline constant together, and never let a preservation proof read the moving `HEAD` ref again.
 
+## Mobile Priority Waves And Desktop Counterparts - 2026-07-12
+
+User-directed priority now closes mobile before the remaining rendered desktop pass:
+
+- Wave one: Insurance, Pricing, and Payments. Insurance stays read-only; Pricing is promoted to full
+  LIST grammar and keeps pricing writes fail-closed; Payments uses the dashboard grammar and never
+  presents loaded/latest-50 finance evidence as a global exact total.
+- Subscriptions finishing pass: `/subscriptions` morphs into the fourth bottom-pill slot while active,
+  the dock uses the Subscribers label and Mail icon, SmartHeader uses Email Subscribers, and the
+  route-owned Add Subscriber FAB reaches the same fail-closed handler as the desktop primary action.
+- Wave three: Analytics, Live Map, and Settings. Analytics removes synthetic benchmarks and readiness;
+  Map preserves full-bleed renderers and proved controls while removing unsupported readiness claims;
+  Settings renders account-owned identity/preferences/security/support/session evidence without phone
+  verification, online, security-strength, or billing claims that lack receivers.
+- Desktop counterparts were delegated with disjoint ownership. Insurance/Pricing hide selection and
+  bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
+  preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
+  controls while retaining route-owned perks.
+- Static proof on 2026-07-12: 51 suites / 378 tests, database-types encoding, mojibake, data contract,
+  default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
+  phantom columns were introduced.
+- Rendered proof remains open and is being performed manually because the visible in-app browser tab is
+  not attaching to the automation bridge. Do not claim visual completion until the manual matrix records
+  populated, empty, failed/stale, navigation, FAB, filter/tab, detail-sheet, and safe-area behavior.
+- First manual side-by-side result: Payments and Insurance are not green against Requests. Payments was
+  remediated with the shared atlas ground, balanced dashboard tiles, donor-density grouped rows, and only
+  read-only export/statistics actions; active add-funds, withdrawal, and card-management event dispatches
+  were removed pending authority proof. Insurance now keeps KPI scope separate from filter-sheet state,
+  uses donor-shaped multi-group loading, and renders a genuine failed-load recovery instead of a false
+  empty result. These are source fixes, not rendered admission; both pages require human retest.
+- Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
+  Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
+  and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates
+  KPI scope from filter-sheet state, uses donor-shaped loading and KPI-empty recovery, and renders its
+  route-owned fail-closed FAB feedback inside the page shell. Static proof does not admit either page.
+- Wave-three source recheck kept Analytics loading inside its canonical shell, restored `pb-32` dock
+  clearance, and removed destructive red from ordinary request totals/dominance. Live Map retains its
+  receiver-backed recenter/send/close controls with role gates and safe-area positioning. Settings
+  retains grounded account identity/contact, device theme, support routing, pending sign-out, and
+  unavailable billing. Focused contracts and static gates pass; rendered admission is still open.
+- Desktop counterpart source recheck closed the recurring focused-card radius drift in Insurance,
+  Pricing, Subscriptions, Map, and Settings right panes by replacing modal radius with canonical card
+  radius and adding a cross-panel contract. Pricing row/keyboard activation now selects read-only
+  evidence directly; redundant unavailable detail buttons were removed from its rail/context focus
+  card. Payments retains its proved `?tab=&id=` deep links; other new URL contracts remain unproved.
+- Health News remains explicitly excluded from desktop and mobile selection.
+
 ## Today Canon Profile And Completion - 2026-07-09
 
 Which canon sections bind a FIRST-GLANCE HOME (Today) vs the two-rail workspace —

@@ -366,17 +366,6 @@ export const SubscriptionManagementPage = () => {
     return (
       <div className="min-h-screen">
         <SEOHead title="Email Subscribers" description="Review subscriber lifecycle and welcome evidence." />
-        {subscriptionCommandNotice && (
-          <p
-            id="subscriptions-action-feedback"
-            className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
-            role="status"
-            aria-live="polite"
-          >
-            {subscriptionCommandNotice}
-          </p>
-        )}
-
         <MobileSubscriptions
           subscribers={mobileVisibleSubscribers}
           stats={subscriptionMobileStats}
@@ -395,6 +384,7 @@ export const SubscriptionManagementPage = () => {
           onViewAnalytics={handleViewAnalytics}
           filterSheetOpen={filterSheetOpen}
           analyticsOpen={analyticsModalOpen}
+          actionNotice={subscriptionCommandNotice}
           selectedIds={selectedIds}
           onSelect={handleSelect}
           onSelectAll={handleSelectAll}

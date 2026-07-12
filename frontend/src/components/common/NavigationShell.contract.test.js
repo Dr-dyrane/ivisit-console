@@ -134,6 +134,14 @@ describe('Navigation shell contract', () => {
     expect(getMobileNavigationItems('provider').map((item) => item.label)).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
     // Responder providers (provider_type driver/paramedic/ambulance*) swap Visits for Map.
     expect(getMobileNavigationItems('provider', 'driver').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Settings']);
+    expect(getMobileNavigationItems('admin', undefined, '/subscriptions').map((item) => item.label))
+      .toEqual(['Today', 'Requests', 'Map', 'Subscribers']);
+    expect(getMobileNavigationItems('org_admin', undefined, '/pricing').map((item) => item.label))
+      .toEqual(['Today', 'Approvals', 'Staff', 'Pricing']);
+    expect(getMobileNavigationItems('org_admin', undefined, '/wallet').map((item) => item.label))
+      .toEqual(['Today', 'Approvals', 'Staff', 'Payments']);
+    expect(getMobileNavigationItems('admin', undefined, '/insurance').map((item) => item.label))
+      .toEqual(['Today', 'Requests', 'Map', 'Insurance']);
     expect(mobileMenu).toContain("const [activeTab, setActiveTab] = useState('menu')");
     expect(mobileMenu).toContain('const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);');
     expect(mobileMenu).toContain("else if (isFinance) setActiveGroup('finance');");
@@ -149,6 +157,7 @@ describe('Navigation shell contract', () => {
     expect(smartHeader).toContain("data-state={isContextPanelOpen ? 'open' : 'closed'}");
     expect(smartHeader).toContain("if (pathname.startsWith('/verification')) return 'Approvals';");
     expect(smartHeader).not.toContain("if (pathname.startsWith('/verification')) return 'Verification';");
+    expect(smartHeader).toContain("if (pathname.startsWith('/subscriptions')) return 'Email Subscribers';");
     expect(smartHeader).toContain('<MobileNavMenu onClose={() => setMenuOpen(false)} />');
     expect(smartHeader).not.toContain('MenuIcon');
     expect(smartHeader).not.toContain('Hamburger');

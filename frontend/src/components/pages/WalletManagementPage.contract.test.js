@@ -113,9 +113,9 @@ describe('WalletManagementPage Payments contract', () => {
     const page = pageSource();
     const modals = modalsSource();
 
-    expect(page).toContain("new CustomEvent('openTopUpModal', { detail: { wallet } })");
-    expect(page).toContain("new CustomEvent('openWithdrawModal', { detail: { wallet } })");
-    expect(page).toContain("new CustomEvent('openBillingModal', { detail: { wallet } })");
+    expect(page).not.toContain("new CustomEvent('openTopUpModal'");
+    expect(page).not.toContain("new CustomEvent('openWithdrawModal'");
+    expect(page).not.toContain("new CustomEvent('openBillingModal'");
     expect(page).toContain("window.addEventListener('paymentsDataChanged', handlePaymentsDataChanged)");
     expect(page).toContain("window.removeEventListener('paymentsDataChanged', handlePaymentsDataChanged)");
     expect(modals).toContain('setEventWallet(event.detail?.wallet || null);');
@@ -141,9 +141,13 @@ describe('WalletManagementPage Payments contract', () => {
     expect(contextPanel).not.toContain('walletData');
 
     expect(walletPanel).toContain('export const WalletPanel = ({ walletContext }) =>');
-    expect(walletPanel).toContain("new CustomEvent('openTopUpModal', { detail: { wallet } })");
-    expect(walletPanel).toContain("new CustomEvent('openWithdrawModal', { detail: { wallet } })");
-    expect(walletPanel).toContain("new CustomEvent('openBillingModal', { detail: { wallet } })");
+    expect(walletPanel).toContain('Add funds is unavailable until the payment consequence is proved.');
+    expect(walletPanel).toContain('Withdraw is unavailable until the payout consequence is proved.');
+    expect(walletPanel).toContain('Card changes are unavailable until setup authority is proved.');
+    expect(walletPanel).toContain("new CustomEvent('exportLedger')");
+    expect(walletPanel).not.toContain("new CustomEvent('openTopUpModal'");
+    expect(walletPanel).not.toContain("new CustomEvent('openWithdrawModal'");
+    expect(walletPanel).not.toContain("new CustomEvent('openBillingModal'");
     expect(walletPanel).not.toContain('usePageData');
     expect(walletPanel).not.toContain('walletData');
   });
@@ -170,12 +174,13 @@ describe('WalletManagementPage Payments contract', () => {
 
   it('keeps saved-card delete out of active Payments UI until proof exists', () => {
     const page = pageSource();
+    const panel = walletPanelSource();
     const service = serviceSource();
 
     expect(service).toContain('export const deletePaymentMethod = async');
     expect(service).toContain("body: { action: 'delete-payment-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
-    expect(page).toContain('Saved cards');
-    expect(page).toContain('Saved');
+    expect(page).toContain('Cards returned');
+    expect(panel).toContain('Read-only provider response');
     expect(page).not.toContain('deletePaymentMethod');
     expect(page).not.toContain('Card removed.');
     expect(page).not.toContain('onDeleteMethod');
@@ -205,11 +210,13 @@ describe('WalletManagementPage Payments contract', () => {
     const service = serviceSource();
     const activePaymentsUi = `${page}\n${mobile}\n${modals}`;
 
-    expect(page).toContain("paymentMethods.length > 0 ? 'Cards ready' : 'Cards needed'");
-    expect(page).toContain("label: 'Cards needed'");
-    expect(mobile).toContain("label: 'Cards needed'");
-    expect(page).toContain('Add a saved card before adding funds.');
-    expect(mobile).toContain('Add a saved card before adding funds.');
+    expect(page).toContain("label: 'Cards returned'");
+    expect(page).toContain('Money changes unavailable');
+    expect(mobile).toContain("label: 'No saved cards'");
+    expect(mobile).toContain('Card information is read-only while payment authority is being verified.');
+    expect(mobile).not.toContain("label: 'Add funds'");
+    expect(mobile).not.toContain("label: 'Withdraw'");
+    expect(mobile).not.toContain("label: 'Link card'");
     expect(page).toContain("import { SEOHead } from '../common/SEOHead';");
     expect(page).toContain('<SEOHead title="Payments"');
     expect(page).not.toContain('Payouts ready');
@@ -293,6 +300,66 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
   });
 
+  it('composes the canonical desktop workspace with focused read-only records', () => {
+    const page = pageSource();
+
+    expect(page).toContain('<WorkspaceStage');
+    expect(page).toContain('<SignalPanel');
+    expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('<SortableColumnHeader label="Time"');
+    expect(page).toContain('<ListRowShell');
+    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<RailInsetHero>');
+    expect(page).toContain('dataAttrName="data-payment-row"');
+    expect(page).toContain("useListKeyboardNav({");
+    expect(page).toContain('activePath="/wallet"');
+    expect(page).toContain("getConsoleModuleRailItems(roleKind)");
+    expect(page).toContain("searchParams.get('id')");
+    expect(page).toContain("nextParams.set('tab', activeTab)");
+    expect(page).toContain('Open receipt');
+    expect(page).toContain('Read only');
+  });
+
+  it('keeps desktop money writes and bulk selection fail closed', () => {
+    const page = pageSource();
+    const panel = walletPanelSource();
+    const desktopSurface = `${page}\n${panel}`;
+
+    expect(page).toContain('Money changes unavailable');
+    expect(page).toContain('receiver authority and reflected app consequences are proved');
+    expect(panel).toContain('Money and card changes are unavailable pending authority proof.');
+    expect(panel).toContain('aria-disabled="true"');
+    expect(desktopSurface).not.toContain('useRowSelection');
+    expect(desktopSurface).not.toContain('BulkActionBar');
+    expect(desktopSurface).not.toContain('selectedIds');
+  });
+
+  it('surfaces initial and refresh errors while preserving loaded rows', () => {
+    const page = pageSource();
+    const panel = walletPanelSource();
+
+    expect(page).toContain("const [loadError, setLoadError] = useState('');");
+    expect(page).toContain('const [isFetching, setIsFetching] = useState(false);');
+    expect(page).toContain('if (hasLoadedRef.current)');
+    expect(page).toContain('setIsFetching(true);');
+    expect(page).toContain('Existing rows are preserved and may be out of date.');
+    expect(page).toContain('<LoadErrorState title="Payments did not load"');
+    expect(page).toContain('No financial values are being inferred.');
+    expect(page).not.toContain('setLedger([])');
+    expect(page).not.toContain('setPayments([])');
+    expect(panel).toContain('Showing preserved loaded records.');
+  });
+
+  it('exposes honest refresh state to the mobile owner without changing MobileWallet', () => {
+    const page = pageSource();
+
+    expect(page).toContain('<MobileWallet');
+    expect(page).toContain('isFetching={isFetching}');
+    expect(page).toContain('loadError={loadError}');
+    expect(page).toContain('errorMessage={loadError}');
+    expect(page).toContain('onRefresh={fetchData}');
+  });
+
   it('keeps transaction export scoped to visible ledger rows without completeness claims', () => {
     const page = pageSource();
 
@@ -307,12 +374,22 @@ describe('WalletManagementPage Payments contract', () => {
   it('opens mobile ledger and payment rows in the shared detail bottom sheet, not an inline dropdown', () => {
     const mobile = mobileSource();
 
+    expect(mobile).toContain('<MobileWalletAtlasLayer />');
+    expect(mobile).toContain("label: 'Export visible'");
+    expect(mobile).toContain("label: 'Transactions shown'");
+    expect(mobile).toContain("label: 'Payments shown'");
+    expect(mobile).toContain('patient payment${payments.length === 1 ? \'\' : \'s\'} loaded for review.');
+    expect(mobile).not.toContain('onTopUp');
+    expect(mobile).not.toContain('onWithdraw');
+    expect(mobile).not.toContain('onOpenBilling');
+
     // Tap-opens-detail-sheet: active-record state + row onClick + one MobileDetailSheet render.
     expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
     expect(mobile).toContain('const [activeEntry, setActiveEntry] = useState(null);');
-    expect(mobile).toContain('onClick={() => setActiveEntry');
+    expect(mobile).toContain('<MobileListRow');
+    expect(mobile).toContain('onOpen={setActiveEntry}');
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('isOpen={!!activeEntry}');
+    expect(mobile).toContain('isOpen');
     expect(mobile).toContain('onClose={() => setActiveEntry(null)}');
 
     // Read-only ledger: the payment receipt CTA is the only action, still via onOpenPayment.

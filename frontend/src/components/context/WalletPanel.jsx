@@ -6,8 +6,9 @@ import {
     CreditCard,
     ShieldCheck,
     Download,
-    Plus,
     History,
+    AlertCircle,
+    LockKeyhole,
 } from 'lucide-react';
 
 export const WalletPanel = ({ walletContext }) => {
@@ -19,8 +20,10 @@ export const WalletPanel = ({ walletContext }) => {
         paymentMethods = [],
         counts = {},
         loading = false,
+        isFetching = false,
+        loadError = '',
+        hasLoaded = false,
         roleLabel = 'Hospital admin',
-        canManage = false,
     } = walletContext || {};
     const [panelStatus, setPanelStatus] = React.useState('');
 
@@ -38,18 +41,15 @@ export const WalletPanel = ({ walletContext }) => {
     };
 
     const handleTopUp = () => {
-        announce('Opening Add funds.');
-        window.dispatchEvent(new CustomEvent('openTopUpModal', { detail: { wallet } }));
+        announce('Add funds is unavailable until the payment consequence is proved.');
     };
 
     const handleWithdraw = () => {
-        announce('Opening Withdraw.');
-        window.dispatchEvent(new CustomEvent('openWithdrawModal', { detail: { wallet } }));
+        announce('Withdraw is unavailable until the payout consequence is proved.');
     };
 
     const handleCards = () => {
-        announce('Opening Payment cards.');
-        window.dispatchEvent(new CustomEvent('openBillingModal', { detail: { wallet } }));
+        announce('Card changes are unavailable until setup authority is proved.');
     };
 
     const handleExport = () => {
@@ -63,14 +63,25 @@ export const WalletPanel = ({ walletContext }) => {
     };
 
     const recentActivity = [...ledger.slice(0, 3), ...payments.slice(0, 2)].slice(0, 4);
-    const cardState = paymentMethods.length > 0 ? 'Cards ready' : 'Cards needed';
-    const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : formatCurrency(0);
+    const cardState = `${paymentMethods.length} returned`;
+    const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not returned';
     const transactionsCount = counts.ledger ?? ledger.length;
     const patientPaymentsCount = counts.payments ?? payments.length;
 
     return (
         <div className="space-y-4">
             {/* No entrance motion (MOTION canon section 3): panel data is simply present. */}
+            {loadError && (
+                <div className="flex items-start gap-3 rounded-card bg-destructive/10 p-4" role="alert">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive/75" />
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold">Payments refresh failed</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {hasLoaded ? 'Showing preserved loaded records.' : 'No financial values are being inferred.'}
+                        </p>
+                    </div>
+                </div>
+            )}
             <div className="space-y-3">
                 <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Payments overview</h3>
                 <div className="relative overflow-hidden rounded-card surface-card p-5 shadow-[0_4px_12px_rgb(0_0_0/0.07)]">
@@ -80,7 +91,7 @@ export const WalletPanel = ({ walletContext }) => {
                     </h2>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="rounded-pill bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
-                            {loading ? 'Loading' : 'Current'}
+                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'Saved results' : 'Current read'}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
                     </div>
@@ -90,14 +101,14 @@ export const WalletPanel = ({ walletContext }) => {
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
                             <TrendingUp className="h-3.5 w-3.5 text-sky-700 transition-transform dark:text-sky-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Next 30 days</span>
+                            <span className="text-xs font-medium text-muted-foreground">Projection returned</span>
                         </div>
                         <p className="text-sm font-semibold tracking-tight">{formatCurrency(projection || 0)}</p>
                     </div>
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
                             <CreditCard className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Payment cards</span>
+                            <span className="text-xs font-medium text-muted-foreground">Cards returned</span>
                         </div>
                         <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{cardState}</p>
                     </div>
@@ -109,15 +120,15 @@ export const WalletPanel = ({ walletContext }) => {
                 <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={handleTopUp}
-                    disabled={!canManage}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-sky-500/10 text-sky-700 transition-all hover:bg-sky-500/18 active:scale-[0.96] dark:text-sky-100"
+                    aria-disabled="true"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 text-muted-foreground transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
-                    <Plus className="h-5 w-5 transition-transform" />
+                    <LockKeyhole className="h-5 w-5 transition-transform" />
                     <span className="text-sm font-semibold">Add funds</span>
                 </button>
                 <button
                     onClick={handleWithdraw}
-                    disabled={!canManage}
+                    aria-disabled="true"
                     className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform" />
@@ -125,7 +136,7 @@ export const WalletPanel = ({ walletContext }) => {
                 </button>
                 <button
                     onClick={handleCards}
-                    disabled={!canManage}
+                    aria-disabled="true"
                     className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <CreditCard className="h-5 w-5 text-muted-foreground transition-transform" />
@@ -141,36 +152,36 @@ export const WalletPanel = ({ walletContext }) => {
                 </button>
                 </div>
                 <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">
-                    {panelStatus || (canManage ? 'One action at a time.' : 'Payments actions need admin access.')}
+                    {panelStatus || 'Money and card changes are unavailable pending authority proof.'}
                 </p>
             </div>
 
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Current route scope</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground">Loaded route scope</h3>
                     <span className="rounded-pill bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
-                        {transactionsCount + patientPaymentsCount} items
+                        {transactionsCount + patientPaymentsCount} loaded
                     </span>
                 </div>
 
                 <div className="grid gap-2">
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Transactions</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Transactions loaded</p>
                         <p className="mt-1 text-xl font-semibold">{transactionsCount}</p>
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Patient Payments</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Patient payments loaded</p>
                         <p className="mt-1 text-xl font-semibold">{patientPaymentsCount}</p>
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Cards</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
                         <p className="mt-1 text-xl font-semibold">{paymentMethods.length}</p>
                     </div>
                 </div>
             </div>
 
             <div className="space-y-2">
-                <h3 className="px-1 text-sm font-semibold text-muted-foreground">Current list</h3>
+                <h3 className="px-1 text-sm font-semibold text-muted-foreground">Recent loaded records</h3>
                 <div className="space-y-1">
                     {recentActivity.map((item) => {
                         const isPatientPayment = Boolean(item.payment_method || item.emergency_request_id);
@@ -206,11 +217,11 @@ export const WalletPanel = ({ walletContext }) => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-card bg-emerald-500/8 p-4">
-                <ShieldCheck className="h-5 w-5 text-emerald-700 dark:text-emerald-100" />
+            <div className="flex items-center gap-3 rounded-card bg-muted/24 p-4">
+                <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                 <div className="min-w-0">
-                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-100">{cardState}</p>
-                    <p className="truncate text-xs leading-tight text-emerald-700/70 dark:text-emerald-100/70">Cards are encrypted</p>
+                    <p className="text-sm font-semibold">{cardState}</p>
+                    <p className="truncate text-xs leading-tight text-muted-foreground">Read-only provider response</p>
                 </div>
             </div>
         </div>
