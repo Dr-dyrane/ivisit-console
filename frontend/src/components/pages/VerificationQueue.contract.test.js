@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 
 // Approvals DESKTOP contract. The mobile surface (MobileVerification.jsx) has its
@@ -122,8 +123,8 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).toContain('onClick={() => handleBulkAction(false)}');
     expect(source).toContain('onClick={() => handleBulkAction(true)}');
     // The FAB + bottom bar still own the /verification approval action (mobile).
-    expect(fabSource).toContain("location.pathname.startsWith('/verification')");
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
+    expect(routeOwnsShellAction('/verification')).toBe(true);
+    expect(bottomBarSource).toContain("pathname.startsWith('/verification')");
   });
 
   it('auto-selects the focused row via the shared FocusedRecord hook (donor parity: no empty rail with data)', () => {

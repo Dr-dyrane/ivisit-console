@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
@@ -455,8 +456,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(contextPanel).toContain("new CustomEvent('requestSettingsRouteContext')");
     expect(page).toContain("new CustomEvent('settingsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestSettingsRouteContext'");
-    expect(contextFab).toContain("location.pathname.startsWith('/settings')");
-    expect(bottomBar).toContain("location.pathname.startsWith('/settings')");
+    expect(routeOwnsShellAction('/settings')).toBe(true);
   });
 
   it('keeps the desktop account dashboard calm and avoids inferred status claims', () => {

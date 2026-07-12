@@ -55,7 +55,7 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   bulk controls while mutation authority is absent; Payments adds loaded-scope labels, stale/error
   preservation, sorting, focus, context, and deep links; MapPanel and Settings remove fabricated/no-op
   controls while retaining route-owned perks.
-- Static proof on 2026-07-12: 52 suites / 390 tests, database-types encoding, mojibake, data contract,
+- Static proof on 2026-07-12: 53 suites / 408 tests, database-types encoding, mojibake, data contract,
   default 115-file UI hardgate, strict 34-file mobile grammar, and production build all pass. No new
   phantom columns were introduced.
 - Background-token recurrence closed on 2026-07-12: the Tailwind opacity scale now defines every
@@ -76,6 +76,12 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   action hook no longer dispatches `openTopUpModal`. Add funds, withdrawal, and card setup therefore
   cannot be opened from dormant global chrome while receiver authority and reflected app consequence
   remain unproved.
+- Navbar/FAB ownership recurrence closed on 2026-07-12: `routeOwnsShellAction()` is now the single
+  route registry consumed by `DynamicBottomBar`, `ContextAwareFAB`, and `MobileNavMenu`. Pricing,
+  Subscriptions, Organizations, Users, and other route-owned surfaces no longer rehost duplicate
+  header actions in the mobile side menu while also rendering a dock FAB. Analytics deliberately
+  remains outside the registry for its existing generic read-only analytics action. The mobile
+  grammar completeness gate derives suppressing routes from this shared registry.
 - Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
   Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
   and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates

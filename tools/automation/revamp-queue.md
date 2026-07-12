@@ -39,6 +39,10 @@ Page 22 Onboarding Success (`efac625`).
      dormant generic `openTopUpModal` dispatch. Named Edge receiver code remains inactive inventory,
      but no global add-funds, withdrawal, or card-setup listener is mounted while consequence proof is
      absent.
+   - Shell action ownership is now centralized in `routeOwnsShellAction()`, shared by the bottom bar,
+     desktop FAB, and mobile menu. This prevents route-owned dock actions from being duplicated in the
+     side-menu page-actions block; the mobile grammar gate derives its completeness set from the same
+     registry. Analytics remains an intentional generic read-only action exception.
    - Pricing and Subscriptions source recheck on 2026-07-12 closed the same donor drift before manual
      proof: Pricing gained the atlas ground and multi-group skeleton, removed duplicate parent error
      copy, and removed a mobile Details CTA that only reached an unavailable command. Subscriptions
@@ -118,7 +122,7 @@ read-only visual revamp when the route projection is proved and unsupported comm
   and gained grouped account sections plus pending sign-out feedback.
 - Parallel desktop lanes closed authority-safe Insurance, Pricing, Payments, Map-panel, and Settings
   parity without editing mobile files. Unsupported writes remain hidden or fail closed.
-- Broad proof: 52 Jest suites / 390 tests passed; database-types encoding, mojibake, data-contract,
+- Broad proof: 53 Jest suites / 408 tests passed; database-types encoding, mojibake, data-contract,
   115-file UI hardgate, 34-file mobile grammar, and production build passed. Data contract reported no
   new phantom columns; the seven grandfathered onboarding references remain baselined debt.
 - Estate background-token audit found ten numeric opacity modifiers used by source but absent from

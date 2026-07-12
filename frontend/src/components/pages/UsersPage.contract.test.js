@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
@@ -309,7 +310,7 @@ describe('Users Page 14 admitted-to-canon contract', () => {
     expect(usersPanel).toContain("window.dispatchEvent(new CustomEvent('openInviteUserModal'))");
     expect(contextAction).toContain("label: 'Add user'");
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openUserModal'))");
-    expect(contextFab).toContain("location.pathname.startsWith('/users')");
+    expect(routeOwnsShellAction('/users')).toBe(true);
 
     expect(usersPageSource).toContain('rounded-card');
     expect(usersPageSource).toContain('rounded-inner');

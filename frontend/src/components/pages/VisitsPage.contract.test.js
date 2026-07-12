@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getMobileNavigationItems } from '../../config/mobileNavigation';
@@ -78,8 +79,8 @@ describe('VisitsPage admission contract', () => {
     const bottomBar = bottomBarSource();
     const fab = fabSource();
 
-    expect(fab).toContain("location.pathname.startsWith('/visits')");
-    expect(bottomBar).toContain("location.pathname.startsWith('/visits')");
+    expect(routeOwnsShellAction('/visits')).toBe(true);
+    expect(bottomBar).toContain("pathname.startsWith('/visits')");
     expect(bottomBar).toContain("pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)");
     expect(bottomBar).toContain("label: 'New visit'");
     expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openVisitModal'))");

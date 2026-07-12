@@ -259,6 +259,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
     const railComponentSource = fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
     const mobileMenuSource = fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
+    const routeActionOwnershipSource = fs.readFileSync('src/config/routeActionOwnership.js', 'utf8');
     const smartHeaderSource = fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
     const filterSheetSource = fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
     const analyticsModalSource = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
@@ -524,26 +525,24 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).not.toContain('mx-auto mb-3 h-1.5 w-[42px]');
     expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
     expect(mobileSource).not.toContain('overflow-x-auto');
-    expect(fabSource).toContain("location.pathname === '/'");
-    expect(fabSource).toContain("location.pathname.startsWith('/emergencies')");
-    expect(fabSource).toContain("location.pathname.startsWith('/verification')");
-    expect(fabSource).toContain("location.pathname.startsWith('/map')");
-    expect(fabSource).toContain("location.pathname.startsWith('/wallet')");
+    expect(routeActionOwnershipSource).toContain("pathname === '/'");
+    for (const prefix of ['/emergencies', '/verification', '/map', '/wallet']) {
+      expect(routeActionOwnershipSource).toContain(`'${prefix}'`);
+    }
+    expect(fabSource).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(fabSource).toContain('const hideFab = Boolean(pageShellConfig?.hideFab)');
     expect(fabSource).toContain('if (isMobile || isContextPanelOpen || hideFab) return null;');
     expect(fabSource.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
       .toBeLessThan(fabSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
-    expect(bottomBarSource).toContain("location.pathname === '/'");
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/emergencies')");
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/map')");
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/wallet')");
+    expect(bottomBarSource).toContain("pathname === '/'");
+    expect(bottomBarSource).toContain("pathname.startsWith('/emergencies')");
+    expect(bottomBarSource).toContain("pathname.startsWith('/verification')");
     expect(bottomBarSource).toContain('!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />');
     expect(bottomBarSource).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
     expect(bottomBarSource).toContain("pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')");
     expect(bottomBarSource).toContain("label: 'New request'");
     expect(bottomBarSource).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
-    expect(mobileMenuSource).toContain("location.pathname.startsWith('/emergencies')");
+    expect(mobileMenuSource).toContain('const routeOwnsMobileAction = routeOwnsShellAction(location.pathname)');
     expect(mobileMenuSource).toContain('!routeOwnsMobileAction');
     expect(mobileMenuSource).not.toContain('Page Actions');
     expect(smartHeaderSource).toContain("if (pathname.startsWith('/emergencies')) return 'Requests';");

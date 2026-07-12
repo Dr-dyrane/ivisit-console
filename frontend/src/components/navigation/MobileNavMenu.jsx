@@ -17,6 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { getAvatarUrl } from '../../lib/avatarUtils';
 import { getAccessibleNav } from '../../config/navigation';
 import { ContextPanel } from './ContextPanel';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
@@ -28,11 +29,7 @@ export const MobileNavMenu = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState('menu'); // 'menu' | 'context'
     const accountName = profile?.full_name || profile?.username || 'User';
     const avatarInitial = accountName.trim().charAt(0).toUpperCase();
-    const routeOwnsMobileAction =
-        location.pathname === '/' ||
-        location.pathname.startsWith('/emergencies') ||
-        location.pathname.startsWith('/verification') ||
-        location.pathname.startsWith('/doctors');
+    const routeOwnsMobileAction = routeOwnsShellAction(location.pathname);
     const showPageActions = Boolean(headerConfig.actions) && location.pathname !== '/' && !routeOwnsMobileAction;
 
     // Get accessible navigation items based on current user permissions

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
@@ -394,7 +395,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openAmbulanceModal'))");
     expect(contextAction).not.toContain("label: 'Add Ambulance'");
     expect(contextAction).not.toContain("openModal('ambulance')");
-    expect(fab).toContain("location.pathname.startsWith('/ambulances')");
+    expect(routeOwnsShellAction('/ambulances')).toBe(true);
 
     expect(chart).toContain('| Fleet KPI/filter status `on_route` |');
     expect(chart).toContain('| Org-admin scoped stats |');

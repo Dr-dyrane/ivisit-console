@@ -273,6 +273,7 @@ function main() {
     '/insurance': 'read-only on desktop right now — InsuranceManagementPage shows only a "Read-only" marker, no create (INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07: no create/edit/delete/verify receiver); a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a policy receiver is proved.',
   };
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
+  const actionOwnershipPath = path.join(__dirname, '..', 'src', 'config', 'routeActionOwnership.js');
   const appPath = path.join(__dirname, '..', 'src', 'App.js');
   const pagesDir = path.join(__dirname, '..', 'src', 'components', 'pages');
   if (fs.existsSync(dockPath)) {
@@ -281,13 +282,18 @@ function main() {
     // The DERIVED suppressing set (both sources feed one Set).
     const suppress = new Set();
 
-    // (a) Parse the `routeOwnsAction` assignment: every `startsWith('/x')` + the `=== '/'` case.
-    const ownsMatch = dock.match(/routeOwnsAction\s*=([\s\S]*?);/);
-    const ownsBlock = ownsMatch ? ownsMatch[1] : '';
+    // (a) Parse the shared shell-action registry consumed by the bottom bar, desktop
+    // FAB, and mobile menu. Keeping the derivation here means a new owner cannot
+    // suppress generic actions without also passing this completeness gate.
+    const ownership = fs.existsSync(actionOwnershipPath)
+      ? fs.readFileSync(actionOwnershipPath, 'utf8')
+      : '';
+    const prefixesMatch = ownership.match(/ROUTE_ACTION_PREFIXES\s*=\s*\[([\s\S]*?)\];/);
+    const prefixesBlock = prefixesMatch ? prefixesMatch[1] : '';
     let sm;
-    const startsRe = /startsWith\('([^']+)'\)/g;
-    while ((sm = startsRe.exec(ownsBlock)) !== null) suppress.add(sm[1]);
-    if (/pathname\s*===\s*'\/'/.test(ownsBlock)) suppress.add('/');
+    const routeStringRe = /'([^']+)'/g;
+    while ((sm = routeStringRe.exec(prefixesBlock)) !== null) suppress.add(sm[1]);
+    if (/pathname\s*===\s*'\/'/.test(ownership)) suppress.add('/');
 
     // (b) Pages calling `usePageShell({ ... hideFab: true ... })` → their route via App.js.
     //     Build component→route from `<Route path="/x" element={ ... <PageComponent ... }>`,

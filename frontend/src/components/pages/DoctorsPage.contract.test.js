@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
@@ -47,7 +48,7 @@ describe('DoctorsPage Staff contract', () => {
     const contextPanel = contextPanelSource();
     const page = pageSource();
 
-    expect(fab).toContain("location.pathname.startsWith('/doctors')");
+    expect(routeOwnsShellAction('/doctors')).toBe(true);
     expect(fab.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
       .toBeLessThan(fab.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
 

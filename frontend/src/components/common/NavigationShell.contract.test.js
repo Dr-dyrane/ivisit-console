@@ -9,6 +9,7 @@ describe('Navigation shell contract', () => {
   const railSource = () => fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
   const mobileMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const routeActionOwnershipSource = () => fs.readFileSync('src/config/routeActionOwnership.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
   const layoutSource = () => fs.readFileSync('src/contexts/LayoutContext.jsx', 'utf8');
   const supportHookSource = () => fs.readFileSync('src/hooks/useSupportTickets.js', 'utf8');
@@ -176,14 +177,15 @@ describe('Navigation shell contract', () => {
   it('keeps Today and Requests route actions from duplicating global FABs', () => {
     const fab = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
     const bottomBar = bottomBarSource();
+    const routeOwnership = routeActionOwnershipSource();
 
-    expect(fab).toContain("location.pathname === '/'");
-    expect(fab).toContain("location.pathname.startsWith('/emergencies')");
+    expect(routeOwnership).toContain("pathname === '/'");
+    expect(routeOwnership).toContain("'/emergencies'");
+    expect(fab).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
     expect(fab).toContain('if (isMobile || isContextPanelOpen || hideFab) return null;');
 
-    expect(bottomBar).toContain("location.pathname === '/'");
-    expect(bottomBar).toContain("location.pathname.startsWith('/emergencies')");
+    expect(bottomBar).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname);');
     expect(bottomBar).toContain('const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;');
     // Route-owned actions may open a locally hosted modal (routeModal) — the config
     // is resolved first, then wrapped when it declares `modal` (Today-home FAB parity).

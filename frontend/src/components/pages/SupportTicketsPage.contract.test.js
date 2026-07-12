@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
@@ -188,7 +189,7 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(contextPanel).toContain('<SupportTicketsPanel supportContext={supportTicketsRouteContext} />');
     expect(contextPanel).not.toContain('<SupportTicketsPanel\n        supportTicketsData={supportTicketsData}');
 
-    expect(fab).toContain("location.pathname.startsWith('/support-tickets')");
+    expect(routeOwnsShellAction('/support-tickets')).toBe(true);
     expect(bottomBar).toContain("pathname.startsWith('/support-tickets')");
     expect(bottomBar).toContain("label: 'New ticket'");
     expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openSupportTicketModal'))");

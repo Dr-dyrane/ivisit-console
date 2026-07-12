@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
 // Approvals MOBILE contract. Split from VerificationQueue.contract.test.js
 // (2026-07-10) so the mobile and desktop approval surfaces gate INDEPENDENTLY: a
@@ -58,10 +59,10 @@ describe('MobileVerification Approvals mobile contract', () => {
     const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
     const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
 
-    expect(fabSource).toContain("location.pathname.startsWith('/verification')");
+    expect(routeOwnsShellAction('/verification')).toBe(true);
     expect(fabSource.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
       .toBeLessThan(fabSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
-    expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
+    expect(bottomBarSource).toContain("pathname.startsWith('/verification')");
     expect(bottomBarSource.indexOf('{!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />}'))
       .toBeLessThan(bottomBarSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
   });

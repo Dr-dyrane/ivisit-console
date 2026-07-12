@@ -41,6 +41,7 @@ import {
 } from '../modals/index';
 import { useSubscription } from '../../hooks/useSubscription';
 import { getProtectedRoutesForRole } from '../../config/routes';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
 // RBAC (2026-07-10): a `to:` FAB navigates to a route, so its role gate must be the
 // SAME truth the route guard uses — derive it from getProtectedRoutesForRole, never a
@@ -62,23 +63,7 @@ const DynamicBottomBarContent = () => {
     const { profile } = useAuth();
     const location = useLocation();
     const userRole = profile?.role || 'viewer';
-    const routeOwnsAction =
-        location.pathname === '/' ||
-        location.pathname.startsWith('/emergencies') ||
-        location.pathname.startsWith('/visits') ||
-        location.pathname.startsWith('/verification') ||
-        location.pathname.startsWith('/doctors') ||
-        location.pathname.startsWith('/hospitals') ||
-        location.pathname.startsWith('/ambulances') ||
-        location.pathname.startsWith('/health-news') ||
-        location.pathname.startsWith('/support-tickets') ||
-        location.pathname.startsWith('/insurance') ||
-        location.pathname.startsWith('/organizations') ||
-        location.pathname.startsWith('/subscriptions') ||
-        location.pathname.startsWith('/map') ||
-        location.pathname.startsWith('/wallet') ||
-        location.pathname.startsWith('/pricing') ||
-        location.pathname.startsWith('/settings');
+    const routeOwnsAction = routeOwnsShellAction(location.pathname);
     const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
     // Route-owned actions may open a locally hosted modal (routeModal) instead of
     // dispatching a window event — pages like '/' have no modal listener mounted.

@@ -396,6 +396,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
     const bottomBar = read('src/components/navigation/DynamicBottomBar.jsx');
+    const routeActionOwnership = read('src/config/routeActionOwnership.js');
     const analytics = read('src/components/pages/Analytics.jsx');
     const hook = read('src/hooks/useSubscription.js');
     const pageDataAccess = read('src/config/pageDataAccess.js');
@@ -480,10 +481,11 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(contextPanel).toContain('subscriptionsRouteContextUpdated');
     expect(contextPanel).toContain('requestSubscriptionsRouteContext');
     expect(contextPanel).toContain('subscriptionsContext={subscriptionsRouteContext}');
-    expect(contextFab).toContain("location.pathname.startsWith('/subscriptions')");
+    expect(contextFab).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
+    expect(routeActionOwnership).toContain("'/subscriptions'");
     expect(contextFab).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
     expect(contextFab).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
-    expect(bottomBar).toContain("location.pathname.startsWith('/subscriptions')");
+    expect(bottomBar).toContain("pathname.startsWith('/subscriptions')");
     expect(bottomBar).toContain("label: 'Add subscriber'");
     expect(bottomBar).toContain("new CustomEvent('openSubscriptionModal')");
     expect(bottomBar).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');

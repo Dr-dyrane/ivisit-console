@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getAccessibleNav } from '../../config/navigation';
 import { getMobileNavigationItems } from '../../config/mobileNavigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
@@ -85,8 +86,7 @@ describe('GodModeMap Live Map contract', () => {
     expect(mobile).not.toContain('MobileKPIStrip');
     expect(mobile).toContain('absolute inset-0 pt-12');
     expect(layoutContextSource()).toContain('setIsScrolledDown(false)');
-    expect(bottomBarSource()).toContain("location.pathname.startsWith('/map')");
-    expect(fabSource()).toContain("location.pathname.startsWith('/map')");
+    expect(routeOwnsShellAction('/map')).toBe(true);
   });
 
   it('keeps map reads and subscriptions behind the map service boundary', () => {

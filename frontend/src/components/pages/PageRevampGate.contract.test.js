@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 
 describe('Today/Requests revamp gate contract', () => {
@@ -818,19 +819,13 @@ describe('Today/Requests revamp gate contract', () => {
     expect(hardgate).toContain('src/components/views/HealthNewsListView.jsx');
     expect(hardgate).toContain('src/components/views/HealthNewsTableView.jsx');
     expect(hardgate).toContain('src/components/modals/HealthNewsModal.jsx');
-    expect(fab).toContain("location.pathname === '/'");
-    expect(fab).toContain("location.pathname.startsWith('/emergencies')");
-    expect(fab).toContain("location.pathname.startsWith('/verification')");
-    expect(fab).toContain("location.pathname.startsWith('/doctors')");
-    expect(fab).toContain("location.pathname.startsWith('/hospitals')");
-    expect(fab).toContain("location.pathname.startsWith('/ambulances')");
-    expect(fab).toContain("location.pathname.startsWith('/health-news')");
-    expect(fab).toContain("location.pathname.startsWith('/map')");
-    expect(fab).toContain("location.pathname.startsWith('/wallet')");
+    for (const pathname of ['/', '/emergencies', '/verification', '/doctors', '/hospitals', '/ambulances', '/health-news', '/map', '/wallet']) {
+      expect(routeOwnsShellAction(pathname)).toBe(true);
+    }
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
     expect(fab).not.toContain("import { HealthNewsModal }");
     expect(fab).not.toContain("case 'healthNews'");
-    expect(bottomBar).toContain("location.pathname.startsWith('/health-news')");
+    expect(bottomBar).toContain("pathname.startsWith('/health-news')");
     expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openHealthNewsModal'))");
     expect(bottomBar).not.toContain("case 'healthNews'");
     // Stale-pin reconciliation (2026-07-09): the generic hospitals context action
@@ -920,8 +915,8 @@ describe('Today/Requests revamp gate contract', () => {
     expect(mobileNavigation).toContain("{ id: 'emergencies', path: '/emergencies', label: 'Requests' }");
     expect(mobileNavigation).not.toContain('hamburger');
 
-    expect(fab).toContain("location.pathname === '/'");
-    expect(fab).toContain("location.pathname.startsWith('/emergencies')");
+    expect(routeOwnsShellAction('/')).toBe(true);
+    expect(routeOwnsShellAction('/emergencies')).toBe(true);
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
     // Config resolved first, wrapped when it declares a locally hosted `modal` (Today FAB parity).
     expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);');

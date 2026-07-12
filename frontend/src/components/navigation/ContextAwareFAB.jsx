@@ -14,29 +14,13 @@ import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
 export const ContextAwareFAB = () => {
   const { isMobile } = useNavigation();
   const { isContextPanelOpen, pageShellConfig } = useLayout();
   const location = useLocation();
-  const routeOwnsAction =
-    location.pathname === '/' ||
-    location.pathname.startsWith('/emergencies') ||
-    location.pathname.startsWith('/users') ||
-    location.pathname.startsWith('/visits') ||
-    location.pathname.startsWith('/verification') ||
-    location.pathname.startsWith('/doctors') ||
-    location.pathname.startsWith('/hospitals') ||
-    location.pathname.startsWith('/ambulances') ||
-    location.pathname.startsWith('/health-news') ||
-    location.pathname.startsWith('/support-tickets') ||
-    location.pathname.startsWith('/insurance') ||
-    location.pathname.startsWith('/organizations') ||
-    location.pathname.startsWith('/subscriptions') ||
-    location.pathname.startsWith('/map') ||
-    location.pathname.startsWith('/wallet') ||
-    location.pathname.startsWith('/pricing') ||
-    location.pathname.startsWith('/settings');
+  const routeOwnsAction = routeOwnsShellAction(location.pathname);
   const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
 
   // Keep route-owned surfaces free of global FAB side effects.

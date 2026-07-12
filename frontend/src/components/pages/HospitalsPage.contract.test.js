@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
@@ -218,7 +219,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
     expect(page).toContain('title="Facility deletion is locked until backend authority is proved"');
     expect(page).not.toContain('onSchedule={');
-    expect(fab).toContain("location.pathname.startsWith('/hospitals')");
+    expect(routeOwnsShellAction('/hospitals')).toBe(true);
     // Dead-affordance hygiene (SHELL_PARITY_AUDIT 1.5, 2026-07-09): the FAB is
     // hidden on /hospitals and no other route keys the hospitals action, so the
     // registry entry was unreachable everywhere -- deleted, not preserved.
