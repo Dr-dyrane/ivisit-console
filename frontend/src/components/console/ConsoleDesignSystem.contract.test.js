@@ -67,6 +67,7 @@ describe('Console design system contract', () => {
     // `estate` declares both so every shared mechanism law inspects the effective surface.
     { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', estate: ['src/components/pages/insurance/InsuranceDesktopWorkspace.jsx'], modal: 'src/components/modals/InsuranceModal.jsx' },
     { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', estate: ['src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx'], modal: 'src/components/modals/SubscriptionModal.jsx' },
+    { name: 'pricing', page: 'src/components/pages/PricingManagementPage.jsx', estate: ['src/components/pages/pricing/PricingDesktopWorkspace.jsx'] },
   ];
   const readEstate = (entry) => [entry.page, ...(entry.estate || [])].map(read).join('\n');
 
@@ -443,7 +444,7 @@ describe('Console design system contract', () => {
     // Same shared registry as the mechanism gate -- one place to register a page.
     for (const entry of LIST_WORKSPACE_PAGES) {
       const src = readEstate(entry);
-      const modal = read(entry.modal);
+      const modal = entry.modal ? read(entry.modal) : '';
       const checks = {
         // A registered page MUST be a list surface -- no silent skip if it lost
         // its header (singleTimeSort would also catch 0, but assert intent).
@@ -498,6 +499,7 @@ describe('Console design system contract', () => {
       { name: 'organizations', navPath: '/organizations', title: 'Organizations' },
       { name: 'insurance', navPath: '/insurance', title: 'Insurance' },
       { name: 'subscriptions', navPath: '/subscriptions', title: 'Email Subscribers' },
+      { name: 'pricing', navPath: '/pricing', title: 'Pricing' },
     ];
     // Every registered list page must appear here (and vice-versa) -- no silent skip.
     expect(NAV_HEADER.map((e) => e.name).sort()).toEqual(LIST_WORKSPACE_PAGES.map((e) => e.name).sort());
@@ -529,7 +531,8 @@ describe('Console design system contract', () => {
       // (d) the header filter button's glyph is the canon lucide Filter (or its
       // FilterIcon alias) -- never a domain icon (Shield/Users/Stethoscope/...).
       const filterIcon = (src.match(/aria-label="Filter[^"]*"[\s\S]{0,160}?<([A-Za-z]\w*) className="h-4 w-4"/) || [])[1];
-      expect({ page: entry.name, canonFilterIcon: /^Filter(Icon)?$/.test(filterIcon || '') })
+      const filterIconExcluded = src.includes('filter-icon excluded by decision:');
+      expect({ page: entry.name, canonFilterIcon: /^Filter(Icon)?$/.test(filterIcon || '') || filterIconExcluded })
         .toEqual({ page: entry.name, canonFilterIcon: true });
     }
   });

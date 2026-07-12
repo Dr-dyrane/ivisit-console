@@ -82,6 +82,11 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   header actions in the mobile side menu while also rendering a dock FAB. Analytics deliberately
   remains outside the registry for its existing generic read-only analytics action. The mobile
   grammar completeness gate derives suppressing routes from this shared registry.
+- Desktop list-mechanism recurrence closed for Pricing on 2026-07-12: Pricing is now registered in
+  the same `LIST_WORKSPACE_PAGES` estate law as Requests, Insurance, and Subscriptions. It must retain
+  keyboard focus, one updated-time sort header, refetch/error/empty behavior, selection exclusion,
+  navbar title alignment, and its explicit no-deep-link/no-arrival-toast/no-write-spinner decisions.
+  The page now owns `SEOHead("Pricing")` and immediate press feedback on its fail-closed primary action.
 - Pricing and Subscriptions received the same source-level donor recheck before their manual pass.
   Pricing now owns an atlas-backed LIST, donor-shaped multi-group loading, one in-shell degraded state,
   and no read-only Details CTA that merely reports an unavailable write. Subscriptions now separates

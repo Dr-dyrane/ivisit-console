@@ -43,6 +43,10 @@ Page 22 Onboarding Success (`efac625`).
      desktop FAB, and mobile menu. This prevents route-owned dock actions from being duplicated in the
      side-menu page-actions block; the mobile grammar gate derives its completeness set from the same
      registry. Analytics remains an intentional generic read-only action exception.
+   - Pricing is now included in the shared desktop list-workspace estate registry, which locks its
+     single updated-time sort, keyboard focus, loading/refetch/empty behavior, selection exclusion,
+     navbar title, SEO title, and recorded no-deep-link/no-write-surface decisions. Payments remains
+     dashboard-tier rather than being forced into the list registry.
    - Pricing and Subscriptions source recheck on 2026-07-12 closed the same donor drift before manual
      proof: Pricing gained the atlas ground and multi-group skeleton, removed duplicate parent error
      copy, and removed a mobile Details CTA that only reached an unavailable command. Subscriptions

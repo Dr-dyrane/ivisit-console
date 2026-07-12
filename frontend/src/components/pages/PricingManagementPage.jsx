@@ -13,9 +13,18 @@ import { MobilePricing } from '../mobile/MobilePricing';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { PricingDesktopWorkspace } from './pricing/PricingDesktopWorkspace';
+import { SEOHead } from '../common/SEOHead';
 
 const PRICING_MUTATION_COMMANDS_ENABLED = false;
 const PRICING_SCOPE_UNAVAILABLE_MESSAGE = 'Price changes need a selected facility before they can run.';
+// arrival-toast excluded by decision: the read-only projection invalidates from
+// realtime but does not claim a locally identified create event.
+// submit-spinner excluded by decision: no pricing write surface is mounted while
+// explicit facility authority and patient-quote consequence remain unproved.
+// filter-icon excluded by decision: family tabs, scope chips, and sheet search
+// expose the complete filter grammar; there is no hidden FilterSheet to open.
+// deep-link excluded by decision: no Pricing record URL contract is admitted
+// until rendered focus proof and selected-facility identity semantics are closed.
 const EMPTY_PRICING_SUMMARY = {
     globalFallbackCount: 0,
     facilityPriceCount: 0,
@@ -205,7 +214,7 @@ export const PricingManagementPage = () => {
             data-state="unavailable"
             title={PRICING_SCOPE_UNAVAILABLE_MESSAGE}
             aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}
-            className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground"
+            className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground transition-transform active:scale-[0.98]"
         >
             <Plus className="w-4 h-4 mr-2" />
             Add Pricing
@@ -243,6 +252,7 @@ export const PricingManagementPage = () => {
     if (isMobile) {
         return (
             <div className="min-h-screen">
+                <SEOHead title="Pricing" description="Review platform fallback and facility pricing evidence." />
                 <MobilePricing
                     pricing={paginatedPricing}
                     allPricing={pricing}
@@ -284,24 +294,27 @@ export const PricingManagementPage = () => {
     };
 
     return (
-        <PricingDesktopWorkspace
-            rows={paginatedPricing}
-            summary={pricingSummary}
-            totalCount={pricingTotalCount}
-            loading={initialLoading}
-            isFetching={isFetching}
-            error={loadError}
-            filters={desktopFilters}
-            setFilters={setDesktopFilters}
-            retry={fetchPricing}
-            pagination={pagination}
-            sortConfig={sortConfig}
-            onSort={(key) => setSortConfig((prev) => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }))}
-            focusedPrice={focusedPrice}
-            setFocused={setFocused}
-            moduleRailItems={moduleRailItems}
-            routingPath={routingPath}
-            onRailNavigate={handleRailNavigate}
-        />
+        <>
+            <SEOHead title="Pricing" description="Review platform fallback and facility pricing evidence." />
+            <PricingDesktopWorkspace
+                rows={paginatedPricing}
+                summary={pricingSummary}
+                totalCount={pricingTotalCount}
+                loading={initialLoading}
+                isFetching={isFetching}
+                error={loadError}
+                filters={desktopFilters}
+                setFilters={setDesktopFilters}
+                retry={fetchPricing}
+                pagination={pagination}
+                sortConfig={sortConfig}
+                onSort={(key) => setSortConfig((prev) => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }))}
+                focusedPrice={focusedPrice}
+                setFocused={setFocused}
+                moduleRailItems={moduleRailItems}
+                routingPath={routingPath}
+                onRailNavigate={handleRailNavigate}
+            />
+        </>
     );
 };
