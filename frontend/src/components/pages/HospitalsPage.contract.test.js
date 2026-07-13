@@ -6,8 +6,30 @@ import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../..
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
 describe('HospitalsPage admission audit contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/HospitalsPage.jsx', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileHospitals.jsx', 'utf8');
+  const readSource = (path) => fs.readFileSync(path, 'utf8');
+  const pageModulePaths = [
+    'src/components/pages/HospitalsPage.jsx',
+    'src/components/pages/hospitals/hospitalPageModel.js',
+    'src/components/pages/hospitals/hospitalPresentation.js',
+    'src/components/pages/hospitals/useHospitalsPageController.js',
+    'src/components/pages/hospitals/useHospitalsPageChrome.js',
+    'src/components/pages/hospitals/HospitalsPageView.jsx',
+    'src/components/pages/hospitals/HospitalsDesktopWorkspace.jsx',
+    'src/components/pages/hospitals/HospitalDetailRail.jsx',
+    'src/components/pages/hospitals/HospitalAvatar.jsx',
+  ];
+  const mobileModulePaths = [
+    'src/components/mobile/MobileHospitals.jsx',
+    'src/components/mobile/hospitals/mobileHospitalsModel.js',
+    'src/components/mobile/hospitals/useMobileHospitalsController.js',
+    'src/components/mobile/hospitals/MobileHospitalsAtlasLayer.jsx',
+    'src/components/mobile/hospitals/MobileHospitalRow.jsx',
+    'src/components/mobile/hospitals/MobileHospitalDetailSheet.jsx',
+  ];
+  const pageEntrySource = () => readSource(pageModulePaths[0]);
+  const mobileEntrySource = () => readSource(mobileModulePaths[0]);
+  const pageSource = () => pageModulePaths.map(readSource).join('\n');
+  const mobileSource = () => mobileModulePaths.map(readSource).join('\n');
   const panelSource = () => fs.readFileSync('src/components/context/HospitalsPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/HospitalListView.jsx', 'utf8');
@@ -21,7 +43,6 @@ describe('HospitalsPage admission audit contract', () => {
   // conversion assertions point at the relocated data layer.
   const queryHookSource = () => fs.readFileSync('src/hooks/useHospitalsQuery.js', 'utf8');
   const mutationsHookSource = () => fs.readFileSync('src/hooks/useHospitalsMutations.js', 'utf8');
-  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const coreRpcSource = () => fs.readFileSync('supabase/migrations/20260219010000_core_rpcs.sql', 'utf8');
   const securitySource = () => fs.readFileSync('supabase/migrations/20260219000700_security.sql', 'utf8');
@@ -32,6 +53,31 @@ describe('HospitalsPage admission audit contract', () => {
   const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024,
+  });
+
+  it('keeps compatibility entry points thin while owning the complete Hospital module estate', () => {
+    const pageEntry = pageEntrySource();
+    const mobileEntry = mobileEntrySource();
+    const page = pageSource();
+    const mobile = mobileSource();
+
+    expect(pageEntry).toContain('export const HospitalsPage = () =>');
+    expect(pageEntry).toContain('useHospitalsPageController()');
+    expect(pageEntry).toContain('useHospitalsPageChrome(controller)');
+    expect(pageEntry).toContain('<HospitalsPageView controller={controller} />');
+    expect(pageEntry.split(/\r?\n/).length).toBeLessThan(40);
+
+    expect(mobileEntry).toContain('export const MobileHospitals = ({');
+    expect(mobileEntry).toContain('useMobileHospitalsController({');
+    expect(mobileEntry).toContain('<MobileHospitalDetailSheet');
+    expect(mobileEntry.split(/\r?\n/).length).toBeLessThan(280);
+
+    expect(page).toContain('buildHospitalQueryFilter({');
+    expect(page).toContain("useFocusedRecord('hospitals', hospitals)");
+    expect(page).toContain(".channel('hospitals_page_changes')");
+    expect(page).toContain('<HospitalsDesktopWorkspace');
+    expect(mobile).toContain('accumulateHospitalRows(');
+    expect(mobile).toContain('<MobileHospitalRow');
   });
 
   it('keeps Hospitals org-admin scoped in route and navigation contracts', () => {
@@ -112,7 +158,6 @@ describe('HospitalsPage admission audit contract', () => {
   it('records the Hospitals canonical shell and guarded admission state', () => {
     const page = pageSource();
     const mobile = mobileSource();
-    const fab = fabSource();
     const contextAction = contextActionSource();
     const contextPanel = contextPanelSource();
     const gate = gateSource();
@@ -133,9 +178,9 @@ describe('HospitalsPage admission audit contract', () => {
     expect(serviceSource()).toContain("query = query.gte('created_at', filter.date_from)");
     expect(page).toContain('stats: hospitalPageStats');
     expect(page).toContain('updateHospitalMutation.mutateAsync(formData)');
-    expect(page).toContain('statistics={hospitalPageStats}');
-    expect(page).toContain('analytics={hospitalPageStats}');
-    expect(page).toContain('const hospitalPanelContext = React.useMemo(() => ({');
+    expect(page).toContain('statistics={data.hospitalPageStats}');
+    expect(page).toContain('analytics={data.hospitalPageStats}');
+    expect(page).toContain('const hospitalPanelContext = useMemo(() => buildHospitalPanelContext({');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('hospitalsRouteContextUpdated', {");
     expect(page).toContain("window.addEventListener('requestHospitalsRouteContext', publishHospitalsRouteContext);");
     expect(contextPanel).toContain('const [hospitalsRouteContext, setHospitalsRouteContext] = React.useState(null);');
@@ -164,8 +209,8 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('canDelete={false}');
     // Mobile selection MECHANISM enabled (isAdmin) 2026-07-10 as a fail-closed MIRROR of
     // desktop: the row long-press + bulk bar render, but the bulk WRITE stays locked (the
-    // mobile bar's only control is a disabled delete — see the mobile locked-bar pins).
-    expect(page).toContain('selectionEnabled={isAdmin()}');
+    // mobile bar's only control is a disabled delete (see the mobile locked-bar pins).
+    expect(page).toContain('selectionEnabled={role.admin}');
     // Realtime cleanup pins survive the migration: the page keeps its own
     // hospitals_page_changes channel + mount guard + removeChannel teardown, but the
     // change handler now feeds the ['hospitals'] cache instead of a manual refetch,
@@ -175,7 +220,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain("queryClient.invalidateQueries({ queryKey: ['hospitals'] })");
     expect(page).toContain('isMountedRef.current = false');
     expect(page).toContain('const fetchHospitals = refetch');
-    expect(page).toContain('pagination.setTotalCount(count)');
+    expect(page).toMatch(/(?:pagination\.)?setTotalCount\(count\)/);
     expect(page).not.toContain('fetchRequestRef');
     expect(page).not.toContain('setHospitalPageStats');
     expect(page).toContain('let active = true');
@@ -214,10 +259,10 @@ describe('HospitalsPage admission audit contract', () => {
     // admin-only checkbox column + select-all/indeterminate + shift-range;
     // the BulkActionBar's write stays fail-closed with the reason visible.
     expect(page).toContain('useRowSelection(hospitals)');
-    expect(page).toContain('selectable={isAdmin()}');
+    expect(page).toContain('selectable={role.admin}');
     expect(page).toContain('HOSPITAL_GRID_COLS_SELECT');
     expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>');
     expect(page).toContain('title="Facility deletion is locked until backend authority is proved"');
     expect(page).not.toContain('onSchedule={');
     expect(routeOwnsShellAction('/hospitals')).toBe(true);
@@ -230,7 +275,7 @@ describe('HospitalsPage admission audit contract', () => {
     // Bottom bar (user arbitration 2026-07-09, SHELL_PARITY FLAG resolved; then
     // arbitration #2 same day: "make the FAB render something practical and
     // working"): /hospitals renders the canonical left-pill + FAB grammar, and
-    // the FAB is the domain's REAL adjacent write surface — the facility
+    // the FAB is the domain's REAL adjacent write surface; the facility
     // approval queue (/verification?queue=organizations), not the gated Add
     // toast. The honest create gate stays on the desktop header pill + ?add=true.
     const bottomBar = [
@@ -260,21 +305,21 @@ describe('HospitalsPage admission audit contract', () => {
     // locked in ConsoleDesignSystem.contract.test.js). The page owns only the
     // DOMAIN: signal copy incl. the honest failed-load hero (F7), state options,
     // pinned operational-pressure states, and the wayfinding stage.
-    expect(page).toContain("from '../console/SignalPanel'");
-    expect(page).toContain("from '../console/KpiStrip'");
-    expect(page).toContain("from '../console/WorkspaceStage'");
+    expect(page).toContain("from '../../console/SignalPanel'");
+    expect(page).toContain("from '../../console/KpiStrip'");
+    expect(page).toContain("from '../../console/WorkspaceStage'");
     expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('activePath="/hospitals"');
-    expect(page).toContain('moduleRailItems={visibleModuleRail}');
+    expect(page).toContain('moduleRailItems={wayfinding.visibleModuleRail}');
     expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={hospitalToneClass}>');
     expect(page).toContain('<KpiStrip');
     expect(page).toContain('options={hospitalStateOptions}');
-    expect(page).toContain("const PINNED_HOSPITAL_STATE_IDS = ['full', 'busy'];");
+    expect(page).toContain("const PINNED_HOSPITAL_STATE_IDS = Object.freeze(['full', 'busy']);");
     expect(page).toContain('pinnedIds={PINNED_HOSPITAL_STATE_IDS}');
     expect(page).toContain('importance={HOSPITAL_KPI_IMPORTANCE}');
     expect(page).toContain('dataAttr="data-hospital-state"');
     expect(page).toContain("headline: 'Hospitals did not load'");
-    expect(page).toContain('stats={hospitalPageStats}');
+    expect(page).toContain('stats={data.hospitalPageStats}');
     expect(page).toContain("id: 'busy'");
     expect(page).toContain('Visible beds');
     expect(page).toContain('Visible fleet');
@@ -290,7 +335,7 @@ describe('HospitalsPage admission audit contract', () => {
     // search F9, refresh, context-aware filter trigger, count-row triplet,
     // Updating pill F8, pagination) + ErrorBanner (destructive, rows present) +
     // LoadErrorState (failed-empty owns the scroller) + filter-aware EmptyState.
-    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain("from '../../console/ActivitySheet'");
     expect(page).toContain('<ActivitySheet');
     expect(page).toContain('itemNoun="hospitals"');
     expect(page).toContain('<SheetToolbar');
@@ -301,7 +346,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('const failedEmpty = Boolean(loadError) && hospitals.length === 0;');
     expect(page).toContain('<LoadErrorState title="Hospitals did not load" message={loadError} onRetry={onRetry} />');
     expect(page).toContain('<EmptyState');
-    expect(page).toContain('const HOSPITAL_EMPTY_HEADINGS = {');
+    expect(page).toContain('const HOSPITAL_EMPTY_HEADINGS = Object.freeze({');
     // Degraded-state copy is preserved, now derived from the RQ error instead of a
     // dedicated error useState + setter.
     expect(page).toContain('const hospitalPageError = queryError');
@@ -315,8 +360,8 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('testId="hospitals-error-state"');
     expect(page).toContain('pagination={pagination}');
     expect(page).toContain('onRetry={onRetry}');
-    expect(page).toContain("onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}");
-    expect(page).toContain('pagination.resetPagination()');
+    expect(page).toContain("onSearchCommit={(value) => setFilters((prev) => ({ ...prev, search: value }))}");
+    expect(page).toMatch(/(?:pagination\.)?resetPagination\(\)/);
     // Shared focused-record store (useFocusedRecord) replaces the old private
     // focusedHospitalId state + list.find(id)||list[0] memo: rail shows the
     // most-urgent hospital at rest and toggles consistently on row focus.
@@ -338,7 +383,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('<DetailRailShell>');
     expect(page).toContain('<RailInsetHero>');
     expect(page).toContain('<DetailLine');
-    expect(page).toContain('<CopyChip value={displayId} label="Copy record ID" />');
+    expect(page).toContain('<CopyChip value={model.displayId} label="Copy record ID" />');
     expect(page).toContain('<StageStrip');
     expect(page).toContain("const HOSPITAL_VERIFICATION_ORDER = ['pending', 'verified'];");
     expect(page).toContain('Hospital details');
@@ -351,10 +396,10 @@ describe('HospitalsPage admission audit contract', () => {
     // F5 (constitution section 4): org_admin edit affordance is scoped to the
     // operator's own organization (admin unrestricted); the rail affordance and
     // the modal trigger share one gate; the RPC still enforces server-side.
-    expect(page).toContain('const canEditHospital = useCallback((hospital) => {');
+    expect(page).toContain('const canEditHospital = useCallback((hospital) => canActorEditHospital({');
     expect(page).toContain('hospital.organization_id === orgId');
     expect(page).toContain("toast.info('Edit is limited to facilities in your organization')");
-    expect(page).toContain('canEditFocused={focusedHospital ? canEditHospital(focusedHospital) : false}');
+    expect(page).toContain('canEditFocused={state.focusedHospital ? role.canEditHospital(state.focusedHospital) : false}');
     expect(page).toContain('Use Requests for reservation changes.');
     expect(page).not.toContain("import { Card } from '../ui/card'");
     expect(page).not.toContain('<Card');
@@ -383,8 +428,8 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).not.toContain('hover-glow');
 
     expect(mobile).toContain('MobileKPIStrip');
-    // Page-type grammar (MOBILE_DESIGN_SYSTEM §5, locked 2026-07-09): Hospitals is
-    // LIST-type — no glance tiles / metric rails on a list page. The old "Facility
+    // Page-type grammar (MOBILE_DESIGN_SYSTEM section 5, locked 2026-07-09): Hospitals is
+    // LIST-type; no glance tiles / metric rails on a list page. The old "Facility
     // Signals" rail (removed 2026-07-09) duplicated the chips and its beds/fleet
     // aggregates ride AnalyticsModal via hospitalPageStats. The DIRECTORY expression
     // of the LIST grammar: capacity-first GroupPanels (dead zeros collapse into one
@@ -400,11 +445,11 @@ describe('HospitalsPage admission audit contract', () => {
     expect(mobile).toContain("'Reporting capacity'");
     expect(mobile).toContain("'No capacity reported'");
     expect(mobile).toContain("type: 'coarse-recency'");
-    expect(mobile).toContain('const scopeCount = activeStatusFilter');
+    expect(mobile).toContain('const scopeCount = getHospitalScopeCount(hospitalTotals, activeStatusFilter)');
     expect(mobile).toContain('accumulatorRef');
     expect(mobile).toContain('MobileHospitalsAtlasLayer');
     expect(mobile).toContain('SkeletonGroupPanel');
-    expect(mobile).toContain('formatRelativeTime(hospital.last_availability_update || hospital.updated_at)');
+    expect(mobile).toContain('formatRelativeTime(hospital?.last_availability_update || hospital?.updated_at)');
     expect(mobile).toContain('hasMobileHospitalFilters');
     expect(mobile).toContain('activeStatusFilter');
     expect(mobile).toContain('handleStatusFilter');
@@ -420,7 +465,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(mobile).toContain('canDelete = false');
     expect(mobile).toContain('selectionEnabled = false');
     // Selection is ON (page passes isAdmin) but fail-closed: the mobile bulk bar's only
-    // control is a DISABLED delete with the locked reason — mechanism mirrors desktop, the
+    // control is a DISABLED delete with the locked reason; mechanism mirrors desktop, the
     // write does not (the drop the user flagged, restored without unlocking a gated write).
     expect(mobile).toContain('MobileSelectionBar');
     expect(mobile).toContain('Facility deletion is locked until authorized');
@@ -506,7 +551,7 @@ describe('HospitalsPage admission audit contract', () => {
     const contextPanel = contextPanelSource();
     const gate = gateSource();
 
-    expect(page).toContain('const hospitalPanelContext = React.useMemo(() => ({');
+    expect(page).toContain('const hospitalPanelContext = useMemo(() => buildHospitalPanelContext({');
     expect(page).toContain('canAdd: false');
     expect(page).toContain('canEdit: canEditHospitals');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('hospitalsRouteContextUpdated', {");
