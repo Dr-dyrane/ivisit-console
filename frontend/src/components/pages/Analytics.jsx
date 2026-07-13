@@ -1,20 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, getAnalyticsIntakePage } from '../../services/analyticsService';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { Button } from '../ui/button';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileAnalytics } from '../mobile/MobileAnalytics';
 import { formatAnalyticsWindow } from '../analytics/AnalyticsSummaryPrimitives';
+import { routeFeedbackMs, useWayfindingNav } from '../console/WorkspaceStage';
 import { AnalyticsDesktopWorkspace } from './analytics/AnalyticsDesktopWorkspace';
 
-const ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';
-const ANALYTICS_DETAIL_UNAVAILABLE_MESSAGE = 'Detailed statistics are unavailable until the request source loads.';
+const ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE = 'Report downloads are not available yet.';
+const ANALYTICS_DETAIL_UNAVAILABLE_MESSAGE = 'Detailed statistics are unavailable until request data loads.';
 const ANALYTICS_LOAD_ERROR_MESSAGE = 'Statistics did not load.';
 const ANALYTICS_REFRESH_PENDING_MESSAGE = 'Refreshing statistics.';
 const ANALYTICS_STALE_SOURCE_MESSAGE = 'Statistics could not refresh. Showing the last loaded view.';
@@ -40,6 +42,19 @@ const DEFAULT_STATS = {
   totalAmbulances: 0,
 };
 
+const DEFAULT_REQUEST_SAMPLE = {
+  returnedCount: 0,
+  totalCount: null,
+  limit: 1000,
+  complete: false,
+};
+
+const DEFAULT_SUBSCRIPTION_SAMPLE = {
+  returnedCount: 0,
+  totalCount: null,
+  complete: false,
+};
+
 const DEFAULT_SUBSCRIPTION_STATS = {
   total: 0,
   active: 0,
@@ -53,13 +68,23 @@ const DEFAULT_SUBSCRIPTION_STATS = {
   inactiveFree: 0,
   inactivePremium: 0,
   ...(DEFAULT_ANALYTICS_SUBSCRIPTION_STATS || {}),
+  sample: DEFAULT_SUBSCRIPTION_SAMPLE,
 };
 
 const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
 
+const normalizeRequestSample = (value) => ({
+  ...DEFAULT_REQUEST_SAMPLE,
+  ...(value || {}),
+});
+
 const normalizeSubscriptionStats = (value) => ({
   ...DEFAULT_SUBSCRIPTION_STATS,
   ...(value || {}),
+  sample: {
+    ...DEFAULT_SUBSCRIPTION_SAMPLE,
+    ...(value?.sample || {}),
+  },
 });
 
 const getAnalyticsSourceIssueSummary = (issues = []) => {
@@ -81,7 +106,7 @@ const getAnalyticsSourceIssueSummary = (issues = []) => {
     title: deniedLabels.length && !failedLabels.length
       ? ANALYTICS_DENIED_SOURCE_MESSAGE
       : ANALYTICS_PARTIAL_SOURCE_MESSAGE,
-    detail: detailParts.join(' ') || 'Try again when the source is ready.',
+    detail: detailParts.join(' ') || 'Try again when the data is ready.',
   };
 };
 
@@ -89,12 +114,12 @@ const AnalyticsLoadErrorBanner = ({ onRetry }) => (
   <div
     data-testid="analytics-error-state"
     role="alert"
-    className="mx-4 mb-4 rounded-inner bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-e2 md:mx-6"
+    className="mt-3 rounded-inner bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-e2"
   >
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="font-semibold">{ANALYTICS_LOAD_ERROR_MESSAGE}</p>
-        <p className="mt-1 text-xs text-destructive/75">Retry when the source is available.</p>
+        <p className="mt-1 text-xs text-destructive/75">Try again in a moment.</p>
       </div>
       <Button
         type="button"
@@ -118,7 +143,7 @@ const AnalyticsSourceIssueBanner = ({ issueSummary, onRetry }) => {
       data-testid="analytics-source-state"
       role="status"
       aria-live="polite"
-      className="mx-4 mb-4 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 shadow-e2 dark:text-amber-200 md:mx-6"
+      className="mt-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 shadow-e2 dark:text-amber-200"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -149,7 +174,7 @@ const getLocalDayKey = (date) => [
 ].join('-');
 
 export const Analytics = () => {
-  const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
+  const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin, isDriver } = useAuth();
   const { isMobile } = useBreakpoint();
   const [timeRange, setTimeRange] = useState('7d');
   const [snapshotTimeRange, setSnapshotTimeRange] = useState('7d');
@@ -158,6 +183,7 @@ export const Analytics = () => {
   const analyticsSnapshotReadyRef = useRef(false);
   const analyticsRequestIdRef = useRef(0);
   const [stats, setStats] = useState(DEFAULT_STATS);
+  const [requestSample, setRequestSample] = useState(DEFAULT_REQUEST_SAMPLE);
   const [analyticsLoadError, setAnalyticsLoadError] = useState(null);
   const [analyticsRefreshNotice, setAnalyticsRefreshNotice] = useState(null);
   const [analyticsSourceIssues, setAnalyticsSourceIssues] = useState([]);
@@ -168,8 +194,11 @@ export const Analytics = () => {
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [detailsOpening, setDetailsOpening] = useState(false);
+  const detailsFeedbackTimerRef = useRef(null);
   const [commandNotice, setCommandNotice] = useState(null);
   const [hospitalCapacity, setHospitalCapacity] = useState(DEFAULT_HOSPITAL_CAPACITY);
+  const { routingPath, handleRailNavigate } = useWayfindingNav();
 
   const canReadSubscriptionAnalytics = isAdmin();
   const canReadFinanceAnalytics = isAdmin();
@@ -194,7 +223,7 @@ export const Analytics = () => {
           ? snapshotTimeRange === timeRange
             ? 'The last loaded view stays visible while it refreshes.'
             : `Loading ${formatAnalyticsWindow(timeRange).toLowerCase()}; the ${formatAnalyticsWindow(snapshotTimeRange).toLowerCase()} snapshot stays visible.`
-          : 'Retry when the source is available.',
+          : 'Try again when the data is available.',
       };
     }
     return analyticsSourceIssueSummary;
@@ -204,18 +233,27 @@ export const Analytics = () => {
     () => new Set(analyticsSourceIssues.map((issue) => issue.source)),
     [analyticsSourceIssues],
   );
+  const financeCurrency = useMemo(() => {
+    const currency = financeData[0]?.currency;
+    return typeof currency === 'string' && currency.trim()
+      ? currency.trim().toUpperCase()
+      : null;
+  }, [financeData]);
   const sourceReadiness = useMemo(() => ({
     requests: snapshotReady && !issueSources.has('requests'),
     users: snapshotReady && !issueSources.has('users'),
     hospitals: snapshotReady && !issueSources.has('hospitals'),
     ambulances: snapshotReady && !issueSources.has('ambulances'),
-    subscriptions: snapshotReady && canReadSubscriptionAnalytics && !issueSources.has('subscriptions'),
-    finance: snapshotReady && canReadFinanceAnalytics && !issueSources.has('finance'),
-  }), [canReadFinanceAnalytics, canReadSubscriptionAnalytics, issueSources, snapshotReady]);
+    subscriptions: snapshotReady
+      && canReadSubscriptionAnalytics
+      && !issueSources.has('subscriptions')
+      && resolvedSubscriptionStats.sample.complete === true,
+    finance: snapshotReady && canReadFinanceAnalytics && !issueSources.has('finance') && Boolean(financeCurrency),
+  }), [canReadFinanceAnalytics, canReadSubscriptionAnalytics, financeCurrency, issueSources, resolvedSubscriptionStats.sample.complete, snapshotReady]);
 
   const financeSummary = useMemo(() => {
     if (!Array.isArray(financeData) || !financeData.length) {
-      return { totalCredits: 0, totalDebits: 0, todayCredits: 0, dailyAverageCredits: 0 };
+      return { totalCredits: 0, totalDebits: 0, todayCredits: 0, dailyAverageCredits: 0, currency: null };
     }
     const totalCredits = financeData.reduce((sum, point) => sum + (Number(point?.income) || 0), 0);
     const totalDebits = financeData.reduce((sum, point) => sum + (Number(point?.outflow) || 0), 0);
@@ -224,8 +262,9 @@ export const Analytics = () => {
       totalDebits,
       todayCredits: Number(financeData[financeData.length - 1]?.income) || 0,
       dailyAverageCredits: totalCredits / financeData.length,
+      currency: financeCurrency,
     };
-  }, [financeData]);
+  }, [financeCurrency, financeData]);
 
   const roleContext = useMemo(() => ({
     isAdmin: isAdmin(),
@@ -237,7 +276,17 @@ export const Analytics = () => {
     hasMinRole,
   }), [hasMinRole, isAdmin, isOrgAdmin, isPatient, isProvider, isSponsor, isViewer]);
 
-  usePageHeader('Statistics');
+  const roleKind = useMemo(() => {
+    if (isAdmin()) return 'admin';
+    if (isOrgAdmin()) return 'org_admin';
+    if (isSponsor()) return 'sponsor';
+    if (isProvider()) return isDriver() ? 'driver' : 'provider';
+    return 'viewer';
+  }, [isAdmin, isDriver, isOrgAdmin, isProvider, isSponsor]);
+  const visibleModuleRail = useMemo(
+    () => getConsoleModuleRailItems(roleKind),
+    [roleKind],
+  );
 
   const extractResponseMinutes = useCallback((request) => {
     const direct = Number(request?.response_time_minutes ?? request?.response_time ?? request?.avg_response_time);
@@ -369,6 +418,7 @@ export const Analytics = () => {
         : 0;
 
       setAnalyticsSourceIssues(sourceIssues);
+      setRequestSample(normalizeRequestSample(analyticsPage.requestSample));
       setFinanceData(canReadFinanceAnalytics ? analyticsPage.financeData || [] : []);
       setSubscriptionStats(canReadSubscriptionAnalytics
         ? normalizeSubscriptionStats(analyticsPage.subscriptionStats)
@@ -428,13 +478,30 @@ export const Analytics = () => {
 
   const handleOpenDetails = useCallback(() => {
     if (!sourceReadiness.requests) {
+      setDetailsOpening(false);
       setCommandNotice(ANALYTICS_DETAIL_UNAVAILABLE_MESSAGE);
       toast.info(ANALYTICS_DETAIL_UNAVAILABLE_MESSAGE);
       return;
     }
     setCommandNotice(null);
+    setDetailsOpening(true);
     setAnalyticsModalOpen(true);
+
+    if (detailsFeedbackTimerRef.current) window.clearTimeout(detailsFeedbackTimerRef.current);
+    detailsFeedbackTimerRef.current = window.setTimeout(() => {
+      setDetailsOpening(false);
+      detailsFeedbackTimerRef.current = null;
+    }, routeFeedbackMs);
   }, [sourceReadiness.requests]);
+
+  const handleCloseDetails = useCallback(() => {
+    setAnalyticsModalOpen(false);
+    setDetailsOpening(false);
+  }, []);
+
+  useEffect(() => () => {
+    if (detailsFeedbackTimerRef.current) window.clearTimeout(detailsFeedbackTimerRef.current);
+  }, []);
 
   const handleTimeRangeChange = useCallback((nextRange) => {
     setCommandNotice(null);
@@ -450,9 +517,30 @@ export const Analytics = () => {
     };
   }, [handleExport, handleOpenDetails]);
 
+  const headerActions = useMemo(() => (
+    <Button
+      type="button"
+      onClick={handleOpenDetails}
+      aria-busy={detailsOpening}
+      data-state={detailsOpening ? 'opening' : 'idle'}
+      aria-label={detailsOpening ? 'Opening detailed statistics' : 'View detailed statistics'}
+      className={`h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-[background,transform] hover:bg-foreground/90 active:scale-95 ${detailsOpening ? 'scale-95' : ''}`}
+    >
+      {detailsOpening
+        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        : <BarChart3 className="mr-2 h-4 w-4" />}
+      {detailsOpening ? 'Opening...' : 'View details'}
+    </Button>
+  ), [detailsOpening, handleOpenDetails]);
+
+  usePageHeader('Statistics', headerActions);
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
+
   const analyticsIsFetching = analyticsRefreshNotice === ANALYTICS_REFRESH_PENDING_MESSAGE;
   const analyticsRouteContext = useMemo(() => ({
     stats,
+    requestSample,
     timeRange,
     snapshotTimeRange,
     loading,
@@ -463,7 +551,7 @@ export const Analytics = () => {
     roleContext,
     canExport: false,
     reportingState: 'unavailable',
-  }), [analyticsLoadError, loading, roleContext, snapshotReady, snapshotTimeRange, sourceReadiness, stats, timeRange, visibleAnalyticsSourceIssueSummary]);
+  }), [analyticsLoadError, loading, requestSample, roleContext, snapshotReady, snapshotTimeRange, sourceReadiness, stats, timeRange, visibleAnalyticsSourceIssueSummary]);
 
   useEffect(() => {
     const publishAnalyticsRouteContext = () => window.dispatchEvent(
@@ -488,9 +576,10 @@ export const Analytics = () => {
   if (isMobile) {
     return (
       <>
-        <SEOHead title="Statistics" description="Review scoped request, response, network, and payment statistics in iVisit Console." />
+        <SEOHead title="Statistics" description="Review request, response, network, and payment statistics in iVisit Console." />
         <MobileAnalytics
           stats={stats}
+          requestSample={requestSample}
           subscriptionStats={resolvedSubscriptionStats}
           financeSummary={financeSummary}
           hospitalCapacity={resolvedHospitalCapacity}
@@ -517,7 +606,7 @@ export const Analytics = () => {
         />
         <AnalyticsModal
           open={analyticsModalOpen}
-          onClose={() => setAnalyticsModalOpen(false)}
+          onClose={handleCloseDetails}
           analytics={modalAnalytics}
           type="emergency"
         />
@@ -527,45 +616,50 @@ export const Analytics = () => {
 
   return (
     <>
-      <SEOHead title="Statistics" description="Review scoped request, response, network, and payment statistics in iVisit Console." />
-      <div className="min-h-screen py-6 md:py-8">
-        {analyticsLoadError && <AnalyticsLoadErrorBanner onRetry={fetchAnalytics} />}
-        <AnalyticsSourceIssueBanner issueSummary={visibleAnalyticsSourceIssueSummary} onRetry={fetchAnalytics} />
-        {commandNotice && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mx-4 mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground shadow-e2 md:mx-6"
-          >
-            {commandNotice}
-          </div>
+      <SEOHead title="Statistics" description="Review request, response, network, and payment statistics in iVisit Console." />
+      <AnalyticsDesktopWorkspace
+        stats={stats}
+        requestSample={requestSample}
+        timeRange={timeRange}
+        dataTimeRange={snapshotTimeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        requestsByDay={requestsByDay}
+        requestsByStatus={requestsByStatus}
+        emergencyTypes={emergencyTypes}
+        dominantType={dominantType}
+        hospitalCapacity={resolvedHospitalCapacity}
+        subscriptionStats={resolvedSubscriptionStats}
+        financeSummary={financeSummary}
+        roleContext={roleContext}
+        sourceReadiness={sourceReadiness}
+        canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}
+        canReadFinanceAnalytics={canReadFinanceAnalytics}
+        isLoading={loading && !snapshotReady}
+        isFetching={analyticsIsFetching}
+        snapshotReady={snapshotReady}
+        loadError={analyticsLoadError}
+        moduleRailItems={visibleModuleRail}
+        routingPath={routingPath}
+        onRailNavigate={handleRailNavigate}
+        statusBanners={(
+          <>
+            {analyticsLoadError && <AnalyticsLoadErrorBanner onRetry={fetchAnalytics} />}
+            <AnalyticsSourceIssueBanner issueSummary={visibleAnalyticsSourceIssueSummary} onRetry={fetchAnalytics} />
+            {commandNotice && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground shadow-e2"
+              >
+                {commandNotice}
+              </div>
+            )}
+          </>
         )}
-        <AnalyticsDesktopWorkspace
-          stats={stats}
-          timeRange={timeRange}
-          dataTimeRange={snapshotTimeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          requestsByDay={requestsByDay}
-          requestsByStatus={requestsByStatus}
-          emergencyTypes={emergencyTypes}
-          dominantType={dominantType}
-          hospitalCapacity={resolvedHospitalCapacity}
-          subscriptionStats={resolvedSubscriptionStats}
-          financeSummary={financeSummary}
-          roleContext={roleContext}
-          sourceReadiness={sourceReadiness}
-          canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}
-          canReadFinanceAnalytics={canReadFinanceAnalytics}
-          isLoading={loading && !snapshotReady}
-          isFetching={analyticsIsFetching}
-          snapshotReady={snapshotReady}
-          loadError={analyticsLoadError}
-          onOpenDetails={handleOpenDetails}
-        />
-      </div>
+      />
       <AnalyticsModal
         open={analyticsModalOpen}
-        onClose={() => setAnalyticsModalOpen(false)}
+        onClose={handleCloseDetails}
         analytics={modalAnalytics}
         type="emergency"
       />

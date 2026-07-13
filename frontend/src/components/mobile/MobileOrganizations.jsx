@@ -325,8 +325,8 @@ export const MobileOrganizations = ({
                   <button
                     type="button"
                     disabled
-                    aria-label="Organization deletion is locked until organization authority is verified"
-                    title="Organization deletion is locked until organization authority is verified"
+                    aria-label="Organization deletion is not available"
+                    title="Organization deletion is not available"
                     className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -398,7 +398,7 @@ export const MobileOrganizations = ({
                       ? `No organizations match "${filters.search}".`
                       : hasFilter
                         ? 'Try clearing filters to see the full registry.'
-                        : 'Organization records for this scope will appear here.'}
+                        : 'Organizations will appear here when available.'}
                   onRecover={errorMessage
                     ? onRetry
                     : hasFilter

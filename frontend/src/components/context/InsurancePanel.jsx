@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AlertCircle,
   BarChart3,
@@ -13,6 +13,9 @@ import {
   Shield,
 } from 'lucide-react';
 import { resolveVital } from '../../constants/vitalTracks';
+
+const POLICY_CHANGE_UNAVAILABLE_MESSAGE = 'Adding policies is not available yet.';
+const POLICY_EXPORT_UNAVAILABLE_MESSAGE = 'Downloadable insurance reports are not available yet.';
 
 const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const date = (value) => value && !Number.isNaN(new Date(value).getTime())
@@ -62,9 +65,10 @@ const Action = ({ icon: Icon, label, onClick, unavailable = false, reason = '' }
   <button
     type="button"
     onClick={onClick}
-    disabled={unavailable}
+    aria-disabled={unavailable}
+    data-state={unavailable ? 'unavailable' : 'available'}
     title={reason || undefined}
-    className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-background/45 disabled:hover:text-muted-foreground disabled:active:scale-100 dark:bg-white/[0.04]"
+    className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.97] dark:bg-white/[0.04]"
   >
     <Icon className="h-4 w-4" />
     <span className="text-xs font-medium">{label}</span>
@@ -72,6 +76,7 @@ const Action = ({ icon: Icon, label, onClick, unavailable = false, reason = '' }
 );
 
 export const InsurancePanel = ({ insuranceContext = null }) => {
+  const [actionNotice, setActionNotice] = useState('Select a policy to view more details.');
   const stats = insuranceContext?.stats || {};
   const billing = insuranceContext?.billing || {};
   const policies = insuranceContext?.policies || [];
@@ -79,12 +84,12 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
   const billingRows = billing.recentBilling || billing.outcomes || [];
   const policyLoading = insuranceContext?.loading ?? !insuranceContext;
   const policyError = insuranceContext?.errorMessage
-    || (insuranceContext?.denied ? 'Insurance context is unavailable for this role.' : null)
+    || (insuranceContext?.denied ? 'Insurance information is unavailable for this account.' : null)
     || (insuranceContext?.failed ? 'Insurance summary could not load.' : null);
   const policyUnavailable = Boolean((insuranceContext?.denied || insuranceContext?.failed) && policies.length === 0);
   const billingLoading = Boolean(billing.loading);
   const billingError = billing.errorMessage
-    || (billing.denied ? 'Billing outcomes are unavailable for this role.' : null)
+    || (billing.denied ? 'Billing outcomes are unavailable for this account.' : null)
     || (billing.failed ? 'Billing outcomes could not load.' : null);
   const billingUnavailable = Boolean((billing.denied || billing.failed) && billingRows.length === 0);
   const focused = insuranceContext?.focusedPolicy || loadedPolicies[0] || null;
@@ -105,7 +110,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Policy scope</h3>
+          <h3 className="text-sm font-semibold text-foreground">Policy overview</h3>
           <span className="rounded-pill bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
             {policyLoading ? 'Updating' : metric(stats.total)}
           </span>
@@ -141,16 +146,17 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
       })()}
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Panel actions</h3>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Actions</h3>
         <div className="grid grid-cols-2 gap-2">
-          <Action icon={BarChart3} label="Analytics" onClick={() => window.dispatchEvent(new CustomEvent('openInsuranceAnalytics'))} />
-          <Action icon={Filter} label="Filter" onClick={() => window.dispatchEvent(new CustomEvent('openInsuranceFilters'))} />
-          <Action icon={Plus} label="Add" unavailable reason="Add policy is unavailable until admin policy authority is proved." />
-          <Action icon={Download} label="Export" unavailable reason="Insurance export is unavailable until report scope is proved." />
+          <Action icon={BarChart3} label="View stats" onClick={() => { setActionNotice('Opening policy stats...'); window.dispatchEvent(new CustomEvent('openInsuranceAnalytics')); }} />
+          <Action icon={Filter} label="Filter" onClick={() => { setActionNotice('Opening policy filters...'); window.dispatchEvent(new CustomEvent('openInsuranceFilters')); }} />
+          <Action icon={Plus} label="Add" unavailable reason={POLICY_CHANGE_UNAVAILABLE_MESSAGE} onClick={() => setActionNotice(POLICY_CHANGE_UNAVAILABLE_MESSAGE)} />
+          <Action icon={Download} label="Export" unavailable reason={POLICY_EXPORT_UNAVAILABLE_MESSAGE} onClick={() => setActionNotice(POLICY_EXPORT_UNAVAILABLE_MESSAGE)} />
         </div>
+        <p role="status" aria-live="polite" className="mt-2 px-1 text-xs text-muted-foreground">{actionNotice}</p>
         <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
           <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Policy changes and export remain unavailable until their receivers and consequences are proved.
+          You can view policy and billing details here. Adding policies and exporting reports are not available yet.
         </p>
       </section>
 
@@ -173,7 +179,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
 
           {billingError && (
             <div className="rounded-inner bg-destructive/10 px-3 py-2 text-xs text-destructive" role="alert">
-              {billingRows.length > 0 ? 'Billing outcomes did not refresh. Showing loaded outcomes.' : billingError}
+              {billingRows.length > 0 ? 'Billing outcomes did not refresh. Showing the previous results.' : billingError}
             </div>
           )}
 
@@ -197,7 +203,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
       </section>
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Loaded policies</h3>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Recent policies</h3>
         <div className="space-y-2">
           {loadedPolicies.slice(0, 3).map((policy) => {
             const pill = policyPill(policy.status);
@@ -215,7 +221,7 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
             );
           })}
           {!policyError && loadedPolicies.length === 0 && (
-            <p className="py-3 text-sm text-muted-foreground">No loaded policies.</p>
+            <p className="py-3 text-sm text-muted-foreground">No recent policies.</p>
           )}
         </div>
       </section>

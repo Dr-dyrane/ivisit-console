@@ -1,19 +1,15 @@
 import React, { useMemo } from 'react';
 import {
   Activity,
-  Ambulance,
-  ArrowUpRight,
-  BarChart3,
+  AlertTriangle,
   CheckCircle2,
   Clock3,
-  Crown,
+  FileText,
   Hospital,
   Loader2,
   Minus,
   TrendingDown,
   TrendingUp,
-  Users,
-  Wallet,
 } from 'lucide-react';
 import {
   Area,
@@ -28,72 +24,49 @@ import {
   formatAnalyticsWindow,
   formatMetricNumber,
   formatResponseMinutes,
-  getAnalyticsScopeLabel,
   getVolumeComparison,
 } from '../../analytics/AnalyticsSummaryPrimitives';
+import { ActivitySheet } from '../../console/ActivitySheet';
+import { MetricStrip, selectContextMetrics } from '../../console/MetricStrip';
+import { SignalPanel } from '../../console/SignalPanel';
+import { DetailRailShell, RailInsetHero, WorkspaceStage } from '../../console/WorkspaceStage';
+import { Shimmer } from '../../console/primitives';
 
 const SOURCE_UNAVAILABLE = 'Unavailable';
-const CHART_HEIGHT = 228;
+const CHART_HEIGHT = 210;
 const CHART_INITIAL_DIMENSION = { width: 1, height: CHART_HEIGHT };
+const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90 };
+const NOOP = () => {};
 
-const SectionHeading = ({ title, detail }) => (
-  <div className="mb-4 flex items-end justify-between gap-4 px-1">
-    <div className="min-w-0">
-      <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-      {detail && <p className="mt-1 text-sm text-muted-foreground">{detail}</p>}
-    </div>
-  </div>
-);
-
-const toneClasses = {
-  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
-  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-  violet: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
-  cyan: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+const signalToneClass = {
+  primary: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  warning: 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
+  danger: 'bg-destructive/10 text-destructive',
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
 
-const MetricCard = ({ icon: Icon, label, value, detail, tone = 'muted' }) => (
-  <article className="min-h-[148px] rounded-card bg-card/72 p-5 shadow-e2 backdrop-blur-xl dark:bg-white/[0.055]">
-    <div className={`flex h-10 w-10 items-center justify-center rounded-icon ${toneClasses[tone]}`}>
-      <Icon className="h-5 w-5" />
-    </div>
-    <p className="mt-5 text-sm font-medium text-muted-foreground">{label}</p>
-    <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">{value}</p>
-    <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
-  </article>
-);
-
-const HighlightCard = ({ icon: Icon, title, value, detail, tone, onOpenDetails }) => {
-  const Component = onOpenDetails ? 'button' : 'article';
-  return (
-    <Component
-      type={onOpenDetails ? 'button' : undefined}
-      onClick={onOpenDetails}
-      className={`min-h-[184px] rounded-card bg-card/72 p-6 text-left shadow-e2 backdrop-blur-xl dark:bg-white/[0.055] ${onOpenDetails
-        ? 'transition-[background,box-shadow,transform] hover:-translate-y-0.5 hover:bg-card/85 hover:shadow-e3 active:scale-[0.99]'
-        : ''}`}
-    >
-      <div className="flex items-start justify-between gap-5">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${toneClasses[tone]}`}>
-          <Icon className="h-5 w-5" />
-        </span>
-        {onOpenDetails && <ArrowUpRight className="h-4 w-4 text-muted-foreground" />}
-      </div>
-      <p className="mt-6 text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="mt-1 text-3xl font-semibold text-foreground tabular-nums">{value}</p>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{detail}</p>
-    </Component>
-  );
+const getAudienceLabel = (role = {}) => {
+  if (role.isProvider) return 'Provider activity';
+  if (role.isSponsor) return 'Sponsor view';
+  if (role.isOrgAdmin) return 'Organization activity';
+  if (role.isAdmin) return 'Platform activity';
+  return 'Available activity';
 };
 
-const EmptyCard = ({ title, detail }) => (
-  <div className="rounded-card bg-card/60 px-6 py-8 shadow-e2 dark:bg-white/[0.045]">
-    <p className="text-sm font-semibold text-foreground">{title}</p>
-    <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
-  </div>
-);
+const formatCurrency = (value, currency) => {
+  const safeCurrency = typeof currency === 'string' ? currency.trim().toUpperCase() : '';
+  if (!safeCurrency) return SOURCE_UNAVAILABLE;
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: safeCurrency,
+    }).format(Number(value) || 0);
+  } catch {
+    return SOURCE_UNAVAILABLE;
+  }
+};
 
 const getBreakdownTone = (label = '', index = 0) => {
   const normalized = label.toLowerCase();
@@ -102,40 +75,6 @@ const getBreakdownTone = (label = '', index = 0) => {
   if (normalized.includes('pending')) return 'bg-amber-500';
   if (normalized.includes('progress') || normalized.includes('accepted') || normalized.includes('arrived')) return 'bg-sky-500';
   return ['bg-violet-500', 'bg-cyan-500', 'bg-sky-500', 'bg-amber-500'][index % 4];
-};
-
-const BreakdownCard = ({ title, items, emptyDetail }) => {
-  const maxValue = Math.max(...items.map((item) => Number(item?.value) || 0), 1);
-  return (
-    <article className="rounded-card bg-card/72 p-6 shadow-e2 backdrop-blur-xl dark:bg-white/[0.055]">
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        <span className="rounded-pill bg-foreground/[0.06] px-3 py-1 text-xs font-medium text-muted-foreground dark:bg-white/[0.07]">
-          {items.length} groups
-        </span>
-      </div>
-      {items.length ? (
-        <div className="mt-6 space-y-4">
-          {items.slice(0, 6).map((item, index) => (
-            <div key={`${title}-${item.name}`}>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="truncate text-muted-foreground">{item.name}</span>
-                <span className="font-semibold text-foreground tabular-nums">{formatMetricNumber(item.value)}</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-pill bg-foreground/[0.06] dark:bg-white/[0.07]">
-                <div
-                  className={`h-full rounded-pill ${getBreakdownTone(item.name, index)}`}
-                  style={{ width: `${Math.max(8, Math.round(((Number(item.value) || 0) / maxValue) * 100))}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-6 text-sm text-muted-foreground">{emptyDetail}</p>
-      )}
-    </article>
-  );
 };
 
 const SummaryTooltip = ({ active, payload, label }) => {
@@ -148,18 +87,172 @@ const SummaryTooltip = ({ active, payload, label }) => {
   );
 };
 
-const AnalyticsSummarySkeleton = () => (
-  <div className="mx-auto max-w-[1440px] space-y-10 px-4 pb-16 md:px-6">
-    <div className="min-h-[180px] animate-pulse rounded-card bg-muted/30" />
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {[0, 1, 2, 3].map((item) => <div key={item} className="min-h-[148px] animate-pulse rounded-card bg-muted/30" />)}
-    </div>
-    <div className="min-h-[300px] animate-pulse rounded-card bg-muted/30" />
+const BreakdownPanel = ({ title, items, emptyDetail }) => {
+  const maxValue = Math.max(...items.map((item) => Number(item?.value) || 0), 1);
+
+  return (
+    <section className="rounded-card bg-background/45 p-4 dark:bg-white/[0.04]">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <span className="rounded-pill bg-foreground/[0.06] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground dark:bg-white/[0.07]">
+          {items.length} groups
+        </span>
+      </div>
+      {items.length ? (
+        <div className="mt-4 space-y-3">
+          {items.slice(0, 6).map((item, index) => (
+            <div key={`${title}-${item.name}`}>
+              <div className="flex items-center justify-between gap-4 text-xs">
+                <span className="truncate text-muted-foreground">{item.name}</span>
+                <span className="font-semibold text-foreground tabular-nums">{formatMetricNumber(item.value)}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-pill bg-foreground/[0.06] dark:bg-white/[0.07]">
+                <div
+                  className={`h-full rounded-pill ${getBreakdownTone(item.name, index)}`}
+                  style={{ width: `${Math.max(8, Math.round(((Number(item.value) || 0) / maxValue) * 100))}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">{emptyDetail}</p>
+      )}
+    </section>
+  );
+};
+
+const EvidenceItem = ({ label, value }) => (
+  <div className="min-w-0 rounded-inner bg-background/35 px-3 py-2.5 dark:bg-white/[0.035]">
+    <p className="truncate text-[10px] font-medium text-muted-foreground">{label}</p>
+    <p className="mt-1 truncate text-sm font-semibold text-foreground tabular-nums">{value}</p>
   </div>
 );
 
+const EvidenceSection = ({ title, detail, children, testId }) => (
+  <section className="mt-5" data-testid={testId}>
+    <div className="mb-3 px-1">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
+    </div>
+    <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">{children}</div>
+  </section>
+);
+
+const AnalyticsWorkSkeleton = () => (
+  <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-card bg-background/45 p-4 dark:bg-white/[0.04]">
+    <div className="flex items-center justify-between gap-4">
+      <div className="space-y-2">
+        <Shimmer className="h-4 w-28 rounded-inner" />
+        <Shimmer className="h-3 w-56 rounded-inner" />
+      </div>
+      <Shimmer className="h-8 w-20 rounded-pill" />
+    </div>
+    <Shimmer className="mt-5 h-[150px] rounded-card" />
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <Shimmer className="h-24 rounded-card" />
+      <Shimmer className="h-24 rounded-card" />
+    </div>
+  </div>
+);
+
+const AnalyticsDetailRail = ({
+  isLoading,
+  isFetching,
+  windowLabel,
+  audienceLabel,
+  metricItems,
+  stats,
+  requestSample,
+  sourceReadiness,
+  dominantType,
+}) => {
+  if (isLoading) {
+    return (
+      <DetailRailShell>
+        <Shimmer className="h-32 rounded-modal" />
+        <div className="mt-4 space-y-2">
+          {[0, 1, 2].map((item) => <Shimmer key={item} className="h-[58px] rounded-inner" />)}
+        </div>
+        <Shimmer className="mt-5 h-20 rounded-inner" />
+      </DetailRailShell>
+    );
+  }
+
+  const visibleMetrics = selectContextMetrics(metricItems, 3);
+  const requestsReady = Boolean(sourceReadiness?.requests);
+  const requestTotal = Number(stats?.totalEmergencies) || 0;
+  const requestSampleComplete = requestSample?.complete === true;
+  const completionValue = requestsReady && requestTotal > 0
+    ? `${Number(stats?.successRate) || 0}%`
+    : requestsReady ? 'No requests' : SOURCE_UNAVAILABLE;
+
+  return (
+    <DetailRailShell>
+      <RailInsetHero>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-sky-700 dark:text-sky-200">{windowLabel}</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">Activity overview</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{audienceLabel}</p>
+          </div>
+          {isFetching && <Loader2 className="mt-1 h-4 w-4 shrink-0 animate-spin text-muted-foreground" aria-label="Refreshing statistics" />}
+        </div>
+      </RailInsetHero>
+
+      <section>
+        <h3 className="mb-3 px-1 text-sm font-semibold text-foreground">At a glance</h3>
+        <div className="space-y-2">
+          {visibleMetrics.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <div key={metric.id} className="flex min-h-[58px] items-center gap-3 rounded-inner bg-background/45 px-3 py-2.5 dark:bg-white/[0.04]">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${metric.toneClass}`}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-muted-foreground">{metric.label}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-foreground tabular-nums">{metric.value}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-5">
+        <h3 className="mb-3 px-1 text-sm font-semibold text-foreground">Useful context</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <EvidenceItem label={requestSampleComplete ? 'Completion rate' : 'Sample completion rate'} value={completionValue} />
+          <EvidenceItem
+            label={requestSampleComplete ? 'Timed requests' : 'Timed in sample'}
+            value={requestsReady ? formatMetricNumber(stats?.responseSampleSize) : SOURCE_UNAVAILABLE}
+          />
+          <EvidenceItem
+            label="Most common case"
+            value={requestsReady && dominantType?.value > 0 ? dominantType.name : 'No case data'}
+          />
+          <EvidenceItem
+            label="Fleet"
+            value={sourceReadiness?.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE}
+          />
+        </div>
+      </section>
+
+      <div role="note" className="mt-5 flex items-start gap-3 rounded-inner bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
+        <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+        <div>
+          <p className="font-semibold text-foreground">Downloads unavailable</p>
+          <p className="mt-1 text-xs leading-5">Report downloads are not available yet.</p>
+        </div>
+      </div>
+    </DetailRailShell>
+  );
+};
+
 export const AnalyticsDesktopWorkspace = ({
   stats,
+  requestSample,
   timeRange,
   dataTimeRange,
   onTimeRangeChange,
@@ -178,257 +271,293 @@ export const AnalyticsDesktopWorkspace = ({
   isFetching,
   snapshotReady,
   loadError,
-  onOpenDetails,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+  statusBanners,
 }) => {
-  const windowLabel = formatAnalyticsWindow(dataTimeRange || timeRange);
-  const scopeLabel = getAnalyticsScopeLabel(roleContext);
+  const dataWindow = dataTimeRange || timeRange;
+  const windowLabel = formatAnalyticsWindow(dataWindow);
+  const audienceLabel = getAudienceLabel(roleContext);
   const requestSourceReady = Boolean(sourceReadiness?.requests);
-  const volumeComparison = useMemo(() => getVolumeComparison(requestsByDay), [requestsByDay]);
   const totalRequests = Number(stats?.totalEmergencies) || 0;
   const completedRequests = Number(stats?.completedEmergencies) || 0;
   const responseSampleSize = Number(stats?.responseSampleSize) || 0;
+  const requestSampleComplete = requestSample?.complete === true;
+  const returnedRequestCount = Number.isFinite(Number(requestSample?.returnedCount))
+    ? Number(requestSample.returnedCount)
+    : totalRequests;
+  const requestMetricLabel = requestSampleComplete
+    ? 'Requests'
+    : `Latest ${formatMetricNumber(returnedRequestCount)} requests`;
+  const failedEmpty = Boolean(loadError) && !snapshotReady;
+  const loadingWorkspace = Boolean(isLoading) && !snapshotReady;
+  const volumeComparison = useMemo(() => getVolumeComparison(requestsByDay), [requestsByDay]);
+  const rangeDays = RANGE_DAYS[dataWindow] || 7;
+  const analyticsPagination = useMemo(() => ({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: rangeDays,
+    itemsPerPage: rangeDays + 1,
+    prevPage: NOOP,
+    nextPage: NOOP,
+    hasPrevPage: false,
+    hasNextPage: false,
+  }), [rangeDays]);
+
+  const metricItems = [
+    {
+      id: 'requests',
+      icon: Activity,
+      label: requestMetricLabel,
+      value: formatMetricNumber(totalRequests),
+      available: requestSourceReady,
+      priority: 0,
+      toneClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+    },
+    {
+      id: 'completed',
+      icon: CheckCircle2,
+      label: 'Completed',
+      value: formatMetricNumber(completedRequests),
+      available: requestSourceReady,
+      priority: 1,
+      toneClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    },
+    {
+      id: 'average-response',
+      icon: Clock3,
+      label: 'Average response',
+      value: formatResponseMinutes(stats?.avgResponseTime, responseSampleSize),
+      available: requestSourceReady && responseSampleSize > 0,
+      priority: 2,
+      toneClass: 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
+    },
+    {
+      id: 'facilities',
+      icon: Hospital,
+      label: 'Facilities',
+      value: formatMetricNumber(stats?.totalHospitals),
+      available: responseSampleSize === 0 && Boolean(sourceReadiness?.hospitals),
+      priority: 3,
+      toneClass: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+    },
+  ];
+
+  const signal = failedEmpty
+    ? {
+      icon: AlertTriangle,
+      tone: 'danger',
+      label: 'Data unavailable',
+      headline: 'Statistics did not load',
+      subhead: 'Try again to review request activity for this time window.',
+    }
+    : !requestSourceReady
+      ? {
+        icon: AlertTriangle,
+        tone: 'warning',
+        label: audienceLabel,
+        headline: 'Request activity is unavailable',
+        subhead: 'Other available information remains visible while request data is restored.',
+      }
+      : totalRequests > 0
+        ? {
+          icon: Activity,
+          tone: 'primary',
+          label: audienceLabel,
+          headline: requestSampleComplete
+            ? `${formatMetricNumber(totalRequests)} requests in ${windowLabel.toLowerCase()}`
+            : `Latest ${formatMetricNumber(returnedRequestCount)} requests`,
+          subhead: requestSampleComplete
+            ? `${formatMetricNumber(completedRequests)} completed, with timing shown only for requests that include usable timestamps.`
+            : `${formatMetricNumber(completedRequests)} completed in the loaded sample for ${windowLabel.toLowerCase()}.`,
+        }
+        : {
+          icon: Activity,
+          tone: 'muted',
+          label: audienceLabel,
+          headline: `No requests in ${windowLabel.toLowerCase()}`,
+          subhead: 'Choose another time window or check again after new request activity is recorded.',
+        };
+
   const trendIcon = volumeComparison?.direction === 'up'
     ? TrendingUp
     : volumeComparison?.direction === 'down'
       ? TrendingDown
       : Minus;
   const TrendIcon = trendIcon;
-
-  if (isLoading && !snapshotReady) return <AnalyticsSummarySkeleton />;
-
-  if (loadError && !snapshotReady) {
-    return (
-      <div className="mx-auto max-w-[1440px] px-4 pb-16 md:px-6">
-        <EmptyCard title="Summary unavailable" detail="No statistics have loaded yet. Retry when the source is available." />
-      </div>
-    );
-  }
-
-  const pinnedMetrics = [
-    {
-      icon: Activity,
-      label: 'Requests',
-      value: requestSourceReady ? formatMetricNumber(totalRequests) : SOURCE_UNAVAILABLE,
-      detail: windowLabel,
-      tone: 'sky',
-    },
-    {
-      icon: CheckCircle2,
-      label: 'Completed',
-      value: requestSourceReady ? formatMetricNumber(completedRequests) : SOURCE_UNAVAILABLE,
-      detail: totalRequests > 0 ? `${stats.successRate}% of requests` : windowLabel,
-      tone: 'emerald',
-    },
-    {
-      icon: Clock3,
-      label: 'Average response',
-      value: requestSourceReady ? formatResponseMinutes(stats.avgResponseTime, responseSampleSize) : SOURCE_UNAVAILABLE,
-      detail: responseSampleSize > 0 ? `${formatMetricNumber(responseSampleSize)} timed requests` : windowLabel,
-      tone: 'amber',
-    },
-    {
-      icon: Hospital,
-      label: 'Facilities now',
-      value: sourceReadiness?.hospitals ? formatMetricNumber(stats.totalHospitals) : SOURCE_UNAVAILABLE,
-      detail: 'Current scoped snapshot',
-      tone: 'violet',
-    },
-  ];
-
-  const highlights = [];
-  if (requestSourceReady && totalRequests > 0) {
-    highlights.push({
-      icon: CheckCircle2,
-      title: 'Request outcomes',
-      value: `${stats.successRate}% completed`,
-      detail: `${formatMetricNumber(completedRequests)} of ${formatMetricNumber(totalRequests)} requests reached completed status in this window.`,
-      tone: 'emerald',
-    });
-  }
-  if (requestSourceReady && responseSampleSize > 0) {
-    highlights.push({
-      icon: Clock3,
-      title: 'Response evidence',
-      value: formatResponseMinutes(stats.avgResponseTime, responseSampleSize),
-      detail: `Average response from ${formatMetricNumber(responseSampleSize)} requests with usable timestamps.`,
-      tone: 'sky',
-    });
-  }
-  if (requestSourceReady && dominantType?.value > 0) {
-    highlights.push({
-      icon: BarChart3,
-      title: 'Most common case',
-      value: dominantType.name,
-      detail: `${formatMetricNumber(dominantType.value)} requests in the selected window.`,
-      tone: 'violet',
-    });
-  }
+  const bedUse = sourceReadiness?.hospitals && Number(hospitalCapacity?.total) > 0
+    ? `${Math.round((Number(hospitalCapacity.occupied) / Number(hospitalCapacity.total)) * 100)}%`
+    : sourceReadiness?.hospitals ? 'No capacity data' : SOURCE_UNAVAILABLE;
 
   return (
-    <main className="mx-auto max-w-[1440px] space-y-12 px-4 pb-16 md:px-6">
-      <header className="flex min-h-[176px] flex-col justify-end gap-7 px-1 py-5 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <span>{scopeLabel}</span>
-            <span aria-hidden="true">&middot;</span>
-            <span>{windowLabel}</span>
-            {isFetching && <Loader2 className="h-4 w-4 animate-spin" aria-label="Refreshing statistics" />}
-          </div>
-          <h1 className="mt-3 text-[42px] font-semibold leading-[1.05] text-foreground md:text-5xl">Summary</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-            {requestSourceReady
-              ? totalRequests > 0
-                ? `${formatMetricNumber(totalRequests)} requests are included in this measured window.`
-                : 'No requests were recorded in this measured window.'
-              : 'The request source is unavailable, so this summary is intentionally withheld.'}
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <AnalyticsTimeRangeControl value={timeRange} onChange={onTimeRangeChange} />
-          <button
-            type="button"
-            onClick={onOpenDetails}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-button bg-foreground px-4 text-sm font-semibold text-background shadow-e2 transition-[background,box-shadow,transform] hover:bg-foreground/90 hover:shadow-e3 active:scale-[0.98]"
-          >
-            <BarChart3 className="h-4 w-4" />
-            View details
-          </button>
-        </div>
-      </header>
+    <WorkspaceStage
+      moduleRailItems={moduleRailItems}
+      activePath="/analytics"
+      routingPath={routingPath}
+      onRailNavigate={onRailNavigate}
+      rail={(
+        <AnalyticsDetailRail
+          isLoading={loadingWorkspace}
+          isFetching={isFetching}
+          windowLabel={windowLabel}
+          audienceLabel={audienceLabel}
+          metricItems={metricItems}
+          stats={stats}
+          requestSample={requestSample}
+          sourceReadiness={sourceReadiness}
+          dominantType={dominantType}
+        />
+      )}
+    >
+      <SignalPanel signal={signal} loading={loadingWorkspace} toneClassMap={signalToneClass}>
+        <MetricStrip
+          items={metricItems}
+          loading={loadingWorkspace}
+          max={3}
+          dataAttr="data-analytics-metric"
+        />
+      </SignalPanel>
 
-      <section data-testid="analytics-pinned-section">
-        <SectionHeading title="Pinned" detail="The few measurements worth checking first." />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {pinnedMetrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
-        </div>
-      </section>
-
-      <section data-testid="analytics-highlights-section">
-        <SectionHeading title="Highlights" detail="Measured observations from the selected window." />
-        {highlights.length ? (
-          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-            {highlights.map((highlight) => (
-              <HighlightCard key={highlight.title} {...highlight} onOpenDetails={onOpenDetails} />
-            ))}
+      <ActivitySheet
+        loading={loadingWorkspace}
+        isFetching={isFetching}
+        failedEmpty={failedEmpty}
+        pagination={analyticsPagination}
+        itemNoun="days reviewed"
+        loadingLabel="Loading activity"
+        toolbar={(
+          <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between" data-testid="analytics-workspace-toolbar">
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-foreground">Request activity</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {requestSampleComplete ? 'Trend and breakdowns for the selected window' : 'Trend and breakdowns from the latest loaded requests'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isFetching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" aria-label="Refreshing statistics" />}
+              <AnalyticsTimeRangeControl value={timeRange} onChange={onTimeRangeChange} />
+            </div>
           </div>
-        ) : (
-          <EmptyCard
-            title={requestSourceReady ? 'No measured highlights yet' : 'Highlights unavailable'}
-            detail={requestSourceReady
-              ? 'Highlights will appear after this window contains request outcomes or timing evidence.'
-              : 'The request source must load before highlights can be calculated.'}
-          />
         )}
-      </section>
-
-      <section data-testid="analytics-trends-section">
-        <SectionHeading title="Trends" detail="Recent-half volume compared with the earlier half of this window." />
-        {requestSourceReady && requestsByDay.length ? (
-          <article className="rounded-card bg-card/72 p-6 shadow-e2 backdrop-blur-xl dark:bg-white/[0.055]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Request volume</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">
-                  {volumeComparison ? volumeComparison.badge : 'Not enough measured history'}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {volumeComparison
-                    ? `${formatMetricNumber(volumeComparison.recent)} recent-half requests compared with ${formatMetricNumber(volumeComparison.previous)} earlier-half requests.`
-                    : 'This window does not yet contain enough activity for a comparison.'}
+        errorBanner={(
+          <>
+            {statusBanners}
+            {requestSourceReady && !requestSampleComplete && (
+              <div
+                data-testid="analytics-request-sample-state"
+                role="status"
+                className="mt-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 shadow-e2 dark:text-amber-200"
+              >
+                <p className="font-semibold">Latest {formatMetricNumber(returnedRequestCount)} requests</p>
+                <p className="mt-1 text-xs text-amber-800/75 dark:text-amber-100/70">
+                  Completed, response, trend, and breakdown values use this partial set.
                 </p>
               </div>
-              {volumeComparison && (
-                <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-200">
-                  <TrendIcon className="h-5 w-5" />
-                </span>
-              )}
-            </div>
-            <div className="mt-7 h-[228px] min-h-[228px]" role="img" aria-label={`Request volume over ${windowLabel}`}>
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT} initialDimension={CHART_INITIAL_DIMENSION}>
-                <AreaChart data={requestsByDay} margin={{ top: 8, right: 4, left: -26, bottom: 0 }}>
-                  <XAxis dataKey="shortDay" axisLine={false} tickLine={false} minTickGap={30} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
-                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} width={34} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
-                  <Tooltip content={<SummaryTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground) / 0.25)' }} />
-                  <Area type="monotone" dataKey="requests" name="Requests" stroke="hsl(199 89% 48%)" strokeWidth={3} fill="hsl(199 89% 48% / 0.12)" activeDot={{ r: 4 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </article>
-        ) : (
-          <EmptyCard
-            title={requestSourceReady ? 'No trend yet' : 'Trends unavailable'}
-            detail={requestSourceReady
-              ? 'A trend appears after the selected window contains measured request activity.'
-              : 'The request source must load before a trend can be calculated.'}
-          />
+            )}
+          </>
         )}
-      </section>
+      >
+        {loadingWorkspace ? (
+          <AnalyticsWorkSkeleton />
+        ) : (
+          <div
+            className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/45 p-4 no-scrollbar dark:bg-white/[0.04]"
+            data-testid="analytics-work-surface"
+          >
+            {failedEmpty ? (
+              <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
+                <AlertTriangle className="h-9 w-9 text-destructive/70" />
+                <h3 className="mt-4 text-base font-semibold text-foreground">Statistics did not load</h3>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">Try again to review activity for this time window.</p>
+              </div>
+            ) : (
+              <>
+                <section data-testid="analytics-trend-section">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Request trend</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Recent activity compared with the earlier half of this window.</p>
+                    </div>
+                    {volumeComparison && (
+                      <span className="inline-flex items-center gap-2 self-start rounded-pill bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-200">
+                        <TrendIcon className="h-3.5 w-3.5" />
+                        {volumeComparison.badge}
+                      </span>
+                    )}
+                  </div>
 
-      <section data-testid="analytics-breakdowns-section">
-        <SectionHeading title="Breakdowns" detail="Status and case groupings from the same request window." />
-        <div className="grid gap-3 lg:grid-cols-2">
-          <BreakdownCard
-            title="Request status"
-            items={requestSourceReady ? requestsByStatus : []}
-            emptyDetail={requestSourceReady ? 'No status groups are present in this window.' : 'Request status is unavailable.'}
-          />
-          <BreakdownCard
-            title="Case mix"
-            items={requestSourceReady ? emergencyTypes : []}
-            emptyDetail={requestSourceReady ? 'No case groups are present in this window.' : 'Case mix is unavailable.'}
-          />
-        </div>
-      </section>
+                  {requestSourceReady && requestsByDay.length ? (
+                    <div className="mt-4 h-[210px] min-h-[210px]" role="img" aria-label={`Request volume over ${windowLabel}`}>
+                      <ResponsiveContainer width="100%" height={CHART_HEIGHT} initialDimension={CHART_INITIAL_DIMENSION}>
+                        <AreaChart data={requestsByDay} margin={{ top: 8, right: 4, left: -26, bottom: 0 }}>
+                          <XAxis dataKey="shortDay" axisLine={false} tickLine={false} minTickGap={30} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
+                          <YAxis allowDecimals={false} axisLine={false} tickLine={false} width={34} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
+                          <Tooltip content={<SummaryTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground) / 0.25)' }} />
+                          <Area type="monotone" dataKey="requests" name="Requests" stroke="hsl(199 89% 48%)" strokeWidth={3} fill="hsl(199 89% 48% / 0.12)" activeDot={{ r: 4 }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex min-h-[150px] items-center justify-center rounded-card bg-background/35 px-5 text-center text-sm text-muted-foreground dark:bg-white/[0.035]">
+                      {requestSourceReady
+                        ? 'A trend will appear after this window contains request activity.'
+                        : 'Request trend data is unavailable.'}
+                    </div>
+                  )}
+                </section>
 
-      <section data-testid="analytics-network-section">
-        <SectionHeading title="Network" detail="Current scoped snapshots, separate from the selected request window." />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard icon={Users} label="Profiles" value={sourceReadiness?.users ? formatMetricNumber(stats.totalUsers) : SOURCE_UNAVAILABLE} detail="Current scoped snapshot" tone="cyan" />
-          <MetricCard icon={Hospital} label="Facilities" value={sourceReadiness?.hospitals ? formatMetricNumber(stats.totalHospitals) : SOURCE_UNAVAILABLE} detail="Current scoped snapshot" tone="violet" />
-          <MetricCard icon={Ambulance} label="Fleet" value={sourceReadiness?.ambulances ? formatMetricNumber(stats.totalAmbulances) : SOURCE_UNAVAILABLE} detail="Current scoped snapshot" tone="sky" />
-          <MetricCard
-            icon={Activity}
-            label="Occupied beds"
-            value={sourceReadiness?.hospitals && Number(hospitalCapacity?.total) > 0
-              ? `${Math.round((Number(hospitalCapacity.occupied) / Number(hospitalCapacity.total)) * 100)}%`
-              : sourceReadiness?.hospitals ? 'No capacity data' : SOURCE_UNAVAILABLE}
-            detail={sourceReadiness?.hospitals && Number(hospitalCapacity?.total) > 0
-              ? `${formatMetricNumber(hospitalCapacity.occupied)} of ${formatMetricNumber(hospitalCapacity.total)} beds`
-              : 'Current facility snapshot'}
-            tone="amber"
-          />
-        </div>
-      </section>
+                <section className="mt-5 grid gap-3 lg:grid-cols-2" data-testid="analytics-breakdowns-section">
+                  <BreakdownPanel
+                    title="Request status"
+                    items={requestSourceReady ? requestsByStatus : []}
+                    emptyDetail={requestSourceReady ? 'No status groups are present in this window.' : 'Request status is unavailable.'}
+                  />
+                  <BreakdownPanel
+                    title="Case mix"
+                    items={requestSourceReady ? emergencyTypes : []}
+                    emptyDetail={requestSourceReady ? 'No case groups are present in this window.' : 'Case mix is unavailable.'}
+                  />
+                </section>
 
-      {canReadSubscriptionAnalytics && (
-        <section data-testid="analytics-subscribers-section">
-          <SectionHeading title="Subscribers" detail="Admin-scoped subscriber snapshot." />
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard icon={Users} label="Subscribers" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats.total) : SOURCE_UNAVAILABLE} detail="Current admin scope" tone="violet" />
-            <MetricCard icon={Activity} label="Active" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats.active) : SOURCE_UNAVAILABLE} detail="Current admin scope" tone="emerald" />
-            <MetricCard icon={Crown} label="Paid" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats.paid) : SOURCE_UNAVAILABLE} detail="Current admin scope" tone="amber" />
-            <MetricCard
-              icon={TrendingUp}
-              label="Paid conversion"
-              value={sourceReadiness?.subscriptions ? `${Number(subscriptionStats.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE}
-              detail="Current admin scope"
-              tone="sky"
-            />
+                <EvidenceSection title="Network" detail="Current availability, separate from the selected request window." testId="analytics-network-section">
+                  <EvidenceItem label="Profiles" value={sourceReadiness?.users ? formatMetricNumber(stats?.totalUsers) : SOURCE_UNAVAILABLE} />
+                  <EvidenceItem label="Facilities" value={sourceReadiness?.hospitals ? formatMetricNumber(stats?.totalHospitals) : SOURCE_UNAVAILABLE} />
+                  <EvidenceItem label="Fleet" value={sourceReadiness?.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE} />
+                  <EvidenceItem label="Bed use" value={bedUse} />
+                </EvidenceSection>
+
+                {canReadSubscriptionAnalytics && (
+                  subscriptionStats?.sample?.complete === true ? (
+                    <EvidenceSection title="Subscribers" detail="Subscriber information available to platform admins." testId="analytics-subscribers-section">
+                      <EvidenceItem label="Subscribers" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.total) : SOURCE_UNAVAILABLE} />
+                      <EvidenceItem label="Active" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.active) : SOURCE_UNAVAILABLE} />
+                      <EvidenceItem label="Paid" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} />
+                      <EvidenceItem label="Paid conversion" value={sourceReadiness?.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} />
+                    </EvidenceSection>
+                  ) : (
+                    <section className="mt-5" data-testid="analytics-subscribers-section">
+                      <h3 className="px-1 text-sm font-semibold text-foreground">Subscribers</h3>
+                      <div role="status" className="mt-3 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                        Subscriber statistics are unavailable because only part of the list loaded.
+                      </div>
+                    </section>
+                  )
+                )}
+
+                {canReadFinanceAnalytics && (
+                  <EvidenceSection title="Payments" detail={`Recorded wallet activity for ${windowLabel.toLowerCase()}.`} testId="analytics-payments-section">
+                    <EvidenceItem label="Credits" value={sourceReadiness?.finance ? formatCurrency(financeSummary?.totalCredits, financeSummary?.currency) : SOURCE_UNAVAILABLE} />
+                    <EvidenceItem label="Debits" value={sourceReadiness?.finance ? formatCurrency(financeSummary?.totalDebits, financeSummary?.currency) : SOURCE_UNAVAILABLE} />
+                    <EvidenceItem label="Today" value={sourceReadiness?.finance ? formatCurrency(financeSummary?.todayCredits, financeSummary?.currency) : SOURCE_UNAVAILABLE} />
+                    <EvidenceItem label="Daily average" value={sourceReadiness?.finance ? formatCurrency(financeSummary?.dailyAverageCredits, financeSummary?.currency) : SOURCE_UNAVAILABLE} />
+                  </EvidenceSection>
+                )}
+              </>
+            )}
           </div>
-        </section>
-      )}
-
-      {canReadFinanceAnalytics && (
-        <section data-testid="analytics-payments-section">
-          <SectionHeading title="Payments" detail={`Recorded wallet credits and debits for ${windowLabel.toLowerCase()}.`} />
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard icon={Wallet} label="Credits" value={sourceReadiness?.finance ? `$${Number(financeSummary.totalCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} detail={windowLabel} tone="emerald" />
-            <MetricCard icon={Wallet} label="Debits" value={sourceReadiness?.finance ? `$${Number(financeSummary.totalDebits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} detail={windowLabel} tone="amber" />
-            <MetricCard icon={Activity} label="Today" value={sourceReadiness?.finance ? `$${Number(financeSummary.todayCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} detail="Recorded credits" tone="sky" />
-            <MetricCard icon={BarChart3} label="Daily average" value={sourceReadiness?.finance ? `$${Number(financeSummary.dailyAverageCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} detail={windowLabel} tone="violet" />
-          </div>
-        </section>
-      )}
-    </main>
+        )}
+      </ActivitySheet>
+    </WorkspaceStage>
   );
 };

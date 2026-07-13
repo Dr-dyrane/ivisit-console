@@ -29,13 +29,21 @@ export const MapProvider = ({ children }) => {
     filter: 'all',
     loading: false,
     selectedMarker: null,
-    error: null
+    error: null,
+    sourceState: {
+      emergencies: { ready: false, partial: false, limit: 100 },
+      ambulances: { ready: false, partial: false, limit: null },
+      hospitals: { ready: false, partial: false, limit: null },
+    },
   });
 
   const initializeMapData = React.useCallback(async ({ shouldCommit = () => true } = {}) => {
     try {
       setMapData(prev => ({ ...prev, loading: true }));
-      const { emergencies, ambulances, hospitals } = await supabaseMapService.fetchInitialMapData({ quiet: true });
+      const { emergencies, ambulances, hospitals, sourceState } = await supabaseMapService.fetchInitialMapData({ quiet: true });
+      const failedSources = Object.entries(sourceState || {})
+        .filter(([, state]) => !state?.ready)
+        .map(([source]) => source);
 
       if (shouldCommit()) {
         setMapData(prev => ({
@@ -43,8 +51,11 @@ export const MapProvider = ({ children }) => {
           emergencyRequests: emergencies,
           ambulances: ambulances,
           hospitals: hospitals,
+          sourceState,
           loading: false,
-          error: null
+          error: failedSources.length
+            ? new Error('Some live map data did not load.')
+            : null,
         }));
       }
     } catch (error) {

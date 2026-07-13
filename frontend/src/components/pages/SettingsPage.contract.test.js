@@ -34,6 +34,7 @@ describe('Settings Page 16 intake contract', () => {
 
     [
       'src/components/pages/SettingsPage.jsx',
+      'src/components/pages/settings/SettingsDesktopWorkspace.jsx',
       'src/components/mobile/MobileSettings.jsx',
       'src/components/context/SettingsPanel.jsx',
       'src/components/modals/SecurityModal.jsx',
@@ -63,6 +64,8 @@ describe('Settings Page 16 intake contract', () => {
     const oldDoctorHook = gitShowHead('frontend/src/hooks/useDoctorProfile.js');
 
     const page = read('src/components/pages/SettingsPage.jsx');
+    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const desktop = `${page}\n${workspace}`;
     const mobile = read('src/components/mobile/MobileSettings.jsx');
     const panel = read('src/components/context/SettingsPanel.jsx');
     const securityModal = read('src/components/modals/SecurityModal.jsx');
@@ -78,10 +81,11 @@ describe('Settings Page 16 intake contract', () => {
     expect(gate).toContain('direct Supabase Auth MFA/password actions, profile/avatar update, old Settings-owned support ticket creation, and provider doctor updates through `doctorsService.updateDoctor()`.');
 
     expect(oldPage).toContain('Free Tier');
-    expect(page).not.toContain('Free Tier');
-    expect(page).not.toContain('Current Plan');
-    expect(page).toContain('Plan unavailable');
-    expect(page).toContain('Billing source not verified');
+    expect(desktop).not.toContain('Free Tier');
+    expect(desktop).not.toContain('Current Plan');
+    expect(workspace).toContain('Plan unavailable');
+    expect(workspace).toContain('Billing details are not available for this account yet.');
+    expect(workspace).not.toContain('Billing source not verified');
     expect(oldPage).toContain('<SupportModal');
     expect(page).not.toContain("import { SupportModal }");
     expect(page).not.toContain('<SupportModal');
@@ -89,10 +93,10 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain("toast.info('Support is unavailable for this role')");
     expect(page).toContain("navigate('/support-tickets?add=true&from=settings')");
     expect(page).toContain('onOpenSupport={handleOpenSupport}');
-    expect(page).toContain('onClick={handleOpenSupport}');
+    expect(workspace).toContain('onClick={onOpenSupport}');
 
     expect(oldPage).toContain('usePageHeader("Account Settings")');
-    expect(page).toContain('usePageHeader("Settings")');
+    expect(page).toContain("usePageHeader('Settings', headerActions)");
     for (const source of [oldPage, page]) {
       expect(source).toContain("window.addEventListener('openProfileModal', handleOpenProfile)");
       expect(source).toContain("window.addEventListener('openSecurityModal', handleOpenSecurity)");
@@ -105,8 +109,13 @@ describe('Settings Page 16 intake contract', () => {
       expect(source).toContain('<MobileSettings');
       expect(source).toContain('<ProfileEditModal');
       expect(source).toContain('<SecurityModal');
-      expect(source).toContain('<DoctorProfileCard');
     }
+    expect(oldPage).toContain('<DoctorProfileCard');
+    expect(page).not.toContain('DoctorProfileCard');
+    expect(workspace).not.toContain('DoctorProfileCard');
+    expect((page.match(/useDoctorProfile\(\)/g) || [])).toHaveLength(1);
+    expect(page).toContain('const { doctorProfile, loading: doctorProfileLoading } = useDoctorProfile();');
+    expect(page).toContain('mode="view"');
     expect(oldPage).toContain("document.documentElement.classList.toggle('dark', newMode)");
     expect(page).not.toContain("document.documentElement.classList.toggle('dark', newMode)");
     expect(page).toContain("import { useTheme } from '../../contexts/ThemeContext';");
@@ -124,33 +133,33 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('setIsSigningOut(true);');
     expect(page).toContain('setIsSigningOut(false);');
     expect(page).toContain('isSigningOut={isSigningOut}');
-    expect(page).toContain('disabled={isSigningOut}');
-    expect(page).toContain("aria-busy={isSigningOut ? 'true' : undefined}");
-    expect(page).toContain("data-state={isSigningOut ? 'pending' : 'ready'}");
-    expect(page).toContain("{isSigningOut ? 'Signing out...' : 'Sign Out'}");
+    expect(workspace).toContain('disabled={isSigningOut}');
+    expect(workspace).toContain("aria-busy={isSigningOut ? 'true' : undefined}");
+    expect(workspace).toContain("data-state={isSigningOut ? 'pending' : 'ready'}");
+    expect(workspace).toContain("title={isSigningOut ? 'Signing out...' : 'Sign out'}");
     expect(gate).toContain('First Settings session-action feedback cleanup on 2026-07-06 added a local sign-out pending guard, desktop `data-state="pending"` / `aria-busy` feedback, duplicate-tap blocking, and a mobile `Signing out...` row state while preserving the same `signOut()` receiver and `/login` redirect.');
     expect(gate).toContain('Settings desktop-shell squircle cleanup on 2026-07-06 converted `SettingsPage.jsx` away from legacy `Card` wrappers, decorative blur/orb background chrome, hover-glow layers, legacy `squircle-*` size aliases, generic radius utilities, decorative border/ring chrome, and all-caps/tracking labels.');
     expect(gate).toContain('This gives the desktop Settings shell focused strict-radius source proof only; it does not admit Settings, prove own-user profile/security/preferences/provider receivers, or add Page 16 to the default hardgate.');
-    expect(page).not.toContain("from '../ui/card'");
-    expect(page).not.toContain('<Card');
-    expect(page).not.toContain('hover-glow');
-    expect(page).not.toContain('blur-3xl');
-    expect(page).toContain('rounded-card');
-    expect(page).toContain('rounded-inner');
-    expect(page).toContain('rounded-icon');
-    expect(page).toContain('rounded-button');
-    expect(page).toContain('rounded-pill');
-    expect(page).toContain('<Avatar className="h-36 w-36 rounded-icon');
-    expect(page).toContain('<AvatarFallback className="rounded-icon');
-    expect(page).not.toContain('className="squircle');
-    expect(page).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
-    expect(page).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
-    expect(page).not.toMatch(/\bgeo-/);
-    expect(page).not.toMatch(/\bborder-/);
-    expect(page).not.toMatch(/\bring-/);
-    expect(page).not.toMatch(/\boutline-/);
-    expect(page).not.toMatch(/\buppercase\b/);
-    expect(page).not.toContain('tracking-widest');
+    expect(desktop).not.toContain("from '../ui/card'");
+    expect(desktop).not.toContain('<Card');
+    expect(desktop).not.toContain('hover-glow');
+    expect(desktop).not.toContain('blur-3xl');
+    expect(workspace).toContain('rounded-card');
+    expect(workspace).toContain('rounded-inner');
+    expect(workspace).toContain('rounded-icon');
+    expect(workspace).toContain('rounded-button');
+    expect(desktop).toContain('rounded-pill');
+    expect(workspace).toContain('<Avatar className="h-16 w-16 shrink-0 rounded-icon');
+    expect(workspace).toContain('<AvatarFallback className="rounded-icon');
+    expect(desktop).not.toContain('className="squircle');
+    expect(desktop).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
+    expect(desktop).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
+    expect(desktop).not.toMatch(/\bgeo-/);
+    expect(desktop).not.toMatch(/\bborder-/);
+    expect(desktop).not.toMatch(/\bring-/);
+    expect(desktop).not.toMatch(/\boutline-/);
+    expect(desktop).not.toMatch(/\buppercase\b/);
+    expect(desktop).not.toContain('tracking-widest');
 
     expect(oldMobile).toContain('MobilePageShell');
     expect(oldMobile).toContain('MobileMetricRow');
@@ -218,12 +227,13 @@ describe('Settings Page 16 intake contract', () => {
       expect(source).toContain("new Event('openSupportModal')");
     }
     expect(panel).toContain("label: 'Edit profile'");
-    expect(panel).toContain("new Event('openProfileModal')");
+    expect(panel).toContain("dispatchAction('openProfileModal', 'Opening profile editor...')");
     expect(panel).toContain("label: 'Security'");
-    expect(panel).toContain("new Event('openSecurityModal')");
+    expect(panel).toContain("dispatchAction('openSecurityModal', 'Opening security settings...')");
     expect(panel).toContain("label: 'Billing'");
     expect(panel).toContain("label: 'Support'");
-    expect(panel).toContain("new Event('openSupportModal')");
+    expect(panel).toContain("dispatchAction('openSupportModal', 'Opening support...')");
+    expect(panel).toContain('window.dispatchEvent(new Event(eventName));');
     expect(oldPanel).toContain("toast.info('Billing portal coming soon')");
     expect(oldPanel).toContain('Security Health');
     expect(oldPanel).toContain('System Guard Active');
@@ -231,16 +241,17 @@ describe('Settings Page 16 intake contract', () => {
     expect(oldPanel).toContain('Session Update');
     expect(panel).not.toContain("toast.info('Billing portal coming soon')");
     expect(panel).not.toContain('disabled: true');
-    expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Settings actions ready.');");
-    expect(panel).toContain("const BILLING_UNAVAILABLE = 'Billing unavailable until account plan source is verified.';");
+    expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Choose an account action.');");
+    expect(panel).toContain("const BILLING_UNAVAILABLE = 'Billing is not available for this account yet.';");
     expect(panel).toContain('unavailable: true');
     expect(panel).toContain('run: () => setPanelNotice(BILLING_UNAVAILABLE)');
     expect(panel).toContain("aria-disabled={unavailable ? 'true' : undefined}");
     expect(panel).toContain("data-state={unavailable ? 'unavailable' : 'ready'}");
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain('Account evidence');
-    expect(panel).toContain('Review available');
+    expect(panel).toContain('Account details');
+    expect(panel).toContain('Password and authentication');
+    expect(panel).toContain('data-testid="settings-panel-skeleton"');
     expect(gate).toContain('SettingsPanel squircle cleanup on 2026-07-06 converted right-panel quick actions, security/session rows, and help notice to semantic radius tokens (`rounded-card`, `rounded-icon`, `rounded-inner`) while preserving profile/security/support event bridges, unavailable Billing feedback, and the local status live region.');
     expect(gate).toContain('This is focused strict-radius source proof only; it does not admit Settings or add Page 16 to the default hardgate.');
     expect(panel).toContain('rounded-card');
@@ -456,7 +467,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(routes).toContain("minRole: 'viewer'");
     expect(navigation).toContain("minRole: 'viewer'");
     expect(contextPanel).toContain("'/settings': true, // Own-user settings");
-    expect(contextPanel).not.toContain('getPageContextHeader'); // header slimmed — each panel owns its heading (see ContextPanelShell contract)
+    expect(contextPanel).not.toContain('getPageContextHeader'); // header slimmed -- each panel owns its heading (see ContextPanelShell contract)
     expect(contextPanel).toContain('<SettingsPanel settingsContext={settingsRouteContext} />');
     expect(contextPanel).toContain("new CustomEvent('requestSettingsRouteContext')");
     expect(page).toContain("new CustomEvent('settingsRouteContextUpdated'");
@@ -468,18 +479,66 @@ describe('Settings Page 16 intake contract', () => {
     expect(contextFab).toContain('routeOwnsShellAction(location.pathname)');
   });
 
+  it('uses the desktop workspace grammar with a complete role rail and structural loading state', () => {
+    const page = read('src/components/pages/SettingsPage.jsx');
+    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const hardgate = read('scripts/check-ui-surface-hardgate.js');
+
+    expect(page).toContain("import { SettingsDesktopWorkspace } from './settings/SettingsDesktopWorkspace';");
+    expect(page).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(page).toContain("if (isAdmin()) return 'admin';");
+    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
+    expect(page).toContain("if (isSponsor()) return 'sponsor';");
+    expect(page).toContain("if (providerAccount) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain('<SettingsDesktopWorkspace');
+    expect(page).toContain('moduleRailItems={moduleRailItems}');
+    expect(page).toContain("usePageHeader('Settings', headerActions)");
+    expect(page).toContain('aria-haspopup="dialog"');
+    expect(page).toContain('aria-expanded={isProfileModalOpen}');
+    expect(page).toContain("data-state={isProfileModalOpen ? 'open' : 'idle'}");
+    expect(page).toContain('Edit profile');
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
+
+    expect(workspace).toContain('<WorkspaceStage');
+    expect(workspace).toContain('activePath="/settings"');
+    expect(workspace).toContain('<SignalPanel');
+    expect(workspace).toContain('<MetricStrip items={metrics} loading={loading} max={3}');
+    expect(workspace).toContain('data-testid="settings-account-sheet"');
+    expect(workspace).toContain('<DetailRailShell>');
+    expect(workspace).toContain('<RailInsetHero>');
+    expect(workspace).toContain('data-testid="settings-sheet-skeleton"');
+    expect(workspace).toContain('data-testid="settings-detail-rail-skeleton"');
+    expect(workspace).toContain('<SettingsSheetSkeleton rowCount={isProvider ? 7 : 6} />');
+    expect(workspace).toContain('<Shimmer className="mt-5 h-40 rounded-modal" />');
+
+    expect(page).not.toContain('DoctorProfileCard');
+    expect(workspace).not.toContain('DoctorProfileCard');
+    expect((page.match(/useDoctorProfile\(\)/g) || [])).toHaveLength(1);
+    expect(page).toContain('doctor={doctorProfile}');
+    expect(page).toContain('mode="view"');
+    expect(workspace).not.toContain('updateProfile(');
+    expect(workspace).not.toContain('updateDoctor(');
+    expect(workspace).toContain('View professional profile');
+    expect(hardgate).toContain('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+  });
+
   it('keeps the desktop account dashboard calm and avoids inferred status claims', () => {
     const page = read('src/components/pages/SettingsPage.jsx');
+    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const desktop = `${page}\n${workspace}`;
 
-    expect(page).not.toContain("from 'framer-motion'");
-    expect(page).not.toContain('<motion.div');
-    expect(page).not.toContain('<LayoutGroup>');
-    expect(page).not.toContain('bg-gradient-to-');
-    expect(page).not.toContain('title="Online"');
-    expect(page).not.toContain("? 'Strong' : 'Standard'");
-    expect(page).not.toContain('phone && <Badge');
-    expect(page).toContain('Review password and authentication options');
-    expect(page).toContain('Plan unavailable');
-    expect(page).toContain('Billing source not verified');
+    expect(desktop).not.toContain("from 'framer-motion'");
+    expect(desktop).not.toContain('<motion.div');
+    expect(desktop).not.toContain('<LayoutGroup>');
+    expect(desktop).not.toContain('bg-gradient-to-');
+    expect(desktop).not.toContain('title="Online"');
+    expect(desktop).not.toContain("? 'Strong' : 'Standard'");
+    expect(desktop).not.toContain('phone && <Badge');
+    expect(workspace).toContain('Review password and authentication options');
+    expect(workspace).toContain('Plan unavailable');
+    expect(workspace).toContain('Billing details are not available for this account yet.');
+    expect(desktop).not.toContain('Billing source not verified');
+    expect(desktop).not.toContain('Account evidence');
+    expect(desktop).not.toContain('read-only');
   });
 });

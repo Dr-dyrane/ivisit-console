@@ -18,6 +18,8 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { MobileInsurance } from '../mobile/MobileInsurance';
 import { SEOHead } from '../common/SEOHead';
+import { Button } from '../ui/button';
+import { BarChart3, Filter } from 'lucide-react';
 
 const EMPTY_INSURANCE_PAGE = {
   data: [],
@@ -81,7 +83,7 @@ const hasActiveInsuranceFilters = (filters = {}) => (
 );
 
 export const InsuranceManagementPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const [insurancePage, setInsurancePage] = useState(EMPTY_INSURANCE_PAGE);
   const [insuranceBillingContext, setInsuranceBillingContext] = useState(EMPTY_INSURANCE_BILLING_CONTEXT);
@@ -106,7 +108,13 @@ export const InsuranceManagementPage = () => {
   const hasActiveFilters = useMemo(() => hasActiveInsuranceFilters(filters), [filters]);
   const insurancePolicies = insurancePage.data || [];
   const insuranceStats = insurancePage.stats || EMPTY_INSURANCE_PAGE.stats;
-  const moduleRailItems = useMemo(() => getConsoleModuleRailItems({ isAdmin: isAdmin() }), [isAdmin]);
+  const roleKind = useMemo(() => {
+    if (isAdmin()) return 'admin';
+    if (isOrgAdmin()) return 'org_admin';
+    if (isProvider()) return isDriver() ? 'driver' : 'provider';
+    return 'viewer';
+  }, [isAdmin, isOrgAdmin, isProvider, isDriver]);
+  const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
   const fetchInsurancePage = useCallback(async () => {
@@ -459,20 +467,40 @@ export const InsuranceManagementPage = () => {
     setAnalyticsModalOpen(true);
   }, []);
 
-  // filter-icon excluded by decision: desktop SheetToolbar, mobile SearchRow, and the
-  // route context panel already own the same FilterSheet; navbar duplication adds no scope.
-  usePageHeader('Insurance');
+  const headerActions = useMemo(() => (
+    <Button
+      onClick={handleViewAnalytics}
+      data-state={analyticsModalOpen ? 'open' : 'idle'}
+      aria-label="Policy stats"
+      aria-haspopup="dialog"
+      aria-expanded={analyticsModalOpen}
+      className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+    >
+      <BarChart3 className="mr-2 h-4 w-4" />
+      Policy stats
+    </Button>
+  ), [analyticsModalOpen, handleViewAnalytics]);
 
-  // Footer Configuration
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[11px] font-semibold text-muted-foreground">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} policies</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+  const filterButtonComponent = useMemo(() => (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      data-state={filterSheetOpen ? 'open' : hasActiveFilters ? 'active' : 'idle'}
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
+      className="relative h-9 w-9 rounded-icon bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+      aria-label="Filter insurance policies"
+    >
+      <Filter className="h-4 w-4" />
+      {hasActiveFilters && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-pill bg-sky-500" />}
+    </Button>
+  ), [filterSheetOpen, hasActiveFilters]);
 
-  usePageFooter(footerContent, 'pagination', !loading && pagination.totalCount > 0);
+  usePageHeader('Insurance', headerActions, null, filterButtonComponent);
+
+  usePageFooter(null, 'status', false);
 
   usePageShell({ bleed: true, hideFab: true });
 
@@ -587,6 +615,7 @@ export const InsuranceManagementPage = () => {
       <InsuranceDesktopWorkspace
         rows={paginatedPolicies}
         stats={insuranceStats}
+        denied={insurancePage.denied}
         loading={loading && !hasDesktopRows}
         isFetching={loading && hasDesktopRows}
         error={error}

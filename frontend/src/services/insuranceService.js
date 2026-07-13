@@ -412,7 +412,7 @@ export async function getInsurancePage(filter = {}) {
       };
     }
 
-    const statsFilter = filter.statsFilter || {};
+    const statsFilter = filter.statsFilter || { ...filter, kpiFilter: 'all' };
     const countPromise = getInsuranceExactCount(filter, user, true);
     const statsPromise = getInsurancePageStats(statsFilter, user, true);
 

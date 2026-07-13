@@ -40,7 +40,6 @@ import {
     SupportTicketModal,
     SubscriptionModal
 } from '../modals/index';
-import { useSubscription } from '../../hooks/useSubscription';
 import { getProtectedRoutesForRole } from '../../config/routes';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
@@ -204,6 +203,15 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
             label: 'Security',
             color: 'utility',
             action: () => window.dispatchEvent(new CustomEvent('openSecurityModal'))
+        };
+    }
+
+    if (pathname.startsWith('/analytics') && canReachRoute(userRole, '/analytics')) {
+        return {
+            icon: BarChart3,
+            label: 'View statistics',
+            color: 'primary',
+            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
         };
     }
 
@@ -439,7 +447,6 @@ const DynamicBottomAction = ({ isScrolledDown }) => {
     };
 
     const { createTicket } = useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true });
-    const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });
     const actionConfig = useContextAction(openModal);
 
     const TICKET_PRIORITIES = [
@@ -496,7 +503,7 @@ const DynamicBottomAction = ({ isScrolledDown }) => {
                                     categories={TICKET_CATEGORIES}
                                 />
                             );
-                        case 'subscription': return <SubscriptionModal key={key} {...props} onSave={createSubscriber} mode="create" />;
+                        case 'subscription': return <SubscriptionModal key={key} {...props} mode="create" />;
                         case 'emailActions': return <SubscriptionModal key={key} {...props} mode="emailActions" />;
                         default: return null;
                     }

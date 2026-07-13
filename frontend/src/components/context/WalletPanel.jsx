@@ -57,7 +57,7 @@ export const WalletPanel = ({ walletContext }) => {
     };
 
     const handleStats = () => {
-        announce('Opening loaded payment statistics.');
+        announce('Opening payment statistics.');
         window.dispatchEvent(new CustomEvent('openWalletAnalytics'));
     };
 
@@ -68,7 +68,7 @@ export const WalletPanel = ({ walletContext }) => {
         .sort((left, right) => new Date(right.item.created_at || 0).getTime() - new Date(left.item.created_at || 0).getTime())
         .slice(0, 4);
     const cardState = readState.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable';
-    const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not returned';
+    const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not available';
     const transactionsCount = counts.ledger ?? ledger.length;
     const patientPaymentsCount = counts.payments ?? payments.length;
 
@@ -81,7 +81,7 @@ export const WalletPanel = ({ walletContext }) => {
                     <div className="min-w-0">
                         <p className="text-sm font-semibold">Payments refresh failed</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                            {hasLoaded ? 'Showing preserved loaded records.' : 'No financial values are being inferred.'}
+                            {hasLoaded ? 'Showing the most recent available records.' : 'Payment totals are unavailable.'}
                         </p>
                     </div>
                 </div>
@@ -95,7 +95,7 @@ export const WalletPanel = ({ walletContext }) => {
                     </h2>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="rounded-pill bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
-                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'Saved results' : wallet ? 'Current read' : 'Unavailable'}
+                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'May be out of date' : wallet ? 'Up to date' : 'Unavailable'}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
                     </div>
@@ -105,7 +105,7 @@ export const WalletPanel = ({ walletContext }) => {
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
                             <History className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Loaded records</span>
+                            <span className="text-xs font-medium text-muted-foreground">Payment activity</span>
                         </div>
                         <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{transactionsCount + patientPaymentsCount}</p>
                     </div>
@@ -132,7 +132,7 @@ export const WalletPanel = ({ walletContext }) => {
                 </button>
                 </div>
                 <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">
-                    {panelStatus || 'Loaded records are read-only. Money and card changes remain unavailable.'}
+                    {panelStatus || 'Payment history is available here. Money and card changes are unavailable.'}
                 </p>
             </div>
 
@@ -144,7 +144,7 @@ export const WalletPanel = ({ walletContext }) => {
                             type="button"
                             disabled
                             aria-describedby="wallet-action-authority"
-                            title="Add funds is unavailable until payment confirmation and wallet reflection are proved."
+                            title="Add funds is not available for this account."
                             className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
                         >
                             <Plus className="h-4 w-4" />
@@ -154,7 +154,7 @@ export const WalletPanel = ({ walletContext }) => {
                             type="button"
                             disabled
                             aria-describedby="wallet-action-authority"
-                            title="Withdraw is unavailable until balance reservation and payout reflection are proved."
+                            title="Withdrawals are not available for this account."
                             className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
                         >
                             <ArrowUpRight className="h-4 w-4" />
@@ -164,7 +164,7 @@ export const WalletPanel = ({ walletContext }) => {
                             type="button"
                             disabled
                             aria-describedby="wallet-action-authority"
-                            title="Payment cards are unavailable until organization authority is proved."
+                            title="Card changes are not available for this account."
                             className="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-inner bg-muted/20 px-2 text-muted-foreground opacity-55"
                         >
                             <CreditCard className="h-4 w-4" />
@@ -173,39 +173,39 @@ export const WalletPanel = ({ walletContext }) => {
                     </div>
                     <p id="wallet-action-authority" className="flex items-start gap-2 px-1 text-xs leading-5 text-muted-foreground">
                         <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        These historical commands remain locked until backend authority and reflected results are proved.
+                        These actions are not available for this account.
                     </p>
                 </div>
             )}
 
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Loaded route scope</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground">Payment records</h3>
                     <span className="rounded-pill bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
-                        {transactionsCount + patientPaymentsCount} loaded
+                        {transactionsCount + patientPaymentsCount} shown
                     </span>
                 </div>
 
                 <div className="grid gap-2">
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Transactions loaded</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Transactions shown</p>
                         <p className="mt-1 text-xl font-semibold">{transactionsCount}</p>
-                        {hasMore.ledger && <p className="mt-1 text-[10px] text-muted-foreground">More available on the page</p>}
+                        {hasMore.ledger && <p className="mt-1 text-[10px] text-muted-foreground">More records are available</p>}
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Patient payments loaded</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Patient payments shown</p>
                         <p className="mt-1 text-xl font-semibold">{patientPaymentsCount}</p>
-                        {hasMore.payments && <p className="mt-1 text-[10px] text-muted-foreground">More available on the page</p>}
+                        {hasMore.payments && <p className="mt-1 text-[10px] text-muted-foreground">More records are available</p>}
                     </div>
                     <div className="rounded-inner bg-muted/22 p-3">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Saved cards</p>
                         <p className="mt-1 text-xl font-semibold">{cardState}</p>
                     </div>
                 </div>
             </div>
 
             <div className="space-y-2">
-                <h3 className="px-1 text-sm font-semibold text-muted-foreground">Recent loaded records</h3>
+                <h3 className="px-1 text-sm font-semibold text-muted-foreground">Recent activity</h3>
                 <div className="space-y-1">
                     {recentActivity.map(({ kind, item }) => {
                         const isPatientPayment = kind === 'payment';

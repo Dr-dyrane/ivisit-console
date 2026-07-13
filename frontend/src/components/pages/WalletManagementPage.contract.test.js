@@ -155,8 +155,8 @@ describe('WalletManagementPage Payments contract', () => {
     expect(walletPanel).toContain('export const WalletPanel = ({ walletContext }) =>');
     expect(walletPanel).toContain("new CustomEvent('openWalletAnalytics')");
     expect(walletPanel).toContain("new CustomEvent('exportLedger')");
-    expect(walletPanel).toContain('Loaded records are read-only. Money and card changes remain unavailable.');
-    expect(walletPanel).toContain('These historical commands remain locked until backend authority and reflected results are proved.');
+    expect(walletPanel).toContain('Payment history is available here. Money and card changes are unavailable.');
+    expect(walletPanel).toContain('These actions are not available for this account.');
     expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Add funds</span>');
     expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Withdraw</span>');
     expect(walletPanel).toContain('<span className="text-center text-xs font-semibold leading-tight">Payment cards</span>');
@@ -205,7 +205,7 @@ describe('WalletManagementPage Payments contract', () => {
 
     expect(service).toContain('export const deletePaymentMethod = async');
     expect(service).toContain("body: { action: 'delete-payment-method', organization_id: organizationId, payment_method_id: paymentMethodId }");
-    expect(page).toContain('Cards returned');
+    expect(page).toContain('Saved cards');
     expect(panel).toContain("readState.paymentMethods === 'ready'");
     expect(panel).toContain("paymentMethods.length : 'Unavailable'");
     expect(page).not.toContain('deletePaymentMethod');
@@ -237,7 +237,7 @@ describe('WalletManagementPage Payments contract', () => {
     const service = serviceSource();
     const activePaymentsUi = `${page}\n${mobile}\n${modals}`;
 
-    expect(page).toContain("label: 'Cards returned'");
+    expect(page).toContain('Saved cards');
     expect(page).toContain('Money changes unavailable');
     expect(mobile).toContain('title="Payments"');
     expect(mobile).toContain("'Balance unavailable'");
@@ -328,12 +328,14 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
   });
 
-  it('composes the canonical desktop workspace with focused read-only records', () => {
+  it('composes the canonical desktop workspace with focused payment records', () => {
     const page = pageSource();
 
     expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('<SignalPanel');
     expect(page).toContain('<ActivitySheet');
+    expect(page).toContain('<MetricStrip');
+    expect(page).toContain('<SheetToolbar');
     expect(page).toContain('<SortableColumnHeader label="Time"');
     expect(page).toContain('<ListRowShell');
     expect(page).toContain('<DetailRailShell>');
@@ -345,7 +347,76 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain("searchParams.get('id')");
     expect(page).toContain("nextParams.set('tab', activeTab)");
     expect(page).toContain('Open receipt');
-    expect(page).toContain('Read only');
+    expect(page).toContain("{isPayment ? 'Receipt' : 'Details'}");
+  });
+
+  it('shows at most three source-backed desktop payment metrics', () => {
+    const page = pageSource();
+
+    expect(page).toContain("import { MetricStrip } from '../console/MetricStrip';");
+    expect(page).toContain('const PaymentsMetrics = ({');
+    expect(page).toContain('max={3}');
+    expect(page.match(/label: '(Balance|Credits|Debits)'/g)).toHaveLength(3);
+    expect(page).toContain("readState?.wallet === 'ready'");
+    expect(page).toContain("readState?.ledger === 'ready'");
+    expect(page).toContain("String(value).trim() !== ''");
+    expect(page).toContain('available: Boolean(balanceAvailable)');
+    expect(page).toContain('available: ledgerAvailable && creditAmountsAvailable');
+    expect(page).toContain('available: ledgerAvailable && debitAmountsAvailable');
+    expect(page).not.toContain('PaymentsMetricStrip');
+    expect(page).not.toContain("label: 'Transactions loaded'");
+    expect(page).not.toContain("label: 'Payments loaded'");
+    expect(page).not.toContain("label: 'Cards returned'");
+  });
+
+  it('wires desktop search, refresh, and FilterSheet to the returned activity window', () => {
+    const page = pageSource();
+
+    expect(page).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';");
+    expect(page).toContain('search={mobileSearch}');
+    expect(page).toContain('onSearchCommit={setMobileSearch}');
+    expect(page).toContain('filters={activeMobileFilters}');
+    expect(page).toContain('const matchesWalletActivity = ({ item, activeTab, filters, normalizedSearch }) =>');
+    expect(page).toContain('.filter((item) => matchesWalletActivity({ item, activeTab, filters, normalizedSearch }))');
+    expect(page).toContain('searchValue={search}');
+    expect(page).toContain('searchTestId="payments-sheet-search"');
+    expect(page).toContain('onOpenFilters={onOpenFilters}');
+    expect(page).toContain('filtersActive={hasWalletFilters(filters)}');
+    expect(page).toContain('isMobile={false}');
+    expect(page).not.toContain('Search and filters apply only to the records currently shown.');
+    expect(page).toContain('role="tablist"');
+    expect(page).toContain('aria-label="Payment activity source"');
+    expect(page).toContain('role="tab"');
+
+    // Narrowing and source changes do not replace the canonical tab/id deep link contract.
+    expect(page).toContain("searchParams.get('tab')");
+    expect(page).toContain("searchParams.get('id')");
+    expect(page).toContain("nextParams.set('tab', activeTab)");
+    expect(page).toContain("nextParams.set('id', id)");
+    expect(page).toContain("key: 'created_at'");
+    expect(page).toContain('<SortableColumnHeader label="Time"');
+    expect(page).toContain('onOpenReceipt={onPaymentOpen}');
+  });
+
+  it('keeps internal implementation language out of desktop Payments copy', () => {
+    const desktopSurface = `${pageSource()}\n${walletPanelSource()}`;
+
+    [
+      'Read only',
+      'read-only',
+      'loaded records',
+      'records loaded',
+      'loaded payment',
+      'route scope',
+      'Current role scope',
+      '>Scope<',
+      'label="Scope"',
+      'receiver authority',
+      'app consequences',
+      'Projection returned',
+    ].forEach((internalCopy) => {
+      expect(desktopSurface).not.toContain(internalCopy);
+    });
   });
 
   it('keeps desktop money writes and bulk selection fail closed', () => {
@@ -354,15 +425,15 @@ describe('WalletManagementPage Payments contract', () => {
     const desktopSurface = `${page}\n${panel}`;
 
     expect(page).toContain('Money changes unavailable');
-    expect(page).toContain('receiver authority and reflected app consequences are proved');
-    expect(panel).toContain('Loaded records are read-only. Money and card changes remain unavailable.');
+    expect(page).toContain('Add funds, withdrawals, and card changes are not available for this account.');
+    expect(panel).toContain('Payment history is available here. Money and card changes are unavailable.');
     expect(panel).not.toContain('aria-disabled="true"');
     expect(desktopSurface).not.toContain('useRowSelection');
     expect(desktopSurface).not.toContain('BulkActionBar');
     expect(desktopSurface).not.toContain('selectedIds');
   });
 
-  it('surfaces initial and refresh errors while preserving loaded rows', () => {
+  it('surfaces initial and refresh errors while preserving current rows', () => {
     const page = pageSource();
     const panel = walletPanelSource();
 
@@ -370,12 +441,12 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('const [isFetching, setIsFetching] = useState(false);');
     expect(page).toContain('if (hasLoadedRef.current)');
     expect(page).toContain('setIsFetching(true);');
-    expect(page).toContain('Existing rows are preserved and may be out of date.');
+    expect(page).toContain('Current rows remain visible and may be out of date.');
     expect(page).toContain('<LoadErrorState title="Payments did not load"');
-    expect(page).toContain('No financial values are being inferred.');
+    expect(page).toContain('No payment totals are shown.');
     expect(page).not.toContain('setLedger([])');
     expect(page).not.toContain('setPayments([])');
-    expect(panel).toContain('Showing preserved loaded records.');
+    expect(panel).toContain('Showing the most recent available records.');
   });
 
   it('exposes honest refresh and growing-window state to the mobile owner', () => {

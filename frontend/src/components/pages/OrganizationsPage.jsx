@@ -7,7 +7,6 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useRowSelection } from '../../hooks/useRowSelection';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useOrganizationsQuery } from '../../hooks/useOrganizationsQuery';
@@ -30,11 +29,9 @@ import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from 
 import { Shimmer, SkeletonRows, DetailLine, CopyChip, EmptyState, LoadErrorState, StatusPill } from '../console/primitives';
 import { SEOHead } from '../common/SEOHead';
 import { FilterSheet } from '../common/FilterSheet';
-import { BulkActionBar } from '../common/BulkActionBar';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { OrganizationModal } from '../modals/OrganizationModal';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import {
   Activity,
   AlertCircle,
@@ -46,14 +43,12 @@ import {
   Globe,
   Info,
   MapPin,
-  Plus,
-  Trash2,
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileOrganizations } from '../mobile/MobileOrganizations';
 
-const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not ready until organization authority is verified.';
+const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';
 
 // KPI/state strip axis = payout-readiness, live-DB verified. Registry(total, default) /
 // Funded(wallet balance>0, pinned) / Payout gap(zero-balance OR no-wallet, pinned). is_active
@@ -80,7 +75,6 @@ const orgToneClass = {
 
 // Name | Status | Wallet | Added | Action  (select prefixes a 28px column).
 const ORG_GRID_COLS = 'grid-cols-[minmax(200px,1.9fr)_minmax(96px,auto)_minmax(120px,auto)_minmax(112px,auto)_96px]';
-const ORG_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(200px,1.9fr)_minmax(96px,auto)_minmax(120px,auto)_minmax(112px,auto)_96px]';
 
 const getStatusMeta = (isActive) => (isActive
   ? { label: 'Active', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' }
@@ -124,7 +118,7 @@ const getOrgSignal = ({ stats, organizations, kpiFilter, loadError, hasAny }) =>
       tone: 'clear',
       label: 'Funded',
       headline: count > 0 ? `${count} funded ${count === 1 ? 'organization' : 'organizations'}` : 'No funded organizations',
-      subhead: count > 0 ? 'Funded organizations carry a positive wallet balance. Commands stay read-only until authority is verified.' : 'Organizations gain a positive wallet balance once funded.',
+      subhead: count > 0 ? 'Review account balances and payout readiness. Changes are not available here.' : 'Organizations gain a positive wallet balance once funded.',
     };
   }
 
@@ -143,7 +137,7 @@ const getOrgSignal = ({ stats, organizations, kpiFilter, loadError, hasAny }) =>
     tone: 'primary',
     label: 'Registry',
     headline: count > 0 ? `${count} ${count === 1 ? 'organization' : 'organizations'}` : 'No organizations found',
-    subhead: count > 0 ? 'Review registry identity, wallet float, and payout readiness. Organization commands stay disabled until organization authority is verified.' : 'Organization records for this scope will appear here.',
+    subhead: count > 0 ? 'Review organization details, balances, and payout readiness.' : 'Organizations will appear here when available.',
   };
 };
 
@@ -225,19 +219,7 @@ export const OrganizationsPage = () => {
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('organizations', orgRows);
   const focusedOrg = focusedRecord;
 
-  // Selection via the shared hook (shift-range + prune-to-visible). Selection + the
-  // BulkActionBar are admin-gated; the bulk delete is FAIL-CLOSED (no parallel truth).
-  const {
-    selectedIds,
-    handleSelectClick,
-    handleToggleSelect,
-    handleSelectAll,
-    clearSelection,
-    allSelected,
-    someSelected,
-  } = useRowSelection(orgRows);
-  const selectable = isAdmin();
-
+  // selection excluded by decision: this review-only registry has no supported bulk command.
   const hasFilter = hasActiveOrgFilters(filters, kpiFilter);
 
   // arrival-toast excluded by decision: read-only registry, no bulk write target -- the
@@ -258,12 +240,6 @@ export const OrganizationsPage = () => {
   useEffect(() => {
     pagination.setTotalCount(count || 0);
   }, [count, pagination.setTotalCount]);
-
-  // A filter/sort change swaps the visible rows -- clear the selection so a bulk action can
-  // never fire on rows the operator can no longer see (prune-to-visible also backstops this).
-  useEffect(() => {
-    clearSelection();
-  }, [filters, kpiFilter, sortConfig, clearSelection]);
 
   // Real-time updates: an organizations row change invalidates the ['organizations'] cache
   // (the single store) instead of a manual refetch. NO insert toast (arrival-toast excluded).
@@ -362,10 +338,6 @@ export const OrganizationsPage = () => {
     return handleOrganizationCommandUnavailable();
   }, [handleOrganizationCommandUnavailable, markActionFeedback]);
 
-  const handleBulkDelete = useCallback(() => (
-    handleOrganizationCommandUnavailable()
-  ), [handleOrganizationCommandUnavailable]);
-
   // Modal submit stays fail-closed: preventDefault then surface the unavailable notice.
   const handleSave = useCallback((event) => {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -443,22 +415,6 @@ export const OrganizationsPage = () => {
     };
   }, [publishOrganizationsRouteContext]);
 
-  const headerActions = useMemo(() => (
-    isAdmin() ? (
-      <Button
-        type="button"
-        onClick={handleCreate}
-        data-state="unavailable"
-        aria-label="Add organization unavailable"
-        aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
-        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add organization
-      </Button>
-    ) : null
-  ), [isAdmin, handleCreate, organizationCommandNotice]);
-
   const filterButtonComponent = useMemo(() => (
     <Button
       type="button"
@@ -475,7 +431,7 @@ export const OrganizationsPage = () => {
     </Button>
   ), [handleOpenFilters, filterSheetOpen, hasFilter]);
 
-  usePageHeader('Organizations', headerActions, null, filterButtonComponent);
+  usePageHeader('Organizations', null, null, filterButtonComponent);
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -530,7 +486,7 @@ export const OrganizationsPage = () => {
           filterSheetOpen={filterSheetOpen}
           onViewAnalytics={handleOpenAnalytics}
           analyticsOpen={analyticsModalOpen}
-          selectionEnabled={selectable}
+          selectionEnabled={false}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
           page={pagination.currentPage}
@@ -586,7 +542,6 @@ export const OrganizationsPage = () => {
         loading={loading}
         isFetching={isFetching}
         loadError={loadError}
-        canManage={isAdmin()}
         focusedOrg={focusedOrg}
         setFocused={setFocused}
         filters={filters}
@@ -601,39 +556,12 @@ export const OrganizationsPage = () => {
         pagination={pagination}
         sortConfig={sortConfig}
         onSort={handleSort}
-        selectable={selectable}
-        selectedIds={selectedIds}
-        allSelected={allSelected}
-        someSelected={someSelected}
-        onToggleSelect={handleToggleSelect}
-        onSelectClick={handleSelectClick}
-        onSelectAll={handleSelectAll}
         onView={handleView}
-        onCreate={handleCreate}
         activeActionFeedback={activeActionFeedback}
         moduleRailItems={visibleModuleRail}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}
       />
-
-      {selectable && (
-        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleBulkDelete}
-            disabled={selectedIds.length === 0}
-            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96] disabled:opacity-40"
-            title="Delete selected"
-            aria-label="Delete organizations unavailable"
-            aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
-            data-state="unavailable"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        </BulkActionBar>
-      )}
 
       {modalMode && (
         <OrganizationModal
@@ -670,7 +598,6 @@ const OrganizationsDesktopWorkspace = ({
   loading,
   isFetching,
   loadError,
-  canManage,
   focusedOrg,
   setFocused,
   filters,
@@ -685,15 +612,7 @@ const OrganizationsDesktopWorkspace = ({
   pagination,
   sortConfig,
   onSort,
-  selectable,
-  selectedIds,
-  allSelected,
-  someSelected,
-  onToggleSelect,
-  onSelectClick,
-  onSelectAll,
   onView,
-  onCreate,
   activeActionFeedback,
   moduleRailItems,
   routingPath,
@@ -775,14 +694,7 @@ const OrganizationsDesktopWorkspace = ({
           className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
           data-testid="organizations-list"
         >
-          <OrganizationsListHeader
-            selectable={selectable}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            onSelectAll={onSelectAll}
-            sortConfig={sortConfig}
-            onSort={onSort}
-          />
+          <OrganizationsListHeader sortConfig={sortConfig} onSort={onSort} />
 
           {loading && <SkeletonRows />}
 
@@ -794,7 +706,7 @@ const OrganizationsDesktopWorkspace = ({
             <EmptyState
               icon={Building2}
               heading={hasFilter ? 'No matching organizations' : 'No organizations'}
-              body={hasFilter ? 'Change filters or search again.' : 'Organization records for this scope will appear here.'}
+              body={hasFilter ? 'Change filters or search again.' : 'Organizations will appear here when available.'}
             >
               {hasFilter ? (
                 <Button
@@ -804,17 +716,7 @@ const OrganizationsDesktopWorkspace = ({
                 >
                   Show all organizations
                 </Button>
-              ) : (canManage && (
-                <Button
-                  onClick={onCreate}
-                  data-state="unavailable"
-                  aria-label="Add organization unavailable"
-                  className="rounded-pill bg-foreground px-5 font-semibold text-background transition-all hover:bg-foreground/90 active:scale-95"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add organization
-                </Button>
-              ))}
+              ) : null}
             </EmptyState>
           )}
 
@@ -823,10 +725,6 @@ const OrganizationsDesktopWorkspace = ({
               key={org.id}
               organization={org}
               selected={focusedOrg?.id === org.id}
-              selectable={selectable}
-              checked={selectedIds.includes(org.id)}
-              onToggleSelect={onToggleSelect}
-              onSelectClick={onSelectClick}
               onFocus={() => setFocused(org.id)}
               onView={onView}
               activeActionFeedback={activeActionFeedback}
@@ -838,17 +736,8 @@ const OrganizationsDesktopWorkspace = ({
   );
 };
 
-const OrganizationsListHeader = ({ selectable, allSelected, someSelected, onSelectAll, sortConfig, onSort }) => (
-  <div className={`grid ${selectable ? ORG_GRID_COLS_SELECT : ORG_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
-    {selectable && (
-      <Checkbox
-        checked={someSelected ? 'indeterminate' : allSelected}
-        onCheckedChange={onSelectAll}
-        onClick={(event) => event.stopPropagation()}
-        aria-label={allSelected ? 'Clear selection' : 'Select all organizations'}
-        className="h-4 w-4"
-      />
-    )}
+const OrganizationsListHeader = ({ sortConfig, onSort }) => (
+  <div className={`grid ${ORG_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
     {/* Name / Status / Wallet are plain labels -- only Added (created_at) is a meaningful
         sort; identity/wallet fields belong in the FilterSheet (TIME-only sort). */}
     <span>Name</span>
@@ -862,10 +751,6 @@ const OrganizationsListHeader = ({ selectable, allSelected, someSelected, onSele
 const OrganizationRow = ({
   organization,
   selected,
-  selectable = false,
-  checked = false,
-  onToggleSelect,
-  onSelectClick,
   onFocus,
   onView,
   activeActionFeedback,
@@ -877,24 +762,11 @@ const OrganizationRow = ({
     <ListRowShell
       id={organization.id}
       dataAttrName="data-organization-row"
-      gridCols={selectable ? ORG_GRID_COLS_SELECT : ORG_GRID_COLS}
+      gridCols={ORG_GRID_COLS}
       selected={selected}
       onFocus={onFocus}
       onOpen={() => onView(organization)}
     >
-      {selectable && (
-        <Checkbox
-          checked={checked}
-          onCheckedChange={(value) => onToggleSelect?.(organization.id, value)}
-          onClick={(event) => {
-            onSelectClick?.(event);
-            event.stopPropagation();
-          }}
-          aria-label={checked ? `Deselect ${name}` : `Select ${name}`}
-          className="h-4 w-4"
-        />
-      )}
-
       <div className="flex min-w-0 items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusMeta.tone}`}>
           <Building2 className="h-4 w-4" />
@@ -1035,7 +907,7 @@ const OrganizationDetailRail = ({ organization, loading, hasFilter, onView, acti
           className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground"
         >
           <Info className="h-4 w-4 shrink-0" />
-          Organization commands are read-only until admin authority is verified.
+          You can review organization details here. Changes are not available from this page.
         </div>
       </div>
     </DetailRailShell>

@@ -86,7 +86,7 @@ Page 22 Onboarding Success (`efac625`).
      currently exposes zero tabs, so automated screenshots/interactions remain unavailable.
 
 2. **Desktop counterpart rendered proof**
-   - executor: `browser` - status: `blocked`
+   - executor: `browser` - status: `in_progress`
    - Insurance, Pricing, Payments, Analytics, Live Map, Settings, Organizations, and Subscriptions have
      authority-safe desktop source parity. Prove list/workspace focus, sorting, stale/error states,
      right-pane context, deep links, and fail-closed commands with authorized roles.
@@ -97,6 +97,15 @@ Page 22 Onboarding Success (`efac625`).
      now focuses read-only evidence instead of invoking unavailable feedback; redundant command-shaped
      detail buttons were removed from the rail and focused context card. Deep-link focus remains proved
      for Payments only; do not invent URL contracts for the other pages without the desktop proof pass.
+   - Authenticated admin proof on 2026-07-12 now covers all eight routes at desktop width. Payments,
+     Pricing, Subscribers, and Organizations rendered live rows and focused detail rails; Insurance
+     rendered its honest no-data state; Statistics, Settings, and Live Map rendered their route-specific
+     workspaces. Every checked route had no horizontal overflow and the browser error log was empty.
+     Insurance, Subscribers, and Organizations had zero selection controls. Pricing, Insurance, and
+     Subscribers no longer mount the legacy `SYSTEM STATUS` footer over sheet pagination. Statistics
+     work/evidence cards now resolve to the same background token as detail-pane elements. Remaining
+     proof is the non-admin role matrix and deliberately forced denied/stale/error envelopes, which stay
+     protected by focused contracts in this checkpoint.
 
 3. **Public/auth rendered proof**
    - executor: `browser` - status: `blocked`
@@ -122,14 +131,29 @@ Pages 12-18 still require named receivers, RLS/RPC/Edge authority, and reconcile
 `ivisit-app` consequences before blocked commands can be enabled. That does not block a
 read-only visual revamp when the route projection is proved and unsupported commands fail closed.
 
-- Page 12 Insurance: source composition complete on 2026-07-11; authenticated rendered proof pending.
-- Page 15 Organizations: source composition complete on 2026-07-11; authenticated rendered proof pending.
-- Page 17 Subscriptions: source composition complete on 2026-07-11; authenticated rendered proof pending.
+- Page 12 Insurance: source composition complete on 2026-07-11; authenticated admin desktop proof passed
+  on 2026-07-12, with the remaining role/degraded-state matrix still open.
+- Page 15 Organizations: source composition complete on 2026-07-11; authenticated admin desktop proof
+  passed on 2026-07-12, with backend commands still parked.
+- Page 17 Subscriptions: source composition complete on 2026-07-11; authenticated admin desktop proof
+  passed on 2026-07-12, with email and subscriber commands still parked.
 - Pages 13 Analytics, 16 Settings, and 18 Pricing: source composition complete on 2026-07-11;
-  authenticated rendered proof pending. Page 14 Users retains its existing guarded source state
-  and separate identity-command authority blockers.
+  authenticated admin desktop proof passed on 2026-07-12. Their remaining non-admin/degraded-state
+  matrix and Page 14 Users identity-command authority blockers stay separate.
 
 ## Live claims / run log
+
+### 2026-07-12 - Authenticated desktop parity checkpoint
+- Rendered Payments, Pricing, Insurance, Email Subscribers, Statistics, Settings, Live Map, and
+  Organizations through the signed-in admin session. Full role rails, max-three KPIs, route actions,
+  handled list workspaces, focused right panes, and route-specific empty/full-canvas states remained
+  within the viewport with no browser console errors.
+- Removed the legacy shell status footer from Pricing, Insurance, and Subscribers after rendered proof
+  showed that it competed with sheet-owned pagination. Added page contracts so the footer cannot return.
+- Kept unsupported selection and write paths absent on Insurance, Subscribers, and Organizations.
+  `SubscriptionModal` remains shared, view-only, and free of direct welcome/custom/bulk email imports.
+- Normalized Statistics work-surface and evidence-card backgrounds to the detail-pane element token;
+  computed browser styles resolve to the same translucent background value.
 
 ### 2026-07-12 - Mobile priority waves and desktop counterpart orchestration
 - Reworked Payments after direct user review exposed donor-system drift. It now uses the named HYBRID

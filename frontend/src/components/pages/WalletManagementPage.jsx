@@ -12,7 +12,6 @@ import {
     Building,
     ShieldCheck,
     History,
-    RefreshCw,
     Wallet,
     AlertCircle,
     Info,
@@ -22,14 +21,14 @@ import { getWalletPageData } from '../../services/walletService';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
 import { MobileWallet } from '../mobile/MobileWallet';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
 import { SignalPanel } from '../console/SignalPanel';
-import { ActivitySheet, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';
+import { MetricStrip } from '../console/MetricStrip';
 import { SkeletonRows, CopyChip, StatusPill, DetailLine, EmptyState, ErrorBanner, LoadErrorState } from '../console/primitives';
 import { useListKeyboardNav } from '../../hooks/useListKeyboardNav';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
@@ -352,14 +351,14 @@ export const WalletManagementPage = () => {
             byStatus,
             visibleCount: ledger.length + payments.length,
             distributionScope: 'loaded_preview',
-            distributionLabel: 'Loaded records only',
+            distributionLabel: 'Records currently shown',
         };
     }, [ledger.length, payments]);
 
     if (isMobile) {
         return (
             <>
-                <SEOHead title="Payments" description="Review balance and loaded payment activity." />
+            <SEOHead title="Payments" description="Review balance and payment activity." />
                 <MobileWallet
                     loading={loading}
                     isFetching={isFetching && !mobileLoadingMore}
@@ -439,6 +438,11 @@ export const WalletManagementPage = () => {
                 formatCurrency={formatCurrency}
                 formatPaymentMethod={formatPaymentMethod}
                 formatPaymentDescription={formatPaymentDescription}
+                search={mobileSearch}
+                onSearchCommit={setMobileSearch}
+                filters={activeMobileFilters}
+                filterSheetOpen={filterSheetOpen}
+                onOpenFilters={() => setFilterSheetOpen(true)}
             />
 
             <PaymentReceiptDialog
@@ -454,6 +458,19 @@ export const WalletManagementPage = () => {
                 onClose={() => setAnalyticsModalOpen(false)}
                 type="payments"
                 analytics={loadedAnalytics}
+            />
+
+            <FilterSheet
+                isOpen={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                filterSchema={mobileFilterSchema}
+                onApply={handleApplyMobileFilters}
+                initialValues={activeMobileFilters}
+                resetValues={createWalletFilters()[activeTab]}
+                resetLabel="Clear"
+                title={activeTab === 'ledger' ? 'Transaction filters' : 'Payment filters'}
+                viewToggle={null}
+                isMobile={false}
             />
         </div>
     );
@@ -599,21 +616,6 @@ const paymentToneClass = {
     muted: 'bg-foreground/[0.055] text-muted-foreground shadow-e2 dark:bg-white/[0.06] dark:text-slate-200',
 };
 
-const metricToneClass = {
-    success: {
-        active: 'bg-emerald-500/12 text-emerald-700 shadow-e2 dark:text-emerald-100',
-        rest: 'bg-muted/30 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-100',
-    },
-    info: {
-        active: 'bg-sky-500/12 text-sky-700 shadow-e2 dark:text-sky-100',
-        rest: 'bg-muted/30 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-100',
-    },
-    muted: {
-        active: 'bg-foreground/[0.08] text-foreground shadow-e2',
-        rest: 'bg-muted/30 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
-    },
-};
-
 const formatDate = (value) => {
     if (!value) return 'No date';
     const date = new Date(value);
@@ -643,6 +645,75 @@ const formatCompactCurrency = (amount, currency = 'USD') => {
     }).format(value);
 };
 
+const hasNumericValue = (value) => value !== null
+    && value !== undefined
+    && String(value).trim() !== ''
+    && Number.isFinite(Number(value));
+
+const getAvailableCurrency = (wallet) => {
+    const currency = typeof wallet?.currency === 'string' ? wallet.currency.trim().toUpperCase() : '';
+    if (!currency) return null;
+
+    try {
+        new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(0);
+        return currency;
+    } catch {
+        return null;
+    }
+};
+
+const matchesDateRange = (value, range = {}) => {
+    if (!range.start && !range.end) return true;
+    const time = new Date(value || '').getTime();
+    if (Number.isNaN(time)) return false;
+    const start = range.start ? new Date(`${range.start}T00:00:00`).getTime() : null;
+    const end = range.end ? new Date(`${range.end}T23:59:59.999`).getTime() : null;
+    return (start === null || time >= start) && (end === null || time <= end);
+};
+
+const hasWalletFilters = (filters = {}) => Object.entries(filters).some(([key, value]) => {
+    if (key === 'dateRange') return Boolean(value?.start || value?.end);
+    return Boolean(value && value !== 'all');
+});
+
+const matchesWalletActivity = ({ item, activeTab, filters, normalizedSearch }) => {
+    if (!matchesDateRange(item.created_at, filters?.dateRange)) return false;
+
+    if (activeTab === 'ledger') {
+        const transactionType = String(item.transaction_type || '').toLowerCase();
+        if (filters?.transactionType && filters.transactionType !== 'all' && transactionType !== filters.transactionType) return false;
+        if (!normalizedSearch) return true;
+        return [
+            item.id,
+            item.description,
+            item.transaction_type,
+            item.reference_id,
+            item.external_reference,
+            item.amount,
+        ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+    }
+
+    const status = String(item.status || '').toLowerCase();
+    const paymentMethod = String(item.payment_method || '').toLowerCase();
+    if (filters?.status && filters.status !== 'all' && status !== filters.status) return false;
+    if (filters?.paymentMethod && filters.paymentMethod !== 'all' && paymentMethod !== filters.paymentMethod) return false;
+    if (!normalizedSearch) return true;
+    return [
+        item.id,
+        item.display_id,
+        item.emergency_request_id,
+        item.payment_method,
+        item.status,
+        item.amount,
+        item.user_details?.first_name,
+        item.user_details?.last_name,
+        item.user_details?.email,
+        item.user_details?.phone,
+        item.emergency_requests?.service_type,
+        item.emergency_requests?.hospitals?.name,
+    ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+};
+
 const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) => {
     const loadedCount = ledger.length + payments.length;
 
@@ -652,7 +723,7 @@ const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) =>
             tone: 'danger',
             label: 'Load failed',
             headline: 'Payments did not load',
-            subhead: 'No financial values are being inferred. Retry from the activity sheet.',
+            subhead: 'No payment totals are shown. Try again from the activity list.',
         };
     }
 
@@ -660,8 +731,8 @@ const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) =>
         return {
             icon: AlertCircle,
             tone: 'warning',
-            label: 'Saved results',
-            headline: 'Showing the last loaded payment records',
+            label: 'Refresh failed',
+            headline: 'Showing the most recent payment records',
             subhead: 'The latest refresh failed, so visible values may be out of date.',
         };
     }
@@ -670,18 +741,18 @@ const getPaymentSignal = ({ loadError, hasLoaded, wallet, ledger, payments }) =>
         return {
             icon: Wallet,
             tone: 'muted',
-            label: 'No wallet returned',
+            label: 'No payment activity',
             headline: 'No payment records are available',
-            subhead: 'This role scope returned no wallet, transactions, or patient payments.',
+            subhead: 'This account has no wallet, transactions, or patient payments available.',
         };
     }
 
     return {
         icon: ShieldCheck,
         tone: 'success',
-        label: 'Read only',
-        headline: `${loadedCount} payment record${loadedCount === 1 ? '' : 's'} loaded`,
-        subhead: 'Review the latest returned records. Money-changing commands stay unavailable until their consequence is proved.',
+        label: 'Payment activity',
+        headline: `${loadedCount} payment record${loadedCount === 1 ? '' : 's'} available`,
+        subhead: 'Review transactions and patient payments. Money changes are unavailable.',
     };
 };
 
@@ -703,6 +774,11 @@ const PaymentsDesktopWorkspace = ({
     formatCurrency,
     formatPaymentMethod,
     formatPaymentDescription,
+    search,
+    onSearchCommit,
+    filters,
+    filterSheetOpen,
+    onOpenFilters,
 }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
@@ -712,14 +788,19 @@ const PaymentsDesktopWorkspace = ({
     const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
     const signal = getPaymentSignal({ loadError, hasLoaded, wallet, ledger, payments });
     const rawItems = activeTab === 'ledger' ? ledger : payments;
-    const activeItems = useMemo(() => [...rawItems].sort((left, right) => {
-        const leftTime = new Date(left.created_at || 0).getTime();
-        const rightTime = new Date(right.created_at || 0).getTime();
-        return sortConfig.direction === 'asc' ? leftTime - rightTime : rightTime - leftTime;
-    }), [rawItems, sortConfig.direction]);
+    const normalizedSearch = String(search || '').trim().toLowerCase();
+    const filtersActive = hasWalletFilters(filters);
+    const isNarrowed = Boolean(normalizedSearch) || filtersActive;
+    const activeItems = useMemo(() => rawItems
+        .filter((item) => matchesWalletActivity({ item, activeTab, filters, normalizedSearch }))
+        .sort((left, right) => {
+            const leftTime = new Date(left.created_at || 0).getTime();
+            const rightTime = new Date(right.created_at || 0).getTime();
+            return sortConfig.direction === 'asc' ? leftTime - rightTime : rightTime - leftTime;
+        }), [activeTab, filters, normalizedSearch, rawItems, sortConfig.direction]);
     const focusedEntry = activeItems.find((item) => item.id === focusedId) || null;
-    const failedEmpty = Boolean(loadError) && activeItems.length === 0;
-    const itemNoun = activeTab === 'ledger' ? 'loaded transactions' : 'loaded patient payments';
+    const failedEmpty = Boolean(loadError) && rawItems.length === 0;
+    const itemNoun = activeTab === 'ledger' ? 'transactions' : 'patient payments';
     const pagination = useMemo(() => ({
         currentPage: 1,
         totalPages: 1,
@@ -810,13 +891,11 @@ const PaymentsDesktopWorkspace = ({
             )}
         >
             <SignalPanel signal={signal} loading={loading} toneClassMap={paymentToneClass}>
-                <PaymentsMetricStrip
+                <PaymentsMetrics
+                    loading={loading}
                     wallet={wallet}
                     ledger={ledger}
-                    payments={payments}
-                    paymentMethods={paymentMethods}
-                    activeTab={activeTab}
-                    setActiveTab={handleTabChange}
+                    readState={readState}
                 />
             </SignalPanel>
 
@@ -834,12 +913,17 @@ const PaymentsDesktopWorkspace = ({
                         loading={loading}
                         isFetching={isFetching}
                         onRefresh={fetchData}
+                        search={search}
+                        onSearchCommit={onSearchCommit}
+                        filters={filters}
+                        filterSheetOpen={filterSheetOpen}
+                        onOpenFilters={onOpenFilters}
                     />
                 )}
                 errorBanner={loadError && !failedEmpty ? (
                     <ErrorBanner
                         title="Payments refresh failed"
-                        message={`${loadError} Existing rows are preserved and may be out of date.`}
+                        message={`${loadError} Current rows remain visible and may be out of date.`}
                         onRetry={fetchData}
                         testId="payments-error-state"
                     />
@@ -860,11 +944,15 @@ const PaymentsDesktopWorkspace = ({
                     {!loading && !failedEmpty && (
                         <>
                             <PaymentsListHeader sortConfig={sortConfig} onSort={handleSort} />
-                            {activeItems.length === 0 && !loadError && (
+                            {activeItems.length === 0 && (
                                 <EmptyState
                                     icon={History}
-                                    heading={activeTab === 'ledger' ? 'No transactions returned' : 'No patient payments returned'}
-                                    body="This is an empty result for the current role scope, not a global financial total."
+                                    heading={isNarrowed
+                                        ? `No matching ${activeTab === 'ledger' ? 'transactions' : 'patient payments'}`
+                                        : activeTab === 'ledger' ? 'No transactions available' : 'No patient payments available'}
+                                    body={isNarrowed
+                                        ? 'Change your search or filters.'
+                                        : 'No records are available in this tab for the current account.'}
                                 />
                             )}
                             {activeItems.map((item) => (
@@ -888,83 +976,60 @@ const PaymentsDesktopWorkspace = ({
     );
 };
 
-const PaymentsMetricStrip = ({
+const PaymentsMetrics = ({
+    loading,
     wallet,
     ledger,
-    payments,
-    paymentMethods,
-    activeTab,
-    setActiveTab,
+    readState,
 }) => {
+    const currency = getAvailableCurrency(wallet);
+    const creditRows = ledger.filter((item) => String(item.transaction_type || '').toLowerCase() === 'credit');
+    const debitRows = ledger.filter((item) => String(item.transaction_type || '').toLowerCase() === 'debit');
+    const creditAmountsAvailable = creditRows.every((item) => hasNumericValue(item.amount));
+    const debitAmountsAvailable = debitRows.every((item) => hasNumericValue(item.amount));
+    const credits = creditRows.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0);
+    const debits = debitRows.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0);
+    const balanceAvailable = readState?.wallet === 'ready'
+        && currency
+        && hasNumericValue(wallet?.balance);
+    const ledgerAvailable = readState?.ledger === 'ready' && Boolean(currency);
     const metrics = [
         {
             id: 'balance',
             label: 'Balance',
-            value: wallet ? formatCompactCurrency(wallet.balance, wallet.currency || 'USD') : 'Not returned',
+            value: balanceAvailable ? formatCompactCurrency(wallet.balance, currency) : '',
             icon: Wallet,
-            tone: 'info',
-            tab: 'ledger',
-            onClick: () => setActiveTab('ledger'),
+            toneClass: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
+            priority: 0,
+            available: Boolean(balanceAvailable),
         },
         {
-            id: 'ledger',
-            label: 'Transactions loaded',
-            value: ledger.length,
-            icon: History,
-            tone: 'muted',
-            tab: 'ledger',
-            onClick: () => setActiveTab('ledger'),
+            id: 'credits',
+            label: 'Credits',
+            value: ledgerAvailable && creditAmountsAvailable ? formatCompactCurrency(credits, currency) : '',
+            icon: ArrowDownLeft,
+            toneClass: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
+            priority: 1,
+            available: ledgerAvailable && creditAmountsAvailable,
         },
         {
-            id: 'payments',
-            label: 'Payments loaded',
-            value: payments.length,
-            icon: ShieldCheck,
-            tone: 'success',
-            tab: 'payments',
-            onClick: () => setActiveTab('payments'),
-        },
-        {
-            id: 'cards',
-            label: 'Cards returned',
-            value: paymentMethods.length,
-            icon: CreditCard,
-            tone: paymentMethods.length > 0 ? 'success' : 'muted',
-            onClick: () => {},
+            id: 'debits',
+            label: 'Debits',
+            value: ledgerAvailable && debitAmountsAvailable ? formatCompactCurrency(debits, currency) : '',
+            icon: ArrowUpRight,
+            toneClass: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
+            priority: 2,
+            available: ledgerAvailable && debitAmountsAvailable,
         },
     ];
 
     return (
-        <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
-                    {metrics.map((item) => {
-                        const Icon = item.icon;
-                        const active = item.tab ? activeTab === item.tab : false;
-                        const tone = metricToneClass[item.tone] || metricToneClass.muted;
-
-                        return (
-                            <motion.button
-                                key={item.id}
-                                type="button"
-                                whileHover={{ y: -2 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={item.onClick}
-                                disabled={item.id === 'cards'}
-                                className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? tone.active : tone.rest}`}
-                                aria-pressed={active}
-                            >
-                                <span className="flex items-start justify-between gap-2">
-                                    <span className="min-w-0">
-                                        <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
-                                        <span className="mt-1 block truncate text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
-                                    </span>
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/45 transition-transform group-hover:scale-105">
-                                        <Icon className="h-4 w-4" />
-                                    </span>
-                                </span>
-                            </motion.button>
-                        );
-                    })}
-        </div>
+        <MetricStrip
+            items={metrics}
+            loading={loading}
+            max={3}
+            dataAttr="data-payment-metric"
+        />
     );
 };
 
@@ -974,9 +1039,18 @@ const PaymentsToolbar = ({
     loading,
     isFetching,
     onRefresh,
+    search,
+    onSearchCommit,
+    filters,
+    filterSheetOpen,
+    onOpenFilters,
 }) => (
-    <div className="flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 rounded-inner bg-muted/30 p-1">
+    <div className="space-y-3">
+        <div
+            className="grid max-w-lg grid-cols-2 gap-1 rounded-inner bg-muted/30 p-1"
+            role="tablist"
+            aria-label="Payment activity source"
+        >
             {[
                 { id: 'ledger', label: 'Transaction History', icon: History },
                 { id: 'payments', label: 'Patient Payments', icon: ShieldCheck },
@@ -987,9 +1061,10 @@ const PaymentsToolbar = ({
                     <button
                         key={item.id}
                         type="button"
+                        role="tab"
                         onClick={() => setActiveTab(item.id)}
                         className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-button px-3 text-sm font-semibold transition-all active:scale-[0.98] ${active ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground hover:text-foreground'}`}
-                        aria-pressed={active}
+                        aria-selected={active}
                     >
                         <Icon className="h-4 w-4" />
                         <span>{item.label}</span>
@@ -997,16 +1072,18 @@ const PaymentsToolbar = ({
                 );
             })}
         </div>
-        <Button
-            variant="ghost"
-            size="icon"
-            onClick={onRefresh}
-            disabled={loading || isFetching}
-            className="h-12 w-12 shrink-0 rounded-button bg-muted/30 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 disabled:opacity-60"
-            aria-label={isFetching ? 'Refreshing payments' : 'Refresh payments'}
-        >
-            <RefreshCw className={`h-4 w-4 ${loading || isFetching ? 'animate-spin' : ''}`} />
-        </Button>
+        <SheetToolbar
+            searchValue={search}
+            onSearchCommit={onSearchCommit}
+            searchPlaceholder={activeTab === 'ledger' ? 'Search transactions...' : 'Search patient payments...'}
+            searchTestId="payments-sheet-search"
+            onRefresh={onRefresh}
+            refreshing={loading || isFetching}
+            refreshNoun="payments"
+            onOpenFilters={onOpenFilters}
+            filterSheetOpen={filterSheetOpen}
+            filtersActive={hasWalletFilters(filters)}
+        />
     </div>
 );
 
@@ -1016,7 +1093,7 @@ const PaymentsListHeader = ({ sortConfig, onSort }) => (
     <div className={`grid ${PAYMENT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
         <span>Activity</span>
         <span>Status</span>
-        <span>Scope</span>
+        <span>Facility</span>
         <SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
         <span className="text-right">Amount</span>
         <span className="justify-self-end text-right">Action</span>
@@ -1089,7 +1166,7 @@ const PaymentRow = ({
             </div>
 
             <div className="truncate text-sm font-medium text-muted-foreground">
-                {isPayment ? item.emergency_requests?.hospitals?.name || 'Current role scope' : 'Wallet ledger'}
+                {isPayment ? item.emergency_requests?.hospitals?.name || 'Facility unavailable' : 'Account wallet'}
             </div>
 
             <div className="text-sm font-medium text-muted-foreground">{formatDate(item.created_at)}</div>
@@ -1102,7 +1179,7 @@ const PaymentRow = ({
             </div>
 
             <span className="justify-self-end inline-flex h-9 items-center gap-1 rounded-pill bg-background/45 px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all group-hover:bg-foreground group-hover:text-background">
-                {isPayment ? 'Receipt' : 'Read only'}
+                {isPayment ? 'Receipt' : 'Details'}
                 {isPayment && <ArrowRight className="h-3.5 w-3.5" />}
             </span>
         </ListRowShell>
@@ -1142,7 +1219,7 @@ const PaymentDetailRail = ({
     const isCredit = isPayment ? paymentStatus === 'completed' : transactionType === 'credit';
     const statusLabel = entry
         ? isPayment ? titleCase(entry.status || 'unknown') : titleCase(entry.transaction_type || 'transaction')
-        : 'Read only';
+        : 'No selection';
     const statusTone = entry
         ? isPayment
             ? ['failed', 'declined'].includes(paymentStatus)
@@ -1160,9 +1237,9 @@ const PaymentDetailRail = ({
     const amount = entry
         ? formatCurrency(Math.abs(Number(entry.amount || 0)), isPayment ? entry.currency : undefined)
         : 'Not selected';
-    const scopeLabel = isPayment
-        ? entry?.emergency_requests?.hospitals?.name || 'Current role scope'
-        : 'Wallet ledger';
+    const facilityLabel = isPayment
+        ? entry?.emergency_requests?.hospitals?.name || 'Facility unavailable'
+        : 'Account wallet';
 
     return (
         <DetailRailShell>
@@ -1194,14 +1271,14 @@ const PaymentDetailRail = ({
             {entry ? (
                 <div className="space-y-3">
                     <DetailLine icon={Clock} label="Recorded" value={`${formatDate(entry.created_at)} at ${formatTime(entry.created_at)}`} />
-                    <DetailLine icon={Building} label="Scope" value={scopeLabel} />
-                    <DetailLine icon={isPayment ? CreditCard : History} label={isPayment ? 'Method' : 'Reference'} value={isPayment ? titleCase(formatPaymentMethod(entry)) : entry.reference_id || 'Not returned'} />
+                    <DetailLine icon={Building} label="Facility" value={facilityLabel} />
+                    <DetailLine icon={isPayment ? CreditCard : History} label={isPayment ? 'Method' : 'Reference'} value={isPayment ? titleCase(formatPaymentMethod(entry)) : entry.reference_id || 'Not available'} />
                 </div>
             ) : (
                 <div className="flex min-h-[180px] flex-col items-center justify-center rounded-card bg-muted/18 p-6 text-center">
                     <Info className="mb-3 h-8 w-8 text-muted-foreground/60" />
                     <p className="text-sm font-semibold">No record selected</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Choose a loaded row to inspect its source fields.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Choose a row to see its payment details.</p>
                 </div>
             )}
 
@@ -1219,11 +1296,11 @@ const PaymentDetailRail = ({
             <div className="mt-5 space-y-3">
                 <div className="rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
                     <p className="text-xs font-medium text-muted-foreground">Recorded balance</p>
-                    <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not returned'}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{ledgerCount} transactions and {paymentsCount} patient payments loaded, up to 50 per source.</p>
+                    <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not available'}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Showing {ledgerCount} transactions and {paymentsCount} patient payments, up to 50 in each tab.</p>
                 </div>
                 <div className="rounded-inner bg-muted/22 p-3">
-                    <p className="text-[11px] font-semibold text-muted-foreground">Cards returned</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground">Saved cards</p>
                     <p className="mt-1 text-sm font-semibold">{readState?.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable'}</p>
                 </div>
             </div>
@@ -1233,7 +1310,7 @@ const PaymentDetailRail = ({
                     <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
                     <div>
                         <p className="text-sm font-semibold">Money changes unavailable</p>
-                        <p className="mt-1 text-xs leading-5 text-amber-800/80 dark:text-amber-100/75">Add funds, withdraw, and card changes stay locked until receiver authority and reflected app consequences are proved.</p>
+                        <p className="mt-1 text-xs leading-5 text-amber-800/80 dark:text-amber-100/75">Add funds, withdrawals, and card changes are not available for this account.</p>
                     </div>
                 </div>
             </div>

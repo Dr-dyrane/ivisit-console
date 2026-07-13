@@ -73,10 +73,21 @@ export const supabaseMapService = {
       if (errAmbulances && !quiet) console.error("Error fetching map ambulances:", errAmbulances);
       if (errHospitals && !quiet) console.error("Error fetching map hospitals:", errHospitals);
 
+      const sourceState = {
+        emergencies: {
+          ready: !errEmergencies,
+          partial: !errEmergencies && (emergencies || []).length >= 100,
+          limit: 100,
+        },
+        ambulances: { ready: !errAmbulances, partial: false, limit: null },
+        hospitals: { ready: !errHospitals, partial: false, limit: null },
+      };
+
       return {
         emergencies: emergencies || [],
         ambulances: ambulances || [],
-        hospitals: hospitals || []
+        hospitals: hospitals || [],
+        sourceState,
       };
     } catch (error) {
       if (!quiet) console.error("Error fetching initial map data:", error);

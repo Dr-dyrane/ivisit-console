@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { getPricingPageData } from '../../services/pricingService';
-import { Plus } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { usePagination } from '../../hooks/usePagination';
@@ -57,7 +57,7 @@ const normalizePricingProjection = (projection = EMPTY_PRICING_PROJECTION) => ({
 });
 
 export const PricingManagementPage = () => {
-    const { profile, isAdmin, isOrgAdmin } = useAuth();
+    const { profile, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
     const { isMobile } = useNavigation();
     const [loading, setLoading] = useState(true);
     const [pricing, setPricing] = useState([]);
@@ -76,6 +76,12 @@ export const PricingManagementPage = () => {
     const fetchRequestRef = useRef(0);
     const pricingSummary = pricingProjection.summary || EMPTY_PRICING_SUMMARY;
     const pricingTotalCount = pricingProjection.totalCount || 0;
+    const roleKind = useMemo(() => {
+        if (isAdmin()) return 'admin';
+        if (isOrgAdmin()) return 'org_admin';
+        if (isProvider()) return isDriver() ? 'driver' : 'provider';
+        return 'viewer';
+    }, [isAdmin, isOrgAdmin, isProvider, isDriver]);
     const pricingAnalytics = useMemo(() => ({
         total: pricingTotalCount,
         active: pricingTotalCount,
@@ -183,6 +189,10 @@ export const PricingManagementPage = () => {
         toast.info(PRICING_SCOPE_UNAVAILABLE_MESSAGE);
     }, []);
 
+    const handleOpenPricingStats = useCallback(() => {
+        setAnalyticsModalOpen(true);
+    }, []);
+
     const handleDelete = useCallback(() => {
         showPricingCommandUnavailable();
     }, [showPricingCommandUnavailable]);
@@ -238,31 +248,24 @@ export const PricingManagementPage = () => {
     // Header & Footer
     const headerActions = useMemo(() => (
         <Button
-            onClick={showPricingCommandUnavailable}
-            data-state="unavailable"
-            title={PRICING_SCOPE_UNAVAILABLE_MESSAGE}
-            aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}
-            className="bg-card/70 h-9 px-4 text-[10px] font-bold text-foreground transition-transform active:scale-[0.98]"
+            onClick={handleOpenPricingStats}
+            data-state={analyticsModalOpen ? 'open' : 'idle'}
+            aria-label="Pricing stats"
+            aria-haspopup="dialog"
+            aria-expanded={analyticsModalOpen}
+            className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
         >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Pricing
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Pricing stats
         </Button>
-    ), [showPricingCommandUnavailable]);
+    ), [analyticsModalOpen, handleOpenPricingStats]);
 
     usePageHeader('Pricing', headerActions);
 
-    const footerContent = useMemo(() => (
-        <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[10px] font-bold">
-                <span>Page {pagination.currentPage} of {pagination.totalPages} - {pricingTotalCount} Rules</span>
-            </div>
-        </div>
-    ), [pagination.currentPage, pagination.totalPages, pricingTotalCount]);
-
-    usePageFooter(footerContent, 'pagination', !loading && pricing.length > 0);
+    usePageFooter(null, 'status', false);
 
     usePageShell({ bleed: true, hideFab: true });
-    const moduleRailItems = useMemo(() => getConsoleModuleRailItems({ isAdmin: isAdmin() }), [isAdmin]);
+    const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
     const { routingPath, handleRailNavigate } = useWayfindingNav();
 
     /**
@@ -274,8 +277,12 @@ export const PricingManagementPage = () => {
     useEffect(() => {
         const handleOpenAdd = () => showPricingCommandUnavailable();
         window.addEventListener('openPricingModal', handleOpenAdd);
-        return () => window.removeEventListener('openPricingModal', handleOpenAdd);
-    }, [showPricingCommandUnavailable]);
+        window.addEventListener('openPricingAnalytics', handleOpenPricingStats);
+        return () => {
+            window.removeEventListener('openPricingModal', handleOpenAdd);
+            window.removeEventListener('openPricingAnalytics', handleOpenPricingStats);
+        };
+    }, [handleOpenPricingStats, showPricingCommandUnavailable]);
 
     if (isMobile) {
         return (
@@ -298,7 +305,7 @@ export const PricingManagementPage = () => {
                     onRefresh={fetchPricing}
                     hasMore={pagination.hasNextPage}
                     onLoadMore={handleMobileLoadMore}
-                    onViewAnalytics={() => setAnalyticsModalOpen(true)}
+                    onViewAnalytics={handleOpenPricingStats}
                     actionNotice={actionNotice}
                 />
                 <AnalyticsModal

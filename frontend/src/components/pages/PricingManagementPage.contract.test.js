@@ -51,6 +51,51 @@ describe('Pricing Page 18 intake contract', () => {
     });
   });
 
+  it('closes the desktop shell with role rails, shared KPIs, stats, focus, and honest states', () => {
+    const page = read('src/components/pages/PricingManagementPage.jsx');
+    const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
+    const panel = read('src/components/context/PricingContextPanel.jsx');
+
+    expect(page).toContain("if (isAdmin()) return 'admin';");
+    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
+    expect(page).toContain("if (isProvider()) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(page).not.toContain('getConsoleModuleRailItems({');
+    expect(page).toContain("usePageFooter(null, 'status', false)");
+    expect(page).not.toContain('usePageFooter(footerContent');
+
+    expect(workspace.match(/<KpiStrip/g)).toHaveLength(1);
+    expect(workspace).toContain("pinnedIds={['override', 'global']}");
+    expect(workspace).toContain('importance={{ all: 0, override: 1, global: 2 }}');
+    expect(workspace).not.toMatch(/<KpiStrip[^>]*\bmax=/);
+    expect(workspace.match(/<ActivitySheet/g)).toHaveLength(1);
+    expect(workspace.match(/<SortableColumnHeader/g)).toHaveLength(1);
+    expect(workspace).toContain('onOpen: (row) => setFocused(row.id)');
+    expect(workspace).toContain('searchTestId="pricing-sheet-search"');
+    expect(workspace).toContain('onRefresh={retry}');
+
+    expect(page).toContain('onClick={handleOpenPricingStats}');
+    expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
+    expect(page).toContain('Pricing stats');
+    expect(page).toContain("window.addEventListener('openPricingAnalytics', handleOpenPricingStats)");
+    expect(panel).toContain("new CustomEvent('openPricingAnalytics')");
+    expect(panel).toContain('Opening pricing stats...');
+
+    expect(workspace).toContain('Array.from({ length: 7 }');
+    expect(workspace).toContain('<LoadErrorState title="Pricing did not load"');
+    expect(workspace).toContain('Pricing did not refresh. Showing the previous results.');
+    expect(workspace).toContain("heading={hasFilter ? 'No matching pricing rules' : 'No pricing rules'}");
+    expect(panel).toContain('pricingContext?.loading ?? !pricingContext');
+    expect(panel).toContain('role="alert"');
+
+    expect(workspace).not.toContain('Retry to load the pricing projection.');
+    expect(workspace).not.toContain('filtered projection');
+    expect(workspace).not.toContain('facility authority');
+    expect(panel).not.toContain('Read-only pricing evidence');
+    expect(panel).not.toContain('Pricing scope');
+    expect(panel).toContain('Pricing changes are unavailable until a facility is selected.');
+  });
+
   it('preserves the old Pricing behavior inventory as evidence, not canon', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const oldPage = gitShowHead('frontend/src/components/pages/PricingManagementPage.jsx');
@@ -154,7 +199,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).toContain('const isFetching = loading && hasPricingRows;');
     expect(page).toContain('isFetching={isFetching}');
     expect(workspace).toContain('refreshing={isFetching}');
-    expect(workspace).toContain('Average ${averageAmount} in this filtered projection.');
+    expect(workspace).not.toContain('Average ${averageAmount} in these results.');
+    expect(workspace).toContain('Show all pricing rules');
     expect(mobile).toContain("label={errorMessage ? 'Pricing did not load' : 'No pricing rules found'}");
     expect(page).toContain('pagination.setTotalCount(projection.totalCount || 0);');
     expect(page).toContain('const filteredPricing = pricing;');
@@ -228,16 +274,16 @@ describe('Pricing Page 18 intake contract', () => {
     expect(panel).not.toContain('const globalPricing = pricing.filter');
     expect(panel).not.toContain('const overrides = pricing.filter');
     expect(panel).not.toContain('const avgPrice = pricing.length > 0');
-    expect(panel).toContain("const PRICING_UNAVAILABLE_MESSAGE = 'Pricing actions unavailable until facility scope is verified.';");
+    expect(panel).toContain("const PRICING_UNAVAILABLE_MESSAGE = 'Pricing changes are unavailable until a facility is selected.';");
     expect(panel).toContain('pricingContext = null');
     expect(panel).toContain('pricingContext?.focusedPrice');
     expect(panel).toContain('summary.globalFallbackCount');
     expect(panel).toContain('summary.facilityPriceCount');
-    expect(panel).toContain('Read-only pricing evidence');
+    expect(panel).toContain('Pricing details are available to view.');
     expect(panel).not.toContain('Details unavailable');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain('data-state="unavailable"');
+    expect(panel).toContain("data-state={unavailable ? 'unavailable' : 'available'}");
     expect(panel).toContain('rounded-card');
     expect(panel).not.toContain('rounded-modal');
     expect(panel).toContain('rounded-inner');
@@ -297,6 +343,10 @@ describe('Pricing Page 18 intake contract', () => {
     expect(service).toContain('export const getPricingPageData');
     expect(service).toContain('sourceLabel');
     expect(service).toContain('facilityName');
+    expect(service).toContain("hospitalsQuery.eq('organization_id', organizationId)");
+    expect(service).toContain("pricingQuery.or(`hospital_id.is.null,hospital_id.in.(${hospitalIds.join(',')})`)");
+    expect(service).toContain('const scopedRows = matchingRows.filter((row) => matchesPricingScope(row, scope));');
+    expect(service).toContain('summary: buildPricingSummary(matchingRows)');
     expect(service).toContain("basis: 'current_filter'");
     expect(service).toContain('readState');
     expect(service).toContain("mode: organizationId ? 'organization_summary' : 'platform_default'");
@@ -378,8 +428,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(contextPanel).toContain("new CustomEvent('requestPricingRouteContext')");
     expect(panel).not.toContain("new CustomEvent('openPricingModal')");
     expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
-    expect(panel).toContain('Pricing scope pending.');
-    expect(panel).toContain('Pricing actions unavailable until facility scope is verified.');
+    expect(panel).toContain('Select a pricing rule to view more details.');
+    expect(panel).toContain('Pricing changes are unavailable until a facility is selected.');
     expect(page).toContain("new CustomEvent('pricingRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestPricingRouteContext'");
     expect(page).toContain('focusedPrice');
@@ -405,8 +455,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).toContain('const showPricingCommandUnavailable = useCallback(() => {');
     expect(page).toContain('setActionNotice(PRICING_SCOPE_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(PRICING_SCOPE_UNAVAILABLE_MESSAGE);');
-    expect(page).toContain('data-state="unavailable"');
-    expect(page).toContain('aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}');
+    expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
+    expect(page).toContain('aria-label="Pricing stats"');
     expect(page).toContain('<PricingDesktopWorkspace');
     expect(page).not.toContain('selection={selection}');
     expect(page).toContain('sortConfig={sortConfig}');

@@ -32,13 +32,64 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain("distributionScope: 'exact_filtered_projection'");
     expect(page).toContain('analytics={subscriptionAnalytics}');
     expect(page).not.toContain('total: subscribers.length');
-    expect(page).toContain('useRowSelection(paginatedSubscribers)');
-    expect(page).toContain('const handleSelect = selection.handleToggleSelect;');
-    expect(page).toContain('const handleSelectAll = selection.handleSelectAll;');
-    expect(desktop).toContain('selection.handleSelectAll');
-    expect(desktop).toContain('selection.handleToggleSelect');
-    expect(desktop).toContain('selection.handleSelectClick');
+    expect(page).not.toContain('useRowSelection(paginatedSubscribers)');
+    expect(desktop).toContain('selection excluded by decision:');
+    expect(desktop).not.toContain('<Checkbox');
+    expect(desktop).not.toContain('selectedIds');
+    expect(page).toContain("key: 'dateRange'");
   });
+
+  it('closes the desktop shell with donor rails, shared KPIs, stats, context, and honest states', () => {
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
+    const panel = read('src/components/context/SubscriptionsPanel.jsx');
+
+    expect(page).toContain("if (isAdmin()) return 'admin';");
+    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
+    expect(page).toContain("if (isProvider()) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(page).not.toContain('getConsoleModuleRailItems({');
+    expect(page).toContain('denied: subscriptionDenied');
+    expect(page).toContain('denied={subscriptionDenied}');
+
+    expect(desktop.match(/<KpiStrip/g)).toHaveLength(1);
+    expect(desktop).toContain("pinnedIds={['pending', 'new']}");
+    expect(desktop).toContain('importance={{ all: 0, pending: 1, new: 2 }}');
+    expect(desktop).not.toMatch(/<KpiStrip[^>]*\bmax=/);
+    expect(desktop.match(/<ActivitySheet/g)).toHaveLength(1);
+    expect(desktop.match(/<SortableColumnHeader/g)).toHaveLength(1);
+    expect(desktop).toContain('searchTestId="subscriptions-sheet-search"');
+    expect(desktop).toContain('Subscriber access unavailable');
+    expect(desktop).toContain('!denied && failedEmpty && <LoadErrorState');
+    expect(desktop).toContain('onRefresh={retry}');
+    expect(desktop).toContain("label: 'New subscribers'");
+
+    expect(page).toContain('onClick={handleViewAnalytics}');
+    expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
+    expect(page).toContain('Subscriber stats');
+    expect(page).toContain("usePageHeader('Email Subscribers', headerActions, null, filterButtonComponent)");
+    expect(page).toContain("usePageFooter(null, 'status', false)");
+    expect(page).not.toContain('usePageFooter(footerContent');
+    expect(page).toContain('aria-label="Filter subscribers"');
+    expect(panel).toContain("new CustomEvent('openAnalyticsModal')");
+    expect(panel).toContain('Opening subscriber stats...');
+    expect(panel).toContain('role="status"');
+
+    expect(desktop).toContain('Array.from({ length: 7 }');
+    expect(desktop).toContain('<LoadErrorState title="Subscribers did not load"');
+    expect(desktop).toContain('Subscribers did not refresh. Showing the previous results.');
+    expect(desktop).toContain("heading={hasFilter ? 'No matching subscribers' : 'No subscribers'}");
+    expect(panel).toContain('subscriptionsContext?.summary?.loading ?? !subscriptionsContext');
+    expect(panel).toContain('role="alert"');
+
+    expect(desktop).not.toContain('Retry to load the subscriber projection.');
+    expect(desktop).not.toContain('Commands remain unavailable until authority is proved.');
+    expect(panel).not.toContain('Subscriber scope');
+    expect(panel).not.toContain('Quick actions');
+    expect(panel).toContain('Adding subscribers is not available yet.');
+    expect(panel).toContain('Subscriber email tools are not available yet.');
+  });
+
   it('keeps Subscriptions in intake only and out of the default visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
@@ -154,14 +205,14 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).not.toContain("toast.success('Subscriber deleted successfully')");
     expect(page).not.toContain("toast.success('Subscriber updated successfully')");
     expect(page).not.toContain("toast.success('Subscriber created successfully')");
-    expect(page).toContain("const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber changes are not ready until subscriber authority is verified.';");
+    expect(page).toContain("const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber and email changes are not available yet.';");
     expect(page).toContain('setSubscriptionCommandNotice(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(mobile).toContain('id="subscriptions-action-feedback"');
     expect(page).toContain('actionNotice={subscriptionCommandNotice}');
-    expect(page).toContain('aria-label="Add subscriber unavailable"');
-    expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).toContain('aria-label="Delete subscribers unavailable"');
-    expect(page).toContain('data-state="unavailable"');
+    expect(page).toContain('aria-label="Subscriber stats"');
+    expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).not.toContain('aria-label="Delete subscribers unavailable"');
+    expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
     expect(page).toContain('onEdit={null}');
     expect(page).toContain('onDelete={null}');
     expect(page).toContain('canManage={false}');
@@ -285,9 +336,9 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(panel).not.toContain("new CustomEvent('openEmailActionsModal')");
     expect(panel).toContain("new CustomEvent('openSubscriptionModal')");
     expect(panel).toContain("new CustomEvent('openAnalyticsModal')");
-    expect(panel).toContain('Subscriber scope');
+    expect(panel).toContain('Subscriber overview');
     expect(panel).toContain('Current subscriber');
-    expect(panel).toContain('Quick actions');
+    expect(panel).toContain('Actions');
     expect(panel).toContain('Recent subscribers');
     expect(panel).toContain('subscriber.email');
     expect(panel).toContain('subscriptionsContext');
@@ -304,22 +355,20 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(panel).not.toMatch(/\boutline-/);
     expect(panel).not.toMatch(/\btracking-/);
 
-    for (const source of [oldModal, modal]) {
-      expect(source).toContain('getSubscribersForBulkEmail');
-      expect(source).toContain('sendBulkEmail');
-      expect(source).toContain('sendWelcomeToSubscriber');
-      expect(source).toContain('sendCustomEmail');
-      expect(source).toContain('IVISIT_106_CAMPAIGN_SUBJECT');
-      expect(source).toContain("mode === 'emailActions'");
-      expect(source).toContain("mode === 'bulk'");
-      expect(source).toContain("toast.success('iVisit 1.0.6 campaign loaded')");
-      expect(source).toContain("mode === 'bulk' ? 'Broadcast'");
-      expect(source).toContain("'Email Actions'");
-      expect(source).toContain('System Registry v2');
-      expect(source).toContain('Broadcast_Subject');
-      expect(source).toContain('Target_Nodes');
-      expect(source).toContain('checked={formData.sendWelcomeEmail}');
-    }
+    expect(oldModal).toContain('getSubscribersForBulkEmail');
+    expect(oldModal).toContain('sendBulkEmail');
+    expect(oldModal).toContain('sendWelcomeToSubscriber');
+    expect(oldModal).toContain('sendCustomEmail');
+    expect(oldModal).toContain('IVISIT_106_CAMPAIGN_SUBJECT');
+    expect(oldModal).toContain('System Registry v2');
+    expect(modal).toContain('<ModalShell');
+    expect(modal).toContain("mode === 'view'");
+    expect(modal).toContain('Subscriber changes unavailable');
+    expect(modal).not.toContain('getSubscribersForBulkEmail');
+    expect(modal).not.toContain('sendBulkEmail');
+    expect(modal).not.toContain('sendWelcomeToSubscriber');
+    expect(modal).not.toContain('sendCustomEmail');
+    expect(modal).not.toContain('System Registry v2');
 
     for (const source of [oldList, list]) {
       expect(source).toContain('onView(subscriber)');
@@ -486,12 +535,14 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(contextPanel).toContain('subscriptionsContext={subscriptionsRouteContext}');
     expect(contextFab).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(routeActionOwnership).toContain("'/subscriptions'");
-    expect(contextFab).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
+    expect(contextFab).toContain("case 'subscription': return <SubscriptionModal key={key} {...props} mode=\"create\" />;");
+    expect(contextFab).not.toContain('createSubscriber');
     expect(contextFab).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(bottomBar).toContain("pathname.startsWith('/subscriptions')");
     expect(bottomBar).toContain("label: 'Add subscriber'");
     expect(bottomBar).toContain("new CustomEvent('openSubscriptionModal')");
-    expect(bottomBar).toContain('const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });');
+    expect(bottomBar).toContain("case 'subscription': return <SubscriptionModal key={key} {...props} mode=\"create\" />;");
+    expect(bottomBar).not.toContain('createSubscriber');
     expect(bottomBar).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(analytics).not.toContain('useSubscription');
     expect(analytics).not.toContain('fetchSubscriptionAnalytics');

@@ -147,6 +147,16 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   including the Today/Requests donors, Organizations, and Payments. Pricing row/keyboard activation now selects read-only
   evidence directly; redundant unavailable detail buttons were removed from its rail/context focus
   card. Payments retains its proved `?tab=&id=` deep links; other new URL contracts remain unproved.
+- Authenticated desktop parity proof on 2026-07-12 covered Payments, Pricing, Insurance, Email
+  Subscribers, Statistics, Settings, Live Map, and Organizations in the admin role. The list routes
+  render the full role rail, at most three contextual KPIs, one handled activity sheet, and one focused
+  detail rail. Insurance, Subscribers, and Organizations expose no selection controls while their
+  mutation receivers remain unproved. Pricing, Insurance, and Subscribers explicitly disable the shell
+  status footer so sheet-owned pagination cannot overlap it. Live Map renders as a full-bleed canvas with
+  no session-id chrome. Statistics uses the same translucent background token as detail-pane elements
+  for its work surface and evidence cards. All checked routes had no horizontal overflow and no browser
+  console errors; denied, failed, stale-refresh, and role variants remain contract-proved rather than
+  exhaustively forced in the authenticated browser session.
 - Canonical deep-link debt closed on 2026-07-12: Visits accepts Quick Search `?id=` as an alias for
   its preserved `?view=` contract and still reads through `getVisit()`. Its form now gets facility
   identities from narrow RLS-scoped `getHospitalOptions()` (`id`, `name`) rather than full hospital

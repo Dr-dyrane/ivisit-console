@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useRowSelection } from '../../hooks/useRowSelection';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { SubscriptionsDesktopWorkspace } from './subscriptions/SubscriptionsDesktopWorkspace';
@@ -18,16 +17,15 @@ import { FilterSheet } from '../common/FilterSheet';
 import { MobileSubscriptions } from '../mobile/MobileSubscriptions';
 import { SEOHead } from '../common/SEOHead';
 import {
-  Users,
-  Plus,
-  Filter as FilterIcon,
+  BarChart3,
+  Filter,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber changes are not ready until subscriber authority is verified.';
+const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber and email changes are not available yet.';
 
 export const SubscriptionManagementPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const [selectedSubscriber, setSelectedSubscriber] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
@@ -70,6 +68,7 @@ export const SubscriptionManagementPage = () => {
     loading,
     isFetching: subscriptionIsFetching,
     isPlaceholderData,
+    denied: subscriptionDenied,
     error,
     refetch: fetchSubscribers,
   } = useSubscriptionsQuery(subscriptionQueryFilter);
@@ -158,9 +157,13 @@ export const SubscriptionManagementPage = () => {
   const paginatedSubscribers = useMemo(() => {
     return filteredSubscribers || [];
   }, [filteredSubscribers]);
-  const selection = useRowSelection(paginatedSubscribers);
-  const { selectedIds } = selection;
-  const moduleRailItems = useMemo(() => getConsoleModuleRailItems({ isAdmin: isAdmin() }), [isAdmin]);
+  const roleKind = useMemo(() => {
+    if (isAdmin()) return 'admin';
+    if (isOrgAdmin()) return 'org_admin';
+    if (isProvider()) return isDriver() ? 'driver' : 'provider';
+    return 'viewer';
+  }, [isAdmin, isOrgAdmin, isProvider, isDriver]);
+  const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
   const mobileVisibleSubscribers = useMemo(() => {
@@ -223,9 +226,6 @@ export const SubscriptionManagementPage = () => {
     handleSubscriptionCommandUnavailable();
   }, [handleSubscriptionCommandUnavailable]);
 
-  const handleSelect = selection.handleToggleSelect;
-  const handleSelectAll = selection.handleSelectAll;
-
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
@@ -234,60 +234,50 @@ export const SubscriptionManagementPage = () => {
     handleSubscriptionCommandUnavailable();
   }, [handleSubscriptionCommandUnavailable]);
 
-  // Header Configuration
+  // The list toolbar owns search, filters, and refresh. The navbar keeps one
+  // working route action with state feedback.
+  const headerActions = React.useMemo(() => (
+    <Button
+      onClick={handleViewAnalytics}
+      data-state={analyticsModalOpen ? 'open' : 'idle'}
+      aria-label="Subscriber stats"
+      aria-haspopup="dialog"
+      aria-expanded={analyticsModalOpen}
+      className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+    >
+      <BarChart3 className="mr-2 h-4 w-4" />
+      Subscriber stats
+    </Button>
+  ), [analyticsModalOpen, handleViewAnalytics]);
+
+  const hasSubscriberFilters = Boolean(
+    filters.search
+    || filters.status?.length
+    || filters.type?.length
+    || filters.welcomeEmailSent
+    || (filters.dateRange && filters.dateRange !== 'all')
+    || filters.kpiFilter !== 'all'
+  );
   const filterButtonComponent = React.useMemo(() => (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-muted hover:text-muted-foreground relative"
+      data-state={filterSheetOpen ? 'open' : hasSubscriberFilters ? 'active' : 'idle'}
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
+      className="relative h-9 w-9 rounded-icon bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
       aria-label="Filter subscribers"
     >
-      <FilterIcon className="h-4 w-4" />
-      {(filters.search ||
-        (filters.status && filters.status.length > 0) ||
-        (filters.type && filters.type.length > 0) ||
-        filters.welcomeEmailSent ||
-        filters.created_at) && (
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-muted" />
-        )}
+      <Filter className="h-4 w-4" />
+      {hasSubscriberFilters && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-pill bg-sky-500" />}
     </Button>
-  ), [filters]);
+  ), [filterSheetOpen, hasSubscriberFilters]);
 
-  // Primary Action (Add Subscriber)
-  const headerActions = React.useMemo(() => (
-    isAdmin() && (
-      <Button
-        onClick={handleCreate}
-        className="bg-card/70 h-9 px-4 text-[10px] text-foreground font-bold"
-        aria-label="Add subscriber unavailable"
-        aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
-        data-state="unavailable"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">ADD SUBSCRIBER</span>
-        <span className="md:hidden">ADD</span>
-      </Button>
-    )
-  ), [isAdmin, handleCreate, subscriptionCommandNotice]);
+  usePageHeader('Email Subscribers', headerActions, null, filterButtonComponent);
 
-  usePageHeader(
-    'Subscription Management',
-    headerActions,
-    null,
-    filterButtonComponent
-  );
-
-  // Footer Configuration
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30  text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} / {subscriberCount} Subscribers</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, subscriberCount]);
-
-  usePageFooter(footerContent, 'pagination', !loading && subscribers.length > 0);
+  usePageFooter(null, 'status', false);
 
   usePageShell({ bleed: true, hideFab: true });
 
@@ -349,7 +339,7 @@ export const SubscriptionManagementPage = () => {
       ]
     },
     {
-      key: 'created_at',
+          key: 'dateRange',
       type: 'date',
       label: 'Subscription Date',
       placeholder: 'Select dates',
@@ -385,9 +375,6 @@ export const SubscriptionManagementPage = () => {
           filterSheetOpen={filterSheetOpen}
           analyticsOpen={analyticsModalOpen}
           actionNotice={subscriptionCommandNotice}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
@@ -436,6 +423,7 @@ export const SubscriptionManagementPage = () => {
       <SubscriptionsDesktopWorkspace
         rows={paginatedSubscribers}
         stats={subscriptionProjectionStats}
+        denied={subscriptionDenied}
         loading={loading && paginatedSubscribers.length === 0}
         isFetching={subscriptionIsFetching}
         error={error}
@@ -451,8 +439,6 @@ export const SubscriptionManagementPage = () => {
         focusedSubscriber={focusedSubscriber}
         setFocused={setFocused}
         onView={handleView}
-        selection={selection}
-        onUnavailable={handleSubscriptionCommandUnavailable}
         moduleRailItems={moduleRailItems}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}

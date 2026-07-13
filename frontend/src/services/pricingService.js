@@ -80,6 +80,7 @@ const buildPricingSummary = (rows) => {
     const recentCutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
     return {
+        totalCount: rows.length,
         globalFallbackCount: rows.filter((row) => !row.hospitalId).length,
         facilityPriceCount: rows.filter((row) => Boolean(row.hospitalId)).length,
         averageAmount: rows.length > 0 ? totalAmount / rows.length : null,
@@ -105,20 +106,29 @@ export const getPricingPageData = async ({
     const safePage = Math.max(1, Number(page) || 1);
     const safePageSize = Math.max(1, Number(pageSize) || 12);
 
-    const { data: hospitals, error: hospitalsError } = await supabase
+    let hospitalsQuery = supabase
         .from('hospitals')
         .select('id, organization_id, name');
+    if (organizationId) hospitalsQuery = hospitalsQuery.eq('organization_id', organizationId);
+
+    const { data: hospitals, error: hospitalsError } = await hospitalsQuery;
 
     if (hospitalsError) throw hospitalsError;
 
     const hospitalMap = new Map((hospitals || []).map((hospital) => [hospital.id, hospital]));
+    const hospitalIds = Array.from(hospitalMap.keys());
 
     const rowGroups = await Promise.all(requestedFamilies.map(async (requestedFamily) => {
         const table = getPricingTableForFamily(requestedFamily);
-        const { data, error } = await supabase
+        let pricingQuery = supabase
             .from(table)
-            .select('*')
-            .order('updated_at', { ascending: false });
+            .select('*');
+        if (organizationId) {
+            pricingQuery = hospitalIds.length > 0
+                ? pricingQuery.or(`hospital_id.is.null,hospital_id.in.(${hospitalIds.join(',')})`)
+                : pricingQuery.is('hospital_id', null);
+        }
+        const { data, error } = await pricingQuery.order('updated_at', { ascending: false });
 
         if (error) throw error;
 
@@ -126,11 +136,11 @@ export const getPricingPageData = async ({
     }));
 
     const allRows = rowGroups.flat();
-    const scopedRows = allRows
+    const matchingRows = allRows
         .filter((row) => !organizationId || !row.hospitalId || row.organizationId === organizationId)
-        .filter((row) => matchesPricingScope(row, scope))
         .filter((row) => matchesPricingSearch(row, searchTerm))
         .sort((a, b) => sortPricingRows(a, b, sortDirection));
+    const scopedRows = matchingRows.filter((row) => matchesPricingScope(row, scope));
 
     const start = (safePage - 1) * safePageSize;
     const rows = scopedRows.slice(start, start + safePageSize);
@@ -148,7 +158,7 @@ export const getPricingPageData = async ({
         },
         rows,
         totalCount: scopedRows.length,
-        summary: buildPricingSummary(scopedRows),
+        summary: buildPricingSummary(matchingRows),
         readState: {
             basis: 'current_filter',
             source: 'service_pricing_room_pricing_projection',

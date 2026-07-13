@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Ambulance,
   ArrowLeft,
-  CheckCircle2,
   Clock,
   Hospital,
   LocateFixed,
@@ -56,8 +55,10 @@ export const MapPanel = () => {
     filter: activeFilter = 'all',
     loading = false,
     error = null,
+    sourceState = {},
   } = mapData;
-  const [panelNotice, setPanelNotice] = useState('Live map data is route-owned.');
+  const [panelNotice, setPanelNotice] = useState('Map controls ready.');
+  const requestWindowBounded = Boolean(sourceState.emergencies?.partial);
 
   const visibleRequests = useMemo(() => (
     activeFilter === 'all'
@@ -94,8 +95,17 @@ export const MapPanel = () => {
 
   if (loading && !emergencyRequests.length && !ambulances.length && !hospitals.length) {
     return (
-      <div className="space-y-3 py-2" aria-label="Loading live map context">
-        {[0, 1, 2, 3].map((item) => <div key={item} className="h-16 animate-pulse rounded-inner bg-muted/35" />)}
+      <div className="space-y-5 py-2" aria-label="Loading live map context">
+        <div className="h-5 w-28 animate-pulse rounded-pill bg-muted/35" />
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1, 2].map((item) => <div key={item} className="h-[74px] animate-pulse rounded-inner bg-muted/35" />)}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1].map((item) => <div key={item} className="h-[72px] animate-pulse rounded-button bg-muted/30" />)}
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2].map((item) => <div key={item} className="h-14 animate-pulse rounded-card bg-muted/30" />)}
+        </div>
       </div>
     );
   }
@@ -152,14 +162,15 @@ export const MapPanel = () => {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Live scope</h3>
-          <span className="rounded-pill bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-200">Route-owned</span>
+          <h3 className="text-sm font-semibold">Live status</h3>
+          <span className="rounded-pill bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-200">
+            {requestWindowBounded ? 'Latest 100' : 'Current view'}
+          </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Metric icon={AlertTriangle} label="Active requests" value={activeRequests.length} tone="bg-rose-500/10 text-rose-700 dark:text-rose-200" />
-          <Metric icon={Ambulance} label="Fleet visible" value={ambulances.length} tone="bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" />
-          <Metric icon={Hospital} label="Hospitals visible" value={hospitals.length} tone="bg-sky-500/10 text-sky-700 dark:text-sky-200" />
-          <Metric icon={CheckCircle2} label="Closed requests" value={emergencyRequests.length - activeRequests.length} tone="bg-violet-500/10 text-violet-700 dark:text-violet-200" />
+          <Metric icon={AlertTriangle} label="Active shown" value={activeRequests.length} tone="bg-rose-500/10 text-rose-700 dark:text-rose-200" />
+          <Metric icon={Ambulance} label="Fleet shown" value={ambulances.length} tone="bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" />
+          <Metric icon={Hospital} label="Hospitals shown" value={hospitals.length} tone="bg-sky-500/10 text-sky-700 dark:text-sky-200" />
         </div>
       </section>
 

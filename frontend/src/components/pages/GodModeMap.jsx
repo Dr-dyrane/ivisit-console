@@ -20,6 +20,9 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
 import { useMapContext } from "../../contexts/MapContext";
+import { getConsoleModuleRailItems } from "../../config/consoleModuleRail";
+import { ConsoleModuleRail } from "../common/ConsoleModuleRail";
+import { useWayfindingNav } from "../console/WorkspaceStage";
 import { supabaseMapService } from "../../services/supabaseMapService";
 import { updateResponderLocation } from "../../services/emergencyResponseService";
 import { driverManagementService } from "../../services/driverManagementService";
@@ -124,6 +127,19 @@ const GodModeMapContent = () => {
 	const [userLocation, setUserLocation] = useState(null);
 	const [nearbyHospitals, setNearbyHospitals] = useState([]);
 	const [driverAction, setDriverAction] = useState(null);
+	const roleKind = useMemo(() => {
+		if (profile?.role === 'admin') return 'admin';
+		if (profile?.role === 'org_admin') return 'org_admin';
+		if (profile?.role === 'provider') {
+			return ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type)
+				? 'driver'
+				: 'provider';
+		}
+		if (profile?.role === 'sponsor') return 'sponsor';
+		return 'viewer';
+	}, [profile?.provider_type, profile?.role]);
+	const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
+	const { routingPath, handleRailNavigate } = useWayfindingNav();
 
 	const mapStyles = useMemo(() =>
 		isDark ? MAP_STYLES.dark : MAP_STYLES.light
@@ -292,7 +308,8 @@ const GodModeMapContent = () => {
 		return processedEmergencies.filter(req => req.service_type === filter);
 	}, [processedEmergencies, filter]);
 
-	const isDriverMode = profile?.role === "provider" && profile?.provider_type === "driver";
+	const isDriverMode = profile?.role === "provider"
+		&& ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type);
 	const activeAmbulanceRequests = useMemo(
 		() =>
 			processedEmergencies.filter(
@@ -321,9 +338,7 @@ const GodModeMapContent = () => {
 		return (
 			processedAmbulances.find((ambulance) =>
 				[ambulance?.profile_id, ambulance?.driver_id].includes(user.id)
-			) ||
-			processedAmbulances[0] ||
-			null
+			) || null
 		);
 	}, [isDriverMode, processedAmbulances, user?.id]);
 
@@ -487,33 +502,35 @@ const GodModeMapContent = () => {
 		return () => window.removeEventListener('google-maps-auth-failure', handleAuthFailure);
 	}, [mapProvider, isSwitchingMap]);
 
+	const handleRouteRecenter = useCallback(() => {
+		if (!userLocation) {
+			toast.info('Location not ready');
+			return;
+		}
+
+		toast.info('Centering map');
+		window.dispatchEvent(new CustomEvent('recenter-map'));
+	}, [userLocation]);
+
 	useEffect(() => {
-		const handleRouteRecenter = () => {
-			if (!userLocation) {
-				toast.info('Location not ready');
-				return;
-			}
-
-			toast.info('Centering map');
-			window.dispatchEvent(new CustomEvent('recenter-map'));
-		};
-
 		window.addEventListener('mapRecenterRequested', handleRouteRecenter);
 		return () => window.removeEventListener('mapRecenterRequested', handleRouteRecenter);
-	}, [userLocation]);
+	}, [handleRouteRecenter]);
 
 	if (error) {
 		handleApiError(error, 'fetch');
 	}
 
-	// Header actions - Simplified for desktop (Filters only)
-	const headerActions = useMemo(() => (
-		<div className="flex items-center gap-3">
-			<div className="flex items-center">
-				{/* We can keep filters here if needed, but the primary controls move to the map */}
-			</div>
-		</div>
-	), []);
+	const headerActions = useMemo(() => isMobile ? null : (
+		<Button
+			type="button"
+			onClick={handleRouteRecenter}
+			className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+		>
+			<LocateFixed className="mr-2 h-4 w-4" />
+			Recenter
+		</Button>
+	), [handleRouteRecenter, isMobile]);
 
 	usePageHeader("Live Map", headerActions);
 	usePageFooter(null, "status", false);
@@ -562,6 +579,12 @@ const GodModeMapContent = () => {
 
 	return (
 		<div className="relative h-[calc(100dvh-4rem)] min-h-[34rem] overflow-hidden bg-background">
+			<ConsoleModuleRail
+				items={moduleRailItems}
+				activePath="/map"
+				routingPath={routingPath}
+				onNavigate={handleRailNavigate}
+			/>
 			<div className="absolute inset-0">
 				{/* Map */}
 				<div className="absolute inset-0 overflow-hidden bg-background">

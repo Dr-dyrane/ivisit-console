@@ -5,7 +5,6 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
-import { useSubscription } from '../../hooks/useSubscription';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -53,7 +52,6 @@ const ContextAwareFABContent = () => {
   // Use the shared hook
   const actionConfig = useContextAction(openModal);
   const { createTicket } = useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true });
-  const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });
 
   // Constants for SupportTicketModal
   const TICKET_PRIORITIES = [
@@ -133,7 +131,7 @@ const ContextAwareFABContent = () => {
                   categories={TICKET_CATEGORIES}
                 />
               );
-            case 'subscription': return <SubscriptionModal key={key} {...props} onSave={createSubscriber} mode="create" />;
+            case 'subscription': return <SubscriptionModal key={key} {...props} mode="create" />;
             case 'emailActions': return <SubscriptionModal key={key} {...props} mode="emailActions" />;
             default: return null;
           }

@@ -9,6 +9,7 @@ describe('Console design system contract', () => {
   const tailwind = () => read('tailwind.config.js');
   const primitives = () => read('src/components/console/primitives.jsx');
   const kpiStrip = () => read('src/components/console/KpiStrip.jsx');
+  const metricStrip = () => read('src/components/console/MetricStrip.jsx');
   const glanceTile = () => read('src/components/console/GlanceTile.jsx');
   const mobileGlanceTile = () => read('src/components/mobile/canon/MobileGlanceTile.jsx');
   const signalPanel = () => read('src/components/console/SignalPanel.jsx');
@@ -75,6 +76,7 @@ describe('Console design system contract', () => {
   const CONSOLE_FILES = () => ({
     primitives: primitives(),
     kpiStrip: kpiStrip(),
+    metricStrip: metricStrip(),
     glanceTile: glanceTile(),
     mobileGlanceTile: mobileGlanceTile(),
     signalPanel: signalPanel(),
@@ -148,6 +150,18 @@ describe('Console design system contract', () => {
     expect(src).toContain("setKpiFilter(active && item.id !== 'all' ? 'all' : item.id)");
     // The active chip's icon swaps to a spinner during background refetches.
     expect(src).toContain('{active && isFetching ? (');
+  });
+
+  it('keeps non-filtering measurements on the same max-three tile grammar', () => {
+    const src = metricStrip();
+    expect(src).toContain('export const selectContextMetrics = (items = [], max = 3)');
+    expect(src).toContain('.filter((item) => item && item.available !== false)');
+    expect(src).toContain('Math.min(3, Math.max(0, Number(max) || 3))');
+    expect(src).toContain('.slice(0, visibleLimit)');
+    expect(src).toContain('mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3');
+    expect(src).toContain('min-h-[66px] rounded-inner bg-card/65 px-3 py-2.5');
+    expect(src).not.toContain('onClick=');
+    expect(src).not.toContain('aria-pressed');
   });
 
   it('locks the glance tile: the Today nav-tile spec + opening feedback', () => {

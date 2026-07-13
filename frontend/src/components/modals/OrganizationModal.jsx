@@ -88,7 +88,7 @@ export const OrganizationModal = ({ isOpen, onClose, organization, mode = 'creat
       : 'Edit organization';
   const subtitle = isView
     ? 'Registry identity and payout-readiness evidence'
-    : 'Organization changes stay read-only until organization authority is verified.';
+    : 'Organization changes are not available from this page.';
   const icon = isCreate
     ? <Plus className="h-5 w-5 text-sky-500" />
     : isEdit

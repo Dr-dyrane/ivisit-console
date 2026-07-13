@@ -10,8 +10,8 @@ const gitShowBaseline = (file) => execFileSync(
   { encoding: 'utf8' },
 );
 
-describe('Analytics Page 13 Summary contract', () => {
-  it('keeps the Git-backed intake story while promoting the guarded Summary surfaces', () => {
+describe('Analytics Page 13 workspace contract', () => {
+  it('keeps the Git-backed intake story while promoting the guarded Statistics surfaces', () => {
     const oldPage = gitShowBaseline('frontend/src/components/pages/Analytics.jsx');
     const oldMobile = gitShowBaseline('frontend/src/components/mobile/MobileAnalytics.jsx');
     const page = read('src/components/pages/Analytics.jsx');
@@ -21,11 +21,15 @@ describe('Analytics Page 13 Summary contract', () => {
     const app = read('src/App.js');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
+    const dock = read('src/components/navigation/DynamicBottomBar.jsx');
 
     expect(oldPage).toContain('usePageHeader("Impact Analytics", headerActions)');
     expect(oldPage).toContain('EXPORT');
     expect(oldMobile).toContain('Generate Analytics Report');
-    expect(page).toContain("usePageHeader('Statistics')");
+    expect(page).toContain("usePageHeader('Statistics', headerActions)");
+    expect(dock).toContain("pathname.startsWith('/analytics')");
+    expect(dock).toContain("label: 'View statistics'");
+    expect(dock).toContain("new CustomEvent('openAnalyticsModal')");
     expect(page).not.toContain('Impact Analytics');
     expect(page).not.toContain('>EXPORT<');
     expect(mobile).not.toContain('Generate Analytics Report');
@@ -70,8 +74,13 @@ describe('Analytics Page 13 Summary contract', () => {
     expect(page).toContain('successRate: requests.length > 0 ? Math.round((completed.length / requests.length) * 100) : 0');
     expect(page).toContain('const sourceReadiness = useMemo(() => ({');
     expect(page).toContain("requests: snapshotReady && !issueSources.has('requests')");
-    expect(page).toContain("subscriptions: snapshotReady && canReadSubscriptionAnalytics && !issueSources.has('subscriptions')");
-    expect(page).toContain("finance: snapshotReady && canReadFinanceAnalytics && !issueSources.has('finance')");
+    expect(page).toContain('resolvedSubscriptionStats.sample.complete === true');
+    expect(page).toContain("!issueSources.has('finance') && Boolean(financeCurrency)");
+    expect(page).toContain('const [requestSample, setRequestSample] = useState(DEFAULT_REQUEST_SAMPLE);');
+    expect(page).toContain('setRequestSample(normalizeRequestSample(analyticsPage.requestSample))');
+    expect(page).toContain('requestSample,');
+    expect(page).toContain('const currency = financeData[0]?.currency;');
+    expect(page).toContain('currency: financeCurrency');
 
     expect(page).toContain('const [snapshotTimeRange, setSnapshotTimeRange] = useState');
     expect(page).toContain('const analyticsRequestIdRef = useRef(0);');
@@ -85,9 +94,11 @@ describe('Analytics Page 13 Summary contract', () => {
     expect(service).not.toContain("getFinanceAnalytics(user, user?.role === 'admin'");
     expect(service).toContain("getAnalyticsSourceIssue('requests', requestsRes)");
     expect(service).toContain("getAnalyticsSourceIssue('finance', { error: financeError })");
+    expect(service).toContain('requestSample: {');
+    expect(service).toContain('Number(requestsRes.count) <= (requestsRes.data || []).length');
   });
 
-  it('locks the Apple Health-inspired information hierarchy without reviving the bento dashboard', () => {
+  it('uses the donor desktop workspace grammar without turning measurements into filters', () => {
     const page = read('src/components/pages/Analytics.jsx');
     const desktop = read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx');
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
@@ -95,13 +106,6 @@ describe('Analytics Page 13 Summary contract', () => {
     const analyticsSkeleton = mobileSkeleton.slice(mobileSkeleton.indexOf('export const MobileAnalyticsSkeleton'));
     const primitives = read('src/components/analytics/AnalyticsSummaryPrimitives.jsx');
 
-    const desktopOrder = [
-      'analytics-pinned-section',
-      'analytics-highlights-section',
-      'analytics-trends-section',
-      'analytics-breakdowns-section',
-      'analytics-network-section',
-    ].map((token) => desktop.indexOf(token));
     const mobileOrder = [
       'mobile-analytics-highlights-section',
       'mobile-analytics-trends-section',
@@ -109,23 +113,60 @@ describe('Analytics Page 13 Summary contract', () => {
       'mobile-analytics-network-section',
     ].map((token) => mobile.indexOf(token));
 
-    expect(desktopOrder.every((position) => position > -1)).toBe(true);
-    expect(desktopOrder).toEqual([...desktopOrder].sort((left, right) => left - right));
     expect(mobileOrder.every((position) => position > -1)).toBe(true);
     expect(mobileOrder).toEqual([...mobileOrder].sort((left, right) => left - right));
 
-    expect(desktop).toContain('<h1 className="mt-3 text-[42px]');
-    expect(desktop).toContain('>Summary</h1>');
-    expect(desktop).toContain('title="Pinned"');
-    expect(desktop).toContain('title="Highlights"');
-    expect(desktop).toContain('title="Trends"');
+    expect(page).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(page).toContain("if (isAdmin()) return 'admin'");
+    expect(page).toContain("if (isOrgAdmin()) return 'org_admin'");
+    expect(page).toContain("if (isSponsor()) return 'sponsor'");
+    expect(page).toContain("isDriver() ? 'driver' : 'provider'");
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(page).toContain('aria-busy={detailsOpening}');
+    expect(page).toContain("data-state={detailsOpening ? 'opening' : 'idle'}");
+    expect(page).toContain("{detailsOpening ? 'Opening...' : 'View details'}");
+
+    expect(desktop).toContain('<WorkspaceStage');
+    expect(desktop).toContain('<SignalPanel');
+    expect(desktop).toContain('<MetricStrip');
+    expect(desktop).toContain('<ActivitySheet');
+    expect(desktop).toContain('<DetailRailShell>');
+    expect(desktop.indexOf('<SignalPanel')).toBeLessThan(desktop.indexOf('<ActivitySheet'));
+    expect(desktop).toContain('activePath="/analytics"');
+    expect(desktop).toContain('max={3}');
+    expect(desktop).toContain('dataAttr="data-analytics-metric"');
+    expect(desktop).toContain("id: 'requests'");
+    expect(desktop).toContain("id: 'completed'");
+    expect(desktop).toContain("id: 'average-response'");
+    expect(desktop).toContain("id: 'facilities'");
+    expect(desktop).toContain('available: responseSampleSize === 0 && Boolean(sourceReadiness?.hospitals)');
+    expect(desktop).not.toContain('<KpiStrip');
+    expect(desktop).not.toContain('aria-pressed={');
+    expect(desktop).not.toContain('selectable');
+    expect(desktop).not.toContain('ListRowShell');
     expect(desktop.match(/<AreaChart/g)).toHaveLength(1);
-    expect(desktop).toContain('Recent-half volume compared with the earlier half of this window.');
-    expect(desktop).toContain('Current scoped snapshots, separate from the selected request window.');
+    expect(desktop).toContain('data-testid="analytics-work-surface"');
+    expect(desktop).toContain('data-testid="analytics-breakdowns-section"');
+    expect(desktop).toContain('testId="analytics-network-section"');
+    expect(desktop).toContain('<AnalyticsWorkSkeleton />');
+    expect(desktop).toContain('bg-background/45 p-4 dark:bg-white/[0.04]');
+    expect(desktop).toContain('bg-background/35 px-3 py-2.5 dark:bg-white/[0.035]');
+    expect(desktop).not.toContain('dark:bg-black/[0.08]');
+    expect(desktop).toContain('loading={loadingWorkspace}');
+    expect(desktop).toContain('isLoading={loadingWorkspace}');
     expect(desktop).not.toContain('<Card');
     expect(desktop).not.toContain('Search Analytics');
-    expect(desktop).not.toContain('Performance Metrics');
-    expect(desktop).not.toContain('Demand Velocity Heatmap');
+    expect(desktop).not.toContain('analytics-pinned-section');
+    expect(desktop).not.toContain('analytics-highlights-section');
+
+    expect(desktop).toContain('data-testid="analytics-request-sample-state"');
+    expect(desktop).toContain('`Latest ${formatMetricNumber(returnedRequestCount)} requests`');
+    expect(desktop).toContain('subscriptionStats?.sample?.complete === true');
+    expect(desktop).toContain('Subscriber statistics are unavailable because only part of the list loaded.');
+    expect(desktop).toContain("new Intl.NumberFormat('en-US', {");
+    expect(desktop).toContain('currency: safeCurrency');
+    expect(desktop).toContain('formatCurrency(financeSummary?.totalCredits, financeSummary?.currency)');
+    expect(desktop).not.toContain('`$${Number(financeSummary');
 
     expect(mobile).toContain('<MobileHero');
     expect(mobile).not.toContain('MobileKPIStrip');
@@ -150,10 +191,12 @@ describe('Analytics Page 13 Summary contract', () => {
     expect(primitives).toContain('aria-pressed={selected}');
     expect(primitives).toContain('export const getVolumeComparison');
     expect(page).toContain('dataTimeRange={snapshotTimeRange}');
+    expect(page).toContain('requestSample={requestSample}');
   });
 
   it('keeps loading, partial, stale, detail, and reporting states honest', () => {
     const page = read('src/components/pages/Analytics.jsx');
+    const desktop = read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx');
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const panel = read('src/components/context/AnalyticsPanel.jsx');
 
@@ -168,6 +211,8 @@ describe('Analytics Page 13 Summary contract', () => {
     expect(page).toContain("window.addEventListener('openAnalyticsModal', handleOpenDetails)");
     expect(page).toContain("window.addEventListener('exportAnalytics', handleExport)");
     expect(page).toContain('<AnalyticsModal');
+    expect(page).toContain("const ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE = 'Report downloads are not available yet.';");
+    expect(page).toContain("usePageHeader('Statistics', headerActions)");
 
     expect(mobile).toContain('data-testid="mobile-analytics-error-state"');
     expect(mobile).toContain('data-testid="mobile-analytics-source-state"');
@@ -178,11 +223,25 @@ describe('Analytics Page 13 Summary contract', () => {
 
     expect(panel).toContain('analyticsContext?.sourceReadiness');
     expect(panel).toContain('analyticsContext?.snapshotTimeRange');
-    expect(panel).toContain('Reports unavailable');
-    expect(panel).toContain('Export stays off until dataset scope, redaction, and receiver authority are verified.');
+    expect(panel).toContain('analyticsContext?.requestSample');
+    expect(panel).toContain('const headlineMetrics = selectContextMetrics([');
+    expect(panel).toContain('], 3);');
+    expect(panel).toContain('Latest ${formatMetricNumber(returnedRequestCount)} requests');
+    expect(panel).toContain('Useful context');
+    expect(panel).toContain('Downloads unavailable');
+    expect(panel).toContain('Report downloads are not available yet.');
     expect(panel).not.toContain('<button');
+    expect(panel).not.toContain('supabase');
+    expect(panel).not.toContain('analyticsService');
     expect(panel).not.toContain("new CustomEvent('exportAnalytics')");
     expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
+
+    [page, desktop, panel].forEach((source) => {
+      expect(source).not.toContain('Measured route projection');
+      expect(source).not.toContain('dataset scope');
+      expect(source).not.toContain('redaction');
+      expect(source).not.toContain('receiver authority');
+    });
   });
 
   it('keeps route data, context panel, mobile navigation, and FAB ownership aligned', () => {
@@ -199,6 +258,7 @@ describe('Analytics Page 13 Summary contract', () => {
 
     expect(page).toContain("new CustomEvent('analyticsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestAnalyticsRouteContext'");
+    expect(page).toContain('requestSample,');
     expect(contextPanel).toContain('<AnalyticsPanel analyticsContext={analyticsRouteContext} />');
     expect(contextPanel).toContain("new CustomEvent('requestAnalyticsRouteContext')");
     expect(contextPanel).not.toContain('<AnalyticsPanel analyticsData={analyticsData} />');

@@ -58,7 +58,7 @@ export const InsuranceModal = ({
   const isBlockedCommand = mode === 'create' || mode === 'edit';
   const title = isBlockedCommand ? 'Policy changes unavailable' : 'Policy details';
   const subtitle = isBlockedCommand
-    ? 'Admin policy changes need receiver proof.'
+    ? 'Policy changes are not available from this page.'
     : formatRaw(policy?.provider_name, 'Review policy record.');
   const policyVital = resolveVital('insurance', policy?.status || 'unknown');
   const status = policyVital?.pill?.label || formatText(policy?.status || 'unknown', 'Unknown');
@@ -134,11 +134,11 @@ export const InsuranceModal = ({
           <Notice
             icon={isBlockedCommand ? AlertTriangle : FileText}
             tone={isBlockedCommand ? 'warning' : 'muted'}
-            title={isBlockedCommand ? 'Changes are off for now' : 'Read-only review'}
+            title={isBlockedCommand ? 'Changes unavailable' : 'Policy record'}
             text={
               isBlockedCommand
-                ? 'Policy changes, verification, deletion, and card upload need admin authority first.'
-                : 'This policy is shown as backend evidence. Changes stay unavailable until the receiver and storage contract are proved.'
+                ? 'Policy changes, verification, deletion, and card uploads are not available here.'
+                : 'Review the policy details and billing outcomes recorded for this account.'
             }
           />
 

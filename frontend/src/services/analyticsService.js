@@ -19,6 +19,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // Matches no row; used to scope provider reads to nothing instead of filtering
 // on a column the table does not have (Postgres 42703).
 const ANALYTICS_EMPTY_SCOPE_UUID = '00000000-0000-0000-0000-000000000000';
+const ANALYTICS_REQUEST_SAMPLE_LIMIT = 1000;
 
 export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {
   total: 0,
@@ -93,7 +94,10 @@ export const getAnalyticsIntakePage = async ({
   const canReadSubscriptionAnalytics = includeSubscriptionAnalytics && user?.role === 'admin';
   const canReadFinanceAnalytics = includeFinanceAnalytics && user?.role === 'admin';
 
-  let requestsQuery = supabase.from('emergency_requests').select('*');
+  let requestsQuery = supabase
+    .from('emergency_requests')
+    .select('*', { count: 'exact' })
+    .limit(ANALYTICS_REQUEST_SAMPLE_LIMIT);
   let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
   let hospitalsQuery = supabase.from('hospitals').select('*', { count: 'exact' });
   let ambulancesQuery = supabase.from('ambulances').select('*', { count: 'exact' });
@@ -194,6 +198,14 @@ export const getAnalyticsIntakePage = async ({
   return {
     user,
     requests: requestsRes.data || [],
+    requestSample: {
+      returnedCount: (requestsRes.data || []).length,
+      totalCount: Number.isFinite(Number(requestsRes.count)) ? Number(requestsRes.count) : null,
+      limit: ANALYTICS_REQUEST_SAMPLE_LIMIT,
+      complete: !requestsRes.error
+        && Number.isFinite(Number(requestsRes.count))
+        && Number(requestsRes.count) <= (requestsRes.data || []).length,
+    },
     usersCount: usersRes.count || 0,
     hospitals: hospitalsRes.data || [],
     hospitalsCount: hospitalsRes.count || 0,

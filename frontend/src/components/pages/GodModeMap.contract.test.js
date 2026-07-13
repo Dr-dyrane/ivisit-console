@@ -113,6 +113,9 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain("rpc('nearby_hospitals'");
     expect(service).toContain('async getNearbyHospitals(userLocation, radiusKm = 50, options = {})');
     expect(service).toContain('const quiet = Boolean(options?.quiet)');
+    expect(service).toContain('sourceState');
+    expect(service).toContain('partial: !errEmergencies && (emergencies || []).length >= 100');
+    expect(mapContextSource()).toContain('Some live map data did not load.');
   });
 
   it('keeps current map commands tied to named backend receivers', () => {
@@ -126,6 +129,7 @@ describe('GodModeMap Live Map contract', () => {
     expect(`${mobile}\n${marker}`).toContain('completeEmergency');
     expect(page).toContain('updateResponderLocation(');
     expect(page).toContain('driverManagementService.updateTripStatus');
+    expect(page).not.toContain('processedAmbulances[0]');
 
     expect(responseService).toContain("supabase.rpc('console_dispatch_emergency'");
     expect(responseService).toContain("supabase.rpc('console_complete_emergency'");
@@ -155,6 +159,9 @@ describe('GodModeMap Live Map contract', () => {
     expect(layerControls).toContain('aria-expanded={isExpanded}');
     expect(layerControls).toContain('aria-pressed={isVisible}');
     expect(page).toContain("window.addEventListener('mapRecenterRequested', handleRouteRecenter)");
+    expect(page).toContain('<ConsoleModuleRail');
+    expect(page).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(page).toContain('Recenter');
     expect(page).toContain("toast.info('Location not ready')");
     expect(bottomBarSource()).toContain("pathname.startsWith('/map') && canReachRoute(userRole, '/map')");
     expect(bottomBarSource()).toContain("label: 'Center map'");
@@ -291,8 +298,11 @@ describe('GodModeMap Live Map contract', () => {
     expect(panel).toContain('role="alert"');
     expect(panel).toContain('aria-busy={loading');
     expect(panel).toContain('aria-pressed={activeFilter === filter.key}');
-    expect(panel).toContain('Fleet visible');
-    expect(panel).toContain('Hospitals visible');
+    expect(panel).toContain('Fleet shown');
+    expect(panel).toContain('Hospitals shown');
+    expect(panel).toContain("requestWindowBounded ? 'Latest 100' : 'Current view'");
+    expect(panel).not.toContain('Route-owned');
+    expect(panel).not.toContain('Closed requests');
     expect(panel).not.toContain('handleExportMapData');
     expect(panel).not.toContain('Export Data');
     expect(panel).not.toContain('4.2m');

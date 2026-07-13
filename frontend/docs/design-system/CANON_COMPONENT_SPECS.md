@@ -163,7 +163,16 @@ Provenance: `6c4fae4b` (2026-07-08, data-driven priority + Today-tile match + KP
 `190434e6` (2026-07-09, selectPrimaryKpis + Mine chip + includeMine), `ff9ab49c` (2026-07-09,
 toggle-to-All + Loader2 glyph swap parity).
 
-### 2b. Mobile chip rail (MobileKPIStrip.jsx:14-112)
+### 2b. Desktop contextual metrics
+
+`MetricStrip` is the non-filtering sibling of `KpiStrip`. Use it for balances,
+amounts, rates, or measured outcomes that describe a page without changing the
+visible dataset. It keeps the same `max-w-2xl`, `min-h-[66px]`, label/value/orb
+anatomy and renders at most three source-backed measurements. Items with
+`available: false` are removed before priority ordering. It has no click or
+`aria-pressed` behavior; source tabs and state filters remain separate controls.
+
+### 2c. Mobile chip rail (MobileKPIStrip.jsx:14-112)
 
 ```jsx
 // Wrapper: sticky rail, hidden scrollbars               MobileKPIStrip:67-73

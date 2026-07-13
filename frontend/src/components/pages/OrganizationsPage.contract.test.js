@@ -85,10 +85,11 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain('isPlaceholderData,');
     expect(page).toContain('const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE');
     expect(page).toContain('handleOrganizationCommandUnavailable');
-    expect(page).toContain('aria-label="Add organization unavailable"');
-    expect(page).toContain('aria-label="Delete organizations unavailable"');
-    expect(page).toContain('data-state="unavailable"');
+    expect(page).toContain("const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';");
     expect(page).toContain('role="status"');
+    expect(page).not.toContain('aria-label="Add organization unavailable"');
+    expect(page).not.toContain('aria-label="Delete organizations unavailable"');
+    expect(page).not.toContain('<BulkActionBar');
 
     expect(service).toContain('const ORG_PAYOUT_RESOLUTION_ROW_LIMIT = 5000;');
     expect(service).toContain('async function getOrganizationPayoutBuckets');
@@ -121,13 +122,13 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain('<KpiStrip');
     expect(page).toContain('<ActivitySheet');
     expect(page).toContain('<DetailRailShell');
-    expect(page).toContain('useRowSelection(orgRows)');
+    expect(page).not.toContain('useRowSelection(orgRows)');
     expect(page).toContain('useListKeyboardNav');
     expect(page).toContain('useScrollResetOnPage');
     expect(page).toContain('isFetching={isFetching}');
     expect(page).toContain('hasFilter ?');
-    expect(page).toContain("usePageHeader('Organizations', headerActions, null, filterButtonComponent)");
-    expect(page).toContain('Add organization');
+    expect(page).toContain("usePageHeader('Organizations', null, null, filterButtonComponent)");
+    expect(page).toContain('selectionEnabled={false}');
     expect((page.match(/<SortableColumnHeader/g) || [])).toHaveLength(1);
 
     expect(mobile).toContain('<MobileHeading');
@@ -143,7 +144,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(mobile).toContain('const accumulatorRef = useRef');
     expect(mobile).toContain('if (!isPlaceholderData)');
     expect(mobile).toContain('if (page === 1) reset();');
-    expect(mobile).toContain('Organization deletion is locked until organization authority is verified');
+    expect(mobile).toContain('Organization deletion is not available');
     expect(mobile).toContain("label: 'Organization ID'");
     expect(mobile).toContain('navigator.clipboard?.writeText');
 

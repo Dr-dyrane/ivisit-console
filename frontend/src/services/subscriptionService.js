@@ -405,9 +405,9 @@ export async function createSubscriberWithWelcome(input) {
  */
 export async function getSubscriptionAnalytics(options = {}) {
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from(TABLE_NAME)
-      .select('type, status, new_user, welcome_email_sent, created_at, subscription_date');
+      .select('type, status, new_user, welcome_email_sent, created_at, subscription_date', { count: 'exact' });
 
     if (error) throw error;
 
@@ -432,6 +432,11 @@ export async function getSubscriptionAnalytics(options = {}) {
       activePremium: data?.filter(item => item.status === 'active' && item.type === 'paid').length || 0,
       inactiveFree: data?.filter(item => item.status !== 'active' && item.type === 'free').length || 0,
       inactivePremium: data?.filter(item => item.status !== 'active' && item.type === 'paid').length || 0,
+      sample: {
+        returnedCount: data?.length || 0,
+        totalCount: Number.isFinite(Number(count)) ? Number(count) : null,
+        complete: Number.isFinite(Number(count)) && Number(count) <= (data?.length || 0),
+      },
     };
 
     // Calculate paid conversion rate

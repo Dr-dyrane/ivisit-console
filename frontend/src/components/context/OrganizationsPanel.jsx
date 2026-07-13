@@ -3,10 +3,7 @@ import {
     Building2,
     Activity,
     AlertCircle,
-    Plus,
-    BarChart3,
-    Wallet,
-    TrendingUp
+    Wallet
 } from 'lucide-react';
 
 // Organizations right-side context pane. CANON: mirrors the GOLD reference EmergencyPanel
@@ -34,10 +31,6 @@ export const OrganizationsPanel = ({ orgContext }) => {
     const total = toCount(stats.total ?? context.count, recent.length);
     const funded = toCount(stats.funded, 0);
     const payoutGap = toCount(stats.payoutGap, 0);
-
-    const handleOpenCreateOrg = () => {
-        window.dispatchEvent(new CustomEvent('openOrganizationModal'));
-    };
 
     const shadow = 'shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
     const eyebrow = 'px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground';
@@ -93,38 +86,6 @@ export const OrganizationsPanel = ({ orgContext }) => {
             </div>
 
             <div className="space-y-2">
-                <h3 className={eyebrow}>Operations</h3>
-                <div className="grid grid-cols-3 gap-2">
-                    <button
-                        type="button"
-                        onClick={handleOpenCreateOrg}
-                        className={`group flex flex-col items-center justify-center gap-2 rounded-button surface-card p-3 text-muted-foreground ${shadow} transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground`}
-                    >
-                        <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
-                        <span className="text-[11px] font-semibold">Onboard</span>
-                    </button>
-                    <button
-                        type="button"
-                        disabled
-                        aria-label="Growth unavailable"
-                        className={`group flex flex-col items-center justify-center gap-2 rounded-button surface-card p-3 text-muted-foreground ${shadow} opacity-60 cursor-not-allowed`}
-                    >
-                        <TrendingUp className="h-5 w-5" />
-                        <span className="text-[11px] font-semibold">Growth</span>
-                    </button>
-                    <button
-                        type="button"
-                        disabled
-                        aria-label="Pulse unavailable"
-                        className={`group flex flex-col items-center justify-center gap-2 rounded-button surface-card p-3 text-muted-foreground ${shadow} opacity-60 cursor-not-allowed`}
-                    >
-                        <BarChart3 className="h-5 w-5" />
-                        <span className="text-[11px] font-semibold">Pulse</span>
-                    </button>
-                </div>
-            </div>
-
-            <div className="space-y-2">
                 <h3 className={eyebrow}>Recent organizations</h3>
                 <div className="space-y-2">
                     {recent.map((org, index) => {
@@ -170,7 +131,7 @@ export const OrganizationsPanel = ({ orgContext }) => {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                 </span>
                 <p className="text-[10px] font-semibold leading-relaxed tracking-[0.14em] text-muted-foreground">
-                    Organization commands stay read-only until organization authority is verified.
+                    You can review organization details here. Changes are not available from this page.
                 </p>
             </div>
         </div>

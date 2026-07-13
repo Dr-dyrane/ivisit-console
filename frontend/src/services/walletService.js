@@ -218,21 +218,32 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30, options =
         startDate.setDate(startDate.getDate() - days);
 
         let query = supabase.from('wallet_ledger')
-            .select('amount, created_at, transaction_type')
+            .select('amount, created_at, transaction_type', { count: 'exact' })
             .gte('created_at', startDate.toISOString());
+        let currency = null;
 
         if (isAdmin) {
-            const { data: mainWallet } = await withRetry(() => supabase.from('ivisit_main_wallet').select('id').maybeSingle());
-            if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
+            const { data: mainWallet, error: walletError } = await withRetry(() => supabase.from('ivisit_main_wallet').select('id, currency').maybeSingle());
+            if (walletError) throw walletError;
+            if (!mainWallet?.id || !mainWallet?.currency) throw new Error('Platform wallet is unavailable.');
+            currency = mainWallet.currency;
+            query = query.eq('wallet_id', mainWallet.id);
         } else {
-            const { data: orgWallet } = await withRetry(() => supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).maybeSingle());
-            if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
+            if (!profile?.organization_id) throw new Error('Organization wallet is unavailable.');
+            const { data: orgWallet, error: walletError } = await withRetry(() => supabase.from('organization_wallets').select('id, currency').eq('organization_id', profile.organization_id).maybeSingle());
+            if (walletError) throw walletError;
+            if (!orgWallet?.id || !orgWallet?.currency) throw new Error('Organization wallet is unavailable.');
+            currency = orgWallet.currency;
+            query = query.eq('wallet_id', orgWallet.id);
         }
 
         const financeQuery = query.order('created_at', { ascending: true });
-        const { data, error } = await withRetry(() => financeQuery);
+        const { data, error, count } = await withRetry(() => financeQuery);
 
         if (error) throw error;
+        if (Number.isFinite(Number(count)) && Number(count) > (data || []).length) {
+            throw new Error('Finance history is incomplete for this period.');
+        }
 
         // Generate all dates in range to ensure a baseline
         const groupedData = {};
@@ -240,7 +251,7 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30, options =
             const d = new Date();
             d.setDate(d.getDate() - (days - i));
             const dateStr = d.toLocaleDateString();
-            groupedData[dateStr] = { date: dateStr, income: 0, outflow: 0 };
+            groupedData[dateStr] = { date: dateStr, income: 0, outflow: 0, currency };
         }
 
         // Fill with actual data (Reflection of Stripe via Webhooks)
