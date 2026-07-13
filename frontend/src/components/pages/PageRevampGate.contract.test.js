@@ -38,7 +38,10 @@ describe('Today/Requests revamp gate contract', () => {
   const todayHomeSource = () => fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
   const mobileEmergencySource = () => fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
   const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
-  const emergencyRequestModalSource = () => fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
+  const emergencyRequestModalSource = () => readSourceEstate({
+    files: ['src/components/modals/EmergencyRequestModal.jsx'],
+    directories: ['src/components/modals/emergency-request'],
+  });
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See "Preservation Baseline Re-Anchor - 2026-07-07" in PAGE_REVAMP_GATE.md.
   const PRESERVATION_BASELINE = 'f31f29f';
   const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });

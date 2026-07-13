@@ -38,6 +38,10 @@ const readEmergencyServiceSource = () => readSourceEstate({
   files: ['src/services/emergencyService.js'],
   directories: ['src/services/emergency'],
 });
+const readEmergencyRequestModalSource = () => readSourceEstate({
+  files: ['src/components/modals/EmergencyRequestModal.jsx'],
+  directories: ['src/components/modals/emergency-request'],
+});
 
 describe('EmergencyRequestsPage service ownership contract', () => {
   it('keeps Requests production modules small and split at explicit ownership boundaries', () => {
@@ -716,7 +720,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const pageSource = readRequestsPageSource();
     const mobileSource = readRequestsMobileSource();
     const detailsModalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
-    const requestModalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
+    const requestModalSource = readEmergencyRequestModalSource();
     const actionSource = fs.readFileSync('src/utils/emergencyActions.js', 'utf8');
     const responseServiceSource = fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
     const emergencyServiceSource = readEmergencyServiceSource();
@@ -780,7 +784,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(detailsModalSource).not.toContain('aria-modal="true"');
     expect(detailsModalSource).not.toMatch(/\bborder(?:-| |")/);
 
-    expect(requestModalSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(requestModalSource).toContain("import { ModalShell } from '../../ui/ModalShell';");
     expect(requestModalSource).toContain('<ModalShell');
     expect(requestModalSource).toContain('title={modalTitle}');
     expect(requestModalSource).toContain('subtitle={modalSubtitle}');
@@ -839,7 +843,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps closed request modals from preloading requester profiles', () => {
-    const modalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
+    const modalSource = readEmergencyRequestModalSource();
 
     expect(modalSource).toContain('if (!isOpen || isView) return undefined;');
     expect(modalSource.indexOf('if (!isOpen || isView) return undefined;'))

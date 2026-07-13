@@ -47,7 +47,7 @@ describe('Console design system contract', () => {
   // lists, which would give two headers (TIME-sort count!==1) and let a mechanism
   // be wired to one queue only (the queue-blind seam). One list = both lanes.
   const LIST_WORKSPACE_PAGES = [
-    { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
+    { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx', modalOwnedDir: 'src/components/modals/emergency-request' },
     { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx' },
     { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx', modalOwnedDir: 'src/components/modals/hospital' },
     { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', exclusions: ['arrival-toast'] },
