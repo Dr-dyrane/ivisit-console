@@ -1,12 +1,115 @@
 /**
  * Visit Context Utilities
- * Properly maps visit data to patient, hospital, and doctor information using existing services
+ * Maps visit and linked-request data without crossing identity boundaries.
  */
 
-import { getProfiles } from '../services/profilesService';
-import { getHospitals } from '../services/hospitalsService';
-import { getDoctors } from '../services/doctorsService';
-import { getEmergencyRequests } from '../services/emergencyService';
+import { getProfile } from '../services/profilesService';
+import { getHospital } from '../services/hospitalsService';
+import { getDoctor } from '../services/doctorsService';
+import { getEmergencyRequest } from '../services/emergencyService';
+import { buildRequestVisitIdentityProjection } from './requestVisitIdentityProjection';
+
+const valueFromResult = (result) => (
+  result?.status === 'fulfilled' ? result.value : null
+);
+
+const errorFromResult = (result) => (
+  result?.status === 'rejected' ? result.reason : null
+);
+
+const toPatientContext = (patient) => ({
+  id: patient.profileId,
+  fullName: patient.name,
+  phone: patient.phone,
+  email: patient.email,
+  avatar: patient.avatar,
+});
+
+const toDoctorContext = (doctor) => doctor.hasDoctor ? ({
+  id: doctor.doctorId,
+  name: doctor.name,
+  specialty: doctor.specialty,
+  phone: doctor.phone,
+  avatar: doctor.avatar,
+}) : null;
+
+const toResponderContext = (responder) => responder.hasResponder ? ({
+  id: responder.profileId,
+  name: responder.name,
+  phone: responder.phone,
+  avatar: responder.avatar,
+  ambulanceId: responder.ambulanceId,
+  vehicleType: responder.vehicleType,
+  vehiclePlate: responder.vehiclePlate,
+}) : null;
+
+const toHospitalContext = (hospital) => hospital ? ({
+  id: hospital.id,
+  name: hospital.name,
+  address: hospital.address || hospital.google_address,
+  phone: hospital.phone || hospital.google_phone,
+  specialty: hospital.specialty,
+}) : null;
+
+export const fetchRequestVisitIdentity = async ({
+  request = null,
+  requestId = null,
+  visit = null,
+} = {}) => {
+  let sourceRequest = request;
+  let requestError = null;
+  const linkedRequestId = requestId || visit?.request_id || null;
+
+  if (!sourceRequest && linkedRequestId) {
+    try {
+      sourceRequest = await getEmergencyRequest(linkedRequestId);
+    } catch (error) {
+      requestError = error;
+    }
+  }
+
+  const initialIdentity = buildRequestVisitIdentityProjection({
+    request: sourceRequest,
+    visit,
+  });
+  const patientRead = initialIdentity.patient.profileId
+    && initialIdentity.patient.source !== 'profile_relation'
+    ? getProfile(initialIdentity.patient.profileId)
+    : Promise.resolve(null);
+  const doctorRead = initialIdentity.doctor.doctorId
+    && initialIdentity.doctor.source !== 'doctor_relation'
+    ? getDoctor(initialIdentity.doctor.doctorId)
+    : Promise.resolve(null);
+  const responderRead = initialIdentity.responder.profileId
+    && initialIdentity.responder.source !== 'profile_relation'
+    ? getProfile(initialIdentity.responder.profileId)
+    : Promise.resolve(null);
+  const [patientResult, doctorResult, responderResult] = await Promise.allSettled([
+    patientRead,
+    doctorRead,
+    responderRead,
+  ]);
+  const errors = {
+    request: requestError,
+    patient: errorFromResult(patientResult),
+    doctor: errorFromResult(doctorResult),
+    responder: errorFromResult(responderResult),
+  };
+  const identity = buildRequestVisitIdentityProjection({
+    request: sourceRequest,
+    visit,
+    patientProfile: valueFromResult(patientResult),
+    doctorRecord: valueFromResult(doctorResult),
+    responderProfile: valueFromResult(responderResult),
+  });
+
+  return {
+    request: sourceRequest,
+    identity,
+    relationshipState: Object.values(errors).some(Boolean) ? 'degraded' : 'complete',
+    errors,
+  };
+};
 
 /**
  * Fetch comprehensive visit context using existing services
@@ -16,42 +119,35 @@ import { getEmergencyRequests } from '../services/emergencyService';
 export const fetchVisitContext = async (visit) => {
   try {
     if (!visit) return null;
-
-    // Parallel fetch all context data using existing services
-    const [patientProfiles, hospitals, doctors] = await Promise.all([
-      visit.user_id ? getProfiles({ userId: visit.user_id }) : Promise.resolve([]),
-      visit.hospital_id ? getHospitals({ id: visit.hospital_id }) : Promise.resolve([]),
-      visit.doctor_id ? getDoctors({ id: visit.doctor_id }) : Promise.resolve([])
-    ]);
-
-    const patientProfile = patientProfiles[0] || null;
-    const hospitalInfo = hospitals[0] || null;
-    const doctorInfo = doctors[0] || null;
+    const identityContext = await fetchRequestVisitIdentity({ visit });
+    const hospitalId = visit.hospital_id || identityContext.request?.hospital_id || null;
+    const nestedHospital = typeof visit.hospital === 'object'
+      && (!hospitalId || visit.hospital?.id === hospitalId)
+      ? visit.hospital
+      : null;
+    const hospitalResult = nestedHospital || !hospitalId
+      ? { status: 'fulfilled', value: nestedHospital }
+      : await Promise.resolve(getHospital(hospitalId)).then(
+          (value) => ({ status: 'fulfilled', value }),
+          (error) => ({ status: 'rejected', reason: error })
+        );
+    const identity = identityContext.identity;
 
     return {
-      patient: patientProfile ? {
-        id: patientProfile.id,
-        fullName: patientProfile.full_name || patientProfile.username || 'Unknown Patient',
-        phone: patientProfile.phone,
-        email: patientProfile.email,
-        avatar: patientProfile.avatar_url
-      } : null,
-      
-      hospital: hospitalInfo ? {
-        id: hospitalInfo.id,
-        name: hospitalInfo.name,
-        address: hospitalInfo.address,
-        phone: hospitalInfo.phone,
-        specialty: hospitalInfo.specialty
-      } : null,
-      
-      doctor: doctorInfo ? {
-        id: doctorInfo.id,
-        name: doctorInfo.name,
-        specialty: doctorInfo.specialization,
-        phone: doctorInfo.phone,
-        avatar: doctorInfo.avatar_url
-      } : null
+      request: identityContext.request,
+      identity,
+      patient: toPatientContext(identity.patient),
+      hospital: toHospitalContext(valueFromResult(hospitalResult)),
+      doctor: toDoctorContext(identity.doctor),
+      responder: toResponderContext(identity.responder),
+      relationshipState: identityContext.relationshipState === 'degraded'
+        || hospitalResult.status === 'rejected'
+        ? 'degraded'
+        : 'complete',
+      errors: {
+        ...identityContext.errors,
+        hospital: errorFromResult(hospitalResult),
+      },
     };
   } catch (error) {
     console.error('Error fetching visit context:', error);
@@ -67,23 +163,20 @@ export const fetchVisitContext = async (visit) => {
 export const fetchEmergencyContext = async (requestId) => {
   try {
     if (!requestId) return null;
-
-    const emergencyRequests = await getEmergencyRequests();
-    const emergencyRequest = emergencyRequests.find(req => req.id === requestId);
-    
+    const identityContext = await fetchRequestVisitIdentity({ requestId });
+    const emergencyRequest = identityContext.request;
     if (!emergencyRequest) return null;
-
-    // Fetch patient and hospital context using existing services
-    const [patientProfiles, hospitals] = await Promise.all([
-      emergencyRequest.user_id ? getProfiles({ userId: emergencyRequest.user_id }) : Promise.resolve([]),
-      emergencyRequest.hospital_id ? getHospitals({ id: emergencyRequest.hospital_id }) : Promise.resolve([])
-    ]);
-
-    const patientProfile = patientProfiles[0] || null;
-    const hospitalInfo = hospitals[0] || null;
+    const hospitalResult = emergencyRequest.hospital_id
+      ? await Promise.resolve(getHospital(emergencyRequest.hospital_id)).then(
+          (value) => ({ status: 'fulfilled', value }),
+          (error) => ({ status: 'rejected', reason: error })
+        )
+      : { status: 'fulfilled', value: null };
+    const identity = identityContext.identity;
 
     return {
       emergency: {
+        ...emergencyRequest,
         id: emergencyRequest.id,
         serviceType: emergencyRequest.service_type,
         status: emergencyRequest.status,
@@ -92,18 +185,19 @@ export const fetchEmergencyContext = async (requestId) => {
         patientLocation: emergencyRequest.patient_location,
         hospitalName: emergencyRequest.hospital_name
       },
-      patient: patientProfile ? {
-        id: patientProfile.id,
-        fullName: patientProfile.full_name || patientProfile.username || 'Unknown Patient',
-        phone: patientProfile.phone,
-        email: patientProfile.email
-      } : null,
-      hospital: hospitalInfo ? {
-        id: hospitalInfo.id,
-        name: hospitalInfo.name,
-        address: hospitalInfo.address,
-        phone: hospitalInfo.phone
-      } : null
+      identity,
+      patient: toPatientContext(identity.patient),
+      doctor: toDoctorContext(identity.doctor),
+      responder: toResponderContext(identity.responder),
+      hospital: toHospitalContext(valueFromResult(hospitalResult)),
+      relationshipState: identityContext.relationshipState === 'degraded'
+        || hospitalResult.status === 'rejected'
+        ? 'degraded'
+        : 'complete',
+      errors: {
+        ...identityContext.errors,
+        hospital: errorFromResult(hospitalResult),
+      },
     };
   } catch (error) {
     console.error('Error fetching emergency context:', error);

@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { LocationCell } from '../ui/LocationCell';
 import { ModalShell } from '../ui/ModalShell';
 import {
   Siren,
   Clock,
   Activity,
-  Phone,
   Navigation,
   AlertTriangle,
   Shield,
@@ -32,15 +30,20 @@ import {
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 import { canApplyEmergencyDetailProjection } from '../../utils/emergencyDetailRefresh';
+import { fetchRequestVisitIdentity } from '../../utils/visitContextUtils';
 import { resolveVital } from '../../constants/vitalTracks';
-
+import {
+  EmergencyIdentitySections,
+  PanelCard,
+  SectionCard,
+} from './EmergencyDetailsSections';
 const formatRequestTitle = (value) => {
   const label = String(value || '').replace(/_/g, ' ').trim();
   if (!label) return 'Request details';
   return `${label.charAt(0).toUpperCase()}${label.slice(1)} request`;
 };
 
-// Hero orb tint — mirrors MobileEmergency's status-tinted request avatar so the modal
+// Hero orb tint mirrors MobileEmergency's status-tinted request avatar so the modal
 // identity reads with the same lifecycle energy as the list row.
 const getRequestOrbClass = (status) => {
   const key = canonicalizeEmergencyStatus(status, 'pending_approval');
@@ -64,6 +67,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
   const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
+  const [identityContext, setIdentityContext] = React.useState(null);
   const requestId = request?.id || null;
   const refreshSequenceRef = React.useRef(0);
   const activeRequestIdRef = React.useRef(requestId);
@@ -82,27 +86,28 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     detailOpenRef.current = isOpen;
   }, [isOpen, request, requestId]);
   const activeRequest = detailRequest?.id === requestId ? detailRequest : request;
+  const resolvedIdentity = identityContext?.requestId === activeRequest?.id
+    ? identityContext.identity
+    : null;
   const renderProjection = React.useMemo(
     () => buildEmergencyRenderProjection(activeRequest, {
       latestPayment: paymentData,
       paymentVisibilityState,
       visitOutcome,
       visitVisibilityState,
+      identityProjection: resolvedIdentity,
     }),
-    [activeRequest, paymentData, paymentVisibilityState, visitOutcome, visitVisibilityState]
+    [activeRequest, paymentData, paymentVisibilityState, resolvedIdentity, visitOutcome, visitVisibilityState]
   );
   const normalizedStatus = renderProjection.statusDisplay.status;
   const isApprovalPending = normalizedStatus === 'pending_approval';
   const isPaymentDeclined = normalizedStatus === 'payment_declined';
   const canRetryPayment = typeof onRetryPayment === 'function';
-  const sceneCoordinates = renderProjection.locationDisplay.coordinates;
   const showCashApprovalCard = isApprovalPending && (
     activeRequest?.status === 'pending_approval' ||
     activeRequest?.payment_status === 'pending' ||
     Boolean(paymentData)
   );
-  const etaDisplay = activeRequest?.eta_display || null;
-  const bedCategory = activeRequest?.bed_category || null;
 
   const refreshProjection = React.useCallback(async () => {
     const sequence = ++refreshSequenceRef.current;
@@ -214,11 +219,35 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     setPaymentVisibilityState('not_created');
     setVisitOutcome(null);
     setVisitVisibilityState('not_expected_yet');
+    setIdentityContext(null);
   }, [request]);
 
   React.useEffect(() => {
     void refreshProjection();
   }, [refreshProjection]);
+
+  React.useEffect(() => {
+    if (!isOpen || !activeRequest?.id) return undefined;
+    let active = true;
+
+    fetchRequestVisitIdentity({ request: activeRequest, visit: visitOutcome })
+      .then((context) => {
+        if (!active) return;
+        setIdentityContext({
+          requestId: activeRequest.id,
+          identity: context.identity,
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.error('Error loading request identity context:', error);
+        setIdentityContext(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeRequest, isOpen, visitOutcome]);
 
   React.useEffect(() => {
     if (!isOpen || !requestId) return undefined;
@@ -231,7 +260,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
   // SCHEMA NOTE: emergency_requests has NO `priority` column (see types/database.ts Row).
   // The old priority colour/badge branches were dead code that always fell to the
-  // defaults — the icon now wears the neutral default directly. Priority levels are
+  // defaults. The icon now wears the neutral default directly. Priority levels are
   // an ivisit-app schema decision, not a console patch.
   const getEmergencyIcon = (type) => {
     switch (type) {
@@ -249,7 +278,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const modalSubtitle = `Case ID: #${activeRequest.id?.slice(0, 8) || 'unknown'} / ${activeRequest.created_at ? format(new Date(activeRequest.created_at), 'MMM dd, HH:mm') : 'Recently'}`;
   const vital = resolveVital('emergency', activeRequest.status);
   const patient = renderProjection.patientDisplay;
-  const requesterUsername = activeRequest.patient_snapshot?.username || activeRequest.profiles?.username || 'Patient';
+  const requesterUsername = patient.username || 'Patient';
   const facilityName = renderProjection.facilityDisplay.name;
 
   return (
@@ -370,7 +399,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           {/* Situation Report */}
           <SectionCard title="Situation Report" bodyClassName="space-y-4">
             {/* SCHEMA NOTE: emergency_requests has NO `description`/notes column (see
-                types/database.ts Row) — the old `request.description` read was a phantom
+                types/database.ts Row). The old `request.description` read was a phantom
                 that always fell through to this copy. If situation reports become a
                 product need, that is an ivisit-app schema/pillar decision. */}
             <p className="text-[15px] leading-relaxed text-foreground/90">
@@ -391,7 +420,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                 </div>
                 <div className="space-y-2">
                   {visitOutcome.summary && (
-                    <p className="text-sm font-medium text-foreground">"{visitOutcome.summary}"</p>
+                    <p className="text-sm font-medium text-foreground">&quot;{visitOutcome.summary}&quot;</p>
                   )}
                   {visitOutcome.prescriptions && (
                     <div className="flex flex-wrap gap-2">
@@ -443,81 +472,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
             </div>
           </SectionCard>
 
-          {/* Requester */}
-          <SectionCard title="Requester">
-            <DetailRow label="Phone" value={patient.phone} />
-            <DetailRow label="Email" value={patient.email} />
-            <Button
-              variant="ghost"
-              disabled
-              className="mt-1 h-11 w-full gap-2 rounded-button bg-muted/60 font-semibold text-muted-foreground hover:bg-muted/60 disabled:opacity-100"
-            >
-              <Phone className="h-4 w-4" />
-              Call Unavailable
-            </Button>
-          </SectionCard>
-
-          {/* Location Data */}
-          <SectionCard title="Location Data" bodyClassName="space-y-4">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-              <DetailRow label="Hospital" value={renderProjection.facilityDisplay.name} />
-              <DetailRow label="Service Type" value={renderProjection.serviceDisplay.label} />
-              <DetailRow label="Request ID" value={renderProjection.identity.displayId || 'N/A'} valueClassName="font-mono" />
-              {activeRequest.patient_location && (
-                <div>
-                  <p className="eyebrow">Patient Location</p>
-                  <div className="mt-1 font-mono text-sm text-foreground">
-                    <LocationCell
-                      location={activeRequest.patient_location}
-                      pickupLocation={activeRequest.pickup_location}
-                      responderLocation={activeRequest.responder_location}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <Button
-              onClick={() => sceneCoordinates && window.open(`https://maps.google.com/?q=${sceneCoordinates.lat},${sceneCoordinates.lng}`, '_blank')}
-              disabled={!sceneCoordinates}
-              variant="ghost"
-              className="h-12 w-full gap-2 rounded-button bg-muted/60 font-semibold text-foreground hover:bg-muted"
-            >
-              <Navigation className="h-4 w-4" />
-              Navigate to Scene
-            </Button>
-          </SectionCard>
-
-          {/* Ambulance Details */}
-          {activeRequest.service_type === 'ambulance' && renderProjection.serviceDisplay.hasAmbulanceType && (
-            <SectionCard title="Ambulance Details" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              <DetailRow label="Type" value={renderProjection.serviceDisplay.ambulanceTypeLabel} />
-              <DetailRow label="ETA" value={renderProjection.responderDisplay.etaLabel || etaDisplay || 'N/A'} />
-              <DetailRow label="Status" value={renderProjection.statusDisplay.label} valueClassName="capitalize" />
-            </SectionCard>
-          )}
-
-          {/* Bed Details */}
-          {activeRequest.service_type === 'bed' && (
-            <SectionCard title="Bed Details" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              <DetailRow label="Bed Number" value={activeRequest.bed_number || 'N/A'} />
-              <DetailRow label="Bed Type" value={bedCategory || 'N/A'} valueClassName="capitalize" />
-              <DetailRow label="Specialty" value={renderProjection.serviceDisplay.specialtyLabel} />
-            </SectionCard>
-          )}
-
-          {/* Responder Information */}
-          {activeRequest.responder_name && (
-            <SectionCard title="Responder Information" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4">
-              <DetailRow label="Responder Name" value={activeRequest.responder_name || 'N/A'} />
-              <DetailRow label="Contact" value={activeRequest.responder_phone || 'N/A'} />
-              {activeRequest.responder_vehicle_plate && (
-                <DetailRow label="Vehicle Plate" value={activeRequest.responder_vehicle_plate || 'N/A'} />
-              )}
-              {activeRequest.responder_vehicle_type && (
-                <DetailRow label="Vehicle Type" value={activeRequest.responder_vehicle_type || 'N/A'} valueClassName="capitalize" />
-              )}
-            </SectionCard>
-          )}
+          <EmergencyIdentitySections request={activeRequest} projection={renderProjection} />
 
           {/* Bottom Actions */}
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
@@ -542,25 +497,3 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     </ModalShell>
   );
 };
-
-/* Sub-components — card-stack primitives (borderless translucent panels, canon radii). */
-
-const PanelCard = ({ children, className = '' }) => (
-  <div className={`rounded-card bg-foreground/[0.05] p-4 dark:bg-white/[0.07] ${className}`}>
-    {children}
-  </div>
-);
-
-const SectionCard = ({ title, children, bodyClassName = 'space-y-3', className = '' }) => (
-  <PanelCard className={className}>
-    <h3 className="text-[13px] font-semibold text-muted-foreground">{title}</h3>
-    <div className={`mt-3 ${bodyClassName}`}>{children}</div>
-  </PanelCard>
-);
-
-const DetailRow = ({ label, value, valueClassName = '' }) => (
-  <div>
-    <p className="eyebrow">{label}</p>
-    <p className={`mt-1 break-words text-sm font-medium text-foreground ${valueClassName}`}>{value}</p>
-  </div>
-);

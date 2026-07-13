@@ -1,6 +1,7 @@
 import { canonicalizeEmergencyStatus } from './emergencyStatus';
-import { getStandardizedPatient } from './patientUtils';
 import { decodePostGISGeometry, formatEmergencyLocation } from './locationUtils';
+import { getPatientInitials } from './patientUtils';
+import { buildRequestVisitIdentityProjection } from './requestVisitIdentityProjection';
 
 const CASH_METHODS = new Set(['cash', 'cash_payment']);
 
@@ -149,7 +150,9 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
   const paymentRecord = options.latestPayment || options.paymentRecord || null;
   const visitOutcome = options.visitOutcome || null;
   const canonicalStatus = canonicalizeEmergencyStatus(row?.status, row?.status);
-  const patient = getStandardizedPatient(row || {});
+  const identityProjection = options.identityProjection
+    || buildRequestVisitIdentityProjection({ request: row, visit: visitOutcome });
+  const patient = identityProjection.patient;
   const coordinatePair = extractCoordinatePair(
     { lat: row?.latitude, lng: row?.longitude },
     row?.patient_location,
@@ -180,10 +183,12 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
     },
     patientDisplay: {
       name: patient.name,
+      username: patient.username,
       phone: patient.phone,
       email: patient.email,
-      initials: patient.initials,
+      initials: getPatientInitials(patient.name),
       avatar: patient.avatar,
+      profileId: patient.profileId,
     },
     serviceDisplay: {
       type: row?.service_type || null,
@@ -217,15 +222,25 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       amountLabel: formatMoneyLabel(amount, currency),
       visibilityState: options.paymentVisibilityState || (paymentRecord ? 'visible' : 'not_created'),
     },
+    doctorDisplay: {
+      id: identityProjection.doctor.doctorId,
+      label: identityProjection.doctor.name,
+      specialty: identityProjection.doctor.specialty,
+      phone: identityProjection.doctor.phone,
+      avatar: identityProjection.doctor.avatar,
+      hasDoctor: identityProjection.doctor.hasDoctor,
+    },
     responderDisplay: {
-      id: row?.ambulance_id || row?.responder_id || null,
-      label: pickFirstNonEmpty(
-        row?.responder_name,
-        row?.responder_vehicle_plate,
-        row?.ambulance_id ? 'Assigned responder' : null
-      ) || 'Not assigned',
+      id: identityProjection.responder.profileId,
+      profileId: identityProjection.responder.profileId,
+      ambulanceId: identityProjection.responder.ambulanceId,
+      label: identityProjection.responder.name,
+      phone: identityProjection.responder.phone,
+      avatar: identityProjection.responder.avatar,
+      vehicleType: identityProjection.responder.vehicleType,
+      vehiclePlate: identityProjection.responder.vehiclePlate,
       etaLabel: pickFirstNonEmpty(row?.eta_display, row?.eta, row?.estimated_arrival) || 'ETA pending',
-      hasResponder: Boolean(row?.ambulance_id || row?.responder_id || row?.responder_name),
+      hasResponder: identityProjection.responder.hasResponder,
     },
     clinicalOutcome: {
       visitId: visitOutcome?.id || null,

@@ -5,9 +5,10 @@ import { getAccessibleNav } from '../../config/navigation';
 import { getMobileNavigationItems } from '../../config/mobileNavigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { readPageDataImplementation } from '../../test/sourceEstates';
 
 describe('VisitsPage admission contract', () => {
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
   const pageSource = () => [
     fs.readFileSync('src/components/pages/VisitsPage.jsx', 'utf8'),
     fs.readFileSync('src/components/pages/visits/visitPageModel.js', 'utf8'),
@@ -24,12 +25,15 @@ describe('VisitsPage admission contract', () => {
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/VisitListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/VisitTableView.jsx', 'utf8');
-  const modalSource = () => fs.readFileSync('src/components/modals/VisitModal.jsx', 'utf8');
+  const modalSource = () => [
+    fs.readFileSync('src/components/modals/VisitModal.jsx', 'utf8'),
+    fs.readFileSync('src/components/modals/VisitModalSections.jsx', 'utf8'),
+  ].join('\n');
   const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
   const modalSuppressionSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/visitsService.js', 'utf8');
-  const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+  const pageDataSource = readPageDataImplementation;
   const bottomBarSource = () => [
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
     fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
@@ -74,8 +78,8 @@ describe('VisitsPage admission contract', () => {
     expect(getPageDataStartupDomainsForRole('provider')).toEqual(['emergency', 'visits']);
 
     const pageData = pageDataSource();
-    expect(pageData).toContain('const fetchVisitsData = useCallback(async () => {');
-    expect(pageData).toContain('const page = await getVisitsPageData({');
+    expect(pageData).toContain('const fetchVisitsData = useCallback(async () => runDomainLoad({');
+    expect(pageData).toContain('export const loadVisitsPageData = async () => {');
     expect(pageData).toContain('stats: page?.stats || null');
     expect(pageData).toContain("if (!user || !startupDomains.includes('visits')) return;");
 
@@ -109,7 +113,7 @@ describe('VisitsPage admission contract', () => {
     const modal = modalSource();
     const service = serviceSource();
 
-    expect(appSource()).toContain('<Route path="/visits" element={<ProtectedRoute minRole="provider"><VisitsPage /></ProtectedRoute>} />');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/visits')).toEqual({ id: 'visits', path: '/visits', minRole: 'provider' });
     // Explicitly converted 2026-07-09 (Requests gold standard): ONE canonical render.
     // ViewToggle and the grid/list/table density variants are retired from the active
     // route; the legacy view files stay unimported (chrome-lint targets only).
@@ -164,7 +168,8 @@ describe('VisitsPage admission contract', () => {
     expect(table).toContain('canDelete = false');
     expect(table).toContain('selectionEnabled = false');
     expect(modal).toContain('mode === \'view\'');
-    expect(modal).toContain('mode === \'edit\'');
+    expect(modal).toContain('{!isView ? (');
+    expect(modal).toContain("isCreate ? 'Schedule Visit' : 'Save Changes'");
     expect(modal).toContain("import { ModalShell } from '../ui/ModalShell'");
     expect(modal).toContain('<ModalShell');
     expect(modal).not.toContain('fixed inset-0');
@@ -496,6 +501,9 @@ describe('VisitsPage admission contract', () => {
     expect(modal).toContain('const facilityLabel = (');
     expect(modal).toContain('const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {');
     expect(modal).toContain("value={formData.notes || 'No clinical notes'}");
+    expect(modal).toContain("const isView = mode === 'view';");
+    expect(modal).toContain("const isCreate = mode === 'create';");
+    expect(modal).toContain("isCreate ? 'Schedule Visit' : 'Save Changes'");
     expect(modal).toContain('View Full Incident Log');
 
     expect(modalShell).toContain('role="dialog"');
@@ -532,7 +540,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('{canDelete && (');
     // Selection ON (isAdmin) but fail-closed: the mobile bulk bar's only control is a
-    // DISABLED delete with the locked reason — mechanism restored, write stays locked.
+    // DISABLED delete with the locked reason; mechanism restored, write stays locked.
     expect(mobile).toContain('MobileSelectionBar');
     expect(mobile).toContain('Bulk visit outcomes are locked until authorized');
   });
