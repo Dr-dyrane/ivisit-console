@@ -6,8 +6,28 @@ import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../..
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
 describe('AmbulancesPage visual-start repair contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/AmbulancesPage.jsx', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileAmbulances.jsx', 'utf8');
+  const readSourceBundle = (paths) => paths
+    .map((path) => fs.readFileSync(path, 'utf8'))
+    .join('\n');
+  const pageSource = () => readSourceBundle([
+    'src/components/pages/AmbulancesPage.jsx',
+    'src/components/pages/ambulances/ambulancePageModel.js',
+    'src/components/pages/ambulances/ambulancePresentation.js',
+    'src/components/pages/ambulances/AmbulanceDetailRail.jsx',
+    'src/components/pages/ambulances/AmbulanceList.jsx',
+    'src/components/pages/ambulances/AmbulancesDesktopWorkspace.jsx',
+    'src/components/pages/ambulances/AmbulancesPageView.jsx',
+    'src/components/pages/ambulances/useAmbulancesPageChrome.js',
+    'src/components/pages/ambulances/useAmbulancesPageController.js',
+  ]);
+  const mobileSource = () => readSourceBundle([
+    'src/components/mobile/MobileAmbulances.jsx',
+    'src/components/mobile/ambulances/mobileAmbulancesModel.js',
+    'src/components/mobile/ambulances/MobileAmbulancesAtlasLayer.jsx',
+    'src/components/mobile/ambulances/MobileAmbulanceDetailSheet.jsx',
+    'src/components/mobile/ambulances/MobileAmbulanceRow.jsx',
+    'src/components/mobile/ambulances/useMobileAmbulancesController.js',
+  ]);
   const modalSource = () => fs.readFileSync('src/components/modals/AmbulanceModal.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/AmbulanceListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/AmbulanceTableView.jsx', 'utf8');
@@ -16,7 +36,6 @@ describe('AmbulancesPage visual-start repair contract', () => {
   const panelSource = () => fs.readFileSync('src/components/context/AmbulancesPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
-  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const mobileKpiStripSource = () => fs.readFileSync('src/components/mobile/MobileKPIStrip.jsx', 'utf8');
   const mobileMetricListSource = () => fs.readFileSync('src/components/mobile/MobileMetricList.jsx', 'utf8');
   const mobileListStatesSource = () => fs.readFileSync('src/components/mobile/MobileListStates.jsx', 'utf8');
@@ -132,7 +151,6 @@ describe('AmbulancesPage visual-start repair contract', () => {
     const panel = panelSource();
     const contextPanel = contextPanelSource();
     const contextAction = contextActionSource();
-    const fab = fabSource();
     const mobileKpiStrip = mobileKpiStripSource();
     const mobileMetricList = mobileMetricListSource();
     const mobileListStates = mobileListStatesSource();
@@ -167,10 +185,10 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // (constitution AMB-1..AMB-3). WorkspaceStage/SignalPanel/KpiStrip/
     // ActivitySheet/DetailRailShell now own the architecture; the page provides
     // only its fleet domain (vocabulary, columns, guards, data wiring).
-    expect(page).toContain("from '../console/WorkspaceStage'");
-    expect(page).toContain("from '../console/SignalPanel'");
-    expect(page).toContain("from '../console/KpiStrip'");
-    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain("from '../../console/WorkspaceStage'");
+    expect(page).toContain("from '../../console/SignalPanel'");
+    expect(page).toContain("from '../../console/KpiStrip'");
+    expect(page).toContain("from '../../console/ActivitySheet'");
     expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={ambulanceToneClass}>');
     expect(page).toContain('<KpiStrip');
@@ -197,10 +215,11 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // the bulk WRITE stays fail-closed (BulkActionBar delete disabled with
     // reason). Flipped from the earlier `selection excluded by decision` marker.
     expect(page).toContain('useRowSelection(ambulances)');
-    expect(page).toContain('selectable={canManageFleet}');
+    expect(page).toContain('selectable={role.canManageFleet}');
     expect(page).toContain('AMBULANCE_GRID_COLS_SELECT');
     expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('selectedCount={selection.selectedIds.length}');
+    expect(page).toContain('onClear={selection.clearSelection}');
     expect(page).toContain('title="Bulk fleet deletion is locked until it is explicitly authorized"');
     expect(page).not.toContain('selection excluded by decision:');
     expect(page).toContain("new CustomEvent('ambulancesRouteContextUpdated'");
@@ -222,8 +241,8 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // Mobile selection MECHANISM enabled (canManageFleet) 2026-07-10 as a fail-closed
     // MIRROR of desktop: the mobile branch passes the same gate the desktop selection
     // uses; the bulk WRITE stays locked (the mobile bar's only control is a disabled
-    // delete — pinned below), never a live fleet mutation.
-    expect(page).toContain('selectionEnabled={canManageFleet}');
+    // delete (pinned below), never a live fleet mutation.
+    expect(page).toContain('selectionEnabled={role.canManageFleet}');
 
     expect(mobile).not.toContain('MobileFeaturedMetric');
     expect(mobile).not.toContain('growthData');
@@ -232,20 +251,20 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).not.toContain("trend: 'LIVE'");
     expect(mobile).not.toContain('avgRating');
     expect(mobile).not.toContain('onDelete');
-    // Mobile NOW carries a Trash2 — but ONLY as the DISABLED locked-bar control (the
+    // Mobile NOW carries a Trash2, but ONLY as the DISABLED locked-bar control (the
     // fail-closed write), never a live delete. Prove the lock, not the absence.
     expect(mobile).toContain('MobileSelectionBar');
     expect(mobile).toContain('Bulk fleet deletion is locked until authorized');
     expect(mobile).toContain('sourceAmbulances');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('labelTone="plain"');
-    // Directory grammar (LIST §5, harness-driven rebuild 2026-07-10): station-grouped
+    // Directory grammar (LIST section 5, harness-driven rebuild 2026-07-10): station-grouped
     // panels replace the old "Fleet signals" metric rail + "Fleet directory" section
     // header. The grammar linter emitted this exact to-do; these pins lock the result.
     expect(mobile).toContain('MobileHeading');
     expect(mobile).toContain('MobileAmbulancesAtlasLayer');
     expect(mobile).toContain('SkeletonGroupPanel');
-    expect(mobile).toContain('const scopeCount = totals');
+    expect(mobile).toContain('const scopeCount = getMobileFleetScopeCount(totals, kpiFilter);');
     expect(mobile).toContain('accumulatorRef');
     expect(mobile).toContain('hasMobileFleetFilters');
     // Adaptive, data-driven grouping (2026-07-10): station is degenerate on real fleets
@@ -257,7 +276,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain('formatRelativeTime(ambulance.updated_at)');
     // Dock/FAB grammar (corrected 2026-07-10): /ambulances is in routeOwnsAction, so it MUST
     // carry a route-owned FAB or the dock collapses to a lone pill. The FAB MIRRORS the desktop's
-    // primary CTA — the LIVE "Add unit" create (ambulances is write-capable: CREATE + EDIT are
+    // primary CTA: the LIVE "Add unit" create (ambulances is write-capable: CREATE + EDIT are
     // legitimate for admin/org_admin, AmbulancesPage.jsx:318). The earlier "Driver approvals" FAB
     // was built on a FALSE "unit create is fail-closed" premise and is retired.
     const bottomBar = [
@@ -279,11 +298,14 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(mobile).toContain("return 'Ready';");
     expect(mobile).toContain("return 'En route';");
     // Canon kit (Wave-2 rebuild, 2026-07-09): the trigger aria-labels are now baked
-    // by SearchRow from its props — entityLabel="fleet" renders "Filter fleet";
+    // by SearchRow from its props; entityLabel="fleet" renders "Filter fleet";
     // statsLabel carries "Open fleet statistics" verbatim. Same labels, new recipe.
     expect(mobile).toContain('entityLabel="fleet"');
     expect(mobile).toContain('statsLabel="Open fleet statistics"');
-    expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />');
+    expect(mobile).toContain('<MobileListLoadMore');
+    expect(mobile).toContain('armed={armed}');
+    expect(mobile).toContain('onRequest={requestLoad}');
+    expect(mobile).toContain('labelTone="plain"');
     expect(mobile).not.toContain('Fleet Signals');
     expect(mobile).not.toContain('Fleet Directory');
     expect(mobile).not.toContain("return 'READY';");
@@ -385,7 +407,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(service).toContain('select(\'*\', { count: \'exact\', head: true })');
     expect(service).toContain('range(safeOffset, safeOffset + safeLimit - 1)');
     expect(service).toContain('hospitalNameById');
-    // useAmbulances.js deleted 2026-07-08 (orphaned — 0 importers; page consumes
+    // useAmbulances.js deleted 2026-07-08 (orphaned, 0 importers; page consumes
     // getAmbulancesPageData directly). Removal proof, not source assertion.
     expect(fs.existsSync('src/hooks/useAmbulances.js')).toBe(false);
     expect(panel).toContain('ambulanceContext');
@@ -404,7 +426,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(panel).toContain("from '../../constants/ambulanceStatus'");
     expect(panel).toContain('getAmbulanceStatusToneClass(status)');
     expect(panel).not.toContain('const toneByStatus');
-    expect(page).toContain("from '../../constants/ambulanceStatus'");
+    expect(page).toContain("from '../../../constants/ambulanceStatus'");
     expect(page).not.toContain('const ambulanceStatusPillClass =');
     expect(contextPanel).toContain('ambulancesRouteContext');
     expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('requestAmbulancesRouteContext'))");
