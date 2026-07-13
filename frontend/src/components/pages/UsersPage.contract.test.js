@@ -5,16 +5,44 @@ import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../..
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 describe('Users Page 14 identity contract', () => {
+  const pageSource = () => [
+    read('src/components/pages/UsersPage.jsx'),
+    read('src/components/pages/users/usersPageModel.js'),
+    read('src/components/pages/users/UsersDesktopWorkspace.jsx'),
+    read('src/components/pages/users/UsersDetailRail.jsx'),
+    read('src/components/pages/users/UsersPageOverlays.jsx'),
+  ].join('\n');
+
+  it('keeps PAGE-08 identity orchestration modular', () => {
+    const entry = read('src/components/pages/UsersPage.jsx');
+    const model = read('src/components/pages/users/usersPageModel.js');
+    const workspace = read('src/components/pages/users/UsersDesktopWorkspace.jsx');
+    const detailRail = read('src/components/pages/users/UsersDetailRail.jsx');
+
+    expect(entry.split(/\r?\n/).length).toBeLessThanOrEqual(450);
+    expect(workspace.split(/\r?\n/).length).toBeLessThanOrEqual(400);
+    expect(entry).toContain("import { UsersDesktopWorkspace } from './users/UsersDesktopWorkspace';");
+    expect(entry).toContain("import { UsersBulkActionBar, UsersPageDialogs } from './users/UsersPageOverlays';");
+    expect(workspace).toContain("import { UsersDetailRail } from './UsersDetailRail';");
+    expect(model).not.toContain("from 'react'");
+    expect(model).not.toContain('useProfilesQuery');
+    expect(detailRail).not.toContain('useProfilesQuery');
+  });
+
   it('keeps the admitted registry role-gated and hardgate-covered', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
+    const app = [
+      read('src/app/AppRoutes.jsx'),
+      read('src/app/appRouteMetadata.js'),
+    ].join('\n');
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('RESOLUTION - Page 14 Users ADMITTED to canon (2026-07-10).');
     expect(gate).toContain('Users invitation receiver admission on 2026-07-12');
-    expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
+    expect(app).toContain("users: lazyNamedPage(() => import('../components/pages/UsersPage'), 'UsersPage')");
+    expect(app).toContain("{ id: 'users', path: '/users', minRole: 'org_admin' }");
     expect(routes).toContain("'/users': {");
     expect(routes).toContain("minRole: 'org_admin'");
     expect(navigation).toContain("{ id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' }");
@@ -28,7 +56,7 @@ describe('Users Page 14 identity contract', () => {
   });
 
   it('keeps the server-projected workspace, context panel, and selection grammar', () => {
-    const page = read('src/components/pages/UsersPage.jsx');
+    const page = pageSource();
     const mobile = read('src/components/mobile/MobileUsers.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
 
@@ -59,7 +87,7 @@ describe('Users Page 14 identity contract', () => {
 
   it('routes every create-labelled entry point to the proved invitation command', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const page = read('src/components/pages/UsersPage.jsx');
+    const page = pageSource();
     const contextAction = read('src/hooks/useContextAction.js');
     const bottomBar = [
       read('src/components/navigation/DynamicBottomBar.jsx'),
@@ -120,7 +148,7 @@ describe('Users Page 14 identity contract', () => {
   });
 
   it('renders exact-count failures as unavailable instead of zero', () => {
-    const page = read('src/components/pages/UsersPage.jsx');
+    const page = pageSource();
     const mobile = read('src/components/mobile/MobileUsers.jsx');
     const hook = read('src/hooks/useProfilesQuery.js');
     const profiles = read('src/services/profilesService.js');
@@ -138,7 +166,7 @@ describe('Users Page 14 identity contract', () => {
 
   it('keeps data acquisition route-owned and deletion unavailable on both layouts', () => {
     const pageDataAccess = read('src/config/pageDataAccess.js');
-    const page = read('src/components/pages/UsersPage.jsx');
+    const page = pageSource();
     const mobile = read('src/components/mobile/MobileUsers.jsx');
 
     expect(routeOwnsStartupDomains('/users')).toBe(true);
