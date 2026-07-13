@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
+import { canAccessContextPanel } from '../navigation/context-panel/contextPanelAccess';
 
 // Approvals DESKTOP contract. The mobile surface (MobileVerification.jsx) has its
 // OWN contract (MobileVerification.contract.test.js) so the two lanes gate
@@ -318,10 +319,24 @@ describe('VerificationQueue Approvals desktop contract', () => {
   });
 
   it('lets an org_admin reviewer see the review panel (route is org_admin-reachable)', () => {
-    const navContextPanel = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
     // The panel is READ-ONLY review context; the page/route is org_admin-reachable, so
     // an org_admin reviewer must get it. Approval COMMANDS stay admin-gated (canApprove).
-    expect(navContextPanel).toContain("'/verification': isAdmin() || isOrgAdmin()");
+    expect(canAccessContextPanel('/verification', {
+      admin: false,
+      orgAdmin: true,
+      patient: false,
+      provider: false,
+      sponsor: false,
+      viewer: false,
+    })).toBe(true);
+    expect(canAccessContextPanel('/verification', {
+      admin: false,
+      orgAdmin: false,
+      patient: true,
+      provider: false,
+      sponsor: false,
+      viewer: false,
+    })).toBe(false);
     expect(pageSource()).toContain('const canApprove = isAdmin();');
     expect(pageSource()).toContain('const canReview = canApprove || isOrgAdmin();');
   });

@@ -242,7 +242,3 @@ export const AmbulancesDesktopWorkspace = ({
     </WorkspaceStage>
   );
 };
-
-// arrival-toast excluded by decision: a new-unit INSERT is not an
-// operator-attention event like a new emergency; subscribeToAllAmbulances exists
-// if this is ever reversed (AMBULANCES_REVAMP_CONSTITUTION_2026-07-10 section 3).

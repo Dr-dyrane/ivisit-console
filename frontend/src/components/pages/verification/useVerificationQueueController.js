@@ -170,8 +170,6 @@ export const useVerificationQueueController = ({
     if (queueType === 'providers') fetchVerificationData();
     else fetchOrgVerificationData();
 
-    // arrival-toast excluded by decision: the queue subscriptions report only that
-    // truth changed, so the controller can refetch but cannot identify one inserted row.
     let unsubscribeProviders;
     let unsubscribeOrganizations;
 

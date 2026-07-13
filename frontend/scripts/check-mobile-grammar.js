@@ -54,7 +54,7 @@ const MANIFEST = {
   // ── LIST-migrating (Wave-2: SearchRow + warm-up landed; grouped-panel + rail
   //    removal is the next rebuild — tracked as debt, not blocked) ──
   'MobileAmbulances.jsx': { tier: 'list' },
-  'MobileDoctors.jsx': { tier: 'list' },
+  'MobileDoctors.jsx': { tier: 'list', appendOwnerDir: '../pages/doctors' },
   'MobileHealthNews.jsx': { tier: 'list' },
   'MobileInsurance.jsx': { tier: 'list', selection: 'required' },
   'MobilePricing.jsx': { tier: 'list', selection: 'required' },
@@ -88,6 +88,27 @@ const MANIFEST = {
   'MobileSkeleton.jsx': { tier: 'exempt', reason: 'primitive' },
 };
 
+// A modular mobile page is one implementation estate: the compatibility entry
+// plus its page-owned controller/model/view directory. Keep this map explicit so
+// shared canon primitives cannot accidentally satisfy a page requirement and a
+// newly extracted directory cannot silently fall outside the grammar gate.
+const MOBILE_PAGE_OWNED_DIRS = Object.freeze({
+  'MobileEmergency.jsx': ['requests'],
+  'MobileVisits.jsx': ['visits'],
+  'MobileHospitals.jsx': ['hospitals'],
+  'MobileAmbulances.jsx': ['ambulances'],
+  'MobileDoctors.jsx': ['doctors'],
+  'MobileHealthNews.jsx': ['health-news'],
+  'MobileInsurance.jsx': ['insurance'],
+  'MobilePricing.jsx': ['pricing'],
+  'MobileSubscriptions.jsx': ['subscriptions'],
+  'MobileSupportTickets.jsx': ['support'],
+  'MobileVerification.jsx': ['verification'],
+  'MobileWallet.jsx': ['wallet'],
+  'MobileOrganizations.jsx': ['organizations'],
+  'MobileSettings.jsx': ['settings'],
+});
+
 // Strip line + block comments so a mention in prose (e.g. "NOT the GroupPanel
 // pilot") can't false-pass a usage check — the exact gap the Ambulances harness
 // test exposed 2026-07-10.
@@ -110,7 +131,7 @@ const waived = (rawSrc, key) => new RegExp(`grammar:${key}=\\S`).test(rawSrc);
 
 // FATAL rules per tier — all currently satisfied by the canon pages (green now),
 // each targets a specific Hospitals-class failure so a regression reds the build.
-function lintList(src) {
+function lintList(src, appendOwnerSrc = '') {
   const fatal = [];
   const warn = [];
   // Required LIST anatomy — checked as RENDERED JSX (`<Name`), not bare mentions.
@@ -137,7 +158,11 @@ function lintList(src) {
   if (hasTag(src, 'MobileFeaturedMetric')) fatal.push('LIST page carries MobileFeaturedMetric — the billboard is DASHBOARD-only (§5)');
   // Behavioral WARN: load-more must APPEND, not replace the window (Hospitals bug).
   const hasLoadMore = hasAny(src, ['useLoadMoreControl', 'onLoadMore']);
-  const hasAccumulator = hasAny(src, ['accumulatorRef', 'store.byId', 'store.order']);
+  const hasGrowingWindowOwner = /limit:\s*isMobile\s*\?\s*currentPage\s*\*\s*itemsPerPage/.test(
+    stripComments(appendOwnerSrc)
+  );
+  const hasAccumulator = hasAny(src, ['accumulatorRef', 'store.byId', 'store.order'])
+    || hasGrowingWindowOwner;
   if (hasLoadMore && !hasAccumulator && !waived(src, 'loadmore-append')) {
     warn.push('load-more present but NO visible accumulator (accumulatorRef) — verify rows APPEND, not replace the RQ window (Hospitals-class bug); add `// grammar:loadmore-append=<mechanism>` to waive');
   }
@@ -233,6 +258,30 @@ function collectJsx(dir) {
     else if (/\.jsx$/.test(ent.name)) out.push(full);
   }
   return out;
+}
+
+function collectProductionSources(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      out.push(...collectProductionSources(full));
+      continue;
+    }
+    if (!/\.(?:js|jsx|ts|tsx)$/.test(ent.name)) continue;
+    if (/\.(?:test|spec)\.(?:js|jsx|ts|tsx)$/.test(ent.name)) continue;
+    out.push(full);
+  }
+  return out.sort();
+}
+
+function readMobilePageEstate(file) {
+  const files = [path.join(MOBILE_DIR, file)];
+  for (const ownedDir of MOBILE_PAGE_OWNED_DIRS[file] || []) {
+    files.push(...collectProductionSources(path.join(MOBILE_DIR, ownedDir)));
+  }
+  return files.map((sourceFile) => fs.readFileSync(sourceFile, 'utf8')).join('\n');
 }
 
 // FATAL check: scan for bare slash-opacity color tokens whose numeric value is NOT in the
@@ -428,12 +477,17 @@ function main() {
     if (!entry) { unclassified.push(file); continue; }
     if (entry.tier === 'exempt') continue;
 
-    const src = fs.readFileSync(path.join(MOBILE_DIR, file), 'utf8');
+    const src = readMobilePageEstate(file);
     const linter = entry.tier === 'list' ? lintList
       : entry.tier === 'dashboard' ? lintDashboard
         : entry.tier === 'hybrid' ? lintHybrid
           : lintListMigrating;
-    const { fatal, warn } = linter(src);
+    const appendOwnerSrc = entry.appendOwnerDir
+      ? collectProductionSources(path.resolve(MOBILE_DIR, entry.appendOwnerDir))
+        .map((sourceFile) => fs.readFileSync(sourceFile, 'utf8'))
+        .join('\n')
+      : '';
+    const { fatal, warn } = linter(src, appendOwnerSrc);
     if (entry.selection === 'required') fatal.push(...lintSelectionMechanism(src));
 
     if (fatal.length || warn.length) {

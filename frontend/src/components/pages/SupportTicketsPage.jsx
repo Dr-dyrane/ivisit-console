@@ -11,12 +11,6 @@ import { SupportPageModals } from './support/SupportPageModals';
 import { SUPPORT_FILTER_SCHEMA } from './support/supportTicketsModel';
 import { useSupportTicketsPageController } from './support/useSupportTicketsPageController';
 
-// Static shared-estate compatibility: the extracted SupportDesktopWorkspace owns the single
-// <SortableColumnHeader, useListKeyboardNav, useScrollResetOnPage, and useFocusedRecord(
-// mechanisms. Its empty-state branch remains `hasFilter ?`; this route retains the selection,
-// loading, deep-link, and interaction props consumed by the shared contract.
-// arrival-toast excluded by decision: realtime converges through Support cache invalidation.
-
 export const SupportTicketsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();

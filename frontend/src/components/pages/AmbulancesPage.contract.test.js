@@ -198,12 +198,12 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).not.toContain('const AmbulanceStateStrip');
     expect(page).not.toContain('const AmbulanceActivitySheet');
     // Mechanism registry (the completeness gate): the list-workspace mechanisms
-    // are wired, with selection + arrival-toast recorded-excluded (fleet has no
-    // console bulk-write receiver; a new-unit INSERT is not an attention event).
+    // are wired. The shared design-system registry owns the arrival-toast
+    // exclusion because a new-unit INSERT is not an operator-attention event.
     expect(page).toContain('useListKeyboardNav');
     expect(page).toContain('useScrollResetOnPage');
     expect(page).toContain('const loadError =');
-    expect(page).toContain('arrival-toast excluded by decision:');
+    expect(page).not.toContain('arrival-toast excluded by decision:');
     expect(page).toContain("params.get('id')");
     expect(page).toContain('SortableColumnHeader');
     expect(page).toContain('<ListRowShell');

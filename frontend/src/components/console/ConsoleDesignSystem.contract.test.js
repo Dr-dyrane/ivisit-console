@@ -17,6 +17,20 @@ describe('Console design system contract', () => {
   const workspaceStage = () => read('src/components/console/WorkspaceStage.jsx');
   const keyboardNav = () => read('src/hooks/useListKeyboardNav.js');
   const dayTime = () => read('src/utils/dayTime.js');
+  const readProductionTree = (dir) => {
+    if (!fs.existsSync(dir)) return '';
+    return fs.readdirSync(dir, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((entry) => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) return readProductionTree(fullPath);
+        if (!/\.(js|jsx|ts|tsx)$/.test(entry.name)) return '';
+        if (/\.(test|spec)\.(js|jsx|ts|tsx)$/.test(entry.name)) return '';
+        return read(fullPath);
+      })
+      .filter(Boolean)
+      .join('\n');
+  };
 
   // THE SINGLE REGISTRY of adopted list-workspace pages (page + its paired
   // write-surface modal). Every LIST-scoped estate law below -- the
@@ -33,28 +47,28 @@ describe('Console design system contract', () => {
   // lists, which would give two headers (TIME-sort count!==1) and let a mechanism
   // be wired to one queue only (the queue-blind seam). One list = both lanes.
   const LIST_WORKSPACE_PAGES = [
-    { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
-    { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', modal: 'src/components/modals/VisitModal.jsx' },
-    { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', modal: 'src/components/modals/HospitalModal.jsx' },
-    { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', modal: 'src/components/modals/AmbulanceModal.jsx' },
+    { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
+    { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx' },
+    { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx' },
+    { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', exclusions: ['arrival-toast'] },
     // Approvals: a DUAL-QUEUE list page (providers|facilities) composed single-shared-list
     // -- ONE ActivitySheet whose rows swap by queueType, ONE Time header. The paired
     // write-surface is the provider modal; the facility inline write (rail) carries the
     // submit spinner via the page (animate-spin), which the interaction gate accepts.
-    { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', modal: 'src/components/modals/VerificationModal.jsx' },
-    { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', modal: 'src/components/modals/DoctorModal.jsx' },
-    { name: 'users', page: 'src/components/pages/UsersPage.jsx', modal: 'src/components/modals/UserModal.jsx' },
+    { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', ownedDir: 'src/components/pages/verification', modal: 'src/components/modals/VerificationModal.jsx', exclusions: ['arrival-toast'] },
+    { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', ownedDir: 'src/components/pages/doctors', modal: 'src/components/modals/DoctorModal.jsx' },
+    { name: 'users', page: 'src/components/pages/UsersPage.jsx', ownedDir: 'src/components/pages/users', modal: 'src/components/modals/UserModal.jsx' },
     // Support: single-shared-list status-axis page (All/Open/Active/Resolved). The paired
     // write-surface is SupportTicketModal (create/edit); single+bulk delete and provider
     // self-assign are restored, while status-transition (resolve/close) stays fail-closed
     // (the per-page contract pins page.not.toContain('updateTicketStatus')).
-    { name: 'support', page: 'src/components/pages/SupportTicketsPage.jsx', modal: 'src/components/modals/SupportTicketModal.jsx' },
+    { name: 'support', page: 'src/components/pages/SupportTicketsPage.jsx', ownedDir: 'src/components/pages/support', modal: 'src/components/modals/SupportTicketModal.jsx', exclusions: ['arrival-toast'] },
     // Health News: a READ-ONLY published-feed list page. It composes the full workspace
     // grammar (one ActivitySheet, one Time header on created_at) so every list estate law
     // covers it, but authoring is absent and the route FAB opens read-only statistics. Selection
     // and arrival-toast are recorded exclusions (published feed, no bulk write target / no
     // realtime). The paired HealthNewsModal is a read-only details surface.
-    { name: 'news', page: 'src/components/pages/HealthNewsManagementPage.jsx', modal: 'src/components/modals/HealthNewsModal.jsx' },
+    { name: 'news', page: 'src/components/pages/HealthNewsManagementPage.jsx', ownedDir: 'src/components/pages/health-news', modal: 'src/components/modals/HealthNewsModal.jsx', exclusions: ['selection', 'arrival-toast', 'deep-link', 'submit-spinner'] },
     // Organizations: a READ-ONLY registry list page (payout-readiness axis: Registry/Funded/
     // Payout gap). It composes the full workspace grammar (one ActivitySheet, one Time header
     // on created_at) so every list estate law covers it, but every command is fail-closed --
@@ -63,14 +77,19 @@ describe('Console design system contract', () => {
     // read-only surface (View opens it in view mode) that carries the submit spinner
     // (animate-spin). arrival-toast is a recorded exclusion (read-only registry, no bulk write
     // target); selection is present (admin-gated) with a fail-closed bulk delete.
-    { name: 'organizations', page: 'src/components/pages/OrganizationsPage.jsx', modal: 'src/components/modals/OrganizationModal.jsx', selectionRequired: true },
+    { name: 'organizations', page: 'src/components/pages/OrganizationsPage.jsx', ownedDir: 'src/components/pages/organizations', modal: 'src/components/modals/OrganizationModal.jsx', selectionRequired: true, exclusions: ['arrival-toast'] },
     // Insurance keeps route/data ownership and desktop composition in separate files.
     // `estate` declares both so every shared mechanism law inspects the effective surface.
-    { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', estate: ['src/components/pages/insurance/InsuranceDesktopWorkspace.jsx'], modal: 'src/components/modals/InsuranceModal.jsx', selectionRequired: true },
-    { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', estate: ['src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx'], modal: 'src/components/modals/SubscriptionModal.jsx', selectionRequired: true },
-    { name: 'pricing', page: 'src/components/pages/PricingManagementPage.jsx', estate: ['src/components/pages/pricing/PricingDesktopWorkspace.jsx'], selectionRequired: true },
+    { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', ownedDir: 'src/components/pages/insurance', modal: 'src/components/modals/InsuranceModal.jsx', selectionRequired: true, exclusions: ['arrival-toast', 'deep-link', 'submit-spinner'] },
+    { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', ownedDir: 'src/components/pages/subscriptions', modal: 'src/components/modals/SubscriptionModal.jsx', selectionRequired: true, exclusions: ['arrival-toast', 'deep-link', 'submit-spinner'] },
+    // Pricing is a read-only projection. Family tabs, scope chips, and inline search are
+    // the complete filter surface; there is no write receiver or realtime arrival owner.
+    { name: 'pricing', page: 'src/components/pages/PricingManagementPage.jsx', ownedDir: 'src/components/pages/pricing', selectionRequired: true, exclusions: ['arrival-toast', 'deep-link', 'submit-spinner', 'filter-icon'] },
   ];
-  const readEstate = (entry) => [entry.page, ...(entry.estate || [])].map(read).join('\n');
+  const readEstate = (entry) => [
+    read(entry.page),
+    entry.ownedDir ? readProductionTree(entry.ownedDir) : '',
+  ].filter(Boolean).join('\n');
 
   const CONSOLE_FILES = () => ({
     primitives: primitives(),
@@ -280,20 +299,19 @@ describe('Console design system contract', () => {
     // Extend this list as pages adopt the DS; a colored glow anywhere here is a
     // regression of the user-locked neutral-shadow rule.
     const surfaces = {
-      visitsPage: read('src/components/pages/VisitsPage.jsx'),
+      visitsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'visits')),
       visitsPanel: read('src/components/context/VisitsPanel.jsx'),
-      emergencyRequestsPage: read('src/components/pages/EmergencyRequestsPage.jsx'),
-      todayHome: read('src/components/pages/TodayHome.jsx'),
-      hospitalsPage: read('src/components/pages/HospitalsPage.jsx'),
-      ambulancesPage: read('src/components/pages/AmbulancesPage.jsx'),
-      verificationQueue: read('src/components/pages/VerificationQueue.jsx'),
-      doctorsPage: read('src/components/pages/DoctorsPage.jsx'),
-      usersPage: read('src/components/pages/UsersPage.jsx'),
-      supportTicketsPage: read('src/components/pages/SupportTicketsPage.jsx'),
-      healthNewsPage: read('src/components/pages/HealthNewsManagementPage.jsx'),
-      organizationsPage: read('src/components/pages/OrganizationsPage.jsx'),
-      analyticsPage: read('src/components/pages/Analytics.jsx'),
-      analyticsDesktopWorkspace: read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx'),
+      emergencyRequestsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'requests')),
+      todayHome: [read('src/components/pages/TodayHome.jsx'), readProductionTree('src/components/pages/today')].join('\n'),
+      hospitalsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'hospitals')),
+      ambulancesPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'ambulances')),
+      verificationQueue: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'verificationQueue')),
+      doctorsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'doctors')),
+      usersPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'users')),
+      supportTicketsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'support')),
+      healthNewsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'news')),
+      organizationsPage: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'organizations')),
+      analyticsPage: [read('src/components/pages/Analytics.jsx'), readProductionTree('src/components/pages/analytics')].join('\n'),
       mobileAnalytics: read('src/components/mobile/MobileAnalytics.jsx'),
       analyticsPanel: read('src/components/context/AnalyticsPanel.jsx'),
     };
@@ -407,14 +425,14 @@ describe('Console design system contract', () => {
     // selection column was rationalised away as a "domain delta"). This registry
     // is the behavioural backstop donor-diff cannot express: each load-bearing
     // donor mechanism must be PRESENT on every list-workspace surface (one that
-    // renders a SortableColumnHeader list), OR the surface must record a
-    // deliberate exclusion with the literal marker "<slug> excluded by decision:
-    // <ref>". Adding a new list page? Wire each mechanism or write its marker --
-    // the sweep reds otherwise. Bulk WRITES stay per-page fail-closed; this gate
+    // renders a SortableColumnHeader list), OR the surface must register that
+    // mechanism in its central `exclusions` metadata. Adding a new list page?
+    // Wire each mechanism or record the reviewed exception here; the sweep reds
+    // otherwise. Bulk WRITES stay per-page fail-closed; this gate
     // is about the mechanism being present, not about what it is allowed to do.
     //
     // To register a new mechanism: add a row here (slug + presence signature),
-    // confirm the existing surfaces satisfy it or carry the exclusion marker,
+    // confirm the existing surfaces satisfy it or register a reviewed exclusion,
     // and cite the drop that motivated it. Composition-satisfied mechanisms
     // (debounce, updating-pill, drag handle -- baked into ActivitySheet/
     // SheetToolbar) are intentionally ABSENT: composing the component IS the
@@ -445,7 +463,7 @@ describe('Console design system contract', () => {
         .toEqual({ surface: name, isListSurface: true });
       for (const m of MECHANISMS) {
         const present = m.test.test(src);
-        const excluded = src.includes(`${m.slug} excluded by decision:`);
+        const excluded = entry.exclusions?.includes(m.slug);
         if (m.slug === 'selection' && entry.selectionRequired) {
           expect({ surface: name, mechanism: m.slug, required: present && !excluded })
             .toEqual({ surface: name, mechanism: m.slug, required: true });
@@ -514,8 +532,8 @@ describe('Console design system contract', () => {
         controlPress: /active:scale-/.test(src),
         noStageReveal: !/initial=\{\{/.test(src),
         isFetchingSurfaced: src.includes('isFetching={isFetching}'),
-        emptyBranch: src.includes('hasFilter ?'),
-        submitSpinner: /animate-spin/.test(src) || /animate-spin/.test(modal) || src.includes('submit-spinner excluded by decision:'),
+        emptyBranch: /hasFilter\s*\?/.test(src),
+        submitSpinner: Boolean(/animate-spin/.test(src) || /animate-spin/.test(modal) || entry.exclusions?.includes('submit-spinner')),
         // TIME-ONLY sort discipline (DS decision trail): exactly ONE sortable
         // column (the Time-equivalent). Person/Status/Service/Facility are plain
         // labels -- alphabetical sorts aren't operational and JSON snapshots have
@@ -568,7 +586,7 @@ describe('Console design system contract', () => {
 
     for (const entry of NAV_HEADER) {
       const pageEntry = LIST_WORKSPACE_PAGES.find((p) => p.name === entry.name);
-      const src = read(pageEntry.page);
+      const src = readEstate(pageEntry);
 
       // (a) navbar declares this exact label for the route -- the source of truth.
       const navLabel = (nav.match(new RegExp(`path: '${entry.navPath}'[^}]*?label: '([^']*)'`)) || [])[1];
@@ -593,7 +611,7 @@ describe('Console design system contract', () => {
       // (d) the header filter button's glyph is the canon lucide Filter (or its
       // FilterIcon alias) -- never a domain icon (Shield/Users/Stethoscope/...).
       const filterIcon = (src.match(/aria-label="Filter[^"]*"[\s\S]{0,160}?<([A-Za-z]\w*) className="h-4 w-4"/) || [])[1];
-      const filterIconExcluded = src.includes('filter-icon excluded by decision:');
+      const filterIconExcluded = Boolean(pageEntry.exclusions?.includes('filter-icon'));
       expect({ page: entry.name, canonFilterIcon: /^Filter(Icon)?$/.test(filterIcon || '') || filterIconExcluded })
         .toEqual({ page: entry.name, canonFilterIcon: true });
     }

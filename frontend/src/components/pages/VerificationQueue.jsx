@@ -55,8 +55,6 @@ export const VerificationQueue = () => {
     providerTypeFilter: routeScope.providerTypeFilter,
     onProviderVerified: closeProviderModal,
   });
-  // arrival-toast excluded by decision: both verification subscriptions expose
-  // invalidation callbacks, not inserted row payloads that can name one arrival.
   const {
     providers,
     organizations,

@@ -97,14 +97,6 @@ export const useHealthNewsPageController = () => {
   const focusedNews = focusedRecord;
   const hasFilter = hasAppliedFilters(filters, kpiFilter);
 
-  // selection excluded by decision: PAGE_REVAMP_GATE Page 11 admits a read-only
-  // published feed with no authorized bulk write target on desktop or mobile.
-  // deep-link excluded by decision: the retired create deep link has no approved
-  // writer receiver; record focus remains route-local.
-  // submit-spinner excluded by decision: no Health News write surface is mounted.
-  // arrival-toast excluded by decision: this route owns no insert subscription;
-  // query invalidation and explicit refetch are the only freshness signals.
-
   useEffect(() => () => {
     if (actionFeedbackTimerRef.current) {
       window.clearTimeout(actionFeedbackTimerRef.current);
