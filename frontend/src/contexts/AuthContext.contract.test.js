@@ -1,8 +1,9 @@
 import fs from 'fs';
+import { readAuthImplementation } from '../test/sourceEstates';
 
 describe('AuthContext startup disclosure contract', () => {
   it('keeps auth startup degradation out of raw browser diagnostics', () => {
-    const source = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const source = readAuthImplementation();
 
     expect(source).toContain('Keep degraded auth startup visible through app state');
     expect(source).toContain("type: 'profile_missing'");
@@ -14,7 +15,7 @@ describe('AuthContext startup disclosure contract', () => {
   });
 
   it('does not create, promote, or fake profile truth from the browser', () => {
-    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const authSource = readAuthImplementation();
     const routeSource = fs.readFileSync('src/components/common/ProtectedRoute.jsx', 'utf8');
 
     expect(authSource).toContain('.maybeSingle()');
@@ -30,7 +31,7 @@ describe('AuthContext startup disclosure contract', () => {
   });
 
   it('keeps Requests permissions tied to the backend emergency_requests resource', () => {
-    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const authSource = readAuthImplementation();
     const routeSource = fs.readFileSync('src/config/routes.jsx', 'utf8');
     const navigationSource = fs.readFileSync('src/config/navigation.js', 'utf8');
 
@@ -43,7 +44,7 @@ describe('AuthContext startup disclosure contract', () => {
   });
 
   it('deduplicates service-level current-user profile reads', () => {
-    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const authSource = readAuthImplementation();
     const authServiceSource = fs.readFileSync('src/services/authService.js', 'utf8');
 
     expect(authServiceSource).toContain('const CURRENT_USER_CACHE_MS = 60000');
@@ -71,7 +72,7 @@ describe('AuthContext startup disclosure contract', () => {
   });
 
   it('clears unscoped React Query truth only when authenticated ownership changes or ends', () => {
-    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const authSource = readAuthImplementation();
     const queryClientSource = fs.readFileSync('src/lib/queryClient.js', 'utf8');
 
     expect(queryClientSource).toContain('export const clearPrincipalScopedQueryCache = () => {');

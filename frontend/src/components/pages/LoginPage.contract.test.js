@@ -1,20 +1,22 @@
 import fs from 'fs';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { PUBLIC_SHELL_ROUTES, shouldHideShellChrome } from '../../app/shellVisibility';
+import { readAuthImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 describe('Login Page 19 admission contract', () => {
   it('keeps Login in the public shell and the visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 19 Admission - Login');
     expect(gate).toContain('Login receiver admission on 2026-07-12');
-    expect(app).toContain('<Route path="/login" element={<LoginPage />} />');
-    expect(app).toContain('const PUBLIC_SHELL_ROUTES = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"];');
-    expect(app).not.toContain('<Route path="/login" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/login')).toEqual({ id: 'login', path: '/login', public: true });
+    expect(PUBLIC_SHELL_ROUTES).toContain('/login');
+    expect(shouldHideShellChrome('/login')).toBe(true);
     expect(routes).toContain("'/login': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain('return <Navigate to="/login" state={{ from: location }} replace />;');
@@ -23,7 +25,7 @@ describe('Login Page 19 admission contract', () => {
 
   it('does not disclose account existence and keeps password setup explicit', () => {
     const page = read('src/components/pages/LoginPage.jsx');
-    const auth = read('src/contexts/AuthContext.jsx');
+    const auth = readAuthImplementation();
 
     expect(page).toContain('const [step, setStep] = useState("email");');
     expect(page).toContain('const normalizedEmail = emailSchema.parse(email.trim().toLowerCase());');
@@ -61,7 +63,7 @@ describe('Login Page 19 admission contract', () => {
 
   it('keeps AAL1 sessions in the security flow until canonical assurance is satisfied', () => {
     const page = read('src/components/pages/LoginPage.jsx');
-    const auth = read('src/contexts/AuthContext.jsx');
+    const auth = readAuthImplementation();
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
 
     expect(auth).toContain("MFA_REQUIRED: 'mfa_required'");

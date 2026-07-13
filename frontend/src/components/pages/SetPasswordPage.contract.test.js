@@ -1,19 +1,21 @@
 import fs from 'fs';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { shouldHideShellChrome } from '../../app/shellVisibility';
+import { readAuthImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 describe('Set Password Page 20 admission contract', () => {
   it('keeps Set Password in the public shell and visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 20 Admission - Set Password');
     expect(gate).toContain('Set Password receiver admission on 2026-07-12');
-    expect(app).toContain('<Route path="/set-password" element={<SetPasswordPage />} />');
-    expect(app).not.toContain('<Route path="/set-password" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/set-password')).toEqual({ id: 'setPassword', path: '/set-password', public: true });
+    expect(shouldHideShellChrome('/set-password')).toBe(true);
     expect(routes).toContain("'/set-password': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain("const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];");
@@ -22,7 +24,7 @@ describe('Set Password Page 20 admission contract', () => {
 
   it('bounds recovery checks and gives missing and failed links a way out', () => {
     const page = read('src/components/pages/SetPasswordPage.jsx');
-    const auth = read('src/contexts/AuthContext.jsx');
+    const auth = readAuthImplementation();
     const login = read('src/components/pages/LoginPage.jsx');
 
     expect(page).toContain('const RECOVERY_CHECK_TIMEOUT_MS = 5000;');

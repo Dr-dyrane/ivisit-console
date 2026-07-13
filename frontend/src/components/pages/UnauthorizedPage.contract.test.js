@@ -1,5 +1,8 @@
 import fs from 'fs';
 import { execFileSync } from 'child_process';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { shouldHideShellChrome } from '../../app/shellVisibility';
+import { readAuthImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
@@ -9,7 +12,6 @@ const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESER
 describe('Unauthorized Page 23 admission contract', () => {
   it('admits the Unauthorized visual surface while ProtectedRoute stays the shared guard hardgate file', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
@@ -19,10 +21,8 @@ describe('Unauthorized Page 23 admission contract', () => {
     expect(gate).toContain('First Unauthorized visual pass on 2026-07-07 admitted the `UnauthorizedPage` denied-state surface.');
     expect(gate).toContain('Promotion note: the first Unauthorized visual pass is complete.');
 
-    expect(app).toContain('<Route path="/unauthorized" element={<UnauthorizedPage />} />');
-    expect(app).toContain('const PUBLIC_SHELL_ROUTES = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"];');
-    expect(app).toContain('const hideNav = shouldHideShellChrome(location.pathname);');
-    expect(app).toContain('<ConsoleStartupOverlay disabled={hideNav} />');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/unauthorized')).toEqual({ id: 'unauthorized', path: '/unauthorized', public: true });
+    expect(shouldHideShellChrome('/unauthorized')).toBe(true);
     expect(routes).toContain("'/unauthorized': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain("const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];");
@@ -35,7 +35,7 @@ describe('Unauthorized Page 23 admission contract', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const oldProtectedRoute = gitShowHead('frontend/src/components/common/ProtectedRoute.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
-    const auth = read('src/contexts/AuthContext.jsx');
+    const auth = readAuthImplementation();
     const navigation = read('src/config/navigation.js');
 
     expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/common/ProtectedRoute.jsx`');
@@ -102,7 +102,6 @@ describe('Unauthorized Page 23 admission contract', () => {
 
   it('records the Unauthorized admission decisions, rendered proof, and remaining cross-route work', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
 
     expect(gate).toContain('Unauthorized admission decisions:');
@@ -120,7 +119,7 @@ describe('Unauthorized Page 23 admission contract', () => {
     expect(gate).toContain('Page 23 may not reuse Requests visual language because Unauthorized is a public denied-state handoff, not a multi-data work stage.');
     expect(gate).toContain('Prove `/login`, `/set-password`, `/onboarding`, `/onboarding-success`, and `/unauthorized` redirect/deep-link behavior together before changing public auth/denied-state copy or flow order.');
 
-    expect(app).not.toContain('<Route path="/unauthorized" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/unauthorized')?.public).toBe(true);
     expect(protectedRoute).not.toContain('usePageHeader');
     expect(protectedRoute).not.toContain('usePageShell');
     expect(protectedRoute).not.toContain('ContextPanel');
