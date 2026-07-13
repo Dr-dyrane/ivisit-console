@@ -48,6 +48,9 @@ Page 22 Onboarding Success (`efac625`).
      desktop FAB, and mobile menu. This prevents route-owned dock actions from being duplicated in the
      side-menu page-actions block; the mobile grammar gate derives its completeness set from the same
      registry. Analytics remains an intentional generic read-only action exception.
+   - Mobile overflow navigation now renders the existing role-filtered primary route list before its
+     domain accordions, restoring direct Today, Live Map, and Statistics access where RBAC allows it.
+     `NavigationShell.contract.test.js` pins the route set and the side-menu rendering handoff.
    - Pricing is now included in the shared desktop list-workspace estate registry, which locks its
      single updated-time sort, keyboard focus, loading/refetch/empty behavior, selection exclusion,
      navbar title, SEO title, and recorded no-deep-link/no-write-surface decisions. Payments remains

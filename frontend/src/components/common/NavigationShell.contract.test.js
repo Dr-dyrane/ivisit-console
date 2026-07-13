@@ -144,7 +144,18 @@ describe('Navigation shell contract', () => {
       .toEqual(['Today', 'Approvals', 'Staff', 'Payments']);
     expect(getMobileNavigationItems('admin', undefined, '/insurance').map((item) => item.label))
       .toEqual(['Today', 'Requests', 'Map', 'Insurance']);
+    expect(getAccessibleNav({ role: 'admin' }).main.map((item) => item.label))
+      .toEqual(['Today', 'Live Map', 'Statistics']);
+    expect(getAccessibleNav({ role: 'sponsor' }).main.map((item) => item.label))
+      .toEqual(['Today', 'Statistics']);
+    expect(getAccessibleNav({ role: 'viewer' }).main.map((item) => item.label))
+      .toEqual(['Today']);
     expect(mobileMenu).toContain("const [activeTab, setActiveTab] = useState('menu')");
+    expect(mobileMenu).toContain('const isMain = accessibleNav.main?.some(item => item.path === location.pathname);');
+    expect(mobileMenu).toContain('data-mobile-primary-navigation');
+    expect(mobileMenu).toContain('aria-label="Primary pages"');
+    expect(mobileMenu).toContain('{accessibleNav.main.map(item => renderLink(item))}');
+    expect(mobileMenu).toContain("aria-current={active ? 'page' : undefined}");
     expect(mobileMenu).toContain('const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);');
     expect(mobileMenu).toContain("else if (isFinance) setActiveGroup('finance');");
     expect(mobileMenu).toContain("{['ops', 'mgmt', 'finance'].map(groupId => {");

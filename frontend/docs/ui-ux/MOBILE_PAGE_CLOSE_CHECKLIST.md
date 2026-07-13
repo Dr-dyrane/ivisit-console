@@ -52,6 +52,10 @@ shipped green.
       FAB does REAL work or is honestly gated with a reason; the 4th pill morphs correctly.
       Read-only authority blocks unproved mutation, not a proved route-level Stats/Review action.
       Any no-FAB exception must be named in the grammar harness with a route-specific reason.
+- [ ] **Overflow reachability.** The avatar Menu renders every role-accessible primary route from
+      `getAccessibleNav().main` — Today plus Live Map and Statistics when allowed — before the
+      domain accordions. A compact dock may omit a resting slot; the overflow menu may not omit
+      the route. Each link navigates and closes the sheet.
 
 ## Gate 2 — data-fitting (the row is scented to the DATA, not the schema)
 

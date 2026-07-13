@@ -41,11 +41,13 @@ export const MobileNavMenu = ({ onClose }) => {
     const [activeGroup, setActiveGroup] = useState(null);
 
     useEffect(() => {
+        const isMain = accessibleNav.main?.some(item => item.path === location.pathname);
         const isOps = accessibleNav.ops?.items.some(item => item.path === location.pathname);
         const isMgmt = accessibleNav.mgmt?.items.some(item => item.path === location.pathname);
         const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);
 
-        if (isOps) setActiveGroup('ops');
+        if (isMain) setActiveGroup(null);
+        else if (isOps) setActiveGroup('ops');
         else if (isMgmt) setActiveGroup('mgmt');
         else if (isFinance) setActiveGroup('finance');
     }, [location.pathname, accessibleNav]);
@@ -85,8 +87,10 @@ export const MobileNavMenu = ({ onClose }) => {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleNavigate(item.path)}
                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-button transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
-                    } ${isSub ? 'pl-12' : ''}`}
+                } ${isSub ? 'pl-12' : ''}`}
                 aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+                data-state={active ? 'active' : 'idle'}
             >
                 <item.icon className={`h-5 w-5 ${active ? 'opacity-100' : 'opacity-50'}`} />
                 <span className={`text-xs md:text-base tracking-tight ${active ? 'font-semibold' : 'font-normal'}`}>
@@ -153,6 +157,16 @@ export const MobileNavMenu = ({ onClose }) => {
                             exit={{ opacity: 0, x: -10 }}
                             className="space-y-6"
                         >
+                            {/* Primary routes stay directly reachable from overflow even when the
+                                compact bottom island does not allocate them a resting slot. */}
+                            <nav
+                                className="space-y-1"
+                                data-mobile-primary-navigation
+                                aria-label="Primary pages"
+                            >
+                                {accessibleNav.main.map(item => renderLink(item))}
+                            </nav>
+
                             {/* Groups with Accordion logic */}
                             <div className="space-y-1">
                                 {['ops', 'mgmt', 'finance'].map(groupId => {
