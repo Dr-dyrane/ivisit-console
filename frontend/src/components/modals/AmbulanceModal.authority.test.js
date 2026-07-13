@@ -1,5 +1,5 @@
-import fs from 'fs';
 import { buildAmbulancePayload } from './AmbulanceModal';
+import { readSourceEstate } from '../../test/sourceEstates';
 
 jest.mock('@/lib/utils', () => ({
   cn: (...classes) => classes.filter(Boolean).join(' '),
@@ -46,7 +46,10 @@ describe('AmbulanceModal write authority', () => {
   });
 
   it('keeps organization scope enforcement mounted around station selection and save', () => {
-    const source = fs.readFileSync('src/components/modals/AmbulanceModal.jsx', 'utf8');
+    const source = readSourceEstate({
+      files: ['src/components/modals/AmbulanceModal.jsx'],
+      directories: ['src/components/modals/ambulance'],
+    });
 
     expect(source).toContain('filterAmbulanceStationOptions');
     expect(source).toContain('assertAmbulanceWriteScope(payload, actorScope)');

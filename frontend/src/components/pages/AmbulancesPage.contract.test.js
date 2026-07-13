@@ -4,6 +4,7 @@ import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readSourceEstate } from '../../test/sourceEstates';
 
 describe('AmbulancesPage visual-start repair contract', () => {
   const readSourceBundle = (paths) => paths
@@ -28,7 +29,10 @@ describe('AmbulancesPage visual-start repair contract', () => {
     'src/components/mobile/ambulances/MobileAmbulanceRow.jsx',
     'src/components/mobile/ambulances/useMobileAmbulancesController.js',
   ]);
-  const modalSource = () => fs.readFileSync('src/components/modals/AmbulanceModal.jsx', 'utf8');
+  const modalSource = () => readSourceEstate({
+    files: ['src/components/modals/AmbulanceModal.jsx'],
+    directories: ['src/components/modals/ambulance'],
+  });
   const listSource = () => fs.readFileSync('src/components/views/AmbulanceListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/AmbulanceTableView.jsx', 'utf8');
   const serviceSource = () => readSourceBundle([
@@ -378,7 +382,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(modal).toContain("const formId = 'ambulance-modal-form';");
     expect(modal).toContain('form={formId}');
     // - display_id + CopyChip (perk 10; a reference, never a write key).
-    expect(modal).toContain("import { CopyChip } from '../console/primitives';");
+    expect(modal).toContain("import { CopyChip } from '../../console/primitives';");
     expect(modal).toContain('ambulance?.display_id ?');
     // - AMB-4: crew persists as a Json ARRAY (rail reads .length), not a string.
     expect(modal).toContain('crew: crewToArray(formData.crew)');

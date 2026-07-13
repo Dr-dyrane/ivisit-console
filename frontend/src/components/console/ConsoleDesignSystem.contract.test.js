@@ -50,7 +50,7 @@ describe('Console design system contract', () => {
     { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx', modalOwnedDir: 'src/components/modals/emergency-request' },
     { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx' },
     { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx', modalOwnedDir: 'src/components/modals/hospital' },
-    { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', exclusions: ['arrival-toast'] },
+    { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', modalOwnedDir: 'src/components/modals/ambulance', exclusions: ['arrival-toast'] },
     // Approvals: a DUAL-QUEUE list page (providers|facilities) composed single-shared-list
     // -- ONE ActivitySheet whose rows swap by queueType, ONE Time header. The paired
     // write-surface is the provider modal; the facility inline write (rail) carries the
