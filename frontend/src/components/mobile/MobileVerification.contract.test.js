@@ -7,7 +7,13 @@ import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 // page's contract on a stale byte-string, and vice-versa. This file owns every
 // assertion about the mobile approvals surface + its mobile navigation entry points.
 describe('MobileVerification Approvals mobile contract', () => {
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileVerification.jsx', 'utf8');
+  const mobileSource = () => [
+    fs.readFileSync('src/components/mobile/MobileVerification.jsx', 'utf8'),
+    ...fs.readdirSync('src/components/mobile/verification')
+      .filter((name) => /\.(?:js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`src/components/mobile/verification/${name}`, 'utf8')),
+  ].join('\n');
 
   it('keeps mobile copy and actions aligned with desktop authority', () => {
     const source = mobileSource();
@@ -52,7 +58,8 @@ describe('MobileVerification Approvals mobile contract', () => {
     // Facilities keep the REAL reject (verification_status has a rejected state).
     expect(source).toContain('onVerifyOrganization(item.id, false)');
     // 'Rejected' status filter is FACILITY-ONLY (queue-gated, never a dead 0-chip).
-    expect(source).toContain("...(queueType === 'providers' ? [] : [{ id: 'rejected'");
+    expect(source).toContain("id: 'rejected', label: 'Rejected'");
+    expect(source).toContain("...(queueType === 'providers'");
   });
 
   it('keeps the mobile FAB + bottom bar owning the /verification approval action', () => {

@@ -8,7 +8,21 @@ import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 // stale byte-string (that cross-lane breakage is the reason the split happened,
 // 2026-07-10). This file reads ONLY the desktop page + shared surfaces.
 describe('VerificationQueue Approvals desktop contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/VerificationQueue.jsx', 'utf8');
+  const readModuleEstate = (entry, directory) => [
+    fs.readFileSync(entry, 'utf8'),
+    ...fs.readdirSync(directory)
+      .filter((name) => /\.(?:js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`${directory}/${name}`, 'utf8')),
+  ].join('\n');
+  const pageSource = () => readModuleEstate(
+    'src/components/pages/VerificationQueue.jsx',
+    'src/components/pages/verification',
+  );
+  const appRouteSource = () => [
+    fs.readFileSync('src/app/AppRoutes.jsx', 'utf8'),
+    fs.readFileSync('src/app/appRouteMetadata.js', 'utf8'),
+  ].join('\n');
   const modalSource = () => fs.readFileSync('src/components/modals/VerificationModal.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/context/VerificationPanel.jsx', 'utf8');
   const colorSource = () => fs.readFileSync('src/constants/verificationStatus.js', 'utf8');
@@ -20,6 +34,8 @@ describe('VerificationQueue Approvals desktop contract', () => {
   it('keeps Approvals route-owned so PageData does not duplicate route reads', () => {
     expect(getPageDataStartupDomainsForRole('org_admin', '/verification')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('admin', '/verification')).toEqual([]);
+    expect(appRouteSource()).toContain("verification: lazyNamedPage(() => import('../components/pages/VerificationQueue'), 'VerificationQueue')");
+    expect(appRouteSource()).toContain("{ id: 'verification', path: '/verification', minRole: 'org_admin' }");
   });
 
   it('splits review access from admin-only approval commands', () => {
@@ -47,8 +63,8 @@ describe('VerificationQueue Approvals desktop contract', () => {
     const source = pageSource();
     // COMPOSITION: the dual-queue page is ONE canonical render on the shared DS.
     expect(source).toContain("from '../console/WorkspaceStage'");
-    expect(source).toContain("import { SignalPanel } from '../console/SignalPanel';");
-    expect(source).toContain("import { KpiStrip } from '../console/KpiStrip';");
+    expect(source).toContain("import { SignalPanel } from '../../console/SignalPanel';");
+    expect(source).toContain("import { KpiStrip } from '../../console/KpiStrip';");
     expect(source).toContain("from '../console/ActivitySheet'");
     expect(source).toContain('<WorkspaceStage');
     expect(source).toContain('<SignalPanel');
@@ -79,7 +95,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
     const source = pageSource();
     const color = colorSource();
     // The page no longer carries a bespoke status->class switch; it composes the source.
-    expect(source).toContain("from '../../constants/verificationStatus'");
+    expect(source).toContain("from '../../../constants/verificationStatus'");
     expect(source).toContain('getApprovalStatusKey');
     expect(source).toContain('getApprovalToneClass(');
     expect(source).toContain('getApprovalLabel(');
@@ -98,7 +114,6 @@ describe('VerificationQueue Approvals desktop contract', () => {
 
   it('gives BOTH lanes multi-select + bulk, routed per queue (providers approve-only, facilities tri-state)', () => {
     const source = pageSource();
-    const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
     const bottomBarSource = [
       fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
       fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
@@ -117,8 +132,10 @@ describe('VerificationQueue Approvals desktop contract', () => {
     // the branch-body substrings stay present (2026-07-10 adversarial review, major gap).
     expect(source).toContain("const isProviders = queueType === 'providers';");
     expect(source).toContain("const activeItems = queueType === 'providers' ? providers : organizations;");
-    expect(source).toContain('if (isProviders) await verifyProvider(id, true);');
-    expect(source).toContain('else await verifyOrganization(id, approved);');
+    expect(source).toContain('verifyProviderCommand: verifyProvider');
+    expect(source).toContain('verifyOrganizationCommand: verifyOrganization');
+    expect(source).toContain('if (isProviders) await verifyProviderCommand(id, true);');
+    expect(source).toContain('else await verifyOrganizationCommand(id, approved);');
     // Facilities get a bulk Reject (real tri-state); it is queue-gated -- providers don't.
     // Pin each button's ARGUMENT so a Reject-that-approves regression reds.
     expect(source).toContain('title="Reject Selected"');
@@ -177,7 +194,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
 
     expect(page).not.toContain('getAvatarUrl');
     expect(modal).not.toContain('getAvatarUrl');
-    expect(page).toContain('item.avatar_url || item.image_uri');
+    expect(page).toContain('item?.avatar_url || item?.image_uri');
     expect(page).toContain("style={{ outline: 'none' }}");
     expect(page).not.toContain('data-[state=active]:bg-primary');
     expect(page).not.toContain('hover-glow-primary');
@@ -224,8 +241,8 @@ describe('VerificationQueue Approvals desktop contract', () => {
   it('proves every approval COMMAND is wired to BOTH lanes (dual-queue, not one)', () => {
     const source = pageSource();
     // Both verify handlers exist and are DISTINCT (a shared handler would hide a lane).
-    expect(source).toContain('const handleVerify = async (providerId, approved)');
-    expect(source).toContain('const handleVerifyOrg = async (hospitalId, approved)');
+    expect(source).toContain('const handleVerify = useCallback(async (providerId, approved)');
+    expect(source).toContain('const handleVerifyOrg = useCallback(async (hospitalId, approved)');
     // Both are wired down each canApprove-gated -- not just the provider lane.
     expect(source).toContain('onVerifyProvider={canApprove ? handleVerify : null}');
     expect(source).toContain('onVerifyOrganization={canApprove ? handleVerifyOrg : null}');
@@ -236,9 +253,44 @@ describe('VerificationQueue Approvals desktop contract', () => {
     // Pin the facility 'approved' normalization (verified -> approved). Dropping it makes
     // the facility Approved count silently read 0; a vacuous `queueType === 'providers'`
     // substring (24 occurrences) did NOT catch that (2026-07-10 adversarial review).
-    expect(source).toContain('approved: orgStats.verified');
-    expect(source).toContain("const items = queueType === 'providers' ? providers : organizations;");
+    expect(source).toContain('approved: facilityStats?.verified || 0');
+    expect(source).toContain('const items = getActiveVerificationItems(queueType, providers, organizations);');
     expect(source).toContain('count: items.length');
+  });
+
+  it('preserves receiver feedback, modal closure, and refetch sequencing', () => {
+    const source = pageSource();
+    const providerCommand = source.slice(
+      source.indexOf('const handleVerify = useCallback'),
+      source.indexOf('const handleVerifyOrg = useCallback'),
+    );
+    const facilityCommandStart = source.indexOf('const handleVerifyOrg = useCallback');
+    const controllerBulkStart = source.indexOf('const handleBulkAction = useCallback', facilityCommandStart);
+    const facilityCommand = source.slice(
+      facilityCommandStart,
+      controllerBulkStart,
+    );
+    const bulkCommand = source.slice(
+      controllerBulkStart,
+      source.indexOf('return {', controllerBulkStart),
+    );
+
+    expect(providerCommand.indexOf('setActionLoading(true)'))
+      .toBeLessThan(providerCommand.indexOf('await verifyProvider(providerId, approved)'));
+    expect(providerCommand.indexOf('onProviderVerified?.();'))
+      .toBeLessThan(providerCommand.indexOf('await fetchVerificationData();'));
+    expect(providerCommand).toContain('finally');
+    expect(providerCommand).toContain('setActionLoading(false)');
+
+    expect(facilityCommand.indexOf('await verifyOrganization(hospitalId, approved)'))
+      .toBeLessThan(facilityCommand.indexOf('fetchOrgVerificationData();'));
+    expect(facilityCommand).toContain('finally');
+    expect(facilityCommand).toContain('setActionLoading(false)');
+
+    expect(bulkCommand.indexOf('clearSelection?.();'))
+      .toBeLessThan(bulkCommand.indexOf('await refetchActive();'));
+    expect(bulkCommand.indexOf('await refetchActive();'))
+      .toBeLessThan(bulkCommand.indexOf('setActionLoading(false)'));
   });
 
   it('makes the PROVIDER lane approve-only and the FACILITY lane keep a real reject', () => {
@@ -253,7 +305,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).not.toContain('handleVerify(item.id, false)');
     // Providers bulk is approve-only: the provider branch hardcodes approve (true), so a
     // provider can never be bulk-rejected even though the shared handler takes `approved`.
-    expect(source).toContain('if (isProviders) await verifyProvider(id, true);');
+    expect(source).toContain('if (isProviders) await verifyProviderCommand(id, true);');
     expect(source).toContain("onReject={queueType === 'organizations'");
     // The service no longer LIES that 'rejected' == 'pending'; it is honest-empty.
     expect(providerService).not.toContain('Rejected providers are also unverified');
