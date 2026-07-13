@@ -1,9 +1,13 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Sparkles, X, Lock } from 'lucide-react';
 import { usePageData } from '../../contexts/PageDataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { canAccessContextPanel } from './context-panel/contextPanelAccess';
+import {
+  ContextPanelAccessDenied,
+  ContextPanelEmpty,
+  ContextPanelFrame,
+} from './context-panel/ContextPanelChrome';
 import {
   EmergencyPanel,
   UsersPanel,
@@ -54,6 +58,17 @@ export const ContextPanel = () => {
   const [verificationRouteContext, setVerificationRouteContext] = React.useState(null);
 
   const emergencyStats = getEmergencyStats();
+  const roleAccess = {
+    admin: isAdmin(),
+    orgAdmin: isOrgAdmin(),
+    patient: isPatient(),
+    provider: isProvider(),
+    sponsor: isSponsor(),
+    viewer: isViewer(),
+  };
+  const framePanel = (content) => (
+    <ContextPanelFrame useMockData={useMockData}>{content}</ContextPanelFrame>
+  );
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -78,40 +93,6 @@ export const ContextPanel = () => {
     window.dispatchEvent(new CustomEvent('requestSettingsRouteContext'));
     return () => window.removeEventListener('settingsRouteContextUpdated', handleSettingsRouteContext);
   }, [currentPath]);
-
-  // Role-based access control for context panels
-  const canAccessPanel = (panelPath) => {
-    // Define role access rules for each panel
-    const panelAccess = {
-      '/': true, // Today - everyone can access
-      '/emergencies': !isPatient() && !isViewer(), // Operational roles only
-      '/users': isAdmin() || isOrgAdmin(), // Match the org_admin authority supported by the route.
-      '/verification': isAdmin() || isOrgAdmin(), // Approvals is org_admin-reachable (route minRole org_admin); the panel is REVIEW context (read-only side data), so an org_admin reviewer must get it too. Approval COMMANDS stay admin-gated inside the panel/page (canApprove = isAdmin()).
-      '/analytics': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
-      '/doctors': isAdmin() || isOrgAdmin(), // Management only
-      '/visits': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management
-      '/hospitals': isAdmin() || isOrgAdmin(), // Management only
-      '/ambulances': isAdmin() || isOrgAdmin(), // Management only
-      '/health-news': !isPatient(), // Everyone except patients
-      '/support-tickets': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
-      '/insurance': isAdmin(), // Admin only
-      '/map': !isPatient() && !isViewer(), // Operational roles only
-      '/settings': true, // Own-user settings
-      '/subscriptions': isAdmin(), // Admin only
-      '/wallet': isAdmin() || isOrgAdmin(), // Admin and Org Admin
-      '/pricing': isAdmin() || isOrgAdmin(), // Admin and Org Admin
-      '/organizations': isAdmin(), // Admin only
-    };
-
-    // Check if current path starts with any protected path
-    for (const [path, allowed] of Object.entries(panelAccess)) {
-      if (panelPath === path || panelPath.startsWith(path + '/')) {
-        return allowed;
-      }
-    }
-
-    return true; // Default to allowed for unknown paths
-  };
 
   const [emergencyRouteContext, setEmergencyRouteContext] = React.useState(null);
 
@@ -393,113 +374,39 @@ export const ContextPanel = () => {
     };
   }, [currentPath]);
 
-  const renderAccessDenied = () => (
-    <div className="p-0 md:p-6 scrollbar-hide">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="text-center py-12"
-      >
-        <div className="w-16 h-16 bg-destructive/20 rounded-icon flex items-center justify-center mx-auto mb-6">
-          <Lock className="h-8 w-8 text-destructive" />
-        </div>
-        <h3 className="font-bold text-xl mb-2 text-foreground">No access</h3>
-        <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-          You do not have access to this panel.
-        </p>
-        <div className="text-xs text-muted-foreground font-medium">
-          Ask an admin if this should be available.
-        </div>
-      </motion.div>
-    </div>
-  );
-
-  // Shared header is slimmed to just the control row (live dot + close). Each inner
-  // panel owns its own heading (its `X overview` eyebrow), so the pane no longer
-  // renders a duplicate route title above it. See ContextPanelShell contract.
-  const renderPanelHeader = () => (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="relative"
-    >
-      <div className="px-0 pt-4 pb-2 md:px-6">
-        <div className="flex items-center justify-end gap-3">
-          {/* Live indicator */}
-          {!useMockData && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="h-2 w-2 rounded-pill bg-emerald-500"
-              aria-hidden="true"
-            />
-          )}
-          {/* Close button - Hidden on mobile. md:flex (not md:block) so the icon centers. */}
-          <button
-            onClick={() => {
-              // Close context panel
-              const event = new CustomEvent('closeContextPanel');
-              window.dispatchEvent(event);
-            }}
-            className="hidden h-9 w-9 items-center justify-center rounded-pill surface-card text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 md:flex"
-            type="button"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col rounded-card" data-context-panel-content="true">
-      {/* Header - Hidden on mobile */}
-      <div className="hidden md:block">
-        {renderPanelHeader()}
-      </div>
-      <div className="flex-1 overflow-y-auto px-0 pb-6 md:px-4 md:pb-6">
-        {panelContent}
-      </div>
-    </div>
-  );
-
-  // Render based on current path with RBAC check
-  if (!canAccessPanel(currentPath)) {
-    return renderAccessDenied();
+  if (!canAccessContextPanel(currentPath, roleAccess)) {
+    return <ContextPanelAccessDenied />;
   }
 
   if (currentPath === '/' || currentPath === '') {
-    return renderPanelWithHeader(
+    return framePanel(
       <DashboardPanel todayContext={todayRouteContext} />
     );
   } else if (currentPath.includes('/emergencies')) {
-    return renderPanelWithHeader(
+    return framePanel(
       <EmergencyPanel requestContext={emergencyRouteContext} />
     );
   } else if (currentPath.includes('/users')) {
     // Whole-object pass-through (Doctors/Staff canon): the panel reads the page's PUBLISHED
     // shape (context.stats/.recent/...) verbatim. Cherry-picking renamed sub-props here is what
     // desynced Users -- the page publishes stats/recent, not statistics/recentUsers.
-    return renderPanelWithHeader(<UsersPanel usersContext={usersRouteContext} />);
+    return framePanel(<UsersPanel usersContext={usersRouteContext} />);
   } else if (currentPath.includes('/hospitals')) {
-    return renderPanelWithHeader(<HospitalsPanel hospitalContext={hospitalsRouteContext} />);
+    return framePanel(<HospitalsPanel hospitalContext={hospitalsRouteContext} />);
   } else if (currentPath.includes('/ambulances')) {
-    return renderPanelWithHeader(<AmbulancesPanel ambulanceContext={ambulancesRouteContext} />);
+    return framePanel(<AmbulancesPanel ambulanceContext={ambulancesRouteContext} />);
   } else if (currentPath.includes('/map')) {
-    return renderPanelWithHeader(
+    return framePanel(
       <MapPanel emergencyStats={emergencyStats} />
     );
   } else if (currentPath.includes('/analytics')) {
-    return renderPanelWithHeader(<AnalyticsPanel analyticsContext={analyticsRouteContext} />);
+    return framePanel(<AnalyticsPanel analyticsContext={analyticsRouteContext} />);
   } else if (currentPath.includes('/doctors')) {
-    return renderPanelWithHeader(<DoctorsPanel staffContext={doctorsRouteContext} />);
+    return framePanel(<DoctorsPanel staffContext={doctorsRouteContext} />);
   } else if (currentPath.includes('/visits')) {
-    return renderPanelWithHeader(<VisitsPanel visitContext={visitsRouteContext} />);
+    return framePanel(<VisitsPanel visitContext={visitsRouteContext} />);
   } else if (currentPath.includes('/verification')) {
-    return renderPanelWithHeader(
+    return framePanel(
       <VerificationPanel
         verificationContext={verificationRouteContext}
         verificationData={verificationRouteContext?.stats || verificationData}
@@ -507,59 +414,31 @@ export const ContextPanel = () => {
       />
     );
   } else if (currentPath.includes('/health-news')) {
-    return renderPanelWithHeader(<HealthNewsPanel healthNewsContext={healthNewsRouteContext} />);
+    return framePanel(<HealthNewsPanel healthNewsContext={healthNewsRouteContext} />);
   } else if (currentPath.includes('/support-tickets')) {
-    return renderPanelWithHeader(<SupportTicketsPanel supportContext={supportTicketsRouteContext} />);
+    return framePanel(<SupportTicketsPanel supportContext={supportTicketsRouteContext} />);
   } else if (currentPath.includes('/insurance')) {
-    return renderPanelWithHeader(
+    return framePanel(
       <InsurancePanel insuranceContext={insuranceRouteContext} />
     );
   } else if (currentPath.includes('/subscriptions')) {
-    return renderPanelWithHeader(
+    return framePanel(
       <SubscriptionsPanel subscriptionsContext={subscriptionsRouteContext} />
     );
   } else if (currentPath.includes('/settings')) {
-    return renderPanelWithHeader(<SettingsPanel settingsContext={settingsRouteContext} />);
+    return framePanel(<SettingsPanel settingsContext={settingsRouteContext} />);
   } else if (currentPath.includes('/pricing')) {
-        return renderPanelWithHeader(<PricingContextPanel pricingContext={pricingRouteContext} />);
+    return framePanel(<PricingContextPanel pricingContext={pricingRouteContext} />);
   } else if (currentPath.includes('/wallet')) {
-    return renderPanelWithHeader(<WalletPanel walletContext={walletRouteContext} />);
+    return framePanel(<WalletPanel walletContext={walletRouteContext} />);
   } else if (currentPath.includes('/organizations')) {
     // Whole-object pass-through (Support/Users canon): the panel reads the page's PUBLISHED
     // shape (orgContext.stats/.recent/...) verbatim, so fresh server stats never degrade to a
     // stale window count. (Was a renamed organizations/summary cherry-pick -- the desync seam.)
-    return renderPanelWithHeader(
+    return framePanel(
       <OrganizationsPanel orgContext={organizationsRouteContext} />
     );
   }
 
-  // Default panel
-  return (
-    <div className="p-2 md:p-6 scrollbar-hide">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="text-center py-12"
-      >
-        <div className="w-16 h-16 bg-primary/20 rounded-icon flex items-center justify-center mx-auto mb-6">
-          <Sparkles className="h-8 w-8 text-primary" />
-        </div>
-        <h3 className="font-bold text-xl mb-2 text-foreground">Page help</h3>
-        <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-          Open a page to see related details and actions.
-        </p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          className="flex items-center justify-center gap-2"
-        >
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs font-normal text-primary uppercase tracking-wider">Ready</span>
-        </motion.div>
-      </motion.div>
-    </div>
-  );
+  return <ContextPanelEmpty />;
 };

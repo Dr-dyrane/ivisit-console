@@ -2,7 +2,10 @@ import fs from 'fs';
 
 describe('ContextPanel shell contract', () => {
   const shellSource = () => fs.readFileSync('src/components/navigation/ResponsiveSidebar.jsx', 'utf8');
-  const panelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+  const panelSource = () => [
+    fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8'),
+    fs.readFileSync('src/components/navigation/context-panel/ContextPanelChrome.jsx', 'utf8'),
+  ].join('\n');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
 
   it('keeps the right context panel as shared desktop shell chrome', () => {
@@ -61,5 +64,16 @@ describe('ContextPanel shell contract', () => {
     expect(panel).not.toContain('Smart Context');
     expect(panel).not.toContain('Access Restricted');
     expect(hardgate).toContain('src/components/navigation/ContextPanel.jsx');
+  });
+
+  it('keeps CTX-02 access and chrome outside the route-context dispatcher', () => {
+    const entry = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+    const access = fs.readFileSync('src/components/navigation/context-panel/contextPanelAccess.js', 'utf8');
+
+    expect(entry.split(/\r?\n/).length).toBeLessThanOrEqual(500);
+    expect(entry).toContain("import { canAccessContextPanel } from './context-panel/contextPanelAccess';");
+    expect(entry).toContain('<ContextPanelFrame useMockData={useMockData}>');
+    expect(access).not.toContain("from 'react'");
+    expect(access).toContain("['/users', management]");
   });
 });

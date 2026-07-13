@@ -28,8 +28,8 @@ describe('identity and settings low-risk closures', () => {
   });
 
   test('Users context panel matches the org_admin route authority', () => {
-    const source = readSource('./ContextPanel.jsx');
+    const source = readSource('./context-panel/contextPanelAccess.js');
 
-    expect(source).toContain("'/users': isAdmin() || isOrgAdmin()");
+    expect(source).toContain("['/users', management]");
   });
 });
