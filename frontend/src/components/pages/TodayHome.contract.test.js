@@ -29,6 +29,10 @@ jest.mock('../../contexts/PageDataContext', () => ({
   usePageData: () => mockPageData,
 }));
 
+jest.mock('../../contexts/PageActionsContext', () => ({
+  usePageActions: () => ({ registerPageAction: jest.fn() }),
+}));
+
 jest.mock('../../contexts/LayoutContext', () => ({
   usePageFooter: jest.fn(),
   usePageHeader: jest.fn(),
@@ -50,10 +54,36 @@ import {
   getTodayModuleRailItems,
   resolveTodayProviderCount,
 } from './TodayHome';
+import { resolveBentoHomeRole } from './bento/bentoHomeModel';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection, getRouteTitle } from '../../config/routes';
+
+const readSource = (path) => fs.readFileSync(path, 'utf8');
+const todayImplementationPaths = [
+  'src/components/pages/TodayHome.jsx',
+  'src/components/pages/today/todayModel.js',
+  'src/components/pages/today/todayActionModel.js',
+  'src/components/pages/today/todayGlanceModel.js',
+  'src/components/pages/today/todayRoleModel.js',
+  'src/components/pages/today/todaySummaryModel.js',
+  'src/components/pages/today/useTodayRoleKind.js',
+  'src/components/pages/today/TodayDesktopView.jsx',
+];
+const bentoImplementationPaths = [
+  'src/components/pages/bento/LegacyBentoHome.jsx',
+  'src/components/pages/bento/LegacyBentoCards.jsx',
+  'src/components/pages/bento/LegacyBentoFooter.jsx',
+  'src/components/pages/bento/LegacyBentoGrid.jsx',
+  'src/components/pages/bento/LegacyBentoLoadingView.jsx',
+  'src/components/pages/bento/LegacyBentoOperationsCards.jsx',
+  'src/components/pages/bento/LegacyBentoRoleCards.jsx',
+  'src/components/pages/bento/LegacyQuickActionCard.jsx',
+  'src/components/pages/bento/useLegacyBentoData.js',
+];
+const todaySource = () => todayImplementationPaths.map(readSource).join('\n');
+const bentoSource = () => bentoImplementationPaths.map(readSource).join('\n');
 
 const liveCounts = {
   live: true,
@@ -137,13 +167,26 @@ describe('TodayHome role contract', () => {
     expect(NAV_CONFIG.mgmt.items.find((item) => item.id === 'verification')?.label).toBe('Approvals');
   });
 
+  it('keeps Bento composition role precedence identical before mounting either home', () => {
+    expect(resolveBentoHomeRole({ admin: true, orgAdmin: true })).toBe('admin');
+    expect(resolveBentoHomeRole({ admin: false, orgAdmin: true })).toBe('org_admin');
+    expect(resolveBentoHomeRole({ provider: true })).toBe('provider');
+    expect(resolveBentoHomeRole({ sponsor: true })).toBe('sponsor');
+    expect(resolveBentoHomeRole({ viewer: true })).toBe('viewer');
+    expect(resolveBentoHomeRole({ provider: true, patient: true })).toBeNull();
+    expect(resolveBentoHomeRole({ patient: true })).toBeNull();
+  });
+
   it('keeps Health News as an org-admin management route across source contracts', () => {
     expect(getRouteProtection('/health-news').minRole).toBe('org_admin');
     expect(NAV_CONFIG.mgmt.items.find((item) => item.id === 'news')?.minRole).toBe('org_admin');
 
-    const appSource = fs.readFileSync('src/App.js', 'utf8');
-    expect(appSource).toContain('path="/health-news" element={<ProtectedRoute minRole="org_admin"><HealthNewsManagementPage /></ProtectedRoute>}');
-    expect(appSource).not.toContain('path="/health-news" element={<ProtectedRoute minRole="provider"><HealthNewsManagementPage /></ProtectedRoute>}');
+    const appSource = [
+      readSource('src/App.js'),
+      readSource('src/app/AppRoutes.jsx'),
+    ].join('\n');
+    expect(appSource).toContain("healthNews: lazyNamedPage(() => import('../components/pages/HealthNewsManagementPage'), 'HealthNewsManagementPage')");
+    expect(getRouteProtection('/health-news').minRole).toBe('org_admin');
   });
 
   it('keeps protected route access scoped by role', () => {
@@ -463,7 +506,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today summary-owned by PageData instead of a route-owned page query', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
 
     expect(source).toContain("import { usePageData } from '../../contexts/PageDataContext';");
     expect(source).toContain('} = usePageData();');
@@ -488,7 +531,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today free of page realtime and domain side-effect owners except its route-context publisher', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
 
     expect(source).not.toContain("from '../../lib/supabase'");
     expect(source).not.toContain('supabase.');
@@ -523,7 +566,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('uses not-ready copy instead of clear copy when a role-critical data domain fails', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
 
     expect(source).toContain("provider: ['emergency', 'visits']");
     expect(source).not.toContain("provider: ['emergency', 'visits', 'supportTickets']");
@@ -537,28 +580,36 @@ describe('TodayHome role contract', () => {
     expect(providerHtml).not.toContain('Requests</span><span class="mt-1 block truncate text-[13px] font-semibold text-foreground sm:text-sm">Clear');
   });
 
-  it('keeps BentoHome from starting subscriber work before Today renders', () => {
-    const source = fs.readFileSync('src/components/pages/BentoHome.jsx', 'utf8');
+  it('keeps canonical Today ahead of every legacy Bento data owner', () => {
+    const composition = readSource('src/components/pages/BentoHome.jsx');
+    const legacy = bentoSource();
 
-    expect(source).not.toContain("from '../../hooks/useSubscription'");
-    expect(source).not.toContain('fetchSubscriptionAnalytics');
-    expect(source).toContain('getSubscriptionAnalytics({ quiet: true })');
-    expect(source).toContain('if (!shouldLoadSubscriptionStats) return undefined;');
-    expect(source.indexOf("if (roleHomeKind === 'admin')"))
-      .toBeLessThan(source.indexOf('if (isLoading) {'));
-    expect(source.indexOf("if (roleHomeKind === 'org_admin')"))
-      .toBeLessThan(source.indexOf('if (isLoading) {'));
-    expect(source.indexOf("if (roleHomeKind === 'provider')"))
-      .toBeLessThan(source.indexOf('if (isLoading) {'));
-    expect(source.indexOf("if (roleHomeKind === 'sponsor')"))
-      .toBeLessThan(source.indexOf('if (isLoading) {'));
-    expect(source.indexOf("if (roleHomeKind === 'viewer')"))
-      .toBeLessThan(source.indexOf('if (isLoading) {'));
+    expect(composition).not.toContain('usePageData');
+    expect(composition).not.toContain('getSubscriptionAnalytics({ quiet: true })');
+    expect(composition).not.toContain('walletService');
+    expect(composition).not.toContain('subscriptionService');
+    expect(composition.indexOf('if (roleHomeKind) return <TodayHome role={roleHomeKind} />;'))
+      .toBeLessThan(composition.indexOf('return <LegacyBentoHome />;'));
+    expect(legacy).not.toContain("from '../../../hooks/useSubscription'");
+    expect(legacy).not.toContain('fetchSubscriptionAnalytics');
+    expect(legacy).toContain('getSubscriptionAnalytics({ quiet: true })');
+    expect(legacy).toContain('if (!shouldLoadSubscriptionStats) return undefined;');
+    expect(legacy).not.toContain("from '../TodayHome'");
+  });
+
+  it('keeps the Today refresh FAB on the PageData refresh owner after composition splits', () => {
+    const source = readSource('src/components/pages/TodayHome.jsx');
+
+    expect(source).toContain("import { usePageActions } from '../../contexts/PageActionsContext';");
+    expect(source).toContain("label: 'Refresh today'");
+    expect(source).toContain('action: refreshAllData');
+    expect(source).toContain('}), [refreshAllData, registerPageAction]);');
   });
 
   it('keeps legacy Today surfaces free of decorative chrome', () => {
     const chromeCleanFiles = [
       'src/components/pages/BentoHome.jsx',
+      ...bentoImplementationPaths,
       'src/components/mobile/MobileDashboard.jsx',
       'src/components/dashboard/StatsCard.jsx',
       'src/components/pages/AdminHome.jsx',
@@ -593,7 +644,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today in the shared stage and sheet visual system', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
     const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
     const railComponentSource = fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
 
@@ -618,7 +669,7 @@ describe('TodayHome role contract', () => {
     // The glance tile composes from the console DS: GlanceTile locks the motion,
     // aria, data-state, and orb-swap anatomy once (ConsoleDesignSystem.contract.test.js);
     // the page wires its domain only -- tone map + the Today data attribute.
-    expect(source).toContain("import { GlanceTile } from '../console/GlanceTile';");
+    expect(source).toContain("import { GlanceTile } from '../../console/GlanceTile';");
     expect(source).toContain('<GlanceTile');
     expect(source).toContain('toneClassMap={rowToneClass}');
     expect(source).toContain('dataAttr="data-today-glance"');
@@ -647,7 +698,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today out of private shell chrome', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
     const forbiddenShellOwners = [
       'SmartHeader',
       'ResponsiveSidebar',
@@ -665,14 +716,14 @@ describe('TodayHome role contract', () => {
     });
 
     expect(source).toContain("import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';");
-    expect(source).toContain("import { ConsoleModuleRail } from '../common/ConsoleModuleRail';");
+    expect(source).toContain("import { ConsoleModuleRail } from '../../common/ConsoleModuleRail';");
     expect(source).toContain("usePageHeader('Today', headerAction);");
     expect(source).toContain("usePageFooter(null, 'status', false);");
     expect(source).toContain('usePageShell({ bleed: true, hideFab: true });');
   });
 
   it('keeps Today loading, unavailable, opening, and expanded states explicit', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
 
     expect(source).toContain("headline: 'Live details are not ready'");
     expect(source).toContain("value: 'Retry needed'");
@@ -699,7 +750,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today action authority navigation-only', () => {
-    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const source = todaySource();
 
     expect(source).toContain("import { useNavigate } from 'react-router-dom';");
     // routeFeedbackMs is the DS token now (WorkspaceStage exports 320, locked in
@@ -727,7 +778,7 @@ describe('TodayHome role contract', () => {
   });
 
   it('keeps Today right panel route-context owned instead of global-dashboard owned', () => {
-    const today = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const today = todaySource();
     const dashboardPanel = fs.readFileSync('src/components/context/DashboardPanel.jsx', 'utf8');
     const contextPanel = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
     const hardgate = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
