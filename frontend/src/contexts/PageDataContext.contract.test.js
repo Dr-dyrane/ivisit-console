@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
-import { readSourceEstate } from '../test/sourceEstates';
+import { readAnalyticsServiceImplementation, readSourceEstate } from '../test/sourceEstates';
 
 const readPageDataImplementation = () => [
   'src/contexts/PageDataContext.jsx',
@@ -84,7 +84,7 @@ describe('PageDataContext role loading contract', () => {
 
   it('keeps PageData analytics summaries from inventing healthy numbers', () => {
     const pageDataSource = readPageDataImplementation();
-    const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
+    const analyticsSource = readAnalyticsServiceImplementation();
 
     expect(analyticsSource).toContain("const successRateSource = totalEmergencies > 0 ? 'measured' : 'source_pending';");
     expect(analyticsSource).toContain('successRateSource,');
@@ -169,7 +169,7 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('keeps Today startup service fan-out quiet below PageData', () => {
-    const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
+    const analyticsSource = readAnalyticsServiceImplementation();
     const profilesSource = readSourceEstate({
       files: ['src/services/profilesService.js'],
       directories: ['src/services/profiles'],

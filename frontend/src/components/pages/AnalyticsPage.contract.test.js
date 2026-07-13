@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { execFileSync } from 'child_process';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
+import { readAnalyticsServiceImplementation } from '../../test/sourceEstates';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const PRESERVATION_BASELINE = 'f31f29f';
@@ -78,12 +79,12 @@ describe('Analytics Page 13 workspace contract', () => {
 
   it('applies the selected request window before aggregation and preserves source truth', () => {
     const page = readAnalyticsPage();
-    const service = read('src/services/analyticsService.js');
+    const service = readAnalyticsServiceImplementation();
 
     expect(page).toContain('getAnalyticsIntakePage({');
     expect(page).not.toContain("from '../../lib/supabase'");
     expect(page).not.toContain('applyAuthFilter');
-    expect(service).toContain("const selectedWindowDays = {");
+    expect(service).toContain('export const ANALYTICS_WINDOW_DAYS = Object.freeze({');
     expect(service).toContain("'7d': 7");
     expect(service).toContain("'30d': 30");
     expect(service).toContain("'90d': 90");

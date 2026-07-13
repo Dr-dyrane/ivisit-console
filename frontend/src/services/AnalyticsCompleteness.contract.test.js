@@ -1,11 +1,12 @@
 import fs from 'fs';
+import { readAnalyticsServiceImplementation } from '../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 describe('Analytics completeness contract', () => {
   it('labels the bounded request sample instead of implying a complete total', () => {
-    const source = read('src/services/analyticsService.js');
-    expect(source).toContain('const ANALYTICS_REQUEST_SAMPLE_LIMIT = 1000;');
+    const source = readAnalyticsServiceImplementation();
+    expect(source).toContain('export const ANALYTICS_REQUEST_SAMPLE_LIMIT = 1000;');
     expect(source).toContain(".select('*', { count: 'exact' })");
     expect(source).toContain('.limit(ANALYTICS_REQUEST_SAMPLE_LIMIT)');
     expect(source).toContain('requestSample: {');
@@ -13,10 +14,7 @@ describe('Analytics completeness contract', () => {
   });
 
   it('keeps count-only network reads separate from complete paginated hospital capacity rows', () => {
-    const source = [
-      read('src/services/analyticsService.js'),
-      read('src/services/analytics/hospitalCapacityProjection.js'),
-    ].join('\n');
+    const source = readAnalyticsServiceImplementation();
     expect(source).toContain('export const HOSPITAL_CAPACITY_PAGE_SIZE = 1000;');
     expect(source).toContain("select('id', { count: 'exact', head: true })");
     expect(source).toContain("'provider_type'");

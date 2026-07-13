@@ -1,7 +1,11 @@
 import fs from 'fs';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
-import { readPageDataImplementation, readSourceEstate } from '../../test/sourceEstates';
+import {
+  readAnalyticsModalImplementation,
+  readPageDataImplementation,
+  readSourceEstate,
+} from '../../test/sourceEstates';
 
 const readSourceFiles = (paths) => paths
   .map((filePath) => fs.readFileSync(filePath, 'utf8'))
@@ -355,7 +359,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const routeActionOwnershipSource = fs.readFileSync('src/config/routeActionOwnership.js', 'utf8');
     const smartHeaderSource = fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
     const filterSheetSource = fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
-    const analyticsModalSource = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+    const analyticsModalSource = readAnalyticsModalImplementation();
     const installPromptSource = fs.readFileSync('src/components/pwa/InstallPrompt.jsx', 'utf8');
     const contextPanelSource = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
     const emergencyPanelSource = fs.readFileSync('src/components/context/EmergencyPanel.jsx', 'utf8');
@@ -435,7 +439,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(filterSheetSource).toContain('hover:bg-foreground hover:text-background');
     expect(filterSheetSource).not.toContain('hover:bg-primary hover:text-primary-foreground');
     expect(filterSheetSource).toContain('setFilters(resetValues || initialValues)');
-    expect(analyticsModalSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(analyticsModalSource).toContain("import { ModalShell } from '../../ui/ModalShell';");
     expect(analyticsModalSource).toContain('<ModalShell');
     expect(analyticsModalSource).toContain('title="Statistics"');
     expect(analyticsModalSource).toContain('subtitle={displayType}');

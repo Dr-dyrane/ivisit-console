@@ -43,3 +43,13 @@ export const readLoginImplementation = () => readSourceEstate({
   files: ['src/components/pages/LoginPage.jsx'],
   directories: ['src/components/pages/login'],
 });
+
+export const readAnalyticsModalImplementation = () => readSourceEstate({
+  files: ['src/components/modals/AnalyticsModal.jsx'],
+  directories: ['src/components/modals/analytics'],
+});
+
+export const readAnalyticsServiceImplementation = () => readSourceEstate({
+  files: ['src/services/analyticsService.js'],
+  directories: ['src/services/analytics'],
+});

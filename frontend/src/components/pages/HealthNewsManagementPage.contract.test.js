@@ -2,6 +2,7 @@ import fs from 'fs';
 import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readAnalyticsModalImplementation } from '../../test/sourceEstates';
 
 describe('HealthNewsManagementPage intake audit contract', () => {
   const readOwnedModules = (directory) => fs.readdirSync(directory, { withFileTypes: true })
@@ -271,7 +272,7 @@ describe('HealthNewsManagementPage intake audit contract', () => {
 
   it('mounts honest visible-page source and category analytics', () => {
     const page = pageSource();
-    const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+    const analyticsModal = readAnalyticsModalImplementation();
 
     expect(page).toContain('buildHealthNewsAnalytics');
     expect(page).toContain('bySource[source] = (bySource[source] || 0) + 1;');

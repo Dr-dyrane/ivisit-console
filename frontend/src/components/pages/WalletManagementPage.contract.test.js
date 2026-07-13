@@ -3,7 +3,10 @@ import path from 'path';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
-import { readPageDataImplementation } from '../../test/sourceEstates';
+import {
+  readAnalyticsModalImplementation,
+  readPageDataImplementation,
+} from '../../test/sourceEstates';
 
 describe('WalletManagementPage Payments contract', () => {
   const readTree = (directory) => fs.readdirSync(directory, { withFileTypes: true })
@@ -32,7 +35,7 @@ describe('WalletManagementPage Payments contract', () => {
     mobileEntrySource(),
     readTree('src/components/mobile/wallet'),
   ].join('\n');
-  const analyticsModalSource = () => fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+  const analyticsModalSource = readAnalyticsModalImplementation;
   const serviceSource = () => [
     fs.readFileSync('src/services/walletService.js', 'utf8'),
     readTree('src/services/wallet'),

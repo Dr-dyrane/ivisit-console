@@ -1,6 +1,8 @@
 import { getAnalyticsIntakePage } from './analyticsService';
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { getFinanceAnalytics } from './walletService';
+import { getSubscriptionAnalytics } from './subscriptionService';
 
 jest.mock('../lib/supabase', () => ({
   supabase: { from: jest.fn() },
@@ -161,5 +163,56 @@ describe('analytics intake projection integrity', () => {
       method: 'eq',
       args: ['id', '00000000-0000-0000-0000-000000000000'],
     });
+  });
+
+  it('does not acquire admin-only subscriber or finance slices for providers', async () => {
+    getCurrentUser.mockResolvedValue({
+      id: 'provider-1',
+      role: 'provider',
+      organization_id: 'organization-1',
+      hospital_ids: null,
+    });
+
+    const projection = await getAnalyticsIntakePage({
+      timeRange: '7d',
+      includeSubscriptionAnalytics: true,
+      includeFinanceAnalytics: true,
+    });
+
+    expect(getSubscriptionAnalytics).not.toHaveBeenCalled();
+    expect(getFinanceAnalytics).not.toHaveBeenCalled();
+    expect(projection.financeData).toEqual([]);
+    expect(projection.subscriptionStats).toEqual(expect.objectContaining({
+      total: 0,
+      active: 0,
+      paid: 0,
+      free: 0,
+    }));
+  });
+
+  it('loads authorized admin slices with the selected inclusive window', async () => {
+    getSubscriptionAnalytics.mockResolvedValue({ total: 9, active: 7 });
+    getFinanceAnalytics.mockResolvedValue([{ date: '2026-07-13', income: 12 }]);
+
+    const projection = await getAnalyticsIntakePage({
+      timeRange: '7d',
+      includeSubscriptionAnalytics: true,
+      includeFinanceAnalytics: true,
+    });
+
+    expect(getSubscriptionAnalytics).toHaveBeenCalledWith({ quiet: true });
+    expect(getFinanceAnalytics).toHaveBeenCalledWith(
+      { id: 'admin-1', role: 'admin' },
+      true,
+      6,
+      { quiet: true, throwOnError: true },
+    );
+    expect(projection.subscriptionStats).toEqual(expect.objectContaining({
+      total: 9,
+      active: 7,
+      paid: 0,
+      free: 0,
+    }));
+    expect(projection.financeData).toEqual([{ date: '2026-07-13', income: 12 }]);
   });
 });

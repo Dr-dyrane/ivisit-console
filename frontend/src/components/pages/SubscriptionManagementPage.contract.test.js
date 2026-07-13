@@ -4,6 +4,7 @@ import {
   getPageDataStartupDomainsForRole,
   routeOwnsStartupDomains,
 } from '../../config/pageDataAccess';
+import { readAnalyticsModalImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const readSubscriptionServiceEstate = () => [
@@ -152,7 +153,7 @@ describe('Subscriptions Page 17 intake contract', () => {
 
   it('maps exact subscriber type and status buckets to their analytics phases', () => {
     const page = readSubscriptionPageEstate();
-    const analyticsModal = read('src/components/modals/AnalyticsModal.jsx');
+    const analyticsModal = readAnalyticsModalImplementation();
 
     expect(page).toContain('byType: { paid, free }');
     expect(page).toContain('byStatus: { active, pending, unsubscribed }');

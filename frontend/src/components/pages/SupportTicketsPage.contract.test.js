@@ -4,6 +4,7 @@ import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
+import { readAnalyticsModalImplementation } from '../../test/sourceEstates';
 
 describe('SupportTicketsPage canonical source contract', () => {
   const pageSource = () => fs.readFileSync('src/components/pages/SupportTicketsPage.jsx', 'utf8');
@@ -444,7 +445,7 @@ describe('SupportTicketsPage canonical source contract', () => {
 
   it('labels Support analytics as a visible-page projection without fake high or timing values', () => {
     const page = pageEstateSource();
-    const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+    const analyticsModal = readAnalyticsModalImplementation();
 
     expect(page).toContain('buildSupportAnalytics(supportStats, ticketRows)');
     expect(page).toContain("averageResolutionScope: 'visible_page'");
