@@ -8,8 +8,8 @@ describe('route-owned query convergence contract', () => {
     ['src/hooks/useHospitalsQuery.js', 'src/services/hospitals/pageQueries.js'],
     ['src/hooks/useDoctorsQuery.js', 'src/services/doctorsService.js'],
     ['src/hooks/useEmergencyQuery.js', 'src/services/emergency/listQueries.js'],
-    ['src/hooks/useSupportTicketsQuery.js', 'src/services/supportTicketsService.js'],
-    ['src/hooks/useAmbulancesQuery.js', 'src/services/ambulancesService.js'],
+    ['src/hooks/useSupportTicketsQuery.js', 'src/services/support-tickets/pageQueries.js'],
+    ['src/hooks/useAmbulancesQuery.js', 'src/services/ambulances/pageQueries.js'],
   ];
 
   it.each(queryPairs)('%s forwards cancellation into %s', (hookFile, serviceFile) => {

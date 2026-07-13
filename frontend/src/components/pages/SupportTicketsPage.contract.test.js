@@ -40,7 +40,13 @@ describe('SupportTicketsPage canonical source contract', () => {
   const panelSource = () => fs.readFileSync('src/components/context/SupportTicketsPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/SupportTicketModal.jsx', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/supportTicketsService.js', 'utf8');
+  const serviceSource = () => [
+    fs.readFileSync('src/services/supportTicketsService.js', 'utf8'),
+    ...fs.readdirSync('src/services/support-tickets')
+      .filter((name) => name.endsWith('.js') && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`src/services/support-tickets/${name}`, 'utf8')),
+  ].join('\n');
   // S3 React Query migration (mirrors DoctorsPage/HospitalsPage): the page reads via
   // useSupportTicketsQuery and writes via useSupportTicketsMutations. These readers let
   // the conversion assertions point at the relocated data layer.
