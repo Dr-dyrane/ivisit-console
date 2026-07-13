@@ -91,7 +91,7 @@ const BreakdownPanel = ({ title, items, emptyDetail }) => {
   const maxValue = Math.max(...items.map((item) => Number(item?.value) || 0), 1);
 
   return (
-    <section className="rounded-card bg-background/45 p-4 dark:bg-white/[0.04]">
+    <section className="rounded-card bg-foreground/[0.045] p-4 dark:bg-white/[0.055]">
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         <span className="rounded-pill bg-foreground/[0.06] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground dark:bg-white/[0.07]">
@@ -123,7 +123,7 @@ const BreakdownPanel = ({ title, items, emptyDetail }) => {
 };
 
 const EvidenceItem = ({ label, value }) => (
-  <div className="min-w-0 rounded-inner bg-background/35 px-3 py-2.5 dark:bg-white/[0.035]">
+  <div className="min-w-0 rounded-inner bg-foreground/[0.045] px-3 py-2.5 dark:bg-white/[0.055]">
     <p className="truncate text-[10px] font-medium text-muted-foreground">{label}</p>
     <p className="mt-1 truncate text-sm font-semibold text-foreground tabular-nums">{value}</p>
   </div>
@@ -206,7 +206,7 @@ const AnalyticsDetailRail = ({
           {visibleMetrics.map((metric) => {
             const Icon = metric.icon;
             return (
-              <div key={metric.id} className="flex min-h-[58px] items-center gap-3 rounded-inner bg-background/45 px-3 py-2.5 dark:bg-white/[0.04]">
+              <div key={metric.id} className="flex min-h-[58px] items-center gap-3 rounded-inner bg-foreground/[0.045] px-3 py-2.5 dark:bg-white/[0.055]">
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${metric.toneClass}`}>
                   <Icon className="h-4 w-4" />
                 </span>
@@ -499,7 +499,7 @@ export const AnalyticsDesktopWorkspace = ({
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="mt-4 flex min-h-[150px] items-center justify-center rounded-card bg-background/35 px-5 text-center text-sm text-muted-foreground dark:bg-white/[0.035]">
+                    <div className="mt-4 flex min-h-[150px] items-center justify-center rounded-card bg-foreground/[0.045] px-5 text-center text-sm text-muted-foreground dark:bg-white/[0.055]">
                       {requestSourceReady
                         ? 'A trend will appear after this window contains request activity.'
                         : 'Request trend data is unavailable.'}

@@ -328,6 +328,16 @@ the final anatomy, background refetch preserves loaded truth, and append loading
 When a HYBRID search is client-side, its source comment and empty copy must say that it narrows the
 loaded window; export and historical mutation commands belong to the context owner, not the feed row.
 
+**Selection is a mechanism, not mutation authority** (locked 2026-07-12 after the Organizations /
+Insurance / Pricing / Subscribers / Payments recurrence). A management LIST or HYBRID feed that is
+declared selection-capable must mirror the desktop mechanism on mobile: long-press a `MobileListRow`
+to enter selection mode, tap rows to toggle, show selected-orb feedback, and render
+`MobileSelectionBar` with the selected count plus select-all over the exact visible rows and clear.
+Unsupported bulk writes remain disabled with a plain reason; their missing receiver is never a reason
+to remove selection itself. `scripts/check-mobile-grammar.js` marks selection-required pages and fails
+when the bar, selection mode, long-press, row toggle, or select-all wiring disappears. Health News
+remains the explicit published-feed exception until its product use for selection is established.
+
 **DIRECTORY expression of the LIST grammar** (locked 2026-07-09; reference
 `src/components/mobile/MobileHospitals.jsx`). Feeds (Requests/Visits) bucket by RECENCY
 because their records are lifecycle events in time. A registry/directory (facilities,

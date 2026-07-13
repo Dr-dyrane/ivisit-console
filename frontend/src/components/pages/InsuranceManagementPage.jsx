@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { InsuranceDesktopWorkspace } from './insurance/InsuranceDesktopWorkspace';
@@ -16,10 +17,11 @@ import {
 import { InsuranceModal } from '../modals/InsuranceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { MobileInsurance } from '../mobile/MobileInsurance';
 import { SEOHead } from '../common/SEOHead';
 import { Button } from '../ui/button';
-import { BarChart3, Filter } from 'lucide-react';
+import { BarChart3, Filter, LockKeyhole } from 'lucide-react';
 
 const EMPTY_INSURANCE_PAGE = {
   data: [],
@@ -349,6 +351,25 @@ export const InsuranceManagementPage = () => {
     return filteredPolicies || [];
   }, [filteredPolicies]);
 
+  // Selection is ephemeral review state over the rows that are actually visible in the
+  // current desktop page or mobile growing window. Insurance reads are admin-only, while
+  // policy and billing writes remain unavailable until a guarded receiver is proved.
+  const canSelectPolicies = isAdmin() && !insurancePage.denied;
+  const visiblePolicyRows = isMobile ? mobileVisiblePolicies : paginatedPolicies;
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(visiblePolicyRows);
+
+  useEffect(() => {
+    if (!canSelectPolicies) clearSelection();
+  }, [canSelectPolicies, clearSelection]);
+
   // Shared focused-record store: explicit selection OR the most-urgent policy at rest.
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('insurance', paginatedPolicies);
   const focusedPolicy = focusedRecord;
@@ -566,6 +587,7 @@ export const InsuranceManagementPage = () => {
           onRefresh={fetchInsurancePage}
           loading={loading && !hasMobileRows}
           isFetching={loading && hasMobileRows && !mobileLoadingMore}
+          denied={insurancePage.denied}
           error={error}
           onRetry={fetchInsurancePage}
           stats={insuranceStats}
@@ -577,6 +599,10 @@ export const InsuranceManagementPage = () => {
           hasMore={pagination.hasNextPage}
           onLoadMore={handleMobileLoadMore}
           isLoadingMore={mobileLoadingMore}
+          selectionEnabled={canSelectPolicies}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
         />
 
         <InsuranceModal
@@ -631,10 +657,32 @@ export const InsuranceManagementPage = () => {
         focusedPolicy={focusedPolicy}
         setFocused={setFocused}
         onView={handleView}
+        selectable={canSelectPolicies}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
+        allSelected={allSelected}
+        someSelected={someSelected}
         moduleRailItems={moduleRailItems}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}
       />
+      {canSelectPolicies && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled
+            title="Policy changes are unavailable"
+            aria-label="Policy changes are unavailable"
+            className="h-10 w-10 rounded-pill bg-foreground/[0.06] text-muted-foreground disabled:opacity-45 dark:bg-white/[0.06]"
+          >
+            <LockKeyhole className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
       <InsuranceModal isOpen={!!modalMode} onClose={() => setModalMode(null)} policy={selectedPolicy} mode={modalMode} />
       <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} type="insurance" analytics={visibleInsuranceAnalytics} />
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} resetValues={EMPTY_INSURANCE_FILTERS} resetLabel="Clear" viewToggle={null} isMobile={false} />

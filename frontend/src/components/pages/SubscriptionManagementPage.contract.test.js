@@ -32,11 +32,56 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain("distributionScope: 'exact_filtered_projection'");
     expect(page).toContain('analytics={subscriptionAnalytics}');
     expect(page).not.toContain('total: subscribers.length');
-    expect(page).not.toContain('useRowSelection(paginatedSubscribers)');
-    expect(desktop).toContain('selection excluded by decision:');
-    expect(desktop).not.toContain('<Checkbox');
-    expect(desktop).not.toContain('selectedIds');
+    expect(page).toContain('useRowSelection(paginatedSubscribers)');
+    expect(desktop).toContain('<Checkbox');
+    expect(desktop).toContain('selectedIds.includes(subscriber.id)');
     expect(page).toContain("key: 'dateRange'");
+  });
+
+  it('keeps desktop and mobile multi-select admin-gated and fail-closed', () => {
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
+    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+    const mobileListRow = read('src/components/mobile/canon/GroupedList.jsx');
+
+    // One page-owned selection state follows the rows in the current query window.
+    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(page).toContain('const canManageSubscribers = isAdmin();');
+    expect(page).toContain('useRowSelection(paginatedSubscribers)');
+    expect(page).toContain('selectable={canManageSubscribers}');
+    expect(page).toContain('selectionEnabled={canManageSubscribers}');
+    expect(page).toContain('selectedIds={selectedIds}');
+    expect(page).toContain('onSelect={handleToggleSelect}');
+    expect(page).toContain('onSelectClick={handleSelectClick}');
+    expect(page).toContain('onSelectAll={handleSelectAll}');
+
+    // Desktop uses the shared checkbox/range-selection mechanism and shared bulk bar.
+    expect(desktop).toContain("import { Checkbox } from '../../ui/checkbox';");
+    expect(desktop).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(desktop).toContain("aria-label={allSelected ? 'Clear subscriber selection' : 'Select all subscribers'}");
+    expect(desktop).toContain('checked={selectedIds.includes(subscriber.id)}');
+    expect(desktop).toContain('onSelectClick?.(event);');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+
+    // Mobile long-press enters selection, selected rows receive the shared check overlay,
+    // and the selection bar owns select-all plus clear.
+    expect(mobile).toContain('selectable={selectionActive}');
+    expect(mobile).toContain('selected={selectedIdSet.has(subscriber.id)}');
+    expect(mobile).toContain('onLongPress={(it) => onSelect?.(it.id, true)}');
+    expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
+    expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
+    expect(mobileListRow).toContain('{selectable && selected && (');
+
+    // Selection never implies write authority: both bulk controls are disabled and no
+    // subscriber/email mutation is called from the page or mobile surface.
+    expect(page).toContain('aria-label="Bulk subscriber changes unavailable"');
+    expect(mobile).toContain('aria-label="Bulk subscriber changes unavailable"');
+    expect(page).toMatch(/<BulkActionBar[\s\S]*?<Button[\s\S]*?disabled/);
+    expect(mobile).toMatch(/<MobileSelectionBar[\s\S]*?<button[\s\S]*?disabled/);
+    expect(page).not.toContain('sendBulkEmail');
+    expect(page).not.toContain('await deleteSubscriber');
+    expect(mobile).not.toContain('sendBulkEmail');
   });
 
   it('closes the desktop shell with donor rails, shared KPIs, stats, context, and honest states', () => {
@@ -187,7 +232,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(oldPage).toContain('useSubscription();');
     expect(page).toContain('useSubscriptionsQuery(subscriptionQueryFilter);');
     expect(page).toContain('<SubscriptionsDesktopWorkspace');
-    expect(page).not.toMatch(/useViewMode|SubscriptionListView|SubscriptionTableView|BulkActionBar/);
+    expect(page).not.toMatch(/useViewMode|SubscriptionListView|SubscriptionTableView/);
+    expect(page).toContain('<BulkActionBar');
     expect(oldPage).toContain('await deleteSubscriber(subscriber.id);');
     expect(oldPage).toContain('await updateSubscriber(selectedSubscriber.id, data);');
     expect(oldPage).toContain('await createSubscriber(data);');
@@ -211,11 +257,11 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain('id="subscriptions-action-feedback"');
     expect(page).toContain('actionNotice={subscriptionCommandNotice}');
     expect(page).toContain('aria-label="Subscriber stats"');
-    expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).not.toContain('aria-label="Delete subscribers unavailable"');
+    expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).toContain('<Checkbox');
     expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
     expect(page).toContain('onEdit={null}');
     expect(page).toContain('onDelete={null}');
-    expect(page).toContain('canManage={false}');
+    expect(page).toContain('canManage={canManageSubscribers}');
     expect(page).toContain("case 'pending': return 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200';");
     expect(page).toContain("case 'unsubscribed': return 'bg-muted/60 text-muted-foreground';");
     expect(page).toContain("case 'bounced': return 'bg-destructive/20 text-destructive';");
@@ -473,7 +519,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(gate).toContain('This gives `MobileSubscriptions.jsx` and `SubscriptionsPanel.jsx` focused strict-radius and source-voice proof only; it does not admit Subscriptions, prove subscriber projection/counts, prove email delivery, or make loaded-row charts canonical.');
     // VISUAL-ONLY rollout pass documented (visual done, commands NOT granted).
     expect(gate).toContain('Subscriptions VISUAL-ONLY rollout pass on 2026-07-08 applied the Requests-canon energy to `MobileSubscriptions.jsx`');
-    expect(gate).toContain('This pass changed presentation only; it added no mutation, kept `onEdit`/`onDelete` unwired with `canManage={false}`');
+    expect(gate).toContain('This pass changed presentation only; it added no mutation');
     expect(gate).toContain('and did not grant subscriber command/backend authority, prove subscriber projection/counts, prove email delivery, or admit Page 17 to the default hardgate.');
     expect(gate).toContain('| Data quieting | PageData startup, context panel hook, desktop FAB hook, and mobile bottom hook are quieted from hidden subscriber fetch/realtime; Analytics no longer mounts the subscriber hook.');
 

@@ -228,9 +228,13 @@ export const MobileOrganizations = ({
     handleToggleSelect,
     handleSelectAll,
     clearSelection,
-  } = useRowSelection(organizationRows);
+  } = useRowSelection(displayOrganizations);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectionMode = selectionEnabled && selectedIdSet.size > 0;
+
+  useEffect(() => {
+    if (!selectionEnabled) clearSelection();
+  }, [clearSelection, selectionEnabled]);
 
   const { groups: organizationGroups } = useMemo(() => resolveAdaptiveGroups(
     displayOrganizations,
@@ -325,8 +329,9 @@ export const MobileOrganizations = ({
                   <button
                     type="button"
                     disabled
-                    aria-label="Organization deletion is not available"
-                    title="Organization deletion is not available"
+                    aria-label="Bulk organization changes are not available"
+                    title="Bulk organization changes are not available"
+                    data-state="unavailable"
                     className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
                   >
                     <Trash2 className="h-4 w-4" />

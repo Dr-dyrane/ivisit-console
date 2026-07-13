@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { SubscriptionsDesktopWorkspace } from './subscriptions/SubscriptionsDesktopWorkspace';
@@ -10,6 +11,7 @@ import { useInvalidateSubscriptions, useSubscriptionsQuery } from '../../hooks/u
 import { subscribeToSubscribers } from '../../services/subscriptionService';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { Button } from '../ui/button';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
@@ -19,6 +21,7 @@ import { SEOHead } from '../common/SEOHead';
 import {
   BarChart3,
   Filter,
+  MailX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,6 +30,7 @@ const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber and email changes a
 export const SubscriptionManagementPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
+  const canManageSubscribers = isAdmin();
   const [selectedSubscriber, setSelectedSubscriber] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
@@ -157,6 +161,24 @@ export const SubscriptionManagementPage = () => {
   const paginatedSubscribers = useMemo(() => {
     return filteredSubscribers || [];
   }, [filteredSubscribers]);
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(paginatedSubscribers);
+
+  useEffect(() => {
+    clearSelection();
+  }, [filters, sortConfig.direction, sortConfig.key, clearSelection]);
+
+  useEffect(() => {
+    if (!isMobile) clearSelection();
+  }, [isMobile, pagination.currentPage, clearSelection]);
+
   const roleKind = useMemo(() => {
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
@@ -365,7 +387,7 @@ export const SubscriptionManagementPage = () => {
           onEdit={null}
           onDelete={null}
           onRefresh={fetchSubscribers}
-          canManage={false}
+          canManage={canManageSubscribers}
           loading={loading}
           isFetching={subscriptionIsFetching}
           errorMessage={error ? String(error?.message || error) : null}
@@ -375,6 +397,10 @@ export const SubscriptionManagementPage = () => {
           filterSheetOpen={filterSheetOpen}
           analyticsOpen={analyticsModalOpen}
           actionNotice={subscriptionCommandNotice}
+          selectionEnabled={canManageSubscribers}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
@@ -439,10 +465,32 @@ export const SubscriptionManagementPage = () => {
         focusedSubscriber={focusedSubscriber}
         setFocused={setFocused}
         onView={handleView}
+        selectable={canManageSubscribers}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
         moduleRailItems={moduleRailItems}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}
       />
+      {canManageSubscribers && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled
+            data-state="unavailable"
+            title="Bulk subscriber changes unavailable"
+            aria-label="Bulk subscriber changes unavailable"
+            className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-40"
+          >
+            <MailX className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
       <SubscriptionModal isOpen={!!modalMode} onClose={() => setModalMode(null)} subscriber={selectedSubscriber} mode={modalMode} onSave={handleSave} />
       <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} type="subscription" analytics={subscriptionAnalytics} />
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={null} isMobile={false} />

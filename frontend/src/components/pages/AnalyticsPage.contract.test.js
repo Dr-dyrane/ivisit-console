@@ -150,7 +150,11 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(desktop).toContain('testId="analytics-network-section"');
     expect(desktop).toContain('<AnalyticsWorkSkeleton />');
     expect(desktop).toContain('bg-background/45 p-4 dark:bg-white/[0.04]');
-    expect(desktop).toContain('bg-background/35 px-3 py-2.5 dark:bg-white/[0.035]');
+    expect(desktop).toContain('rounded-card bg-foreground/[0.045] p-4 dark:bg-white/[0.055]');
+    expect(desktop).toContain('rounded-inner bg-foreground/[0.045] px-3 py-2.5 dark:bg-white/[0.055]');
+    expect(desktop.match(/bg-background\/45/g)).toHaveLength(2);
+    expect(desktop.match(/bg-foreground\/\[0\.045\]/g)).toHaveLength(4);
+    expect(desktop).not.toContain('bg-background/35');
     expect(desktop).not.toContain('dark:bg-black/[0.08]');
     expect(desktop).toContain('loading={loadingWorkspace}');
     expect(desktop).toContain('isLoading={loadingWorkspace}');
@@ -230,6 +234,10 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(panel).toContain('Useful context');
     expect(panel).toContain('Downloads unavailable');
     expect(panel).toContain('Report downloads are not available yet.');
+    expect(panel).toContain('bg-foreground/[0.045]');
+    expect(panel).toContain('dark:bg-white/[0.055]');
+    expect(panel.match(/bg-foreground\/\[0\.045\]/g)).toHaveLength(4);
+    expect(panel).not.toContain('bg-background/35');
     expect(panel).not.toContain('<button');
     expect(panel).not.toContain('supabase');
     expect(panel).not.toContain('analyticsService');

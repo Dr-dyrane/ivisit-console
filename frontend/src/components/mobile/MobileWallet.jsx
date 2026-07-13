@@ -9,6 +9,7 @@ import {
   EyeOff,
   Hash,
   History,
+  LockKeyhole,
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import {
 } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
@@ -31,6 +33,7 @@ import { useLoadMoreControl } from './useLoadMoreControl';
 import { statusPill } from '../../constants/vitalTracks';
 import { groupByMonth } from '../../utils/groupByMonth';
 import { formatRelativeTime } from '../../utils/activityUtils';
+import { useRowSelection } from '../../hooks/useRowSelection';
 
 // HYBRID grammar: the shared list-page heading leads into read-only finance KPIs,
 // source tabs, and a Requests-shaped grouped activity feed. Money-moving commands
@@ -246,6 +249,18 @@ export const MobileWallet = ({
       item.emergency_requests?.hospitals?.name,
     ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
   }), [activeTab, filters, normalizedSearch, sourceItems]);
+  const {
+    selectedIds,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+  } = useRowSelection(items);
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectionMode = selectedIds.length > 0;
+  const handleTabChange = (tab) => {
+    clearSelection();
+    setActiveTab?.(tab);
+  };
   const activityGroups = useMemo(() => buildMonthGroups(items), [items]);
   const activeReadState = readState?.[activeTab] || 'unavailable';
   const activeUnavailable = activeReadState !== 'ready';
@@ -263,6 +278,10 @@ export const MobileWallet = ({
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
   }, [hasMore, triggerLoad]);
+
+  useEffect(() => {
+    clearSelection();
+  }, [activeTab, clearSelection, filters, normalizedSearch]);
 
   const compactBalance = useMemo(() => {
     const value = Number(wallet?.balance || 0);
@@ -327,6 +346,11 @@ export const MobileWallet = ({
         meta={secondary}
         time={formatRelativeTime(item.created_at)}
         pill={isLedger ? statusPill(item.transaction_type) : statusPill(item.status)}
+        selectable
+        selected={selectedIdSet.has(item.id)}
+        selectionMode={selectionMode}
+        onToggleSelect={(entry) => handleToggleSelect(entry.id, !selectedIdSet.has(entry.id))}
+        onLongPress={(entry) => handleToggleSelect(entry.id, true)}
       />
     );
   };
@@ -378,7 +402,7 @@ export const MobileWallet = ({
             />
 
             <section className="px-4">
-              <WalletActivityTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+              <WalletActivityTabs activeTab={activeTab} setActiveTab={handleTabChange} />
               <SearchRow
                 placeholder={activeTab === 'ledger' ? 'Search transactions...' : 'Search patient payments...'}
                 search={search}
@@ -392,6 +416,26 @@ export const MobileWallet = ({
                 statsLabel="Open payment analytics"
               />
               <UpdatingPillRow show={Boolean(isFetching) && !isLoadingMore} />
+
+              {selectionMode && (
+                <div className="mt-3">
+                  <MobileSelectionBar
+                    count={selectedIds.length}
+                    onSelectAll={() => handleSelectAll(true)}
+                    onClear={clearSelection}
+                  >
+                    <button
+                      type="button"
+                      disabled
+                      aria-label="Bulk payment actions are unavailable"
+                      title="Bulk payment actions are unavailable"
+                      className="flex h-8 w-8 items-center justify-center rounded-button bg-foreground/[0.05] text-muted-foreground opacity-50 dark:bg-white/[0.06]"
+                    >
+                      <LockKeyhole className="h-4 w-4" />
+                    </button>
+                  </MobileSelectionBar>
+                </div>
+              )}
 
               {errorMessage && hasLoaded && (
                 <div className="mb-4 rounded-card bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">

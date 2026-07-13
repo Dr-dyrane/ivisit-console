@@ -54,7 +54,7 @@ export const CopyChip = ({ value, label }) => (
 // Status pill: tone class comes from the page's canonical status map (literal
 // palette only -- the theme's info/success/warning tokens all render red).
 export const StatusPill = ({ label, icon: Icon = null, className = '', compact = false }) => (
-  <span className={`inline-flex items-center gap-2 rounded-pill font-semibold ${compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1 text-xs'} ${className}`}>
+  <span className={`inline-flex w-fit max-w-full shrink-0 justify-self-start items-center gap-2 whitespace-nowrap rounded-pill font-semibold ${compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1 text-xs'} ${className}`}>
     {Icon && <Icon className="h-3.5 w-3.5" />}
     {label}
   </span>

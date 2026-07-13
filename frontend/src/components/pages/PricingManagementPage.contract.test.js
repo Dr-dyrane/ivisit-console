@@ -74,6 +74,18 @@ describe('Pricing Page 18 intake contract', () => {
     expect(workspace).toContain('searchTestId="pricing-sheet-search"');
     expect(workspace).toContain('onRefresh={retry}');
 
+    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
+    expect(page).toContain('const canSelectPricing = isAdmin() || isOrgAdmin();');
+    expect(page).toContain('useRowSelection(paginatedPricing)');
+    expect(page).toContain('selectable={canSelectPricing}');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('Bulk price changes are unavailable');
+    expect(workspace).toContain("import { Checkbox } from '../../ui/checkbox';");
+    expect(workspace).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(workspace).toContain("aria-label={allSelected ? 'Clear pricing selection' : 'Select all pricing rules'}");
+    expect(workspace).toContain('onSelectClick?.(event)');
+
     expect(page).toContain('onClick={handleOpenPricingStats}');
     expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
     expect(page).toContain('Pricing stats');
@@ -145,7 +157,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(workspace).toContain('onOpen: (row) => setFocused(row.id)');
     expect(workspace).not.toContain('Details unavailable');
     expect(page).not.toContain('onView={openModal}');
-    expect(workspace).toContain('selection excluded by decision');
+    expect(page).toContain('useRowSelection(paginatedPricing)');
 
     expect(oldPage).toContain('saveServicePricing({');
     expect(oldPage).toContain('saveRoomPricing({');
@@ -169,11 +181,22 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain("toast.success('Pricing deleted successfully')");
     expect(page).not.toContain('toast.success(`${selectedIds.length} pricing rules deleted`);');
     expect(page).not.toContain('<ConfirmationModal');
-    expect(page).not.toContain('<BulkActionBar');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
     expect(page).not.toContain('Delete Selected Pricing Rules');
-    expect(page).not.toContain('useRowSelection(paginatedPricing)');
-    expect(workspace).not.toContain('<Checkbox');
-    expect(workspace).toContain('selection excluded by decision');
+    expect(page).toContain('useRowSelection(paginatedPricing)');
+    expect(workspace).toContain('<Checkbox');
+    expect(workspace).toContain('onToggleSelect?.(row.id, value)');
+    expect(workspace).toContain('onSelectClick?.(event)');
+    expect(workspace).not.toContain('selection excluded by decision');
+    expect(mobile).toContain("import { MobileSelectionBar } from './MobileSelectionBar';");
+    expect(mobile).toContain('const selectionMode = selectionEnabled && selectedIdSet.size > 0;');
+    expect(mobile).toContain('selectable={selectionEnabled}');
+    expect(mobile).toContain('selected={selectedIdSet.has(item.id)}');
+    expect(mobile).toContain('onToggleSelect={(selectedItem) => onSelect?.(selectedItem.id, !selectedIdSet.has(selectedItem.id))}');
+    expect(mobile).toContain('onLongPress={(selectedItem) => onSelect?.(selectedItem.id, true)}');
+    expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
+    expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
+    expect(mobile).toContain('Bulk price changes are unavailable');
     expect(page).not.toContain('Entity Config');
     expect(page).not.toContain('Item Provisioning');
 
@@ -376,17 +399,13 @@ describe('Pricing Page 18 intake contract', () => {
     expect(gate).toContain('First right-panel truth cleanup on 2026-07-06 stopped `ContextPanel.jsx` from passing `servicePricing` and `roomPricing` into `/pricing`.');
     expect(gate).toContain('First shell action quieting cleanup on 2026-07-06 made `ContextAwareFAB.jsx` and `DynamicBottomBar.jsx` treat `/pricing` as route-owned');
     expect(gate).toContain('Active command safety cleanup on 2026-07-06 now keeps `PricingManagementPage.jsx` fail-closed for price mutations without importing or calling pricing mutation functions.');
-    expect(gate).toContain('Header add, `openPricingModal`, empty-state create, row view/edit/delete, and mobile row actions now show unavailable feedback; table selection and bulk delete stay hidden while `PRICING_MUTATION_COMMANDS_ENABLED` is false.');
     expect(gate).toContain('Data ownership: partially improved, not admitted. The first safety cleanup removed PageData startup acquisition, route-level pricing realtime, right-panel PageData pricing arrays, and generic FAB/mobile `Add price` action on `/pricing`.');
     expect(gate).toContain('Scope: not admitted. Current copy and form flow blur global, organization, hospital, service, and room scope.');
-    expect(gate).toContain('Command authority: blocked. Active command safety cleanup moved create, edit, delete, selection, and bulk delete paths to unavailable feedback, hidden state, or active-source removal');
     expect(gate).toContain('Organization-wide pricing: blocked. The current receiver is hospital-scoped, and there is no proved propagation receiver or sibling-hospital conflict model.');
     expect(gate).toContain('PageData/shell ownership: partially quieted, not admitted. `/pricing` is now route-owned in `pageDataAccess.js`, and the right panel no longer consumes PageData pricing rows.');
-    expect(gate).toContain('Route-owned action: partially fail-closed, not admitted. Generic desktop/mobile `Add price`, right-panel pricing dispatches, page header `Add Pricing`, row view/edit/delete, mobile view/edit/delete, table selection, and bulk delete are hidden, removed, or unavailable');
     expect(gate).toContain('Metrics and reports: partially improved, not admitted. Desktop/mobile counts, average amount, and analytics values now come from the route projection summary');
     expect(gate).toContain('Pricing mobile/right-panel squircle and source-voice cleanup on 2026-07-06 converted `MobilePricing.jsx` and `PricingContextPanel.jsx` to semantic radius tokens, removed local decorative border/ring/outline/tracking/all-caps mobile chrome, changed `Pricing Dynamics` and `Avg Price` to source-neutral active labels, and preserved search, tabs, analytics trigger, row reveal, unavailable action notice, projection-basis metrics, source-pending panel signals, and fail-closed panel actions.');
     expect(gate).toContain('This gives `MobilePricing.jsx` and `PricingContextPanel.jsx` focused strict-radius and source-voice proof only; it does not admit Pricing, prove selected-facility projection truth, prove price mutation receivers, or prove patient app quote consequence.');
-    expect(gate).toContain('| Route-owned action | Generic desktop/mobile `Add price` is hidden on `/pricing`; right-panel add/report/bulk actions are unavailable; header add, empty-state create, row view/edit/delete, and mobile view/edit/delete now fail closed; table selection and bulk delete stay hidden while `PRICING_MUTATION_COMMANDS_ENABLED` is false.');
     expect(gate).toContain('| Data quieting | Active route reads now use `getPricingPageData()` and the route consumes projection rows/summary instead of page-local loaded-row metrics.');
 
     expect(stage4).toContain('| Pricing | `service_pricing`, `room_pricing`, pricing RPCs, selected hospital quote resolution |');
@@ -460,9 +479,9 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).toContain('<PricingDesktopWorkspace');
     expect(page).not.toContain('selection={selection}');
     expect(page).toContain('sortConfig={sortConfig}');
-    expect(page).not.toContain('selectionEnabled={PRICING_MUTATION_COMMANDS_ENABLED}');
-    expect(page).not.toContain('onSelect={handleSelect}');
-    expect(page).not.toContain('onSelectAll={(checked) => handleSelectAll(checked, paginatedPricing)}');
+    expect(page).toContain('selectionEnabled={canSelectPricing}');
+    expect(page).toContain('onSelect={handleToggleSelect}');
+    expect(page).toContain('onSelectAll={handleSelectAll}');
     expect(mobile).toContain('role="status"');
     expect(mobile).toContain('aria-live="polite"');
     expect(page).not.toContain('saveServicePricing');
@@ -471,11 +490,13 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('deleteRoomPricing');
     expect(page).not.toContain('<Dialog');
     expect(page).not.toContain('<ConfirmationModal');
-    expect(page).not.toContain('<BulkActionBar');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
     expect(mobile).toContain("actionNotice = ''");
     expect(mobile).toContain('pricingProjection = null');
     expect(mobile).not.toContain("trend: 'LIVE'");
-    expect(mobile).not.toContain('selectionEnabled');
+    expect(mobile).toContain('selectionEnabled = false');
+    expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
     expect(mobile).toContain('role="status"');
     expect(mobile).toContain('aria-live="polite"');
     expect(table).toContain('selectionEnabled = true');

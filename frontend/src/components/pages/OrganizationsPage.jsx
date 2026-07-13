@@ -7,6 +7,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useOrganizationsQuery } from '../../hooks/useOrganizationsQuery';
@@ -16,8 +17,9 @@ import { useOrganizationsQuery } from '../../hooks/useOrganizationsQuery';
 // + ListRowShell (one Time header on created_at) -> DetailRailShell rail.
 //
 // AUTHORITY (no parallel truth): this registry is READ-ONLY / fail-closed. There is no proved
-// organization command receiver, so create/edit/delete/bulk/save ALL route to
-// handleOrganizationCommandUnavailable (notice + toast + data-state="unavailable"). The service
+// organization command receiver, so create/edit/delete/save route to
+// handleOrganizationCommandUnavailable (notice + toast + data-state="unavailable") while bulk
+// controls stay disabled and never invoke a handler. The service
 // still ships legacy writers for compatibility, but the page never imports them. The paired
 // OrganizationModal exposes a reachable read-only View; create stays a gated notice. No verify
 // affordance exists
@@ -29,9 +31,11 @@ import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from 
 import { Shimmer, SkeletonRows, DetailLine, CopyChip, EmptyState, LoadErrorState, StatusPill } from '../console/primitives';
 import { SEOHead } from '../common/SEOHead';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { OrganizationModal } from '../modals/OrganizationModal';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
 import {
   Activity,
   AlertCircle,
@@ -43,6 +47,7 @@ import {
   Globe,
   Info,
   MapPin,
+  Trash2,
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -75,6 +80,7 @@ const orgToneClass = {
 
 // Name | Status | Wallet | Added | Action  (select prefixes a 28px column).
 const ORG_GRID_COLS = 'grid-cols-[minmax(200px,1.9fr)_minmax(96px,auto)_minmax(120px,auto)_minmax(112px,auto)_96px]';
+const ORG_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(200px,1.9fr)_minmax(96px,auto)_minmax(120px,auto)_minmax(112px,auto)_96px]';
 
 const getStatusMeta = (isActive) => (isActive
   ? { label: 'Active', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' }
@@ -178,7 +184,8 @@ export const OrganizationsPage = () => {
   const actionFeedbackTimerRef = useRef(null);
   const deepLinkHandledRef = useRef(null);
 
-  const roleKind = isAdmin() ? 'admin' : 'viewer';
+  const canManageOrganizations = isAdmin();
+  const roleKind = canManageOrganizations ? 'admin' : 'viewer';
   const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
 
   // --- Read path: React Query (server-projection envelope; mirrors SupportTicketsPage) ---
@@ -219,7 +226,20 @@ export const OrganizationsPage = () => {
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('organizations', orgRows);
   const focusedOrg = focusedRecord;
 
-  // selection excluded by decision: this review-only registry has no supported bulk command.
+  // Selection is admin-gated ephemeral UI state over the exact server-paginated rows on screen.
+  // The mechanism is useful for comparison and review, while the bulk command remains disabled
+  // until an organization mutation receiver and its role authority are proved.
+  const {
+    selectedIds,
+    handleSelectClick,
+    handleToggleSelect,
+    handleSelectAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+  } = useRowSelection(orgRows);
+  const selectable = canManageOrganizations;
+
   const hasFilter = hasActiveOrgFilters(filters, kpiFilter);
 
   // arrival-toast excluded by decision: read-only registry, no bulk write target -- the
@@ -240,6 +260,12 @@ export const OrganizationsPage = () => {
   useEffect(() => {
     pagination.setTotalCount(count || 0);
   }, [count, pagination.setTotalCount]);
+
+  // Placeholder data may briefly retain the previous page while a new scope loads. Clear
+  // immediately when that scope changes so selection never refers to a no-longer-visible query.
+  useEffect(() => {
+    clearSelection();
+  }, [filters, kpiFilter, sortConfig, clearSelection]);
 
   // Real-time updates: an organizations row change invalidates the ['organizations'] cache
   // (the single store) instead of a manual refetch. NO insert toast (arrival-toast excluded).
@@ -271,8 +297,8 @@ export const OrganizationsPage = () => {
     }, 900);
   }, []);
 
-  // ALL write intents fail closed (no parallel truth): create/edit/delete/bulk/save surface
-  // the unavailable notice + toast + aria-live feedback. Legacy service writers are not imported.
+  // Direct write intents fail closed (no parallel truth): create/edit/delete/save surface the
+  // unavailable notice. Bulk controls remain disabled and never invoke this or a mutation.
   const handleOrganizationCommandUnavailable = useCallback(() => {
     setOrganizationCommandNotice(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
     toast.info(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
@@ -486,7 +512,7 @@ export const OrganizationsPage = () => {
           filterSheetOpen={filterSheetOpen}
           onViewAnalytics={handleOpenAnalytics}
           analyticsOpen={analyticsModalOpen}
-          selectionEnabled={false}
+          selectionEnabled={selectable}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
           page={pagination.currentPage}
@@ -556,12 +582,36 @@ export const OrganizationsPage = () => {
         pagination={pagination}
         sortConfig={sortConfig}
         onSort={handleSort}
+        selectable={selectable}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onToggleSelect={handleToggleSelect}
+        onSelectClick={handleSelectClick}
+        onSelectAll={handleSelectAll}
         onView={handleView}
         activeActionFeedback={activeActionFeedback}
         moduleRailItems={visibleModuleRail}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}
       />
+
+      {selectable && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled
+            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
+            title="Bulk organization changes are not available"
+            aria-label="Bulk organization changes are not available"
+            data-state="unavailable"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </BulkActionBar>
+      )}
 
       {modalMode && (
         <OrganizationModal
@@ -612,6 +662,13 @@ const OrganizationsDesktopWorkspace = ({
   pagination,
   sortConfig,
   onSort,
+  selectable,
+  selectedIds,
+  allSelected,
+  someSelected,
+  onToggleSelect,
+  onSelectClick,
+  onSelectAll,
   onView,
   activeActionFeedback,
   moduleRailItems,
@@ -694,7 +751,14 @@ const OrganizationsDesktopWorkspace = ({
           className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]"
           data-testid="organizations-list"
         >
-          <OrganizationsListHeader sortConfig={sortConfig} onSort={onSort} />
+          <OrganizationsListHeader
+            selectable={selectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onSelectAll={onSelectAll}
+            sortConfig={sortConfig}
+            onSort={onSort}
+          />
 
           {loading && <SkeletonRows />}
 
@@ -725,6 +789,10 @@ const OrganizationsDesktopWorkspace = ({
               key={org.id}
               organization={org}
               selected={focusedOrg?.id === org.id}
+              selectable={selectable}
+              checked={selectedIds.includes(org.id)}
+              onToggleSelect={onToggleSelect}
+              onSelectClick={onSelectClick}
               onFocus={() => setFocused(org.id)}
               onView={onView}
               activeActionFeedback={activeActionFeedback}
@@ -736,8 +804,17 @@ const OrganizationsDesktopWorkspace = ({
   );
 };
 
-const OrganizationsListHeader = ({ sortConfig, onSort }) => (
-  <div className={`grid ${ORG_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+const OrganizationsListHeader = ({ selectable = false, allSelected = false, someSelected = false, onSelectAll, sortConfig, onSort }) => (
+  <div className={`grid ${selectable ? ORG_GRID_COLS_SELECT : ORG_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+    {selectable && (
+      <Checkbox
+        checked={someSelected ? 'indeterminate' : allSelected}
+        onCheckedChange={onSelectAll}
+        onClick={(event) => event.stopPropagation()}
+        aria-label={allSelected ? 'Clear selection' : 'Select all organizations'}
+        className="h-4 w-4"
+      />
+    )}
     {/* Name / Status / Wallet are plain labels -- only Added (created_at) is a meaningful
         sort; identity/wallet fields belong in the FilterSheet (TIME-only sort). */}
     <span>Name</span>
@@ -751,6 +828,10 @@ const OrganizationsListHeader = ({ sortConfig, onSort }) => (
 const OrganizationRow = ({
   organization,
   selected,
+  selectable = false,
+  checked = false,
+  onToggleSelect,
+  onSelectClick,
   onFocus,
   onView,
   activeActionFeedback,
@@ -762,11 +843,24 @@ const OrganizationRow = ({
     <ListRowShell
       id={organization.id}
       dataAttrName="data-organization-row"
-      gridCols={ORG_GRID_COLS}
+      gridCols={selectable ? ORG_GRID_COLS_SELECT : ORG_GRID_COLS}
       selected={selected}
       onFocus={onFocus}
       onOpen={() => onView(organization)}
     >
+      {selectable && (
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onToggleSelect?.(organization.id, value)}
+          onClick={(event) => {
+            onSelectClick?.(event);
+            event.stopPropagation();
+          }}
+          aria-label={checked ? `Deselect ${name}` : `Select ${name}`}
+          className="h-4 w-4"
+        />
+      )}
+
       <div className="flex min-w-0 items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusMeta.tone}`}>
           <Building2 className="h-4 w-4" />

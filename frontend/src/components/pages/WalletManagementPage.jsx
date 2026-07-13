@@ -18,11 +18,14 @@ import {
     LockKeyhole,
 } from 'lucide-react';
 import { getWalletPageData } from '../../services/walletService';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
 import { ModalShell } from '../ui/ModalShell';
 import { toast } from 'sonner';
 import { MobileWallet } from '../mobile/MobileWallet';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
@@ -811,6 +814,19 @@ const PaymentsDesktopWorkspace = ({
         hasPrevPage: false,
         hasNextPage: false,
     }), [activeItems.length]);
+    const {
+        selectedIds,
+        handleSelectClick,
+        handleToggleSelect,
+        handleSelectAll,
+        clearSelection,
+        allSelected,
+        someSelected,
+    } = useRowSelection(activeItems);
+
+    useEffect(() => {
+        clearSelection();
+    }, [activeTab, clearSelection, filters, normalizedSearch, pagination.currentPage]);
 
     useEffect(() => {
         const requestedTab = searchParams.get('tab');
@@ -838,13 +854,14 @@ const PaymentsDesktopWorkspace = ({
     }, [activeTab, searchParams, setSearchParams]);
 
     const handleTabChange = useCallback((tab) => {
+        clearSelection();
         setActiveTab(tab);
         setFocusedIdState(null);
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', tab);
         nextParams.delete('id');
         setSearchParams(nextParams, { replace: true });
-    }, [searchParams, setActiveTab, setSearchParams]);
+    }, [clearSelection, searchParams, setActiveTab, setSearchParams]);
 
     const handleOpen = useCallback((item) => {
         setFocusedId(item.id);
@@ -868,28 +885,29 @@ const PaymentsDesktopWorkspace = ({
     });
 
     return (
-        <WorkspaceStage
-            moduleRailItems={moduleRailItems}
-            activePath="/wallet"
-            routingPath={routingPath}
-            onRailNavigate={handleRailNavigate}
-            rail={(
-                <PaymentDetailRail
-                    entry={focusedEntry}
-                    entryKind={activeTab}
-                    loading={loading}
-                    wallet={wallet}
-                    paymentMethods={paymentMethods}
-                    readState={readState}
-                    ledgerCount={ledger.length}
-                    paymentsCount={payments.length}
-                    onOpenReceipt={onPaymentOpen}
-                    formatCurrency={formatCurrency}
-                    formatPaymentMethod={formatPaymentMethod}
-                    formatPaymentDescription={formatPaymentDescription}
-                />
-            )}
-        >
+        <>
+            <WorkspaceStage
+                moduleRailItems={moduleRailItems}
+                activePath="/wallet"
+                routingPath={routingPath}
+                onRailNavigate={handleRailNavigate}
+                rail={(
+                    <PaymentDetailRail
+                        entry={focusedEntry}
+                        entryKind={activeTab}
+                        loading={loading}
+                        wallet={wallet}
+                        paymentMethods={paymentMethods}
+                        readState={readState}
+                        ledgerCount={ledger.length}
+                        paymentsCount={payments.length}
+                        onOpenReceipt={onPaymentOpen}
+                        formatCurrency={formatCurrency}
+                        formatPaymentMethod={formatPaymentMethod}
+                        formatPaymentDescription={formatPaymentDescription}
+                    />
+                )}
+            >
             <SignalPanel signal={signal} loading={loading} toneClassMap={paymentToneClass}>
                 <PaymentsMetrics
                     loading={loading}
@@ -943,7 +961,13 @@ const PaymentsDesktopWorkspace = ({
                     )}
                     {!loading && !failedEmpty && (
                         <>
-                            <PaymentsListHeader sortConfig={sortConfig} onSort={handleSort} />
+                            <PaymentsListHeader
+                                sortConfig={sortConfig}
+                                onSort={handleSort}
+                                allSelected={allSelected}
+                                someSelected={someSelected}
+                                onSelectAll={handleSelectAll}
+                            />
                             {activeItems.length === 0 && (
                                 <EmptyState
                                     icon={History}
@@ -961,8 +985,11 @@ const PaymentsDesktopWorkspace = ({
                                     item={item}
                                     activeTab={activeTab}
                                     selected={focusedEntry?.id === item.id}
+                                    checked={selectedIds.includes(item.id)}
                                     onFocus={() => setFocusedId(item.id)}
                                     onOpen={() => handleOpen(item)}
+                                    onToggleSelect={handleToggleSelect}
+                                    onSelectClick={handleSelectClick}
                                     formatCurrency={formatCurrency}
                                     formatPaymentMethod={formatPaymentMethod}
                                     formatPaymentDescription={formatPaymentDescription}
@@ -972,7 +999,20 @@ const PaymentsDesktopWorkspace = ({
                     )}
                 </div>
             </ActivitySheet>
-        </WorkspaceStage>
+            </WorkspaceStage>
+            <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled
+                    className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-50"
+                    title="Bulk payment actions are unavailable"
+                    aria-label="Bulk payment actions are unavailable"
+                >
+                    <LockKeyhole className="h-5 w-5" />
+                </Button>
+            </BulkActionBar>
+        </>
     );
 };
 
@@ -1087,10 +1127,17 @@ const PaymentsToolbar = ({
     </div>
 );
 
-const PAYMENT_GRID_COLS = 'grid-cols-[minmax(180px,1.35fr)_minmax(110px,0.75fr)_minmax(110px,0.8fr)_108px_124px_78px]';
+const PAYMENT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(180px,1.35fr)_minmax(110px,0.75fr)_minmax(110px,0.8fr)_108px_124px_78px]';
 
-const PaymentsListHeader = ({ sortConfig, onSort }) => (
-    <div className={`grid ${PAYMENT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+const PaymentsListHeader = ({ sortConfig, onSort, allSelected, someSelected, onSelectAll }) => (
+    <div className={`grid ${PAYMENT_GRID_COLS_SELECT} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+        <Checkbox
+            checked={someSelected ? 'indeterminate' : allSelected}
+            onCheckedChange={onSelectAll}
+            onClick={(event) => event.stopPropagation()}
+            aria-label={allSelected ? 'Clear payment selection' : 'Select all visible payment records'}
+            className="h-4 w-4"
+        />
         <span>Activity</span>
         <span>Status</span>
         <span>Facility</span>
@@ -1104,8 +1151,11 @@ const PaymentRow = ({
     item,
     activeTab,
     selected,
+    checked,
     onFocus,
     onOpen,
+    onToggleSelect,
+    onSelectClick,
     formatCurrency,
     formatPaymentMethod,
     formatPaymentDescription,
@@ -1144,11 +1194,21 @@ const PaymentRow = ({
         <ListRowShell
             id={item.id}
             dataAttrName="data-payment-row"
-            gridCols={PAYMENT_GRID_COLS}
+            gridCols={PAYMENT_GRID_COLS_SELECT}
             selected={selected}
             onFocus={onFocus}
             onOpen={onOpen}
         >
+            <Checkbox
+                checked={checked}
+                onCheckedChange={(value) => onToggleSelect(item.id, value)}
+                onClick={(event) => {
+                    onSelectClick(event);
+                    event.stopPropagation();
+                }}
+                aria-label={checked ? `Deselect ${description}` : `Select ${description}`}
+                className="h-4 w-4"
+            />
             <div className="flex min-w-0 items-center gap-3">
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill ${tone}`}>
                     <Icon className="h-5 w-5" />

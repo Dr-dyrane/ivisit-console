@@ -4,12 +4,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { getPricingPageData } from '../../services/pricingService';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, LockKeyhole } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { usePagination } from '../../hooks/usePagination';
+import { useRowSelection } from '../../hooks/useRowSelection';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobilePricing } from '../mobile/MobilePricing';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { PricingDesktopWorkspace } from './pricing/PricingDesktopWorkspace';
@@ -76,6 +78,7 @@ export const PricingManagementPage = () => {
     const fetchRequestRef = useRef(0);
     const pricingSummary = pricingProjection.summary || EMPTY_PRICING_SUMMARY;
     const pricingTotalCount = pricingProjection.totalCount || 0;
+    const canSelectPricing = isAdmin() || isOrgAdmin();
     const roleKind = useMemo(() => {
         if (isAdmin()) return 'admin';
         if (isOrgAdmin()) return 'org_admin';
@@ -235,6 +238,20 @@ export const PricingManagementPage = () => {
 
     const paginatedPricing = pricing;
 
+    const {
+        selectedIds,
+        handleSelectClick,
+        handleToggleSelect,
+        handleSelectAll,
+        clearSelection,
+        allSelected,
+        someSelected,
+    } = useRowSelection(paginatedPricing);
+
+    useEffect(() => {
+        clearSelection();
+    }, [activeTab, clearSelection, kpiFilter, searchTerm, sortConfig.direction]);
+
     const handleMobileLoadMore = useCallback(() => {
         if (loading || !pagination.hasNextPage) return;
         setMobileLoadingMore(true);
@@ -307,6 +324,10 @@ export const PricingManagementPage = () => {
                     onLoadMore={handleMobileLoadMore}
                     onViewAnalytics={handleOpenPricingStats}
                     actionNotice={actionNotice}
+                    selectionEnabled={canSelectPricing}
+                    selectedIds={selectedIds}
+                    onSelect={handleToggleSelect}
+                    onSelectAll={handleSelectAll}
                 />
                 <AnalyticsModal
                     open={analyticsModalOpen}
@@ -346,10 +367,32 @@ export const PricingManagementPage = () => {
                 onSort={(key) => setSortConfig((prev) => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }))}
                 focusedPrice={focusedPrice}
                 setFocused={setFocused}
+                selectable={canSelectPricing}
+                selectedIds={selectedIds}
+                allSelected={allSelected}
+                someSelected={someSelected}
+                onToggleSelect={handleToggleSelect}
+                onSelectClick={handleSelectClick}
+                onSelectAll={handleSelectAll}
                 moduleRailItems={moduleRailItems}
                 routingPath={routingPath}
                 onRailNavigate={handleRailNavigate}
             />
+            {canSelectPricing && (
+                <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled
+                        data-state="unavailable"
+                        title="Bulk price changes are unavailable"
+                        aria-label="Bulk price changes are unavailable"
+                        className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-40"
+                    >
+                        <LockKeyhole className="h-5 w-5" />
+                    </Button>
+                </BulkActionBar>
+            )}
         </>
     );
 };

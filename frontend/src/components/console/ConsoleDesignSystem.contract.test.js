@@ -64,12 +64,12 @@ describe('Console design system contract', () => {
     // read-only surface (View opens it in view mode) that carries the submit spinner
     // (animate-spin). arrival-toast is a recorded exclusion (read-only registry, no bulk write
     // target); selection is present (admin-gated) with a fail-closed bulk delete.
-    { name: 'organizations', page: 'src/components/pages/OrganizationsPage.jsx', modal: 'src/components/modals/OrganizationModal.jsx' },
+    { name: 'organizations', page: 'src/components/pages/OrganizationsPage.jsx', modal: 'src/components/modals/OrganizationModal.jsx', selectionRequired: true },
     // Insurance keeps route/data ownership and desktop composition in separate files.
     // `estate` declares both so every shared mechanism law inspects the effective surface.
-    { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', estate: ['src/components/pages/insurance/InsuranceDesktopWorkspace.jsx'], modal: 'src/components/modals/InsuranceModal.jsx' },
-    { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', estate: ['src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx'], modal: 'src/components/modals/SubscriptionModal.jsx' },
-    { name: 'pricing', page: 'src/components/pages/PricingManagementPage.jsx', estate: ['src/components/pages/pricing/PricingDesktopWorkspace.jsx'] },
+    { name: 'insurance', page: 'src/components/pages/InsuranceManagementPage.jsx', estate: ['src/components/pages/insurance/InsuranceDesktopWorkspace.jsx'], modal: 'src/components/modals/InsuranceModal.jsx', selectionRequired: true },
+    { name: 'subscriptions', page: 'src/components/pages/SubscriptionManagementPage.jsx', estate: ['src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx'], modal: 'src/components/modals/SubscriptionModal.jsx', selectionRequired: true },
+    { name: 'pricing', page: 'src/components/pages/PricingManagementPage.jsx', estate: ['src/components/pages/pricing/PricingDesktopWorkspace.jsx'], selectionRequired: true },
   ];
   const readEstate = (entry) => [entry.page, ...(entry.estate || [])].map(read).join('\n');
 
@@ -134,6 +134,11 @@ describe('Console design system contract', () => {
       // one sanctioned neutral focus ring.
       expect({ name, arbitraryShadow: /shadow-\[0_(?!0_0_2px_hsl\(var\(--foreground\)\/0\.22\)\])/.test(src) }).toEqual({ name, arbitraryShadow: false });
     }
+  });
+
+  it('keeps shared status pills content-sized inside table grids', () => {
+    const src = primitives();
+    expect(src).toContain('inline-flex w-fit max-w-full shrink-0 justify-self-start items-center gap-2 whitespace-nowrap rounded-pill');
   });
 
   it('locks the KPI strip architecture: width, tile spec, smart context, toggle-to-All', () => {
@@ -442,9 +447,33 @@ describe('Console design system contract', () => {
       for (const m of MECHANISMS) {
         const present = m.test.test(src);
         const excluded = src.includes(`${m.slug} excluded by decision:`);
+        if (m.slug === 'selection' && entry.selectionRequired) {
+          expect({ surface: name, mechanism: m.slug, required: present && !excluded })
+            .toEqual({ surface: name, mechanism: m.slug, required: true });
+          continue;
+        }
         expect({ surface: name, mechanism: m.slug, present_or_excluded: present || excluded })
           .toEqual({ surface: name, mechanism: m.slug, present_or_excluded: true });
       }
+    }
+  });
+
+  it('keeps selection mechanics on every current management registry, including Payments', () => {
+    const surfaces = {
+      organizations: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'organizations')),
+      insurance: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'insurance')),
+      subscriptions: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'subscriptions')),
+      pricing: readEstate(LIST_WORKSPACE_PAGES.find((entry) => entry.name === 'pricing')),
+      payments: read('src/components/pages/WalletManagementPage.jsx'),
+    };
+
+    for (const [name, src] of Object.entries(surfaces)) {
+      expect({ surface: name, selectionHook: /useRowSelection\(/.test(src) })
+        .toEqual({ surface: name, selectionHook: true });
+      expect({ surface: name, bulkBar: /BulkActionBar/.test(src) })
+        .toEqual({ surface: name, bulkBar: true });
+      expect({ surface: name, staleExclusion: src.includes('selection excluded by decision:') })
+        .toEqual({ surface: name, staleExclusion: false });
     }
   });
 

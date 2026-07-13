@@ -16,7 +16,7 @@ export const OnboardingSuccessPage = () => {
     const result = location.state?.result;
     const organization = result?.organization;
     const user = result?.user;
-    const hasSubmissionResult = Boolean(result?.success);
+    const hasSubmissionResult = Boolean(result?.success && result?.provisioningVerified === true);
 
     return (
         <>
@@ -41,7 +41,7 @@ export const OnboardingSuccessPage = () => {
                                 Registration status unavailable
                             </h1>
                             <p className="text-sm text-muted-foreground mb-8">
-                                Open this page from the registration flow so we can show your submission details.
+                                We could not verify a completed organization setup. Return to registration or contact support.
                             </p>
 
                             <div className="space-y-3">

@@ -10,7 +10,8 @@ import {
   User,
   Building2,
   Hash,
-  Tag
+  Tag,
+  LockKeyhole
 } from 'lucide-react';
 // LIST-type page, LIFECYCLE expression (MOBILE_DESIGN_SYSTEM Sec 5) -- rebuilt to canon
 // 2026-07-11, MIRRORING MobileSupportTickets / MobileHealthNews / MobileUsers exactly (the
@@ -34,9 +35,9 @@ import {
 // a faithful read-only mirror of patient-owned policy truth (insurance_policies is patient-
 // owner CRUD only; no admin INSERT/UPDATE/DELETE RLS/RPC, no reconciled receiver). This
 // surface is VIEW-ONLY: the detail sheet's single CTA is Details (onView -> read-only
-// InsuranceModal). It receives no mutation, capability, or selection props, carries no
-// destructive control, no secondary write affordance, and no create. Verification is
-// DISPLAY-ONLY (an overlay pill / row markerChip / detail island, never a command).
+// InsuranceModal). Admins can select visible rows for review parity, but the selection bar's
+// only command is disabled and no mutation callback exists. Verification is DISPLAY-ONLY
+// (an overlay pill / row markerChip / detail island, never a command).
 //
 // ROUTE-OWNED dock FAB: Policy Stats dispatches the page's namespaced
 // openInsuranceAnalytics event. Read-only mutation authority does not make the route
@@ -52,6 +53,7 @@ import {
 import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupList } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListLoadMore, MobileListLoadingMore } from './MobileListStates';
@@ -179,6 +181,7 @@ export const MobileInsurance = ({
   onView,
   onRefresh,
   loading = false,
+  denied = false,
   error = null,
   onRetry,
   onOpenFilters,
@@ -190,10 +193,17 @@ export const MobileInsurance = ({
   isLoadingMore = false,
   filterSheetOpen = false,
   analyticsOpen = false,
-  isFetching = false
+  isFetching = false,
+  selectionEnabled = false,
+  selectedIds = [],
+  onSelect,
+  onSelectAll
 }) => {
   const observerTarget = useRef(null);
   const [activePolicy, setActivePolicy] = useState(null);
+  const selectionActive = selectionEnabled && Boolean(onSelect);
+  const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+  const selectionMode = selectionActive && selectedIdSet.size > 0;
   // Background-refetch signal (KPI switch / search / pull-refresh keep the list from re-
   // skeletoning; the page passes isFetching so the Updating pill uses the REAL signal).
   const refetching = isFetching || false;
@@ -248,6 +258,8 @@ export const MobileInsurance = ({
   // rather than through MobileHeading's naive +s (which would render "policys").
   const headingSummary = showTopSectionLoading
     ? 'Loading policies...'
+    : denied
+      ? 'Insurance access unavailable'
     : (Boolean(error) && displayPolicies.length === 0)
       ? 'Policies did not load'
       : `${scopeCount} ${scopeCount === 1 ? 'policy' : 'policies'}`;
@@ -296,6 +308,11 @@ export const MobileInsurance = ({
         time={formatRelativeTime(policy.created_at)}
         markerChip={policy.verified ? 'Verified' : null}
         pill={vital?.pill || insurancePill(status)}
+        selectable={selectionActive}
+        selected={selectedIdSet.has(policy.id)}
+        selectionMode={selectionMode}
+        onToggleSelect={(item) => onSelect?.(item.id, !selectedIdSet.has(item.id))}
+        onLongPress={(item) => onSelect?.(item.id, true)}
       />
     );
   };
@@ -339,7 +356,26 @@ export const MobileInsurance = ({
             <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
             <div className="mt-3 space-y-2">
-              {error && displayPolicies.length > 0 && (
+              {selectionActive && (
+                <MobileSelectionBar
+                  count={selectedIdSet.size}
+                  onSelectAll={() => onSelectAll?.(true)}
+                  onClear={() => onSelectAll?.(false)}
+                >
+                  <button
+                    type="button"
+                    disabled
+                    aria-label="Policy changes are unavailable"
+                    title="Policy changes are unavailable"
+                    className="flex h-8 items-center gap-1 rounded-button bg-foreground/[0.06] px-2 text-[10px] font-semibold text-muted-foreground opacity-50 dark:bg-white/[0.06]"
+                  >
+                    <LockKeyhole className="h-3.5 w-3.5" />
+                    Unavailable
+                  </button>
+                </MobileSelectionBar>
+              )}
+
+              {!denied && error && displayPolicies.length > 0 && (
                 <div
                   className="rounded-card bg-destructive/10 p-4 text-destructive"
                   data-testid="mobile-insurance-degraded-state"
@@ -361,7 +397,7 @@ export const MobileInsurance = ({
               {/* Group-shaped skeleton (Sec 5.2): mirrors the panel 1:1 for replace-in-place. */}
               {showTopSectionLoading ? (
                 <SkeletonGroupList groups={2} rowsPerGroup={[3, 2]} trailing="timePill" />
-              ) : (
+              ) : !denied ? (
                 <div className="space-y-[18px]">
                   {policyGroups.map((group) => (
                     <GroupPanel key={group.key} label={group.label} count={group.items.length}>
@@ -374,7 +410,7 @@ export const MobileInsurance = ({
                     </GroupPanel>
                   ))}
                 </div>
-              )}
+              ) : null}
 
               <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
                 {isLoadingMore && !showTopSectionLoading && hasMore && displayPolicies.length > 0 && <MobileListLoadingMore />}
@@ -382,7 +418,17 @@ export const MobileInsurance = ({
                 {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
               </div>
 
-              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && error && (
+              {!loading && !showTopSectionLoading && denied && (
+                <MobileListEmpty
+                  icon={Shield}
+                  label="Insurance access unavailable"
+                  reason="empty"
+                  hint="This account does not have access to policy records."
+                  labelTone="plain"
+                />
+              )}
+
+              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && !denied && error && (
                 <MobileListEmpty
                   icon={Shield}
                   label="Policies did not load"
@@ -394,7 +440,7 @@ export const MobileInsurance = ({
                 />
               )}
 
-              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && !error && (
+              {displayPolicies.length === 0 && !loading && !showTopSectionLoading && !denied && !error && (
                 <MobileListEmpty
                   icon={Shield}
                   label="No policies found"
@@ -425,7 +471,7 @@ export const MobileInsurance = ({
             carries the VitalTrack (status the pill). Read-only: the ONLY CTA is Details (onView
             -> read-only InsuranceModal). NO secondary edit action, NO delete, NO verify command
             -- verification is display-only (the island / row markerChip), never a write. */}
-        {activePolicy && (() => {
+        {!denied && activePolicy && (() => {
           const policyStatus = normalizedStatus(activePolicy.status);
           const v = insuranceVital(policyStatus);
           const planType = formatPlanType(activePolicy);

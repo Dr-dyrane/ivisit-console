@@ -1,227 +1,209 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { handleAuthError } from "../../utils/errorHandler";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, RefreshCw, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '../../lib/supabase';
+import { handleAuthError } from '../../utils/errorHandler';
+import ThemeToggle from '../ui/theme-toggle';
 
-const passwordSchema = z.string().min(8, "Password must be at least 8 characters");
+const passwordSchema = z.string().min(8, 'Use at least 8 characters');
+const RECOVERY_CHECK_TIMEOUT_MS = 5000;
+
+const getRecoverySession = async () => {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('RECOVERY_CHECK_TIMEOUT')), RECOVERY_CHECK_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
+const RecoveryHeader = ({ title, description, icon: Icon, tone = 'muted' }) => (
+  <div className="text-center">
+    <span className={`mx-auto flex h-14 w-14 items-center justify-center rounded-icon ${tone === 'success' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' : tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.07]'}`}>
+      <Icon className="h-6 w-6" aria-hidden="true" />
+    </span>
+    <h1 className="mt-5 text-2xl font-semibold">{title}</h1>
+    <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
+  </div>
+);
 
 export const SetPasswordPage = () => {
-    const navigate = useNavigate();
-    const isMountedRef = useRef(true);
-    const redirectTimerRef = useRef(null);
-    const submitLockRef = useRef(false);
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [sessionVerified, setSessionVerified] = useState(false);
-    const [recoveryStatus, setRecoveryStatus] = useState('checking'); // checking | ready | missing
+  const navigate = useNavigate();
+  const mountedRef = useRef(true);
+  const submitLockRef = useRef(false);
+  const redirectTimerRef = useRef(null);
+  const checkSequenceRef = useRef(0);
 
-    useEffect(() => {
-        return () => {
-            isMountedRef.current = false;
-            if (redirectTimerRef.current) {
-                window.clearTimeout(redirectTimerRef.current);
-            }
-        };
-    }, []);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [recoveryStatus, setRecoveryStatus] = useState('checking');
+  const [formError, setFormError] = useState('');
 
-    useEffect(() => {
-        let cancelled = false;
-        let retryTimer;
+  const verifyRecoverySession = useCallback(async () => {
+    const sequence = ++checkSequenceRef.current;
+    setRecoveryStatus('checking');
+    setFormError('');
 
-        const checkSession = async (attempt = 0) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (cancelled || !isMountedRef.current) return;
+    try {
+      const { data, error } = await getRecoverySession();
+      if (error) throw error;
+      if (!mountedRef.current || sequence !== checkSequenceRef.current) return;
+      setRecoveryStatus(data?.session ? 'ready' : 'missing');
+    } catch {
+      if (!mountedRef.current || sequence !== checkSequenceRef.current) return;
+      setRecoveryStatus('error');
+    }
+  }, []);
 
-            if (session) {
-                setSessionVerified(true);
-                setRecoveryStatus('ready');
-            } else {
-                const hash = window.location.hash;
-                if (hash.includes('access_token') && attempt < 2) {
-                    retryTimer = window.setTimeout(() => checkSession(attempt + 1), 500);
-                    return;
-                }
-
-                setSessionVerified(false);
-                setRecoveryStatus('missing');
-            }
-        };
-
-        checkSession();
-
-        return () => {
-            cancelled = true;
-            if (retryTimer) window.clearTimeout(retryTimer);
-        };
-    }, [navigate]);
-
-    const handleSetPassword = async (e) => {
-        e.preventDefault();
-
-        if (submitLockRef.current) return;
-        submitLockRef.current = true;
-
-        if (!sessionVerified) {
-            setRecoveryStatus('missing');
-            toast.error("Open the latest password link and try again.");
-            submitLockRef.current = false;
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            if (password !== confirmPassword) {
-                throw new Error("Passwords do not match");
-            }
-
-            passwordSchema.parse(password);
-
-            const { error } = await supabase.auth.updateUser({
-                password: password
-            });
-
-            if (error) throw error;
-
-            if (!isMountedRef.current) return;
-
-            toast.success("Password set successfully!");
-
-            // Redirect to dashboard after short delay
-            redirectTimerRef.current = window.setTimeout(() => {
-                if (isMountedRef.current) {
-                    navigate('/');
-                }
-            }, 1000);
-
-        } catch (error) {
-            if (!isMountedRef.current) return;
-
-            if (error instanceof z.ZodError) {
-                toast.error(error.errors[0].message);
-            } else {
-                handleAuthError(error, 'update');
-            }
-        } finally {
-            if (isMountedRef.current) {
-                setLoading(false);
-            }
-            submitLockRef.current = false;
-        }
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      checkSequenceRef.current += 1;
+      if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
     };
+  }, []);
 
-    return (
-        <div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center overflow-hidden">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative z-10 w-full max-w-[440px] px-6"
-            >
-                <div className="bg-card shadow-lg rounded-modal overflow-hidden">
-                    <div className="p-8 sm:p-10">
-                        <div className="text-center mb-8">
-                            <div className="w-16 h-16 surface-raised rounded-icon flex items-center justify-center mx-auto mb-6">
-                                <ShieldCheck className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                            <h1 className="text-2xl font-bold mb-2">Set your password</h1>
-                            <p className="text-muted-foreground text-sm">Create a strong password to access the console.</p>
-                        </div>
+  useEffect(() => {
+    verifyRecoverySession();
+  }, [verifyRecoverySession]);
 
-                        {recoveryStatus !== 'ready' && (
-                            <div
-                                role="status"
-                                aria-live="polite"
-                                className="mb-5 flex items-start gap-3 rounded-inner bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
-                            >
-                                {recoveryStatus === 'checking' ? (
-                                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-muted-foreground" />
-                                ) : (
-                                    <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
-                                )}
-                                <span>
-                                    {recoveryStatus === 'checking'
-                                        ? 'Checking your password link.'
-                                        : 'This password link is missing or expired. Request a new link from Login.'}
-                                </span>
-                            </div>
-                        )}
+  const handleSetPassword = async (event) => {
+    event.preventDefault();
+    if (submitLockRef.current || recoveryStatus !== 'ready') return;
+    submitLockRef.current = true;
+    setLoading(true);
+    setFormError('');
 
-                        <form onSubmit={handleSetPassword} className="space-y-5">
-                            <div className="space-y-2">
-                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-sm transition-all">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="New Password"
-                                        className="w-full bg-transparent h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-button p-1 text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            </div>
+    try {
+      passwordSchema.parse(password);
+      if (password !== confirmPassword) throw new Error('PASSWORD_MISMATCH');
 
-                            <div className="space-y-2">
-                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-sm transition-all">
-                                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                                    <input
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        placeholder="Confirm Password"
-                                        className="w-full bg-transparent h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-button p-1 text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            </div>
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      if (!mountedRef.current) return;
 
-                            <button
-                                type="submit"
-                                disabled={loading || !sessionVerified}
-                                aria-busy={loading}
-                                data-state={loading ? 'pending' : sessionVerified ? 'ready' : 'unavailable'}
-                                className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
-                            >
-                                {loading ? (
-                                    <Loader2 className="animate-spin" />
-                                ) : (
-                                    <>
-                                        {sessionVerified ? 'Set password' : 'Open latest link'}
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
-                            </button>
-                        </form>
-                    </div>
+      setRecoveryStatus('success');
+      redirectTimerRef.current = window.setTimeout(() => {
+        if (mountedRef.current) navigate('/', { replace: true });
+      }, 900);
+    } catch (caught) {
+      if (!mountedRef.current) return;
+      if (caught instanceof z.ZodError) {
+        setFormError(caught.errors[0].message);
+      } else if (caught?.message === 'PASSWORD_MISMATCH') {
+        setFormError('Passwords do not match');
+      } else {
+        handleAuthError(caught, 'update');
+        setFormError('We could not update your password. Try again.');
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+      submitLockRef.current = false;
+    }
+  };
 
-                    <div className="px-8 py-4 bg-muted/30 text-center">
-                        <p className="text-[11px] font-semibold opacity-50">
-                            Password recovery
-                        </p>
-                    </div>
+  return (
+    <div className="min-h-[100dvh] overflow-y-auto bg-background text-foreground">
+      <header className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-5 sm:px-8">
+        <Link to="/login" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to sign in
+        </Link>
+        <ThemeToggle size="xs" />
+      </header>
+
+      <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-5xl items-start justify-center px-5 pb-10 pt-8 sm:items-center sm:px-8 sm:py-12">
+        <section className="w-full max-w-[440px]" aria-live="polite">
+          {recoveryStatus === 'checking' && (
+            <div role="status" className="text-center">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-icon bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.07]">
+                <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+              </span>
+              <h1 className="mt-5 text-2xl font-semibold">Checking your link</h1>
+              <p className="mt-2 text-sm text-muted-foreground">This should only take a moment.</p>
+              <div className="mt-8 space-y-3" aria-hidden="true">
+                <span className="block h-14 animate-pulse rounded-inner bg-foreground/[0.045] dark:bg-white/[0.055]" />
+                <span className="block h-14 animate-pulse rounded-inner bg-foreground/[0.035] dark:bg-white/[0.045]" />
+                <span className="block h-12 animate-pulse rounded-button bg-foreground/[0.07] dark:bg-white/[0.07]" />
+              </div>
+            </div>
+          )}
+
+          {(recoveryStatus === 'missing' || recoveryStatus === 'error') && (
+            <div>
+              <RecoveryHeader
+                title={recoveryStatus === 'missing' ? 'Link unavailable' : 'Could not check this link'}
+                description={recoveryStatus === 'missing' ? 'This password link is missing or expired. Request a new one from sign in.' : 'Check your connection, then try the link again.'}
+                icon={AlertCircle}
+                tone="danger"
+              />
+              <div className="mt-8 space-y-3">
+                <Link to="/login" className="flex h-12 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2 hover:bg-foreground/90">
+                  Return to sign in <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <button type="button" onClick={verifyRecoverySession} className="flex h-11 w-full items-center justify-center gap-2 rounded-button text-sm font-semibold text-muted-foreground hover:bg-foreground/[0.055] hover:text-foreground">
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" /> Try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {recoveryStatus === 'success' && (
+            <RecoveryHeader title="Password updated" description="Your console is opening now." icon={CheckCircle2} tone="success" />
+          )}
+
+          {recoveryStatus === 'ready' && (
+            <div>
+              <RecoveryHeader title="Set your password" description="Use at least 8 characters, then enter it again to confirm." icon={ShieldCheck} />
+              <form onSubmit={handleSetPassword} className="mt-8 space-y-4">
+                <div>
+                  <label htmlFor="new-password" className="sr-only">New password</label>
+                  <div className="relative rounded-inner bg-foreground/[0.045] focus-within:bg-foreground/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]">
+                    <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <input id="new-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => { setPassword(event.target.value); setFormError(''); }} placeholder="New password" autoComplete="new-password" className="h-14 w-full bg-transparent pl-12 pr-12 text-base placeholder:text-muted-foreground/60" aria-invalid={Boolean(formError)} required />
+                    <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide new password' : 'Show new password'} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-button text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-            </motion.div>
-        </div>
-    );
+
+                <div>
+                  <label htmlFor="confirm-password" className="sr-only">Confirm password</label>
+                  <div className="relative rounded-inner bg-foreground/[0.045] focus-within:bg-foreground/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]">
+                    <CheckCircle2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <input id="confirm-password" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setFormError(''); }} placeholder="Confirm password" autoComplete="new-password" className="h-14 w-full bg-transparent pl-12 pr-12 text-base placeholder:text-muted-foreground/60" aria-invalid={Boolean(formError)} required />
+                    <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-button text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground">
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {formError && (
+                  <p role="alert" className="flex items-center gap-2 px-1 text-xs font-medium text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" /> {formError}
+                  </p>
+                )}
+
+                <button type="submit" disabled={loading} aria-busy={loading} data-state={loading ? 'pending' : 'ready'} className="flex h-12 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2 transition-[background,transform] hover:bg-foreground/90 active:scale-[0.99] disabled:opacity-55">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <>Set password <ArrowRight className="h-4 w-4" aria-hidden="true" /></>}
+                </button>
+              </form>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
 };
+
+export default SetPasswordPage;

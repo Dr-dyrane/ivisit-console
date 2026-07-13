@@ -88,8 +88,10 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain("const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';");
     expect(page).toContain('role="status"');
     expect(page).not.toContain('aria-label="Add organization unavailable"');
-    expect(page).not.toContain('aria-label="Delete organizations unavailable"');
-    expect(page).not.toContain('<BulkActionBar');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('title="Bulk organization changes are not available"');
+    expect(page).toContain('data-state="unavailable"');
+    expect(page).not.toContain('handleBulkDelete');
 
     expect(service).toContain('const ORG_PAYOUT_RESOLUTION_ROW_LIMIT = 5000;');
     expect(service).toContain('async function getOrganizationPayoutBuckets');
@@ -122,13 +124,17 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain('<KpiStrip');
     expect(page).toContain('<ActivitySheet');
     expect(page).toContain('<DetailRailShell');
-    expect(page).not.toContain('useRowSelection(orgRows)');
+    expect(page).toContain('useRowSelection(orgRows)');
+    expect(page).toContain('const ORG_GRID_COLS_SELECT');
+    expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(page).toContain('onSelectClick?.(event)');
     expect(page).toContain('useListKeyboardNav');
     expect(page).toContain('useScrollResetOnPage');
     expect(page).toContain('isFetching={isFetching}');
     expect(page).toContain('hasFilter ?');
     expect(page).toContain("usePageHeader('Organizations', null, null, filterButtonComponent)");
-    expect(page).toContain('selectionEnabled={false}');
+    expect(page).toContain('selectionEnabled={selectable}');
+    expect(page).toContain('selectable={selectable}');
     expect((page.match(/<SortableColumnHeader/g) || [])).toHaveLength(1);
 
     expect(mobile).toContain('<MobileHeading');
@@ -139,12 +145,18 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(mobile).toContain('<MobileListRow');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('useRowSelection(displayOrganizations)');
+    expect(mobile).toContain('selectable={selectionEnabled}');
+    expect(mobile).toContain('selectionMode={selectionMode}');
+    expect(mobile).toContain('onLongPress={(item) => handleToggleSelect(item.id, true)}');
+    expect(mobile).toContain('onSelectAll={() => handleSelectAll(true)}');
+    expect(mobile).toContain('onClear={clearSelection}');
     expect(mobile).toContain('<UpdatingPillRow');
     expect(mobile).toContain('animatePageLoad={false}');
     expect(mobile).toContain('const accumulatorRef = useRef');
     expect(mobile).toContain('if (!isPlaceholderData)');
     expect(mobile).toContain('if (page === 1) reset();');
-    expect(mobile).toContain('Organization deletion is not available');
+    expect(mobile).toContain('Bulk organization changes are not available');
     expect(mobile).toContain("label: 'Organization ID'");
     expect(mobile).toContain('navigator.clipboard?.writeText');
 
@@ -158,7 +170,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(dock).toContain("pathname.startsWith('/organizations') && canReachRoute(userRole, '/organizations')");
     expect(dock).toContain("label: 'Add organization'");
     expect(dock).toContain("new CustomEvent('openOrganizationModal')");
-    expect(mobileGrammar).toContain("'MobileOrganizations.jsx': { tier: 'list' }");
+    expect(mobileGrammar).toContain("'MobileOrganizations.jsx': { tier: 'list', selection: 'required' }");
     expect(mobileGrammar).not.toContain("'/organizations': 'Page 15 gate-blocked");
 
     expect(modal).toContain('const ReadOnlyField');

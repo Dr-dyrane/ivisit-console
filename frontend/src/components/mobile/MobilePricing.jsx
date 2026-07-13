@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Globe,
   Layers,
+  LockKeyhole,
 } from 'lucide-react';
 import {
   GroupPanel,
@@ -18,6 +19,7 @@ import {
 } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import {
@@ -132,9 +134,15 @@ export const MobilePricing = ({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
+  selectionEnabled = false,
+  selectedIds = [],
+  onSelect,
+  onSelectAll,
 }) => {
   const observerTarget = useRef(null);
   const [activeItem, setActiveItem] = useState(null);
+  const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
+  const selectionMode = selectionEnabled && selectedIdSet.size > 0;
   const summary = pricingProjection?.summary || {};
   const total = Number(pricingProjection?.totalCount ?? allPricing.length ?? 0);
   const counts = {
@@ -226,6 +234,25 @@ export const MobilePricing = ({
             />
             <UpdatingPillRow show={(refetching || isBuffering) && !showLoading} />
 
+            {selectionEnabled && (
+              <MobileSelectionBar
+                count={selectedIdSet.size}
+                onSelectAll={() => onSelectAll?.(true)}
+                onClear={() => onSelectAll?.(false)}
+              >
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Bulk price changes are unavailable"
+                  title="Bulk price changes are unavailable"
+                  className="flex h-8 items-center gap-1 rounded-button bg-foreground/[0.05] px-2 text-[11px] font-semibold text-muted-foreground opacity-50 dark:bg-white/[0.06]"
+                >
+                  <LockKeyhole className="h-3.5 w-3.5" />
+                  Locked
+                </button>
+              </MobileSelectionBar>
+            )}
+
             {actionNotice && (
               <p
                 role="status"
@@ -270,6 +297,11 @@ export const MobilePricing = ({
                         meta={`${money(item)} / ${family(item) === 'room' ? 'night' : 'unit'} / ${isGlobal(item) ? 'Platform fallback' : item.facilityName || item.facility_name || 'Facility price'}`}
                         time={formatRelativeTime(updatedAt(item))}
                         pill={statusPill(item.status || (item.is_active ? 'active' : 'inactive'))}
+                        selectable={selectionEnabled}
+                        selected={selectedIdSet.has(item.id)}
+                        selectionMode={selectionMode}
+                        onToggleSelect={(selectedItem) => onSelect?.(selectedItem.id, !selectedIdSet.has(selectedItem.id))}
+                        onLongPress={(selectedItem) => onSelect?.(selectedItem.id, true)}
                       />
                       {index < group.items.length - 1 && <Hairline />}
                     </React.Fragment>

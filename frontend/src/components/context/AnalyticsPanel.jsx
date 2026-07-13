@@ -18,7 +18,7 @@ const getAudienceLabel = (role = {}) => {
 };
 
 const Metric = ({ icon: Icon, label, value, toneClass }) => (
-  <div className="flex min-h-[74px] items-center gap-3 rounded-inner bg-background/45 p-3 dark:bg-white/[0.04]">
+  <div className="flex min-h-[74px] items-center gap-3 rounded-inner bg-foreground/[0.045] p-3 dark:bg-white/[0.055]">
     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${toneClass}`}>
       <Icon className="h-4 w-4" />
     </span>
@@ -30,7 +30,7 @@ const Metric = ({ icon: Icon, label, value, toneClass }) => (
 );
 
 const Evidence = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-3 rounded-inner bg-background/35 px-3 py-2.5 text-xs dark:bg-white/[0.035]">
+  <div className="flex items-center justify-between gap-3 rounded-inner bg-foreground/[0.045] px-3 py-2.5 text-xs dark:bg-white/[0.055]">
     <span className="text-muted-foreground">{label}</span>
     <span className="text-right font-semibold text-foreground tabular-nums">{value}</span>
   </div>
@@ -121,7 +121,7 @@ export const AnalyticsPanel = ({ analyticsContext = null }) => {
             {windowLabel}
           </span>
         </div>
-        <div className="rounded-card bg-background/45 p-4 shadow-e2 dark:bg-white/[0.04]">
+        <div className="rounded-card bg-foreground/[0.045] p-4 shadow-e2 dark:bg-white/[0.055]">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-200">
               <Activity className="h-5 w-5" />
@@ -160,7 +160,7 @@ export const AnalyticsPanel = ({ analyticsContext = null }) => {
 
       <section>
         <h3 className="mb-3 text-sm font-semibold">Reporting</h3>
-        <div className="flex items-start gap-3 rounded-card bg-background/45 p-4 text-muted-foreground shadow-e2 dark:bg-white/[0.04]">
+        <div className="flex items-start gap-3 rounded-card bg-foreground/[0.045] p-4 text-muted-foreground shadow-e2 dark:bg-white/[0.055]">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-foreground/[0.055] dark:bg-white/[0.06]">
             <FileText className="h-4 w-4" />
           </span>

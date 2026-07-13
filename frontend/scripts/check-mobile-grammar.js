@@ -56,15 +56,15 @@ const MANIFEST = {
   'MobileAmbulances.jsx': { tier: 'list' },
   'MobileDoctors.jsx': { tier: 'list' },
   'MobileHealthNews.jsx': { tier: 'list' },
-  'MobileInsurance.jsx': { tier: 'list' },
-  'MobilePricing.jsx': { tier: 'list' },
-  'MobileSubscriptions.jsx': { tier: 'list' },
+  'MobileInsurance.jsx': { tier: 'list', selection: 'required' },
+  'MobilePricing.jsx': { tier: 'list', selection: 'required' },
+  'MobileSubscriptions.jsx': { tier: 'list', selection: 'required' },
   'MobileSupportTickets.jsx': { tier: 'list' },
   'MobileUsers.jsx': { tier: 'list' },
   'MobileVerification.jsx': { tier: 'list' },
   // ── Exempt (not a canon list/dashboard page) ──
-  'MobileWallet.jsx': { tier: 'hybrid' },
-  'MobileOrganizations.jsx': { tier: 'list' },
+  'MobileWallet.jsx': { tier: 'hybrid', selection: 'required' },
+  'MobileOrganizations.jsx': { tier: 'list', selection: 'required' },
   'MobileDashboard.jsx': { tier: 'exempt', reason: 'legacy shell, superseded by MobileToday' },
   'MobileAnalytics.jsx': { tier: 'dashboard', reason: 'role-scoped statistics dashboard with KPI, featured metrics, and expandable report sections' },
   'MobileMap.jsx': { tier: 'exempt', reason: 'map surface — its own grammar' },
@@ -172,6 +172,16 @@ function lintHybrid(src) {
     fatal.push('load-more needs an explicit growing-window/accumulator owner');
   }
   return { fatal, warn };
+}
+
+function lintSelectionMechanism(src) {
+  const fatal = [];
+  if (!hasTag(src, 'MobileSelectionBar')) fatal.push('missing MobileSelectionBar for selected-count, select-all, and clear feedback');
+  if (!has(src, 'selectionMode')) fatal.push('missing selectionMode wiring for tap-to-toggle behavior');
+  if (!has(src, 'onLongPress')) fatal.push('missing long-press entry into mobile selection mode');
+  if (!has(src, 'onToggleSelect')) fatal.push('missing row toggle wiring while selection mode is active');
+  if (!has(src, 'onSelectAll')) fatal.push('missing visible-row select-all control');
+  return fatal;
 }
 
 function lintListMigrating(src) {
@@ -423,6 +433,7 @@ function main() {
         : entry.tier === 'hybrid' ? lintHybrid
           : lintListMigrating;
     const { fatal, warn } = linter(src);
+    if (entry.selection === 'required') fatal.push(...lintSelectionMechanism(src));
 
     if (fatal.length || warn.length) {
       console.log(`\n${file}  [${entry.tier}]`);

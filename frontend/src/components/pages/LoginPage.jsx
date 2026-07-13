@@ -1,668 +1,438 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
+import { z } from "zod";
+import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-	Mail,
-	Lock,
-	ArrowRight,
-	ArrowLeft,
-	ShieldCheck,
-	Zap,
-	Server,
-	CheckCircle2,
-	AlertCircle,
-	Loader2,
-	Eye,
-	EyeOff
-} from "lucide-react";
-import ThemeToggle from "../ui/theme-toggle";
-import { toast } from "sonner";
-import { z } from "zod";
 import { handleAuthError } from "../../utils/errorHandler";
+import ThemeToggle from "../ui/theme-toggle";
 
-// --- Validation Schemas ---
-const emailSchema = z.string().email("Please enter a valid email address");
+const emailSchema = z.string().email("Enter a valid email address");
 
-export const LoginPage = () => {
-	const navigate = useNavigate();
-	const { signIn, loading: authLoading, user, profile } = useAuth();
-
-	// --- State ---
-	const [step, setStep] = useState("email"); // email | password | options
-	const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
-	const [isLoading, setIsLoading] = useState(false);
-	const submitLockRef = useRef(false);
-
-	// Form State
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [showPassword, setShowPassword] = useState(false);
-	const [error, setError] = useState("");
-
-	// Greeting Logic
-	const [greeting, setGreeting] = useState("");
-	useEffect(() => {
-		const hour = new Date().getHours();
-		if (hour < 12) setGreeting("Good Morning");
-		else if (hour < 18) setGreeting("Good Afternoon");
-		else setGreeting("Good Evening");
-	}, []);
-
-	// Redirect if logged in
-	useEffect(() => {
-		if (!authLoading && user && profile) {
-			navigate("/");
-		}
-	}, [authLoading, user, profile, navigate]);
-
-
-	// --- Handlers ---
-
-	const handleEmailSubmit = async (e) => {
-		e.preventDefault();
-		if (submitLockRef.current) return;
-		submitLockRef.current = true;
-		setError("");
-		setIsLoading(true);
-
-		try {
-			// 1. Validate Email Format
-			emailSchema.parse(email);
-
-			// 2. Check User Existence via Edge Function
-			const { data: checkData, error: checkError } = await supabase.functions.invoke('check-user', {
-				body: { email }
-			});
-
-			if (checkError) {
-				// Fallback to password prompt if check fails (connectivity/server error)
-				// so we don't lock users out.
-			}
-
-			if (checkData) {
-				if (!checkData.exists) {
-					// User does not exist
-					setError("No account found with this email");
-					toast.error("Account Not Found");
-					setIsLoading(false);
-					return;
-				}
-
-				// User exists. Do they have a password?
-				// If we specifically detect NO password (hasPassword === false),
-				// we guide them to set it up instead of asking for one.
-				if (checkData.hasPassword === false) {
-					// User exists but system thinks they have no password.
-					// 1. We warn them non-intrusively.
-					toast.info("It looks like you might not have a password set.", {
-						duration: 4000,
-					});
-
-					// 2. We proactively send the link "Just in case" they really don't have one.
-					// This ensures the "True No Password" user gets the help they need.
-					try {
-						await supabase.auth.resetPasswordForEmail(email, {
-							redirectTo: `${window.location.origin}/set-password`,
-						});
-						toast.success("We sent a setup link to your email, just in case.");
-					} catch {
-					}
-
-					// 3. We DO NOT BLOCK. We proceed to the password screen below.
-				}
-			}
-
-			// Smooth UX pause if the check was too fast
-			await new Promise(resolve => setTimeout(resolve, 300));
-
-			setDirection(1);
-			setStep("password");
-		} catch (err) {
-			if (err instanceof z.ZodError) {
-				setError(err.errors[0].message);
-			} else {
-				setError("Unable to verify identity");
-			}
-			toast.error("Invalid Email Format");
-		} finally {
-			// Only unset loading if we stopped (error case), 
-			// otherwise we keep it loading while transitioning? 
-			// Actually we need to unset it so the transition happens cleanly.
-			setIsLoading(false);
-			submitLockRef.current = false;
-		}
-	};
-
-	// --- 2FA State ---
-	const [mfaFactorId, setMfaFactorId] = useState(null);
-	const [mfaChallengeId, setMfaChallengeId] = useState(null);
-	const [mfaCode, setMfaCode] = useState("");
-
-	const handlePasswordSubmit = async (e) => {
-		e.preventDefault();
-		if (submitLockRef.current) return;
-		submitLockRef.current = true;
-		setError("");
-		setIsLoading(true);
-		setMfaFactorId(null);
-		setMfaChallengeId(null);
-		setMfaCode("");
-
-		try {
-			// 1. Attempt Sign In
-			const { data, error } = await signIn(email, password);
-			if (error) throw error;
-
-			// 2. Check for MFA Enrollment
-			// The session is currently AAL1 (Assurance Level 1 - Password only)
-			// We check if the user has enrolled factors to determine if we need AAL2.
-			const { data: factors } = await supabase.auth.mfa.listFactors();
-
-			const enrolledFactors = (factors?.all || []).filter(f => f.status === 'verified');
-
-			if (enrolledFactors.length > 0) {
-				// User has MFA enabled. Initiate Challenge.
-				// We prioritize TOTP, then Phone if available.
-				const factor = enrolledFactors[0]; // Currently just taking the first one
-
-				const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-					factorId: factor.id
-				});
-
-				if (challengeError) throw challengeError;
-
-				setMfaFactorId(factor.id);
-				setMfaChallengeId(challenge.id);
-				setDirection(1);
-				setStep("2fa");
-				toast.info("Two-Factor Authentication Required");
-			} else {
-				// No MFA enrolled, proceed to dashboard
-				toast.success("Identity Verified");
-				navigate("/");
-			}
-
-		} catch {
-			setError("Invalid credentials. Please try again.");
-			toast.error("Authentication Failed");
-		} finally {
-			setIsLoading(false);
-			submitLockRef.current = false;
-		}
-	};
-
-	const handle2FASubmit = async (e) => {
-		e.preventDefault();
-		if (submitLockRef.current) return;
-		submitLockRef.current = true;
-		setError("");
-		setIsLoading(true);
-		const normalizedMfaCode = mfaCode.trim();
-
-		if (normalizedMfaCode.length !== 6) {
-			setError("Enter the 6-digit code.");
-			setIsLoading(false);
-			submitLockRef.current = false;
-			return;
-		}
-
-		if (!mfaFactorId || !mfaChallengeId) {
-			setMfaFactorId(null);
-			setMfaChallengeId(null);
-			setMfaCode("");
-			setDirection(-1);
-			setStep("password");
-			setError("Security check expired. Sign in again.");
-			toast.error("Security check expired. Sign in again.");
-			setIsLoading(false);
-			submitLockRef.current = false;
-			return;
-		}
-
-		try {
-			const { data, error } = await supabase.auth.mfa.verify({
-				factorId: mfaFactorId,
-				challengeId: mfaChallengeId,
-				code: normalizedMfaCode
-			});
-
-			if (error) throw error;
-
-			toast.success("Login Complete");
-			navigate("/");
-
-		} catch {
-			setError("Invalid code. Please try again.");
-			toast.error("Verification Failed");
-		} finally {
-			setIsLoading(false);
-			submitLockRef.current = false;
-		}
-	}
-
-	const handleBack = () => {
-		setDirection(-1);
-		setError("");
-		setStep("email");
-	};
-
-	// --- Animation Variants ---
-	const variants = {
-		enter: (direction) => ({
-			x: direction > 0 ? 50 : -50,
-			opacity: 0,
-			scale: 0.98,
-		}),
-		center: {
-			zIndex: 1,
-			x: 0,
-			opacity: 1,
-			scale: 1,
-		},
-		exit: (direction) => ({
-			zIndex: 0,
-			x: direction < 0 ? 50 : -50,
-			opacity: 0,
-			scale: 0.98,
-		}),
-	};
-
-	return (
-		<div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col items-center overflow-hidden">
-			<div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh]">
-				{/* LEFT: BRANDING (Hidden on Mobile) */}
-				<div className="hidden lg:flex col-span-5 flex-col justify-center p-12 space-y-8">
-					<motion.div
-						initial={{ opacity: 0, x: -20 }}
-						animate={{ opacity: 1, x: 0 }}
-						transition={{ duration: 0.8, ease: "easeOut" }}
-					>
-						<div className="w-16 h-16 bg-muted rounded-icon flex items-center justify-center mb-8 shadow-sm">
-							<ShieldCheck className="text-muted-foreground w-8 h-8" />
-						</div>
-						<div className="space-y-2 mb-6">
-							<p className="text-2xl font-medium text-muted-foreground">
-								{greeting},
-							</p>
-							<h1 className="text-7xl font-bold leading-none text-foreground">
-								iVisit<span className="text-muted-foreground">.</span>
-							</h1>
-						</div>
-						<p className="text-xl text-muted-foreground font-light leading-relaxed max-w-sm">
-							Care team console access.
-						</p>
-					</motion.div>
-
-					{/* STATUS PILLS */}
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ delay: 0.4 }}
-						className="flex gap-3"
-					>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-pill shadow-sm">
-							<div className="w-2 h-2 rounded-pill bg-emerald-500" />
-							<span className="text-[11px] font-semibold text-muted-foreground">
-								Email first
-							</span>
-						</div>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-pill shadow-sm">
-							<Server size={12} className="text-muted-foreground" />
-							<span className="text-[11px] font-semibold text-muted-foreground">
-								Step by step
-							</span>
-						</div>
-					</motion.div>
-				</div>
-
-				{/* RIGHT: PROGRESSIVE FORM */}
-				<div className="col-span-12 lg:col-span-7 flex flex-col items-center justify-center p-6">
-
-					{/* MOBILE LOGO */}
-					<div className="lg:hidden mb-12 flex flex-col items-center">
-						<div className="w-12 h-12 bg-muted rounded-icon flex items-center justify-center mb-6 shadow-sm">
-							<ShieldCheck className="text-muted-foreground w-6 h-6" />
-						</div>
-						<h1 className="text-4xl font-bold">
-							iVisit<span className="text-muted-foreground">.</span>
-						</h1>
-					</div>
-
-					<div className="w-full max-w-[420px] relative">
-						<AnimatePresence mode="popLayout" custom={direction} initial={false}>
-
-							{/* STEP 1: EMAIL */}
-							{step === "email" && (
-								<motion.div
-									key="email-step"
-									custom={direction}
-									variants={variants}
-									initial="enter"
-									animate="center"
-									exit="exit"
-									transition={{ type: "spring", stiffness: 300, damping: 30 }}
-									className="w-full"
-								>
-									<div className="text-center mb-8">
-										<h2 className="text-2xl font-semibold">Welcome Back</h2>
-										<p className="text-muted-foreground mt-2">Enter your email to continue</p>
-									</div>
-
-									<form onSubmit={handleEmailSubmit} className="space-y-6">
-										<div className="space-y-2">
-											<div className={`
-												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-sm
-												transition-all duration-300
-												${error ? "bg-destructive/5" : ""}
-											`}>
-												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
-													<Mail size={20} />
-												</div>
-												<input
-													type="email"
-													autoFocus
-													value={email}
-													onChange={(e) => setEmail(e.target.value)}
-													className="w-full bg-transparent py-4 pl-12 pr-4 text-base placeholder:text-muted-foreground/50"
-													placeholder="name@organization.com"
-													disabled={isLoading}
-												/>
-											</div>
-											{error && (
-												<motion.div
-													initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-													className="flex items-center gap-2 text-xs text-destructive ml-4"
-												>
-													<AlertCircle size={12} />
-													<span>{error}</span>
-												</motion.div>
-											)}
-										</div>
-
-										<button
-											type="submit"
-											disabled={isLoading}
-											aria-busy={isLoading}
-											data-state={isLoading ? "pending" : "ready"}
-											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
-										>
-											{isLoading ? (
-												<Loader2 size={20} className="animate-spin" />
-											) : (
-												<>
-													<span>Continue</span>
-													<ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
-												</>
-											)}
-										</button>
-									</form>
-
-									<div className="mt-8 text-center space-y-4">
-										<button
-											type="button"
-											onClick={async () => {
-												setIsLoading(true);
-												try {
-													const { error } = await supabase.auth.signInWithOAuth({
-														provider: 'google',
-														options: {
-															redirectTo: window.location.origin
-														}
-													});
-													if (error) throw error;
-												} catch (err) {
-													handleAuthError(err, 'authenticate');
-													setIsLoading(false);
-												}
-											}}
-											disabled={isLoading}
-											className="flex items-center justify-center gap-2 w-full py-3 rounded-button hover:bg-muted/50 transition-colors bg-background text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
-										>
-											<img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-											Continue with Google
-										</button>
-
-										<div className="pt-4">
-											<p className="text-sm text-muted-foreground mb-3">
-												New to iVisit?
-											</p>
-											<a
-												href="/onboarding"
-												className="inline-flex items-center gap-2 text-sm font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground"
-											>
-												Register your organization
-												<ArrowRight size={14} />
-											</a>
-										</div>
-
-										<div className="pt-2">
-											<a href="https://www.ivisit.ng/support" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-												Trouble signing in? Contact Support
-											</a>
-										</div>
-									</div>
-								</motion.div>
-							)}
-
-							{/* STEP 2: PASSWORD */}
-							{step === "password" && (
-								<motion.div
-									key="password-step"
-									custom={direction}
-									variants={variants}
-									initial="enter"
-									animate="center"
-									exit="exit"
-									transition={{ type: "spring", stiffness: 300, damping: 30 }}
-									className="w-full"
-								>
-									<div className="text-center mb-8 relative">
-										<button
-											onClick={handleBack}
-											className="absolute left-0 top-1 p-2 rounded-button hover:bg-muted transition-colors -ml-2"
-										>
-											<ArrowLeft size={20} className="text-muted-foreground" />
-										</button>
-										<div className="flex flex-col items-center gap-2">
-											<div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shadow-lg">
-												{email[0]?.toUpperCase()}
-											</div>
-											<div className="text-sm text-muted-foreground font-medium bg-muted/30 px-3 py-1 rounded-pill flex items-center gap-1.5">
-												{email}
-												<CheckCircle2 size={12} className="text-emerald-500" />
-											</div>
-										</div>
-									</div>
-
-									<form onSubmit={handlePasswordSubmit} className="space-y-6">
-										<div className="space-y-2">
-											<div className={`
-												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-sm
-												transition-all duration-300
-												${error ? "bg-destructive/5" : ""}
-											`}>
-												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
-													<Lock size={20} />
-												</div>
-												<input
-													type={showPassword ? "text" : "password"}
-													autoFocus
-													value={password}
-													onChange={(e) => setPassword(e.target.value)}
-													className="w-full bg-transparent py-4 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
-													placeholder="Password"
-													disabled={isLoading}
-												/>
-												<button
-													type="button"
-													onClick={() => setShowPassword(!showPassword)}
-													className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-												>
-													{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-												</button>
-											</div>
-											{error && (
-												<motion.div
-													initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-													className="flex items-center gap-2 text-xs text-destructive ml-4"
-												>
-													<AlertCircle size={12} />
-													<span>{error}</span>
-												</motion.div>
-											)}
-										</div>
-
-										<button
-											type="submit"
-											disabled={isLoading}
-											aria-busy={isLoading}
-											data-state={isLoading ? "pending" : "ready"}
-											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-										>
-											{isLoading ? (
-												<Loader2 size={20} className="animate-spin" />
-											) : (
-												<>
-													<span className="ml-1">Sign In</span>
-													<Zap size={18} fill="currentColor" />
-												</>
-											)}
-										</button>
-									</form>
-
-									<div className="mt-8 text-center space-y-4">
-										<button
-											type="button"
-											onClick={async () => {
-												setIsLoading(true);
-												try {
-													const { error } = await supabase.auth.resetPasswordForEmail(email, {
-														redirectTo: `${window.location.origin}/set-password`,
-													});
-													if (error) throw error;
-													toast.success("Password reset link sent to your email");
-												} catch (err) {
-													handleAuthError(err, 'reset');
-												} finally {
-													setIsLoading(false);
-												}
-											}}
-											disabled={isLoading}
-											className="text-sm font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-										>
-											Forgot your password?
-										</button>
-									</div>
-								</motion.div>
-							)}
-
-							{/* STEP 3: 2FA */}
-							{step === "2fa" && (
-								<motion.div
-									key="2fa-step"
-									custom={direction}
-									variants={variants}
-									initial="enter"
-									animate="center"
-									exit="exit"
-									transition={{ type: "spring", stiffness: 300, damping: 30 }}
-									className="w-full"
-								>
-									<div className="text-center mb-8">
-										<div className="w-16 h-16 mx-auto bg-muted rounded-icon flex items-center justify-center mb-6 shadow-lg">
-											<ShieldCheck className="text-muted-foreground w-8 h-8" />
-										</div>
-										<h2 className="text-2xl font-semibold">Security Check</h2>
-										<p className="text-muted-foreground mt-2">Enter the code from your app</p>
-									</div>
-
-									<form onSubmit={handle2FASubmit} className="space-y-6">
-										<div className="space-y-2">
-											<div className={`
-												group relative rounded-inner bg-muted/30
-												focus-within:bg-background focus-within:shadow-sm
-												transition-all duration-300
-												${error ? "bg-destructive/5" : ""}
-											`}>
-												<input
-													type="text"
-													autoFocus
-													value={mfaCode}
-													onChange={(e) => setMfaCode(e.target.value)}
-													className="w-full bg-transparent py-4 text-center text-3xl font-mono placeholder:text-muted-foreground/20"
-													placeholder="000000"
-													maxLength={6}
-													disabled={isLoading}
-												/>
-											</div>
-											{error && (
-												<motion.div
-													initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-													className="flex items-center justify-center gap-2 text-xs text-destructive mt-2"
-												>
-													<AlertCircle size={12} />
-													<span>{error}</span>
-												</motion.div>
-											)}
-										</div>
-
-										<button
-											type="submit"
-											disabled={isLoading || mfaCode.length !== 6}
-											aria-busy={isLoading}
-											data-state={isLoading ? "pending" : "ready"}
-											className="w-full py-4 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-										>
-											{isLoading ? (
-												<Loader2 size={20} className="animate-spin" />
-											) : (
-												<>
-													<span className="ml-1">Verify</span>
-													<ShieldCheck size={18} fill="currentColor" className="opacity-50" />
-												</>
-											)}
-										</button>
-									</form>
-
-									<div className="mt-8 text-center space-y-4">
-										<button
-											type="button"
-											className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-											onClick={() => {
-												setStep('email');
-												setMfaFactorId(null);
-												setMfaChallengeId(null);
-												setMfaCode('');
-												setPassword('');
-												setError('');
-											}}
-										>
-											Use a different account
-										</button>
-									</div>
-								</motion.div>
-							)}
-
-						</AnimatePresence>
-					</div>
-
-					{/* FOOTER */}
-					<div className="absolute bottom-6 text-center w-full opacity-30">
-						<p className="text-[11px] font-semibold">
-							Public sign-in
-						</p>
-					</div>
-				</div>
-			</div>
-
-			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-button bg-card shadow-lg">
-				<ThemeToggle />
-			</div>
-		</div>
-	);
+const stepMotion = {
+  enter: (direction) => ({ x: direction > 0 ? 16 : -16, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction) => ({ x: direction < 0 ? 16 : -16, opacity: 0 }),
 };
 
+const FieldError = ({ message }) => message ? (
+  <motion.p
+    initial={{ opacity: 0, y: -4 }}
+    animate={{ opacity: 1, y: 0 }}
+    role="alert"
+    className="mt-2 flex items-center gap-2 px-1 text-xs font-medium text-destructive"
+  >
+    <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+    {message}
+  </motion.p>
+) : null;
+
+const PrimaryButton = ({ loading, children, disabled = false }) => (
+  <button
+    type="submit"
+    disabled={loading || disabled}
+    aria-busy={loading}
+    data-state={loading ? "pending" : disabled ? "unavailable" : "ready"}
+    className="flex h-12 w-full items-center justify-center gap-2 rounded-button bg-foreground px-5 text-sm font-semibold text-background shadow-e2 transition-[background,transform] hover:bg-foreground/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
+  >
+    {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : children}
+  </button>
+);
+
+export const LoginPage = () => {
+  const navigate = useNavigate();
+  const { signIn, loading: authLoading, user, profile } = useAuth();
+  const submitLockRef = useRef(false);
+
+  const [step, setStep] = useState("email");
+  const [direction, setDirection] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [setupLinkSent, setSetupLinkSent] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState(null);
+  const [mfaChallengeId, setMfaChallengeId] = useState(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && user && profile) navigate("/", { replace: true });
+  }, [authLoading, navigate, profile, user]);
+
+  const begin = () => {
+    if (submitLockRef.current) return false;
+    submitLockRef.current = true;
+    setError("");
+    setIsLoading(true);
+    return true;
+  };
+
+  const finish = () => {
+    setIsLoading(false);
+    submitLockRef.current = false;
+  };
+
+  const moveTo = (nextStep, nextDirection = 1) => {
+    setDirection(nextDirection);
+    setError("");
+    setStep(nextStep);
+  };
+
+  const handleEmailSubmit = async (event) => {
+    event.preventDefault();
+    if (!begin()) return;
+
+    try {
+      const normalizedEmail = emailSchema.parse(email.trim().toLowerCase());
+      setEmail(normalizedEmail);
+
+      const { data, error: checkError } = await supabase.functions.invoke("check-user", {
+        body: { email: normalizedEmail },
+      });
+
+      if (!checkError && data?.exists === false) {
+        setError("No account was found for this email.");
+        return;
+      }
+
+      moveTo(!checkError && data?.hasPassword === false ? "setup" : "password");
+    } catch (caught) {
+      setError(caught instanceof z.ZodError ? caught.errors[0].message : "We could not check this email. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handleSetupLink = async (event) => {
+    event.preventDefault();
+    if (!begin()) return;
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      if (resetError) throw resetError;
+      setSetupLinkSent(true);
+      toast.success("Password setup link sent");
+    } catch (caught) {
+      handleAuthError(caught, "reset");
+      setError("We could not send the link. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+    if (!begin()) return;
+
+    setMfaFactorId(null);
+    setMfaChallengeId(null);
+    setMfaCode("");
+
+    try {
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) throw signInError;
+
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+      if (factorsError) throw factorsError;
+      const enrolledFactor = (factors?.all || []).find((factor) => factor.status === "verified");
+
+      if (!enrolledFactor) {
+        toast.success("Signed in");
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: enrolledFactor.id,
+      });
+      if (challengeError) throw challengeError;
+
+      setMfaFactorId(enrolledFactor.id);
+      setMfaChallengeId(challenge.id);
+      moveTo("2fa");
+    } catch {
+      setError("The email or password is incorrect.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handle2FASubmit = async (event) => {
+    event.preventDefault();
+    if (!begin()) return;
+
+    const code = mfaCode.trim();
+    if (code.length !== 6 || !mfaFactorId || !mfaChallengeId) {
+      setError(code.length !== 6 ? "Enter the 6-digit code." : "This security check expired. Sign in again.");
+      if (!mfaFactorId || !mfaChallengeId) moveTo("password", -1);
+      finish();
+      return;
+    }
+
+    try {
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: mfaChallengeId,
+        code,
+      });
+      if (verifyError) throw verifyError;
+      toast.success("Signed in");
+      navigate("/", { replace: true });
+    } catch {
+      setError("That code is not valid. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!begin()) return;
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (oauthError) throw oauthError;
+    } catch (caught) {
+      handleAuthError(caught, "authenticate");
+      finish();
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!begin()) return;
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      if (resetError) throw resetError;
+      toast.success("Password reset link sent");
+    } catch (caught) {
+      handleAuthError(caught, "reset");
+    } finally {
+      finish();
+    }
+  };
+
+  const stepTitle = step === "email" ? "Sign in" : step === "password" ? "Enter your password" : step === "setup" ? "Set up your password" : "Security check";
+  const stepDescription = step === "email" ? "Use your organization email to continue." : step === "password" ? email : step === "setup" ? email : "Enter the code from your authenticator app.";
+
+  return (
+    <div className="min-h-[100dvh] overflow-y-auto bg-background text-foreground">
+      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
+        <Link to="/login" className="flex items-center gap-2 font-semibold" aria-label="iVisit Console sign in">
+          <img src="/logo.png" alt="" className="h-7 w-7 object-contain" />
+          <span>iVisit Console</span>
+        </Link>
+        <ThemeToggle size="xs" />
+      </header>
+
+      <main className="mx-auto grid min-h-[calc(100dvh-4rem)] w-full max-w-6xl lg:grid-cols-[minmax(0,0.9fr)_minmax(390px,0.7fr)]">
+        <section className="hidden items-center px-12 lg:flex" aria-label="iVisit Console">
+          <div className="max-w-md">
+            <span className="mb-6 flex h-12 w-12 items-center justify-center rounded-icon bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.07]">
+              <ShieldCheck className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <h1 className="text-5xl font-semibold leading-tight">Care team console</h1>
+            <p className="mt-4 max-w-sm text-lg leading-relaxed text-muted-foreground">
+              Sign in to manage requests, facilities, staff, and care operations.
+            </p>
+          </div>
+        </section>
+
+        <section className="flex items-start justify-center px-5 pb-10 pt-8 sm:items-center sm:px-8 sm:py-12">
+          <div className="w-full max-w-[420px]">
+            <div className="mb-8 lg:hidden">
+              <p className="text-sm font-semibold text-muted-foreground">Care team access</p>
+            </div>
+
+            <div className="mb-7">
+              <h2 className="text-2xl font-semibold">{stepTitle}</h2>
+              <p className="mt-2 break-words text-sm text-muted-foreground">{stepDescription}</p>
+            </div>
+
+            <AnimatePresence mode="wait" custom={direction} initial={false}>
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={stepMotion}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {step === "email" && (
+                  <>
+                    <form onSubmit={handleEmailSubmit} className="space-y-4">
+                      <div>
+                        <label htmlFor="login-email" className="sr-only">Email address</label>
+                        <div className="group relative rounded-inner bg-foreground/[0.045] transition-colors focus-within:bg-foreground/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]">
+                          <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                          <input
+                            id="login-email"
+                            type="email"
+                            autoFocus
+                            autoComplete="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            className="h-14 w-full bg-transparent pl-12 pr-4 text-base placeholder:text-muted-foreground/60"
+                            placeholder="name@organization.com"
+                            disabled={isLoading}
+                            aria-invalid={Boolean(error)}
+                            required
+                          />
+                        </div>
+                        <FieldError message={error} />
+                      </div>
+                      <PrimaryButton loading={isLoading}>
+                        Continue <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </PrimaryButton>
+                    </form>
+
+                    <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+                      <span className="h-px flex-1 bg-foreground/10" />
+                      or
+                      <span className="h-px flex-1 bg-foreground/10" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={isLoading}
+                      className="flex h-12 w-full items-center justify-center gap-3 rounded-button bg-foreground/[0.045] text-sm font-semibold transition-[background,transform] hover:bg-foreground/[0.075] active:scale-[0.99] disabled:opacity-55 dark:bg-white/[0.06] dark:hover:bg-white/[0.09]"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-pill bg-background text-xs font-bold shadow-e1" aria-hidden="true">G</span>
+                      Continue with Google
+                    </button>
+
+                    <div className="mt-8 space-y-4 text-center text-sm">
+                      <p className="text-muted-foreground">
+                        New to iVisit?{" "}
+                        <Link to="/onboarding" className="font-semibold text-foreground underline underline-offset-4">Register your organization</Link>
+                      </p>
+                      <a href="https://www.ivisit.ng/support" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground">
+                        Trouble signing in? Contact support
+                      </a>
+                    </div>
+                  </>
+                )}
+
+                {step === "password" && (
+                  <>
+                    <button type="button" onClick={() => moveTo("email", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Change email
+                    </button>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                      <div>
+                        <label htmlFor="login-password" className="sr-only">Password</label>
+                        <div className="relative rounded-inner bg-foreground/[0.045] transition-colors focus-within:bg-foreground/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]">
+                          <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                          <input
+                            id="login-password"
+                            type={showPassword ? "text" : "password"}
+                            autoFocus
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            className="h-14 w-full bg-transparent pl-12 pr-12 text-base placeholder:text-muted-foreground/60"
+                            placeholder="Password"
+                            disabled={isLoading}
+                            aria-invalid={Boolean(error)}
+                            required
+                          />
+                          <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-button text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground">
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        <FieldError message={error} />
+                      </div>
+                      <PrimaryButton loading={isLoading}>
+                        Sign in <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </PrimaryButton>
+                    </form>
+                    <button type="button" onClick={handleForgotPassword} disabled={isLoading} className="mt-6 text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+                      Forgot your password?
+                    </button>
+                  </>
+                )}
+
+                {step === "setup" && (
+                  <>
+                    <button type="button" onClick={() => moveTo("email", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Change email
+                    </button>
+                    {setupLinkSent ? (
+                      <div role="status" className="rounded-inner bg-emerald-500/10 p-5 text-emerald-800 dark:text-emerald-200">
+                        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                        <p className="mt-3 font-semibold">Check your email</p>
+                        <p className="mt-1 text-sm opacity-80">Open the latest link to create your password.</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSetupLink} className="space-y-4">
+                        <p className="rounded-inner bg-foreground/[0.045] p-4 text-sm leading-relaxed text-muted-foreground dark:bg-white/[0.06]">
+                          This account needs a password. We will only send a setup link after you confirm.
+                        </p>
+                        <FieldError message={error} />
+                        <PrimaryButton loading={isLoading}>
+                          Send setup link <Mail className="h-4 w-4" aria-hidden="true" />
+                        </PrimaryButton>
+                      </form>
+                    )}
+                  </>
+                )}
+
+                {step === "2fa" && (
+                  <>
+                    <button type="button" onClick={() => moveTo("password", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back
+                    </button>
+                    <form onSubmit={handle2FASubmit} className="space-y-4">
+                      <div>
+                        <label htmlFor="mfa-code" className="sr-only">Six-digit authentication code</label>
+                        <input
+                          id="mfa-code"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          autoFocus
+                          value={mfaCode}
+                          onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                          className="h-16 w-full rounded-inner bg-foreground/[0.045] text-center font-mono text-2xl dark:bg-white/[0.06]"
+                          placeholder="000000"
+                          disabled={isLoading}
+                          aria-invalid={Boolean(error)}
+                        />
+                        <FieldError message={error} />
+                      </div>
+                      <PrimaryButton loading={isLoading} disabled={mfaCode.length !== 6}>
+                        Verify <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                      </PrimaryButton>
+                    </form>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default LoginPage;

@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { Users, Mail, Crown, BadgeCheck, Clock, Eye, Trash2 } from 'lucide-react';
+import { Users, Mail, Crown, BadgeCheck, Clock, Eye, MailX } from 'lucide-react';
 // LIST-type page, DIRECTORY expression (MOBILE_DESIGN_SYSTEM section 5) -- rebuilt to canon
 // 2026-07-11, MIRRORING MobileUsers / MobileSupportTickets / MobileHealthNews: the 5-stage
 // state machine (warm-up -> group-shaped skeleton -> useStableList buffer -> isFetching
@@ -10,9 +10,9 @@ import { Users, Mail, Crown, BadgeCheck, Clock, Eye, Trash2 } from 'lucide-react
 //
 // COMMAND AUTHORITY (fail-closed by design; CRUD_RECEIVER_BACKLOG: Subscriptions FULLY
 // fail-closed). Subscribers are a read-only admin mirror: no create, no edit, no delete, no
-// status/type write, no welcome/custom/bulk email. The page hard-passes onEdit=null,
-// onDelete=null, canManage=false, so the detail sheet's ONLY CTA is Details (onView) and the
-// selection machinery below never activates (canManage gates it). This surface adds NO mutation.
+// status/type write, no welcome/custom/bulk email. The detail sheet's ONLY CTA is Details
+// (onView). Admins can select visible records for parity, but the bulk command remains disabled
+// until a receiver is proved. This surface adds NO mutation.
 //
 // KPI / GROUPING AXIS = subscriber STATUS (the real desktop status vocabulary: active /
 // pending / unsubscribed / bounced). The 'unsubscribed' chip is the TERMINAL bucket (folds
@@ -225,10 +225,9 @@ export const MobileSubscriptions = ({
         return false;
     }, [displaySubscribers]);
 
-    // Selection: gated to managers. Subscriber writes are fail-closed (subscriber authority
-    // unproved), so the mechanism is preserved but INERT -- the page hard-passes canManage=false,
-    // so selectionActive is false, no row is selectable, and the DISABLED locked bulk control
-    // (mirrors MobileUsers) never surfaces. No selection tap ever reaches a live mutation.
+    // Selection is admin-gated by the page. Long-press and selection-mode taps only change local
+    // row selection; the visible bulk control remains disabled because no subscriber write or
+    // email receiver is proved. No selection gesture reaches a mutation.
     const selectionActive = selectionEnabled && canManage && Boolean(onSelect);
     const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
     const selectionMode = selectionActive && selectedIdSet.size > 0;
@@ -337,16 +336,15 @@ export const MobileSubscriptions = ({
                                     onSelectAll={() => onSelectAll?.(true)}
                                     onClear={() => onSelectAll?.(false)}
                                 >
-                                    {/* Fail-closed: subscriber deletion has no proved receiver, so the
-                                        bulk control is DISABLED (mirrors the desktop BulkActionBar). */}
+                                    {/* Fail-closed: no subscriber bulk receiver is proved. */}
                                     <button
                                         type="button"
                                         disabled
-                                        aria-label="Subscriber deletion is locked until subscriber authority is verified"
-                                        title="Subscriber deletion is locked until subscriber authority is verified"
-                                        className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
+                                        aria-label="Bulk subscriber changes unavailable"
+                                        title="Bulk subscriber changes unavailable"
+                                        className="flex h-8 w-8 items-center justify-center rounded-button bg-foreground/[0.06] text-muted-foreground opacity-50 dark:bg-white/[0.07]"
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <MailX className="h-4 w-4" />
                                     </button>
                                 </MobileSelectionBar>
                             )}

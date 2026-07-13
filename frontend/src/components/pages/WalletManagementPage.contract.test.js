@@ -419,7 +419,7 @@ describe('WalletManagementPage Payments contract', () => {
     });
   });
 
-  it('keeps desktop money writes and bulk selection fail closed', () => {
+  it('provides authority-safe desktop selection for the active visible payment source', () => {
     const page = pageSource();
     const panel = walletPanelSource();
     const desktopSurface = `${page}\n${panel}`;
@@ -428,9 +428,42 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('Add funds, withdrawals, and card changes are not available for this account.');
     expect(panel).toContain('Payment history is available here. Money and card changes are unavailable.');
     expect(panel).not.toContain('aria-disabled="true"');
-    expect(desktopSurface).not.toContain('useRowSelection');
-    expect(desktopSurface).not.toContain('BulkActionBar');
-    expect(desktopSurface).not.toContain('selectedIds');
+    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
+    expect(page).toContain("import { Checkbox } from '../ui/checkbox';");
+    expect(page).toContain('useRowSelection(activeItems)');
+    expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(page).toContain('aria-label={allSelected ? \'Clear payment selection\' : \'Select all visible payment records\'}');
+    expect(page).toContain('checked={selectedIds.includes(item.id)}');
+    expect(page).toContain('onSelectClick={handleSelectClick}');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('Bulk payment actions are unavailable');
+    expect(page).toContain('[activeTab, clearSelection, filters, normalizedSearch, pagination.currentPage]');
+    expect(page).toContain('[clearSelection, searchParams, setActiveTab, setSearchParams]');
+    expect(page).toMatch(/<BulkActionBar[\s\S]*?<Button[\s\S]*?disabled[\s\S]*?title="Bulk payment actions are unavailable"/);
+    expect(desktopSurface).not.toContain('handleBulkPayment');
+    expect(desktopSurface).not.toContain('handleBulkTransaction');
+  });
+
+  it('uses the shared long-press selection grammar on mobile without money writes', () => {
+    const mobile = mobileSource();
+
+    expect(mobile).toContain("import { MobileSelectionBar } from './MobileSelectionBar';");
+    expect(mobile).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(mobile).toContain('useRowSelection(items)');
+    expect(mobile).toContain('selectable');
+    expect(mobile).toContain('selected={selectedIdSet.has(item.id)}');
+    expect(mobile).toContain('selectionMode={selectionMode}');
+    expect(mobile).toContain('onLongPress={(entry) => handleToggleSelect(entry.id, true)}');
+    expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('onSelectAll={() => handleSelectAll(true)}');
+    expect(mobile).toContain('onClear={clearSelection}');
+    expect(mobile).toContain('Bulk payment actions are unavailable');
+    expect(mobile).toContain('[activeTab, clearSelection, filters, normalizedSearch]');
+    expect(mobile).toContain('<WalletActivityTabs activeTab={activeTab} setActiveTab={handleTabChange} />');
+    expect(mobile).toMatch(/<MobileSelectionBar[\s\S]*?<button[\s\S]*?disabled[\s\S]*?title="Bulk payment actions are unavailable"/);
+    expect(mobile).not.toContain('handleBulkPayment');
+    expect(mobile).not.toContain('handleBulkTransaction');
   });
 
   it('surfaces initial and refresh errors while preserving current rows', () => {

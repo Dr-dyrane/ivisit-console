@@ -52,7 +52,7 @@ Page 22 Onboarding Success (`efac625`).
      domain accordions, restoring direct Today, Live Map, and Statistics access where RBAC allows it.
      `NavigationShell.contract.test.js` pins the route set and the side-menu rendering handoff.
    - Pricing is now included in the shared desktop list-workspace estate registry, which locks its
-     single updated-time sort, keyboard focus, loading/refetch/empty behavior, selection exclusion,
+     single updated-time sort, keyboard focus, loading/refetch/empty behavior, visible-row selection,
      navbar title, SEO title, and recorded no-deep-link/no-write-surface decisions. Payments remains
      hybrid-tier rather than being forced into the list registry.
    - Cross-surface status colors now align for Subscriptions (active emerald, pending cyan,
@@ -101,9 +101,11 @@ Page 22 Onboarding Success (`efac625`).
      Pricing, Subscribers, and Organizations rendered live rows and focused detail rails; Insurance
      rendered its honest no-data state; Statistics, Settings, and Live Map rendered their route-specific
      workspaces. Every checked route had no horizontal overflow and the browser error log was empty.
-     Insurance, Subscribers, and Organizations had zero selection controls. Pricing, Insurance, and
-     Subscribers no longer mount the legacy `SYSTEM STATUS` footer over sheet pagination. Statistics
-     work/evidence cards now resolve to the same background token as detail-pane elements. Remaining
+     A follow-up recurrence repair restored selection controls on Payments, Pricing, Insurance,
+     Subscribers, and Organizations while keeping unsupported bulk commands disabled. Pricing,
+     Insurance, and Subscribers no longer mount the legacy `SYSTEM STATUS` footer over sheet pagination. Statistics
+     keeps the pale work surface as its container while breakdown, evidence, empty-trend, and right-pane
+     rows use the Requests `DetailLine` fill-film token for visible light-mode separation. Remaining
      proof is the non-admin role matrix and deliberately forced denied/stale/error envelopes, which stay
      protected by focused contracts in this checkpoint.
 
@@ -150,12 +152,29 @@ read-only visual revamp when the route projection is proved and unsupported comm
   within the viewport with no browser console errors.
 - Removed the legacy shell status footer from Pricing, Insurance, and Subscribers after rendered proof
   showed that it competed with sheet-owned pagination. Added page contracts so the footer cannot return.
-- Kept unsupported selection and write paths absent on Insurance, Subscribers, and Organizations.
+- Restored the shared selection mechanism on Insurance, Subscribers, and Organizations while keeping
+  unsupported bulk write paths disabled and receiver-free.
   `SubscriptionModal` remains shared, view-only, and free of direct welcome/custom/bulk email imports.
-- Normalized Statistics work-surface and evidence-card backgrounds to the detail-pane element token;
-  computed browser styles resolve to the same translucent background value.
+- Corrected Statistics light-mode surface hierarchy after rendered comparison with Requests: the work
+  surface remains the pale container, while breakdown, evidence, empty-trend, and right-pane rows use
+  `bg-foreground/[0.045] dark:bg-white/[0.055]`. Browser proof measured distinct container and film
+  backgrounds and found no horizontal overflow.
 
 ### 2026-07-12 - Mobile priority waves and desktop counterpart orchestration
+- Closed the management multi-select recurrence across Organizations, Insurance, Email Subscribers,
+  Pricing, and Payments. Desktop now keeps checkbox toggle, shift-range, indeterminate select-all,
+  and the shared bulk bar; mobile keeps long-press entry, selected-row checks, tap-to-toggle,
+  select-all, clear, and the shared selection bar. Unsupported bulk actions remain disabled. The
+  desktop estate registry and mobile grammar now declare these surfaces selection-required instead
+  of accepting a no-receiver selection exclusion. Health News remains the explicit exception.
+- Authenticated browser proof passed on populated Organizations, Pricing, Subscribers, and Payments:
+  desktop checked/mixed state and disabled bulk bars rendered; mobile long-press entered selection
+  with selected count, select-all, clear, and disabled action. Payments cleared selection across its
+  ledger/patient source switch. Insurance was an honest zero-row route, so its desktop checkbox header
+  and mobile empty state rendered while row gestures remain contract-proved pending populated data.
+  No horizontal overflow or browser warnings/errors were observed. Static proof: 7 suites / 83 tests,
+  126-file hardgate, 15-file strict-radius hardgate, strict mobile grammar 34/0, clean data/encoding
+  gates, and production bundle `main.46f8fe7d.js`.
 - Reworked Payments after direct user review exposed donor-system drift. It now uses the named HYBRID
   mobile grammar (shared title/balance row + loaded finance KPIs + separate source tabs + Requests grouped
   feed/detail sheet), assigns Payment

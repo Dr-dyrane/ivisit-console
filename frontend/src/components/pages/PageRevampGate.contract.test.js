@@ -226,7 +226,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Health News | `/health-news` | Admitted for guarded read-only continuation after source, schema/RLS authoring block, shared shell, context-panel, read-only modal, mobile hooks, shared filter semantics, hardgate, build, and responsive Browser proof completed 2026-07-03. It is not a new global pattern source and does not admit content authoring.');
     expect(gate).toContain('Insurance Page 12 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending.');
     expect(gate).toContain('first policy command recertification kept create/edit/delete/status/verify exports fail-closed; legacy policy adapter reads/realtime/coverage helpers and legacy service/hook list/detail reads now fail closed.');
-    expect(gate).toContain('Analytics Page 13 guarded source parity was completed on 2026-07-11 as a role-scoped dashboard composition.');
+    expect(gate).toContain('Analytics Page 13 guarded source parity was completed on 2026-07-12 as a role-scoped Summary composition.');
     expect(gate).toContain('Users is Page 14 intake audit only. It is not admitted and no visual revamp, invite/role/delete enablement, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until identity projection, invite receiver, role mutation, destructive command, and mobile metric blockers are closed.');
     expect(gate).toContain('Organizations Page 15 source parity was completed on 2026-07-11 with a canonical desktop workspace');
     expect(gate).toContain('Settings Page 16 guarded source parity was completed on 2026-07-11 as an own-account dashboard.');

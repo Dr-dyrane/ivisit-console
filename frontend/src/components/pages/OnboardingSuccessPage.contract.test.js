@@ -17,6 +17,7 @@ describe('Onboarding Success Page 22 admission contract', () => {
     expect(gate).toContain('### Page 22 Admission - Onboarding Success');
     expect(gate).toContain('`OnboardingSuccessPage` is admitted under the Today/Requests canon as a public confirmation-recovery surface only.');
     expect(gate).toContain('First Onboarding Success visual pass on 2026-07-07 admitted the `OnboardingSuccessPage` visual surface.');
+    expect(gate).toContain('Onboarding Success source guard on 2026-07-12');
     expect(gate).toContain('Promotion note: the first Onboarding Success visual pass is complete.');
 
     expect(app).toContain('<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />');
@@ -77,10 +78,10 @@ describe('Onboarding Success Page 22 admission contract', () => {
     expect(page).toContain('Console access depends on your account state');
     expect(page).toContain('If the console asks you to sign in or continue setup, follow that prompt.');
     expect(page).toContain('Open console');
-    expect(page).toContain('const hasSubmissionResult = Boolean(result?.success);');
+    expect(page).toContain('const hasSubmissionResult = Boolean(result?.success && result?.provisioningVerified === true);');
     expect(page).toContain('!hasSubmissionResult');
     expect(page).toContain('Registration status unavailable');
-    expect(page).toContain('Open this page from the registration flow so we can show your submission details.');
+    expect(page).toContain('We could not verify a completed organization setup. Return to registration or contact support.');
     expect(page).toContain('<Link to="/onboarding">');
     expect(page).toContain('Continue registration');
     expect(page).not.toContain('Registration Submitted!');

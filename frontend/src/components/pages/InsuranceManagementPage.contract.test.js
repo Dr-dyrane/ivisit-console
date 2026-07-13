@@ -19,7 +19,9 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(page).not.toContain('showPolicyCommandUnavailable');
     expect(page).not.toContain('openInsuranceModal');
     expect(page).not.toMatch(/createInsurancePolicy|updateInsurancePolicy|deleteInsurancePolicy|verifyInsurancePolicy/);
-    expect(desktop).toContain('selection excluded by decision');
+    expect(page).toContain('Policy changes are unavailable');
+    expect(mobile).toContain('Policy changes are unavailable');
+    expect(page).not.toMatch(/onBulk|handleBulk|bulkUpdate|bulkDelete/);
     expect(panel).toContain('aria-disabled={unavailable}');
     expect(panel).toContain("data-state={unavailable ? 'unavailable' : 'available'}");
     expect(panel).toContain('Adding policies is not available yet.');
@@ -97,11 +99,22 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop).toContain('filtersActive={hasFilter}');
   });
 
-  it('does not advertise selection without policy mutation authority', () => {
-    expect(page).not.toContain('useRowSelection(insurancePolicies)');
-    expect(desktop).not.toContain('<Checkbox');
-    expect(desktop).not.toContain('Changes unavailable');
-    expect(desktop).toContain('selection excluded by decision');
+  it('provides admin-only visible-row selection while bulk policy writes stay fail-closed', () => {
+    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(page).toContain('const canSelectPolicies = isAdmin() && !insurancePage.denied;');
+    expect(page).toContain('const visiblePolicyRows = isMobile ? mobileVisiblePolicies : paginatedPolicies;');
+    expect(page).toContain('useRowSelection(visiblePolicyRows)');
+    expect(page).toContain('selectable={canSelectPolicies}');
+    expect(page).toContain('onToggleSelect={handleToggleSelect}');
+    expect(page).toContain('onSelectClick={handleSelectClick}');
+    expect(page).toContain('onSelectAll={handleSelectAll}');
+    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('title="Policy changes are unavailable"');
+    expect(desktop).toContain('<Checkbox');
+    expect(desktop).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
+    expect(desktop).toContain('onCheckedChange={(value) => onToggleSelect?.(policy.id, value)}');
+    expect(desktop).toContain('onSelectClick?.(event);');
+    expect(page).not.toMatch(/createInsurancePolicy|updateInsurancePolicy|deleteInsurancePolicy|verifyInsurancePolicy/);
   });
 
   it('publishes whole route context and keeps focused-record detail behavior', () => {
@@ -124,11 +137,24 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(mobile).toContain('<SearchRow');
     expect(mobile).toContain('<GroupPanel');
     expect(mobile).toContain('<MobileListRow');
+    expect(mobile).toContain('<MobileSelectionBar');
+    expect(mobile).toContain('const selectionMode = selectionActive && selectedIdSet.size > 0;');
+    expect(mobile).toContain('selectable={selectionActive}');
+    expect(mobile).toContain('selected={selectedIdSet.has(policy.id)}');
+    expect(mobile).toContain('onLongPress={(item) => onSelect?.(item.id, true)}');
+    expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
+    expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
+    expect(mobile).toContain('disabled');
+    expect(page).toContain('selectionEnabled={canSelectPolicies}');
+    expect(page).toContain('selectedIds={selectedIds}');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
     expect(mobile).toContain('label="Policies did not load"');
     expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
     expect(mobile).toContain('mobile-insurance-degraded-state');
+    expect(page).toContain('denied={insurancePage.denied}');
+    expect(mobile).toContain('label="Insurance access unavailable"');
+    expect(mobile).toContain('!denied && error && displayPolicies.length > 0');
     expect(page).toContain('count={insurancePage.count}');
     expect(mobile).toContain('const scopeCount = metricValue(count, policies.length);');
     expect(page).toContain('isLoadingMore={mobileLoadingMore}');
