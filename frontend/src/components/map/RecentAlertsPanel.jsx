@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Card } from '../ui/card';
 import { AlertTriangle, Clock, Activity } from 'lucide-react';
 import { LocationCell } from '../ui/LocationCell';
 
@@ -39,7 +38,7 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 	};
 
 	return (
-		<Card className="rounded-card p-4 bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+		<section className="rounded-card bg-card/68 p-4 shadow-e3 backdrop-blur-2xl">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-3">
 				<h3 className="font-bold text-sm flex items-center gap-2">
@@ -120,6 +119,6 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 					</div>
 				)}
 			</div>
-		</Card>
+		</section>
 	);
 };

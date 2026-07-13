@@ -62,12 +62,12 @@ const SettingsSkeleton = () => (
           {Array.from({ length: rows }).map((_, rowIndex) => (
             <React.Fragment key={rowIndex}>
               <div className="flex items-center gap-3 px-2 py-3">
-                <span className="h-9 w-9 shrink-0 rounded-pill bg-muted/25 shimmer" />
+                <span className="h-9 w-9 shrink-0 rounded-icon bg-muted/25 shimmer" />
                 <div className="min-w-0 flex-1 space-y-2">
                   <span className="block h-4 w-2/5 rounded-pill bg-muted/25 shimmer" />
                   <span className="block h-3 w-3/5 rounded-pill bg-muted/15 shimmer" />
                 </div>
-                <span className="h-4 w-4 shrink-0 rounded-pill bg-muted/20 shimmer" />
+                <span className="h-4 w-4 shrink-0 rounded-icon bg-muted/20 shimmer" />
               </div>
               {rowIndex < rows - 1 && <Hairline inset={56} />}
             </React.Fragment>
@@ -107,7 +107,7 @@ const ActionRow = ({
     aria-busy={pending}
     className="flex min-h-[56px] w-full items-center gap-3 rounded-inner px-2 py-3 text-left transition-colors active:bg-foreground/[0.06] disabled:opacity-70 dark:active:bg-white/[0.08]"
   >
-    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill ${toneClass}`}>
+    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${toneClass}`}>
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
     </span>
     <span className="min-w-0 flex-1">
@@ -124,7 +124,7 @@ const ActionRow = ({
 
 const InfoRow = ({ icon: Icon, title, value, toneClass }) => (
   <div className="flex min-h-[56px] items-center gap-3 px-2 py-3">
-    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-pill ${toneClass}`}>
+    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${toneClass}`}>
       <Icon className="h-4 w-4" />
     </span>
     <span className="min-w-0 flex-1">
@@ -240,7 +240,7 @@ export const MobileSettings = ({
 
           <Section label="Preferences">
             <div className="flex min-h-[56px] items-center gap-3 px-2 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-violet-500/10 text-violet-700 dark:text-violet-200">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-violet-500/10 text-violet-700 dark:text-violet-200">
                 {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               </span>
               <span className="min-w-0 flex-1">

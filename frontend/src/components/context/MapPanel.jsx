@@ -166,10 +166,10 @@ export const MapPanel = () => {
       <section>
         <h3 className="mb-3 text-sm font-semibold">Map actions</h3>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={handleRecenter} className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-sm font-medium transition-colors hover:bg-foreground/10 active:scale-[0.98] dark:bg-white/[0.04]">
+          <button type="button" onClick={handleRecenter} className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-button bg-background/45 p-3 text-sm font-medium transition-colors hover:bg-foreground/10 active:scale-[0.98] dark:bg-white/[0.04]">
             <LocateFixed className="h-4 w-4 text-sky-700 dark:text-sky-200" /> Recenter
           </button>
-          <button type="button" onClick={handleRefresh} aria-busy={loading ? 'true' : undefined} disabled={loading} data-state={loading ? 'pending' : 'ready'} className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-inner bg-background/45 p-3 text-sm font-medium transition-colors hover:bg-foreground/10 active:scale-[0.98] disabled:opacity-60 dark:bg-white/[0.04]">
+          <button type="button" onClick={handleRefresh} aria-busy={loading ? 'true' : undefined} disabled={loading} data-state={loading ? 'pending' : 'ready'} className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-button bg-background/45 p-3 text-sm font-medium transition-colors hover:bg-foreground/10 active:scale-[0.98] disabled:opacity-60 dark:bg-white/[0.04]">
             <RefreshCw className={`h-4 w-4 text-emerald-700 dark:text-emerald-200 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Refreshing' : 'Refresh'}
           </button>
         </div>
@@ -180,7 +180,7 @@ export const MapPanel = () => {
         <h3 className="mb-3 text-sm font-semibold">Request filters</h3>
         <div className="grid grid-cols-2 gap-2">
           {filters.map(({ icon: Icon, ...filter }) => (
-            <button key={filter.key} type="button" onClick={() => handleFilter(filter)} aria-pressed={activeFilter === filter.key} className={`flex min-h-[64px] items-center gap-3 rounded-inner p-3 text-left transition-colors active:scale-[0.98] ${activeFilter === filter.key ? 'bg-sky-500/12 text-sky-800 dark:text-sky-100' : 'bg-background/45 hover:bg-foreground/10 dark:bg-white/[0.04]'}`}>
+            <button key={filter.key} type="button" onClick={() => handleFilter(filter)} aria-pressed={activeFilter === filter.key} className={`flex min-h-[64px] items-center gap-3 rounded-button p-3 text-left transition-colors active:scale-[0.98] ${activeFilter === filter.key ? 'bg-sky-500/12 text-sky-800 dark:text-sky-100' : 'bg-background/45 hover:bg-foreground/10 dark:bg-white/[0.04]'}`}>
               <Icon className="h-4 w-4 shrink-0" />
               <span className="min-w-0"><span className="block truncate text-xs font-medium">{filter.label}</span><span className="mt-1 block text-sm font-semibold">{filter.count}</span></span>
             </button>
@@ -197,7 +197,7 @@ export const MapPanel = () => {
           {!visibleRequests.length ? (
             <div className="rounded-inner bg-background/45 px-4 py-8 text-center text-sm text-muted-foreground dark:bg-white/[0.04]">No requests in this filter.</div>
           ) : visibleRequests.slice(0, 5).map((request) => (
-            <button key={request.id} type="button" onClick={() => setSelectedMarker({ type: 'emergency', data: request })} className="flex w-full items-center gap-3 rounded-inner bg-background/45 p-3 text-left transition-colors hover:bg-foreground/10 active:scale-[0.99] dark:bg-white/[0.04]">
+            <button key={request.id} type="button" onClick={() => setSelectedMarker({ type: 'emergency', data: request })} className="flex w-full items-center gap-3 rounded-card bg-card/60 p-3 text-left transition-colors hover:bg-card/80 active:scale-[0.99] dark:bg-card/50">
               <span className={`h-2.5 w-2.5 shrink-0 rounded-pill ${request.priority === 'critical' ? 'bg-destructive' : 'bg-sky-500'}`} />
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{request.display_id || request.service_type || `#${String(request.id).slice(0, 6)}`}</span><span className="mt-1 flex items-center gap-1 text-xs capitalize text-muted-foreground"><Clock className="h-3 w-3" />{String(request.status || 'Status pending').replace('_', ' ')} - {formatTime(request.created_at)}</span></span>
             </button>

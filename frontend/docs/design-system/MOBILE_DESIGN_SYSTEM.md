@@ -91,10 +91,10 @@ a generic "Provider" (Decisions log + §5 + §10).
   signal copy, context-panel publishing) and passes the computed model down (anti-drift: one
   model, two renders). Contract documented in `MobileToday.jsx`'s header JSDoc; fork lives in
   `TodayHome.jsx` (return-only, after every hook). Full rule in §8.
-- **2026-07-09 · Dock slots rank by operational importance; top bar is context-aware** —
+- **2026-07-12 · Main dock keeps Analytics in the fourth resting slot; top bar is context-aware** —
   Settings never holds a dock slot by right (the avatar sheet owns overflow —
   `MOBILE_NAV_CHROME.overflowOwner: 'avatar'`, `src/config/mobileNavigation.js`); admin dock =
-  Today / Requests / Approvals / Map. Top bar (`SmartHeader.jsx`): on home ('/') the avatar
+  Today / Requests / Map / Statistics. Top bar (`SmartHeader.jsx`): on home ('/') the avatar
   owns the LEFT section (no history to render); on subpages it yields left to the back +
   previous-route chip and sits right. Details in §6.
 - **2026-07-10 · Opacity is a design token — a bare slash-opacity must be a real scale value** —
@@ -317,7 +317,7 @@ not permission to combine arbitrary furniture.
 |---|---|---|---|
 | Reference | `src/components/mobile/MobileEmergency.jsx` (Requests) | `src/components/mobile/MobileToday.jsx` (Today) | `src/components/mobile/MobileWallet.jsx` (Payments) |
 | Anatomy | KPI chip rail → search field → grouped recency list (sentence-case bold headers, §3) → row tap → detail sheet | signal-first hero (status pill → headline → subhead → role pill) → 2-up glance tile grid → one RAISED action-sheet panel (status + title + hint, single primary CTA, action rows) | shared title row + local visibility control → primary value → read-only finance KPIs → separate source tabs → scoped SearchRow (search/filter/analytics) → Requests-style grouped rows → row tap → detail sheet |
-| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | glance tiles **NAVIGATE** — `min-h-[72px]`, sentence-case label over value + tone-tinted arrow orb (the desktop `GlanceCard` anatomy at mobile scale), `Loader2` glyph-swap opening feedback. They never filter this page | KPIs summarize proved finance fields and never impersonate the source tabs; values remain explicitly loaded-scope unless a server aggregate is proved |
+| Numbers | KPI chips **FILTER** the list in place (`aria-pressed`, count-scope rules above) | `MobileGlanceTile` owns the shared slender tile — `min-h-[72px]`, sentence-case label over value + tone-tinted trailing orb, `Loader2` glyph-swap opening feedback. Today uses it for navigation; other dashboards may use the same anatomy for compact read-only or detail-reveal statistics. It never becomes a filter chip. | KPIs summarize proved finance fields and never impersonate the source tabs; values remain explicitly loaded-scope unless a server aggregate is proved |
 | Disclosure | detail bottom sheet per record (`MobileDetailSheet`) | action rows expand **in place** (chevron rotate + revealed action pill); a dashboard never opens record sheets | detail bottom sheet per record; route-owned FAB handles the one global read action, while source-specific commands remain local to the feed |
 | Rhythm | grouped panels, `space-y-[18px]` | generous `space-y-8` — welcoming, easy on the eye, guiding | compact hero-to-KPI-to-feed rhythm; grouped panels retain LIST spacing |
 
@@ -357,15 +357,17 @@ before shipping a factor — Gate 2b of the close checklist.
 
 ### Loading & refetch model (canon)
 
-Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components/mobile/MobileToday.jsx` (dashboard).
+Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components/mobile/MobileToday.jsx` (dashboard) · `src/components/mobile/MobileAnalytics.jsx` + `MobileSkeleton.jsx` (dashboard summary).
 
 1. **Skeleton-first on EVERY mount.** A forced warm-up guarantees the skeleton on cached
    bottom-nav mounts too, not just hard refresh — without it, a page mounting with cached
    data skips the skeleton and assembles content top-to-bottom:
    `SKELETON_WARMUP_MS = 400` · `showSkeleton = warmingUp || (loading && no items)`.
-2. **Group-shaped skeleton.** The skeleton mirrors the real list 1:1 (same panel, row
-   rhythm, hairline + `ml-[62px]` inset) so content **replaces it in place** with zero
-   layout jump.
+2. **Grammar-shaped skeleton.** A LIST skeleton mirrors the real grouped list 1:1 (same
+   panel, row rhythm, hairline + `ml-[62px]` inset). A DASHBOARD skeleton mirrors its
+   actual hero, controls, tile dimensions, and first evidence surfaces. Content
+   **replaces it in place**; generic KPI strips, featured cards, or row grids must not
+   stand in for anatomy the loaded route does not render.
 3. **No entrance motion.** No translate/stagger, no fade-from-blank — a fade runs from
    blank on cached mounts and reads as a top-to-bottom load. When the skeleton clears, the
    list swaps in a single commit; nothing moves.
@@ -390,10 +392,11 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
   a genuinely action-less route. Read-only alone is not an exemption. NEVER use a "Filter X" that
   duplicates the SearchRow's in-page filter.
   First-class page-close requirement — enforced by the FAB-completeness guard (§9), checked on every page.
-- **Dock slots rank by OPERATIONAL importance per role** (locked 2026-07-09;
+- **Dock slots rank by OPERATIONAL importance per role** (locked 2026-07-12;
   `src/config/mobileNavigation.js`). Settings never holds a slot by right — the avatar sheet
   owns overflow (`MOBILE_NAV_CHROME.overflowOwner: 'avatar'`; no bottom menu button). Admin
-  (re-ranked) = **Today / Requests / Approvals / Map** — the Today hero's own signals, then map;
+  (re-ranked) = **Today / Requests / Map / Statistics** — the main operational loop plus its
+  measured summary. Approvals morphs into the fourth slot only while its route is active;
   Settings stays reachable via the avatar sheet. ✅ admin · ◐ the other role slates still seat
   Settings in their fourth slot — re-rank each as its role home lands.
 - **Overflow preserves the complete reachable tree.** `MobileNavMenu` renders the role-filtered

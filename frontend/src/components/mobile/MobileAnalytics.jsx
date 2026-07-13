@@ -1,625 +1,416 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import {
-    Activity,
-    Clock,
-    AlertTriangle,
-    CheckCircle2,
-    Users,
-    Wallet,
-    Hospital,
-    Ambulance,
-    Download
+  Activity,
+  Ambulance,
+  ArrowUpRight,
+  BarChart3,
+  CheckCircle2,
+  Clock3,
+  Crown,
+  Hospital,
+  Minus,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  Wallet,
 } from 'lucide-react';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileAnalyticsSkeleton } from './MobileSkeleton';
-import { UpdatingPill } from './canon/Loading';
-import { formatSignedPercent } from '../../utils/metricsUtils';
+import { MobileHero } from './canon/MobileHero';
+import { MobileGlanceTile } from './canon/MobileGlanceTile';
+import { useSkeletonWarmup } from './canon/Loading';
+import {
+  AnalyticsTimeRangeControl,
+  formatAnalyticsWindow,
+  formatMetricNumber,
+  formatResponseMinutes,
+  getAnalyticsScopeLabel,
+  getVolumeComparison,
+} from '../analytics/AnalyticsSummaryPrimitives';
 
-const SOURCE_PENDING_LABEL = 'Source pending';
-const DEFAULT_SUBSCRIPTION_STATS = {
-    total: 0,
-    active: 0,
-    paid: 0,
-    free: 0,
-    newUsers: 0,
-    welcomeEmailsSent: 0,
-    paidConversionRate: 0,
+const SOURCE_UNAVAILABLE = 'Unavailable';
+
+const SectionHeading = ({ title }) => (
+  <div className="mb-3 px-1">
+    <h2 className="text-[19px] font-semibold text-foreground">{title}</h2>
+  </div>
+);
+
+const EmptySummaryCard = ({ title, detail }) => (
+  <div className="rounded-card bg-card/68 px-5 py-6 shadow-e2 backdrop-blur-xl dark:bg-white/[0.055]">
+    <p className="text-sm font-semibold text-foreground">{title}</p>
+    <p className="mt-2 text-[12px] leading-5 text-muted-foreground">{detail}</p>
+  </div>
+);
+
+const toneClasses = {
+  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  violet: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+  cyan: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
-const DEFAULT_FINANCE_SUMMARY = { total: 0, weeklyAvg: 0, today: 0 };
-const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
 
-/**
- * MobileAnalytics
- * Reinvented mobile experience for the Analytics page
- * Canon #10: Dashboard = Control
- * Canon #21: Depth Over Color
- */
+const HighlightCard = ({ icon: Icon, title, value, detail, tone, onOpenDetails }) => (
+  <button
+    type="button"
+    onClick={onOpenDetails}
+    className="w-full rounded-card bg-card/72 p-5 text-left shadow-e2 backdrop-blur-xl transition-[background,box-shadow,transform] active:scale-[0.985] dark:bg-white/[0.055]"
+  >
+    <div className="flex items-start justify-between gap-4">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-icon ${toneClasses[tone]}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+    </div>
+    <p className="mt-5 text-[12px] font-medium text-muted-foreground">{title}</p>
+    <p className="mt-1 break-words text-2xl font-semibold text-foreground tabular-nums">{value}</p>
+    <p className="mt-2 text-[12px] leading-5 text-muted-foreground">{detail}</p>
+  </button>
+);
+
+const CompactStatTile = ({ icon, label, value, tone, onClick = null }) => (
+  <MobileGlanceTile
+    item={{ icon, label, value, tone, actionKey: onClick ? 'details' : null }}
+    onPress={onClick ? (event) => onClick(event) : null}
+    toneClassMap={toneClasses}
+    dataAttr="data-mobile-analytics-stat"
+  />
+);
+
+const BreakdownList = ({ title, items, emptyDetail }) => {
+  const maxValue = Math.max(...items.map((item) => Number(item?.value) || 0), 1);
+  const tones = ['bg-sky-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-cyan-500'];
+  return (
+    <div className="rounded-card bg-card/68 p-5 shadow-e2 backdrop-blur-xl dark:bg-white/[0.05]">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <span className="rounded-pill bg-foreground/[0.06] px-2.5 py-1 text-[10px] font-medium text-muted-foreground dark:bg-white/[0.07]">
+          {items.length} groups
+        </span>
+      </div>
+      {items.length ? (
+        <div className="mt-5 space-y-4">
+          {items.slice(0, 5).map((item, index) => (
+            <div key={`${title}-${item.name}`}>
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <span className="min-w-0 truncate text-muted-foreground">{item.name}</span>
+                <span className="font-semibold text-foreground tabular-nums">{formatMetricNumber(item.value)}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-pill bg-foreground/[0.06] dark:bg-white/[0.07]">
+                <div
+                  className={`h-full rounded-pill ${tones[index % tones.length]}`}
+                  style={{ width: `${Math.max(8, Math.round(((Number(item.value) || 0) / maxValue) * 100))}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-5 text-[12px] leading-5 text-muted-foreground">{emptyDetail}</p>
+      )}
+    </div>
+  );
+};
+
 export const MobileAnalytics = ({
-    stats,
-    subscriptionStats,
-    financeSummary,
-    hospitalCapacity,
-    responseTimeData = [],
-    requestsByStatus = [],
-    emergencyTypes = [],
-    dominantType,
-    financeData = [],
-    demandHeatmap = [],
-    timeRange,
-    onRefresh,
-    loadError,
-    onRetry,
-    handleExport,
-    exportNotice,
-    sourceIssueSummary,
-    subscriptionScopeLabel = SOURCE_PENDING_LABEL,
-    financeScopeLabel = SOURCE_PENDING_LABEL,
-    canReadSubscriptionAnalytics = false,
-    canReadFinanceAnalytics = false,
-    roleContext,
-    isLoading = false,
-    isFetching = false
+  stats,
+  subscriptionStats,
+  financeSummary,
+  hospitalCapacity,
+  requestsByDay = [],
+  requestsByStatus = [],
+  emergencyTypes = [],
+  dominantType,
+  timeRange,
+  snapshotTimeRange,
+  onTimeRangeChange,
+  onRefresh,
+  onRetry,
+  onOpenDetails,
+  loadError,
+  commandNotice,
+  sourceIssueSummary,
+  sourceReadiness = {},
+  canReadSubscriptionAnalytics = false,
+  canReadFinanceAnalytics = false,
+  roleContext = {},
+  snapshotReady = false,
+  isLoading = false,
+  isFetching = false,
 }) => {
-    // grammar:hero=MobileFeaturedMetric-is-the-signal-first-statistics-hero
-    const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext || {};
-    const resolvedSubscriptionStats = useMemo(
-        () => ({ ...DEFAULT_SUBSCRIPTION_STATS, ...(subscriptionStats || {}) }),
-        [subscriptionStats],
-    );
-    const resolvedFinanceSummary = useMemo(
-        () => ({ ...DEFAULT_FINANCE_SUMMARY, ...(financeSummary || {}) }),
-        [financeSummary],
-    );
-    const resolvedHospitalCapacity = useMemo(
-        () => ({ ...DEFAULT_HOSPITAL_CAPACITY, ...(hospitalCapacity || {}) }),
-        [hospitalCapacity],
-    );
+  const warmingUp = useSkeletonWarmup();
+  const totalRequests = Number(stats?.totalEmergencies) || 0;
+  const completedRequests = Number(stats?.completedEmergencies) || 0;
+  const responseSampleSize = Number(stats?.responseSampleSize) || 0;
+  const requestSourceReady = Boolean(sourceReadiness.requests);
+  const windowLabel = formatAnalyticsWindow(snapshotTimeRange || timeRange);
+  const scopeLabel = getAnalyticsScopeLabel(roleContext);
+  const volumeComparison = useMemo(() => getVolumeComparison(requestsByDay), [requestsByDay]);
+  const chartBars = requestsByDay.slice(-14);
+  const chartMax = Math.max(...chartBars.map((item) => Number(item?.requests) || 0), 1);
+  const TrendIcon = volumeComparison?.direction === 'up'
+    ? TrendingUp
+    : volumeComparison?.direction === 'down'
+      ? TrendingDown
+      : Minus;
+  const showSkeleton = warmingUp || (isLoading && !snapshotReady);
 
+  const pinnedMetrics = [
+    {
+      icon: Activity,
+      label: 'Requests',
+      value: requestSourceReady ? formatMetricNumber(totalRequests) : SOURCE_UNAVAILABLE,
+      tone: 'sky',
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Completed',
+      value: requestSourceReady ? formatMetricNumber(completedRequests) : SOURCE_UNAVAILABLE,
+      tone: 'emerald',
+    },
+    {
+      icon: Clock3,
+      label: 'Avg response',
+      value: requestSourceReady ? formatResponseMinutes(stats?.avgResponseTime, responseSampleSize) : SOURCE_UNAVAILABLE,
+      tone: 'amber',
+    },
+    {
+      icon: Hospital,
+      label: 'Facilities',
+      value: sourceReadiness.hospitals ? formatMetricNumber(stats?.totalHospitals) : SOURCE_UNAVAILABLE,
+      tone: 'violet',
+    },
+  ];
 
-    const seriesDelta = (series = [], key = 'value', invert = false) => {
-        if (!Array.isArray(series) || series.length < 2) return { badge: SOURCE_PENDING_LABEL, direction: 'flat' };
-        const first = Number(series[0]?.[key]);
-        const last = Number(series[series.length - 1]?.[key]);
-        if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return { badge: SOURCE_PENDING_LABEL, direction: 'flat' };
-        let delta = ((last - first) / Math.abs(first)) * 100;
-        if (invert) delta *= -1;
-        return {
-            badge: formatSignedPercent(delta) || SOURCE_PENDING_LABEL,
-            direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
-        };
-    };
+  const highlights = [];
+  if (requestSourceReady && totalRequests > 0) {
+    highlights.push({
+      icon: CheckCircle2,
+      title: 'Request outcomes',
+      value: `${stats.successRate}% completed`,
+      detail: `${formatMetricNumber(completedRequests)} of ${formatMetricNumber(totalRequests)} completed.`,
+      tone: 'emerald',
+    });
+  }
+  if (requestSourceReady && responseSampleSize > 0) {
+    highlights.push({
+      icon: Clock3,
+      title: 'Response evidence',
+      value: formatResponseMinutes(stats?.avgResponseTime, responseSampleSize),
+      detail: `${formatMetricNumber(responseSampleSize)} timed requests.`,
+      tone: 'sky',
+    });
+  }
+  if (requestSourceReady && dominantType?.value > 0) {
+    highlights.push({
+      icon: BarChart3,
+      title: 'Most common case',
+      value: dominantType.name,
+      detail: `${formatMetricNumber(dominantType.value)} requests.`,
+      tone: 'violet',
+    });
+  }
 
-    const responseTrend = seriesDelta(responseTimeData, 'avgTime', true);
-    const demandTrend = seriesDelta(responseTimeData, 'requests');
-    const resolvedStats = useMemo(() => {
-        const source = stats || {};
+  const summaryHeader = snapshotReady ? (
+    <div className="pt-3">
+      <MobileHero
+        toneClass="bg-sky-500/10 text-sky-700 dark:text-sky-200"
+        icon={BarChart3}
+        statusLabel="Summary"
+        headline={requestSourceReady
+          ? totalRequests > 0
+            ? `${formatMetricNumber(totalRequests)} requests`
+            : 'No requests recorded'
+          : 'Request summary unavailable'}
+        subhead={requestSourceReady
+          ? `${scopeLabel} / ${windowLabel}`
+          : 'Request data is unavailable.'}
+        isFetching={isFetching}
+      >
+        <div className="w-full">
+          <AnalyticsTimeRangeControl value={timeRange} onChange={onTimeRangeChange} compact />
+        </div>
+      </MobileHero>
 
-        return {
-            totalEmergencies: Number(source.totalEmergencies) || 0,
-            avgResponseTime: Number(source.avgResponseTime) || 0,
-            successRate: Number(source.successRate) || 0,
-            totalHospitals: Number(source.totalHospitals) || 0,
-            totalAmbulances: Number(source.totalAmbulances) || 0
-        };
-    }, [stats]);
+      {sourceIssueSummary && (
+        <div
+          data-testid="mobile-analytics-source-state"
+          role="status"
+          aria-live="polite"
+          className="mx-4 mt-4 rounded-inner bg-amber-500/10 px-4 py-3 text-amber-900 shadow-e2 dark:text-amber-200"
+        >
+          <p className="text-sm font-semibold">{sourceIssueSummary.title}</p>
+          <p className="mt-1 break-words text-[11px] leading-4 text-current/75">{sourceIssueSummary.detail}</p>
+        </div>
+      )}
 
-    const hasMeasuredSuccess = resolvedStats.totalEmergencies > 0 || Number(stats?.successRate) > 0;
-    const hasMeasuredAvgTime = Number(resolvedStats.avgResponseTime) > 0;
-    const successValue = hasMeasuredSuccess ? `${resolvedStats.successRate}%` : SOURCE_PENDING_LABEL;
-    const avgTimeValue = hasMeasuredAvgTime ? `${resolvedStats.avgResponseTime.toFixed(1)}m` : SOURCE_PENDING_LABEL;
-    const successTrendBadge = SOURCE_PENDING_LABEL;
-    const hospitalCapacityPercent = resolvedHospitalCapacity.total > 0
-        ? Math.round((resolvedHospitalCapacity.occupied / resolvedHospitalCapacity.total) * 100)
-        : 0;
-    const hasFinanceData = Array.isArray(financeData) && financeData.length > 0;
-    const financeScale = Math.max(
-        Number(resolvedFinanceSummary.total) || 0,
-        Number(resolvedFinanceSummary.weeklyAvg) * 7 || 0,
-        Number(resolvedFinanceSummary.today) || 0,
-        1
-    );
-    const formatFinanceValue = (value) => (
-        hasFinanceData ? `$${Number(value || 0).toFixed(0)}` : financeScopeLabel
-    );
-    const financeMetricRows = [
-        {
-            label: 'Daily yield',
-            value: formatFinanceValue(resolvedFinanceSummary.today),
-            progress: hasFinanceData ? Math.min(100, Math.round(((Number(resolvedFinanceSummary.today) || 0) / financeScale) * 100)) : 0,
-            color: 'hsl(162 94% 24%)'
-        },
-        {
-            label: 'Weekly average',
-            value: formatFinanceValue((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7),
-            progress: hasFinanceData ? Math.min(100, Math.round((((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7) / financeScale) * 100)) : 0,
-            color: 'hsl(200 98% 39%)'
-        }
-    ];
-    const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0
-        ? `${Number(resolvedSubscriptionStats.paidConversionRate).toFixed(1)}%`
-        : subscriptionScopeLabel;
-    const avgTicketLabel = hasFinanceData && resolvedStats.totalEmergencies > 0
-        ? `$${(resolvedFinanceSummary.total / resolvedStats.totalEmergencies).toFixed(0)}`
-        : financeScopeLabel;
-    const subscriberKpiValue = canReadSubscriptionAnalytics
-        ? resolvedSubscriptionStats.active || 0
-        : subscriptionScopeLabel;
+      {commandNotice && (
+        <div className="mx-4 mt-4 rounded-inner bg-muted/45 px-4 py-3 text-[12px] text-muted-foreground shadow-e2" role="status" aria-live="polite">
+          {commandNotice}
+        </div>
+      )}
 
-    const sparklineData = useMemo(() => {
-        if (!responseTimeData || !responseTimeData.length) return [];
-        return responseTimeData.map(d => ({ value: d.avgTime }));
-    }, [responseTimeData]);
+      <div className="mt-6 px-4">
+        <SectionHeading title="Pinned" />
+        <div className="grid grid-cols-2 gap-3">
+          {pinnedMetrics.map((metric) => (
+            <CompactStatTile key={metric.label} {...metric} onClick={onOpenDetails} />
+          ))}
+        </div>
+      </div>
+    </div>
+  ) : null;
 
-    const featuredItems = [
-        {
-            label: 'Average response',
-            value: avgTimeValue,
-            trend: responseTrend.badge,
-            icon: Clock,
-            color: 'hsl(200 98% 39%)',
-            chartData: sparklineData
-        },
-        {
-            label: isProvider ? 'Completion in scope' : 'Request completion',
-            value: successValue,
-            trend: successTrendBadge,
-            icon: CheckCircle2,
-            color: 'hsl(162 94% 24%)',
-            chartData: []
-        },
-        {
-            label: isProvider ? 'Your requests' : 'Requests in scope',
-            value: resolvedStats.totalEmergencies,
-            trend: demandTrend.badge,
-            icon: AlertTriangle,
-            color: 'hsl(199 89% 38%)',
-            chartData: []
-        },
-        canReadSubscriptionAnalytics
-            ? {
-                label: 'Active subscribers',
-                value: subscriberKpiValue,
-                trend: subscriptionScopeLabel,
-                icon: Users,
-                color: 'hsl(200 98% 39%)',
-                chartData: []
-            }
-            : {
-                label: 'Hospitals in scope',
-                value: resolvedStats.totalHospitals,
-                trend: SOURCE_PENDING_LABEL,
-                icon: Hospital,
-                color: 'hsl(var(--muted-foreground))',
-                chartData: []
-            }
-    ];
+  return (
+    <PullToRefresh onRefresh={onRefresh}>
+      <MobilePageShell
+        kpiStrip={showSkeleton ? null : summaryHeader}
+        contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-2 text-foreground"
+        animatePageLoad={false}
+      >
+        {showSkeleton ? (
+          <MobileAnalyticsSkeleton />
+        ) : loadError && !snapshotReady ? (
+          <div className="px-4 pt-3">
+            <div data-testid="mobile-analytics-error-state" role="alert" className="rounded-card bg-destructive/10 p-5 text-destructive shadow-e2">
+              <p className="text-sm font-semibold">Statistics did not load.</p>
+              <p className="mt-2 text-[12px] leading-5 text-destructive/75">Retry when the source is available.</p>
+              <button
+                type="button"
+                onClick={onRetry || onRefresh}
+                className="mt-4 flex min-h-10 items-center gap-2 rounded-button bg-background/80 px-4 text-[12px] font-semibold text-destructive shadow-e2 active:scale-[0.97]"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : snapshotReady ? (
+          <div className="space-y-9 px-4">
+            <section data-testid="mobile-analytics-highlights-section">
+              <SectionHeading title="Highlights" />
+              {highlights.length ? (
+                <div className="space-y-3">
+                  {highlights.map((highlight) => (
+                    <HighlightCard key={highlight.title} {...highlight} onOpenDetails={onOpenDetails} />
+                  ))}
+                </div>
+              ) : (
+                <EmptySummaryCard
+                  title={requestSourceReady ? 'No measured highlights yet' : 'Highlights unavailable'}
+                  detail={requestSourceReady
+                    ? 'Highlights will appear after this window contains outcomes or timing evidence.'
+                    : 'The request source must load before highlights can be calculated.'}
+                />
+              )}
+            </section>
 
-    return (
-        <PullToRefresh onRefresh={onRefresh}>
-            <MobilePageShell
-                animatePageLoad={false}
-                contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-4 text-foreground"
-            >
-                    {isLoading ? (
-                        <MobileAnalyticsSkeleton />
-                    ) : (
-                        <>
-                    {isFetching && (
-                        <div className="mb-3 flex justify-end px-3">
-                            <UpdatingPill />
-                        </div>
+            <section data-testid="mobile-analytics-trends-section">
+              <SectionHeading title="Trends" />
+              {requestSourceReady && chartBars.length ? (
+                <div className="rounded-card bg-card/68 p-5 shadow-e2 backdrop-blur-xl dark:bg-white/[0.05]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[12px] font-medium text-muted-foreground">Request volume</p>
+                      <p className="mt-1 text-xl font-semibold text-foreground">
+                        {volumeComparison ? volumeComparison.badge : 'Not enough history'}
+                      </p>
+                    </div>
+                    {volumeComparison && (
+                      <span className="flex h-10 w-10 items-center justify-center rounded-icon bg-sky-500/10 text-sky-700 dark:text-sky-200">
+                        <TrendIcon className="h-5 w-5" />
+                      </span>
                     )}
-                    {loadError && (
-                        <section
-                            data-testid="mobile-analytics-error-state"
-                            role="alert"
-                            className="mx-3 mb-4 rounded-card bg-destructive/10 px-4 py-3 text-destructive"
-                        >
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-semibold">Statistics did not load.</p>
-                                    <p className="mt-1 break-words text-xs text-destructive/75">Retry when the source is available.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={onRetry || onRefresh}
-                                    disabled={isFetching}
-                                    data-state={isFetching ? 'loading' : 'ready'}
-                                    aria-busy={isFetching}
-                                    className="shrink-0 rounded-pill bg-destructive/10 px-4 py-2 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
-                                >
-                                    {isFetching ? 'Retrying' : 'Retry'}
-                                </button>
-                            </div>
-                        </section>
-                    )}
-                    {sourceIssueSummary && (
-                        <section
-                            data-testid="mobile-analytics-source-state"
-                            role="status"
-                            aria-live="polite"
-                            className="mx-3 mb-4 rounded-card bg-muted/30 px-4 py-3 text-foreground"
-                        >
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-semibold">{sourceIssueSummary.title}</p>
-                                    <p className="mt-1 break-words text-xs text-muted-foreground">{sourceIssueSummary.detail}</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={onRetry || onRefresh}
-                                    disabled={isFetching}
-                                    data-state={isFetching ? 'loading' : 'ready'}
-                                    aria-busy={isFetching}
-                                    className="shrink-0 rounded-pill bg-muted/45 px-4 py-2 text-xs font-semibold text-foreground transition-all hover:bg-muted/60 active:scale-[0.96]"
-                                >
-                                    {isFetching ? 'Refreshing' : 'Retry'}
-                                </button>
-                            </div>
-                        </section>
-                    )}
-                    {/* HERO FEATURED METRICS */}
-                    <MobileFeaturedMetric items={featuredItems} />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                    {volumeComparison
+                      ? `${formatMetricNumber(volumeComparison.recent)} recent / ${formatMetricNumber(volumeComparison.previous)} earlier.`
+                      : 'This window does not yet contain enough activity for a comparison.'}
+                  </p>
+                  <div className="mt-6 flex h-24 items-end gap-1" role="img" aria-label={`Request volume over ${windowLabel}`}>
+                    {chartBars.map((item) => (
+                      <span
+                        key={item.day}
+                        title={`${item.day}: ${formatMetricNumber(item.requests)} requests`}
+                        className="min-w-1 flex-1 rounded-pill bg-sky-500/70"
+                        style={{ height: `${Math.max(6, Math.round(((Number(item.requests) || 0) / chartMax) * 100))}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <EmptySummaryCard
+                  title={requestSourceReady ? 'No trend yet' : 'Trends unavailable'}
+                  detail={requestSourceReady
+                    ? 'A trend appears after this window contains measured request activity.'
+                    : 'The request source must load before a trend can be calculated.'}
+                />
+              )}
+            </section>
 
-                    {/* IMPACT SUMMARY */}
-                    <section>
-                        <MobileSectionHeader label="Request activity" color="hsl(var(--muted-foreground))" labelTone="plain" />
-                        <div className="space-y-0.5">
-                            <MobileMetricRow
-                                icon={AlertTriangle}
-                                label={isProvider ? "Your requests" : "Requests in scope"}
-                                value={resolvedStats.totalEmergencies}
-                                rightBlade={{
-                                    badge: demandTrend.badge,
-                                    direction: demandTrend.direction,
-                                    label: 'Window',
-                                    value: `${resolvedStats.totalEmergencies} requests`,
-                                    color: 'hsl(199 89% 38%)'
-                                }}
-                                color="hsl(199 89% 38%)"
-                                description="Measured request records in the active scope"
-                                expandedContent={
-                                    <div className="space-y-4 py-3">
-                                        <div className="flex flex-col gap-1 px-1">
-                                            <span className="text-[11px] font-medium text-muted-foreground">Case type distribution</span>
-                                            <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="font-semibold text-sky-700 dark:text-sky-200">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {emergencyTypes.map((type, i) => (
-                                                <div key={i} className="flex flex-col gap-1 p-3 surface-card rounded-inner">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[11px] font-medium text-muted-foreground">{type.name}</span>
-                                                        {type.isDominant && <div className="h-1.5 w-1.5 rounded-pill bg-sky-500" />}
-                                                    </div>
-                                                    <span className="text-lg font-semibold">{type.value}</span>
-                                                </div>
-                                            ))}
-                                            {emergencyTypes.length === 0 && (
-                                                <p className="col-span-2 py-4 text-center text-xs text-muted-foreground">Type distribution is {SOURCE_PENDING_LABEL.toLowerCase()}.</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                }
-                            />
-                            <MobileMetricRow
-                                icon={Activity}
-                                label="Status breakdown"
-                                value={successValue}
-                                rightBlade={{
-                                    badge: successValue,
-                                    label: 'Completion',
-                                    value: successValue,
-                                    direction: 'flat',
-                                    color: 'hsl(162 94% 24%)'
-                                }}
-                                color="hsl(162 94% 24%)"
-                                description="Completed requests in the active scope"
-                                expandedContent={
-                                    <div className="space-y-3 py-3">
-                                        {requestsByStatus.map((status, i) => (
-                                            <div key={i} className="space-y-1.5">
-                                                <div className="flex justify-between items-center text-[11px] font-medium">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-pill" style={{ backgroundColor: status.color }} />
-                                                        <span className="text-muted-foreground">{status.name}</span>
-                                                    </div>
-                                                    <span className="text-foreground/80 font-semibold tabular-nums">{status.value} requests</span>
-                                                </div>
-                                                <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
-                                                    <div
-                                                        className="h-full"
-                                                        style={{ width: `${(status.value / Math.max(resolvedStats.totalEmergencies, 1)) * 100}%`, backgroundColor: status.color, opacity: 0.6 }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {requestsByStatus.length === 0 && (
-                                            <p className="py-4 text-center text-xs text-muted-foreground">Status distribution is {SOURCE_PENDING_LABEL.toLowerCase()}.</p>
-                                        )}
-                                    </div>
-                                }
-                            />
-                        </div>
-                    </section>
+            <section data-testid="mobile-analytics-breakdowns-section">
+              <SectionHeading title="Breakdowns" />
+              <div className="space-y-3">
+                <BreakdownList
+                  title="Request status"
+                  items={requestSourceReady ? requestsByStatus : []}
+                  emptyDetail={requestSourceReady ? 'No status groups are present.' : 'Request status is unavailable.'}
+                />
+                <BreakdownList
+                  title="Case mix"
+                  items={requestSourceReady ? emergencyTypes : []}
+                  emptyDetail={requestSourceReady ? 'No case groups are present.' : 'Case mix is unavailable.'}
+                />
+              </div>
+            </section>
 
-                    {/* REQUEST DISTRIBUTION (Admin/Org Admin/Sponsor) */}
-                    {(isAdmin || isOrgAdmin || isSponsor) && (
-                        <section className="mt-3">
-                            <MobileSectionHeader label="Request distribution" color="hsl(var(--muted-foreground))" labelTone="plain" />
-                            <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-4 opacity-10">
-                                    <Activity size={40} className="text-muted-foreground" />
-                                </div>
-                                <div className="flex justify-between items-center mb-6">
-                                    <div className="space-y-1">
-                                        <p className="text-[11px] font-medium text-muted-foreground">Requests by hour</p>
-                                        <h4 className="text-xl font-medium">Activity heatmap</h4>
-                                    </div>
-                                    <div className="rounded-pill bg-muted/30 px-3 py-1">
-                                        <span className="text-[11px] font-semibold text-muted-foreground">{timeRange || SOURCE_PENDING_LABEL}</span>
-                                    </div>
-                                </div>
+            <section data-testid="mobile-analytics-network-section">
+              <SectionHeading title="Network" />
+              <div className="grid grid-cols-2 gap-3">
+                <CompactStatTile icon={Users} label="Profiles" value={sourceReadiness.users ? formatMetricNumber(stats?.totalUsers) : SOURCE_UNAVAILABLE} tone="cyan" />
+                <CompactStatTile icon={Hospital} label="Facilities" value={sourceReadiness.hospitals ? formatMetricNumber(stats?.totalHospitals) : SOURCE_UNAVAILABLE} tone="violet" />
+                <CompactStatTile icon={Ambulance} label="Fleet" value={sourceReadiness.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE} tone="sky" />
+                <CompactStatTile
+                  icon={Activity}
+                  label="Occupied beds"
+                  value={sourceReadiness.hospitals && Number(hospitalCapacity?.total) > 0
+                    ? `${Math.round((Number(hospitalCapacity.occupied) / Number(hospitalCapacity.total)) * 100)}%`
+                    : sourceReadiness.hospitals ? 'No capacity data' : SOURCE_UNAVAILABLE}
+                  tone="amber"
+                />
+              </div>
+            </section>
 
-                                {demandHeatmap.length > 0 ? (
-                                    <div className="grid grid-cols-6 gap-1.5">
-                                        {demandHeatmap.map((item, idx) => (
-                                            <div key={item.hour || idx} className="aspect-square relative">
-                                                <div
-                                                    className={`w-full h-full rounded-inner ${item.value > 80 ? 'bg-amber-500/60' :
-                                                        item.value > 50 ? 'bg-amber-500/40' :
-                                                            item.value > 30 ? 'bg-sky-500/20' :
-                                                                'bg-foreground/[0.05] dark:bg-white/[0.07]'
-                                                        }`}
-                                                />
-                                                {(idx % 6 === 0) && (
-                                                    <span className="absolute -bottom-4 left-0 text-[11px] font-medium text-muted-foreground/60">
-                                                        {item.hour}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="py-8 text-center text-sm text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
-                                )}
+            {canReadSubscriptionAnalytics && (
+              <section data-testid="mobile-analytics-subscribers-section">
+                <SectionHeading title="Subscribers" />
+                <div className="grid grid-cols-2 gap-3">
+                  <CompactStatTile icon={Users} label="Subscribers" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.total) : SOURCE_UNAVAILABLE} tone="violet" />
+                  <CompactStatTile icon={Activity} label="Active" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.active) : SOURCE_UNAVAILABLE} tone="emerald" />
+                  <CompactStatTile icon={Crown} label="Paid" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} tone="amber" />
+                  <CompactStatTile icon={TrendingUp} label="Paid conversion" value={sourceReadiness.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} tone="sky" />
+                </div>
+              </section>
+            )}
 
-                                <div className="mt-8 flex justify-between items-center text-muted-foreground">
-                                    <div className="flex gap-4">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-pill bg-amber-500/60" />
-                                            <span className="text-[11px] font-medium">Higher</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-pill bg-foreground/15" />
-                                            <span className="text-[11px] font-medium">Lower</span>
-                                        </div>
-                                    </div>
-                                    <span className="text-[11px] font-medium">Scoped requests</span>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* INFRASTRUCTURE CAPACITY */}
-                    {(isAdmin || isOrgAdmin || isSponsor) && (
-                        <section className="mt-3">
-                            <MobileSectionHeader label="Network scope" color="hsl(200 98% 39%)" labelTone="plain" />
-                            <div className="space-y-0.5">
-                                <MobileMetricRow
-                                    icon={Hospital}
-                                    label="Hospitals in scope"
-                                    value={resolvedStats.totalHospitals}
-                                    rightBlade={{
-                                        badge: resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL,
-                                        label: 'Capacity',
-                                        value: `${resolvedHospitalCapacity.total} Beds`,
-                                        direction: 'flat',
-                                        color: 'hsl(200 98% 39%)'
-                                    }}
-                                    color="hsl(200 98% 39%)"
-                                    expandedContent={
-                                        <div className="space-y-4 py-3">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="p-3 surface-card rounded-inner">
-                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Total capacity</p>
-                                                    <p className="text-lg font-semibold">{resolvedHospitalCapacity.total} Beds</p>
-                                                </div>
-                                                <div className="p-3 surface-card rounded-inner">
-                                                    <p className="text-[11px] font-medium text-muted-foreground mb-1">ICU reserved</p>
-                                                    <p className="text-lg font-semibold text-sky-700 dark:text-sky-300">{resolvedHospitalCapacity.icu}</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 px-1">
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-[11px] font-medium text-muted-foreground">Bed occupancy</span>
-                                                    <span className="text-xs font-semibold tabular-nums">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
-                                                </div>
-                                                <div className="h-1.5 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
-                                                    <div className="h-full bg-sky-500/60" style={{ width: `${hospitalCapacityPercent}%` }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                />
-                                <MobileMetricRow
-                                    icon={Ambulance}
-                                    label="Ambulances in scope"
-                                    value={resolvedStats.totalAmbulances}
-                                    rightBlade={{
-                                        badge: SOURCE_PENDING_LABEL,
-                                        label: 'Availability',
-                                        value: SOURCE_PENDING_LABEL,
-                                        direction: 'flat',
-                                        color: 'hsl(162 94% 24%)'
-                                    }}
-                                    color="hsl(162 94% 24%)"
-                                />
-                            </div>
-                        </section>
-                    )}
-
-                    {/* UNVERIFIED TELEMETRY SOURCES */}
-                    <section className="mt-3">
-                        <MobileSectionHeader label="Additional sources" color="hsl(var(--muted-foreground))" labelTone="plain" />
-                        <div className="space-y-0.5">
-                            <MobileMetricRow
-                                icon={Activity}
-                                label="Search telemetry"
-                                value={SOURCE_PENDING_LABEL}
-                                rightBlade={{
-                                    badge: SOURCE_PENDING_LABEL,
-                                    label: 'Source',
-                                    value: SOURCE_PENDING_LABEL,
-                                    direction: 'flat',
-                                    color: 'hsl(200 98% 39%)'
-                                }}
-                                color="hsl(200 98% 39%)"
-                                description="No verified search telemetry source"
-                                expandedContent={
-                                    <div className="grid grid-cols-2 gap-2 py-3">
-                                        {[
-                                            { label: 'Total volume', value: SOURCE_PENDING_LABEL, change: 'Pending' },
-                                            { label: 'Precision', value: SOURCE_PENDING_LABEL, change: 'Pending' },
-                                            { label: 'Latency', value: SOURCE_PENDING_LABEL, change: 'Pending' },
-                                            { label: 'Void ratio', value: SOURCE_PENDING_LABEL, change: 'Pending' }
-                                        ].map((m, i) => (
-                                            <div key={i} className="p-3 surface-card rounded-inner flex flex-col justify-between min-h-[70px]">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-[11px] font-medium text-muted-foreground">{m.label}</span>
-                                                    <span className="text-[11px] font-semibold text-muted-foreground">{m.change}</span>
-                                                </div>
-                                                <span className="text-lg font-semibold">{m.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                }
-                            />
-                            <MobileMetricRow
-                                icon={Activity}
-                                label="Platform telemetry"
-                                value={SOURCE_PENDING_LABEL}
-                                rightBlade={{
-                                    badge: SOURCE_PENDING_LABEL,
-                                    label: 'Source',
-                                    value: SOURCE_PENDING_LABEL,
-                                    direction: 'flat',
-                                    color: 'hsl(162 94% 24%)'
-                                }}
-                                color="hsl(162 94% 24%)"
-                                description="No verified platform telemetry source"
-                                expandedContent={
-                                    <div className="space-y-4 py-4">
-                                        {[
-                                            { label: 'API response', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
-                                            { label: 'DB query time', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
-                                            { label: 'Uptime', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
-                                            { label: 'Error rate', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' }
-                                        ].map((p, i) => (
-                                            <div key={i} className="space-y-2">
-                                                <div className="flex justify-between items-center text-[11px] font-medium text-muted-foreground">
-                                                    <span>{p.label}</span>
-                                                    <span className="text-foreground">{p.value}</span>
-                                                </div>
-                                                <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                    {/* No data entrance (canon section 3): the bar holds its measured width. */}
-                                                    <div
-                                                        className={`h-full ${p.status === 'excellent' ? 'bg-emerald-500/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-sky-500/60'}`}
-                                                        style={{ width: `${p.progress}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                }
-                            />
-                        </div>
-                    </section>
-
-                    {/* FINANCE SCOPE (Admin/Sponsor until org finance scope is proved) */}
-                    {canReadFinanceAnalytics && (
-                        <section className="mt-3">
-                            <MobileSectionHeader label="Finance scope" color="hsl(26 90% 37%)" labelTone="plain" />
-                            <div className="px-6 py-8 surface-card rounded-card relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-4 opacity-5">
-                                    <Wallet size={60} className="text-emerald-500" />
-                                </div>
-
-                                <div className="mb-8 min-w-0 pr-12">
-                                    <p className="mb-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">Recorded total</p>
-                                    <h4 className="break-words text-3xl font-semibold">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
-                                </div>
-
-                                <div className="space-y-5">
-                                    {financeMetricRows.map((m, i) => (
-                                        <div key={i} className="space-y-2">
-                                            <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
-                                                <span>{m.label}</span>
-                                                <span className="text-foreground/80 tabular-nums">{m.value}</span>
-                                            </div>
-                                            <div className="h-1 w-full surface-card rounded-pill overflow-hidden">
-                                                {/* No data entrance (canon section 3): the bar holds its measured width. */}
-                                                <div
-                                                    className="h-full opacity-60"
-                                                    style={{ backgroundColor: m.color, width: `${m.progress}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="mt-8 grid grid-cols-2 gap-3">
-                                    <div className="p-3 surface-card rounded-inner text-center">
-                                        <p className="text-[11px] font-medium text-muted-foreground mb-1">Conversion</p>
-                                        <p className="text-sm font-semibold text-foreground">{paidConversionLabel}</p>
-                                    </div>
-                                    <div className="p-3 surface-card rounded-inner text-center">
-                                        <p className="text-[11px] font-medium text-muted-foreground mb-1">Avg ticket</p>
-                                        <p className="text-sm font-semibold text-foreground">{avgTicketLabel}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* EXPORT ACTION PILL */}
-                    <section className="mt-6 mb-12 p-3">
-                        {exportNotice && (
-                            <p
-                                role="status"
-                                aria-live="polite"
-                                className="mb-3 rounded-inner surface-card px-4 py-3 text-xs font-medium text-muted-foreground"
-                            >
-                                {exportNotice}
-                            </p>
-                        )}
-                        <motion.button
-                            type="button"
-                            whileTap={{ scale: 0.96 }}
-                            onClick={handleExport}
-                            data-state="unavailable"
-                            aria-disabled="true"
-                            aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
-                            className="w-full surface-card py-4 rounded-button flex items-center justify-center gap-3 transition-all"
-                        >
-                            <Download size={20} className="text-muted-foreground" />
-                            <span className="text-[13px] font-semibold text-foreground">Report unavailable</span>
-                        </motion.button>
-                        <p
-                            id="mobile-analytics-export-feedback"
-                            className="text-center text-[11px] font-medium text-muted-foreground mt-6"
-                        >
-                            Report scope pending - no verified receiver
-                        </p>
-                    </section>
-                        </>
-                    )}
-            </MobilePageShell>
-        </PullToRefresh>
-    );
+            {canReadFinanceAnalytics && (
+              <section data-testid="mobile-analytics-payments-section">
+                <SectionHeading title="Payments" />
+                <div className="grid grid-cols-2 gap-3">
+                  <CompactStatTile icon={Wallet} label="Credits" value={sourceReadiness.finance ? `$${Number(financeSummary?.totalCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} tone="emerald" />
+                  <CompactStatTile icon={Wallet} label="Debits" value={sourceReadiness.finance ? `$${Number(financeSummary?.totalDebits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} tone="amber" />
+                  <CompactStatTile icon={Activity} label="Today" value={sourceReadiness.finance ? `$${Number(financeSummary?.todayCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} tone="sky" />
+                  <CompactStatTile icon={BarChart3} label="Daily average" value={sourceReadiness.finance ? `$${Number(financeSummary?.dailyAverageCredits || 0).toFixed(0)}` : SOURCE_UNAVAILABLE} tone="violet" />
+                </div>
+              </section>
+            )}
+          </div>
+        ) : null}
+      </MobilePageShell>
+    </PullToRefresh>
+  );
 };

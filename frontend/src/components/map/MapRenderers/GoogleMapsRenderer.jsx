@@ -85,8 +85,7 @@ const createUserOverlayNode = () => {
 	root.style.width = '18px';
 	root.style.height = '18px';
 	root.style.borderRadius = '999px';
-	root.style.background = '#2563eb';
-	root.style.border = '2px solid #ffffff';
+	root.style.background = '#7c3aed';
 	root.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
 	root.style.pointerEvents = 'none';
 	return root;
@@ -189,7 +188,6 @@ export const GoogleMapsRenderer = ({
 	filteredRequests,
 	ambulances,
 	hospitals,
-	simulatedSessionId,
 	getPriorityColor,
 	getStatusColor,
 	routePrimaryColor,
@@ -225,16 +223,6 @@ export const GoogleMapsRenderer = ({
 					renderingType: 'RASTER',
 				}}
 			>
-				{/* Map Badge Overlay */}
-				<div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-					<div className="bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border shadow-sm flex items-center gap-2">
-						<div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-						<span className="text-[10px] font-mono font-semibold tracking-wider uppercase opacity-70">
-							Session ID: {simulatedSessionId}
-						</span>
-					</div>
-				</div>
-
 				<GoogleMapsMapRefiner
 					userLocation={userLocation}
 					hospitals={hospitals}
@@ -299,7 +287,7 @@ export const GoogleMapsRenderer = ({
 											}}
 										/>
 										{request.priority === "critical" && (
-											<span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+											<span className="absolute -right-1 -top-1 h-3 w-3 animate-ping rounded-pill bg-destructive" />
 										)}
 									</div>
 								</AdvancedMarker>
@@ -491,9 +479,9 @@ export const GoogleMapsRenderer = ({
 							zIndex={300}
 						>
 						<div className="relative">
-							<div className="absolute inset-0 bg-primary/30 rounded-full animate-ping scale-150" />
-							<div className="relative w-6 h-6 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-								<div className="w-2 h-2 bg-white rounded-full" />
+							<div className="absolute inset-0 scale-150 animate-ping rounded-pill bg-violet-600/25" />
+							<div className="relative flex h-6 w-6 items-center justify-center rounded-pill bg-violet-600 shadow-e2">
+								<div className="h-2 w-2 rounded-pill bg-white" />
 							</div>
 						</div>
 						</AdvancedMarker>

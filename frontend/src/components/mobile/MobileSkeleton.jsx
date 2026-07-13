@@ -100,29 +100,99 @@ export const MobileDashboardSkeleton = () => (
 
 /**
  * Mobile Analytics Skeleton
+ * Mirrors the loaded Summary anatomy so the hero, range control, Today-height
+ * Pinned tiles, and evidence sections replace their placeholders in place.
  */
 export const MobileAnalyticsSkeleton = () => (
-    <div className="flex flex-col min-h-screen no-scrollbar overflow-hidden">
-        <MobileKPIStripSkeleton />
-        <div className="px-2 pt-4 pb-4">
-            <MobileFeaturedMetricSkeleton />
-            <div className="px-2 mb-6">
-                <SkeletonPulse className="h-4 w-32 mb-4" />
-                {[0, 1].map(i => (
-                    <MobileMetricRowSkeleton key={i} />
-                ))}
-            </div>
-            <div className="mx-2 mb-8 surface-card rounded-card p-6 h-64 overflow-hidden">
-                <div className="flex justify-between items-center mb-6">
-                    <SkeletonPulse className="h-4 w-32" />
-                    <SkeletonPulse className="h-6 w-12 rounded-pill" />
-                </div>
-                <div className="grid grid-cols-6 gap-2">
-                    {Array.from({ length: 24 }).map((_, i) => (
-                        <SkeletonPulse key={i} className="aspect-square rounded-inner" />
+    <div data-testid="mobile-analytics-skeleton" className="space-y-9 pb-8" aria-hidden="true">
+        <div className="pt-3">
+            {/* Summary hero: status, headline, scope/window, and segmented range. */}
+            <div className="px-4">
+                <SkeletonPulse className="h-7 w-24 rounded-pill" />
+                <SkeletonPulse className="mt-4 h-7 w-2/3 rounded-pill" />
+                <SkeletonPulse className="mt-2 h-4 w-40 rounded-pill opacity-70" />
+                <div className="mt-4 grid w-full grid-cols-3 rounded-pill bg-foreground/[0.06] p-1 dark:bg-white/[0.07]">
+                    {[0, 1, 2].map((item) => (
+                        <SkeletonPulse key={item} className="h-9 rounded-pill" />
                     ))}
                 </div>
             </div>
+
+            {/* Pinned: the exact 2-up, 72px glance-tile footprint used after load. */}
+            <div className="mt-6 px-4">
+                <div className="mb-3 px-1">
+                    <SkeletonPulse className="h-6 w-20 rounded-pill" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    {[0, 1, 2, 3].map((item) => (
+                        <div key={item} className="surface-card flex min-h-[72px] items-start justify-between gap-2 rounded-inner px-4 py-3">
+                            <div className="min-w-0 flex-1">
+                                <SkeletonPulse className="h-3 w-16 rounded-pill" />
+                                <SkeletonPulse className="mt-2 h-4 w-3/5 rounded-pill" />
+                            </div>
+                            <SkeletonPulse className="h-7 w-7 shrink-0 rounded-pill" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        <div className="space-y-9 px-4">
+            {/* Highlights: one measured-observation card, matching the loaded surface. */}
+            <section>
+                <div className="mb-3 px-1">
+                    <SkeletonPulse className="h-6 w-24 rounded-pill" />
+                </div>
+                <div className="rounded-card bg-card/68 px-5 py-6 shadow-e2 backdrop-blur-xl dark:bg-white/[0.055]">
+                    <div className="flex items-start justify-between gap-4">
+                        <SkeletonPulse className="h-10 w-10 rounded-icon" />
+                        <SkeletonPulse className="h-4 w-4 rounded-pill" />
+                    </div>
+                    <SkeletonPulse className="mt-5 h-3 w-28 rounded-pill" />
+                    <SkeletonPulse className="mt-2 h-6 w-2/3 rounded-pill" />
+                    <SkeletonPulse className="mt-3 h-3 w-4/5 rounded-pill opacity-70" />
+                </div>
+            </section>
+
+            {/* Trends: heading, summary, trailing signal, then chart footprint. */}
+            <section>
+                <div className="mb-3 px-1">
+                    <SkeletonPulse className="h-6 w-16 rounded-pill" />
+                </div>
+                <div className="rounded-card bg-card/68 p-5 shadow-e2 backdrop-blur-xl dark:bg-white/[0.05]">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                            <SkeletonPulse className="h-3 w-28 rounded-pill" />
+                            <SkeletonPulse className="mt-2 h-6 w-3/5 rounded-pill" />
+                            <SkeletonPulse className="mt-3 h-3 w-4/5 rounded-pill opacity-70" />
+                        </div>
+                        <SkeletonPulse className="h-10 w-10 shrink-0 rounded-icon" />
+                    </div>
+                    <div className="mt-6 flex h-24 items-end gap-1">
+                        {[38, 64, 48, 82, 58, 72, 44, 88, 62, 76].map((height, item) => (
+                            <span key={item} className="shimmer min-w-1 flex-1 rounded-pill bg-muted/25" style={{ height: `${height}%` }} />
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Breakdowns: two sibling cards, just like the loaded status/case pair. */}
+            <section>
+                <div className="mb-3 px-1">
+                    <SkeletonPulse className="h-6 w-28 rounded-pill" />
+                </div>
+                <div className="space-y-3">
+                    {[0, 1].map((item) => (
+                        <div key={item} className="rounded-card bg-card/68 p-5 shadow-e2 backdrop-blur-xl dark:bg-white/[0.05]">
+                            <div className="flex items-center justify-between gap-3">
+                                <SkeletonPulse className="h-4 w-28 rounded-pill" />
+                                <SkeletonPulse className="h-6 w-14 rounded-pill" />
+                            </div>
+                            <SkeletonPulse className="mt-5 h-3 w-3/4 rounded-pill opacity-70" />
+                        </div>
+                    ))}
+                </div>
+            </section>
         </div>
     </div>
 );

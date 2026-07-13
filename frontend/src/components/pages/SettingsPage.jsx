@@ -202,7 +202,7 @@ export const SettingsPage = () => {
                             <div className="px-6 md:px-10 pb-10 -mt-20 relative z-10">
                                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8">
                                     <div className="relative group">
-                                        <Avatar className="h-36 w-36 rounded-card bg-background shadow-sm">
+                                        <Avatar className="h-36 w-36 rounded-icon bg-background shadow-sm">
                                             <AvatarImage
                                                 src={avatarUrl}
                                                 className="object-cover"
@@ -211,7 +211,7 @@ export const SettingsPage = () => {
                                                     e.target.style.display = 'none';
                                                 }}
                                             />
-                                            <AvatarFallback className="squircle bg-muted text-muted-foreground font-bold text-5xl">
+                                            <AvatarFallback className="rounded-icon bg-muted text-muted-foreground font-bold text-5xl">
                                                 {avatarFallback}
                                             </AvatarFallback>
                                         </Avatar>
@@ -251,7 +251,7 @@ export const SettingsPage = () => {
                                             )}
                                             <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-pill bg-muted/30 px-3 py-1.5 shadow-inner transition-colors group/email hover:bg-muted/40">
                                                 <Mail className="h-3 w-3 opacity-50 shrink-0" />
-                                                <span className="text-[11px] tracking-tight text-muted-foreground/80 break-all">
+                                                <span className="break-all text-[11px] text-muted-foreground/80">
                                                     {user?.email || profile?.email}
                                                 </span>
                                             </div>
@@ -261,7 +261,7 @@ export const SettingsPage = () => {
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={() => setIsProfileModalOpen(true)}
-                                            className="rounded-button bg-foreground px-6 font-semibold text-background shadow-lg hover:bg-foreground/90"
+                                            className="rounded-button bg-foreground px-6 font-semibold text-background shadow-e2 hover:bg-foreground/90"
                                         >
                                             Edit Profile
                                         </Button>
@@ -278,7 +278,7 @@ export const SettingsPage = () => {
                                             <span className="text-sm font-semibold text-muted-foreground">Mobile contact</span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <p className="font-mono font-bold text-lg tracking-tight">{profile?.phone || 'Not Linked'}</p>
+                                            <p className="font-mono text-lg font-bold">{profile?.phone || 'Not Linked'}</p>
                                         </div>
                                     </div>
 
@@ -290,7 +290,7 @@ export const SettingsPage = () => {
                                             </div>
                                             <span className="text-sm font-semibold text-muted-foreground">Billing</span>
                                         </div>
-                                        <p className="font-bold text-lg tracking-tight">Plan unavailable</p>
+                                        <p className="text-lg font-bold">Plan unavailable</p>
                                         <p className="mt-1 text-xs text-muted-foreground">Billing source not verified</p>
                                     </div>
                                 </div>

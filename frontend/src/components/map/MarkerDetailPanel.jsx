@@ -11,6 +11,11 @@ import { toast } from 'sonner';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { LocationCell } from '../ui/LocationCell';
 
+const statusLabel = (value, fallback = '') => {
+	const text = String(value || fallback).replace(/[_-]+/g, ' ');
+	return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
 export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
 	const { isAdmin, isOrgAdmin } = useAuth();
 	const [mapCommand, setMapCommand] = useState(null);
@@ -51,7 +56,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 				exit={{ opacity: 0, x: 20, scale: 0.95 }}
 				className="absolute top-4 right-4 z-[400] w-80"
 			>
-				<div className="rounded-card p-0 overflow-hidden bg-card/68 backdrop-blur-2xl shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+				<div className="overflow-hidden rounded-card bg-card/68 p-0 shadow-e3 backdrop-blur-2xl">
 					{/* Header Image/Color */}
 					<div
 						className={`h-24 relative ${selectedMarker.type === "emergency"
@@ -76,7 +81,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 							variant="ghost"
 							size="sm"
 							onClick={() => setSelectedMarker(null)}
-							className="absolute top-2 right-2 rounded-pill hover:bg-black/10 h-8 w-8 p-0"
+							className="absolute right-2 top-2 h-8 w-8 rounded-button p-0 hover:bg-black/10"
 							aria-label="Close details"
 						>
 							<X className="h-4 w-4" />
@@ -84,9 +89,9 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 					</div>
 
 					<div className="p-5 -mt-6 relative z-10">
-						<div className="rounded-card bg-background shadow-lg p-4 mb-4 flex items-center justify-between">
+						<div className="mb-4 flex items-center justify-between rounded-inner bg-background p-4 shadow-e1">
 							<div>
-								<p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.14em]">
+								<p className="text-xs font-medium text-muted-foreground">
 									{selectedMarker.type}
 								</p>
 								<h3 className="font-bold text-xl truncate w-48">
@@ -147,7 +152,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
 										!selectedMarker.data.ambulance_id && (
 											<Button
-												className="flex-1 rounded-button bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_18px_56px_rgba(16,185,129,0.22)] font-semibold"
+										className="flex-1 rounded-button bg-emerald-600 font-semibold text-white shadow-e2 hover:bg-emerald-500"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "send"}
@@ -172,7 +177,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
 										selectedMarker.data.status !== 'completed' && (
 											<Button
-												className="flex-1 rounded-button bg-sky-600 text-white hover:bg-sky-500 shadow-[0_18px_56px_rgba(14,165,233,0.22)] font-semibold"
+										className="flex-1 rounded-button bg-sky-600 font-semibold text-white shadow-e2 hover:bg-sky-500"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "close"}
@@ -204,7 +209,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								<div className="grid grid-cols-2 gap-3">
 									<div className="p-3 rounded-inner bg-muted/30 text-center">
 										<p className="text-xs text-muted-foreground font-semibold">
-											STATUS
+											Status
 										</p>
 										<p
 											className={`font-bold ${selectedMarker.data.status === "available"
@@ -212,12 +217,12 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 												: "text-amber-600 dark:text-amber-300"
 												}`}
 										>
-											{selectedMarker.data.status?.toUpperCase()}
+											{statusLabel(selectedMarker.data.status, 'Not recorded')}
 										</p>
 									</div>
 									<div className="p-3 rounded-inner bg-muted/30 text-center">
 										<p className="text-xs text-muted-foreground font-semibold">
-											TYPE
+											Type
 										</p>
 										<p className="font-bold">
 											{selectedMarker.data.type || "BLS"}
@@ -243,7 +248,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								<div className="grid grid-cols-2 gap-3">
 									<div className="p-3 rounded-inner bg-muted/30">
 										<p className="text-xs text-muted-foreground font-semibold mb-1">
-											BEDS
+											Beds
 										</p>
 										<p className="font-bold text-2xl text-sky-600 dark:text-sky-300">
 											{selectedMarker.data.available_beds || 0}
@@ -251,7 +256,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 									</div>
 									<div className="p-3 rounded-inner bg-muted/30">
 										<p className="text-xs text-muted-foreground font-semibold mb-1">
-											FLEET
+											Fleet
 										</p>
 										<p className="font-bold text-2xl">
 											{selectedMarker.data.ambulances_count || 0}
@@ -259,13 +264,11 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 									</div>
 								</div>
 								{selectedMarker.data.phone && (
-									<Button
-										variant="outline"
-										className="w-full rounded-button font-semibold"
-										size="sm"
-									>
-										<Phone className="h-4 w-4 mr-2" />
-										Call Facility
+									<Button asChild variant="ghost" className="w-full rounded-button bg-muted/30 font-semibold hover:bg-muted/50" size="sm">
+										<a href={`tel:${selectedMarker.data.phone}`}>
+											<Phone className="mr-2 h-4 w-4" />
+											Call facility
+										</a>
 									</Button>
 								)}
 							</div>

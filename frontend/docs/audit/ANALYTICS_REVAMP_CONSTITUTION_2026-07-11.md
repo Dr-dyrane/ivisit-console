@@ -1,6 +1,6 @@
 # Analytics Revamp Constitution - 2026-07-11
 
-Status: active guarded implementation; route-context parity in progress
+Status: guarded Summary composition complete; authenticated multi-role rendering pending
 
 ## History and identity
 
@@ -11,25 +11,26 @@ Status: active guarded implementation; route-context parity in progress
 ## Source and authority
 
 - Active route read owner: `analyticsService.getAnalyticsIntakePage()`.
-- Sources: emergency requests, profiles, hospitals, ambulances, admin-only subscriber summary, and admin/sponsor finance summary.
+- Sources: emergency requests, profiles, hospitals, ambulances, admin-only subscriber summary, and admin-only finance summary.
 - Provider reads are scoped to assigned hospitals/responder identity or an explicit empty UUID scope; organization reads use organization filters.
+- Sponsor finance is excluded. The previous path passed sponsors into `getFinanceAnalytics(..., true, ...)`, which selected the platform main wallet; a sponsor-specific finance projection must be proved before that slice can return.
 - Report/export receivers are unproved. Desktop, mobile, header, and right-panel affordances must remain unavailable with immediate feedback.
 - Analytics is read-only evidence. It has no app mutation consequence.
 
 ## Preserved perks
 
-- Role-aware KPI vocabulary, time range, request response series, status/type distribution, demand heatmap, hospital capacity, subscriber scope, finance scope, pull-to-refresh, sparse-data warning, and secondary analytics reveal.
+- Role-aware KPI vocabulary, time range, request response series, status/type distribution, hospital capacity, subscriber scope, finance scope, pull-to-refresh, and secondary analytics reveal.
 - Cold-load failure, partial/denied sources, stale refresh, and last-visible-snapshot behavior remain distinct.
 
 ## Composition decisions
 
-- Desktop remains a dense dashboard with stable chart dimensions; no list workspace is imposed.
-- Mobile remains dashboard grammar with KPI strip, featured metrics, expandable measured sections, pull-to-refresh, and explicit source labels.
+- Desktop uses a vertical Summary hierarchy: Pinned, Highlights, Trends, Breakdowns, current Network, and role-gated subscriber/payment snapshots. It keeps one stable chart and does not impose list-workspace machinery.
+- Mobile uses dashboard grammar with the canonical signal-first hero, shared Today-height `MobileGlanceTile` statistics, evidence-only Highlights, an honest half-window Trend, pull-to-refresh, and explicit source labels. Pinned, Network, Subscribers, and Payments reuse the same slender label/value/orb anatomy; filter-style KPI chips and private tall stat cards are excluded. Section helper copy stays absent unless it changes source interpretation or explains an unavailable state.
+- Mobile loading uses the same anatomy: Summary hero, segmented time range, four `72px` Pinned tiles, then Highlights, Trends, and Breakdowns surfaces. It receives the canonical 400ms mount warm-up, while background refresh preserves the loaded snapshot and uses the Updating signal.
 - The right panel consumes the whole route-published snapshot. It performs no private reads and shows measured values only when the route owns them.
-- Generic route FAB/report generation stays suppressed or unavailable until a report receiver and scope are proved.
+- The generic mobile FAB opens read-only analytics detail when the request source is ready. Report generation and export stay unavailable until a report receiver and scope are proved.
 
 ## Remaining proof
 
-- Focused route/context contract and hardgate admission.
-- Mobile grammar classification must be corrected from `exempt` to `dashboard` if the current surface satisfies the dashboard harness.
-- Production build, strict radius, encoding checks, and authenticated admin/org-admin/provider/sponsor desktop/mobile rendering.
+- Authenticated admin/org-admin/provider/sponsor desktop/mobile rendering.
+- Report/export projection ownership and sponsor-specific finance scope remain separate blockers.

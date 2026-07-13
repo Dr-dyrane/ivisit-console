@@ -21,7 +21,7 @@ const MARKER_META = {
 	},
 	user: {
 		Icon: LocateFixed,
-		tone: 'bg-primary text-primary-foreground',
+		tone: 'bg-violet-600 text-white',
 		label: 'You',
 	},
 };
@@ -152,9 +152,9 @@ export const MapFallback = ({
 			<div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background/70 to-transparent" />
 			<div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background/70 to-transparent" />
 
-			<div className="absolute left-5 top-5 z-20 rounded-[24px] bg-background/72 px-4 py-3 shadow-premium backdrop-blur-xl">
-				<div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-					<MapPin className="h-3.5 w-3.5 text-primary" />
+			<div className="absolute left-5 top-5 z-20 rounded-card bg-background/72 px-4 py-3 shadow-e3 backdrop-blur-xl">
+				<div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+					<MapPin className="h-3.5 w-3.5 text-sky-600 dark:text-sky-300" />
 					Limited map
 				</div>
 				<div className="mt-1 text-sm font-semibold text-foreground">
@@ -162,8 +162,8 @@ export const MapFallback = ({
 				</div>
 			</div>
 
-			<div className="absolute right-5 top-5 z-20 rounded-[24px] bg-background/72 px-4 py-3 text-right shadow-premium backdrop-blur-xl">
-				<div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Live data</div>
+			<div className="absolute right-5 top-5 z-20 rounded-card bg-background/72 px-4 py-3 text-right shadow-e3 backdrop-blur-xl">
+				<div className="text-[11px] font-medium text-muted-foreground">Live data</div>
 				<div className="mt-1 text-sm font-semibold text-foreground">
 					{markers.length} points / {activeRoutes.length} routes
 				</div>
@@ -173,32 +173,36 @@ export const MapFallback = ({
 				const meta = MARKER_META[marker.type] || MARKER_META.emergency;
 				const Icon = meta.Icon;
 				const isSelected = marker.id === selectedId;
+				const isInteractive = marker.type !== 'user';
+				const MarkerElement = isInteractive ? 'button' : 'div';
 				const position = positionMarker(marker, bounds, index);
+				const markerProps = isInteractive
+					? {
+						type: 'button',
+						onClick: () => setSelectedMarker?.({ type: marker.type, data: marker.data }),
+						'aria-pressed': isSelected,
+					}
+					: { role: 'img' };
 
 				return (
-					<button
+					<MarkerElement
 						key={marker.id}
-						type="button"
-						className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 transition-transform hover:scale-105 active:scale-95"
+						{...markerProps}
+						className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 transition-transform ${isInteractive ? 'hover:scale-105 active:scale-95' : ''}`}
 						style={position}
-						onClick={() => {
-							if (marker.type === 'user') return;
-							setSelectedMarker?.({ type: marker.type, data: marker.data });
-						}}
 						aria-label={`${meta.label}: ${getMarkerName(marker)}`}
-						aria-pressed={isSelected}
 					>
 						<span
-							className={`flex h-11 w-11 items-center justify-center rounded-full shadow-premium ${meta.tone} ${
+							className={`flex h-11 w-11 items-center justify-center rounded-pill shadow-e2 ${meta.tone} ${
 								isSelected ? 'scale-110' : ''
 							}`}
 						>
 							<Icon className="h-5 w-5" />
 						</span>
-						<span className="max-w-[8rem] rounded-full bg-background/80 px-2 py-1 text-[10px] font-semibold text-foreground shadow-lg backdrop-blur-md">
+						<span className="max-w-[8rem] rounded-pill bg-background/80 px-2 py-1 text-[10px] font-semibold text-foreground shadow-e2 backdrop-blur-md">
 							{getMarkerName(marker)}
 						</span>
-					</button>
+					</MarkerElement>
 				);
 			})}
 		</div>

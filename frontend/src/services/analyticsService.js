@@ -91,8 +91,7 @@ export const getAnalyticsIntakePage = async ({
 } = {}) => {
   const user = await getCurrentUser();
   const canReadSubscriptionAnalytics = includeSubscriptionAnalytics && user?.role === 'admin';
-  const canReadFinanceAnalytics =
-    includeFinanceAnalytics && (user?.role === 'admin' || user?.role === 'sponsor');
+  const canReadFinanceAnalytics = includeFinanceAnalytics && user?.role === 'admin';
 
   let requestsQuery = supabase.from('emergency_requests').select('*');
   let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
@@ -110,6 +109,19 @@ export const getAnalyticsIntakePage = async ({
     providerIdField: 'responder_id',
     resourceType: 'emergency'
   });
+
+  const selectedWindowDays = {
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+  }[timeRange];
+
+  if (selectedWindowDays) {
+    const windowStart = new Date();
+    windowStart.setHours(0, 0, 0, 0);
+    windowStart.setDate(windowStart.getDate() - (selectedWindowDays - 1));
+    requestsQuery = requestsQuery.gte('created_at', windowStart.toISOString());
+  }
 
   usersQuery = applyAuthFilter(usersQuery, user, {
     userIdField: 'id',
@@ -170,8 +182,9 @@ export const getAnalyticsIntakePage = async ({
   let financeData = [];
   if (canReadFinanceAnalytics) {
     try {
-      const days = timeRange === '7d' ? 7 : 30;
-      const resolvedFinanceData = await getFinanceAnalytics(user, true, days, { quiet: true, throwOnError: true });
+      // walletService treats its lookback as inclusive, so N - 1 yields N calendar dates.
+      const financeLookbackDays = Math.max(0, (selectedWindowDays || 30) - 1);
+      const resolvedFinanceData = await getFinanceAnalytics(user, true, financeLookbackDays, { quiet: true, throwOnError: true });
       financeData = Array.isArray(resolvedFinanceData) ? resolvedFinanceData : [];
     } catch (financeError) {
       sourceIssues.push(getAnalyticsSourceIssue('finance', { error: financeError }));

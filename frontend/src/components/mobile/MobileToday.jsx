@@ -25,11 +25,12 @@ import { mobileEasing } from './mobileMotion';
 // MobileHero's status row is a gap-3 span with role="status"/aria-live; this
 // donor ships a gap-2 div and anchors the live region on the Updating pill
 // instead), the dashboard-shaped load scaffold (the kit only has the grouped-
-// list scaffold), and the card-grade presses that fire feedback on onClick
-// (glance tiles, action-row toggles) rather than TapCard's pointerdown.
+// list scaffold), and the action-row presses. The Today-height glance tile is
+// shared so other dashboards cannot drift into taller private stat cards.
 import { useSkeletonWarmup, UpdatingPill } from './canon/Loading';
 import { Hairline } from './canon/GroupedList';
 import { TapButton } from './canon/Tap';
+import { MobileGlanceTile } from './canon/MobileGlanceTile';
 
 /**
  * MobileToday — the mobile-canon presentation of the Today home (a DASHBOARD, not a
@@ -164,39 +165,6 @@ const MobileTodaySkeleton = ({ rows = 4 }) => (
         </div>
     </div>
 );
-
-// Glance tile — tappable NAVIGATION card (never a filter). Card-grade press (0.988),
-// haptic on tap, Loader2 glyph swap + data-state="opening" while its route is opening
-// (the desktop GlanceCard idiom in mobile grammar).
-const GlanceTile = ({ item, onPress, routingPath }) => {
-    const isOpening = Boolean(item.path) && routingPath === item.path;
-    const tone = toneClass[item.tone] || toneClass.muted;
-
-    return (
-        <motion.button
-            type="button"
-            whileTap={{ scale: 0.988 }}
-            onClick={(event) => onPress(event, item.path)}
-            disabled={!item.path}
-            data-mobile-today-glance={String(item.label || '').toLowerCase()}
-            data-state={isOpening ? 'opening' : 'idle'}
-            aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}
-            className="surface-card flex min-h-[72px] items-start justify-between gap-2 rounded-inner px-4 py-3 text-left transition-colors active:bg-foreground/[0.08] disabled:pointer-events-none disabled:opacity-70 dark:active:bg-white/[0.10]"
-        >
-            {/* Desktop GlanceCard anatomy in mobile scale: sentence-case label over the
-                value (never all-caps subheadings), tone-tinted arrow orb trailing. */}
-            <span className="min-w-0">
-                <span className="block text-[11px] font-medium text-muted-foreground">{item.label}</span>
-                <span className="mt-1 block text-[15px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
-                    {item.value}
-                </span>
-            </span>
-            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-pill ${tone}`}>
-                {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-            </span>
-        </motion.button>
-    );
-};
 
 // Action row — expand-in-place disclosure (desktop DetailRow in mobile grammar; NOT a
 // detail sheet — dashboards do not open record sheets). Row press is card-grade
@@ -362,11 +330,13 @@ export const MobileToday = ({
                             <section className="px-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     {glanceItems.map((item) => (
-                                        <GlanceTile
+                                        <MobileGlanceTile
                                             key={item.label}
                                             item={item}
                                             onPress={handleNavigate}
                                             routingPath={routingPath}
+                                            toneClassMap={toneClass}
+                                            dataAttr="data-mobile-today-glance"
                                         />
                                     ))}
                                 </div>

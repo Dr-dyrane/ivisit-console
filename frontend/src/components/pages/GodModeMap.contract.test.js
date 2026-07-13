@@ -154,6 +154,12 @@ describe('GodModeMap Live Map contract', () => {
     expect(marker).toContain('aria-busy={mapCommand === "close"}');
     expect(layerControls).toContain('aria-expanded={isExpanded}');
     expect(layerControls).toContain('aria-pressed={isVisible}');
+    expect(page).toContain("window.addEventListener('mapRecenterRequested', handleRouteRecenter)");
+    expect(page).toContain("toast.info('Location not ready')");
+    expect(bottomBarSource()).toContain("pathname.startsWith('/map') && canReachRoute(userRole, '/map')");
+    expect(bottomBarSource()).toContain("label: 'Center map'");
+    expect(bottomBarSource()).toContain("new CustomEvent('mapRecenterRequested')");
+    expect(mobile).not.toContain('aria-label="Center map"');
   });
 
   it('keeps the fallback renderer route-owned and selectable instead of simulated preview copy', () => {
@@ -177,7 +183,9 @@ describe('GodModeMap Live Map contract', () => {
     expect(fallback).toContain('hospitals = []');
     expect(fallback).toContain('activeRoutes = []');
     expect(fallback).toContain("setSelectedMarker?.({ type: marker.type, data: marker.data })");
-    expect(fallback).toContain('aria-pressed={isSelected}');
+    expect(fallback).toContain("const MarkerElement = isInteractive ? 'button' : 'div'");
+    expect(fallback).toContain("'aria-pressed': isSelected");
+    expect(fallback).toContain(": { role: 'img' }");
     expect(fallback).toContain('Select a point');
     expect(fallback).not.toMatch(/Map Preview Mode|simulated view|Simulated markers|Google Maps API requires domain authorization/i);
   });
@@ -204,6 +212,40 @@ describe('GodModeMap Live Map contract', () => {
     expect(hardgate).toContain('src/components/map/MarkerDetailPanel.jsx');
     expect(hardgate).toContain('src/components/map/MapLayerControls.jsx');
     expect(hardgate).toContain('src/components/map/MapFallback.jsx');
+    expect(hardgate).toContain('src/components/map/MapRenderers/GoogleMapsRenderer.jsx');
+    expect(hardgate).toContain('src/components/context/MapPanel.jsx');
+  });
+
+  it('keeps map geometry on semantic squircle roles and token-only elevation', () => {
+    const mobile = mobileSource();
+    const marker = markerSource();
+    const layers = layerControlsSource();
+    const fallback = fallbackSource();
+    const panel = mapPanelSource();
+    const page = pageSource();
+    const googleRenderer = googleRendererSource();
+    const mountedMapSurfaces = [page, mobile, marker, layers, fallback, panel, googleRenderer].join('\n');
+
+    expect(mountedMapSurfaces).not.toMatch(/\brounded-(?:full|xl|2xl|3xl|\[[^\]]+\])\b/);
+    expect(mountedMapSurfaces).not.toMatch(/\bsquircle(?:-[a-z]+)?\b|\bgeo-round\b/);
+    expect(mountedMapSurfaces).not.toContain('shadow-premium');
+    expect(mountedMapSurfaces).not.toMatch(/shadow-\[[^\]]+\]/);
+
+    expect(mobile).toContain('rounded-sheet');
+    expect(mobile).toContain('items-center justify-center rounded-icon shadow-inner');
+    expect(mobile).toContain('space-y-3 rounded-inner bg-muted/20 p-4');
+    expect(mobile).toContain('rounded-button px-3 py-2 text-left');
+    expect(layers).toContain('rounded-pill bg-card/68 p-1 shadow-e3');
+    expect(fallback).toContain('rounded-card bg-background/72');
+    expect(fallback).toContain('rounded-pill shadow-e2');
+    expect(panel).toContain('gap-2 rounded-button bg-background/45');
+    expect(panel).toContain('rounded-card bg-card/60 p-3');
+    expect(marker).toContain('rounded-inner bg-background p-4 shadow-e1');
+    expect(marker).toContain('<a href={`tel:${selectedMarker.data.phone}`}>');
+    expect(page).not.toContain('simulatedSessionId');
+    expect(mobile).not.toContain('simulatedSessionId');
+    expect(googleRenderer).not.toContain('simulatedSessionId');
+    expect(mountedMapSurfaces).not.toMatch(/Session ID|NODE-|PENDING\.\.\./);
   });
 
   it('uses icon close controls and ASCII marker separators in active map details', () => {

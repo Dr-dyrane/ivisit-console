@@ -6,19 +6,19 @@ export const MOBILE_NAV_CHROME = {
   contextualFab: 'page-action',
 };
 
-// Dock slots rank by OPERATIONAL importance for the role — Settings does not claim
+// Dock slots rank by operational importance for the role. Settings does not claim
 // a slot by right (the avatar sheet owns overflow, see MOBILE_NAV_CHROME above).
-// Admin's daily work is requests + approvals (the Today hero's own signals), then map;
-// Settings stays reachable via the avatar sheet.
+// Admin's main slate keeps Today, Requests, Map, and Statistics visible. Approvals
+// still takes the morph slot while its route is active.
 const roleSlots = {
   // Admin order: the golden three (Today / Requests / Map) hold fixed slots; the
-  // LAST slot is the morph slot — Approvals at rest, the current page when the
+  // last slot is Statistics at rest, then the current page when the
   // user is on any route outside the slate (see getMobileNavigationItems).
   admin: [
     { id: 'today', path: '/', label: 'Today' },
     { id: 'emergencies', path: '/emergencies', label: 'Requests' },
     { id: 'map', path: '/map', label: 'Map' },
-    { id: 'approvals', path: '/verification', label: 'Approvals' },
+    { id: 'statistics', path: '/analytics', label: 'Statistics' },
   ],
   org_admin: [
     { id: 'today', path: '/', label: 'Today' },

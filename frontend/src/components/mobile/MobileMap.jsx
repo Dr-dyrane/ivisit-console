@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw,
-    Navigation,
     AlertTriangle,
     Ambulance,
     Hospital as HospitalIcon,
@@ -69,7 +68,6 @@ export const MobileMap = ({
     processedAmbulances,
     processedHospitals,
     filteredRequests,
-    simulatedSessionId,
     getPriorityColor,
     getStatusColor,
     routePrimaryColor,
@@ -186,7 +184,6 @@ export const MobileMap = ({
                                 filteredRequests={filteredRequests}
                                 ambulances={processedAmbulances}
                                 hospitals={processedHospitals}
-                                simulatedSessionId={simulatedSessionId}
                                 getPriorityColor={getPriorityColor}
                                 getStatusColor={getStatusColor}
                                 routePrimaryColor={routePrimaryColor}
@@ -240,7 +237,7 @@ export const MobileMap = ({
                                     disabled={isSwitchingMap}
                                     aria-pressed={isActive}
                                     aria-label={`${item.label} requests, ${item.value}`}
-                                    className={`min-h-12 min-w-[5.2rem] rounded-inner px-3 py-2 text-left transition-all active:scale-[0.96] disabled:opacity-50 ${isActive ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/[0.05] text-foreground/78'}`}
+                                    className={`min-h-12 min-w-[5.2rem] rounded-button px-3 py-2 text-left transition-all active:scale-[0.96] disabled:opacity-50 ${isActive ? 'bg-foreground text-background shadow-e2' : 'bg-foreground/[0.05] text-foreground/78'}`}
                                 >
                                     <span className="block text-[11px] font-medium opacity-70">
                                         {item.label}
@@ -265,7 +262,7 @@ export const MobileMap = ({
                         transition={{ duration: 0.16 }}
                         className="pointer-events-auto absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+8.5rem)] z-[75]"
                     >
-                        <div className="chrome-glass flex min-h-12 items-center gap-3 rounded-card px-4 py-3 shadow-[0_12px_32px_rgb(0_0_0/0.16)]">
+                        <div className="chrome-glass flex min-h-12 items-center gap-3 rounded-card px-4 py-3 shadow-e3">
                             {!error && (showInitialLoading || showRefreshState) && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-foreground/70" />}
                             {error && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />}
                             <p className="min-w-0 flex-1 text-xs font-medium text-foreground/80" role={error ? 'alert' : 'status'} aria-live="polite">
@@ -315,23 +312,6 @@ export const MobileMap = ({
                     <RefreshCw size={20} className={`${loading || isRefreshing ? 'animate-spin' : ''} text-foreground/70`} />
                 </motion.button>
 
-                <motion.button
-                    whileTap={mobileMotion.press.control}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (userLocation) {
-                            toast.info("Centering map...");
-                            window.dispatchEvent(new CustomEvent('recenter-map'));
-                        } else {
-                            toast.info("Location not ready");
-                        }
-                    }}
-                    className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button chrome-glass"
-                    aria-label="Center map"
-                >
-                    <Navigation size={20} className="text-foreground/60" />
-                </motion.button>
-
                 <MapLayerControls
                     showLayers={showLayers}
                     setShowLayers={toggleLayer}
@@ -355,7 +335,7 @@ export const MobileMap = ({
 
                             <button
                                 onClick={() => setSelectedMarker(null)}
-                                className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-pill text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground active:scale-[0.96]"
+                                className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground active:scale-[0.96]"
                                 aria-label="Close details"
                             >
                                 <X className="h-4 w-4" />
@@ -364,17 +344,17 @@ export const MobileMap = ({
                             <div className="px-6 pb-8">
                                 <header className="flex items-center gap-4 mb-5">
                                     <div
-                                        className={`w-12 h-12 rounded-button flex items-center justify-center shadow-inner ${selectedMarker.type === 'emergency' ? 'bg-destructive/10' : selectedMarker.type === 'ambulance' ? 'bg-emerald-500/10' : 'bg-sky-500/10'}`}
+                                        className={`flex h-12 w-12 items-center justify-center rounded-icon shadow-inner ${selectedMarker.type === 'emergency' ? 'bg-destructive/10' : selectedMarker.type === 'ambulance' ? 'bg-emerald-500/10' : 'bg-sky-500/10'}`}
                                     >
                                         {selectedMarker.type === "emergency" && <AlertTriangle className="text-destructive" />}
                                         {selectedMarker.type === "ambulance" && <Ambulance className="text-emerald-600 dark:text-emerald-300" />}
                                         {selectedMarker.type === "hospital" && <HospitalIcon className="text-sky-600 dark:text-sky-300" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="eyebrow">
+                                        <p className="text-[11px] font-medium text-muted-foreground">
                                             {selectedMarker.type} - {selectedMarker.data.status || 'Active'}
                                         </p>
-                                        <h3 className="text-lg font-semibold tracking-tight truncate">
+                                        <h3 className="truncate text-lg font-semibold">
                                             {patientData?.name || selectedMarker.data.name || selectedMarker.data.call_sign || (selectedMarker.data.id ? `#${selectedMarker.data.id.slice(-6)}` : 'Map point')}
                                         </h3>
                                     </div>
@@ -394,7 +374,7 @@ export const MobileMap = ({
                                                 </span>
                                             </div>
 
-                                            <div className="bg-muted/20 p-4 rounded-card space-y-3">
+                                            <div className="space-y-3 rounded-inner bg-muted/20 p-4">
                                                 <div className="flex items-center gap-3">
                                                     <Phone size={14} className="text-muted-foreground" />
                                                     <span className="text-sm font-medium">{patientData?.phone || 'No phone recorded'}</span>
@@ -411,7 +391,7 @@ export const MobileMap = ({
                                             <div className="flex gap-3 pt-2">
                                                 {canManageRequests && !selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 rounded-button h-14 font-semibold tracking-tight"
+                                                        className="h-14 flex-1 rounded-button bg-emerald-500/15 font-semibold text-emerald-700 dark:text-emerald-200"
                                                         disabled={commandBusy}
                                                         aria-busy={mapCommand === "send"}
                                                         onClick={async () => {
@@ -428,7 +408,7 @@ export const MobileMap = ({
                                                 )}
                                                 {canManageRequests && selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 bg-sky-500/15 text-sky-700 dark:text-sky-200 rounded-button h-14 font-semibold tracking-tight"
+                                                        className="h-14 flex-1 rounded-button bg-sky-500/15 font-semibold text-sky-700 dark:text-sky-200"
                                                         disabled={commandBusy}
                                                         aria-busy={mapCommand === "close"}
                                                         data-confirming={confirmClose ? "true" : "false"}
@@ -461,14 +441,14 @@ export const MobileMap = ({
 
                                     {selectedMarker.type === 'ambulance' && (
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-4 bg-muted/20 rounded-card text-center">
-                                                <p className="eyebrow mb-1">Status</p>
+                                            <div className="rounded-inner bg-muted/20 p-4 text-center">
+                                                <p className="mb-1 text-[11px] font-medium text-muted-foreground">Status</p>
                                                 <p className={`text-sm font-semibold ${ambulanceStatusTone(selectedMarker.data.status)}`}>
                                                     {statusLabel(selectedMarker.data.status, 'Not recorded')}
                                                 </p>
                                             </div>
-                                            <div className="p-4 bg-muted/20 rounded-card text-center">
-                                                <p className="eyebrow mb-1">Vehicle</p>
+                                            <div className="rounded-inner bg-muted/20 p-4 text-center">
+                                                <p className="mb-1 text-[11px] font-medium text-muted-foreground">Vehicle</p>
                                                 <p className="text-sm font-semibold">{selectedMarker.data.vehicle_number || 'Not recorded'}</p>
                                             </div>
                                         </div>
@@ -476,18 +456,18 @@ export const MobileMap = ({
 
                                     {selectedMarker.type === 'hospital' && (
                                         <>
-                                            <div className="p-4 bg-muted/20 rounded-card">
+                                            <div className="rounded-inner bg-muted/20 p-4">
                                                 <p className="text-xs text-muted-foreground leading-relaxed italic">
                                                     {selectedMarker.data.address || 'No address recorded'}
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
-                                                <div className="p-4 bg-sky-500/[0.08] rounded-card">
-                                                    <p className="eyebrow mb-1">Beds</p>
+                                                <div className="rounded-inner bg-sky-500/[0.08] p-4">
+                                                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Beds</p>
                                                     <p className={`${selectedMarker.data.available_beds == null ? 'text-sm' : 'text-xl'} font-semibold text-sky-600 dark:text-sky-300`}>{selectedMarker.data.available_beds ?? 'Not recorded'}</p>
                                                 </div>
-                                                <div className="p-4 bg-muted/20 rounded-card">
-                                                    <p className="eyebrow mb-1">Fleet</p>
+                                                <div className="rounded-inner bg-muted/20 p-4">
+                                                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Fleet</p>
                                                     <p className={`${selectedMarker.data.ambulances_count == null ? 'text-sm' : 'text-xl'} font-semibold`}>{selectedMarker.data.ambulances_count ?? 'Not recorded'}</p>
                                                 </div>
                                             </div>

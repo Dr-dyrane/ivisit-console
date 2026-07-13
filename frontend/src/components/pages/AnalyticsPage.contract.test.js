@@ -2,414 +2,211 @@ import fs from 'fs';
 import { execFileSync } from 'child_process';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
-// Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
+const read = (file) => fs.readFileSync(file, 'utf8');
 const PRESERVATION_BASELINE = 'f31f29f';
-const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
+const gitShowBaseline = (file) => execFileSync(
+  'git',
+  ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${file}`],
+  { encoding: 'utf8' },
+);
 
-describe('Analytics Page 13 intake contract', () => {
-  it('preserves Analytics intake archaeology and admits the guarded active surfaces', () => {
+describe('Analytics Page 13 Summary contract', () => {
+  it('keeps the Git-backed intake story while promoting the guarded Summary surfaces', () => {
+    const oldPage = gitShowBaseline('frontend/src/components/pages/Analytics.jsx');
+    const oldMobile = gitShowBaseline('frontend/src/components/mobile/MobileAnalytics.jsx');
+    const page = read('src/components/pages/Analytics.jsx');
+    const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+    const hardgate = read('scripts/check-ui-surface-hardgate.js');
     const app = read('src/App.js');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
-    const moduleRail = read('src/config/consoleModuleRail.js');
-    const hardgate = read('scripts/check-ui-surface-hardgate.js');
+
+    expect(oldPage).toContain('usePageHeader("Impact Analytics", headerActions)');
+    expect(oldPage).toContain('EXPORT');
+    expect(oldMobile).toContain('Generate Analytics Report');
+    expect(page).toContain("usePageHeader('Statistics')");
+    expect(page).not.toContain('Impact Analytics');
+    expect(page).not.toContain('>EXPORT<');
+    expect(mobile).not.toContain('Generate Analytics Report');
 
     expect(gate).toContain('### Page 13 Intake Audit - Analytics');
-    expect(gate).toContain('Analytics at `/analytics` is intake only and is not admitted under the Today/Requests canon.');
-    expect(gate).toContain('No visual revamp, shared Requests pattern reuse, report/export enablement, or hardgate promotion is authorized yet.');
-    expect(gate).toContain('Pass 8 already classifies the route as a cross-domain analytics/search/realtime/export risk surface');
-    expect(gate).toContain('Promotion rule: the first Analytics visual pass must close this blocker map before adding Page 13 to the default hardgate.');
+    expect(gate).toContain('**RESOLUTION - Page 13 Analytics SUMMARY COMPOSITION ADMITTED (2026-07-12).**');
+    expect(gate).toContain('important pinned measurements first, evidence-only highlights next, longitudinal trends after that');
+    expect(gate).toContain('a valid empty slice may display zero');
+    expect(gate).toContain('main.d4f0b892.js');
+
+    [
+      'src/components/pages/Analytics.jsx',
+      'src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx',
+      'src/components/analytics/AnalyticsSummaryPrimitives.jsx',
+      'src/components/mobile/MobileAnalytics.jsx',
+      'src/components/mobile/MobileSkeleton.jsx',
+      'src/components/context/AnalyticsPanel.jsx',
+    ].forEach((file) => expect(hardgate).toContain(file));
 
     expect(app).toContain('<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />');
     expect(navigation).toContain("{ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' }");
     expect(mobileNavigation).toContain("{ id: 'statistics', path: '/analytics', label: 'Statistics' }");
-    expect(moduleRail).toContain("statistics: { id: 'statistics', icon: BarChart3, label: 'Statistics', path: '/analytics' },");
-
-    [
-      'src/components/pages/Analytics.jsx',
-      'src/components/mobile/MobileAnalytics.jsx',
-      'src/components/context/AnalyticsPanel.jsx',
-    ].forEach((file) => {
-      expect(hardgate).toContain(file);
-    });
   });
 
-  it('preserves the old Analytics behavior inventory as evidence, not canon', () => {
-    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const oldPage = gitShowHead('frontend/src/components/pages/Analytics.jsx');
-    const oldMobile = gitShowHead('frontend/src/components/mobile/MobileAnalytics.jsx');
-    const oldPanel = gitShowHead('frontend/src/components/context/AnalyticsPanel.jsx');
-    const oldService = gitShowHead('frontend/src/services/analyticsService.js');
+  it('applies the selected request window before aggregation and preserves source truth', () => {
+    const page = read('src/components/pages/Analytics.jsx');
+    const service = read('src/services/analyticsService.js');
+
+    expect(page).toContain('getAnalyticsIntakePage({');
+    expect(page).not.toContain("from '../../lib/supabase'");
+    expect(page).not.toContain('applyAuthFilter');
+    expect(service).toContain("const selectedWindowDays = {");
+    expect(service).toContain("'7d': 7");
+    expect(service).toContain("'30d': 30");
+    expect(service).toContain("'90d': 90");
+    expect(service).toContain("requestsQuery = requestsQuery.gte('created_at', windowStart.toISOString())");
+    expect(service).toContain('const financeLookbackDays = Math.max(0, (selectedWindowDays || 30) - 1);');
+
+    expect(page).toContain("canonicalizeEmergencyStatus(request.status, 'pending_approval') === 'completed'");
+    expect(page).toContain('completedEmergencies: completed.length');
+    expect(page).toContain('responseSampleSize: responseTimes.length');
+    expect(page).toContain('successRate: requests.length > 0 ? Math.round((completed.length / requests.length) * 100) : 0');
+    expect(page).toContain('const sourceReadiness = useMemo(() => ({');
+    expect(page).toContain("requests: snapshotReady && !issueSources.has('requests')");
+    expect(page).toContain("subscriptions: snapshotReady && canReadSubscriptionAnalytics && !issueSources.has('subscriptions')");
+    expect(page).toContain("finance: snapshotReady && canReadFinanceAnalytics && !issueSources.has('finance')");
+
+    expect(page).toContain('const [snapshotTimeRange, setSnapshotTimeRange] = useState');
+    expect(page).toContain('const analyticsRequestIdRef = useRef(0);');
+    expect(page).toContain('if (requestId !== analyticsRequestIdRef.current) return;');
+    expect(page).toContain('setSnapshotTimeRange(requestedRange)');
+    expect(page).toContain('getLocalDayKey(created)');
+    expect(page).not.toContain("created.toISOString().split('T')[0]");
+
+    expect(service).toContain("includeSubscriptionAnalytics && user?.role === 'admin'");
+    expect(service).toContain("const canReadFinanceAnalytics = includeFinanceAnalytics && user?.role === 'admin';");
+    expect(service).not.toContain("getFinanceAnalytics(user, user?.role === 'admin'");
+    expect(service).toContain("getAnalyticsSourceIssue('requests', requestsRes)");
+    expect(service).toContain("getAnalyticsSourceIssue('finance', { error: financeError })");
+  });
+
+  it('locks the Apple Health-inspired information hierarchy without reviving the bento dashboard', () => {
+    const page = read('src/components/pages/Analytics.jsx');
+    const desktop = read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx');
+    const mobile = read('src/components/mobile/MobileAnalytics.jsx');
+    const mobileSkeleton = read('src/components/mobile/MobileSkeleton.jsx');
+    const analyticsSkeleton = mobileSkeleton.slice(mobileSkeleton.indexOf('export const MobileAnalyticsSkeleton'));
+    const primitives = read('src/components/analytics/AnalyticsSummaryPrimitives.jsx');
+
+    const desktopOrder = [
+      'analytics-pinned-section',
+      'analytics-highlights-section',
+      'analytics-trends-section',
+      'analytics-breakdowns-section',
+      'analytics-network-section',
+    ].map((token) => desktop.indexOf(token));
+    const mobileOrder = [
+      'mobile-analytics-highlights-section',
+      'mobile-analytics-trends-section',
+      'mobile-analytics-breakdowns-section',
+      'mobile-analytics-network-section',
+    ].map((token) => mobile.indexOf(token));
+
+    expect(desktopOrder.every((position) => position > -1)).toBe(true);
+    expect(desktopOrder).toEqual([...desktopOrder].sort((left, right) => left - right));
+    expect(mobileOrder.every((position) => position > -1)).toBe(true);
+    expect(mobileOrder).toEqual([...mobileOrder].sort((left, right) => left - right));
+
+    expect(desktop).toContain('<h1 className="mt-3 text-[42px]');
+    expect(desktop).toContain('>Summary</h1>');
+    expect(desktop).toContain('title="Pinned"');
+    expect(desktop).toContain('title="Highlights"');
+    expect(desktop).toContain('title="Trends"');
+    expect(desktop.match(/<AreaChart/g)).toHaveLength(1);
+    expect(desktop).toContain('Recent-half volume compared with the earlier half of this window.');
+    expect(desktop).toContain('Current scoped snapshots, separate from the selected request window.');
+    expect(desktop).not.toContain('<Card');
+    expect(desktop).not.toContain('Search Analytics');
+    expect(desktop).not.toContain('Performance Metrics');
+    expect(desktop).not.toContain('Demand Velocity Heatmap');
+
+    expect(mobile).toContain('<MobileHero');
+    expect(mobile).not.toContain('MobileKPIStrip');
+    expect(mobile).toContain("import { MobileGlanceTile } from './canon/MobileGlanceTile';");
+    expect(mobile).toContain("import { useSkeletonWarmup } from './canon/Loading';");
+    expect(mobile).toContain('const showSkeleton = warmingUp || (isLoading && !snapshotReady);');
+    expect(mobile).toContain('kpiStrip={showSkeleton ? null : summaryHeader}');
+    expect(mobile).toContain('<CompactStatTile key={metric.label} {...metric} onClick={onOpenDetails} />');
+    expect(mobile).not.toContain('min-h-[126px]');
+    expect(mobile).not.toContain('The measurements worth checking first.');
+    expect(mobile).not.toContain('Measured observations from this window.');
+    expect(mobile).toContain('animatePageLoad={false}');
+    expect(mobile).not.toContain('Report unavailable');
+    expect(mobile).not.toContain('Generate Analytics Report');
+    expect(analyticsSkeleton).toContain('data-testid="mobile-analytics-skeleton"');
+    expect(analyticsSkeleton).toContain('grid grid-cols-2 gap-3');
+    expect(analyticsSkeleton).toContain('min-h-[72px]');
+    expect(analyticsSkeleton).toContain('space-y-9 px-4');
+    expect(analyticsSkeleton).not.toContain('<MobileKPIStripSkeleton');
+    expect(analyticsSkeleton).not.toContain('<MobileFeaturedMetricSkeleton');
+    expect(primitives).toContain('export const AnalyticsTimeRangeControl');
+    expect(primitives).toContain('aria-pressed={selected}');
+    expect(primitives).toContain('export const getVolumeComparison');
+    expect(page).toContain('dataTimeRange={snapshotTimeRange}');
+  });
+
+  it('keeps loading, partial, stale, detail, and reporting states honest', () => {
     const page = read('src/components/pages/Analytics.jsx');
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const panel = read('src/components/context/AnalyticsPanel.jsx');
-    const contextAction = read('src/hooks/useContextAction.js');
-    const service = read('src/services/analyticsService.js');
-    const walletService = read('src/services/walletService.js');
 
-    expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/pages/Analytics.jsx`');
-    expect(gate).toContain("Targeted recent history check: `git log --since='2026-06-28'");
-    expect(gate).toContain('returned no newer committed changes for those anchor files.');
-    expect(gate).toContain('The Analytics preservation baseline for this intake pass remains committed `HEAD` at `f31f29f`');
-    expect(gate).toContain('Active source recertification: `Analytics.jsx` still consumes shell header state');
-    expect(gate).toContain('`usePageHeader("Impact Analytics")`, time-range select, desktop `EXPORT`, CSV blob download');
-    expect(gate).toContain('direct Supabase reads from `emergency_requests`, `profiles`, `hospitals`, and `ambulances`');
-    expect(gate).toContain('predictive fallback chart data for empty intervals');
-    expect(gate).toContain('mobile `Generate Analytics Report`, and `AnalyticsPanel` report/export event buttons.');
-
-    for (const source of [oldPage, page]) {
-      expect(source).toContain('usePageHeader("Impact Analytics", headerActions)');
-      expect(source).toContain('const handleExport = useCallback(() => {');
-      expect(source).toContain("window.addEventListener('openAnalyticsModal', handleOpenAnalytics)");
-      expect(source).toContain("window.addEventListener('exportAnalytics', handleExportAnalytics)");
-      expect(source).toContain('<MobileAnalytics');
-      expect(source).toContain('<AnalyticsModal');
-    }
-    expect(oldPage).toContain('let requestsQuery = supabase.from(\'emergency_requests\').select(\'*\');');
-    expect(oldPage).toContain('let usersQuery = supabase.from(\'profiles\').select(\'*\', { count: \'exact\' });');
-    expect(oldPage).toContain('let hospitalsQuery = supabase.from(\'hospitals\').select(\'*\', { count: \'exact\' });');
-    expect(oldPage).toContain('let ambulancesQuery = supabase.from(\'ambulances\').select(\'*\', { count: \'exact\' });');
-    expect(oldPage).toContain('fetchSubscriptionAnalytics()');
-    expect(oldPage).toContain('getFinanceAnalytics(user, isAdmin() || isSponsor()');
-    expect(page).not.toContain('supabase.from(\'emergency_requests\')');
-    expect(page).not.toContain('supabase.from(\'profiles\')');
-    expect(page).not.toContain('supabase.from(\'hospitals\')');
-    expect(page).not.toContain('supabase.from(\'ambulances\')');
-    expect(page).not.toContain('fetchSubscriptionAnalytics()');
-    expect(page).not.toContain('getFinanceAnalytics(user');
-    expect(page).toContain("import { DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, getAnalyticsIntakePage } from '../../services/analyticsService';");
-    expect(page).toContain('const DEFAULT_SUBSCRIPTION_STATS = {');
-    expect(page).toContain('...(DEFAULT_ANALYTICS_SUBSCRIPTION_STATS || {}),');
-    expect(page).toContain('const normalizeSubscriptionStats = (value) => ({');
-    expect(page).toContain('const [subscriptionStats, setSubscriptionStats] = useState(() => normalizeSubscriptionStats());');
-    expect(page).toContain('const resolvedSubscriptionStats = useMemo(');
-    expect(page).toContain('const resolvedHospitalCapacity = useMemo(');
-    expect(page).toContain('const canReadSubscriptionAnalytics = isAdmin();');
-    expect(page).toContain('const canReadFinanceAnalytics = isAdmin() || isSponsor();');
-    expect(page).toContain("const subscriptionScopeLabel = canReadSubscriptionAnalytics ? SOURCE_PENDING_LABEL : ADMIN_ONLY_LABEL;");
-    expect(page).toContain("const financeScopeLabel = canReadFinanceAnalytics ? SOURCE_PENDING_LABEL : SCOPE_PENDING_LABEL;");
-    expect(page).toContain('subscriptionAnalytics: canReadSubscriptionAnalytics');
-    expect(page).toContain('scope: ADMIN_ONLY_LABEL');
-    expect(page).toContain('const analyticsPage = await getAnalyticsIntakePage({');
-    expect(page).toContain('includeSubscriptionAnalytics: canReadSubscriptionAnalytics');
-    expect(page).toContain('includeFinanceAnalytics: canReadFinanceAnalytics');
-    expect(page).toContain('setFinanceData(canReadFinanceAnalytics ? analyticsPage.financeData || [] : []);');
-    expect(page).toContain('setAnalyticsSourceIssues(analyticsPage.sourceIssues || []);');
-    expect(page).toContain('const requests = analyticsPage.requests || [];');
-    expect(page).toContain('totalUsers: analyticsPage.usersCount || 0');
-    expect(page).toContain('totalHospitals: analyticsPage.hospitalsCount || 0');
-    expect(page).toContain('totalAmbulances: analyticsPage.ambulancesCount || 0');
-    expect(page).toContain('setSubscriptionStats(canReadSubscriptionAnalytics');
-    expect(page).toContain('? normalizeSubscriptionStats(analyticsPage.subscriptionStats)');
-    expect(page).toContain(': normalizeSubscriptionStats()');
-    expect(page).not.toContain('if (isAdmin() || isOrgAdmin() || isSponsor()) {\n        getFinanceAnalytics');
-    expect(page).toContain("import { SEOHead } from '../common/SEOHead';");
-    expect(page).toContain('<SEOHead title="Statistics" description="Review source-pending analytics and scoped reporting readiness in iVisit Console." />');
-    expect(oldPage).toContain('Predictive fallback for empty/null intervals');
-    expect(oldPage).toContain('predictedDayData');
-    expect(oldPage).toContain('predictedHeatmap');
-    expect(page).not.toContain('Predictive fallback for empty/null intervals');
-    expect(page).not.toContain('predictedDayData');
-    expect(page).not.toContain('predictedStatuses');
-    expect(page).not.toContain('predictedTypes');
-    expect(page).not.toContain('predictedHeatmap');
-    expect(page).not.toContain('15% faster');
-    expect(page).not.toContain('+12%');
-    expect(page).not.toContain('+8');
-    expect(page).not.toContain('Live distribution');
-    expect(page).not.toContain('Vitals nominal');
-    expect(page).not.toContain('Activity charts show estimated baseline data');
-    expect(page).not.toContain('Actuals will appear after 7 days');
-    expect(page).not.toContain('-2.4m avg');
-    expect(page).not.toContain('Org avg');
-    expect(page).not.toContain('progress: 75');
-    expect(page).not.toContain('progress: 60');
-    expect(page).not.toContain('progress: 90');
-    expect(page).not.toContain('financeSummary.paidConversion');
-    expect(page).not.toContain('financeSummary.avgPerRequest');
-    expect(page).not.toContain('Your assigned');
-    expect(page).not.toContain('Your performance');
-    expect(page).not.toContain('Org performance');
-    expect(page).not.toContain('Org success');
-    expect(page).toContain('Source-pending fallback: do not synthesize measured analytics.');
-    expect(page).toContain('setResponseTimeData([])');
-    expect(page).toContain('setDemandHeatmap([])');
-    expect(page).toContain('Analytics source is pending. Verify report scope before using these charts.');
-    expect(page).toContain("const responseScopeBadge = hasMeasuredResponseSeries ? 'Measured avg' : SOURCE_PENDING_LABEL;");
-    expect(page).toContain("const providerResponseScopeBadge = hasMeasuredResponseSeries ? 'Personal' : SOURCE_PENDING_LABEL;");
-    expect(page).toContain('const financeMetricRows = [');
-    expect(page).toContain('progress: hasFinanceData ? Math.min(100');
-    expect(page).toContain('const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0');
-    expect(page).not.toContain('Number(subscriptionStats.paidConversionRate)');
-    expect(page).not.toContain('subscriptionStats.total');
-    expect(page).not.toContain('hospitalCapacity.total');
-    expect(page).toContain('const avgPerRequestLabel = hasFinanceData && stats.totalEmergencies > 0');
-    expect(page).toContain('const RESPONSE_TIME_CHART_HEIGHT = 300;');
-    expect(page).toContain('const DAILY_VOLUME_CHART_HEIGHT = 250;');
-    expect(page).toContain('const CASE_TYPE_CHART_HEIGHT = 200;');
-    expect(page).toContain('const PIE_CHART_SIZE = 220;');
-    expect(page).toContain('const FINANCE_CHART_HEIGHT = 160;');
-    expect(page).toContain('const RESPONSE_TIME_INITIAL_DIMENSION = { width: 1, height: RESPONSE_TIME_CHART_HEIGHT };');
-    expect(page).toContain('const PIE_CHART_INITIAL_DIMENSION = { width: PIE_CHART_SIZE, height: PIE_CHART_SIZE };');
-    expect(page).toContain('className="h-[160px] min-h-[160px] bg-emerald-500/5 rounded-button overflow-hidden p-2"');
-    expect(page).toContain('height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}');
-    expect(page).toContain('height={DAILY_VOLUME_CHART_HEIGHT} initialDimension={DAILY_VOLUME_INITIAL_DIMENSION}');
-    expect(page).toContain('height={CASE_TYPE_CHART_HEIGHT} initialDimension={CASE_TYPE_INITIAL_DIMENSION}');
-    expect(page).toContain('height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}');
-    expect(page).toContain('height={FINANCE_CHART_HEIGHT}');
-    expect(page).toContain('initialDimension={FINANCE_CHART_INITIAL_DIMENSION}');
-    expect(page).not.toContain('<ResponsiveContainer width="100%" height="100%">');
-
-    expect(oldPage).toContain('const blob = new Blob([csvString], { type: \'text/csv\' });');
-    expect(oldPage).toContain("toast.success('Analytics data exported successfully')");
-    expect(page).not.toContain('const blob = new Blob([csvString], { type: \'text/csv\' });');
-    expect(page).not.toContain("toast.success('Analytics data exported successfully')");
-    expect(page).toContain("import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';");
-    expect(page).toContain("const ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';");
-    expect(page).toContain("const ANALYTICS_LOAD_ERROR_MESSAGE = 'Statistics did not load.';");
-    expect(page).toContain("const ANALYTICS_REFRESH_PENDING_MESSAGE = 'Refreshing statistics.';");
-    expect(page).toContain("const ANALYTICS_STALE_SOURCE_MESSAGE = 'Statistics could not refresh. Showing the last loaded view.';");
-    expect(page).toContain("const ANALYTICS_PARTIAL_SOURCE_MESSAGE = 'Some statistics are unavailable.';");
-    expect(page).toContain("const ANALYTICS_DENIED_SOURCE_MESSAGE = 'Some statistics are not available for this role.';");
-    expect(service).toContain('export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {');
-    expect(service).toContain('export const getAnalyticsIntakePage = async ({');
-    expect(service).toContain("const canReadSubscriptionAnalytics = includeSubscriptionAnalytics && user?.role === 'admin';");
-    expect(service).toContain("includeFinanceAnalytics && (user?.role === 'admin' || user?.role === 'sponsor')");
-    expect(service).toContain('let requestsQuery = supabase.from(\'emergency_requests\').select(\'*\');');
-    expect(service).toContain('let usersQuery = supabase.from(\'profiles\').select(\'*\', { count: \'exact\' });');
-    expect(service).toContain('let hospitalsQuery = supabase.from(\'hospitals\').select(\'*\', { count: \'exact\' });');
-    expect(service).toContain('let ambulancesQuery = supabase.from(\'ambulances\').select(\'*\', { count: \'exact\' });');
-    expect(service).toContain('const subscriptionAnalyticsRequest = canReadSubscriptionAnalytics');
-    expect(service).toContain('getSubscriptionAnalytics({ quiet: true }).then((data) => ({ data }))');
-    expect(service).toContain('getFinanceAnalytics(user, true, days, { quiet: true, throwOnError: true })');
-    expect(service).toContain("sourceIssues.push(getAnalyticsSourceIssue('finance', { error: financeError }))");
-    expect(service).toContain('return { data: null, count: 0, error };');
-    expect(service).toContain('/42501|401|403|permission|policy|rls|not authorized|forbidden|jwt/i.test(sourceText)');
-    expect(walletService).toContain('options?.throwOnError');
-    expect(walletService).toContain('throw error;');
-    expect(page).toContain('const getAnalyticsSourceIssueSummary = (issues = []) => {');
-    expect(page).toContain('const analyticsSnapshotReadyRef = useRef(false);');
-    expect(page).toContain('const [analyticsLoadError, setAnalyticsLoadError] = useState(null);');
-    expect(page).toContain('const [analyticsRefreshNotice, setAnalyticsRefreshNotice] = useState(null);');
-    expect(page).toContain('const [analyticsSourceIssues, setAnalyticsSourceIssues] = useState([]);');
-    expect(page).toContain('const analyticsSourceIssueSummary = useMemo(');
-    expect(page).toContain('const visibleAnalyticsSourceIssueSummary = useMemo(() => {');
-    expect(page).toContain("title: analyticsRefreshNotice,");
-    expect(page).toContain("Last loaded view stays visible.");
-    expect(page).toContain('const hasVisibleSnapshot = analyticsSnapshotReadyRef.current;');
-    expect(page).toContain('setAnalyticsRefreshNotice(hasVisibleSnapshot ? ANALYTICS_REFRESH_PENDING_MESSAGE : null);');
-    expect(page).toContain('setAnalyticsLoadError(null);');
-    expect(page).toContain('setAnalyticsSourceIssues([]);');
-    expect(page).toContain('analyticsSnapshotReadyRef.current = true;');
-    expect(page).toContain('setAnalyticsRefreshNotice(null);');
-    expect(page).toContain('setAnalyticsRefreshNotice(ANALYTICS_STALE_SOURCE_MESSAGE);');
-    expect(page).toContain('toast.error(ANALYTICS_STALE_SOURCE_MESSAGE);');
-    expect(page).toContain('setAnalyticsLoadError(ANALYTICS_LOAD_ERROR_MESSAGE);');
-    expect(page).toContain('toast.error(ANALYTICS_LOAD_ERROR_MESSAGE);');
     expect(page).toContain('data-testid="analytics-error-state"');
-    expect(page).toContain('<AnalyticsLoadErrorBanner onRetry={fetchAnalytics} />');
     expect(page).toContain('data-testid="analytics-source-state"');
-    expect(page).toContain('<AnalyticsSourceIssueBanner');
-    expect(page).toContain('issueSummary={visibleAnalyticsSourceIssueSummary}');
+    expect(page).toContain('ANALYTICS_STALE_SOURCE_MESSAGE');
+    expect(page).toContain('The last loaded view stays visible while it refreshes.');
     expect(page).toContain('setCommandNotice(ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE)');
     expect(page).toContain('toast.info(ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE)');
-    expect(page).toContain('role="status"');
-    expect(page).toContain('aria-live="polite"');
+    expect(page).toContain('if (!sourceReadiness.requests)');
+    expect(page).toContain('setAnalyticsModalOpen(true)');
+    expect(page).toContain("window.addEventListener('openAnalyticsModal', handleOpenDetails)");
+    expect(page).toContain("window.addEventListener('exportAnalytics', handleExport)");
+    expect(page).toContain('<AnalyticsModal');
 
-    for (const source of [oldMobile, mobile]) {
-      expect(source).toContain('MobileAnalytics');
-    }
-    expect(oldMobile).toContain('defaultChartData');
-    expect(oldMobile).toContain("'LIVE'");
-    expect(oldMobile).toContain("dominantType?.name || 'Cardiac'");
-    expect(mobile).not.toContain('defaultChartData');
-    expect(mobile).not.toContain("'LIVE'");
-    expect(mobile).not.toContain("dominantType?.name || 'Cardiac'");
-    expect(mobile).not.toContain('bg-destructive/60');
-    expect(page).not.toContain('typePalette = [CHART_COLORS.destructive');
-    expect(page).not.toContain('"Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive');
-    expect(page).not.toContain('text-3xl font-bold text-destructive">{dominantType.name}');
-    expect(mobile).not.toContain('progress: 75');
-    expect(mobile).not.toContain('progress: 60');
-    expect(mobile).not.toContain('(financeSummary.total / (resolvedStats.totalEmergencies || 1)).toFixed(0)');
-    expect(mobile).toContain("const SOURCE_PENDING_LABEL = 'Source pending';");
-    expect(mobile).toContain('if (!responseTimeData || !responseTimeData.length) return [];');
-    expect(mobile).toContain('const financeMetricRows = [');
-    expect(mobile).toContain('subscriptionScopeLabel = SOURCE_PENDING_LABEL');
-    expect(mobile).toContain('financeScopeLabel = SOURCE_PENDING_LABEL');
-    expect(mobile).toContain('canReadSubscriptionAnalytics = false');
-    expect(mobile).toContain('canReadFinanceAnalytics = false');
-    expect(mobile).toContain('const resolvedSubscriptionStats = useMemo(');
-    expect(mobile).toContain('const resolvedFinanceSummary = useMemo(');
-    expect(mobile).toContain('const resolvedHospitalCapacity = useMemo(');
-    expect(mobile).toContain('const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0');
-    expect(mobile).not.toContain('Number(subscriptionStats?.paidConversionRate)');
-    expect(mobile).not.toContain('financeSummary.total');
-    expect(mobile).not.toContain('hospitalCapacity.total');
-    expect(mobile).toContain('const avgTicketLabel = hasFinanceData && resolvedStats.totalEmergencies > 0');
-    expect(mobile).toContain('const subscriberKpiValue = canReadSubscriptionAnalytics');
-    expect(mobile).toContain("value: subscriberKpiValue");
-    expect(mobile).toContain('{canReadFinanceAnalytics && (');
-    expect(mobile).toContain('hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel');
-    expect(mobile).toContain('sourceIssueSummary');
-    expect(mobile).toContain('data-testid="mobile-analytics-source-state"');
-    expect(mobile).toContain('{sourceIssueSummary.title}');
-    expect(mobile).toContain('{sourceIssueSummary.detail}');
-    expect(page).toContain('subscriptionScopeLabel={subscriptionScopeLabel}');
-    expect(page).toContain('financeScopeLabel={financeScopeLabel}');
-    expect(page).toContain('sourceIssueSummary={visibleAnalyticsSourceIssueSummary}');
-    expect(page).toContain('canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}');
-    expect(page).toContain('canReadFinanceAnalytics={canReadFinanceAnalytics}');
-    expect(page).toContain('const analyticsIsFetching = analyticsRefreshNotice === ANALYTICS_REFRESH_PENDING_MESSAGE;');
-    expect(page).toContain('isLoading={loading && !analyticsSnapshotReadyRef.current}');
-    expect(mobile).toContain('contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-4 text-foreground"');
-    expect(mobile).toContain('{isLoading ? (');
-    expect(mobile).not.toContain('if (isLoading) return <MobileAnalyticsSkeleton />;');
-    expect(mobile).not.toContain('text-destructive font-semibold');
-    expect(page).toContain('isFetching={analyticsIsFetching}');
-    expect(mobile).toContain('isFetching = false');
-    expect(mobile).toContain('<UpdatingPill />');
-    expect(oldMobile).toContain('Generate Analytics Report');
-    expect(mobile).not.toContain('Generate Analytics Report');
-    expect(mobile).toContain('Report unavailable');
-    expect(mobile).toContain('exportNotice');
-    expect(mobile).toContain('Report scope pending -');
     expect(mobile).toContain('data-testid="mobile-analytics-error-state"');
-    expect(mobile).toContain('role="alert"');
-    expect(mobile).toContain('Statistics did not load.');
+    expect(mobile).toContain('data-testid="mobile-analytics-source-state"');
     expect(mobile).toContain('onClick={onRetry || onRefresh}');
-    expect(page).toContain('loadError={analyticsLoadError}');
-    expect(page).toContain('onRetry={fetchAnalytics}');
+    expect(mobile).not.toContain("'LIVE'");
+    expect(mobile).not.toContain('defaultChartData');
+    expect(mobile).not.toContain("dominantType?.name || 'Cardiac'");
 
-    expect(oldPanel).toContain("new CustomEvent('openAnalyticsModal')");
-    expect(oldPanel).toContain("new CustomEvent('exportAnalytics')");
-    expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
+    expect(panel).toContain('analyticsContext?.sourceReadiness');
+    expect(panel).toContain('analyticsContext?.snapshotTimeRange');
+    expect(panel).toContain('Reports unavailable');
+    expect(panel).toContain('Export stays off until dataset scope, redaction, and receiver authority are verified.');
+    expect(panel).not.toContain('<button');
     expect(panel).not.toContain("new CustomEvent('exportAnalytics')");
-    expect(panel).not.toContain('analyticsData.totalRequests');
-    expect(panel).not.toContain('analyticsData.completionRate');
-    expect(panel).not.toContain('analyticsData.avgResponseTime');
-    expect(panel).toContain('analyticsContext = null');
-    expect(panel).toContain('analyticsContext?.stats');
-    expect(panel).toContain('analyticsContext?.sourceIssueSummary');
-    expect(panel).toContain('Measured route projection');
-    expect(panel).toContain("const ANALYTICS_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';");
-    expect(panel).toContain('const [panelNotice, setPanelNotice] = useState');
-    expect(panel).toContain('setPanelNotice(ANALYTICS_UNAVAILABLE_MESSAGE)');
-    expect(panel).toContain('data-state="unavailable"');
-    expect(panel).toContain('aria-disabled="true"');
-    expect(panel).toContain('Reports unavailable until analytics scope is verified.');
-    expect(panel).toContain('role="status"');
-    expect(panel).toContain('aria-live="polite"');
-    expect(contextAction).toContain("label: 'View analytics'");
-    expect(contextAction).not.toContain("label: 'Generate Report'");
-
-    expect(oldService).toContain('export const getAnalyticsData = async (options = {}) => {');
-    expect(oldService).toContain('successRate: totalEmergencies > 0 ? Math.round((completedEmergencies.length / totalEmergencies) * 100) : 95');
-    expect(service).toContain('export const getAnalyticsData = async (options = {}) => {');
-    expect(service).toContain("const successRateSource = totalEmergencies > 0 ? 'measured' : 'source_pending';");
-    expect(service).toContain('const successRate = totalEmergencies > 0');
-    expect(service).toContain('successRateSource,');
-    expect(service).toContain('analyticsSourceState: successRateSource');
-    expect(service).toContain('successRateSource: analytics.successRateSource');
-    expect(service).not.toContain('successRate: totalEmergencies > 0 ? Math.round((completedEmergencies.length / totalEmergencies) * 100) : 95');
-
-    expect(oldService).toContain("getCachedOrFetch('subscriptionAnalytics', getSubscriptionAnalytics)");
-    expect(service).toContain('const quietOptions = { quiet };');
-    expect(service).toContain('getSubscriptionAnalytics(quietOptions)');
+    expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
   });
 
-  it('blocks Analytics canon reuse until export, fallback, RBAC, and source-owner slots close', () => {
-    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const pass8 = read('docs/implementation/console-service-alignment/passes/PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md');
-    const pageData = read('src/contexts/PageDataContext.jsx');
-    const pageDataAccess = read('src/config/pageDataAccess.js');
-    const contextPanel = read('src/components/navigation/ContextPanel.jsx');
+  it('keeps route data, context panel, mobile navigation, and FAB ownership aligned', () => {
     const page = read('src/components/pages/Analytics.jsx');
+    const pageData = read('src/contexts/PageDataContext.jsx');
+    const contextPanel = read('src/components/navigation/ContextPanel.jsx');
+    const contextAction = read('src/hooks/useContextAction.js');
+    const designSystem = read('src/components/console/ConsoleDesignSystem.contract.test.js');
 
-    expect(gate).toContain('Analytics Requests-canon blocker map:');
-    expect(gate).toContain('This is a blocker map, not a design target.');
-    expect(gate).toContain('First export/report safety cleanup on 2026-07-05 removed the active CSV blob/download and success toast from `Analytics.jsx`.');
-    expect(gate).toContain('Header export, mobile report, and `AnalyticsPanel` export now show `Reports unavailable until analytics scope is verified.`');
-    expect(gate).toContain('First context-panel truth cleanup on 2026-07-05 stopped current `AnalyticsPanel.jsx` from dispatching report/export events or rendering `analyticsData.totalRequests`, `analyticsData.completionRate`, and `analyticsData.avgResponseTime` as panel-owned truth.');
-    expect(gate).toContain('The panel now labels request volume, completion, and response time as `Source pending`, marks Reports and Export unavailable, and gives local `role=\"status\"` feedback on click.');
-    expect(gate).toContain('First route-panel prop cleanup on 2026-07-06 stopped `ContextPanel.jsx` from passing `PageDataContext` `analyticsData` into `/analytics`.');
-    expect(gate).toContain('The shared FAB/action hook now says `View analytics` instead of `Generate Report`.');
-    expect(gate).toContain('First generated-analytics truth cleanup on 2026-07-05 removed the active empty-interval predictive generator from `Analytics.jsx`.');
-    expect(gate).toContain('Active desktop and mobile Analytics now use `Source pending` instead of `LIVE`, `READY`, synthetic readiness, predictive dispatch, generated sparklines, `Cardiac` fallback, or fixed performance/error numbers.');
-    expect(gate).toContain('First fixed-copy truth cleanup on 2026-07-05 removed the active sparse-data banner claim that charts show estimated baseline data');
-    expect(gate).toContain('changed desktop/mobile finance rows so progress bars, paid conversion, and average request/ticket values are source-pending unless measured finance/subscription/request data is present.');
-    expect(gate).toContain('Rendered fixed-copy proof on 2026-07-05 reused the existing `localhost:3000` server.');
-    expect(gate).toContain('Desktop `/analytics?proof=analytics-fixed-copy-desktop-2026-07-05` rendered `Impact Analytics`, no forbidden estimated-baseline or fixed-delta strings');
-    expect(gate).toContain('Mobile `390x844` `/analytics?proof=analytics-fixed-copy-mobile-2026-07-05` rendered source-pending Analytics, one `Report unavailable` control');
-    expect(gate).toContain('First structural failed-read cleanup on 2026-07-06 added `analyticsLoadError`, a desktop `data-testid="analytics-error-state"` alert with `Retry`, and a mobile `data-testid="mobile-analytics-error-state"` alert with `Retry`.');
-    expect(gate).toContain('Failed route reads still toast, but toast is no longer the only visible state.');
-    expect(gate).toContain('First shell-title cleanup on 2026-07-06 added `SEOHead title="Statistics"` to desktop and mobile Analytics');
-    expect(gate).toContain('First subscription/finance role-scope cleanup on 2026-07-06 removed `/analytics` route hook calls to `fetchSubscriptionAnalytics()`');
-    expect(gate).toContain('moved admin subscriber reads behind `analyticsService.getAnalyticsIntakePage()`');
-    expect(gate).toContain('defaulted non-admin subscriber metrics to an `Admin only` slice');
-    expect(gate).toContain('stopped org-admin route loads from calling `getFinanceAnalytics()`');
-    expect(gate).toContain('hid desktop/mobile finance sections for org-admin until finance actor scope is proved');
-    expect(gate).toContain('Rendered role-scope cleanup proof on 2026-07-06 reused the existing `localhost:3000` server.');
-    expect(gate).toContain('Desktop `/analytics?proof=analytics-role-scope-desktop-2026-07-06` rendered `Statistics | iVisit Console`');
-    expect(gate).toContain('Mobile `390x844` `/analytics?proof=analytics-role-scope-mobile-2026-07-06` rendered the mobile Analytics surface');
-    expect(gate).toContain('the temporary viewport was reset.');
-    expect(gate).toContain('First source-slice degraded-state cleanup on 2026-07-06 stopped `/analytics` from treating Supabase `.error` results or finance/subscriber rejections as clean zeroes.');
-    expect(gate).toContain('renders desktop `data-testid="analytics-source-state"` plus mobile `data-testid="mobile-analytics-source-state"` retry banners.');
-    expect(gate).toContain('Rendered source-state cleanup proof on 2026-07-06 reused the existing `localhost:3000` server.');
-    expect(gate).toContain('Desktop `/analytics?proof=analytics-source-state-desktop-2026-07-06` rendered `Statistics | iVisit Console`');
-    expect(gate).toContain('Mobile `390x844` `/analytics?proof=analytics-source-state-mobile-2026-07-06` rendered the mobile Analytics surface');
-    expect(gate).toContain('First intake projection-owner cleanup on 2026-07-06 moved the live route');
-    expect(gate).toContain('analyticsService.getAnalyticsIntakePage()');
-    expect(gate).toContain('walletService.getFinanceAnalytics()` also now supports `throwOnError`');
-    expect(gate).toContain('Rendered intake projection proof on 2026-07-06 reused the existing `localhost:3000` server.');
-    expect(gate).toContain('Desktop `/analytics?proof=analytics-intake-projection-desktop-2026-07-06` rendered `Statistics | iVisit Console`');
-    expect(gate).toContain('Mobile `390x844` `/analytics?proof=analytics-intake-projection-mobile-2026-07-06` rendered the mobile Analytics surface');
-    expect(gate).toContain('First global summary truth cleanup on 2026-07-06 removed the active `analyticsService.getAnalyticsData()` `95` success-rate fallback');
-    expect(gate).toContain('PageData summary analytics also stopped estimating `onRouteAmbulances` from 30% of the fleet');
-    expect(gate).toContain('Runtime slice-default cleanup on 2026-07-06 fixed the `/analytics` crash');
-    expect(gate).toContain("Cannot read properties of undefined (reading 'total')");
-    expect(gate).toContain('Missing slices render source-pending labels instead of a runtime overlay.');
-    expect(gate).toContain('First stale-refresh cleanup on 2026-07-06 split first-load failure from refresh failure after a visible Analytics snapshot exists.');
-    expect(gate).toContain('shows `Refreshing statistics.` immediately during a snapshot refresh');
-    expect(gate).toContain('preserves the last loaded desktop/mobile view if the refresh fails');
-    expect(gate).toContain('`Statistics could not refresh. Showing the last loaded view.`');
-    expect(gate).toContain('First chart-frame stability cleanup on 2026-07-05 gave Analytics chart surfaces fixed height constants plus Recharts `initialDimension` props.');
-    expect(gate).toContain('The finance mini-chart also moved out of `ResponsiveContainer height="100%"` into a fixed `FINANCE_CHART_HEIGHT` frame. This keeps rendered proof from logging Recharts `width(-1)` / `height(-1)` warnings while Analytics remains intake only.');
-    expect(gate).toContain('Rendered export/report feedback proof on 2026-07-05 reused the existing `localhost:3000` server.');
-    expect(gate).toContain('the `EXPORT` button resolved as one control, clicking it produced the unavailable feedback, no false success text, no framework overlay, and no new warning/error logs after the action.');
-    expect(gate).toContain('Mobile `390x844` `/analytics?proof=analytics-mobile-report-unavailable-2026-07-05` rendered one `Report unavailable` button; tapping it produced the same unavailable feedback');
-    expect(gate).toContain('this proof records action-new-log cleanliness rather than an empty historical buffer; the temporary mobile viewport was reset.');
-    expect(gate).toContain('| Route-owned action | Header `EXPORT` and mobile report are active entry points but now fail closed with unavailable feedback instead of a CSV download; panel Reports/Export are muted local unavailable actions and no longer dispatch analytics events. The old local export path and panel events are preserved as HEAD inventory only. | Blocked.');
-    expect(gate).toContain('First route startup quieting cleanup on 2026-07-05 made `/analytics` route-owned in `pageDataAccess.js`');
-    expect(gate).toContain('| Data quieting | Page-level direct reads moved into `analyticsService.getAnalyticsIntakePage()`, subscriber analytics are admin-gated, finance analytics are admin/sponsor-gated, PageData summary analytics no longer starts on `/analytics`, PageData summary no longer uses the old `95` success-rate fallback or 30% on-route fleet estimate, and `ContextPanel.jsx` no longer passes shell `analyticsData` into the route panel.');
-    expect(gate).toContain('non-admin subscriber zeroes, and org-admin fiscal rendering');
-    expect(gate).toContain('Generated request volume, response, status, type, heatmap, `LIVE`, `READY`, estimated-baseline banners, fixed response deltas, and fixed finance progress may not be presented as measured analytics in the visual pass.');
-    expect(gate).toContain('| Handled sheet | Desktop is a broad card grid; mobile recomposes the route, and the first cleanup now labels unresolved trends as source-pending instead of deriving fallback values or `LIVE` deltas. First-load failures show retryable desktop/mobile alerts; source-slice failures/denials show retryable source-state banners; stale refreshes preserve the last visible snapshot instead of clearing into false empty or failed truth. | Not admitted.');
-    expect(gate).toContain('and it can show the same compact source-state banner as desktop.');
-    expect(gate).toContain('A future action may remain enabled only after actor, dataset, time window, completeness, redaction, degraded state, file contents, and `source truth -> receiver -> app consequence` are proved.');
-    expect(gate).toContain('source-slice failures/denials render retryable source-state banners');
-    expect(gate).toContain('snapshot refreshes show `Refreshing statistics.`');
-    expect(gate).toContain('stale refresh failures preserve the last loaded view');
-
-    expect(pass8).toContain('| `/analytics` `Analytics.jsx` and `MobileAnalytics` | Live provider-or-higher route and its mobile composition.');
-    expect(pass8).toContain('Broken authority/export truth boundary: provider-visible analytics composes admin-only subscriber read and can export fallback/unproved values without completeness labels.');
-    expect(pass8).toContain('Desktop header and mobile action serialize the current aggregate state into the same CSV download');
-    expect(pass8).toContain('Analytics CSV export');
-
-    expect(getPageDataStartupDomainsForRole('sponsor')).toEqual(['analytics']);
-    expect(getPageDataStartupDomainsForRole('org_admin')).toContain('analytics');
     expect(getPageDataStartupDomainsForRole('sponsor', '/analytics')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('org_admin', '/analytics')).not.toContain('analytics');
     expect(routeOwnsStartupDomains('/analytics')).toBe(true);
-    expect(pageDataAccess).toContain("pathname === '/analytics'");
-    expect(contextPanel).toContain('<AnalyticsPanel analyticsContext={analyticsRouteContext} />');
-    expect(contextPanel).toContain("new CustomEvent('requestAnalyticsRouteContext')");
+    expect(pageData).toContain("getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })");
+
     expect(page).toContain("new CustomEvent('analyticsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestAnalyticsRouteContext'");
+    expect(contextPanel).toContain('<AnalyticsPanel analyticsContext={analyticsRouteContext} />');
+    expect(contextPanel).toContain("new CustomEvent('requestAnalyticsRouteContext')");
     expect(contextPanel).not.toContain('<AnalyticsPanel analyticsData={analyticsData} />');
-    expect(pageData).toContain("getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })");
-    expect(pageData).toContain("markDomainError('analytics', error)");
+    expect(contextAction).toContain("label: 'View analytics'");
+    expect(contextAction).toContain("new CustomEvent('openAnalyticsModal')");
+
+    expect(designSystem).toContain("analyticsDesktopWorkspace: read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx')");
+    expect(designSystem).toContain("mobileAnalytics: read('src/components/mobile/MobileAnalytics.jsx')");
+    expect(designSystem).toContain("'OrganizationsPanel', 'AnalyticsPanel', 'MapPanel', 'SettingsPanel'");
   });
 });

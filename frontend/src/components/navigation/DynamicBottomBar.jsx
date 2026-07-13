@@ -9,6 +9,7 @@ import { useSupportTickets } from '../../hooks/useSupportTickets';
 import {
     LayoutDashboard,
     Map,
+    Navigation,
     BarChart3,
     Calendar,
     AlertTriangle,
@@ -185,6 +186,24 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
             label: 'New request',
             color: 'destructive',
             action: () => window.dispatchEvent(new CustomEvent('openEmergencyModal'))
+        };
+    }
+
+    if (pathname.startsWith('/map') && canReachRoute(userRole, '/map')) {
+        return {
+            icon: Navigation,
+            label: 'Center map',
+            color: 'utility',
+            action: () => window.dispatchEvent(new CustomEvent('mapRecenterRequested'))
+        };
+    }
+
+    if (pathname.startsWith('/settings') && canReachRoute(userRole, '/settings')) {
+        return {
+            icon: ShieldCheck,
+            label: 'Security',
+            color: 'utility',
+            action: () => window.dispatchEvent(new CustomEvent('openSecurityModal'))
         };
     }
 
@@ -372,6 +391,8 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
 };
 
 const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
+    const usesUtilityTone = actionConfig.color === 'utility';
+
     return (
         <motion.button
             initial={{ x: 50, opacity: 0 }}
@@ -381,8 +402,8 @@ const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
             }}
             whileTap={{ scale: 0.96 }}
             onClick={actionConfig.action}
-            className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-pill"
-            style={{
+            className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-pill transition-all ${usesUtilityTone ? 'bg-foreground shadow-e3' : 'shadow-2xl'}`}
+            style={usesUtilityTone ? undefined : {
                 background: actionConfig.color === 'staff'
                     ? 'linear-gradient(135deg, rgb(56 189 248) 0%, rgb(14 165 233) 100%)'
                     : actionConfig.color === 'destructive'
@@ -391,7 +412,7 @@ const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {
             }}
             aria-label={actionConfig.label || 'Open action'}
         >
-            <actionConfig.icon className="w-6 h-6 text-white relative z-10" />
+            <actionConfig.icon className={`relative z-10 h-6 w-6 ${usesUtilityTone ? 'text-background' : 'text-white'}`} />
         </motion.button>
     );
 };

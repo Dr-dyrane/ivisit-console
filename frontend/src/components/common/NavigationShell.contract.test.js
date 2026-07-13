@@ -131,8 +131,8 @@ describe('Navigation shell contract', () => {
       bottomMenuButton: false,
       contextualFab: 'page-action',
     });
-    // Golden three fixed + morph slot last (Approvals at rest); Settings lives in the avatar sheet.
-    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
+    // Golden three fixed + morph slot last (Statistics at rest); Settings lives in the avatar sheet.
+    expect(getMobileNavigationItems('admin').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
     expect(getMobileNavigationItems('provider').map((item) => item.label)).toEqual(['Today', 'Requests', 'Visits', 'Settings']);
     // Responder providers (provider_type driver/paramedic/ambulance*) swap Visits for Map.
     expect(getMobileNavigationItems('provider', 'driver').map((item) => item.label)).toEqual(['Today', 'Requests', 'Map', 'Settings']);

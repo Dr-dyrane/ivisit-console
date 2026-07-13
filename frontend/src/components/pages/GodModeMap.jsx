@@ -98,6 +98,11 @@ const deriveTelemetryState = (updatedAt, hasResponderLocation) => {
 	return { state: "live", ageMs, ageLabel };
 };
 
+const statusLabel = (value, fallback = '') => {
+	const text = String(value || fallback).replace(/[_-]+/g, ' ');
+	return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
 const GodModeMapContent = () => {
 	const { theme } = useTheme();
 	const { profile, user } = useAuth();
@@ -119,14 +124,6 @@ const GodModeMapContent = () => {
 	const [userLocation, setUserLocation] = useState(null);
 	const [nearbyHospitals, setNearbyHospitals] = useState([]);
 	const [driverAction, setDriverAction] = useState(null);
-
-	// Simulate ID based on location (optional aesthetic)
-	const simulatedSessionId = useMemo(() => {
-		if (!userLocation) return "PENDING...";
-		const latPart = Math.abs(Math.floor(userLocation.lat * 1000)).toString(16).toUpperCase();
-		const lngPart = Math.abs(Math.floor(userLocation.lng * 1000)).toString(16).toUpperCase();
-		return `NODE-${latPart}-${lngPart}`;
-	}, [userLocation]);
 
 	const mapStyles = useMemo(() =>
 		isDark ? MAP_STYLES.dark : MAP_STYLES.light
@@ -490,6 +487,21 @@ const GodModeMapContent = () => {
 		return () => window.removeEventListener('google-maps-auth-failure', handleAuthFailure);
 	}, [mapProvider, isSwitchingMap]);
 
+	useEffect(() => {
+		const handleRouteRecenter = () => {
+			if (!userLocation) {
+				toast.info('Location not ready');
+				return;
+			}
+
+			toast.info('Centering map');
+			window.dispatchEvent(new CustomEvent('recenter-map'));
+		};
+
+		window.addEventListener('mapRecenterRequested', handleRouteRecenter);
+		return () => window.removeEventListener('mapRecenterRequested', handleRouteRecenter);
+	}, [userLocation]);
+
 	if (error) {
 		handleApiError(error, 'fetch');
 	}
@@ -536,7 +548,6 @@ const GodModeMapContent = () => {
 				processedAmbulances={processedAmbulances}
 				processedHospitals={processedHospitals}
 				filteredRequests={filteredRequests}
-				simulatedSessionId={simulatedSessionId}
 				getPriorityColor={getPriorityColor}
 				getStatusColor={getStatusColor}
 				routePrimaryColor={routePrimaryColor}
@@ -586,7 +597,6 @@ const GodModeMapContent = () => {
 								filteredRequests={filteredRequests}
 								ambulances={processedAmbulances}
 								hospitals={processedHospitals}
-								simulatedSessionId={simulatedSessionId}
 								getPriorityColor={getPriorityColor}
 								getStatusColor={getStatusColor}
 								routePrimaryColor={routePrimaryColor}
@@ -614,10 +624,10 @@ const GodModeMapContent = () => {
 						)}
 
 						{isDriverMode ? (
-							<div className="absolute top-6 left-6 z-[120] w-[20rem] rounded-card bg-card/68 backdrop-blur-2xl p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
+							<div className="absolute left-6 top-6 z-[120] w-[20rem] rounded-card bg-card/68 p-4 shadow-e3 backdrop-blur-2xl">
 								<div className="flex items-center justify-between mb-3">
-									<div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Current request</div>
-									<div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+									<div className="text-[11px] font-medium text-muted-foreground">Current request</div>
+									<div className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
 										<Radio className="h-3.5 w-3.5" />
 										Live
 									</div>
@@ -630,7 +640,7 @@ const GodModeMapContent = () => {
 												Request #{driverActiveEmergency?.display_id || driverActiveEmergency?.id?.slice(-6)}
 											</div>
 											<div className="text-xs text-muted-foreground">
-												Status: <span className="font-semibold text-foreground">{String(driverActiveEmergency?.status || "").toUpperCase()}</span>
+												Status: <span className="font-semibold text-foreground">{statusLabel(driverActiveEmergency?.status, 'Not recorded')}</span>
 											</div>
 											<div className="text-xs text-muted-foreground">
 												Unit: <span className="font-semibold text-foreground">{assignedAmbulance?.call_sign || assignedAmbulance?.vehicle_number || "Unassigned"}</span>
@@ -646,7 +656,7 @@ const GodModeMapContent = () => {
 																: "text-emerald-600 dark:text-emerald-300"
 													}`}
 												>
-													{driverLocationStatus.state.toUpperCase()}
+													{statusLabel(driverLocationStatus.state, 'Unavailable')}
 												</span>
 												{driverLocationStatus.ageLabel ? ` - ${driverLocationStatus.ageLabel} ago` : ""}
 											</div>
@@ -654,10 +664,10 @@ const GodModeMapContent = () => {
 										<div className="grid grid-cols-2 gap-2">
 											<Button
 												size="sm"
-												variant="outline"
+												variant="ghost"
 												onClick={handleDriverPingLocation}
 												disabled={driverAction !== null}
-												className="rounded-button"
+												className="rounded-button bg-muted/40 hover:bg-muted/60"
 												aria-label={driverAction === "ping" ? "Sharing location" : "Share location"}
 												aria-busy={driverAction === "ping"}
 											>
@@ -666,10 +676,10 @@ const GodModeMapContent = () => {
 											</Button>
 											<Button
 												size="sm"
-												variant="outline"
+												variant="ghost"
 												onClick={() => handleDriverStatusUpdate("accepted")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "accepted"}
-												className="rounded-button"
+												className="rounded-button bg-sky-500/12 text-sky-700 hover:bg-sky-500/18 dark:text-sky-200"
 												aria-label={driverAction === "accepted" ? "Saving on way" : "Mark on way"}
 												aria-busy={driverAction === "accepted"}
 											>
@@ -678,10 +688,10 @@ const GodModeMapContent = () => {
 											</Button>
 											<Button
 												size="sm"
-												variant="outline"
+												variant="ghost"
 												onClick={() => handleDriverStatusUpdate("arrived")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "arrived"}
-												className="rounded-button"
+												className="rounded-button bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/18 dark:text-emerald-200"
 												aria-label={driverAction === "arrived" ? "Saving arrived" : "Mark arrived"}
 												aria-busy={driverAction === "arrived"}
 											>
@@ -692,7 +702,7 @@ const GodModeMapContent = () => {
 												size="sm"
 												onClick={() => handleDriverStatusUpdate("completed")}
 												disabled={driverAction !== null || !["arrived", "accepted", "in_progress"].includes(String(driverActiveEmergency?.status || "").toLowerCase())}
-												className="rounded-button"
+												className="rounded-button bg-foreground text-background hover:bg-foreground/90"
 												aria-label={driverAction === "completed" ? "Closing request" : "Close request"}
 												aria-busy={driverAction === "completed"}
 											>
@@ -708,8 +718,8 @@ const GodModeMapContent = () => {
 								)}
 							</div>
 						) : (
-							<div className="absolute top-6 left-6 z-[120] w-[18rem] rounded-card bg-card/68 backdrop-blur-2xl p-4 shadow-[0_24px_70px_rgb(0_0_0/0.16)]">
-								<div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-3">Live status</div>
+							<div className="absolute left-6 top-6 z-[120] w-[18rem] rounded-card bg-card/68 p-4 shadow-e3 backdrop-blur-2xl">
+								<div className="mb-3 text-[11px] font-medium text-muted-foreground">Live status</div>
 								<div className="grid grid-cols-2 gap-2 text-xs">
 									<div className="rounded-inner bg-muted/40 p-2">
 										<div className="text-muted-foreground">Active routes</div>
@@ -739,7 +749,7 @@ const GodModeMapContent = () => {
 								e.stopPropagation();
 								refresh();
 							}}
-							className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] hover:bg-card/80 transition-all pointer-events-auto"
+							className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button bg-card/68 shadow-e3 backdrop-blur-2xl transition-all hover:bg-card/80"
 							title="Refresh map"
 							aria-label="Refresh map"
 							aria-busy={loading}
@@ -765,7 +775,7 @@ const GodModeMapContent = () => {
 									toast.info("Location not ready");
 								}
 							}}
-							className="w-12 h-12 rounded-button bg-card/68 backdrop-blur-2xl flex items-center justify-center shadow-[0_18px_48px_rgb(0_0_0/0.18)] hover:bg-card/80 transition-all pointer-events-auto"
+							className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button bg-card/68 shadow-e3 backdrop-blur-2xl transition-all hover:bg-card/80"
 							title="Center map"
 							aria-label="Center map"
 						>

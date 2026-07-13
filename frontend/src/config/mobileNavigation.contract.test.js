@@ -14,9 +14,9 @@ describe('mobile navigation canonical contract', () => {
 
   it('keeps admin bottom island focused on urgent movement', () => {
     // Golden three (Today/Requests/Map) hold fixed slots; the LAST slot is the
-    // morph slot -- Approvals at rest (2026-07-09 wayfinding decision).
-    expect(labelsFor('admin')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
-    expect(pathsFor('admin')).toEqual(['/', '/emergencies', '/map', '/verification']);
+    // morph slot -- Statistics at rest, current off-slate page while active.
+    expect(labelsFor('admin')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    expect(pathsFor('admin')).toEqual(['/', '/emergencies', '/map', '/analytics']);
   });
 
   it('morphs the last slot into the current page when off-slate (wayfinding)', () => {
@@ -28,12 +28,14 @@ describe('mobile navigation canonical contract', () => {
     expect(withPath('admin', '/wallet')).toEqual(['Today', 'Requests', 'Map', 'Payments']);
     expect(withPath('admin', '/insurance')).toEqual(['Today', 'Requests', 'Map', 'Insurance']);
     // Golden three + the resting default keep the slate untouched.
-    expect(withPath('admin', '/')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
-    expect(withPath('admin', '/emergencies')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
-    expect(withPath('admin', '/map')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
+    expect(withPath('admin', '/')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    expect(withPath('admin', '/emergencies')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    expect(withPath('admin', '/map')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    expect(withPath('admin', '/analytics')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    // Approvals remains reachable and owns the morph slot only while active.
     expect(withPath('admin', '/verification')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
     // Unknown routes never morph.
-    expect(withPath('admin', '/login')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
+    expect(withPath('admin', '/login')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
     // Works for every slate: provider on /doctors swaps its last slot (Settings).
     expect(withPath('provider', '/doctors')).toEqual(['Today', 'Requests', 'Visits', 'Staff']);
     // Responder slate morphs too (driver on /visits gets wayfinding back).

@@ -10,6 +10,7 @@ describe('Console design system contract', () => {
   const primitives = () => read('src/components/console/primitives.jsx');
   const kpiStrip = () => read('src/components/console/KpiStrip.jsx');
   const glanceTile = () => read('src/components/console/GlanceTile.jsx');
+  const mobileGlanceTile = () => read('src/components/mobile/canon/MobileGlanceTile.jsx');
   const signalPanel = () => read('src/components/console/SignalPanel.jsx');
   const activitySheet = () => read('src/components/console/ActivitySheet.jsx');
   const workspaceStage = () => read('src/components/console/WorkspaceStage.jsx');
@@ -75,6 +76,7 @@ describe('Console design system contract', () => {
     primitives: primitives(),
     kpiStrip: kpiStrip(),
     glanceTile: glanceTile(),
+    mobileGlanceTile: mobileGlanceTile(),
     signalPanel: signalPanel(),
     activitySheet: activitySheet(),
     workspaceStage: workspaceStage(),
@@ -169,6 +171,20 @@ describe('Console design system contract', () => {
     expect(src).toContain('const toneClass = toneClassMap[item.tone] || toneClassMap.muted;');
   });
 
+  it('locks the mobile Today-height glance tile for dashboard statistics', () => {
+    const src = mobileGlanceTile();
+    const today = read('src/components/mobile/MobileToday.jsx');
+    const analytics = read('src/components/mobile/MobileAnalytics.jsx');
+    expect(src).toContain('surface-card flex min-h-[72px] items-start justify-between gap-2 rounded-inner px-4 py-3 text-left');
+    expect(src).toContain('block text-[11px] font-medium text-muted-foreground');
+    expect(src).toContain('mt-1 block text-[15px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere]');
+    expect(src).toContain('flex h-7 w-7 shrink-0 items-center justify-center rounded-pill');
+    expect(src).not.toContain('min-h-[126px]');
+    expect(today).toContain("import { MobileGlanceTile } from './canon/MobileGlanceTile';");
+    expect(analytics).toContain("import { MobileGlanceTile } from './canon/MobileGlanceTile';");
+    expect(analytics).toContain('<CompactStatTile key={metric.label} {...metric} onClick={onOpenDetails} />');
+  });
+
   it('locks the signal panel architecture: heights, no entrance motion', () => {
     const src = signalPanel();
     expect(src).toContain('min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]');
@@ -258,6 +274,10 @@ describe('Console design system contract', () => {
       supportTicketsPage: read('src/components/pages/SupportTicketsPage.jsx'),
       healthNewsPage: read('src/components/pages/HealthNewsManagementPage.jsx'),
       organizationsPage: read('src/components/pages/OrganizationsPage.jsx'),
+      analyticsPage: read('src/components/pages/Analytics.jsx'),
+      analyticsDesktopWorkspace: read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx'),
+      mobileAnalytics: read('src/components/mobile/MobileAnalytics.jsx'),
+      analyticsPanel: read('src/components/context/AnalyticsPanel.jsx'),
     };
     for (const [name, src] of Object.entries(surfaces)) {
       expect({ name, coloredRgb: /shadow-\[[^\]]*rgb\((?!0[ _]0[ _]0)/.test(src) }).toEqual({ name, coloredRgb: false });
@@ -276,7 +296,7 @@ describe('Console design system contract', () => {
     const PANELS = [
       'EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel',
       'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel',
-      'HealthNewsPanel', 'OrganizationsPanel',
+      'HealthNewsPanel', 'OrganizationsPanel', 'AnalyticsPanel', 'MapPanel', 'SettingsPanel',
     ];
     const DRIFT = /\bsquircle(?:-[a-z]+)?\b|\brounded-(?:xl|2xl|3xl|full)\b|\bgeo-round\b|\bshadow-premium\b/;
     // No colored/bleeding shadow glow on ANY panel surface -- the gold EmergencyPanel is neutral-only
@@ -303,7 +323,7 @@ describe('Console design system contract', () => {
     // green -- the wrong canonical token in the wrong slot. ALL SEVEN route-owned panels now carry
     // the squircle well (Doctors: pill->icon, Ambulances: button->icon, both realigned 2026-07-10);
     // this locks every one of them so a panel can't drift its wells back to a circle again.
-    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel', 'HealthNewsPanel', 'OrganizationsPanel'];
+    const CANON_WELL_PANELS = ['EmergencyPanel', 'VisitsPanel', 'HospitalsPanel', 'AmbulancesPanel', 'VerificationPanel', 'DoctorsPanel', 'UsersPanel', 'SupportTicketsPanel', 'HealthNewsPanel', 'OrganizationsPanel', 'AnalyticsPanel', 'SettingsPanel'];
     // A circular fixed-size box = rounded-pill/full on an EQUAL h-N w-N (backref \1/\2), which is
     // an icon well; pill BADGES (padding-based, no equal h-N w-N) and pill DIVIDERS (h-8 w-1,
     // unequal) are legitimately allowed and do not match.

@@ -20,11 +20,11 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 		<div className="flex items-center justify-end">
 			<motion.div
 				initial={false}
-				className="bg-card/68 backdrop-blur-2xl rounded-pill p-1 flex flex-row-reverse items-center shadow-[0_18px_48px_rgb(0_0_0/0.18)]"
+				className="flex flex-row-reverse items-center rounded-pill bg-card/68 p-1 shadow-e3 backdrop-blur-2xl"
 			>
 				<button
 					type="button"
-					className="p-2 flex items-center justify-center rounded-pill transition-all hover:bg-foreground/[0.04] active:scale-[0.98] focus-visible:bg-foreground/[0.06]"
+					className="flex items-center justify-center rounded-button p-2 transition-all hover:bg-foreground/[0.04] active:scale-[0.98] focus-visible:bg-foreground/[0.06]"
 					onClick={() => setIsExpanded(prev => !prev)}
 					aria-label={isExpanded ? "Hide map layers" : "Show map layers"}
 					aria-expanded={isExpanded}
@@ -59,7 +59,7 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 											aria-pressed={isVisible}
 											className={`
                         h-10 w-10 flex items-center justify-center rounded-button transition-all
-                        ${isVisible ? 'bg-foreground text-background shadow-[0_12px_32px_rgb(0_0_0/0.22)]' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}
+                        ${isVisible ? 'bg-foreground text-background shadow-e2' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}
                       `}
 										>
 											<Icon className={`h-4.5 w-4.5 ${isVisible ? 'text-background' : config.color}`} />

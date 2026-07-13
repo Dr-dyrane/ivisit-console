@@ -77,6 +77,7 @@ const MANIFEST = {
   'MobileErrorBoundary.jsx': { tier: 'exempt', reason: 'primitive' },
   'MobileFeaturedMetric.jsx': { tier: 'exempt', reason: 'primitive (dashboard billboard)' },
   'MobileKPIStrip.jsx': { tier: 'exempt', reason: 'primitive' },
+  'MobileGlanceTile.jsx': { tier: 'exempt', reason: 'shared Today-height glance/stat primitive' },
   'MobileListStates.jsx': { tier: 'exempt', reason: 'primitive' },
   'MobileMetricList.jsx': { tier: 'exempt', reason: 'primitive' },
   'MobilePageShell.jsx': { tier: 'exempt', reason: 'shell' },

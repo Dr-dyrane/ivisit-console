@@ -140,6 +140,9 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('rounded-icon');
     expect(page).toContain('rounded-button');
     expect(page).toContain('rounded-pill');
+    expect(page).toContain('<Avatar className="h-36 w-36 rounded-icon');
+    expect(page).toContain('<AvatarFallback className="rounded-icon');
+    expect(page).not.toContain('className="squircle');
     expect(page).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
     expect(page).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
     expect(page).not.toMatch(/\bgeo-/);
@@ -183,6 +186,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(mobile).toContain('rounded-inner');
     expect(mobile).toContain('rounded-icon');
     expect(mobile).toContain('rounded-pill');
+    expect(mobile).not.toMatch(/(?:h-(\d+) w-\1(?=\s)|w-(\d+) h-\2(?=\s))[^"']*rounded-(?:pill|full)\b/);
     expect(mobile).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|md|sm|full|\[[^\]]+\])\b/);
     expect(mobile).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
     expect(mobile).not.toMatch(/\bgeo-/);
@@ -243,6 +247,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(panel).not.toContain('rounded-modal');
     expect(panel).toContain('rounded-icon');
     expect(panel).toContain('rounded-inner');
+    expect(panel).toContain('gap-2 rounded-button bg-background/45');
     expect(panel).not.toMatch(/\brounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])\b/);
     expect(panel).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
     expect(panel).not.toMatch(/\bgeo-/);
@@ -414,12 +419,12 @@ describe('Settings Page 16 intake contract', () => {
     expect(gate).toContain('Support shortcut: partially aligned. Active Settings no longer imports or renders private `SupportModal`');
     expect(gate).toContain('the Help/Support affordance now hands off to `/support-tickets?add=true&from=settings`');
     expect(gate).toContain('non-support roles receive immediate unavailable feedback');
-    expect(gate).toContain('Global actions: partially quieted, not admitted. `ContextAwareFAB.jsx` and `DynamicBottomBar.jsx` now treat `/settings` as route-owned with no generic floating action');
+    expect(gate).toContain('Global actions: partially aligned, not admitted. `ContextAwareFAB.jsx` suppresses the generic desktop action on `/settings`, while `DynamicBottomBar.jsx` now supplies one route-owned mobile `Security` FAB');
     expect(gate).toContain('Keep `Free Tier`, `Upgrade`, and Billing portal copy out of active Settings unless user-scoped billing/subscription truth is proved');
     expect(gate).toContain('| Route-owned action | Profile edit, security, support handoff, provider profile, sign out, Billing, and `?quick=true` can all be visible; Billing is unavailable with local feedback pending receiver proof');
-    expect(gate).toContain('sign out now has local pending feedback and duplicate-tap blocking');
+    expect(gate).toContain('sign out has local pending feedback and duplicate-tap blocking');
     expect(gate).toContain('| Interaction feedback | Sign out now acknowledges pending desktop/mobile state and blocks duplicate taps; `SecurityModal` has focused setup/verify/disable/password pending-state proof; `ProfileEditModal` has focused upload/save pending-state proof; support submit, theme toggle, provider update, rendered profile/avatar recovery states, and rendered security recovery states still need complete immediate feedback and reflected state proof.');
-    expect(gate).toContain('| Data quieting | Auth/profile/display-id reads, Auth SDK actions, support handoff, doctor update, context-panel events, and ThemeProvider-owned local theme state coexist. PageData startup and generic floating actions are quieted on `/settings`.');
+    expect(gate).toContain('| Data quieting | Auth/profile/display-id reads, Auth SDK actions, support handoff, doctor update, context-panel events, and ThemeProvider-owned local theme state coexist. PageData startup and generic floating actions are quieted on `/settings`; the mobile dock action is namespaced to the existing security event.');
 
     expect(pass4).toContain('own-user `/settings` is also route-visible from `viewer` while its panel is admin-only');
     expect(pass4).toContain('MobileSettings` is a mounted own-user identity surface for every settings actor.');
@@ -457,6 +462,10 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain("new CustomEvent('settingsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestSettingsRouteContext'");
     expect(routeOwnsShellAction('/settings')).toBe(true);
+    expect(bottomBar).toContain("pathname.startsWith('/settings') && canReachRoute(userRole, '/settings')");
+    expect(bottomBar).toContain("label: 'Security'");
+    expect(bottomBar).toContain("new CustomEvent('openSecurityModal')");
+    expect(contextFab).toContain('routeOwnsShellAction(location.pathname)');
   });
 
   it('keeps the desktop account dashboard calm and avoids inferred status claims', () => {
