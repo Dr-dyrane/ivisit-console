@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { toast } from 'sonner';
 import { getPricingPageData } from '../../../services/pricingService';
 import { usePricingPageController } from './usePricingPageController';
 
@@ -145,5 +146,29 @@ describe('usePricingPageController', () => {
 
     expect(latest.pricing.map((row) => row.id)).toEqual(['newer-rule']);
     expect(latest.loadError).toBeNull();
+  });
+
+  it('stays quiet when an in-flight request rejects after the controller unmounts', async () => {
+    let rejectRequest;
+    getPricingPageData.mockReturnValue(new Promise((_resolve, reject) => {
+      rejectRequest = reject;
+    }));
+
+    await act(async () => {
+      root.render(<Harness />);
+      await flush();
+    });
+
+    act(() => {
+      root.render(null);
+    });
+    await act(async () => {
+      rejectRequest(new Error('offline after unmount'));
+      await flush();
+    });
+
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(getPricingPageData).toHaveBeenCalledTimes(1);
   });
 });

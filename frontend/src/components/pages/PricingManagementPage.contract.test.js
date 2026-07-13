@@ -26,6 +26,10 @@ const mobilePricingSource = () => [
   mobilePricingEntrySource(),
   readTree('src/components/mobile/pricing'),
 ].join('\n');
+const pricingServiceSource = () => [
+  read('src/services/pricingService.js'),
+  readTree('src/services/pricing'),
+].join('\n');
 const appSource = () => [
   read('src/app/AppRoutes.jsx'),
   read('src/app/appRouteMetadata.js'),
@@ -173,7 +177,7 @@ describe('Pricing Page 18 intake contract', () => {
     const panel = read('src/components/context/PricingContextPanel.jsx');
     const table = read('src/components/views/PricingTableView.jsx');
     const list = read('src/components/views/PricingListView.jsx');
-    const service = read('src/services/pricingService.js');
+    const service = pricingServiceSource();
 
     expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/pages/PricingManagementPage.jsx`');
     expect(gate).toContain("`usePageHeader('Pricing Engine')`, `useViewMode('pricing', 'grid')`, `usePagination(12)`");
@@ -448,7 +452,7 @@ describe('Pricing Page 18 intake contract', () => {
     ].join('\n');
     const contextAction = read('src/hooks/useContextAction.js');
     const routeActionOwnership = read('src/config/routeActionOwnership.js');
-    const service = read('src/services/pricingService.js');
+    const service = pricingServiceSource();
     const mobile = mobilePricingSource();
     const table = read('src/components/views/PricingTableView.jsx');
 

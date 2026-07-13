@@ -25,6 +25,7 @@ const hospitals = [
 
 const queryStates = [];
 let truncateRowWindows = false;
+let countUnavailable = false;
 
 const hasFilter = (state, method, column) => state.filters.some(
   (filter) => filter.method === method && filter.args[0] === column,
@@ -39,6 +40,27 @@ function rowsForState(state) {
   let rows = [...source];
   if (hasFilter(state, 'is', 'hospital_id')) rows = rows.filter((row) => !row.hospital_id);
   if (hasFilter(state, 'not', 'hospital_id')) rows = rows.filter((row) => Boolean(row.hospital_id));
+  state.filters
+    .filter((filter) => filter.method === 'or')
+    .forEach((filter) => {
+      const expression = filter.args[0];
+      rows = rows.filter((row) => {
+        if (expression.includes('hospital_id.is.null') && !row.hospital_id) return true;
+
+        const hospitalIds = expression.match(/hospital_id\.in\.\(([^)]*)\)/)?.[1]
+          ?.split(',')
+          .filter(Boolean) || [];
+        if (hospitalIds.includes(row.hospital_id)) return true;
+
+        const ilikePattern = /([a-z_]+)\.ilike\.%([^%]*)%/g;
+        let match = ilikePattern.exec(expression);
+        while (match) {
+          if (String(row[match[1]] || '').toLowerCase().includes(match[2])) return true;
+          match = ilikePattern.exec(expression);
+        }
+        return false;
+      });
+    });
   const updatedAfter = getFilter(state, 'gte', 'updated_at')?.args[1];
   if (updatedAfter) rows = rows.filter((row) => row.updated_at >= updatedAfter);
 
@@ -52,13 +74,26 @@ function rowsForState(state) {
 
 function respond(state) {
   if (state.table === 'hospitals') {
+    const organizationId = getFilter(state, 'eq', 'organization_id')?.args[1];
     const ids = getFilter(state, 'in', 'id')?.args[1];
-    const data = ids ? hospitals.filter((hospital) => ids.includes(hospital.id)) : hospitals;
+    const namePattern = getFilter(state, 'ilike', 'name')?.args[1]
+      ?.replaceAll('%', '')
+      .toLowerCase();
+    let data = [...hospitals];
+    if (organizationId) {
+      data = data.filter((hospital) => hospital.organization_id === organizationId);
+    }
+    if (ids) data = data.filter((hospital) => ids.includes(hospital.id));
+    if (namePattern) {
+      data = data.filter((hospital) => hospital.name.toLowerCase().includes(namePattern));
+    }
     return { data, count: state.options?.count === 'exact' ? data.length : null, error: null };
   }
 
   const rows = rowsForState(state);
-  if (state.options?.head) return { data: null, count: rows.length, error: null };
+  if (state.options?.head) {
+    return { data: null, count: countUnavailable ? null : rows.length, error: null };
+  }
 
   const [start, end] = state.range || [0, rows.length - 1];
   const data = rows.slice(start, end + 1);
@@ -106,6 +141,7 @@ describe('pricingService exact page projection', () => {
     jest.clearAllMocks();
     queryStates.length = 0;
     truncateRowWindows = false;
+    countUnavailable = false;
     supabase.from.mockImplementation((table) => makeBuilder(table));
   });
 
@@ -134,6 +170,92 @@ describe('pricingService exact page projection', () => {
     expect(rowWindows).toHaveLength(2);
     expect(rowWindows.map((state) => state.range)).toEqual(expect.arrayContaining([[0, 2], [0, 1]]));
     expect(queryStates.filter((state) => state.options?.head)).toHaveLength(8);
+  });
+
+  it('applies organization UUID, service family, override scope, and normalized search server-side', async () => {
+    const projection = await getPricingPageData({
+      family: 'services',
+      organizationId: 'org-1',
+      search: '  Central!!! ',
+      scope: 'override',
+      page: 1,
+      pageSize: 12,
+    });
+
+    expect(projection.rows.map((row) => row.id)).toEqual(['service-1']);
+    expect(projection.totalCount).toBe(1);
+    expect(projection.actor).toEqual({ organizationId: 'org-1' });
+    expect(projection.scope).toMatchObject({
+      mode: 'organization_summary',
+      organizationId: 'org-1',
+      hospitalId: null,
+      editable: false,
+    });
+    expect(projection.summary).toMatchObject({
+      totalCount: 1,
+      globalFallbackCount: 0,
+      facilityPriceCount: 1,
+      exactCounts: true,
+    });
+    expect(projection.readState.boundedBy).toEqual({
+      family: 'services',
+      scope: 'override',
+      search: 'central',
+      page: 1,
+      pageSize: 12,
+    });
+
+    const organizationQuery = queryStates.find((state) => (
+      state.table === 'hospitals' && hasFilter(state, 'eq', 'organization_id')
+    ));
+    expect(getFilter(organizationQuery, 'eq', 'organization_id').args[1]).toBe('org-1');
+    expect(queryStates.some((state) => state.table === 'room_pricing')).toBe(false);
+
+    const serviceQueries = queryStates.filter((state) => state.table === 'service_pricing');
+    serviceQueries.forEach((state) => {
+      expect(state.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          method: 'or',
+          args: ['hospital_id.is.null,hospital_id.in.(hospital-1)'],
+        }),
+        expect.objectContaining({
+          method: 'or',
+          args: ['service_name.ilike.%central%,service_type.ilike.%central%,description.ilike.%central%,hospital_id.in.(hospital-1)'],
+        }),
+      ]));
+    });
+    expect(serviceQueries.filter((state) => state.options?.head)).toHaveLength(4);
+  });
+
+  it('sorts the complete union before slicing later pages in either direction', async () => {
+    const descendingPage = await getPricingPageData({
+      family: 'all',
+      sortDirection: 'desc',
+      page: 2,
+      pageSize: 2,
+    });
+    expect(descendingPage.rows.map((row) => row.id)).toEqual(['service-2', 'room-2']);
+    expect(descendingPage.totalCount).toBe(5);
+
+    const ascendingPage = await getPricingPageData({
+      family: 'all',
+      sortDirection: 'asc',
+      page: 1,
+      pageSize: 2,
+    });
+    expect(ascendingPage.rows.map((row) => row.id)).toEqual(['service-3', 'room-2']);
+    expect(ascendingPage.readState.boundedBy).toMatchObject({ page: 1, pageSize: 2 });
+  });
+
+  it('fails closed when exact server counts are unavailable', async () => {
+    countUnavailable = true;
+
+    await expect(getPricingPageData({ family: 'rooms' }))
+      .rejects
+      .toMatchObject({
+        code: 'pricing_count_unavailable',
+        message: 'Pricing rules could not be verified for this scope.',
+      });
   });
 
   it('fails closed when the server returns less than the counted page window', async () => {
