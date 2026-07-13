@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
 import { shouldHideShellChrome } from '../../app/shellVisibility';
-import { readAuthImplementation } from '../../test/sourceEstates';
+import { readAuthImplementation, readLoginImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -25,7 +25,7 @@ describe('Set Password Page 20 admission contract', () => {
   it('bounds recovery checks and gives missing and failed links a way out', () => {
     const page = read('src/components/pages/SetPasswordPage.jsx');
     const auth = readAuthImplementation();
-    const login = read('src/components/pages/LoginPage.jsx');
+    const login = readLoginImplementation();
 
     expect(page).toContain('const RECOVERY_CHECK_TIMEOUT_MS = 5000;');
     expect(page).toContain("const PASSWORD_LINK_MARKER = 'ivisit_verified_password_link';");

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
 import { PUBLIC_SHELL_ROUTES, shouldHideShellChrome } from '../../app/shellVisibility';
-import { readAuthImplementation } from '../../test/sourceEstates';
+import { readAuthImplementation, readLoginImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -24,7 +24,7 @@ describe('Login Page 19 admission contract', () => {
   });
 
   it('does not disclose account existence and keeps password setup explicit', () => {
-    const page = read('src/components/pages/LoginPage.jsx');
+    const page = readLoginImplementation();
     const auth = readAuthImplementation();
 
     expect(page).toContain('const [step, setStep] = useState("email");');
@@ -62,7 +62,7 @@ describe('Login Page 19 admission contract', () => {
   });
 
   it('keeps AAL1 sessions in the security flow until canonical assurance is satisfied', () => {
-    const page = read('src/components/pages/LoginPage.jsx');
+    const page = readLoginImplementation();
     const auth = readAuthImplementation();
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
 
@@ -82,7 +82,7 @@ describe('Login Page 19 admission contract', () => {
 
   it('guards submits and records the admitted auth boundary', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const page = read('src/components/pages/LoginPage.jsx');
+    const page = readLoginImplementation();
 
     expect(gate).toContain('Account discovery: retired.');
     expect(gate).toContain('Password and MFA sign-in: admitted.');
@@ -97,7 +97,7 @@ describe('Login Page 19 admission contract', () => {
   });
 
   it('uses compact calm auth chrome on mobile and desktop', () => {
-    const page = read('src/components/pages/LoginPage.jsx');
+    const page = readLoginImplementation();
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     for (const token of ['rounded-icon', 'rounded-inner', 'rounded-button', 'rounded-pill']) {

@@ -38,3 +38,8 @@ export const readAuthImplementation = () => readSourceEstate({
   files: ['src/contexts/AuthContext.jsx'],
   directories: ['src/contexts/auth'],
 });
+
+export const readLoginImplementation = () => readSourceEstate({
+  files: ['src/components/pages/LoginPage.jsx'],
+  directories: ['src/components/pages/login'],
+});
