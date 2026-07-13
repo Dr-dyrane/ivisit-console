@@ -1,5 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import {
+  readMobileSettingsImplementation,
+  readSettingsPageImplementation,
+} from '../../test/sourceEstates';
 
 const readSource = (relativePath) => fs.readFileSync(
   path.resolve(__dirname, relativePath),
@@ -8,8 +12,8 @@ const readSource = (relativePath) => fs.readFileSync(
 
 describe('identity and settings low-risk closures', () => {
   test('mobile professional profile exposes loading, available, and unavailable states', () => {
-    const mobileSource = readSource('../mobile/MobileSettings.jsx');
-    const settingsSource = readSource('../pages/SettingsPage.jsx');
+    const mobileSource = readMobileSettingsImplementation();
+    const settingsSource = readSettingsPageImplementation();
 
     expect(mobileSource).toContain('hasDoctorProfile = false');
     expect(mobileSource).toContain('doctorProfileLoading = false');

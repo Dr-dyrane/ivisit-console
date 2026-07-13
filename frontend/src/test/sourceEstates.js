@@ -54,6 +54,16 @@ export const readAnalyticsServiceImplementation = () => readSourceEstate({
   directories: ['src/services/analytics'],
 });
 
+export const readMobileSettingsImplementation = () => readSourceEstate({
+  files: ['src/components/mobile/MobileSettings.jsx'],
+  directories: ['src/components/mobile/settings'],
+});
+
+export const readSettingsPageImplementation = () => readSourceEstate({
+  files: ['src/components/pages/SettingsPage.jsx'],
+  directories: ['src/components/pages/settings'],
+});
+
 export const readIslandNavigationImplementation = () => readSourceEstate({
   files: ['src/components/common/IslandNavigation.jsx'],
   directories: ['src/components/common/island-navigation'],

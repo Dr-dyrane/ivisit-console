@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { readAnalyticsModalImplementation } from '../../test/sourceEstates';
 
 const read = (relativePath) => fs.readFileSync(path.join(__dirname, relativePath), 'utf8');
 const readTree = (relativeDirectory) => {
@@ -31,7 +32,7 @@ const app = [
   read('../../app/appRouteMetadata.js'),
 ].join('\n');
 const modal = read('../modals/InsuranceModal.jsx');
-const analyticsModal = read('../modals/AnalyticsModal.jsx');
+const analyticsModal = readAnalyticsModalImplementation();
 const service = [
   read('../../services/insuranceService.js'),
   readTree('../../services/insurance'),
