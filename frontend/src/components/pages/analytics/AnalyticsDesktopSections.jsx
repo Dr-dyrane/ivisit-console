@@ -174,7 +174,7 @@ export const AnalyticsEvidenceSections = ({
       <EvidenceItem label="Profiles" value={sourceReadiness?.users ? formatMetricNumber(stats?.totalUsers) : SOURCE_UNAVAILABLE} />
       <EvidenceItem label="Facilities" value={sourceReadiness?.hospitals ? formatMetricNumber(stats?.totalHospitals) : SOURCE_UNAVAILABLE} />
       <EvidenceItem label="Fleet" value={sourceReadiness?.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE} />
-      <EvidenceItem label="Bed use" value={bedUse} />
+      <EvidenceItem label="Occupied beds" value={bedUse} />
     </EvidenceSection>
 
     {canReadSubscriptionAnalytics && (

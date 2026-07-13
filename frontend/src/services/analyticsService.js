@@ -10,17 +10,14 @@ import { getAmbulances } from './ambulancesService';
 import { getSubscriptionAnalytics } from './subscriptionService';
 import { applyAuthFilter, getCurrentUser } from './authService';
 import { getFinanceAnalytics } from './walletService';
+import { getAnalyticsHospitalCapacitySource } from './analytics/hospitalCapacityProjection';
 import { supabase } from '../lib/supabase';
 
 // Cache for performance optimization
 const cache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Matches no row; used to scope provider reads to nothing instead of filtering
-// on a column the table does not have (Postgres 42703).
-const ANALYTICS_EMPTY_SCOPE_UUID = '00000000-0000-0000-0000-000000000000';
 const ANALYTICS_REQUEST_SAMPLE_LIMIT = 1000;
-const ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT = 1000;
 
 export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {
   total: 0,
@@ -106,17 +103,9 @@ export const getAnalyticsIntakePage = async ({
     .select('*', { count: 'exact' })
     .limit(ANALYTICS_REQUEST_SAMPLE_LIMIT);
   let usersQuery = supabase.from('profiles').select('id', { count: 'exact', head: true });
-  let hospitalsQuery = supabase
-    .from('hospitals')
-    .select('id, total_beds, available_beds, icu_beds_available', { count: 'exact' })
-    .limit(ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT);
   let ambulancesQuery = supabase.from('ambulances').select('id', { count: 'exact', head: true });
 
   const isProviderScoped = user?.role === 'provider';
-  const providerHospitalIds = isProviderScoped && Array.isArray(user?.hospital_ids)
-    ? user.hospital_ids.filter(Boolean)
-    : [];
-
   requestsQuery = applyAuthFilter(requestsQuery, user, {
     userIdField: 'user_id',
     orgIdField: 'hospital_id',
@@ -144,14 +133,11 @@ export const getAnalyticsIntakePage = async ({
   });
 
   if (isProviderScoped) {
-    // hospitals and ambulances have no user_id column, so applyAuthFilter's
-    // provider fallback would filter on a missing column (42703). Scope by the
-    // provider's hospitals when resolved, otherwise by assignment
-    // (ambulances.profile_id) or an empty scope (hospitals).
-    if (providerHospitalIds.length) {
-      hospitalsQuery = providerHospitalIds.length > 1
-        ? hospitalsQuery.in('id', providerHospitalIds)
-        : hospitalsQuery.eq('id', providerHospitalIds[0]);
+    // Ambulances have no user_id column, so applyAuthFilter's provider fallback
+    // would filter on a missing column (42703). Hospital capacity owns the same
+    // provider scope in its paginated projection.
+    if (Array.isArray(user?.hospital_ids) && user.hospital_ids.filter(Boolean).length) {
+      const providerHospitalIds = user.hospital_ids.filter(Boolean);
       ambulancesQuery = providerHospitalIds.length > 1
         ? ambulancesQuery.in('hospital_id', providerHospitalIds)
         : ambulancesQuery.eq('hospital_id', providerHospitalIds[0]);
@@ -160,20 +146,13 @@ export const getAnalyticsIntakePage = async ({
       // not populate authService.hospital_ids. Use that canonical link before
       // falling back to an empty scope so Statistics sees the same organization
       // facilities/fleet that the operational projections can resolve.
-      hospitalsQuery = hospitalsQuery.eq('organization_id', user.organization_id);
       ambulancesQuery = ambulancesQuery.eq('organization_id', user.organization_id);
     } else {
-      hospitalsQuery = hospitalsQuery.eq('id', ANALYTICS_EMPTY_SCOPE_UUID);
       ambulancesQuery = user?.id
         ? ambulancesQuery.eq('profile_id', user.id)
-        : ambulancesQuery.eq('id', ANALYTICS_EMPTY_SCOPE_UUID);
+        : ambulancesQuery.eq('id', '00000000-0000-0000-0000-000000000000');
     }
   } else {
-    hospitalsQuery = applyAuthFilter(hospitalsQuery, user, {
-      orgIdField: 'organization_id',
-      resourceType: 'hospitals'
-    });
-
     ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
       orgIdField: 'organization_id',
       resourceType: 'ambulances'
@@ -187,7 +166,7 @@ export const getAnalyticsIntakePage = async ({
   const [requestsRes, usersRes, hospitalsRes, ambulancesRes, subscriptionRes] = await Promise.all([
     resolveAnalyticsSource(requestsQuery),
     resolveAnalyticsSource(usersQuery),
-    resolveAnalyticsSource(hospitalsQuery),
+    resolveAnalyticsSource(getAnalyticsHospitalCapacitySource(user)),
     resolveAnalyticsSource(ambulancesQuery),
     subscriptionAnalyticsRequest,
   ]);
@@ -204,9 +183,7 @@ export const getAnalyticsIntakePage = async ({
   const usersCount = toExactCount(usersRes.count);
   const ambulancesCount = toExactCount(ambulancesRes.count);
   const hospitalReturnedCount = (hospitalsRes.data || []).length;
-  const hospitalSampleComplete = !hospitalsRes.error
-    && hospitalTotalCount !== null
-    && hospitalTotalCount <= hospitalReturnedCount;
+  const hospitalSampleComplete = !hospitalsRes.error && hospitalsRes.complete === true;
 
   if (!requestsRes.error && requestTotalCount === null) {
     sourceIssues.push({ source: 'requests', kind: 'failed', reason: 'count_unavailable' });
@@ -256,7 +233,7 @@ export const getAnalyticsIntakePage = async ({
     hospitalSample: {
       returnedCount: hospitalReturnedCount,
       totalCount: hospitalTotalCount,
-      limit: ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT,
+      limit: hospitalsRes.pageSize || 1000,
       complete: hospitalSampleComplete,
     },
     ambulancesCount: ambulancesCount || 0,

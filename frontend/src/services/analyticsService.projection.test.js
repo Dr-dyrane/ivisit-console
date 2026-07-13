@@ -27,6 +27,12 @@ jest.mock('./subscriptionService', () => ({
 }));
 
 const queryStates = [];
+const hospitalRows = Array.from({ length: 1598 }, (_, index) => ({
+  id: `hospital-${index + 1}`,
+  total_beds: 20,
+  available_beds: 5,
+  icu_beds_available: 2,
+}));
 
 function responseFor(state) {
   if (state.table === 'emergency_requests') {
@@ -36,12 +42,10 @@ function responseFor(state) {
     return { data: null, count: 12, error: null };
   }
   if (state.table === 'hospitals') {
+    const [from, to] = state.range || [0, 999];
     return {
-      data: [
-        { id: 'hospital-1', total_beds: 20, available_beds: 5, icu_beds_available: 2 },
-        { id: 'hospital-2', total_beds: 10, available_beds: 4, icu_beds_available: 1 },
-      ],
-      count: 3,
+      data: hospitalRows.slice(from, to + 1),
+      count: state.options?.count === 'exact' ? hospitalRows.length : null,
       error: null,
     };
   }
@@ -52,7 +56,7 @@ function responseFor(state) {
 }
 
 function makeBuilder(table) {
-  const state = { table, select: null, options: null, filters: [], limit: null };
+  const state = { table, select: null, options: null, filters: [], limit: null, range: null, order: null };
   queryStates.push(state);
   const builder = {};
 
@@ -71,6 +75,14 @@ function makeBuilder(table) {
     state.limit = limit;
     return builder;
   };
+  builder.order = (...args) => {
+    state.order = args;
+    return builder;
+  };
+  builder.range = (from, to) => {
+    state.range = [from, to];
+    return builder;
+  };
   builder.then = (onFulfilled, onRejected) => Promise.resolve(responseFor(state)).then(onFulfilled, onRejected);
   return builder;
 }
@@ -84,34 +96,35 @@ describe('analytics intake projection integrity', () => {
     supabase.from.mockImplementation((table) => makeBuilder(table));
   });
 
-  it('uses count-only projections and marks capped hospital capacity as partial', async () => {
+  it('uses count-only network projections and pages the complete hospital capacity set', async () => {
     const projection = await getAnalyticsIntakePage({ timeRange: '7d' });
 
     const profilesQuery = queryStates.find((state) => state.table === 'profiles');
     const ambulancesQuery = queryStates.find((state) => state.table === 'ambulances');
-    const hospitalsQuery = queryStates.find((state) => state.table === 'hospitals');
+    const hospitalsQueries = queryStates.filter((state) => state.table === 'hospitals');
 
     expect(profilesQuery).toMatchObject({ select: 'id', options: { count: 'exact', head: true } });
     expect(ambulancesQuery).toMatchObject({ select: 'id', options: { count: 'exact', head: true } });
-    expect(hospitalsQuery).toMatchObject({
+    expect(hospitalsQueries[0]).toMatchObject({
       select: 'id, total_beds, available_beds, icu_beds_available',
       options: { count: 'exact' },
-      limit: 1000,
+      order: ['id', { ascending: true }],
+      range: [0, 999],
+    });
+    expect(hospitalsQueries[1]).toMatchObject({
+      select: 'id, total_beds, available_beds, icu_beds_available',
+      range: [1000, 1999],
     });
     expect(projection.usersCount).toBe(12);
     expect(projection.ambulancesCount).toBe(7);
-    expect(projection.hospitalsCount).toBe(3);
+    expect(projection.hospitalsCount).toBe(1598);
     expect(projection.hospitalSample).toEqual({
-      returnedCount: 2,
-      totalCount: 3,
+      returnedCount: 1598,
+      totalCount: 1598,
       limit: 1000,
-      complete: false,
+      complete: true,
     });
-    expect(projection.sourceIssues).toContainEqual(expect.objectContaining({
-      source: 'hospitals',
-      kind: 'partial',
-      reason: 'capacity_sample_incomplete',
-    }));
+    expect(projection.sourceIssues).not.toContainEqual(expect.objectContaining({ source: 'hospitals' }));
   });
 
   it('uses a provider organization link when hospital ids are not populated', async () => {

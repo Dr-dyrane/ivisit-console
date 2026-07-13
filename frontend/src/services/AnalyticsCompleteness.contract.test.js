@@ -12,18 +12,23 @@ describe('Analytics completeness contract', () => {
     expect(source).toContain('requestTotalCount <= (requestsRes.data || []).length');
   });
 
-  it('keeps count-only network reads separate from bounded hospital capacity rows', () => {
-    const source = read('src/services/analyticsService.js');
-    expect(source).toContain('const ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT = 1000;');
+  it('keeps count-only network reads separate from complete paginated hospital capacity rows', () => {
+    const source = [
+      read('src/services/analyticsService.js'),
+      read('src/services/analytics/hospitalCapacityProjection.js'),
+    ].join('\n');
+    expect(source).toContain('export const HOSPITAL_CAPACITY_PAGE_SIZE = 1000;');
     expect(source).toContain("select('id', { count: 'exact', head: true })");
-    expect(source).toContain("select('id, total_beds, available_beds, icu_beds_available', { count: 'exact' })");
+    expect(source).toContain("HOSPITAL_CAPACITY_COLUMNS = 'id, total_beds, available_beds, icu_beds_available'");
+    expect(source).toContain(".order('id', { ascending: true })");
+    expect(source).toContain('.range(offset, offset + HOSPITAL_CAPACITY_PAGE_SIZE - 1)');
     expect(source).toContain('hospitalSample: {');
     expect(source).toContain("kind: 'partial'");
     expect(source).toContain("reason: 'capacity_sample_incomplete'");
   });
 
   it('fails finance analytics closed without one identified wallet and a complete ledger window', () => {
-    const source = read('src/services/walletService.js');
+    const source = read('src/services/wallet/analytics.js');
     expect(source).toContain("select('id, currency').maybeSingle()");
     expect(source).toContain("throw new Error('Platform wallet is unavailable.')");
     expect(source).toContain("throw new Error('Organization wallet is unavailable.')");
@@ -33,7 +38,7 @@ describe('Analytics completeness contract', () => {
   });
 
   it('carries subscriber sample completeness with its derived metrics', () => {
-    const source = read('src/services/subscriptionService.js');
+    const source = read('src/services/subscriptions/analytics.js');
     expect(source).toContain(".select('type, status, new_user, welcome_email_sent, created_at, subscription_date', { count: 'exact' })");
     expect(source).toContain('sample: {');
     expect(source).toContain('exactTotalCount <= (data?.length || 0)');
