@@ -50,6 +50,8 @@ shipped green.
       (auto-open sheet/modal), no crash.
 - [ ] **Dock + FAB.** Left island pill + right route FAB (never a centered lone pill); the
       FAB does REAL work or is honestly gated with a reason; the 4th pill morphs correctly.
+      Read-only authority blocks unproved mutation, not a proved route-level Stats/Review action.
+      Any no-FAB exception must be named in the grammar harness with a route-specific reason.
 
 ## Gate 2 — data-fitting (the row is scented to the DATA, not the schema)
 

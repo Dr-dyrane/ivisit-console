@@ -331,11 +331,17 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Insurance (/insurance) is READ-ONLY: the desktop shows only a "Read-only" marker, and unlike
-    // Health News there is NO create receiver at all to surface (INSURANCE_COMMAND_AUTHORITY_DECISION
-    // 2026-07-07 -- no create/edit/delete/verify RLS/RPC). A filter FAB would only duplicate the
-    // SearchRow's in-page filter, so the honest mirror is a bare dock (lone pill) -- declared in
-    // FAB_EXEMPT_ROUTES so the completeness guard accepts it.
+    // Insurance is read-only while policy mutation authority remains unproved. The route still owns
+    // a useful read action: scoped policy statistics. Keep filters local to the SearchRow and route
+    // this FAB through the page's namespaced analytics listener.
+    if (pathname.startsWith('/insurance') && canReachRoute(userRole, '/insurance')) {
+        return {
+            icon: BarChart3,
+            label: 'Policy stats',
+            color: 'primary',
+            action: () => window.dispatchEvent(new CustomEvent('openInsuranceAnalytics'))
+        };
+    }
 
     // Subscriptions (/subscriptions): the FAB mirrors the desktop's primary CTA — the gated
     // "Add subscriber" button (SubscriptionManagementPage, isAdmin, data-state="unavailable").

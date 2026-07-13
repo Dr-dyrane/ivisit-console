@@ -285,6 +285,12 @@ Each must become a **named utility or tiny component**, not re-inlined. Status =
 - **Date-grouped feed:** newest-first, month headers, temporal surfaces only. ✅
 - **Lifecycle context:** `VitalTrack` in the sheet for stateful records. ✅
 - **One state-CTA:** authority-gated primary via `MobileSheetActions`; extras demoted. ✅
+- **Dock action completeness:** a route that suppresses the generic context FAB must render one
+  route-owned dock FAB whenever it has a useful global read or write action. Missing mutation
+  authority forbids a create/edit/delete FAB; it does not make a read-only management route
+  actionless. Prefer a proved Stats, Review, or Export read action when that action is genuinely
+  route-level, and keep local search/filter controls in the page. A no-FAB exemption is valid only
+  when the route has no useful global action and its own interaction grammar is documented.
 - **Filter:** `FilterSheet` mobile bottom sheet. ◐ (align chrome to `chrome-glass`)
 - **States:** empty / skeleton / error via `MobileListStates`. The empty state derives a
   `reason` (`search` / `filtered` / `empty`) and offers a recovery action (Clear Search /
@@ -435,7 +441,7 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 
 - `check-ui-surface-hardgate.js --strict-radius` (radius ladder + no legacy geometry/borders) — **target: green on every mobile page**.
 - `check-mobile-grammar.js` — anatomy + pinned source strings + motion-token pin + **bare-opacity guard**: a bare `bg-/text-/border-/ring-*/N` whose `N` is not in `theme.opacity` fails (it would compile TRANSPARENT — Decisions log 2026-07-10). Use a scale value, a `theme.extend.opacity` step, or bracket `/[0.NN]`.
-- `check-mobile-grammar.js` — **FAB-completeness guard** (Decisions log 2026-07-10): the suppressing-route set is DERIVED from `DynamicBottomBar`'s `routeOwnsAction` + the `usePageShell({hideFab:true})` pages (no hand-list), and every such route MUST have a `getRouteOwnedMobileAction` branch OR a `FAB_EXEMPT_ROUTES` entry with a reason — else the dock collapses to a lone centered pill and it is FATAL.
+- `check-mobile-grammar.js` — **FAB-completeness guard** (Decisions log 2026-07-10): the suppressing-route set is DERIVED from `DynamicBottomBar`'s `routeOwnsAction` + the `usePageShell({hideFab:true})` pages (no hand-list), and every such route MUST have a `getRouteOwnedMobileAction` branch OR a `FAB_EXEMPT_ROUTES` entry with a reason — else the dock collapses to a lone centered pill and it is FATAL. Required read-only route actions are pinned by label and event; Insurance must retain `Policy stats` + `openInsuranceAnalytics` while mutation commands remain fail-closed.
 - `check-mojibake.js` on touched files.
 - Contract tests per page lock the composition (rows, sheet, borderless).
 - **The harness proves STRUCTURE, not COMPUTED RENDERING** (Decisions log 2026-07-10). Every gate above reads source strings; none can see that a class failed to compile. For a "revamped to perfection" sign-off, additionally verify COMPUTED surfaces live — `getComputedStyle` of the orb / panel / status disc — a green harness is necessary, not sufficient.
@@ -445,7 +451,7 @@ Reference: `src/components/mobile/MobileEmergency.jsx` (list) · `src/components
 ## 10. Parity checklist (Apple HIG / ivisit-app) — per new surface
 
 - [ ] ≥44pt tap targets · safe-area insets honored
-- [ ] dock FAB owned by the route (§6/§9) — the FAB MIRRORS the desktop's primary CTA (real/gated create, or review/navigate; RBAC-gated by `canReachRoute`), or an honest `FAB_EXEMPT_ROUTES` exemption for a read-only/action-less route — NEVER a "Filter X" (the SearchRow already owns the in-page filter) and never a lone centered pill
+- [ ] dock FAB owned by the route (§6/§9) — the FAB MIRRORS the route's primary global CTA (real/gated create, stats, review, or navigate; RBAC-gated by `canReachRoute`), or an honest `FAB_EXEMPT_ROUTES` exemption for a genuinely action-less route. Read-only alone is not an exemption. NEVER use "Filter X" when the SearchRow already owns the in-page filter, and never leave a lone centered pill
 - [ ] provider records render their SUB-PERSONA from `provider_type` (responder/clinician, §5) — never a generic "Provider"; split only where the data carries it
 - [ ] ONE page grammar, matching page identity (LIST vs DASHBOARD, §5) — chips filter, tiles navigate, never mixed
 - [ ] no all-caps subtext/subheadings — section labels sentence-case or omitted; `.eyebrow` only in established detail furniture (§3)

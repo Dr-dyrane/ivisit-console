@@ -9,6 +9,8 @@ const modal = read('../modals/InsuranceModal.jsx');
 const analyticsModal = read('../modals/AnalyticsModal.jsx');
 const service = read('../../services/insuranceService.js');
 const panel = read('../context/InsurancePanel.jsx');
+const bottomBar = read('../navigation/DynamicBottomBar.jsx');
+const mobileMenu = read('../navigation/MobileNavMenu.jsx');
 const authority = read('../../../docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md');
 
 describe('Insurance revamp preservation and authority contract', () => {
@@ -112,6 +114,17 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(mobile).toContain("? () => setFilters(prev => ({ ...prev, status: [], type: '', verified: '', created_at: { start: '', end: '' } }))");
     expect(mobile).toContain("? () => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))");
     expect(mobile).not.toMatch(/onDelete|onEdit|onVerify|MobileFeaturedMetric|MobileSecondaryMetricRail/);
+  });
+
+  it('keeps a route-owned Policy Stats FAB without exposing policy mutation commands', () => {
+    expect(bottomBar).toContain("pathname.startsWith('/insurance')");
+    expect(bottomBar).toContain("canReachRoute(userRole, '/insurance')");
+    expect(bottomBar).toContain("label: 'Policy stats'");
+    expect(bottomBar).toContain("new CustomEvent('openInsuranceAnalytics')");
+    expect(page).toContain("window.addEventListener('openInsuranceAnalytics', handleOpenAnalytics)");
+    expect(mobileMenu).toContain("'openInsuranceAnalytics'");
+    expect(mobile).toContain('ROUTE-OWNED dock FAB: Policy Stats');
+    expect(bottomBar).not.toContain("label: 'Add policy'");
   });
 
   it('uses canonical free-form plan filtering and includes the inactive lifecycle state', () => {

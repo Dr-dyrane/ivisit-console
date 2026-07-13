@@ -28,7 +28,8 @@ Page 22 Onboarding Success (`efac625`).
    - Wave one: Insurance, Pricing, Payments, and Subscriptions. Verify loading, stale/error/empty,
      search/filter/tab state, row-to-sheet behavior, bottom-pill current-route state, side-menu title,
      and route-owned FAB feedback. Subscriptions must occupy the fourth pill slot while active and its
-     Add Subscriber FAB must fail closed. Insurance remains read-only with no fabricated create FAB.
+     Add Subscriber FAB must fail closed. Insurance remains read-only with no fabricated create FAB,
+     while its route-owned Policy Stats FAB opens the namespaced read-only analytics surface.
    - Manual side-by-side verdict on 2026-07-12: Payments and Insurance were NOT visually green against
      Requests. The user-rendered correction now declares a HYBRID grammar: shared title/balance hierarchy,
      loaded finance KPIs, separate activity-source tabs, Requests' grouped feed/detail-sheet mechanics,
@@ -36,7 +37,8 @@ Page 22 Onboarding Success (`efac625`).
      and context-owned visible-transaction export. It distinguishes missing/failed source truth from zero,
      preserves per-payment currency, grows the loaded window, and removes active add-funds, withdrawal,
      and card-management dispatches. Insurance now separates KPI scope from filter-button state, uses
-     a two-group replace-in-place skeleton, and distinguishes failed load from true empty. Both pages
+     a two-group replace-in-place skeleton, distinguishes failed load from true empty, and now keeps
+     the required Policy Stats FAB instead of collapsing the dock to a lone pill. Both pages
      remain pending a fresh human render check; do not mark wave one complete from static gates.
    - Payments authority follow-up unmounted `GlobalFinancialModals` from the app shell and removed the
      dormant generic `openTopUpModal` dispatch. Named Edge receiver code remains inactive inventory,

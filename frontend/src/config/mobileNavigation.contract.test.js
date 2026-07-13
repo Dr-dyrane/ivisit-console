@@ -26,6 +26,7 @@ describe('mobile navigation canonical contract', () => {
     expect(withPath('admin', '/doctors')).toEqual(['Today', 'Requests', 'Map', 'Staff']);
     expect(withPath('admin', '/settings')).toEqual(['Today', 'Requests', 'Map', 'Settings']);
     expect(withPath('admin', '/wallet')).toEqual(['Today', 'Requests', 'Map', 'Payments']);
+    expect(withPath('admin', '/insurance')).toEqual(['Today', 'Requests', 'Map', 'Insurance']);
     // Golden three + the resting default keep the slate untouched.
     expect(withPath('admin', '/')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);
     expect(withPath('admin', '/emergencies')).toEqual(['Today', 'Requests', 'Map', 'Approvals']);

@@ -38,11 +38,11 @@ import {
 // destructive control, no secondary write affordance, and no create. Verification is
 // DISPLAY-ONLY (an overlay pill / row markerChip / detail island, never a command).
 //
-// NO dock-FAB: /insurance is FAB-EXEMPT (check-mobile-grammar.js FAB_EXEMPT_ROUTES). The
-// desktop page is read-only (only a "Read-only" marker, no create receiver), a filter FAB
-// would merely duplicate the SearchRow in-page filter, and there is no create branch -- so
-// the honest dock is a lone centered pill (usePageShell({ hideFab: true })). The SearchRow
-// below owns the in-page filter trigger; there is no 'openInsuranceFilter' listener here.
+// ROUTE-OWNED dock FAB: Policy Stats dispatches the page's namespaced
+// openInsuranceAnalytics event. Read-only mutation authority does not make the route
+// actionless: analytics is proved read work, while filter stays in the SearchRow and policy
+// create/edit/delete/verify remain absent. usePageShell({ hideFab: true }) suppresses only the
+// generic context FAB so DynamicBottomBar can render this single Insurance-owned action.
 //
 // grammar:loadmore-append=page owns the growing-window accumulation -- the mobile query is a
 // GROWING WINDOW (offset = 0, limit = currentPage * itemsPerPage), so `policies` is already

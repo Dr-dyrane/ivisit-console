@@ -30,8 +30,11 @@ Status: source-level closure complete 2026-07-12; rendered proof pending
 ## Mobile contract
 
 - Canonical LIST only: heading, KPI strip, search/filter row, adaptive grouped panels, stable rows, detail sheet, load-more feedback, and honest terminal states.
-- No billboard, metric rail, floating metric cards, destructive policy command, or fake route FAB.
-- The route intentionally has no FAB until a create receiver is proved; filter remains in the SearchRow.
+- No billboard, metric rail, floating metric cards, destructive policy command, or fabricated create FAB.
+- The route owns one `Policy stats` FAB. It dispatches `openInsuranceAnalytics` to the page-owned,
+  read-only analytics surface; filter remains in the SearchRow and policy mutations remain absent.
+- Missing mutation authority forbids create/edit/delete/verify actions. It does not justify a lone
+  bottom pill when a proved route-level read action exists.
 
 ## Context contract
 

@@ -291,7 +291,6 @@ function main() {
   const FAB_EXEMPT_ROUTES = {
     '/map': 'map surface — full-bleed interactive canvas with its own control grammar (layers/refiner); no list to filter, no create (MobileMap is grammar-exempt), so no dock FAB',
     '/settings': 'own-account dashboard — no create/filter/review dock action; profile and security actions stay route-owned',
-    '/insurance': 'read-only on desktop right now — InsuranceManagementPage shows only a "Read-only" marker, no create (INSURANCE_COMMAND_AUTHORITY_DECISION 2026-07-07: no create/edit/delete/verify receiver); a filter FAB would only duplicate the SearchRow in-page filter, so the honest mirror is a lone pill. Add a create branch when a policy receiver is proved.',
   };
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
   const actionOwnershipPath = path.join(__dirname, '..', 'src', 'config', 'routeActionOwnership.js');
@@ -358,6 +357,29 @@ function main() {
     const hasBranch = (r) => (r === '/'
       ? /pathname\s*===\s*'\/'/.test(fnBody)
       : fnBody.includes(`startsWith('${r}')`));
+
+    // Read-only authority forbids unproved writes; it does not make a route actionless.
+    // Pin management routes whose proved global action is a read surface so they cannot
+    // regress to a lone pill or be replaced by a fabricated create command.
+    const requiredReadActions = {
+      '/insurance': ["label: 'Policy stats'", "new CustomEvent('openInsuranceAnalytics')"],
+    };
+    for (const [route, requiredTokens] of Object.entries(requiredReadActions)) {
+      const branchMarker = `if (pathname.startsWith('${route}')`;
+      const branchStart = fnBody.indexOf(branchMarker);
+      const branchTail = branchStart >= 0 ? fnBody.slice(branchStart + branchMarker.length) : '';
+      const nextBranchOffset = branchTail.search(/\n\s*if \(pathname\.startsWith\('/);
+      const branchEnd = nextBranchOffset >= 0
+        ? branchStart + branchMarker.length + nextBranchOffset
+        : fnBody.length;
+      const branch = branchStart >= 0 ? fnBody.slice(branchStart, branchEnd) : '';
+      const missingTokens = requiredTokens.filter((token) => !branch.includes(token));
+      if (!hasBranch(route) || missingTokens.length) {
+        console.log('\nDynamicBottomBar.jsx  [dock/FAB read action]');
+        console.log(`  FATAL  ${route} must keep its route-owned read FAB (${requiredTokens.join(', ')}) while mutation commands remain fail-closed.`);
+        fatalCount++;
+      }
+    }
 
     const dockFatal = [...suppress]
       .filter((r) => !hasBranch(r) && !(r in FAB_EXEMPT_ROUTES))
