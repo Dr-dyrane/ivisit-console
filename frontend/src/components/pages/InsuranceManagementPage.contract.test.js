@@ -2,9 +2,34 @@ import fs from 'fs';
 import path from 'path';
 
 const read = (relativePath) => fs.readFileSync(path.join(__dirname, relativePath), 'utf8');
-const page = read('InsuranceManagementPage.jsx');
-const desktop = read('insurance/InsuranceDesktopWorkspace.jsx');
-const mobile = read('../mobile/MobileInsurance.jsx');
+const readTree = (relativeDirectory) => {
+  const directory = path.join(__dirname, relativeDirectory);
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return readTree(path.relative(__dirname, entryPath));
+      }
+      return /\.(js|jsx)$/.test(entry.name) && !/\.test\.(js|jsx)$/.test(entry.name)
+        ? [fs.readFileSync(entryPath, 'utf8')]
+        : [];
+    })
+    .join('\n');
+};
+const pageEntry = read('InsuranceManagementPage.jsx');
+const pageModules = readTree('insurance');
+const page = [pageEntry, pageModules].join('\n');
+const desktop = [
+  read('insurance/InsuranceDesktopWorkspace.jsx'),
+  read('insurance/InsuranceDetailRail.jsx'),
+  read('insurance/insurancePresentation.js'),
+].join('\n');
+const mobileEntry = read('../mobile/MobileInsurance.jsx');
+const mobile = [mobileEntry, readTree('../mobile/insurance')].join('\n');
+const app = [
+  read('../../app/AppRoutes.jsx'),
+  read('../../app/appRouteMetadata.js'),
+].join('\n');
 const modal = read('../modals/InsuranceModal.jsx');
 const analyticsModal = read('../modals/AnalyticsModal.jsx');
 const service = read('../../services/insuranceService.js');
@@ -17,6 +42,31 @@ const mobileMenu = read('../navigation/MobileNavMenu.jsx');
 const authority = read('../../../docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md');
 
 describe('Insurance revamp preservation and authority contract', () => {
+  it('keeps PAGE-14 route, read controller, models, and responsive presentation modular', () => {
+    const dataOwner = read('insurance/useInsurancePageData.js');
+    const routeBridge = read('insurance/useInsuranceRouteBridge.js');
+    const model = read('insurance/insurancePageModel.js');
+    const view = read('insurance/InsurancePageView.jsx');
+    const mobileController = read('../mobile/insurance/useMobileInsuranceController.js');
+
+    expect(pageEntry.split(/\r?\n/).length).toBeLessThanOrEqual(350);
+    expect(mobileEntry.split(/\r?\n/).length).toBeLessThanOrEqual(400);
+    expect(pageEntry).toContain("import { useInsurancePageData } from './insurance/useInsurancePageData';");
+    expect(pageEntry).toContain("import { InsurancePageView } from './insurance/InsurancePageView';");
+    expect(dataOwner).toContain('getInsurancePage({');
+    expect(dataOwner).toContain('getInsuranceBillingOutcomes({');
+    expect(dataOwner).toContain('subscribeToInsurancePolicies');
+    expect(dataOwner).toContain('subscribeToInsuranceBillingOutcomes');
+    expect(routeBridge).toContain("new CustomEvent('insuranceRouteContextUpdated'");
+    expect(model).not.toContain("from 'react'");
+    expect(model).not.toContain('getInsurancePage');
+    expect(view).not.toContain('getInsurancePage');
+    expect(desktop).not.toContain('getInsurancePage');
+    expect(mobileController).not.toContain('getInsurancePage');
+    expect(app).toContain("insurance: lazyNamedPage(() => import('../components/pages/InsuranceManagementPage'), 'InsuranceManagementPage')");
+    expect(app).toContain("{ id: 'insurance', path: '/insurance', minRole: 'admin' }");
+  });
+
   it('keeps policy commands fail-closed until a receiver and role authority are proved', () => {
     expect(authority).toContain('There is no admin policy create/edit/delete/verify RPC.');
     expect(page).not.toContain('showPolicyCommandUnavailable');
@@ -36,8 +86,8 @@ describe('Insurance revamp preservation and authority contract', () => {
   it('preserves service-owned filtering, sort, exact counts, pagination, and failure envelopes', () => {
     expect(page).toContain('getInsurancePage({');
     expect(page).toContain('sortKey: sortConfig.key');
-    expect(page).toContain('pagination.setTotalCount(page.count || 0)');
-    expect(page).toContain('setInsurancePage(prevPage => ({');
+    expect(page).toContain('setTotalCount(page.count || 0)');
+    expect(page).toContain('setInsurancePage((previousPage) => ({');
     expect(service).toContain('exactCounts: true');
     expect(service).toContain('failed: true');
     expect(service).toContain('admin_policy_projection');
@@ -53,7 +103,7 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(page).toContain('subscribeToInsuranceBillingOutcomes');
     expect(page).toContain('unsubscribe();');
     expect(page).toContain('unsubscribeBilling();');
-    expect(page).toContain('billing: insuranceBillingContext');
+    expect(page).toContain('billing: data.insuranceBillingContext');
   });
 
   it('composes the canonical desktop workspace without legacy density views', () => {
@@ -65,9 +115,10 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop).toContain('<SheetToolbar');
     expect(desktop).toContain('<ListRowShell');
     expect(desktop).toContain('<DetailRailShell');
-    expect(page).toContain('denied={insurancePage.denied}');
+    expect(page).toContain('denied={data.insurancePage.denied}');
     expect(desktop).toContain('Insurance access unavailable');
-    expect(desktop).toContain('!denied && failedEmpty && <LoadErrorState');
+    expect(desktop).toContain('!loading && !denied && failedEmpty');
+    expect(desktop).toContain('<LoadErrorState title="Insurance did not load"');
     expect(page).not.toMatch(/useViewMode|ViewToggle|InsuranceListView|InsuranceTableView/);
     expect(page).toContain("usePageHeader('Insurance', headerActions, null, filterButtonComponent);");
     expect(page).toContain("usePageFooter(null, 'status', false)");
@@ -78,9 +129,12 @@ describe('Insurance revamp preservation and authority contract', () => {
   });
 
   it('derives the complete module rail from the donor role string contract', () => {
-    expect(page).toContain("if (isAdmin()) return 'admin';");
-    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
-    expect(page).toContain("if (isProvider()) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain('admin: isAdmin()');
+    expect(page).toContain('orgAdmin: isOrgAdmin()');
+    expect(page).toContain('provider: isProvider()');
+    expect(page).toContain("if (admin) return 'admin';");
+    expect(page).toContain("if (orgAdmin) return 'org_admin';");
+    expect(page).toContain("if (provider) return driver ? 'driver' : 'provider';");
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
     expect(page).not.toContain('getConsoleModuleRailItems({');
   });
@@ -88,7 +142,7 @@ describe('Insurance revamp preservation and authority contract', () => {
   it('keeps one shared max-three KPI strip and one activity sheet', () => {
     expect(desktop.match(/<KpiStrip/g)).toHaveLength(1);
     expect(desktop).toContain("pinnedIds={['pending', 'unverified']}");
-    expect(desktop).toContain('importance={IMPORTANCE}');
+    expect(desktop).toContain('importance={INSURANCE_STATE_IMPORTANCE}');
     expect(desktop).not.toMatch(/<KpiStrip[^>]*\bmax=/);
     expect(desktop.match(/<ActivitySheet/g)).toHaveLength(1);
   });
@@ -97,20 +151,20 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop.match(/<SortableColumnHeader/g)).toHaveLength(1);
     expect(desktop).toContain('sortKey="created_at"');
     expect(page).toContain("created_at: { start: '', end: '' }");
-    expect(page).toContain('pagination.resetPagination()');
+    expect(page).toContain('resetPagination();');
     expect(desktop).toContain('filterSheetOpen={filterSheetOpen}');
     expect(desktop).toContain('filtersActive={hasFilter}');
   });
 
   it('provides admin-only visible-row selection while bulk policy writes stay fail-closed', () => {
     expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
-    expect(page).toContain('const canSelectPolicies = isAdmin() && !insurancePage.denied;');
+    expect(page).toContain('const canSelectPolicies = isAdmin() && !data.insurancePage.denied;');
     expect(page).toContain('const visiblePolicyRows = isMobile ? mobileVisiblePolicies : paginatedPolicies;');
     expect(page).toContain('useRowSelection(visiblePolicyRows)');
-    expect(page).toContain('selectable={canSelectPolicies}');
-    expect(page).toContain('onToggleSelect={handleToggleSelect}');
-    expect(page).toContain('onSelectClick={handleSelectClick}');
-    expect(page).toContain('onSelectAll={handleSelectAll}');
+    expect(page).toContain('selectable={selection.canSelectPolicies}');
+    expect(page).toContain('onToggleSelect={selection.handleToggleSelect}');
+    expect(page).toContain('onSelectClick={selection.handleSelectClick}');
+    expect(page).toContain('onSelectAll={selection.handleSelectAll}');
     expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
     expect(page).toContain('title="Policy changes are unavailable"');
     expect(desktop).toContain('<Checkbox');
@@ -121,10 +175,10 @@ describe('Insurance revamp preservation and authority contract', () => {
   });
 
   it('publishes whole route context and keeps focused-record detail behavior', () => {
-    expect(page).toContain("useFocusedRecord('insurance', paginatedPolicies)");
+    expect(page).toMatch(/useFocusedRecord\(\s*'insurance',\s*paginatedPolicies/);
     expect(page).toContain("new CustomEvent('insuranceRouteContextUpdated'");
-    expect(page).toContain('detail: insurancePanelContext');
-    expect(page).toContain('recentPolicies: paginatedPolicies.slice(0, 3)');
+    expect(page).toContain('detail: panelContext');
+    expect(page).toContain('recentPolicies: policies.slice(0, 3)');
     expect(panel).toContain('insuranceContext');
     expect(page).toContain("window.addEventListener('openInsuranceFilters', handleOpenFilters)");
     expect(page).toContain("window.addEventListener('openInsuranceAnalytics', handleOpenAnalytics)");
@@ -143,29 +197,30 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(mobile).toContain('<MobileSelectionBar');
     expect(mobile).toContain('const selectionMode = selectionActive && selectedIdSet.size > 0;');
     expect(mobile).toContain('selectable={selectionActive}');
-    expect(mobile).toContain('selected={selectedIdSet.has(policy.id)}');
+    expect(mobile).toContain('selected={controller.selectedIdSet.has(policy.id)}');
     expect(mobile).toContain('onLongPress={(item) => onSelect?.(item.id, true)}');
     expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
     expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
     expect(mobile).toContain('disabled');
-    expect(page).toContain('selectionEnabled={canSelectPolicies}');
-    expect(page).toContain('selectedIds={selectedIds}');
+    expect(page).toContain('selectionEnabled={selection.canSelectPolicies}');
+    expect(page).toContain('selectedIds={selection.selectedIds}');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
     expect(mobile).toContain('label="Policies did not load"');
     expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
     expect(mobile).toContain('mobile-insurance-degraded-state');
-    expect(page).toContain('denied={insurancePage.denied}');
+    expect(page).toContain('denied={data.insurancePage.denied}');
     expect(mobile).toContain('label="Insurance access unavailable"');
-    expect(mobile).toContain('!denied && error && displayPolicies.length > 0');
-    expect(page).toContain('count={insurancePage.count}');
-    expect(mobile).toContain('const scopeCount = metricValue(count, policies.length);');
-    expect(page).toContain('isLoadingMore={mobileLoadingMore}');
+    expect(mobile).toContain('!denied && error && controller.displayPolicies.length > 0');
+    expect(page).toContain('count={data.insurancePage.count}');
+    expect(mobile).toContain('const scopeCount = getInsuranceMetric(count, policies.length);');
+    expect(page).toContain('isLoadingMore={data.mobileLoadingMore}');
     expect(mobile).toContain('loading: loading || refetching || isLoadingMore');
     expect(mobile).toContain('Search policy, provider, or plan...');
-    expect(mobile).toContain("? () => setFilters(prev => ({ ...prev, search: '' }))");
-    expect(mobile).toContain("? () => setFilters(prev => ({ ...prev, status: [], type: '', verified: '', created_at: { start: '', end: '' } }))");
-    expect(mobile).toContain("? () => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))");
+    expect(mobile).toContain("setFilters((previous) => ({ ...previous, search: '' }))");
+    expect(mobile).toContain('status: []');
+    expect(mobile).toContain("created_at: { start: '', end: '' }");
+    expect(mobile).toContain("setFilters((previous) => ({ ...previous, kpiFilter: 'all' }))");
     expect(mobile).not.toMatch(/onDelete|onEdit|onVerify|MobileFeaturedMetric|MobileSecondaryMetricRail/);
   });
 
@@ -190,16 +245,17 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(page).toContain("label: 'Plan type'");
     expect(page).toContain("placeholder: 'Basic, Gold, PPO...'");
     expect(page).not.toMatch(/value: 'Health'|value: 'Life'|value: 'Vehicle'|value: 'Property'/);
-    expect(mobile).toContain("type: '', verified: ''");
+    expect(mobile).toContain("type: '',");
+    expect(mobile).toContain("verified: '',");
   });
 
   it('keeps unknown policy status neutral and single-sources policy lifecycle tones', () => {
     expect(service).toContain("String(value || '').trim().toLowerCase() || 'unknown'");
     expect(service).toContain('status: normalizeInsurancePolicyStatus(record.status)');
-    expect(mobile).toContain("const normalizedStatus = (value) => String(value || '').trim().toLowerCase() || 'unknown';");
-    expect(mobile).toContain("default: return 'bg-muted/40 text-muted-foreground';");
+    expect(page).toContain("String(value || '').trim().toLowerCase() || 'unknown'");
+    expect(mobile).toContain("return 'bg-muted/40 text-muted-foreground';");
     expect(mobile).not.toContain("p.status || 'pending'");
-    expect(desktop).toContain("resolveVital('insurance', normalizedStatus(status))");
+    expect(desktop).toContain("resolveVital('insurance', normalizeInsuranceStatus(status))");
     expect(panel).toContain("resolveVital('insurance', normalizedStatus(status))");
     expect(modal).toContain("resolveVital('insurance', policy?.status || 'unknown')");
     expect(desktop).not.toContain('const statusTone');
@@ -234,11 +290,11 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(service).toContain('coverage_amount: details.coverage_amount ?? record.coverage_amount ?? null');
     expect(service).toContain('coverage_percentage:');
     expect(mobile).toContain("label: 'Coverage rate'");
-    expect(mobile).toContain('policy?.coverage_percentage');
+    expect(page).toContain('const raw = policy?.coverage_percentage;');
     expect(modal).toContain('label="Coverage percentage"');
     expect(modal).not.toContain('label="Coverage amount"');
     expect(desktop).toContain('label="Coverage rate"');
-    expect(desktop).toContain('policy.coverage_percentage');
+    expect(desktop).toContain('formatInsuranceCoverage(policy)');
   });
 
   it('distinguishes a recorded zero billing amount from a missing amount', () => {
@@ -251,7 +307,7 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(page).toContain("distributionScope: 'visible_page'");
     expect(page).toContain("distributionLabel: 'Visible page only'");
     expect(page).toContain('visibleAnalyticsPolicies');
-    expect(page).toContain('pending: insuranceStats.pending');
+    expect(page).toContain('pending: stats.pending');
     expect(analyticsModal).toContain("insurance: 'Pending'");
     expect(analyticsModal).toContain("color: getCount(analytics.expired) > 0 ? 'hsl(38 92% 50%)'");
   });
