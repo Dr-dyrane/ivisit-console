@@ -1,370 +1,370 @@
 {
   "schemaVersion": 2,
-  "runId": "audit-20260713160822-1b2f6854",
-  "generatedAt": "2026-07-13T16:24:16.773Z",
+  "runId": "audit-20260713230137-22c0a46e",
+  "generatedAt": "2026-07-13T23:09:28.357Z",
   "inputProvenance": {
-    "sha256": "8a59b0479a09dc71545d5a4aeffebfc09140bf419dbf092cb3969e95b0ef7b1e",
+    "sha256": "a13135fbe46334d7837e9011c1f99cfa663111c9ab0150f0d9797a8d323d9d90",
     "fileCount": 60,
     "files": [
       {
         "path": "cleanup-ledger.json",
         "bytes": 578,
-        "sha256": "1d704f26b592405895f560b1a29f6d920259f29b1a24d1635b02d1d999532b39",
-        "modifiedAt": "2026-07-13T16:23:53.431Z"
+        "sha256": "a9bf5963cb649a9d2e649ce7b40ea9644ab2bb197f0bf30ff567dde04e019ecf",
+        "modifiedAt": "2026-07-13T23:09:24.877Z"
       },
       {
         "path": "results/pr-scope.json",
-        "bytes": 13682,
-        "sha256": "698635ada23d74a749c9f1b164d94f86e443967c6a64edab8a3c5ad14c2bcbde",
-        "modifiedAt": "2026-07-13T16:24:03.385Z"
+        "bytes": 13668,
+        "sha256": "6950f2732d1496bfc0a08366170e9863dbe1fe88f16f902be13e2078a3b04e04",
+        "modifiedAt": "2026-07-13T23:09:26.674Z"
       },
       {
         "path": "results/role-state-availability.json",
         "bytes": 912,
-        "sha256": "3925c7fbdf1f0e72d1886dd855b98bd83676cef8e2bea6ed87ea371200849a83",
-        "modifiedAt": "2026-07-13T16:23:35.431Z"
+        "sha256": "d3e8824ffeb033d8ce4121a0f7bc95248638abcb2bed28ede52cf523fd2d66ae",
+        "modifiedAt": "2026-07-13T23:09:19.099Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/ambulances.json",
-        "bytes": 715134,
-        "sha256": "16af73d983a80044470486c370cd81aa674b65b81ebaeb4dd36ed5be0c3f5f99",
-        "modifiedAt": "2026-07-13T16:23:46.464Z"
+        "bytes": 703085,
+        "sha256": "31a188ba7dae5fa295e5bcdda5b5fed6a98f2a588944b0ba76d5615f72569abe",
+        "modifiedAt": "2026-07-13T23:09:23.339Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/analytics.json",
-        "bytes": 179645,
-        "sha256": "3bb1a1309efa3a82ce7c654f42b8807d34f1d529ee1597336049ee32f32eab82",
-        "modifiedAt": "2026-07-13T16:23:46.482Z"
+        "bytes": 176763,
+        "sha256": "8949bd0ded5c6c9c894daa592c66c39887f3b8179a2a32e1ae38289f97c64545",
+        "modifiedAt": "2026-07-13T23:09:23.354Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/audit-not-found.json",
         "bytes": 2234,
         "sha256": "a8f05d7e18870c5e04700f13c766d732de0856c26dd559dfbbf6c24e96fc8673",
-        "modifiedAt": "2026-07-13T16:23:46.492Z"
+        "modifiedAt": "2026-07-13T23:09:23.363Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/doctors.json",
-        "bytes": 707367,
-        "sha256": "99fd968ab417a0911972b8a924d8549e827a4c27aa7062a4e332f7c64cfef430",
-        "modifiedAt": "2026-07-13T16:23:46.529Z"
+        "bytes": 707365,
+        "sha256": "d54011c2cbffc1f580412fb3a59c6383c06dfa549f5741dcb26699fbf8089357",
+        "modifiedAt": "2026-07-13T23:09:23.394Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/emergencies.json",
-        "bytes": 409041,
-        "sha256": "ea2ba4f176b0298df23678ada1048a5fe82ee5ffe637b73a2a57f8c346ce9e60",
-        "modifiedAt": "2026-07-13T16:23:46.555Z"
+        "bytes": 720363,
+        "sha256": "915ef09256e8afd169d70a349ffc79fe58456c8b49a906aa732668c0be9a57ee",
+        "modifiedAt": "2026-07-13T23:09:23.428Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/health-news.json",
-        "bytes": 351831,
-        "sha256": "bf8eed66e27ef1a48d7e779cc98f46927997d8569af18a1694f4de5fbac40db3",
-        "modifiedAt": "2026-07-13T16:23:46.578Z"
+        "bytes": 351832,
+        "sha256": "04f7e7975f78a05735779d7e69472f155040d0523c88cbfd0c5a751740fc577c",
+        "modifiedAt": "2026-07-13T23:09:23.447Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/hospitals.json",
         "bytes": 612923,
-        "sha256": "351dcfeea321fb45dddbcb672da2d06983328f10241961ddd80c4dad7122a9b9",
-        "modifiedAt": "2026-07-13T16:23:46.608Z"
+        "sha256": "ea6f1b3e401d56835ec972814cfeff52db7f6103ca434a4dad4d6700ffaaa83b",
+        "modifiedAt": "2026-07-13T23:09:23.479Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/insurance.json",
-        "bytes": 338336,
-        "sha256": "222e678db846a904a39901aa5e12d4587a278fa73885c4b8af9851ae7e3c6f57",
-        "modifiedAt": "2026-07-13T16:23:46.629Z"
+        "bytes": 326399,
+        "sha256": "355a9b4e0edd2eb0d78b4428f6bb1703cadb9b0c2eab5167a5ca4feb2f987028",
+        "modifiedAt": "2026-07-13T23:09:23.502Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/login.json",
         "bytes": 4920,
         "sha256": "af0efe316c8fbe9eb2b961b614ead31d674bf54bd79a2256e94112c390307850",
-        "modifiedAt": "2026-07-13T16:23:46.638Z"
+        "modifiedAt": "2026-07-13T23:09:23.512Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/map.json",
-        "bytes": 187527,
-        "sha256": "0b619c5d7ea9d9afeefab86bb07c44c4a230724bd93aa0dab4c388e59f98fffc",
-        "modifiedAt": "2026-07-13T16:23:46.653Z"
+        "bytes": 2599870,
+        "sha256": "3f95ca2356dde50b6ef9f5a1eafa40902bbcc9f2c12c8f506ae106491853c238",
+        "modifiedAt": "2026-07-13T23:09:23.596Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding-success.json",
         "bytes": 5219,
         "sha256": "e924c9afb30ad2e7e7bdce21ea5f39845026390ffdff1153e65ef97e42bb4c7b",
-        "modifiedAt": "2026-07-13T16:23:46.662Z"
+        "modifiedAt": "2026-07-13T23:09:23.606Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding.json",
         "bytes": 8584,
         "sha256": "2b035c75e95880931b8c2e33f1ada0a472989660015d038bf20082fd9f1185fa",
-        "modifiedAt": "2026-07-13T16:23:46.672Z"
+        "modifiedAt": "2026-07-13T23:09:23.616Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/organizations.json",
-        "bytes": 604863,
-        "sha256": "5f6cd1a5a1890e43a7ebcef905df3b269b0420c0109363d6432368790dfb2334",
-        "modifiedAt": "2026-07-13T16:23:46.700Z"
+        "bytes": 604862,
+        "sha256": "c8b827280729113171d2eec5fb955b0e11ea7233ba6694227ff7e130f86ad843",
+        "modifiedAt": "2026-07-13T23:09:23.649Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/pricing.json",
         "bytes": 465922,
-        "sha256": "c22c39a89f06526f61cba1acaa74580a8b29cf231c7c0799486a793c7bc604fa",
-        "modifiedAt": "2026-07-13T16:23:46.723Z"
+        "sha256": "8ada33731e49ef1b447d34db2ee5c14df2598c0ee5f73388c5044398cea0d657",
+        "modifiedAt": "2026-07-13T23:09:23.684Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/set-password.json",
         "bytes": 3573,
         "sha256": "7141b194323eb1e1c9a5b1bd20fa7a02311d044357142adc57f136a218f1b144",
-        "modifiedAt": "2026-07-13T16:23:46.733Z"
+        "modifiedAt": "2026-07-13T23:09:23.696Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/settings.json",
         "bytes": 39628,
-        "sha256": "0f32049a58638a64e172bdae94f35c58e3f8c2ef0c723adef9891435f85fe3aa",
-        "modifiedAt": "2026-07-13T16:23:46.743Z"
+        "sha256": "ee087ffb1f6279b05c26a994057ecd767d0192285d6f096594880851414282ab",
+        "modifiedAt": "2026-07-13T23:09:23.710Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/subscriptions.json",
-        "bytes": 610595,
-        "sha256": "547ba51385bcb608859469fd3daabc44e5fdb7647ad95093c6f0f7a958ada24d",
-        "modifiedAt": "2026-07-13T16:23:46.774Z"
+        "bytes": 622728,
+        "sha256": "85996f70ed4e8866fa308dc470e4234099e9ca27ef641195f61af4d04b4c268e",
+        "modifiedAt": "2026-07-13T23:09:23.744Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/support-tickets.json",
-        "bytes": 362478,
-        "sha256": "8322c27921588a8eeb26a064432a6472f6912cfaca4660b3c5fe18408aa3aa1c",
-        "modifiedAt": "2026-07-13T16:23:46.795Z"
+        "bytes": 362477,
+        "sha256": "13f119ae387739a9f81dbe5d8c86a5148185943ffb778502ca5c23ef0ef53fda",
+        "modifiedAt": "2026-07-13T23:09:23.773Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unauthorized.json",
         "bytes": 2857,
         "sha256": "5861d09a60c0358c8fadf40aae969e2e491538c01598fc608e30e27756324d43",
-        "modifiedAt": "2026-07-13T16:23:46.798Z"
+        "modifiedAt": "2026-07-13T23:09:23.784Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unnamed.json",
-        "bytes": 180340,
-        "sha256": "4c608c347de0d14f47aa9270c94342c36f60828139002954547c67267822b3d4",
-        "modifiedAt": "2026-07-13T16:23:46.815Z"
+        "bytes": 177030,
+        "sha256": "d2b167741c107447feb2d77d450c4fbdeca0bed8a7e45731f4aa0bfc3df85670",
+        "modifiedAt": "2026-07-13T23:09:23.801Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/users.json",
         "bytes": 697105,
-        "sha256": "aefa1aa15b683e84d5c068190d6aa9e2f632a42272fd51cdd323581aa84a52a6",
-        "modifiedAt": "2026-07-13T16:23:46.848Z"
+        "sha256": "ab9891fcb0bfaae75e4a35acdd4ee30237ec91d2c3434d24e168ff23216db411",
+        "modifiedAt": "2026-07-13T23:09:23.838Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/verification.json",
-        "bytes": 523714,
-        "sha256": "e82a6bbbaf8c00e2d19b10d8b5587326555fab89d3de4cb8cc11ebe4391b7f38",
-        "modifiedAt": "2026-07-13T16:23:46.884Z"
+        "bytes": 523713,
+        "sha256": "44cfc6e9d794701a02aa989b109fa0790e873c8ca3d0ef3f7085e7f24d212003",
+        "modifiedAt": "2026-07-13T23:09:23.872Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/visits.json",
-        "bytes": 450899,
-        "sha256": "3efc0ddf4b6015e6bdcd12959e3b8c00fc72867cfd2cb7c49f49c372ba568c7e",
-        "modifiedAt": "2026-07-13T16:23:46.911Z"
+        "bytes": 422525,
+        "sha256": "02488fc60a90b9791c3b6bdae2bef1b505eb9aa824ea8ad07407766d57dab144",
+        "modifiedAt": "2026-07-13T23:09:23.898Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/wallet.json",
-        "bytes": 563092,
-        "sha256": "5c0049f0e4070258d612e6aab25715874fac00a8db9e449f5680732441e2a2c1",
-        "modifiedAt": "2026-07-13T16:23:46.942Z"
+        "bytes": 574949,
+        "sha256": "7100ef885dba80e0c0c6af7deb099513e1bff036587bc0c281c9e58f65ff5483",
+        "modifiedAt": "2026-07-13T23:09:23.923Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/ambulances.json",
-        "bytes": 720003,
-        "sha256": "75a466267d83b552d98adf823d283501984fbc9dbe72408fa6fd6d512235bec2",
-        "modifiedAt": "2026-07-13T16:23:46.969Z"
+        "bytes": 713782,
+        "sha256": "0b28108d976974e8d4e45f3b6a2562e09eaa43637957d710bec0e5bcb9d48eb5",
+        "modifiedAt": "2026-07-13T23:09:23.956Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/analytics.json",
-        "bytes": 136914,
-        "sha256": "e9259a4039696f1c6cb07d954163525fc0150ece44bb55702628f9183391c7ed",
-        "modifiedAt": "2026-07-13T16:23:46.976Z"
+        "bytes": 129132,
+        "sha256": "5fabd68de2531d20d9858e4f2d0509c93aaaf89983dcf0703ac1232442f8906a",
+        "modifiedAt": "2026-07-13T23:09:23.969Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/audit-not-found.json",
         "bytes": 2232,
         "sha256": "5bad0d741a2535400b72b5bdb37f233059ba897f8524ee5d8834851f75ee0680",
-        "modifiedAt": "2026-07-13T16:23:46.985Z"
+        "modifiedAt": "2026-07-13T23:09:23.981Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/doctors.json",
-        "bytes": 716617,
-        "sha256": "3ef1083b80d841470b7c2c30a74f523fbc7f69e875b11c2e5f592fd130c1ffb7",
-        "modifiedAt": "2026-07-13T16:23:47.014Z"
+        "bytes": 722314,
+        "sha256": "9da57cb1362ec5a850972d369d58928a12f104cdc2ecdf6de3d2691b6cabc2dd",
+        "modifiedAt": "2026-07-13T23:09:24.010Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/emergencies.json",
-        "bytes": 161906,
-        "sha256": "1a0ba6f7c60c9377b1a9a70c6c21677d3476253a6345548315b7546900397c23",
-        "modifiedAt": "2026-07-13T16:23:47.023Z"
+        "bytes": 774698,
+        "sha256": "ac48273f90a2ac76c7a0ef518777d37644fcd9f638e3b409cd22496513ddb085",
+        "modifiedAt": "2026-07-13T23:09:24.044Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/health-news.json",
-        "bytes": 166675,
-        "sha256": "93a6bc3f0af249d09a031b6a5bb1a7821b88179fe513697341d5131526815aee",
-        "modifiedAt": "2026-07-13T16:23:47.030Z"
+        "bytes": 175595,
+        "sha256": "b727a8b0c494c0744d1e0d8f684bc9044a05dfbddf92ad380f23b274ce18dc68",
+        "modifiedAt": "2026-07-13T23:09:24.051Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/hospitals.json",
-        "bytes": 734141,
-        "sha256": "e362a496fecf08ec04ed55ef31495663d4995c4e01de63aefc774d0608289f3a",
-        "modifiedAt": "2026-07-13T16:23:47.057Z"
+        "bytes": 742923,
+        "sha256": "f112ddaccd48d55e67365550302eeccaaaa4d14ed5ea8731d56b0c19db3a943b",
+        "modifiedAt": "2026-07-13T23:09:24.086Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/insurance.json",
-        "bytes": 137550,
-        "sha256": "c4b3946948876807874fc27207be4a8dadb8df85c94a46f0d0b099f13e541f71",
-        "modifiedAt": "2026-07-13T16:23:47.064Z"
+        "bytes": 137548,
+        "sha256": "7e427a5174097ad8733fe97e5ad0f28568b3004e77d0c00768944f191535c2aa",
+        "modifiedAt": "2026-07-13T23:09:24.092Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/login.json",
         "bytes": 2122,
         "sha256": "fe969d7df24e3d70693066426406cef853bb5a8c716afadfcc598212c13b3d71",
-        "modifiedAt": "2026-07-13T16:23:47.076Z"
+        "modifiedAt": "2026-07-13T23:09:24.101Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/map.json",
-        "bytes": 110756,
-        "sha256": "64d4d1a78352ebe1dde7de7f8c1bad7fac671b8a1faac79d5c2d445474bffc9a",
-        "modifiedAt": "2026-07-13T16:23:47.082Z"
+        "bytes": 3235124,
+        "sha256": "c93aaa12a8484c86ae8892e34e04a695f76d7c03a6bd1ff4aed68df7f4f3dfad",
+        "modifiedAt": "2026-07-13T23:09:24.216Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding-success.json",
         "bytes": 2265,
         "sha256": "de09d72a536ccd77439258105f8f6b9e874fb77e59e0a097b891e5059e6565ff",
-        "modifiedAt": "2026-07-13T16:23:47.094Z"
+        "modifiedAt": "2026-07-13T23:09:24.227Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding.json",
         "bytes": 2177,
         "sha256": "6ba4de2eb44d52416a301712761f3c2e48291c1e05e87bcd36af29642007b602",
-        "modifiedAt": "2026-07-13T16:23:47.104Z"
+        "modifiedAt": "2026-07-13T23:09:24.236Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/organizations.json",
-        "bytes": 711419,
-        "sha256": "e4e85ab5389006a26af75576299383bec573354dd56867755f21bbbbaeee1627",
-        "modifiedAt": "2026-07-13T16:23:47.130Z"
+        "bytes": 723387,
+        "sha256": "4db58957b4c83a7d2db380ed0d16a95f15534923b993558a82b6d42180d0aa00",
+        "modifiedAt": "2026-07-13T23:09:24.260Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/pricing.json",
-        "bytes": 364070,
-        "sha256": "7f253c478e525593ddffd8854a23358db7f881d089ae5dddb4c95a8815f1eee1",
-        "modifiedAt": "2026-07-13T16:23:47.145Z"
+        "bytes": 372812,
+        "sha256": "fbbe52eb88daa7a03576c4c67f7c53ae241a62f140d57db15682f378e17fa283",
+        "modifiedAt": "2026-07-13T23:09:24.272Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/set-password.json",
         "bytes": 2199,
         "sha256": "27b70b1c75f4bb1957978a70c83cbe9aa2f4d0bbf1f29c910d3577f12ba27050",
-        "modifiedAt": "2026-07-13T16:23:47.158Z"
+        "modifiedAt": "2026-07-13T23:09:24.280Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/settings.json",
-        "bytes": 108828,
-        "sha256": "0db2c15f533f513ed42a7789aa6c89b16ee5e6fd2c3b8f0b1dfa3ef85d45390f",
-        "modifiedAt": "2026-07-13T16:23:47.164Z"
+        "bytes": 108800,
+        "sha256": "0df4bd2c6de728a32a9f41979994976587add2853aedb76bc69a38ef5c60ea49",
+        "modifiedAt": "2026-07-13T23:09:24.285Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/subscriptions.json",
-        "bytes": 533918,
-        "sha256": "8f6b80a772db850b6bf07a23dba59bed967dd5261e6b47d770bd61ae132fc15e",
-        "modifiedAt": "2026-07-13T16:23:47.189Z"
+        "bytes": 533916,
+        "sha256": "9af6337cbc469997b921f30dba8046815d9fbdbba2da885f79e599fe49a8aa76",
+        "modifiedAt": "2026-07-13T23:09:24.304Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/support-tickets.json",
-        "bytes": 148177,
-        "sha256": "5c756aec6f9451ad96577bd5b833e01f5d116ff394f1e2fc2ba9843feab6ef63",
-        "modifiedAt": "2026-07-13T16:23:47.199Z"
+        "bytes": 157217,
+        "sha256": "5d67e0a757f9a3b774c74b41357c47a36cb35fd9f9b891d2ce0cb3ebe10b1440",
+        "modifiedAt": "2026-07-13T23:09:24.310Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unauthorized.json",
         "bytes": 2199,
         "sha256": "d600fdcca995e8cf7abae9f1b2b8e6eecd5d00e45074acf543fd34ce4a1d8e93",
-        "modifiedAt": "2026-07-13T16:23:47.209Z"
+        "modifiedAt": "2026-07-13T23:09:24.318Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unnamed.json",
-        "bytes": 105478,
-        "sha256": "11139fb4b4fb52cb88f32770c58661ea29fabdcc0e57368d8db643f16baea062",
-        "modifiedAt": "2026-07-13T16:23:47.214Z"
+        "bytes": 105568,
+        "sha256": "1d10ad580cd496b3ded71318407b69a5de40ee4838d3e3b16120037c57def36f",
+        "modifiedAt": "2026-07-13T23:09:24.329Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/users.json",
-        "bytes": 706718,
-        "sha256": "c3a22a537547443e279dbec5eca6a721a7529fb52f0f160ef5e374b1a25e6535",
-        "modifiedAt": "2026-07-13T16:23:47.237Z"
+        "bytes": 706764,
+        "sha256": "1049dc16e1bc04c9fa8952146f20874f979415bad4039ead5540b2e5680fc093",
+        "modifiedAt": "2026-07-13T23:09:24.351Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/verification.json",
-        "bytes": 443183,
-        "sha256": "edad925523b54eaa03ea0502a8cdbc7eec002f96224e49b679d41edc9dfc1ec0",
-        "modifiedAt": "2026-07-13T16:23:47.259Z"
+        "bytes": 464522,
+        "sha256": "85d6fa15a104e49aec296a7ca1520020ecd21191f716113312a4bea7ac94c7c7",
+        "modifiedAt": "2026-07-13T23:09:24.368Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/visits.json",
-        "bytes": 801033,
-        "sha256": "20ff98ed78e2721478fa9565ac207d591dd0579ad86a60ed12a3a538981fbae8",
-        "modifiedAt": "2026-07-13T16:23:47.286Z"
+        "bytes": 817148,
+        "sha256": "283e601004b5a27ff2cc435b5b8df67e471389c3798ea8e04641da7d3a245d90",
+        "modifiedAt": "2026-07-13T23:09:24.406Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/wallet.json",
-        "bytes": 110298,
-        "sha256": "2d5840e29b84773b2190dc498d709f6cbd92b3668f89a385b90551da718e4894",
-        "modifiedAt": "2026-07-13T16:23:47.292Z"
+        "bytes": 160678,
+        "sha256": "84ac2c366b78ff9f5ceed030a7f089ad708cb83a5fc449956c98083d6781f126",
+        "modifiedAt": "2026-07-13T23:09:24.412Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/audit-not-found.json",
         "bytes": 2334,
-        "sha256": "3884ff5415f54e86c673e20628bd9bfebbdf022a2d5d2fd62c51238fb43b321b",
-        "modifiedAt": "2026-07-13T16:23:47.294Z"
+        "sha256": "b7561fdbe5da44cd11c62dcebf5df0fae11de464cc33d66dd605f70ac8b1ec95",
+        "modifiedAt": "2026-07-13T23:09:24.414Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/login.json",
         "bytes": 5140,
-        "sha256": "2a2f719bac95bac0e91a98840723fa889ff61e51543c6fc4c94e0d7b19532021",
-        "modifiedAt": "2026-07-13T16:23:47.295Z"
+        "sha256": "1bddb0752264e7128d4430ae125225ce2ffc04f2be9622770b67d6b07d43bb9b",
+        "modifiedAt": "2026-07-13T23:09:24.415Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding-success.json",
         "bytes": 3156,
-        "sha256": "7ed94442f41e2c80967ad3e023a72bdf78a5e7e438c7c2187df718865778637d",
-        "modifiedAt": "2026-07-13T16:23:47.297Z"
+        "sha256": "6307c9d044385dd22d802107924e6a69a86e7d00ee676f61bb1c4e797b09f903",
+        "modifiedAt": "2026-07-13T23:09:24.417Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding.json",
         "bytes": 8954,
-        "sha256": "3e7dbcd1a10811619cfa8a6411b798f14cc618b5b86e4859b75e2ed97f710753",
-        "modifiedAt": "2026-07-13T16:23:47.298Z"
+        "sha256": "c143b0b6d7dec02e3b1ad4961a3be2de38cfa7b66e7c66e30a7fb8b70b36b314",
+        "modifiedAt": "2026-07-13T23:09:24.420Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/set-password.json",
         "bytes": 3733,
-        "sha256": "262f4446ad7dbe65bece2ea1a5dfa7ae022eaa3ed626db81ca8388b49de12572",
-        "modifiedAt": "2026-07-13T16:23:47.300Z"
+        "sha256": "4f31978a308cae663ecfa79a1a35bb604a3e2f52500bd14c2a8cf9c7b60be3ec",
+        "modifiedAt": "2026-07-13T23:09:24.422Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unauthorized.json",
         "bytes": 2292,
-        "sha256": "159f52a296483ae1ec9c7cbfade0f2d2bfe42bf6b6ae9f2d7b5f9257d90ca4fd",
-        "modifiedAt": "2026-07-13T16:23:47.302Z"
+        "sha256": "35bd6ffc7f9c9838db5cc57fe32620389d6bf9570a089619633efdab760a670c",
+        "modifiedAt": "2026-07-13T23:09:24.424Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unnamed.json",
         "bytes": 2175,
         "sha256": "a424fa4a33bed7ddae6a3e70d701f728382737b4f15ae83dcfb8217780a449cb",
-        "modifiedAt": "2026-07-13T16:23:47.311Z"
+        "modifiedAt": "2026-07-13T23:09:24.433Z"
       },
       {
         "path": "results/source-findings.cjs",
         "bytes": 107830,
         "sha256": "ffa18c535bb54147f342b5ab8506952f40ed9a2fe864cdfef96ba28b40aba037",
-        "modifiedAt": "2026-07-13T16:03:28.319Z"
+        "modifiedAt": "2026-07-13T16:29:49.165Z"
       },
       {
         "path": "results/static-actions.json",
-        "bytes": 418620,
-        "sha256": "866242894544f254b6449e15ca29296072b71a3cd1a99d72899e83163af9e4e4",
-        "modifiedAt": "2026-07-13T16:08:26.521Z"
+        "bytes": 423478,
+        "sha256": "d44c3bc9b03520ea0e4212d768c599c2bc43bdbcf7ccefde169a58e80b929474",
+        "modifiedAt": "2026-07-13T23:01:42.008Z"
       }
     ]
   },
@@ -426,8 +426,8 @@
     "auditHarnessUnchangedDuringAudit": true
   },
   "counts": {
-    "staticCandidates": 847,
-    "runtimeVisibleDefinitions": 1338,
+    "staticCandidates": 844,
+    "runtimeVisibleDefinitions": 1341,
     "runtimeSurfaces": 42,
     "confirmedFailureCases": 0,
     "confirmedAffectedActions": 0,
@@ -454,22 +454,22 @@
   },
   "prScope": {
     "schemaVersion": 2,
-    "generatedAt": "2026-07-13T16:24:03.143Z",
-    "runId": "audit-20260713160822-1b2f6854",
+    "generatedAt": "2026-07-13T23:09:26.485Z",
+    "runId": "audit-20260713230137-22c0a46e",
     "localRefSnapshot": true,
     "baseRef": "main",
-    "branch": "codex/ivisit-console-revamp-checkpoint-20260707",
-    "head": "1b2f68543ff7ac0752fc6b285e9b0c2ce5bc41d7",
-    "mergeBase": "f31f29ff872940884a0838ea5bfe840bd293d703",
+    "branch": "codex/console-modularization-wave-2",
+    "head": "22c0a46e33aaee99c62ae6a46fa6a53e05e5ed5a",
+    "mergeBase": "4d1de70a79e78d0e85416ab8e5aef6d8df7fc946",
     "commits": {
-      "ahead": 489,
+      "ahead": 59,
       "behind": 0
     },
     "committedDiff": {
-      "files": 553,
-      "insertions": 150106,
-      "deletions": 45212,
-      "namedFiles": 553
+      "files": 613,
+      "insertions": 69409,
+      "deletions": 44385,
+      "namedFiles": 613
     },
     "worktree": {
       "trackedChangedFiles": 1,
@@ -496,157 +496,157 @@
             "path": ".gitignore",
             "bytes": 334,
             "sha256": "c5247bf7de0522a36c57b27a0f643eb96e018277a1e2e4144ba9d105b63fc80d",
-            "modifiedAt": "2026-07-13T11:38:22.618Z"
+            "modifiedAt": "2026-07-13T16:29:49.150Z"
           },
           {
             "path": "package-lock.json",
             "bytes": 2627,
             "sha256": "86a77de47a823a41cbcfcec2809d5e05239aa1c04eec0047735043d7be8556fb",
-            "modifiedAt": "2026-07-13T08:08:02.103Z"
+            "modifiedAt": "2026-07-13T16:29:49.158Z"
           },
           {
             "path": "package.json",
             "bytes": 1386,
             "sha256": "71b989729f8afab4d9badf08eaa40920cbdd9d35f002c519999d16600eebb0c3",
-            "modifiedAt": "2026-07-13T11:38:22.617Z"
+            "modifiedAt": "2026-07-13T16:29:49.159Z"
           },
           {
             "path": "playwright.config.cjs",
             "bytes": 1784,
             "sha256": "b4f0c8512e9638e1a2efab30b49c3adb92a4ff95d5729a4816ae97ee6467656d",
-            "modifiedAt": "2026-07-13T08:15:41.910Z"
+            "modifiedAt": "2026-07-13T16:29:49.161Z"
           },
           {
             "path": "README.md",
             "bytes": 2674,
             "sha256": "915370813dfeb940363aa178b8bb3ed373e2e96aae42b707f62155f72e7acf3e",
-            "modifiedAt": "2026-07-13T11:38:22.620Z"
+            "modifiedAt": "2026-07-13T16:29:49.151Z"
           },
           {
             "path": "results/source-findings.cjs",
             "bytes": 107830,
             "sha256": "ffa18c535bb54147f342b5ab8506952f40ed9a2fe864cdfef96ba28b40aba037",
-            "modifiedAt": "2026-07-13T16:03:28.319Z"
+            "modifiedAt": "2026-07-13T16:29:49.165Z"
           },
           {
             "path": "scripts/begin-audit-run.cjs",
             "bytes": 949,
             "sha256": "5d6d27881da29229b93cbfd10bc8ae509a4c531b0069a62de95d60fb4c08b59d",
-            "modifiedAt": "2026-07-13T11:33:03.106Z"
+            "modifiedAt": "2026-07-13T16:29:49.168Z"
           },
           {
             "path": "scripts/build-cleanup-ledger.cjs",
             "bytes": 3573,
             "sha256": "1d13d22d5e9a089ed255ec24e4fd8e15b5d7ba028bf5d95d4f622bd3f7839680",
-            "modifiedAt": "2026-07-13T11:33:51.936Z"
+            "modifiedAt": "2026-07-13T16:29:49.169Z"
           },
           {
             "path": "scripts/build-final-artifacts.cjs",
             "bytes": 15029,
             "sha256": "5176b4a32c6816aa60f0196946e313c329de56e38eec4927c93f68c3d3bc3f4b",
-            "modifiedAt": "2026-07-13T12:54:55.943Z"
+            "modifiedAt": "2026-07-13T16:29:49.171Z"
           },
           {
             "path": "scripts/collect-pr-scope.cjs",
             "bytes": 3707,
             "sha256": "dd1d3e136e192ad2dfba88f0f1ab20638d3b8a531e0dedcce79fad887299aa5c",
-            "modifiedAt": "2026-07-13T11:33:28.517Z"
+            "modifiedAt": "2026-07-13T16:29:49.172Z"
           },
           {
             "path": "scripts/collect-static-actions.cjs",
             "bytes": 5324,
             "sha256": "a23fb01720d8b8d6da4b1cf284e2f73f867b60491325b9e2998947bda6a3c1fe",
-            "modifiedAt": "2026-07-13T08:07:51.905Z"
+            "modifiedAt": "2026-07-13T16:29:49.173Z"
           },
           {
             "path": "scripts/run-runtime-inventory.cjs",
             "bytes": 1326,
             "sha256": "8d8c6927052279a85e6d067e693f0548fa9424efe4f527ac9b7b9bfde752c58f",
-            "modifiedAt": "2026-07-13T09:44:21.702Z"
+            "modifiedAt": "2026-07-13T16:29:49.174Z"
           },
           {
             "path": "scripts/sanitize-runtime-inventory.cjs",
             "bytes": 1289,
             "sha256": "4d12d3f6616dc746d6628c823506069e904961c6aaa872e89c212d578a17325f",
-            "modifiedAt": "2026-07-13T11:34:21.042Z"
+            "modifiedAt": "2026-07-13T16:29:49.175Z"
           },
           {
             "path": "scripts/synthesize-results.cjs",
             "bytes": 7067,
             "sha256": "02d21c7c38322306dac8db7ca24d48f3d2f91e4cd7b62903b589c8ad48e60e5b",
-            "modifiedAt": "2026-07-13T11:35:02.553Z"
+            "modifiedAt": "2026-07-13T16:29:49.176Z"
           },
           {
             "path": "scripts/validate-final-artifacts.cjs",
             "bytes": 7104,
             "sha256": "1bd68de6e7aba897aa313a4bc7cd26c2b0e03f01df34bf800bebef7bcc34d7fa",
-            "modifiedAt": "2026-07-13T11:38:02.727Z"
+            "modifiedAt": "2026-07-13T16:29:49.177Z"
           },
           {
             "path": "support/action-inventory.cjs",
             "bytes": 3212,
             "sha256": "c8eaf22041758485e784c7f886159c3322ac360bb5b80c52d6969b8552586cb2",
-            "modifiedAt": "2026-07-13T08:36:01.537Z"
+            "modifiedAt": "2026-07-13T16:29:49.178Z"
           },
           {
             "path": "support/audit-fixture.cjs",
             "bytes": 2710,
             "sha256": "036e85b7ba02635cc5fc8ce5dea13b7eb07bd0751a758280d7bc8c32dd20f294",
-            "modifiedAt": "2026-07-13T08:23:32.452Z"
+            "modifiedAt": "2026-07-13T16:29:49.180Z"
           },
           {
             "path": "support/database-evidence.cjs",
             "bytes": 1334,
             "sha256": "527c5138cd866068c234d9194a16176ad6095f666156f155a425ec6eb06bd131",
-            "modifiedAt": "2026-07-13T08:39:01.626Z"
+            "modifiedAt": "2026-07-13T16:29:49.182Z"
           },
           {
             "path": "support/environment.cjs",
             "bytes": 662,
             "sha256": "8e84c4b3390654d39cc6c5b61db9c2768de24f8ed729156d356185fa8f585861",
-            "modifiedAt": "2026-07-13T08:07:51.895Z"
+            "modifiedAt": "2026-07-13T16:29:49.182Z"
           },
           {
             "path": "support/global-setup.cjs",
             "bytes": 4433,
             "sha256": "a4cce8a6d61f98fc29b325ab0752116d9dd505a18f1a1670688eaf40cb376667",
-            "modifiedAt": "2026-07-13T08:22:23.460Z"
+            "modifiedAt": "2026-07-13T16:29:49.184Z"
           },
           {
             "path": "support/integrity.cjs",
             "bytes": 4546,
             "sha256": "7c95682d010b90995ebfe7b5a3d9d552bd886e146d6ca897a49fe522b5505abc",
-            "modifiedAt": "2026-07-13T11:33:28.516Z"
+            "modifiedAt": "2026-07-13T16:29:49.186Z"
           },
           {
             "path": "support/redaction.cjs",
             "bytes": 5091,
             "sha256": "08c5f5733ff8b2cde5c13a86ca2a9d9b509bd08d574bf7dd4b13e907598fcd3c",
-            "modifiedAt": "2026-07-13T11:55:36.263Z"
+            "modifiedAt": "2026-07-13T16:29:49.188Z"
           },
           {
             "path": "support/redaction.test.cjs",
             "bytes": 1580,
             "sha256": "a89cdc475e7d7498b496d64c433b02c98cea7b8505bbe76948bc50f957e572f4",
-            "modifiedAt": "2026-07-13T11:55:36.264Z"
+            "modifiedAt": "2026-07-13T16:29:49.189Z"
           },
           {
             "path": "tests/focused-route-smoke.spec.cjs",
             "bytes": 1370,
             "sha256": "dd6e7869074e44230172da244b8b6161b35346046551da74716d404d5057417c",
-            "modifiedAt": "2026-07-13T08:37:20.952Z"
+            "modifiedAt": "2026-07-13T16:29:49.191Z"
           },
           {
             "path": "tests/runtime-inventory.spec.cjs",
             "bytes": 3694,
             "sha256": "6b260db2abb5dbf4879922f1b3f2e7718a25f57c1a21c320422c3641d73c8703",
-            "modifiedAt": "2026-07-13T08:28:27.448Z"
+            "modifiedAt": "2026-07-13T16:29:49.193Z"
           },
           {
             "path": "tests/safe-confirmed-failures.spec.cjs",
             "bytes": 3926,
             "sha256": "0ae673df01dc76381f3c6d16433abfbb42a47c5fb60b3dfd4dd2c9c3796cba3f",
-            "modifiedAt": "2026-07-13T10:18:48.702Z"
+            "modifiedAt": "2026-07-13T16:29:49.194Z"
           }
         ]
       },
@@ -658,157 +658,157 @@
             "path": ".gitignore",
             "bytes": 334,
             "sha256": "c5247bf7de0522a36c57b27a0f643eb96e018277a1e2e4144ba9d105b63fc80d",
-            "modifiedAt": "2026-07-13T11:38:22.618Z"
+            "modifiedAt": "2026-07-13T16:29:49.150Z"
           },
           {
             "path": "package-lock.json",
             "bytes": 2627,
             "sha256": "86a77de47a823a41cbcfcec2809d5e05239aa1c04eec0047735043d7be8556fb",
-            "modifiedAt": "2026-07-13T08:08:02.103Z"
+            "modifiedAt": "2026-07-13T16:29:49.158Z"
           },
           {
             "path": "package.json",
             "bytes": 1386,
             "sha256": "71b989729f8afab4d9badf08eaa40920cbdd9d35f002c519999d16600eebb0c3",
-            "modifiedAt": "2026-07-13T11:38:22.617Z"
+            "modifiedAt": "2026-07-13T16:29:49.159Z"
           },
           {
             "path": "playwright.config.cjs",
             "bytes": 1784,
             "sha256": "b4f0c8512e9638e1a2efab30b49c3adb92a4ff95d5729a4816ae97ee6467656d",
-            "modifiedAt": "2026-07-13T08:15:41.910Z"
+            "modifiedAt": "2026-07-13T16:29:49.161Z"
           },
           {
             "path": "README.md",
             "bytes": 2674,
             "sha256": "915370813dfeb940363aa178b8bb3ed373e2e96aae42b707f62155f72e7acf3e",
-            "modifiedAt": "2026-07-13T11:38:22.620Z"
+            "modifiedAt": "2026-07-13T16:29:49.151Z"
           },
           {
             "path": "results/source-findings.cjs",
             "bytes": 107830,
             "sha256": "ffa18c535bb54147f342b5ab8506952f40ed9a2fe864cdfef96ba28b40aba037",
-            "modifiedAt": "2026-07-13T16:03:28.319Z"
+            "modifiedAt": "2026-07-13T16:29:49.165Z"
           },
           {
             "path": "scripts/begin-audit-run.cjs",
             "bytes": 949,
             "sha256": "5d6d27881da29229b93cbfd10bc8ae509a4c531b0069a62de95d60fb4c08b59d",
-            "modifiedAt": "2026-07-13T11:33:03.106Z"
+            "modifiedAt": "2026-07-13T16:29:49.168Z"
           },
           {
             "path": "scripts/build-cleanup-ledger.cjs",
             "bytes": 3573,
             "sha256": "1d13d22d5e9a089ed255ec24e4fd8e15b5d7ba028bf5d95d4f622bd3f7839680",
-            "modifiedAt": "2026-07-13T11:33:51.936Z"
+            "modifiedAt": "2026-07-13T16:29:49.169Z"
           },
           {
             "path": "scripts/build-final-artifacts.cjs",
             "bytes": 15029,
             "sha256": "5176b4a32c6816aa60f0196946e313c329de56e38eec4927c93f68c3d3bc3f4b",
-            "modifiedAt": "2026-07-13T12:54:55.943Z"
+            "modifiedAt": "2026-07-13T16:29:49.171Z"
           },
           {
             "path": "scripts/collect-pr-scope.cjs",
             "bytes": 3707,
             "sha256": "dd1d3e136e192ad2dfba88f0f1ab20638d3b8a531e0dedcce79fad887299aa5c",
-            "modifiedAt": "2026-07-13T11:33:28.517Z"
+            "modifiedAt": "2026-07-13T16:29:49.172Z"
           },
           {
             "path": "scripts/collect-static-actions.cjs",
             "bytes": 5324,
             "sha256": "a23fb01720d8b8d6da4b1cf284e2f73f867b60491325b9e2998947bda6a3c1fe",
-            "modifiedAt": "2026-07-13T08:07:51.905Z"
+            "modifiedAt": "2026-07-13T16:29:49.173Z"
           },
           {
             "path": "scripts/run-runtime-inventory.cjs",
             "bytes": 1326,
             "sha256": "8d8c6927052279a85e6d067e693f0548fa9424efe4f527ac9b7b9bfde752c58f",
-            "modifiedAt": "2026-07-13T09:44:21.702Z"
+            "modifiedAt": "2026-07-13T16:29:49.174Z"
           },
           {
             "path": "scripts/sanitize-runtime-inventory.cjs",
             "bytes": 1289,
             "sha256": "4d12d3f6616dc746d6628c823506069e904961c6aaa872e89c212d578a17325f",
-            "modifiedAt": "2026-07-13T11:34:21.042Z"
+            "modifiedAt": "2026-07-13T16:29:49.175Z"
           },
           {
             "path": "scripts/synthesize-results.cjs",
             "bytes": 7067,
             "sha256": "02d21c7c38322306dac8db7ca24d48f3d2f91e4cd7b62903b589c8ad48e60e5b",
-            "modifiedAt": "2026-07-13T11:35:02.553Z"
+            "modifiedAt": "2026-07-13T16:29:49.176Z"
           },
           {
             "path": "scripts/validate-final-artifacts.cjs",
             "bytes": 7104,
             "sha256": "1bd68de6e7aba897aa313a4bc7cd26c2b0e03f01df34bf800bebef7bcc34d7fa",
-            "modifiedAt": "2026-07-13T11:38:02.727Z"
+            "modifiedAt": "2026-07-13T16:29:49.177Z"
           },
           {
             "path": "support/action-inventory.cjs",
             "bytes": 3212,
             "sha256": "c8eaf22041758485e784c7f886159c3322ac360bb5b80c52d6969b8552586cb2",
-            "modifiedAt": "2026-07-13T08:36:01.537Z"
+            "modifiedAt": "2026-07-13T16:29:49.178Z"
           },
           {
             "path": "support/audit-fixture.cjs",
             "bytes": 2710,
             "sha256": "036e85b7ba02635cc5fc8ce5dea13b7eb07bd0751a758280d7bc8c32dd20f294",
-            "modifiedAt": "2026-07-13T08:23:32.452Z"
+            "modifiedAt": "2026-07-13T16:29:49.180Z"
           },
           {
             "path": "support/database-evidence.cjs",
             "bytes": 1334,
             "sha256": "527c5138cd866068c234d9194a16176ad6095f666156f155a425ec6eb06bd131",
-            "modifiedAt": "2026-07-13T08:39:01.626Z"
+            "modifiedAt": "2026-07-13T16:29:49.182Z"
           },
           {
             "path": "support/environment.cjs",
             "bytes": 662,
             "sha256": "8e84c4b3390654d39cc6c5b61db9c2768de24f8ed729156d356185fa8f585861",
-            "modifiedAt": "2026-07-13T08:07:51.895Z"
+            "modifiedAt": "2026-07-13T16:29:49.182Z"
           },
           {
             "path": "support/global-setup.cjs",
             "bytes": 4433,
             "sha256": "a4cce8a6d61f98fc29b325ab0752116d9dd505a18f1a1670688eaf40cb376667",
-            "modifiedAt": "2026-07-13T08:22:23.460Z"
+            "modifiedAt": "2026-07-13T16:29:49.184Z"
           },
           {
             "path": "support/integrity.cjs",
             "bytes": 4546,
             "sha256": "7c95682d010b90995ebfe7b5a3d9d552bd886e146d6ca897a49fe522b5505abc",
-            "modifiedAt": "2026-07-13T11:33:28.516Z"
+            "modifiedAt": "2026-07-13T16:29:49.186Z"
           },
           {
             "path": "support/redaction.cjs",
             "bytes": 5091,
             "sha256": "08c5f5733ff8b2cde5c13a86ca2a9d9b509bd08d574bf7dd4b13e907598fcd3c",
-            "modifiedAt": "2026-07-13T11:55:36.263Z"
+            "modifiedAt": "2026-07-13T16:29:49.188Z"
           },
           {
             "path": "support/redaction.test.cjs",
             "bytes": 1580,
             "sha256": "a89cdc475e7d7498b496d64c433b02c98cea7b8505bbe76948bc50f957e572f4",
-            "modifiedAt": "2026-07-13T11:55:36.264Z"
+            "modifiedAt": "2026-07-13T16:29:49.189Z"
           },
           {
             "path": "tests/focused-route-smoke.spec.cjs",
             "bytes": 1370,
             "sha256": "dd6e7869074e44230172da244b8b6161b35346046551da74716d404d5057417c",
-            "modifiedAt": "2026-07-13T08:37:20.952Z"
+            "modifiedAt": "2026-07-13T16:29:49.191Z"
           },
           {
             "path": "tests/runtime-inventory.spec.cjs",
             "bytes": 3694,
             "sha256": "6b260db2abb5dbf4879922f1b3f2e7718a25f57c1a21c320422c3641d73c8703",
-            "modifiedAt": "2026-07-13T08:28:27.448Z"
+            "modifiedAt": "2026-07-13T16:29:49.193Z"
           },
           {
             "path": "tests/safe-confirmed-failures.spec.cjs",
             "bytes": 3926,
             "sha256": "0ae673df01dc76381f3c6d16433abfbb42a47c5fb60b3dfd4dd2c9c3796cba3f",
-            "modifiedAt": "2026-07-13T10:18:48.702Z"
+            "modifiedAt": "2026-07-13T16:29:49.194Z"
           }
         ]
       },
@@ -849,8 +849,8 @@
   },
   "cleanup": {
     "schemaVersion": 2,
-    "generatedAt": "2026-07-13T16:23:53.428Z",
-    "runId": "audit-20260713160822-1b2f6854",
+    "generatedAt": "2026-07-13T23:09:24.865Z",
+    "runId": "audit-20260713230137-22c0a46e",
     "discoveryOnly": true,
     "records": [],
     "evidenceChecks": [],
@@ -3573,7 +3573,7 @@
   "blockedCandidates": [],
   "runtimeInventory": {
     "surfaces": 42,
-    "visibleDefinitions": 1338,
-    "staticCandidates": 847
+    "visibleDefinitions": 1341,
+    "staticCandidates": 844
   }
 }
