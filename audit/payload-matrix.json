@@ -1,420 +1,420 @@
 {
   "schemaVersion": 2,
-  "runId": "audit-20260713150726-230f1fe5",
-  "generatedAt": "2026-07-13T15:14:45.427Z",
+  "runId": "audit-20260713160822-1b2f6854",
+  "generatedAt": "2026-07-13T16:24:16.773Z",
   "inputProvenance": {
-    "sha256": "92cb384b57eccbc2c1a511789225fec2957cf2338407fdb4d5282f20b3bb2369",
+    "sha256": "8a59b0479a09dc71545d5a4aeffebfc09140bf419dbf092cb3969e95b0ef7b1e",
     "fileCount": 60,
     "files": [
       {
         "path": "cleanup-ledger.json",
         "bytes": 578,
-        "sha256": "4336df76bfbce05792500622d7b887fddfd238f3db853064a35e3d1237438fdc",
-        "modifiedAt": "2026-07-13T15:14:42.616Z"
+        "sha256": "1d704f26b592405895f560b1a29f6d920259f29b1a24d1635b02d1d999532b39",
+        "modifiedAt": "2026-07-13T16:23:53.431Z"
       },
       {
         "path": "results/pr-scope.json",
         "bytes": 13682,
-        "sha256": "fb7ed54a9ca30d01b8cf091a51af1c2737657fae330725669513225da08b020b",
-        "modifiedAt": "2026-07-13T15:14:44.068Z"
+        "sha256": "698635ada23d74a749c9f1b164d94f86e443967c6a64edab8a3c5ad14c2bcbde",
+        "modifiedAt": "2026-07-13T16:24:03.385Z"
       },
       {
         "path": "results/role-state-availability.json",
         "bytes": 912,
-        "sha256": "2c0446840777a7d39413f7f2a251a42ee880c4053be9d4535a39b9b2ebd73780",
-        "modifiedAt": "2026-07-13T15:14:36.899Z"
+        "sha256": "3925c7fbdf1f0e72d1886dd855b98bd83676cef8e2bea6ed87ea371200849a83",
+        "modifiedAt": "2026-07-13T16:23:35.431Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/ambulances.json",
-        "bytes": 703085,
-        "sha256": "3d24206e20cafa1ac70ac0c8c1e575211b16b1229a2cb3a76400cc4d9bf8fde9",
-        "modifiedAt": "2026-07-13T15:14:41.214Z"
+        "bytes": 715134,
+        "sha256": "16af73d983a80044470486c370cd81aa674b65b81ebaeb4dd36ed5be0c3f5f99",
+        "modifiedAt": "2026-07-13T16:23:46.464Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/analytics.json",
         "bytes": 179645,
-        "sha256": "017b3baf40e71d4b162059bc65228dc7350508578784537d1d1ab878ad996c9f",
-        "modifiedAt": "2026-07-13T15:14:41.230Z"
+        "sha256": "3bb1a1309efa3a82ce7c654f42b8807d34f1d529ee1597336049ee32f32eab82",
+        "modifiedAt": "2026-07-13T16:23:46.482Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/audit-not-found.json",
         "bytes": 2234,
         "sha256": "a8f05d7e18870c5e04700f13c766d732de0856c26dd559dfbbf6c24e96fc8673",
-        "modifiedAt": "2026-07-13T15:14:41.240Z"
+        "modifiedAt": "2026-07-13T16:23:46.492Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/doctors.json",
-        "bytes": 707370,
-        "sha256": "c3faa7ba8e56c455b56b1d31cf270e46be9fa45846f9ed6aa6ff9545f860a5de",
-        "modifiedAt": "2026-07-13T15:14:41.278Z"
+        "bytes": 707367,
+        "sha256": "99fd968ab417a0911972b8a924d8549e827a4c27aa7062a4e332f7c64cfef430",
+        "modifiedAt": "2026-07-13T16:23:46.529Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/emergencies.json",
-        "bytes": 423437,
-        "sha256": "68dff2a18441754efe51f00dce14b88ce72f7e5c8468989aaf2b47fd20695899",
-        "modifiedAt": "2026-07-13T15:14:41.309Z"
+        "bytes": 409041,
+        "sha256": "ea2ba4f176b0298df23678ada1048a5fe82ee5ffe637b73a2a57f8c346ce9e60",
+        "modifiedAt": "2026-07-13T16:23:46.555Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/health-news.json",
-        "bytes": 339801,
-        "sha256": "97c5492f980a0f9f2a6deb105d0f3c3c905e0aa1038ddaf9d690659c53d9651d",
-        "modifiedAt": "2026-07-13T15:14:41.337Z"
+        "bytes": 351831,
+        "sha256": "bf8eed66e27ef1a48d7e779cc98f46927997d8569af18a1694f4de5fbac40db3",
+        "modifiedAt": "2026-07-13T16:23:46.578Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/hospitals.json",
-        "bytes": 624922,
-        "sha256": "4ed96d035d5965fff503cd244f3a1c5245b9a3bf0dbe0eb7389bc6dcf208c4e9",
-        "modifiedAt": "2026-07-13T15:14:41.374Z"
+        "bytes": 612923,
+        "sha256": "351dcfeea321fb45dddbcb672da2d06983328f10241961ddd80c4dad7122a9b9",
+        "modifiedAt": "2026-07-13T16:23:46.608Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/insurance.json",
-        "bytes": 326399,
-        "sha256": "e8796926028cfd50dc5d99e2e755581ae7f70cf278756b96bfbbb89ffa560dab",
-        "modifiedAt": "2026-07-13T15:14:41.396Z"
+        "bytes": 338336,
+        "sha256": "222e678db846a904a39901aa5e12d4587a278fa73885c4b8af9851ae7e3c6f57",
+        "modifiedAt": "2026-07-13T16:23:46.629Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/login.json",
         "bytes": 4920,
         "sha256": "af0efe316c8fbe9eb2b961b614ead31d674bf54bd79a2256e94112c390307850",
-        "modifiedAt": "2026-07-13T15:14:41.407Z"
+        "modifiedAt": "2026-07-13T16:23:46.638Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/map.json",
-        "bytes": 175862,
-        "sha256": "376ffa952b17da4c397a435c1a05f6ce2c962681cd2dfdd5c757a10df085635b",
-        "modifiedAt": "2026-07-13T15:14:41.429Z"
+        "bytes": 187527,
+        "sha256": "0b619c5d7ea9d9afeefab86bb07c44c4a230724bd93aa0dab4c388e59f98fffc",
+        "modifiedAt": "2026-07-13T16:23:46.653Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding-success.json",
         "bytes": 5219,
         "sha256": "e924c9afb30ad2e7e7bdce21ea5f39845026390ffdff1153e65ef97e42bb4c7b",
-        "modifiedAt": "2026-07-13T15:14:41.434Z"
+        "modifiedAt": "2026-07-13T16:23:46.662Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding.json",
         "bytes": 8584,
         "sha256": "2b035c75e95880931b8c2e33f1ada0a472989660015d038bf20082fd9f1185fa",
-        "modifiedAt": "2026-07-13T15:14:41.446Z"
+        "modifiedAt": "2026-07-13T16:23:46.672Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/organizations.json",
-        "bytes": 604859,
-        "sha256": "f878ab45efddddc4c8ef698a6d2b0f8d74d77ca9050452a38f0895fd61af5375",
-        "modifiedAt": "2026-07-13T15:14:41.480Z"
+        "bytes": 604863,
+        "sha256": "5f6cd1a5a1890e43a7ebcef905df3b269b0420c0109363d6432368790dfb2334",
+        "modifiedAt": "2026-07-13T16:23:46.700Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/pricing.json",
-        "bytes": 477763,
-        "sha256": "f2bca71ea8d143db9f8ffa73fda7d8118784b121212352684c47331335e327f5",
-        "modifiedAt": "2026-07-13T15:14:41.509Z"
+        "bytes": 465922,
+        "sha256": "c22c39a89f06526f61cba1acaa74580a8b29cf231c7c0799486a793c7bc604fa",
+        "modifiedAt": "2026-07-13T16:23:46.723Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/set-password.json",
         "bytes": 3573,
         "sha256": "7141b194323eb1e1c9a5b1bd20fa7a02311d044357142adc57f136a218f1b144",
-        "modifiedAt": "2026-07-13T15:14:41.520Z"
+        "modifiedAt": "2026-07-13T16:23:46.733Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/settings.json",
         "bytes": 39628,
-        "sha256": "02acda6a5426bc98032565f8c0a20e958bd94929d2bf42b920ac8a3fd92c96d9",
-        "modifiedAt": "2026-07-13T15:14:41.532Z"
+        "sha256": "0f32049a58638a64e172bdae94f35c58e3f8c2ef0c723adef9891435f85fe3aa",
+        "modifiedAt": "2026-07-13T16:23:46.743Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/subscriptions.json",
-        "bytes": 625108,
-        "sha256": "b275a503251656054e5959a18d2c56b452d3adcca60ef67011d4e76ebb653128",
-        "modifiedAt": "2026-07-13T15:14:41.565Z"
+        "bytes": 610595,
+        "sha256": "547ba51385bcb608859469fd3daabc44e5fdb7647ad95093c6f0f7a958ada24d",
+        "modifiedAt": "2026-07-13T16:23:46.774Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/support-tickets.json",
-        "bytes": 362481,
-        "sha256": "42d89f4398288ce3e08ba116a49a76a6eb91ac6f1b23be0269471b7bc202bbaa",
-        "modifiedAt": "2026-07-13T15:14:41.589Z"
+        "bytes": 362478,
+        "sha256": "8322c27921588a8eeb26a064432a6472f6912cfaca4660b3c5fe18408aa3aa1c",
+        "modifiedAt": "2026-07-13T16:23:46.795Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unauthorized.json",
         "bytes": 2857,
         "sha256": "5861d09a60c0358c8fadf40aae969e2e491538c01598fc608e30e27756324d43",
-        "modifiedAt": "2026-07-13T15:14:41.598Z"
+        "modifiedAt": "2026-07-13T16:23:46.798Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unnamed.json",
-        "bytes": 177030,
-        "sha256": "af27adf2aaefa8e963a639ba3cb43d0694bca043b875d339da81b660ff65098e",
-        "modifiedAt": "2026-07-13T15:14:41.613Z"
+        "bytes": 180340,
+        "sha256": "4c608c347de0d14f47aa9270c94342c36f60828139002954547c67267822b3d4",
+        "modifiedAt": "2026-07-13T16:23:46.815Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/users.json",
-        "bytes": 708914,
-        "sha256": "c454704c8bf690d11f016e114e881c1a084a649f130623ba61901582e9039679",
-        "modifiedAt": "2026-07-13T15:14:41.645Z"
+        "bytes": 697105,
+        "sha256": "aefa1aa15b683e84d5c068190d6aa9e2f632a42272fd51cdd323581aa84a52a6",
+        "modifiedAt": "2026-07-13T16:23:46.848Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/verification.json",
-        "bytes": 511633,
-        "sha256": "b222d706e496b024829b7ae4318673abf866e53804485cf9548c970920147853",
-        "modifiedAt": "2026-07-13T15:14:41.673Z"
+        "bytes": 523714,
+        "sha256": "e82a6bbbaf8c00e2d19b10d8b5587326555fab89d3de4cb8cc11ebe4391b7f38",
+        "modifiedAt": "2026-07-13T16:23:46.884Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/visits.json",
         "bytes": 450899,
-        "sha256": "971666aae96b2f69662c616dd1e928d36e54604dee6d3b5bd80b75b1adc49db0",
-        "modifiedAt": "2026-07-13T15:14:41.696Z"
+        "sha256": "3efc0ddf4b6015e6bdcd12959e3b8c00fc72867cfd2cb7c49f49c372ba568c7e",
+        "modifiedAt": "2026-07-13T16:23:46.911Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/wallet.json",
-        "bytes": 574949,
-        "sha256": "0d396f8bda63cb5fc708588804e1a6dd62f3145e5e63364af075c01c13706727",
-        "modifiedAt": "2026-07-13T15:14:41.726Z"
+        "bytes": 563092,
+        "sha256": "5c0049f0e4070258d612e6aab25715874fac00a8db9e449f5680732441e2a2c1",
+        "modifiedAt": "2026-07-13T16:23:46.942Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/ambulances.json",
-        "bytes": 726168,
-        "sha256": "04f1e8a5b6624c33b09ef8711434e43c7453dd73ca5f24208e09e16e33b54e76",
-        "modifiedAt": "2026-07-13T15:14:41.758Z"
+        "bytes": 720003,
+        "sha256": "75a466267d83b552d98adf823d283501984fbc9dbe72408fa6fd6d512235bec2",
+        "modifiedAt": "2026-07-13T16:23:46.969Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/analytics.json",
-        "bytes": 136886,
-        "sha256": "3f893fc647bcd06fce9cf2adf76dc4d7f3078d813ac1adea9efa2a25a74ce588",
-        "modifiedAt": "2026-07-13T15:14:41.775Z"
+        "bytes": 136914,
+        "sha256": "e9259a4039696f1c6cb07d954163525fc0150ece44bb55702628f9183391c7ed",
+        "modifiedAt": "2026-07-13T16:23:46.976Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/audit-not-found.json",
         "bytes": 2232,
         "sha256": "5bad0d741a2535400b72b5bdb37f233059ba897f8524ee5d8834851f75ee0680",
-        "modifiedAt": "2026-07-13T15:14:41.779Z"
+        "modifiedAt": "2026-07-13T16:23:46.985Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/doctors.json",
-        "bytes": 719649,
-        "sha256": "a6c29ab31abcb1931b6119dbcde14833279d0fe0ef37619d013ed6fe27f59d39",
-        "modifiedAt": "2026-07-13T15:14:41.811Z"
+        "bytes": 716617,
+        "sha256": "3ef1083b80d841470b7c2c30a74f523fbc7f69e875b11c2e5f592fd130c1ffb7",
+        "modifiedAt": "2026-07-13T16:23:47.014Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/emergencies.json",
         "bytes": 161906,
-        "sha256": "e502ed075144ac4e30bb454ab9abf24458051ea6cf7fc29cb8ccc05caeec3536",
-        "modifiedAt": "2026-07-13T15:14:41.827Z"
+        "sha256": "1a0ba6f7c60c9377b1a9a70c6c21677d3476253a6345548315b7546900397c23",
+        "modifiedAt": "2026-07-13T16:23:47.023Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/health-news.json",
-        "bytes": 175569,
-        "sha256": "3f7d533be97a3910d49990ee88688b226c1cf12f05f002680fed8e168e58860b",
-        "modifiedAt": "2026-07-13T15:14:41.844Z"
+        "bytes": 166675,
+        "sha256": "93a6bc3f0af249d09a031b6a5bb1a7821b88179fe513697341d5131526815aee",
+        "modifiedAt": "2026-07-13T16:23:47.030Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/hospitals.json",
-        "bytes": 740252,
-        "sha256": "349828cff3a8127412aea8b8419176e5b32fcc5be306d0a7997b1afb3024a359",
-        "modifiedAt": "2026-07-13T15:14:41.876Z"
+        "bytes": 734141,
+        "sha256": "e362a496fecf08ec04ed55ef31495663d4995c4e01de63aefc774d0608289f3a",
+        "modifiedAt": "2026-07-13T16:23:47.057Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/insurance.json",
-        "bytes": 152479,
-        "sha256": "623b4f514ca31c37e6705f6fa1f5dbbc94fe9ed6f495d74307b300c918cc1ea5",
-        "modifiedAt": "2026-07-13T15:14:41.888Z"
+        "bytes": 137550,
+        "sha256": "c4b3946948876807874fc27207be4a8dadb8df85c94a46f0d0b099f13e541f71",
+        "modifiedAt": "2026-07-13T16:23:47.064Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/login.json",
         "bytes": 2122,
         "sha256": "fe969d7df24e3d70693066426406cef853bb5a8c716afadfcc598212c13b3d71",
-        "modifiedAt": "2026-07-13T15:14:41.892Z"
+        "modifiedAt": "2026-07-13T16:23:47.076Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/map.json",
-        "bytes": 122348,
-        "sha256": "46bd313a53aa57acbd17a169be67a619026ff3bbe8a3b62cca9520523f765540",
-        "modifiedAt": "2026-07-13T15:14:41.909Z"
+        "bytes": 110756,
+        "sha256": "64d4d1a78352ebe1dde7de7f8c1bad7fac671b8a1faac79d5c2d445474bffc9a",
+        "modifiedAt": "2026-07-13T16:23:47.082Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding-success.json",
         "bytes": 2265,
         "sha256": "de09d72a536ccd77439258105f8f6b9e874fb77e59e0a097b891e5059e6565ff",
-        "modifiedAt": "2026-07-13T15:14:41.914Z"
+        "modifiedAt": "2026-07-13T16:23:47.094Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding.json",
         "bytes": 2177,
         "sha256": "6ba4de2eb44d52416a301712761f3c2e48291c1e05e87bcd36af29642007b602",
-        "modifiedAt": "2026-07-13T15:14:41.918Z"
+        "modifiedAt": "2026-07-13T16:23:47.104Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/organizations.json",
-        "bytes": 705154,
-        "sha256": "ed5319ac23405202344d7c927b15d703bc24d968c4e9884eedac11fc2ce5107f",
-        "modifiedAt": "2026-07-13T15:14:41.950Z"
+        "bytes": 711419,
+        "sha256": "e4e85ab5389006a26af75576299383bec573354dd56867755f21bbbbaeee1627",
+        "modifiedAt": "2026-07-13T16:23:47.130Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/pricing.json",
-        "bytes": 364036,
-        "sha256": "9f5086abc91d68880d57220782a324c91a7e837d7d066962146fa18593c8bc3b",
-        "modifiedAt": "2026-07-13T15:14:41.967Z"
+        "bytes": 364070,
+        "sha256": "7f253c478e525593ddffd8854a23358db7f881d089ae5dddb4c95a8815f1eee1",
+        "modifiedAt": "2026-07-13T16:23:47.145Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/set-password.json",
         "bytes": 2199,
         "sha256": "27b70b1c75f4bb1957978a70c83cbe9aa2f4d0bbf1f29c910d3577f12ba27050",
-        "modifiedAt": "2026-07-13T15:14:41.976Z"
+        "modifiedAt": "2026-07-13T16:23:47.158Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/settings.json",
         "bytes": 108828,
-        "sha256": "5750ee86674174ee4a6c9657a354925dee6ce1a117209cbd6890f018bf4db472",
-        "modifiedAt": "2026-07-13T15:14:41.989Z"
+        "sha256": "0db2c15f533f513ed42a7789aa6c89b16ee5e6fd2c3b8f0b1dfa3ef85d45390f",
+        "modifiedAt": "2026-07-13T16:23:47.164Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/subscriptions.json",
-        "bytes": 540166,
-        "sha256": "2a0c05c702b5bcc3d5a76670011f8361d16258ca6a40e083b85d4078ffc7c6f8",
-        "modifiedAt": "2026-07-13T15:14:42.014Z"
+        "bytes": 533918,
+        "sha256": "8f6b80a772db850b6bf07a23dba59bed967dd5261e6b47d770bd61ae132fc15e",
+        "modifiedAt": "2026-07-13T16:23:47.189Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/support-tickets.json",
-        "bytes": 145037,
-        "sha256": "64dede53edb8ee97928dba1eb9a8fd9983f1d01d3d51f697399e8e31b7e3c133",
-        "modifiedAt": "2026-07-13T15:14:42.029Z"
+        "bytes": 148177,
+        "sha256": "5c756aec6f9451ad96577bd5b833e01f5d116ff394f1e2fc2ba9843feab6ef63",
+        "modifiedAt": "2026-07-13T16:23:47.199Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unauthorized.json",
         "bytes": 2199,
         "sha256": "d600fdcca995e8cf7abae9f1b2b8e6eecd5d00e45074acf543fd34ce4a1d8e93",
-        "modifiedAt": "2026-07-13T15:14:42.038Z"
+        "modifiedAt": "2026-07-13T16:23:47.209Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unnamed.json",
         "bytes": 105478,
-        "sha256": "6a03c58c2f9a7f4b4d53242dc2527f1ebd31c972c41f8dcebf24685ba5067732",
-        "modifiedAt": "2026-07-13T15:14:42.050Z"
+        "sha256": "11139fb4b4fb52cb88f32770c58661ea29fabdcc0e57368d8db643f16baea062",
+        "modifiedAt": "2026-07-13T16:23:47.214Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/users.json",
-        "bytes": 709776,
-        "sha256": "348f651625862a2d9e2e0d95e6fc4586276699d615fe42013ae42f8600b0a050",
-        "modifiedAt": "2026-07-13T15:14:42.080Z"
+        "bytes": 706718,
+        "sha256": "c3a22a537547443e279dbec5eca6a721a7529fb52f0f160ef5e374b1a25e6535",
+        "modifiedAt": "2026-07-13T16:23:47.237Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/verification.json",
-        "bytes": 443157,
-        "sha256": "4f962a8172dd2f15973e2be4fdff0f399d346fa065622b0292a48eb771e0d089",
-        "modifiedAt": "2026-07-13T15:14:42.100Z"
+        "bytes": 443183,
+        "sha256": "edad925523b54eaa03ea0502a8cdbc7eec002f96224e49b679d41edc9dfc1ec0",
+        "modifiedAt": "2026-07-13T16:23:47.259Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/visits.json",
-        "bytes": 248352,
-        "sha256": "cfeae62236ab327a5dbf6ceae96cc1e009ba101a0ce632ff27ba432c3caaba9e",
-        "modifiedAt": "2026-07-13T15:14:42.116Z"
+        "bytes": 801033,
+        "sha256": "20ff98ed78e2721478fa9565ac207d591dd0579ad86a60ed12a3a538981fbae8",
+        "modifiedAt": "2026-07-13T16:23:47.286Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/wallet.json",
-        "bytes": 643294,
-        "sha256": "e647fcd9a74ca98a819be2f2a723fa4bb785ed91fcec972d0c60a167a3131ac0",
-        "modifiedAt": "2026-07-13T15:14:42.143Z"
+        "bytes": 110298,
+        "sha256": "2d5840e29b84773b2190dc498d709f6cbd92b3668f89a385b90551da718e4894",
+        "modifiedAt": "2026-07-13T16:23:47.292Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/audit-not-found.json",
         "bytes": 2334,
-        "sha256": "6642145238bc8fca7b4b069a7db89c9140e935201616bc6239a5325513477c67",
-        "modifiedAt": "2026-07-13T15:14:42.145Z"
+        "sha256": "3884ff5415f54e86c673e20628bd9bfebbdf022a2d5d2fd62c51238fb43b321b",
+        "modifiedAt": "2026-07-13T16:23:47.294Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/login.json",
         "bytes": 5140,
-        "sha256": "651f7ea807ec003720f49c71cbdf1f8d3aa16d2cac82969c17cf9a86e783e87c",
-        "modifiedAt": "2026-07-13T15:14:42.147Z"
+        "sha256": "2a2f719bac95bac0e91a98840723fa889ff61e51543c6fc4c94e0d7b19532021",
+        "modifiedAt": "2026-07-13T16:23:47.295Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding-success.json",
         "bytes": 3156,
-        "sha256": "261f5a6219d7ef6708415e54375b6d87893d77161e62a41e4b216f889d0cc974",
-        "modifiedAt": "2026-07-13T15:14:42.148Z"
+        "sha256": "7ed94442f41e2c80967ad3e023a72bdf78a5e7e438c7c2187df718865778637d",
+        "modifiedAt": "2026-07-13T16:23:47.297Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding.json",
         "bytes": 8954,
-        "sha256": "ac52fcf660acaf74094eeac800b72551556bd0b01eaaea5c16517c0a08392892",
-        "modifiedAt": "2026-07-13T15:14:42.150Z"
+        "sha256": "3e7dbcd1a10811619cfa8a6411b798f14cc618b5b86e4859b75e2ed97f710753",
+        "modifiedAt": "2026-07-13T16:23:47.298Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/set-password.json",
         "bytes": 3733,
-        "sha256": "939781539bbce77b7d0bfbb542ce17d3d1d0837b513ff1967f52b9b36877cd58",
-        "modifiedAt": "2026-07-13T15:14:42.155Z"
+        "sha256": "262f4446ad7dbe65bece2ea1a5dfa7ae022eaa3ed626db81ca8388b49de12572",
+        "modifiedAt": "2026-07-13T16:23:47.300Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unauthorized.json",
         "bytes": 2292,
-        "sha256": "344b1edc04559455cc9ffd0c7e7ffb90d82f5349d019bc67057b2eb115576ca9",
-        "modifiedAt": "2026-07-13T15:14:42.157Z"
+        "sha256": "159f52a296483ae1ec9c7cbfade0f2d2bfe42bf6b6ae9f2d7b5f9257d90ca4fd",
+        "modifiedAt": "2026-07-13T16:23:47.302Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unnamed.json",
         "bytes": 2175,
         "sha256": "a424fa4a33bed7ddae6a3e70d701f728382737b4f15ae83dcfb8217780a449cb",
-        "modifiedAt": "2026-07-13T15:14:42.162Z"
+        "modifiedAt": "2026-07-13T16:23:47.311Z"
       },
       {
         "path": "results/source-findings.cjs",
-        "bytes": 107202,
-        "sha256": "1d4dd1c944a3ec4300ec1a61f35732cd1d0c992e2227b496546c0ef286432900",
-        "modifiedAt": "2026-07-13T14:37:45.187Z"
+        "bytes": 107830,
+        "sha256": "ffa18c535bb54147f342b5ab8506952f40ed9a2fe864cdfef96ba28b40aba037",
+        "modifiedAt": "2026-07-13T16:03:28.319Z"
       },
       {
         "path": "results/static-actions.json",
         "bytes": 418620,
-        "sha256": "fb9c475f0c9d33c1d04b10bbdee92b903c400788f384a57e40b3c1de6948cda3",
-        "modifiedAt": "2026-07-13T15:07:32.589Z"
+        "sha256": "866242894544f254b6449e15ca29296072b71a3cd1a99d72899e83163af9e4e4",
+        "modifiedAt": "2026-07-13T16:08:26.521Z"
       }
     ]
   },
   "sourceSnapshots": [
     {
       "lane": "B",
-      "capturedAt": "2026-07-13T14:35:44Z",
+      "capturedAt": "2026-07-13T16:02:42Z",
       "mode": "read_only",
       "note": "Facilities, organizations, verification, onboarding, fleet, and staff receivers revalidated against the current worktree and maintained SQL."
     },
     {
       "lane": "C",
-      "capturedAt": "2026-07-13T14:35:44Z",
-      "mode": "read_only",
-      "head": "b827458b",
-      "note": "Clinical and dispatch mounted paths plus canonical receiver source revalidated; linked-project application remains separately blocked."
+      "capturedAt": "2026-07-13T16:02:42Z",
+      "mode": "live_contract_verified",
+      "head": "0ef88f51",
+      "note": "Clinical and dispatch source plus linked-project receivers revalidated; payment retry owner denial, canonical transition, and two-session convergence passed with zero residue."
     },
     {
       "lane": "D",
-      "capturedAt": "2026-07-13T14:35:44Z",
+      "capturedAt": "2026-07-13T16:02:42Z",
       "mode": "read_only",
       "visibleCandidates": 67,
       "note": "Identity, profiles, Settings, MFA assurance, account cache, avatar persistence, and role guards revalidated with focused tests."
     },
     {
       "lane": "E",
-      "capturedAt": "2026-07-13T14:35:44Z",
-      "mode": "read_only",
+      "capturedAt": "2026-07-13T16:02:42Z",
+      "mode": "live_contract_verified",
       "mountedSourceActions": 75,
-      "note": "Financial routes plus emergency payment actions; trigger-sensitive writes were not invoked."
+      "note": "Financial routes and emergency payment actions revalidated; linked payment retry authority, transition, concurrency, reflection, and cleanup passed."
     },
     {
       "lane": "F",
-      "capturedAt": "2026-07-13T14:35:44Z",
-      "mode": "read_only",
+      "capturedAt": "2026-07-13T16:02:42Z",
+      "mode": "source_and_live_verified",
       "semanticCandidates": 84,
-      "note": "Health News, Support, and subscriber mounted paths revalidated; schema-wide Support enum authority remains blocked."
+      "note": "Health News, Support, and subscriber mounted paths revalidated; Support enum constraints are canonical and live."
     },
     {
       "lane": "G",
-      "capturedAt": "2026-07-13T14:35:44Z",
-      "mode": "read_only",
+      "capturedAt": "2026-07-13T16:02:42Z",
+      "mode": "bounded_live_and_focused",
       "semanticFailureInjectionCases": 50,
-      "note": "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated with focused tests; unsafe live mutation was not performed."
+      "note": "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated; the isolated payment race and onboarding flow completed with exhaustive cleanup."
     },
     {
       "lane": "PR",
-      "capturedAt": "2026-07-13T14:35:44Z",
-      "mode": "read_only_current_worktree",
-      "note": "All findings were revalidated against the dirty PR worktree and App-owned canonical pillars; source resolution and linked-project deployment proof remain disjoint."
+      "capturedAt": "2026-07-13T16:02:42Z",
+      "mode": "source_and_linked_project_verified",
+      "note": "App-owned source is committed on main, exact-source SQL is live, temporary migration history is removed, and the Console mirror plus runtime admission artifacts are being refreshed."
     }
   ],
   "cases": [
@@ -1118,18 +1118,8 @@
     },
     {
       "caseId": "unauthorized_role",
-      "status": "runtime_blocked",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "schema.console-shared-contracts.deploy",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
-          ]
-        },
         {
           "actionId": "ambulance.receiver.write",
           "state": "resolved",
@@ -1273,6 +1263,16 @@
           ]
         },
         {
+          "actionId": "schema.console-shared-contracts.deploy",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
+          ]
+        },
+        {
           "actionId": "storage.upload.authority",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1294,9 +1294,7 @@
         }
       ],
       "actionIds": [],
-      "blockedActionIds": [
-        "schema.console-shared-contracts.deploy"
-      ],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "ambulance.receiver.write",
         "auth.signout-then-signin",
@@ -1312,6 +1310,7 @@
         "notifications.open",
         "quick-search.result.open",
         "rpc.update-hospital.self-verify",
+        "schema.console-shared-contracts.deploy",
         "storage.upload.authority",
         "users.context-panel.open"
       ]
@@ -1536,18 +1535,8 @@
     },
     {
       "caseId": "concurrency",
-      "status": "runtime_blocked",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "schema.console-shared-contracts.deploy",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
-          ]
-        },
         {
           "actionId": "ambulance.modal.save",
           "state": "resolved",
@@ -1619,6 +1608,16 @@
           ]
         },
         {
+          "actionId": "schema.console-shared-contracts.deploy",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
+          ]
+        },
+        {
           "actionId": "support.bulk-delete.confirm",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1670,9 +1669,7 @@
         }
       ],
       "actionIds": [],
-      "blockedActionIds": [
-        "schema.console-shared-contracts.deploy"
-      ],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "ambulance.modal.save",
         "doctor.delete.confirm",
@@ -1681,6 +1678,7 @@
         "emergency.cancel.confirm",
         "emergency.retry-payment",
         "quick-search.query",
+        "schema.console-shared-contracts.deploy",
         "support.bulk-delete.confirm",
         "support.ticket.assign",
         "support.ticket.delete.confirm",
@@ -1690,18 +1688,8 @@
     },
     {
       "caseId": "partial_response",
-      "status": "runtime_blocked",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "schema.console-shared-contracts.deploy",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
-          ]
-        },
         {
           "actionId": "emergency.analytics.open",
           "state": "resolved",
@@ -1730,6 +1718,16 @@
           ],
           "findingIds": [
             "C-20-MAP-CAP-HIDDEN-FROM-OPERATOR"
+          ]
+        },
+        {
+          "actionId": "schema.console-shared-contracts.deploy",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
           ]
         },
         {
@@ -1764,13 +1762,12 @@
         }
       ],
       "actionIds": [],
-      "blockedActionIds": [
-        "schema.console-shared-contracts.deploy"
-      ],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "emergency.analytics.open",
         "health-news.refresh",
         "map.refresh",
+        "schema.console-shared-contracts.deploy",
         "schema.insurance-policy-parity",
         "subscriptions.refresh",
         "users.refresh"

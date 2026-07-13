@@ -1,8 +1,8 @@
 # iVisit Console Runtime CRUD And Interaction Audit
 
-Generated: 2026-07-13T15:14:45.427Z
-Run: audit-20260713150726-230f1fe5
-Input fingerprint: 92cb384b57eccbc2c1a511789225fec2957cf2338407fdb4d5282f20b3bb2369
+Generated: 2026-07-13T16:24:16.773Z
+Run: audit-20260713160822-1b2f6854
+Input fingerprint: 8a59b0479a09dc71545d5a4aeffebfc09140bf419dbf092cb3969e95b0ef7b1e
 
 ## Exact totals
 
@@ -10,17 +10,17 @@ Input fingerprint: 92cb384b57eccbc2c1a511789225fec2957cf2338407fdb4d5282f20b3bb2
 - Confirmed failure cases: **0**
 - Mounted UI failure cases: **0** across **0** mounted action definitions
 - Receiver-only failure cases: **0** across **0** backend receivers
-- Findings resolved by the current worktree: **91**
-- Runtime-blocked candidates retained separately: **1**
+- Findings resolved by the current worktree: **92**
+- Runtime-blocked candidates retained separately: **0**
 - Static JSX candidates (upper bound, not visible total): **847**
-- Runtime-visible semantic definitions captured: **1335** across **42** role/viewport/route surfaces
+- Runtime-visible semantic definitions captured: **1338** across **42** role/viewport/route surfaces
 
 ## PR scope
 
 - Local base/head: `main` -> `codex/ivisit-console-revamp-checkpoint-20260707`
-- Commits ahead/behind: 487/0
-- Committed diff: 553 files, 149867 insertions, 45207 deletions
-- Worktree: 6 tracked files changed and 0 untracked files
+- Commits ahead/behind: 489/0
+- Committed diff: 553 files, 150106 insertions, 45212 deletions
+- Worktree: 1 tracked files changed and 0 untracked files
 - Product worktree unchanged during audit: true
 - Audit harness unchanged during audit: true
 - Audit files already tracked at capture: 32
