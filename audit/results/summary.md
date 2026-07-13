@@ -1,48 +1,48 @@
 # iVisit Console Runtime CRUD And Interaction Audit
 
-Generated: 2026-07-13T13:08:35.221Z
-Run: audit-20260713125750-2ac4a368
-Input fingerprint: 6ea4b31db22395f60aff88a103a31f98af51ae1b8fdc5d8949b03a814b50ed49
+Generated: 2026-07-13T15:14:45.427Z
+Run: audit-20260713150726-230f1fe5
+Input fingerprint: 92cb384b57eccbc2c1a511789225fec2957cf2338407fdb4d5282f20b3bb2369
 
 ## Exact totals
 
-- Confirmed affected action definitions: **6**
-- Confirmed failure cases: **7**
-- Mounted UI failure cases: **2** across **2** mounted action definitions
-- Receiver-only failure cases: **5** across **4** backend receivers
-- Findings resolved by the current worktree: **75**
-- Runtime-blocked candidates retained separately: **9**
+- Confirmed affected action definitions: **0**
+- Confirmed failure cases: **0**
+- Mounted UI failure cases: **0** across **0** mounted action definitions
+- Receiver-only failure cases: **0** across **0** backend receivers
+- Findings resolved by the current worktree: **91**
+- Runtime-blocked candidates retained separately: **1**
 - Static JSX candidates (upper bound, not visible total): **847**
-- Runtime-visible semantic definitions captured: **1332** across **42** role/viewport/route surfaces
+- Runtime-visible semantic definitions captured: **1335** across **42** role/viewport/route surfaces
 
 ## PR scope
 
 - Local base/head: `main` -> `codex/ivisit-console-revamp-checkpoint-20260707`
-- Commits ahead/behind: 485/0
-- Committed diff: 517 files, 92114 insertions, 45093 deletions
-- Worktree: 0 tracked files changed and 32 untracked files
+- Commits ahead/behind: 487/0
+- Committed diff: 553 files, 149867 insertions, 45207 deletions
+- Worktree: 6 tracked files changed and 0 untracked files
 - Product worktree unchanged during audit: true
 - Audit harness unchanged during audit: true
-- Audit files already tracked at capture: 0
+- Audit files already tracked at capture: 32
 - Local read-only Git snapshot. No fetch, checkout, staging, commit, push, or ref mutation was performed.
 
 Failure-class totals are non-exclusive because one action can fail in more than one way:
 
-- accept_invalid_payload: 5
+- accept_invalid_payload: 0
 - browser_error: 0
-- conditional_failure: 6
+- conditional_failure: 0
 - do_nothing: 0
-- fail_valid_payload: 1
-- incorrect_crud_payload: 1
-- mutate_wrong_row_fields: 4
+- fail_valid_payload: 0
+- incorrect_crud_payload: 0
+- mutate_wrong_row_fields: 0
 - send_no_backend_request: 0
-- stale_ui: 2
+- stale_ui: 0
 - wrong_destination: 0
 
 ## Evidence boundary
 
 - Runtime-confirmed cases: 0
-- Source/receiver-confirmed cases: 7
+- Source/receiver-confirmed cases: 0
 - No success toast was accepted as mutation proof.
 - Live mutation was not performed where real patient or financial data, trigger side effects, or cleanup uncertainty made it unsafe.
 - Cleanup verification: not applicable because no mutation probe executed.

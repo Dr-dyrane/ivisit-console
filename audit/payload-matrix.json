@@ -1,420 +1,420 @@
 {
   "schemaVersion": 2,
-  "runId": "audit-20260713125750-2ac4a368",
-  "generatedAt": "2026-07-13T13:08:35.221Z",
+  "runId": "audit-20260713150726-230f1fe5",
+  "generatedAt": "2026-07-13T15:14:45.427Z",
   "inputProvenance": {
-    "sha256": "6ea4b31db22395f60aff88a103a31f98af51ae1b8fdc5d8949b03a814b50ed49",
+    "sha256": "92cb384b57eccbc2c1a511789225fec2957cf2338407fdb4d5282f20b3bb2369",
     "fileCount": 60,
     "files": [
       {
         "path": "cleanup-ledger.json",
         "bytes": 578,
-        "sha256": "6d9275a6322d951cc17b9aaecf792926ff0a87f6bab44acddd16bf41f6282bd2",
-        "modifiedAt": "2026-07-13T13:07:49.683Z"
+        "sha256": "4336df76bfbce05792500622d7b887fddfd238f3db853064a35e3d1237438fdc",
+        "modifiedAt": "2026-07-13T15:14:42.616Z"
       },
       {
         "path": "results/pr-scope.json",
-        "bytes": 13681,
-        "sha256": "765719bc08ff84815ca0df9f0998d73f7466f85ecb7051be08157f5096a5e5da",
-        "modifiedAt": "2026-07-13T13:07:51.150Z"
+        "bytes": 13682,
+        "sha256": "fb7ed54a9ca30d01b8cf091a51af1c2737657fae330725669513225da08b020b",
+        "modifiedAt": "2026-07-13T15:14:44.068Z"
       },
       {
         "path": "results/role-state-availability.json",
         "bytes": 912,
-        "sha256": "0d0df1c5f3044a1cc974b88bad773f00e5af7620e912ebaa307a918954366b52",
-        "modifiedAt": "2026-07-13T13:07:43.830Z"
+        "sha256": "2c0446840777a7d39413f7f2a251a42ee880c4053be9d4535a39b9b2ebd73780",
+        "modifiedAt": "2026-07-13T15:14:36.899Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/ambulances.json",
-        "bytes": 715134,
-        "sha256": "8d9dd02c214825f36bd6f093b8aba0a3242e785a535fbab8819b7ddb11afd8d9",
-        "modifiedAt": "2026-07-13T13:07:48.486Z"
+        "bytes": 703085,
+        "sha256": "3d24206e20cafa1ac70ac0c8c1e575211b16b1229a2cb3a76400cc4d9bf8fde9",
+        "modifiedAt": "2026-07-13T15:14:41.214Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/analytics.json",
         "bytes": 179645,
-        "sha256": "d689dc3e0fcc482e9d7d2a4f6ffdb2d438ef11808a05c105e4b076c08a503b7c",
-        "modifiedAt": "2026-07-13T13:07:48.494Z"
+        "sha256": "017b3baf40e71d4b162059bc65228dc7350508578784537d1d1ab878ad996c9f",
+        "modifiedAt": "2026-07-13T15:14:41.230Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/audit-not-found.json",
         "bytes": 2234,
         "sha256": "a8f05d7e18870c5e04700f13c766d732de0856c26dd559dfbbf6c24e96fc8673",
-        "modifiedAt": "2026-07-13T13:07:48.497Z"
+        "modifiedAt": "2026-07-13T15:14:41.240Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/doctors.json",
-        "bytes": 714893,
-        "sha256": "330a65b14deca3bfb28e7a40129b46dfbf400da305d152aa12bd9dcdd326e989",
-        "modifiedAt": "2026-07-13T13:07:48.528Z"
+        "bytes": 707370,
+        "sha256": "c3faa7ba8e56c455b56b1d31cf270e46be9fa45846f9ed6aa6ff9545f860a5de",
+        "modifiedAt": "2026-07-13T15:14:41.278Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/emergencies.json",
-        "bytes": 720370,
-        "sha256": "7d4b1f20d6b74cec9766062806d2dab544d2327fbba6dd40737fa50ca0004199",
-        "modifiedAt": "2026-07-13T13:07:48.561Z"
+        "bytes": 423437,
+        "sha256": "68dff2a18441754efe51f00dce14b88ce72f7e5c8468989aaf2b47fd20695899",
+        "modifiedAt": "2026-07-13T15:14:41.309Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/health-news.json",
-        "bytes": 339798,
-        "sha256": "287f650cbce2430b320a8ab02c2a20ee86bee031466441c33b3943797461e375",
-        "modifiedAt": "2026-07-13T13:07:48.576Z"
+        "bytes": 339801,
+        "sha256": "97c5492f980a0f9f2a6deb105d0f3c3c905e0aa1038ddaf9d690659c53d9651d",
+        "modifiedAt": "2026-07-13T15:14:41.337Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/hospitals.json",
-        "bytes": 624921,
-        "sha256": "e241f36aee910fd235775b69a89ec4b78e760b0cd2e5eaf42c426187b18f4c08",
-        "modifiedAt": "2026-07-13T13:07:48.600Z"
+        "bytes": 624922,
+        "sha256": "4ed96d035d5965fff503cd244f3a1c5245b9a3bf0dbe0eb7389bc6dcf208c4e9",
+        "modifiedAt": "2026-07-13T15:14:41.374Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/insurance.json",
-        "bytes": 338336,
-        "sha256": "dbad94a7dc5d99680dbb4fc90d135964a56c201af758f9923b362be655390923",
-        "modifiedAt": "2026-07-13T13:07:48.613Z"
+        "bytes": 326399,
+        "sha256": "e8796926028cfd50dc5d99e2e755581ae7f70cf278756b96bfbbb89ffa560dab",
+        "modifiedAt": "2026-07-13T15:14:41.396Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/login.json",
         "bytes": 4920,
         "sha256": "af0efe316c8fbe9eb2b961b614ead31d674bf54bd79a2256e94112c390307850",
-        "modifiedAt": "2026-07-13T13:07:48.615Z"
+        "modifiedAt": "2026-07-13T15:14:41.407Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/map.json",
-        "bytes": 187527,
-        "sha256": "51a7cf1beff0e126b229c05be2bf2ab56a37c23ca1fe5354e54d9eb4abb5aec5",
-        "modifiedAt": "2026-07-13T13:07:48.626Z"
+        "bytes": 175862,
+        "sha256": "376ffa952b17da4c397a435c1a05f6ce2c962681cd2dfdd5c757a10df085635b",
+        "modifiedAt": "2026-07-13T15:14:41.429Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding-success.json",
         "bytes": 5219,
         "sha256": "e924c9afb30ad2e7e7bdce21ea5f39845026390ffdff1153e65ef97e42bb4c7b",
-        "modifiedAt": "2026-07-13T13:07:48.628Z"
+        "modifiedAt": "2026-07-13T15:14:41.434Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding.json",
         "bytes": 8584,
         "sha256": "2b035c75e95880931b8c2e33f1ada0a472989660015d038bf20082fd9f1185fa",
-        "modifiedAt": "2026-07-13T13:07:48.630Z"
+        "modifiedAt": "2026-07-13T15:14:41.446Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/organizations.json",
-        "bytes": 617048,
-        "sha256": "4a4b78c144ed839e3d9ff0859c7cc758e26f6ff2d703adc458da502b0107d442",
-        "modifiedAt": "2026-07-13T13:07:48.648Z"
+        "bytes": 604859,
+        "sha256": "f878ab45efddddc4c8ef698a6d2b0f8d74d77ca9050452a38f0895fd61af5375",
+        "modifiedAt": "2026-07-13T15:14:41.480Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/pricing.json",
-        "bytes": 465922,
-        "sha256": "d9f94fbf47420f709291e5e421146d52d6e3b18fc2eb753ede9e77c915f8b1eb",
-        "modifiedAt": "2026-07-13T13:07:48.666Z"
+        "bytes": 477763,
+        "sha256": "f2bca71ea8d143db9f8ffa73fda7d8118784b121212352684c47331335e327f5",
+        "modifiedAt": "2026-07-13T15:14:41.509Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/set-password.json",
         "bytes": 3573,
         "sha256": "7141b194323eb1e1c9a5b1bd20fa7a02311d044357142adc57f136a218f1b144",
-        "modifiedAt": "2026-07-13T13:07:48.668Z"
+        "modifiedAt": "2026-07-13T15:14:41.520Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/settings.json",
         "bytes": 39628,
-        "sha256": "28f9138be95d971932d30145b93cb088a791a744af3cc99011b299802bf8f803",
-        "modifiedAt": "2026-07-13T13:07:48.671Z"
+        "sha256": "02acda6a5426bc98032565f8c0a20e958bd94929d2bf42b920ac8a3fd92c96d9",
+        "modifiedAt": "2026-07-13T15:14:41.532Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/subscriptions.json",
-        "bytes": 610595,
-        "sha256": "e789df18e259321a08445fbfbf0cc8873aca2f76128e2c92b4fba62502780659",
-        "modifiedAt": "2026-07-13T13:07:48.692Z"
+        "bytes": 625108,
+        "sha256": "b275a503251656054e5959a18d2c56b452d3adcca60ef67011d4e76ebb653128",
+        "modifiedAt": "2026-07-13T15:14:41.565Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/support-tickets.json",
-        "bytes": 362476,
-        "sha256": "2b39a29b8e37a593eaf8cf6b5c511935cc9d2e99d915e2aa8e975e764f1a8aac",
-        "modifiedAt": "2026-07-13T13:07:48.706Z"
+        "bytes": 362481,
+        "sha256": "42d89f4398288ce3e08ba116a49a76a6eb91ac6f1b23be0269471b7bc202bbaa",
+        "modifiedAt": "2026-07-13T15:14:41.589Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unauthorized.json",
         "bytes": 2857,
         "sha256": "5861d09a60c0358c8fadf40aae969e2e491538c01598fc608e30e27756324d43",
-        "modifiedAt": "2026-07-13T13:07:48.707Z"
+        "modifiedAt": "2026-07-13T15:14:41.598Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unnamed.json",
-        "bytes": 182085,
-        "sha256": "80dfe6cc2e5626dd1380a85f83b1c53cf7214250bf888596d216eb740587893a",
-        "modifiedAt": "2026-07-13T13:07:48.715Z"
+        "bytes": 177030,
+        "sha256": "af27adf2aaefa8e963a639ba3cb43d0694bca043b875d339da81b660ff65098e",
+        "modifiedAt": "2026-07-13T15:14:41.613Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/users.json",
-        "bytes": 708909,
-        "sha256": "8e0e4ea9fbd1529dd58a54af0468ab001c1fbfe9cb0fb73e009c5d4bbee2c50b",
-        "modifiedAt": "2026-07-13T13:07:48.740Z"
+        "bytes": 708914,
+        "sha256": "c454704c8bf690d11f016e114e881c1a084a649f130623ba61901582e9039679",
+        "modifiedAt": "2026-07-13T15:14:41.645Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/verification.json",
-        "bytes": 523713,
-        "sha256": "662e74dfcede7fdeb682bae56c15d427c0239be0655b14a1661069dbde058a9c",
-        "modifiedAt": "2026-07-13T13:07:48.760Z"
+        "bytes": 511633,
+        "sha256": "b222d706e496b024829b7ae4318673abf866e53804485cf9548c970920147853",
+        "modifiedAt": "2026-07-13T15:14:41.673Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/visits.json",
-        "bytes": 422521,
-        "sha256": "f5c5e9bfebc54a28af7f2028b1029ca39cbbf8e0240c4531762551d62bc847ec",
-        "modifiedAt": "2026-07-13T13:07:48.774Z"
+        "bytes": 450899,
+        "sha256": "971666aae96b2f69662c616dd1e928d36e54604dee6d3b5bd80b75b1adc49db0",
+        "modifiedAt": "2026-07-13T15:14:41.696Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/wallet.json",
-        "bytes": 643004,
-        "sha256": "69a2619d31e5a607386fd63f37c518b06700ac66293061734d3b803bb1e69588",
-        "modifiedAt": "2026-07-13T13:07:48.794Z"
+        "bytes": 574949,
+        "sha256": "0d396f8bda63cb5fc708588804e1a6dd62f3145e5e63364af075c01c13706727",
+        "modifiedAt": "2026-07-13T15:14:41.726Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/ambulances.json",
-        "bytes": 725701,
-        "sha256": "65cf6b9fd2f5595e307599a181e5acb206e0723b4138a3911a8278865f8a2413",
-        "modifiedAt": "2026-07-13T13:07:48.820Z"
+        "bytes": 726168,
+        "sha256": "04f1e8a5b6624c33b09ef8711434e43c7453dd73ca5f24208e09e16e33b54e76",
+        "modifiedAt": "2026-07-13T15:14:41.758Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/analytics.json",
-        "bytes": 114555,
-        "sha256": "eec035c5422c9a864574a5803eed4422d4c4fc3dcb9b2f3b9bd71d4f5da46f47",
-        "modifiedAt": "2026-07-13T13:07:48.827Z"
+        "bytes": 136886,
+        "sha256": "3f893fc647bcd06fce9cf2adf76dc4d7f3078d813ac1adea9efa2a25a74ce588",
+        "modifiedAt": "2026-07-13T15:14:41.775Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/audit-not-found.json",
         "bytes": 2232,
         "sha256": "5bad0d741a2535400b72b5bdb37f233059ba897f8524ee5d8834851f75ee0680",
-        "modifiedAt": "2026-07-13T13:07:48.829Z"
+        "modifiedAt": "2026-07-13T15:14:41.779Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/doctors.json",
-        "bytes": 728423,
-        "sha256": "fe96036734e7a55f8497a2bde944a13db245679d3cb3862cf388f681777e1e98",
-        "modifiedAt": "2026-07-13T13:07:48.853Z"
+        "bytes": 719649,
+        "sha256": "a6c29ab31abcb1931b6119dbcde14833279d0fe0ef37619d013ed6fe27f59d39",
+        "modifiedAt": "2026-07-13T15:14:41.811Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/emergencies.json",
-        "bytes": 790111,
-        "sha256": "a7679cd3afc0f5343171aee5f4e1854d7e6c6403cd8d5afb1a51bf24cdbefc2f",
-        "modifiedAt": "2026-07-13T13:07:48.879Z"
+        "bytes": 161906,
+        "sha256": "e502ed075144ac4e30bb454ab9abf24458051ea6cf7fc29cb8ccc05caeec3536",
+        "modifiedAt": "2026-07-13T15:14:41.827Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/health-news.json",
-        "bytes": 166703,
-        "sha256": "b023641a38ef3af0040573a48693280372feb67f61681320a7aa1ad95ef150be",
-        "modifiedAt": "2026-07-13T13:07:48.886Z"
+        "bytes": 175569,
+        "sha256": "3f7d533be97a3910d49990ee88688b226c1cf12f05f002680fed8e168e58860b",
+        "modifiedAt": "2026-07-13T15:14:41.844Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/hospitals.json",
-        "bytes": 755263,
-        "sha256": "9101f357af25be2ac25b16d4c8ceebae3a3c7dac2e927e677e54944c67797380",
-        "modifiedAt": "2026-07-13T13:07:48.914Z"
+        "bytes": 740252,
+        "sha256": "349828cff3a8127412aea8b8419176e5b32fcc5be306d0a7997b1afb3024a359",
+        "modifiedAt": "2026-07-13T15:14:41.876Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/insurance.json",
-        "bytes": 140617,
-        "sha256": "d3dca612d20ffaad286eef4969b96b3b67d627e36dd611cd47fd1cfb363301c8",
-        "modifiedAt": "2026-07-13T13:07:48.925Z"
+        "bytes": 152479,
+        "sha256": "623b4f514ca31c37e6705f6fa1f5dbbc94fe9ed6f495d74307b300c918cc1ea5",
+        "modifiedAt": "2026-07-13T15:14:41.888Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/login.json",
         "bytes": 2122,
         "sha256": "fe969d7df24e3d70693066426406cef853bb5a8c716afadfcc598212c13b3d71",
-        "modifiedAt": "2026-07-13T13:07:48.927Z"
+        "modifiedAt": "2026-07-13T15:14:41.892Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/map.json",
         "bytes": 122348,
-        "sha256": "08357aebb1bd5a0d1895d2f304a767c220bdc1d97b46ff628ac7cf0061a6411a",
-        "modifiedAt": "2026-07-13T13:07:48.935Z"
+        "sha256": "46bd313a53aa57acbd17a169be67a619026ff3bbe8a3b62cca9520523f765540",
+        "modifiedAt": "2026-07-13T15:14:41.909Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding-success.json",
         "bytes": 2265,
         "sha256": "de09d72a536ccd77439258105f8f6b9e874fb77e59e0a097b891e5059e6565ff",
-        "modifiedAt": "2026-07-13T13:07:48.938Z"
+        "modifiedAt": "2026-07-13T15:14:41.914Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding.json",
         "bytes": 2177,
         "sha256": "6ba4de2eb44d52416a301712761f3c2e48291c1e05e87bcd36af29642007b602",
-        "modifiedAt": "2026-07-13T13:07:48.940Z"
+        "modifiedAt": "2026-07-13T15:14:41.918Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/organizations.json",
-        "bytes": 726617,
-        "sha256": "3de1251d1e5e2a7c195dae90e9c60fa993877d8734dd8147ea21a3ed72c2b665",
-        "modifiedAt": "2026-07-13T13:07:48.969Z"
+        "bytes": 705154,
+        "sha256": "ed5319ac23405202344d7c927b15d703bc24d968c4e9884eedac11fc2ce5107f",
+        "modifiedAt": "2026-07-13T15:14:41.950Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/pricing.json",
-        "bytes": 372823,
-        "sha256": "8874f7d9934313a69003b40b40a0bae5074e6fcfb78da381a0ecb278f8ed013a",
-        "modifiedAt": "2026-07-13T13:07:48.985Z"
+        "bytes": 364036,
+        "sha256": "9f5086abc91d68880d57220782a324c91a7e837d7d066962146fa18593c8bc3b",
+        "modifiedAt": "2026-07-13T15:14:41.967Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/set-password.json",
         "bytes": 2199,
         "sha256": "27b70b1c75f4bb1957978a70c83cbe9aa2f4d0bbf1f29c910d3577f12ba27050",
-        "modifiedAt": "2026-07-13T13:07:48.988Z"
+        "modifiedAt": "2026-07-13T15:14:41.976Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/settings.json",
         "bytes": 108828,
-        "sha256": "9892919e1b4fa733f35fd6f7d074ed212747c5f8e4eec27d0815926087784777",
-        "modifiedAt": "2026-07-13T13:07:48.997Z"
+        "sha256": "5750ee86674174ee4a6c9657a354925dee6ce1a117209cbd6890f018bf4db472",
+        "modifiedAt": "2026-07-13T15:14:41.989Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/subscriptions.json",
-        "bytes": 540168,
-        "sha256": "24c25b7a147d7060b381aef3c770cad222a71ec32977351818aef88ee1d31f90",
-        "modifiedAt": "2026-07-13T13:07:49.021Z"
+        "bytes": 540166,
+        "sha256": "2a0c05c702b5bcc3d5a76670011f8361d16258ca6a40e083b85d4078ffc7c6f8",
+        "modifiedAt": "2026-07-13T15:14:42.014Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/support-tickets.json",
-        "bytes": 148177,
-        "sha256": "1a9b0b87ee7f6b9bf1c62697eee0a59b4108df1fda51a7639042b1ea3a464fbc",
-        "modifiedAt": "2026-07-13T13:07:49.030Z"
+        "bytes": 145037,
+        "sha256": "64dede53edb8ee97928dba1eb9a8fd9983f1d01d3d51f697399e8e31b7e3c133",
+        "modifiedAt": "2026-07-13T15:14:42.029Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unauthorized.json",
         "bytes": 2199,
         "sha256": "d600fdcca995e8cf7abae9f1b2b8e6eecd5d00e45074acf543fd34ce4a1d8e93",
-        "modifiedAt": "2026-07-13T13:07:49.035Z"
+        "modifiedAt": "2026-07-13T15:14:42.038Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unnamed.json",
-        "bytes": 93042,
-        "sha256": "a6c5f3ea278489e13b262f9729611d754e50ea33815845360f5c690f5f8220be",
-        "modifiedAt": "2026-07-13T13:07:49.042Z"
+        "bytes": 105478,
+        "sha256": "6a03c58c2f9a7f4b4d53242dc2527f1ebd31c972c41f8dcebf24685ba5067732",
+        "modifiedAt": "2026-07-13T15:14:42.050Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/users.json",
-        "bytes": 712798,
-        "sha256": "af775983d42761ca9525f65cb57f1f3a451584dd8f80e1b1e2f384c56aa37749",
-        "modifiedAt": "2026-07-13T13:07:49.073Z"
+        "bytes": 709776,
+        "sha256": "348f651625862a2d9e2e0d95e6fc4586276699d615fe42013ae42f8600b0a050",
+        "modifiedAt": "2026-07-13T15:14:42.080Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/verification.json",
-        "bytes": 440073,
-        "sha256": "34284f1bf9545acea0b06b1df4322841e5e54a7e0b2de265281a19d32d478a2d",
-        "modifiedAt": "2026-07-13T13:07:49.092Z"
+        "bytes": 443157,
+        "sha256": "4f962a8172dd2f15973e2be4fdff0f399d346fa065622b0292a48eb771e0d089",
+        "modifiedAt": "2026-07-13T15:14:42.100Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/visits.json",
-        "bytes": 995907,
-        "sha256": "f0902301db17c696688bbaca9cfd8e98b15855ed764e8778217e7761116e8ed5",
-        "modifiedAt": "2026-07-13T13:07:49.127Z"
+        "bytes": 248352,
+        "sha256": "cfeae62236ab327a5dbf6ceae96cc1e009ba101a0ce632ff27ba432c3caaba9e",
+        "modifiedAt": "2026-07-13T15:14:42.116Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/wallet.json",
-        "bytes": 160706,
-        "sha256": "7cfd30a6d5f3b52fc50990db14bc563836891d4ef213fa48eedb64134c566410",
-        "modifiedAt": "2026-07-13T13:07:49.138Z"
+        "bytes": 643294,
+        "sha256": "e647fcd9a74ca98a819be2f2a723fa4bb785ed91fcec972d0c60a167a3131ac0",
+        "modifiedAt": "2026-07-13T15:14:42.143Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/audit-not-found.json",
         "bytes": 2334,
-        "sha256": "3f0ac0d87c00c0a4c1b74f54e8b7d65772bb92633047fed33d50694eb0311ee6",
-        "modifiedAt": "2026-07-13T13:07:49.140Z"
+        "sha256": "6642145238bc8fca7b4b069a7db89c9140e935201616bc6239a5325513477c67",
+        "modifiedAt": "2026-07-13T15:14:42.145Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/login.json",
         "bytes": 5140,
-        "sha256": "20ac24a7be3d1e8b5b64fe4180767c11be919252b9aab728d031c53f5a87a470",
-        "modifiedAt": "2026-07-13T13:07:49.142Z"
+        "sha256": "651f7ea807ec003720f49c71cbdf1f8d3aa16d2cac82969c17cf9a86e783e87c",
+        "modifiedAt": "2026-07-13T15:14:42.147Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding-success.json",
         "bytes": 3156,
-        "sha256": "fdb0cecdad01dfe2f394d8898fd5f41f41dc5176a74ee73fa7c42280ec04b6d5",
-        "modifiedAt": "2026-07-13T13:07:49.143Z"
+        "sha256": "261f5a6219d7ef6708415e54375b6d87893d77161e62a41e4b216f889d0cc974",
+        "modifiedAt": "2026-07-13T15:14:42.148Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding.json",
         "bytes": 8954,
-        "sha256": "0a3cecebdc8c373433393cde9c9d12fe6222853145830cbae12df1dfbdef9066",
-        "modifiedAt": "2026-07-13T13:07:49.147Z"
+        "sha256": "ac52fcf660acaf74094eeac800b72551556bd0b01eaaea5c16517c0a08392892",
+        "modifiedAt": "2026-07-13T15:14:42.150Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/set-password.json",
         "bytes": 3733,
-        "sha256": "2ec73b5496da0d0b0da948ab66e83630b17a4c8ab3a09299a4ffd96f46af0a55",
-        "modifiedAt": "2026-07-13T13:07:49.148Z"
+        "sha256": "939781539bbce77b7d0bfbb542ce17d3d1d0837b513ff1967f52b9b36877cd58",
+        "modifiedAt": "2026-07-13T15:14:42.155Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unauthorized.json",
         "bytes": 2292,
-        "sha256": "4744ae8bdda6db35109c67db240af9fc73fb5d7f467f3323633fb3e7d49b0719",
-        "modifiedAt": "2026-07-13T13:07:49.150Z"
+        "sha256": "344b1edc04559455cc9ffd0c7e7ffb90d82f5349d019bc67057b2eb115576ca9",
+        "modifiedAt": "2026-07-13T15:14:42.157Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unnamed.json",
         "bytes": 2175,
         "sha256": "a424fa4a33bed7ddae6a3e70d701f728382737b4f15ae83dcfb8217780a449cb",
-        "modifiedAt": "2026-07-13T13:07:49.153Z"
+        "modifiedAt": "2026-07-13T15:14:42.162Z"
       },
       {
         "path": "results/source-findings.cjs",
-        "bytes": 102958,
-        "sha256": "4e8f55752099c170229a0606e1aa05950765c61fbfafba61a957f1b597945c5e",
-        "modifiedAt": "2026-07-13T12:55:14.586Z"
+        "bytes": 107202,
+        "sha256": "1d4dd1c944a3ec4300ec1a61f35732cd1d0c992e2227b496546c0ef286432900",
+        "modifiedAt": "2026-07-13T14:37:45.187Z"
       },
       {
         "path": "results/static-actions.json",
         "bytes": 418620,
-        "sha256": "ea9dfde765747c8369ed57508a1b41d89501a1438b90b279f64b656a0a5ef5d0",
-        "modifiedAt": "2026-07-13T12:57:55.119Z"
+        "sha256": "fb9c475f0c9d33c1d04b10bbdee92b903c400788f384a57e40b3c1de6948cda3",
+        "modifiedAt": "2026-07-13T15:07:32.589Z"
       }
     ]
   },
   "sourceSnapshots": [
     {
       "lane": "B",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
       "note": "Facilities, organizations, verification, onboarding, fleet, and staff receivers revalidated against the current worktree and maintained SQL."
     },
     {
       "lane": "C",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
-      "head": "a3e2d4d0aaad2e63e2f95aa1eb4e707f40e9047c",
-      "note": "Clinical and dispatch mounted paths revalidated; unresolved receiver and SECURITY DEFINER authority remains active."
+      "head": "b827458b",
+      "note": "Clinical and dispatch mounted paths plus canonical receiver source revalidated; linked-project application remains separately blocked."
     },
     {
       "lane": "D",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
       "visibleCandidates": 67,
       "note": "Identity, profiles, Settings, MFA assurance, account cache, avatar persistence, and role guards revalidated with focused tests."
     },
     {
       "lane": "E",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
       "mountedSourceActions": 75,
       "note": "Financial routes plus emergency payment actions; trigger-sensitive writes were not invoked."
     },
     {
       "lane": "F",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
       "semanticCandidates": 84,
       "note": "Health News, Support, and subscriber mounted paths revalidated; schema-wide Support enum authority remains blocked."
     },
     {
       "lane": "G",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only",
       "semanticFailureInjectionCases": 50,
       "note": "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated with focused tests; unsafe live mutation was not performed."
     },
     {
       "lane": "PR",
-      "capturedAt": "2026-07-13T11:38:29Z",
+      "capturedAt": "2026-07-13T14:35:44Z",
       "mode": "read_only_current_worktree",
-      "note": "All source findings were revalidated against the dirty PR worktree; active, resolved, and runtime-blocked states are disjoint."
+      "note": "All findings were revalidated against the dirty PR worktree and App-owned canonical pillars; source resolution and linked-project deployment proof remain disjoint."
     }
   ],
   "cases": [
@@ -463,58 +463,8 @@
     },
     {
       "caseId": "full_valid",
-      "status": "source_confirmed",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "emergency.create.submit",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "C-04-CREATE-OMITS-LINKED-VISIT"
-          ]
-        },
-        {
-          "actionId": "doctor.receiver.role-authority",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-RLS-ROLE-AUTHORITY"
-          ]
-        },
-        {
-          "actionId": "doctor.service.delete",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-GENERIC-DELETE-RECEIVER"
-          ]
-        },
-        {
-          "actionId": "doctor.service.update",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-GENERIC-UPDATE-RECEIVER"
-          ]
-        },
-        {
-          "actionId": "facility.modal.save",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "B-RQ-DERIVED-STALE-UI"
-          ]
-        },
         {
           "actionId": "doctor.delete.confirm",
           "state": "resolved",
@@ -538,13 +488,54 @@
           ]
         },
         {
+          "actionId": "doctor.receiver.role-authority",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-RLS-ROLE-AUTHORITY"
+          ]
+        },
+        {
+          "actionId": "doctor.service.delete",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-GENERIC-DELETE-RECEIVER"
+          ]
+        },
+        {
+          "actionId": "doctor.service.update",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-GENERIC-UPDATE-RECEIVER"
+          ]
+        },
+        {
           "actionId": "emergency.create.submit",
           "state": "resolved",
           "evidenceStatuses": [
             "resolved"
           ],
           "findingIds": [
-            "C-02-ADMIN-CREATE-DROPS-COORDINATES"
+            "C-02-ADMIN-CREATE-DROPS-COORDINATES",
+            "C-04-CREATE-OMITS-LINKED-VISIT"
+          ]
+        },
+        {
+          "actionId": "facility.modal.save",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "B-RQ-DERIVED-STALE-UI"
           ]
         },
         {
@@ -658,19 +649,16 @@
           ]
         }
       ],
-      "actionIds": [
-        "emergency.create.submit"
-      ],
-      "blockedActionIds": [
-        "doctor.receiver.role-authority",
-        "doctor.service.delete",
-        "doctor.service.update",
-        "facility.modal.save"
-      ],
+      "actionIds": [],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "doctor.delete.confirm",
         "doctor.modal.save",
+        "doctor.receiver.role-authority",
+        "doctor.service.delete",
+        "doctor.service.update",
         "emergency.create.submit",
+        "facility.modal.save",
         "health-news.analytics.open",
         "hospital.modal.edit.save",
         "login.password.submit",
@@ -788,18 +776,8 @@
     },
     {
       "caseId": "invalid_enum",
-      "status": "runtime_blocked",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "schema.support-ticket-enum-authority",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-SUPPORT-ENUM-CONSTRAINT"
-          ]
-        },
         {
           "actionId": "emergency.create.submit",
           "state": "resolved",
@@ -841,6 +819,16 @@
           ]
         },
         {
+          "actionId": "schema.support-ticket-enum-authority",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-SUPPORT-ENUM-CONSTRAINT"
+          ]
+        },
+        {
           "actionId": "support.ticket.save",
           "state": "resolved",
           "evidenceStatuses": [
@@ -852,14 +840,13 @@
         }
       ],
       "actionIds": [],
-      "blockedActionIds": [
-        "schema.support-ticket-enum-authority"
-      ],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "emergency.create.submit",
         "hospital.modal.edit.save",
         "map.driver.mark-on-way",
         "map.refresh",
+        "schema.support-ticket-enum-authority",
         "support.ticket.save"
       ]
     },
@@ -924,18 +911,8 @@
     },
     {
       "caseId": "double_submit",
-      "status": "source_confirmed",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "emergency.retry-payment",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "FIN-EMG-RETRY-DUPLICATE-STALE"
-          ]
-        },
         {
           "actionId": "doctor.delete.confirm",
           "state": "resolved",
@@ -954,6 +931,16 @@
           ],
           "findingIds": [
             "G-F005-EMERGENCY-CANCEL-DOUBLE-CONFIRM"
+          ]
+        },
+        {
+          "actionId": "emergency.retry-payment",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "FIN-EMG-RETRY-DUPLICATE-STALE"
           ]
         },
         {
@@ -997,13 +984,12 @@
           ]
         }
       ],
-      "actionIds": [
-        "emergency.retry-payment"
-      ],
+      "actionIds": [],
       "blockedActionIds": [],
       "resolvedActionIds": [
         "doctor.delete.confirm",
         "emergency.cancel.confirm",
+        "emergency.retry-payment",
         "support.ticket.assign",
         "support.ticket.delete.confirm",
         "verification.mobile.bulk.approve",
@@ -1012,38 +998,8 @@
     },
     {
       "caseId": "stale_row",
-      "status": "source_confirmed",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "emergency.retry-payment",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "FIN-EMG-RETRY-DUPLICATE-STALE"
-          ]
-        },
-        {
-          "actionId": "doctor.service.delete",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-GENERIC-DELETE-RECEIVER"
-          ]
-        },
-        {
-          "actionId": "schema.hospital-array-preservation.merge",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DB-HOSPITAL-ARRAY-CANON-MERGE"
-          ]
-        },
         {
           "actionId": "ambulance.modal.save",
           "state": "resolved",
@@ -1075,6 +1031,16 @@
           ]
         },
         {
+          "actionId": "doctor.service.delete",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-GENERIC-DELETE-RECEIVER"
+          ]
+        },
+        {
           "actionId": "emergency.details.refresh",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1082,6 +1048,16 @@
           ],
           "findingIds": [
             "C-08-DETAIL-REFRESH-REUSES-STALE-PROP"
+          ]
+        },
+        {
+          "actionId": "emergency.retry-payment",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "FIN-EMG-RETRY-DUPLICATE-STALE"
           ]
         },
         {
@@ -1105,6 +1081,16 @@
           ]
         },
         {
+          "actionId": "schema.hospital-array-preservation.merge",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-HOSPITAL-ARRAY-CANON-MERGE"
+          ]
+        },
+        {
           "actionId": "support.ticket.delete.confirm",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1115,105 +1101,43 @@
           ]
         }
       ],
-      "actionIds": [
-        "emergency.retry-payment"
-      ],
-      "blockedActionIds": [
-        "doctor.service.delete",
-        "schema.hospital-array-preservation.merge"
-      ],
+      "actionIds": [],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "ambulance.modal.save",
         "doctor.delete.confirm",
         "doctor.modal.save",
+        "doctor.service.delete",
         "emergency.details.refresh",
+        "emergency.retry-payment",
         "hospital.modal.edit.save",
         "protected-route.go-back",
+        "schema.hospital-array-preservation.merge",
         "support.ticket.delete.confirm"
       ]
     },
     {
       "caseId": "unauthorized_role",
-      "status": "source_confirmed",
+      "status": "runtime_blocked",
       "evidenceByAction": [
         {
-          "actionId": "ambulance.receiver.write",
-          "state": "active",
+          "actionId": "schema.console-shared-contracts.deploy",
+          "state": "blocked",
           "evidenceStatuses": [
-            "source_confirmed"
+            "runtime_blocked"
+          ],
+          "findingIds": [
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
+          ]
+        },
+        {
+          "actionId": "ambulance.receiver.write",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
           ],
           "findingIds": [
             "B-AMB-CROSS-ORG-STATION"
-          ]
-        },
-        {
-          "actionId": "emergency.retry-payment",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "FIN-EMG-RETRY-RPC-AUTH"
-          ]
-        },
-        {
-          "actionId": "insurance.refresh",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "FIN-INS-POLICY-PROJECTION-RLS"
-          ]
-        },
-        {
-          "actionId": "map.dispatch.nearest",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "C-21-NEARBY-AMBULANCES-PUBLIC-DEFINER"
-          ]
-        },
-        {
-          "actionId": "rpc.update-hospital.self-verify",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "B-HSP-RPC-ORG-ADMIN-SELF-VERIFY"
-          ]
-        },
-        {
-          "actionId": "doctor.receiver.role-authority",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-RLS-ROLE-AUTHORITY"
-          ]
-        },
-        {
-          "actionId": "doctor.service.update",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DOCTOR-GENERIC-UPDATE-RECEIVER"
-          ]
-        },
-        {
-          "actionId": "storage.upload.authority",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "PR-DB-STORAGE-POLICY-CANON"
           ]
         },
         {
@@ -1237,6 +1161,26 @@
           ]
         },
         {
+          "actionId": "doctor.receiver.role-authority",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-RLS-ROLE-AUTHORITY"
+          ]
+        },
+        {
+          "actionId": "doctor.service.update",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DOCTOR-GENERIC-UPDATE-RECEIVER"
+          ]
+        },
+        {
           "actionId": "emergency.complete",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1253,7 +1197,8 @@
             "resolved"
           ],
           "findingIds": [
-            "C-07-RETRY-PAYMENT-METHOD-RLS"
+            "C-07-RETRY-PAYMENT-METHOD-RLS",
+            "FIN-EMG-RETRY-RPC-AUTH"
           ]
         },
         {
@@ -1267,13 +1212,24 @@
           ]
         },
         {
+          "actionId": "insurance.refresh",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "FIN-INS-POLICY-PROJECTION-RLS"
+          ]
+        },
+        {
           "actionId": "map.dispatch.nearest",
           "state": "resolved",
           "evidenceStatuses": [
             "resolved"
           ],
           "findingIds": [
-            "C-18-CROSS-ORG-NEAREST-DISPATCH"
+            "C-18-CROSS-ORG-NEAREST-DISPATCH",
+            "C-21-NEARBY-AMBULANCES-PUBLIC-DEFINER"
           ]
         },
         {
@@ -1307,6 +1263,26 @@
           ]
         },
         {
+          "actionId": "rpc.update-hospital.self-verify",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "B-HSP-RPC-ORG-ADMIN-SELF-VERIFY"
+          ]
+        },
+        {
+          "actionId": "storage.upload.authority",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-STORAGE-POLICY-CANON"
+          ]
+        },
+        {
           "actionId": "users.context-panel.open",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1317,45 +1293,33 @@
           ]
         }
       ],
-      "actionIds": [
-        "ambulance.receiver.write",
-        "emergency.retry-payment",
-        "insurance.refresh",
-        "map.dispatch.nearest",
-        "rpc.update-hospital.self-verify"
-      ],
+      "actionIds": [],
       "blockedActionIds": [
-        "doctor.receiver.role-authority",
-        "doctor.service.update",
-        "storage.upload.authority"
+        "schema.console-shared-contracts.deploy"
       ],
       "resolvedActionIds": [
+        "ambulance.receiver.write",
         "auth.signout-then-signin",
         "doctor.modal.save",
+        "doctor.receiver.role-authority",
+        "doctor.service.update",
         "emergency.complete",
         "emergency.retry-payment",
         "hospital.modal.edit.save",
+        "insurance.refresh",
         "map.dispatch.nearest",
         "map.driver.lifecycle.action",
         "notifications.open",
         "quick-search.result.open",
+        "rpc.update-hospital.self-verify",
+        "storage.upload.authority",
         "users.context-panel.open"
       ]
     },
     {
       "caseId": "network_failure",
-      "status": "runtime_blocked",
+      "status": "resolved",
       "evidenceByAction": [
-        {
-          "actionId": "facility.modal.save",
-          "state": "blocked",
-          "evidenceStatuses": [
-            "runtime_blocked"
-          ],
-          "findingIds": [
-            "B-RQ-DERIVED-STALE-UI"
-          ]
-        },
         {
           "actionId": "emergency.create.submit",
           "state": "resolved",
@@ -1364,6 +1328,16 @@
           ],
           "findingIds": [
             "G-F001-EMERGENCY-NOTIFICATION-PARTIAL-COMMIT"
+          ]
+        },
+        {
+          "actionId": "facility.modal.save",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "B-RQ-DERIVED-STALE-UI"
           ]
         },
         {
@@ -1478,11 +1452,10 @@
         }
       ],
       "actionIds": [],
-      "blockedActionIds": [
-        "facility.modal.save"
-      ],
+      "blockedActionIds": [],
       "resolvedActionIds": [
         "emergency.create.submit",
+        "facility.modal.save",
         "hospital.reservations.view",
         "map.responder.location.publish",
         "notifications.mark-all-read",
@@ -1563,26 +1536,16 @@
     },
     {
       "caseId": "concurrency",
-      "status": "source_confirmed",
+      "status": "runtime_blocked",
       "evidenceByAction": [
         {
-          "actionId": "emergency.retry-payment",
-          "state": "active",
-          "evidenceStatuses": [
-            "source_confirmed"
-          ],
-          "findingIds": [
-            "FIN-EMG-RETRY-DUPLICATE-STALE"
-          ]
-        },
-        {
-          "actionId": "domain.optimistic-mutation",
+          "actionId": "schema.console-shared-contracts.deploy",
           "state": "blocked",
           "evidenceStatuses": [
             "runtime_blocked"
           ],
           "findingIds": [
-            "G-H002-REALTIME-OPTIMISTIC-RACE"
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
           ]
         },
         {
@@ -1616,6 +1579,16 @@
           ]
         },
         {
+          "actionId": "domain.optimistic-mutation",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "G-H002-REALTIME-OPTIMISTIC-RACE"
+          ]
+        },
+        {
           "actionId": "emergency.cancel.confirm",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1623,6 +1596,16 @@
           ],
           "findingIds": [
             "G-F005-EMERGENCY-CANCEL-DOUBLE-CONFIRM"
+          ]
+        },
+        {
+          "actionId": "emergency.retry-payment",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "FIN-EMG-RETRY-DUPLICATE-STALE"
           ]
         },
         {
@@ -1686,17 +1669,17 @@
           ]
         }
       ],
-      "actionIds": [
-        "emergency.retry-payment"
-      ],
+      "actionIds": [],
       "blockedActionIds": [
-        "domain.optimistic-mutation"
+        "schema.console-shared-contracts.deploy"
       ],
       "resolvedActionIds": [
         "ambulance.modal.save",
         "doctor.delete.confirm",
         "doctors.bulk-delete.confirm",
+        "domain.optimistic-mutation",
         "emergency.cancel.confirm",
+        "emergency.retry-payment",
         "quick-search.query",
         "support.bulk-delete.confirm",
         "support.ticket.assign",
@@ -1710,13 +1693,13 @@
       "status": "runtime_blocked",
       "evidenceByAction": [
         {
-          "actionId": "schema.insurance-policy-parity",
+          "actionId": "schema.console-shared-contracts.deploy",
           "state": "blocked",
           "evidenceStatuses": [
             "runtime_blocked"
           ],
           "findingIds": [
-            "PR-DB-INSURANCE-PILLAR-DRIFT"
+            "PR-DB-SHARED-CONTRACT-LIVE-APPLY"
           ]
         },
         {
@@ -1750,6 +1733,16 @@
           ]
         },
         {
+          "actionId": "schema.insurance-policy-parity",
+          "state": "resolved",
+          "evidenceStatuses": [
+            "resolved"
+          ],
+          "findingIds": [
+            "PR-DB-INSURANCE-PILLAR-DRIFT"
+          ]
+        },
+        {
           "actionId": "subscriptions.refresh",
           "state": "resolved",
           "evidenceStatuses": [
@@ -1772,12 +1765,13 @@
       ],
       "actionIds": [],
       "blockedActionIds": [
-        "schema.insurance-policy-parity"
+        "schema.console-shared-contracts.deploy"
       ],
       "resolvedActionIds": [
         "emergency.analytics.open",
         "health-news.refresh",
         "map.refresh",
+        "schema.insurance-policy-parity",
         "subscriptions.refresh",
         "users.refresh"
       ]
