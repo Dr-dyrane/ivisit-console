@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-13T13:07:49.682Z",
+  "runId": "audit-20260713125750-2ac4a368",
+  "discoveryOnly": true,
+  "records": [],
+  "evidenceChecks": [],
+  "cleanupStatus": "not_required",
+  "cleanupApplicable": false,
+  "cleanupVerified": false,
+  "noSideEffectsVerified": false,
+  "verifiedScope": [],
+  "unverifiedDomains": [
+    "Auth users",
+    "Storage objects",
+    "Edge side effects",
+    "email",
+    "payments"
+  ],
+  "note": "The discovery and safe-failure passes executed no mutation probe, so no audit-created record required cleanup."
+}

@@ -1,0 +1,25 @@
+{
+  "name": "ivisit-console-runtime-crud-audit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Audit-only Playwright harness for iVisit Console runtime interaction and CRUD evidence.",
+  "scripts": {
+    "report:begin": "node scripts/begin-audit-run.cjs",
+    "inventory:static": "node scripts/collect-static-actions.cjs",
+    "inventory:git": "node scripts/collect-pr-scope.cjs",
+    "test": "playwright test",
+    "test:redaction": "node --test support/redaction.test.cjs",
+    "test:inventory": "node scripts/run-runtime-inventory.cjs",
+    "test:known-failures": "playwright test tests/safe-confirmed-failures.spec.cjs --project=admin-desktop --workers=1",
+    "inventory:sanitize": "node scripts/sanitize-runtime-inventory.cjs",
+    "report:cleanup": "node scripts/build-cleanup-ledger.cjs",
+    "report:discovery": "node scripts/synthesize-results.cjs",
+    "report": "node scripts/build-final-artifacts.cjs",
+    "report:validate": "node scripts/validate-final-artifacts.cjs",
+    "audit": "npm run report:begin && npm run test:redaction && npm run inventory:static && npm run test:inventory && npm run test:known-failures && npm run inventory:sanitize && npm run report:cleanup && npm run inventory:git && npm run report:discovery && npm run report && npm run report:validate"
+  },
+  "dependencies": {
+    "@playwright/test": "1.54.1",
+    "dotenv": "17.2.1"
+  }
+}

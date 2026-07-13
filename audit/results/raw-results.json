@@ -1,0 +1,3525 @@
+{
+  "schemaVersion": 2,
+  "runId": "audit-20260713125750-2ac4a368",
+  "generatedAt": "2026-07-13T13:08:35.221Z",
+  "inputProvenance": {
+    "sha256": "6ea4b31db22395f60aff88a103a31f98af51ae1b8fdc5d8949b03a814b50ed49",
+    "fileCount": 60,
+    "files": [
+      {
+        "path": "cleanup-ledger.json",
+        "bytes": 578,
+        "sha256": "6d9275a6322d951cc17b9aaecf792926ff0a87f6bab44acddd16bf41f6282bd2",
+        "modifiedAt": "2026-07-13T13:07:49.683Z"
+      },
+      {
+        "path": "results/pr-scope.json",
+        "bytes": 13681,
+        "sha256": "765719bc08ff84815ca0df9f0998d73f7466f85ecb7051be08157f5096a5e5da",
+        "modifiedAt": "2026-07-13T13:07:51.150Z"
+      },
+      {
+        "path": "results/role-state-availability.json",
+        "bytes": 912,
+        "sha256": "0d0df1c5f3044a1cc974b88bad773f00e5af7620e912ebaa307a918954366b52",
+        "modifiedAt": "2026-07-13T13:07:43.830Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/ambulances.json",
+        "bytes": 715134,
+        "sha256": "8d9dd02c214825f36bd6f093b8aba0a3242e785a535fbab8819b7ddb11afd8d9",
+        "modifiedAt": "2026-07-13T13:07:48.486Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/analytics.json",
+        "bytes": 179645,
+        "sha256": "d689dc3e0fcc482e9d7d2a4f6ffdb2d438ef11808a05c105e4b076c08a503b7c",
+        "modifiedAt": "2026-07-13T13:07:48.494Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/audit-not-found.json",
+        "bytes": 2234,
+        "sha256": "a8f05d7e18870c5e04700f13c766d732de0856c26dd559dfbbf6c24e96fc8673",
+        "modifiedAt": "2026-07-13T13:07:48.497Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/doctors.json",
+        "bytes": 714893,
+        "sha256": "330a65b14deca3bfb28e7a40129b46dfbf400da305d152aa12bd9dcdd326e989",
+        "modifiedAt": "2026-07-13T13:07:48.528Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/emergencies.json",
+        "bytes": 720370,
+        "sha256": "7d4b1f20d6b74cec9766062806d2dab544d2327fbba6dd40737fa50ca0004199",
+        "modifiedAt": "2026-07-13T13:07:48.561Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/health-news.json",
+        "bytes": 339798,
+        "sha256": "287f650cbce2430b320a8ab02c2a20ee86bee031466441c33b3943797461e375",
+        "modifiedAt": "2026-07-13T13:07:48.576Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/hospitals.json",
+        "bytes": 624921,
+        "sha256": "e241f36aee910fd235775b69a89ec4b78e760b0cd2e5eaf42c426187b18f4c08",
+        "modifiedAt": "2026-07-13T13:07:48.600Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/insurance.json",
+        "bytes": 338336,
+        "sha256": "dbad94a7dc5d99680dbb4fc90d135964a56c201af758f9923b362be655390923",
+        "modifiedAt": "2026-07-13T13:07:48.613Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/login.json",
+        "bytes": 4920,
+        "sha256": "af0efe316c8fbe9eb2b961b614ead31d674bf54bd79a2256e94112c390307850",
+        "modifiedAt": "2026-07-13T13:07:48.615Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/map.json",
+        "bytes": 187527,
+        "sha256": "51a7cf1beff0e126b229c05be2bf2ab56a37c23ca1fe5354e54d9eb4abb5aec5",
+        "modifiedAt": "2026-07-13T13:07:48.626Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/onboarding-success.json",
+        "bytes": 5219,
+        "sha256": "e924c9afb30ad2e7e7bdce21ea5f39845026390ffdff1153e65ef97e42bb4c7b",
+        "modifiedAt": "2026-07-13T13:07:48.628Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/onboarding.json",
+        "bytes": 8584,
+        "sha256": "2b035c75e95880931b8c2e33f1ada0a472989660015d038bf20082fd9f1185fa",
+        "modifiedAt": "2026-07-13T13:07:48.630Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/organizations.json",
+        "bytes": 617048,
+        "sha256": "4a4b78c144ed839e3d9ff0859c7cc758e26f6ff2d703adc458da502b0107d442",
+        "modifiedAt": "2026-07-13T13:07:48.648Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/pricing.json",
+        "bytes": 465922,
+        "sha256": "d9f94fbf47420f709291e5e421146d52d6e3b18fc2eb753ede9e77c915f8b1eb",
+        "modifiedAt": "2026-07-13T13:07:48.666Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/set-password.json",
+        "bytes": 3573,
+        "sha256": "7141b194323eb1e1c9a5b1bd20fa7a02311d044357142adc57f136a218f1b144",
+        "modifiedAt": "2026-07-13T13:07:48.668Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/settings.json",
+        "bytes": 39628,
+        "sha256": "28f9138be95d971932d30145b93cb088a791a744af3cc99011b299802bf8f803",
+        "modifiedAt": "2026-07-13T13:07:48.671Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/subscriptions.json",
+        "bytes": 610595,
+        "sha256": "e789df18e259321a08445fbfbf0cc8873aca2f76128e2c92b4fba62502780659",
+        "modifiedAt": "2026-07-13T13:07:48.692Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/support-tickets.json",
+        "bytes": 362476,
+        "sha256": "2b39a29b8e37a593eaf8cf6b5c511935cc9d2e99d915e2aa8e975e764f1a8aac",
+        "modifiedAt": "2026-07-13T13:07:48.706Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/unauthorized.json",
+        "bytes": 2857,
+        "sha256": "5861d09a60c0358c8fadf40aae969e2e491538c01598fc608e30e27756324d43",
+        "modifiedAt": "2026-07-13T13:07:48.707Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/unnamed.json",
+        "bytes": 182085,
+        "sha256": "80dfe6cc2e5626dd1380a85f83b1c53cf7214250bf888596d216eb740587893a",
+        "modifiedAt": "2026-07-13T13:07:48.715Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/users.json",
+        "bytes": 708909,
+        "sha256": "8e0e4ea9fbd1529dd58a54af0468ab001c1fbfe9cb0fb73e009c5d4bbee2c50b",
+        "modifiedAt": "2026-07-13T13:07:48.740Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/verification.json",
+        "bytes": 523713,
+        "sha256": "662e74dfcede7fdeb682bae56c15d427c0239be0655b14a1661069dbde058a9c",
+        "modifiedAt": "2026-07-13T13:07:48.760Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/visits.json",
+        "bytes": 422521,
+        "sha256": "f5c5e9bfebc54a28af7f2028b1029ca39cbbf8e0240c4531762551d62bc847ec",
+        "modifiedAt": "2026-07-13T13:07:48.774Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-desktop/wallet.json",
+        "bytes": 643004,
+        "sha256": "69a2619d31e5a607386fd63f37c518b06700ac66293061734d3b803bb1e69588",
+        "modifiedAt": "2026-07-13T13:07:48.794Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/ambulances.json",
+        "bytes": 725701,
+        "sha256": "65cf6b9fd2f5595e307599a181e5acb206e0723b4138a3911a8278865f8a2413",
+        "modifiedAt": "2026-07-13T13:07:48.820Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/analytics.json",
+        "bytes": 114555,
+        "sha256": "eec035c5422c9a864574a5803eed4422d4c4fc3dcb9b2f3b9bd71d4f5da46f47",
+        "modifiedAt": "2026-07-13T13:07:48.827Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/audit-not-found.json",
+        "bytes": 2232,
+        "sha256": "5bad0d741a2535400b72b5bdb37f233059ba897f8524ee5d8834851f75ee0680",
+        "modifiedAt": "2026-07-13T13:07:48.829Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/doctors.json",
+        "bytes": 728423,
+        "sha256": "fe96036734e7a55f8497a2bde944a13db245679d3cb3862cf388f681777e1e98",
+        "modifiedAt": "2026-07-13T13:07:48.853Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/emergencies.json",
+        "bytes": 790111,
+        "sha256": "a7679cd3afc0f5343171aee5f4e1854d7e6c6403cd8d5afb1a51bf24cdbefc2f",
+        "modifiedAt": "2026-07-13T13:07:48.879Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/health-news.json",
+        "bytes": 166703,
+        "sha256": "b023641a38ef3af0040573a48693280372feb67f61681320a7aa1ad95ef150be",
+        "modifiedAt": "2026-07-13T13:07:48.886Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/hospitals.json",
+        "bytes": 755263,
+        "sha256": "9101f357af25be2ac25b16d4c8ceebae3a3c7dac2e927e677e54944c67797380",
+        "modifiedAt": "2026-07-13T13:07:48.914Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/insurance.json",
+        "bytes": 140617,
+        "sha256": "d3dca612d20ffaad286eef4969b96b3b67d627e36dd611cd47fd1cfb363301c8",
+        "modifiedAt": "2026-07-13T13:07:48.925Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/login.json",
+        "bytes": 2122,
+        "sha256": "fe969d7df24e3d70693066426406cef853bb5a8c716afadfcc598212c13b3d71",
+        "modifiedAt": "2026-07-13T13:07:48.927Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/map.json",
+        "bytes": 122348,
+        "sha256": "08357aebb1bd5a0d1895d2f304a767c220bdc1d97b46ff628ac7cf0061a6411a",
+        "modifiedAt": "2026-07-13T13:07:48.935Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/onboarding-success.json",
+        "bytes": 2265,
+        "sha256": "de09d72a536ccd77439258105f8f6b9e874fb77e59e0a097b891e5059e6565ff",
+        "modifiedAt": "2026-07-13T13:07:48.938Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/onboarding.json",
+        "bytes": 2177,
+        "sha256": "6ba4de2eb44d52416a301712761f3c2e48291c1e05e87bcd36af29642007b602",
+        "modifiedAt": "2026-07-13T13:07:48.940Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/organizations.json",
+        "bytes": 726617,
+        "sha256": "3de1251d1e5e2a7c195dae90e9c60fa993877d8734dd8147ea21a3ed72c2b665",
+        "modifiedAt": "2026-07-13T13:07:48.969Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/pricing.json",
+        "bytes": 372823,
+        "sha256": "8874f7d9934313a69003b40b40a0bae5074e6fcfb78da381a0ecb278f8ed013a",
+        "modifiedAt": "2026-07-13T13:07:48.985Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/set-password.json",
+        "bytes": 2199,
+        "sha256": "27b70b1c75f4bb1957978a70c83cbe9aa2f4d0bbf1f29c910d3577f12ba27050",
+        "modifiedAt": "2026-07-13T13:07:48.988Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/settings.json",
+        "bytes": 108828,
+        "sha256": "9892919e1b4fa733f35fd6f7d074ed212747c5f8e4eec27d0815926087784777",
+        "modifiedAt": "2026-07-13T13:07:48.997Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/subscriptions.json",
+        "bytes": 540168,
+        "sha256": "24c25b7a147d7060b381aef3c770cad222a71ec32977351818aef88ee1d31f90",
+        "modifiedAt": "2026-07-13T13:07:49.021Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/support-tickets.json",
+        "bytes": 148177,
+        "sha256": "1a9b0b87ee7f6b9bf1c62697eee0a59b4108df1fda51a7639042b1ea3a464fbc",
+        "modifiedAt": "2026-07-13T13:07:49.030Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/unauthorized.json",
+        "bytes": 2199,
+        "sha256": "d600fdcca995e8cf7abae9f1b2b8e6eecd5d00e45074acf543fd34ce4a1d8e93",
+        "modifiedAt": "2026-07-13T13:07:49.035Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/unnamed.json",
+        "bytes": 93042,
+        "sha256": "a6c5f3ea278489e13b262f9729611d754e50ea33815845360f5c690f5f8220be",
+        "modifiedAt": "2026-07-13T13:07:49.042Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/users.json",
+        "bytes": 712798,
+        "sha256": "af775983d42761ca9525f65cb57f1f3a451584dd8f80e1b1e2f384c56aa37749",
+        "modifiedAt": "2026-07-13T13:07:49.073Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/verification.json",
+        "bytes": 440073,
+        "sha256": "34284f1bf9545acea0b06b1df4322841e5e54a7e0b2de265281a19d32d478a2d",
+        "modifiedAt": "2026-07-13T13:07:49.092Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/visits.json",
+        "bytes": 995907,
+        "sha256": "f0902301db17c696688bbaca9cfd8e98b15855ed764e8778217e7761116e8ed5",
+        "modifiedAt": "2026-07-13T13:07:49.127Z"
+      },
+      {
+        "path": "results/runtime-inventory/admin-mobile/wallet.json",
+        "bytes": 160706,
+        "sha256": "7cfd30a6d5f3b52fc50990db14bc563836891d4ef213fa48eedb64134c566410",
+        "modifiedAt": "2026-07-13T13:07:49.138Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/audit-not-found.json",
+        "bytes": 2334,
+        "sha256": "3f0ac0d87c00c0a4c1b74f54e8b7d65772bb92633047fed33d50694eb0311ee6",
+        "modifiedAt": "2026-07-13T13:07:49.140Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/login.json",
+        "bytes": 5140,
+        "sha256": "20ac24a7be3d1e8b5b64fe4180767c11be919252b9aab728d031c53f5a87a470",
+        "modifiedAt": "2026-07-13T13:07:49.142Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/onboarding-success.json",
+        "bytes": 3156,
+        "sha256": "fdb0cecdad01dfe2f394d8898fd5f41f41dc5176a74ee73fa7c42280ec04b6d5",
+        "modifiedAt": "2026-07-13T13:07:49.143Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/onboarding.json",
+        "bytes": 8954,
+        "sha256": "0a3cecebdc8c373433393cde9c9d12fe6222853145830cbae12df1dfbdef9066",
+        "modifiedAt": "2026-07-13T13:07:49.147Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/set-password.json",
+        "bytes": 3733,
+        "sha256": "2ec73b5496da0d0b0da948ab66e83630b17a4c8ab3a09299a4ffd96f46af0a55",
+        "modifiedAt": "2026-07-13T13:07:49.148Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/unauthorized.json",
+        "bytes": 2292,
+        "sha256": "4744ae8bdda6db35109c67db240af9fc73fb5d7f467f3323633fb3e7d49b0719",
+        "modifiedAt": "2026-07-13T13:07:49.150Z"
+      },
+      {
+        "path": "results/runtime-inventory/unauthenticated-desktop/unnamed.json",
+        "bytes": 2175,
+        "sha256": "a424fa4a33bed7ddae6a3e70d701f728382737b4f15ae83dcfb8217780a449cb",
+        "modifiedAt": "2026-07-13T13:07:49.153Z"
+      },
+      {
+        "path": "results/source-findings.cjs",
+        "bytes": 102958,
+        "sha256": "4e8f55752099c170229a0606e1aa05950765c61fbfafba61a957f1b597945c5e",
+        "modifiedAt": "2026-07-13T12:55:14.586Z"
+      },
+      {
+        "path": "results/static-actions.json",
+        "bytes": 418620,
+        "sha256": "ea9dfde765747c8369ed57508a1b41d89501a1438b90b279f64b656a0a5ef5d0",
+        "modifiedAt": "2026-07-13T12:57:55.119Z"
+      }
+    ]
+  },
+  "sourceSnapshots": [
+    {
+      "lane": "B",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "note": "Facilities, organizations, verification, onboarding, fleet, and staff receivers revalidated against the current worktree and maintained SQL."
+    },
+    {
+      "lane": "C",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "head": "a3e2d4d0aaad2e63e2f95aa1eb4e707f40e9047c",
+      "note": "Clinical and dispatch mounted paths revalidated; unresolved receiver and SECURITY DEFINER authority remains active."
+    },
+    {
+      "lane": "D",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "visibleCandidates": 67,
+      "note": "Identity, profiles, Settings, MFA assurance, account cache, avatar persistence, and role guards revalidated with focused tests."
+    },
+    {
+      "lane": "E",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "mountedSourceActions": 75,
+      "note": "Financial routes plus emergency payment actions; trigger-sensitive writes were not invoked."
+    },
+    {
+      "lane": "F",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "semanticCandidates": 84,
+      "note": "Health News, Support, and subscriber mounted paths revalidated; schema-wide Support enum authority remains blocked."
+    },
+    {
+      "lane": "G",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only",
+      "semanticFailureInjectionCases": 50,
+      "note": "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated with focused tests; unsafe live mutation was not performed."
+    },
+    {
+      "lane": "PR",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "mode": "read_only_current_worktree",
+      "note": "All source findings were revalidated against the dirty PR worktree; active, resolved, and runtime-blocked states are disjoint."
+    }
+  ],
+  "target": {
+    "repository": "Dr-dyrane/ivisit-console",
+    "refPattern": "ivisit-console-revamp-*",
+    "frontendRoot": "frontend/",
+    "workingTreeWasDirtyDuringAudit": true,
+    "productWorktreeUnchangedDuringAudit": true,
+    "auditHarnessUnchangedDuringAudit": true
+  },
+  "counts": {
+    "staticCandidates": 847,
+    "runtimeVisibleDefinitions": 1332,
+    "runtimeSurfaces": 42,
+    "confirmedFailureCases": 7,
+    "confirmedAffectedActions": 6,
+    "mountedUiFailureCases": 2,
+    "mountedUiAffectedActions": 2,
+    "receiverOnlyFailureCases": 5,
+    "receiverOnlyAffectedReceivers": 4,
+    "resolvedFindingCases": 75,
+    "blockedRuntimeCandidates": 9,
+    "failureClassesNonExclusive": {
+      "do_nothing": 0,
+      "wrong_destination": 0,
+      "browser_error": 0,
+      "send_no_backend_request": 0,
+      "incorrect_crud_payload": 1,
+      "fail_valid_payload": 1,
+      "accept_invalid_payload": 5,
+      "mutate_wrong_row_fields": 4,
+      "stale_ui": 2,
+      "conditional_failure": 6
+    },
+    "severities": {
+      "critical": 6,
+      "high": 1
+    },
+    "evidenceStatus": {
+      "source_confirmed": 7
+    }
+  },
+  "prScope": {
+    "schemaVersion": 2,
+    "generatedAt": "2026-07-13T13:07:50.925Z",
+    "runId": "audit-20260713125750-2ac4a368",
+    "localRefSnapshot": true,
+    "baseRef": "main",
+    "branch": "codex/ivisit-console-revamp-checkpoint-20260707",
+    "head": "2ac4a368bab53b8d810978ecb65757194575475a",
+    "mergeBase": "f31f29ff872940884a0838ea5bfe840bd293d703",
+    "commits": {
+      "ahead": 485,
+      "behind": 0
+    },
+    "committedDiff": {
+      "files": 517,
+      "insertions": 92114,
+      "deletions": 45093,
+      "namedFiles": 517
+    },
+    "worktree": {
+      "trackedChangedFiles": 0,
+      "untrackedFiles": 32,
+      "clean": false
+    },
+    "runIntegrity": {
+      "productWorktreeStart": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trackedChangedFiles": 0,
+        "untrackedFiles": 0
+      },
+      "productWorktreeEnd": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trackedChangedFiles": 0,
+        "untrackedFiles": 0
+      },
+      "productUnchangedDuringAudit": true,
+      "auditHarnessStart": {
+        "sha256": "e45b423facf5ae297a6fb46e04a523d41aa5ec302124749214e7f0d1cfecb4a6",
+        "fileCount": 26,
+        "files": [
+          {
+            "path": ".gitignore",
+            "bytes": 334,
+            "sha256": "c5247bf7de0522a36c57b27a0f643eb96e018277a1e2e4144ba9d105b63fc80d",
+            "modifiedAt": "2026-07-13T11:38:22.618Z"
+          },
+          {
+            "path": "package-lock.json",
+            "bytes": 2627,
+            "sha256": "86a77de47a823a41cbcfcec2809d5e05239aa1c04eec0047735043d7be8556fb",
+            "modifiedAt": "2026-07-13T08:08:02.103Z"
+          },
+          {
+            "path": "package.json",
+            "bytes": 1386,
+            "sha256": "71b989729f8afab4d9badf08eaa40920cbdd9d35f002c519999d16600eebb0c3",
+            "modifiedAt": "2026-07-13T11:38:22.617Z"
+          },
+          {
+            "path": "playwright.config.cjs",
+            "bytes": 1784,
+            "sha256": "b4f0c8512e9638e1a2efab30b49c3adb92a4ff95d5729a4816ae97ee6467656d",
+            "modifiedAt": "2026-07-13T08:15:41.910Z"
+          },
+          {
+            "path": "README.md",
+            "bytes": 2674,
+            "sha256": "915370813dfeb940363aa178b8bb3ed373e2e96aae42b707f62155f72e7acf3e",
+            "modifiedAt": "2026-07-13T11:38:22.620Z"
+          },
+          {
+            "path": "results/source-findings.cjs",
+            "bytes": 102958,
+            "sha256": "4e8f55752099c170229a0606e1aa05950765c61fbfafba61a957f1b597945c5e",
+            "modifiedAt": "2026-07-13T12:55:14.586Z"
+          },
+          {
+            "path": "scripts/begin-audit-run.cjs",
+            "bytes": 949,
+            "sha256": "5d6d27881da29229b93cbfd10bc8ae509a4c531b0069a62de95d60fb4c08b59d",
+            "modifiedAt": "2026-07-13T11:33:03.106Z"
+          },
+          {
+            "path": "scripts/build-cleanup-ledger.cjs",
+            "bytes": 3573,
+            "sha256": "1d13d22d5e9a089ed255ec24e4fd8e15b5d7ba028bf5d95d4f622bd3f7839680",
+            "modifiedAt": "2026-07-13T11:33:51.936Z"
+          },
+          {
+            "path": "scripts/build-final-artifacts.cjs",
+            "bytes": 15029,
+            "sha256": "5176b4a32c6816aa60f0196946e313c329de56e38eec4927c93f68c3d3bc3f4b",
+            "modifiedAt": "2026-07-13T12:54:55.943Z"
+          },
+          {
+            "path": "scripts/collect-pr-scope.cjs",
+            "bytes": 3707,
+            "sha256": "dd1d3e136e192ad2dfba88f0f1ab20638d3b8a531e0dedcce79fad887299aa5c",
+            "modifiedAt": "2026-07-13T11:33:28.517Z"
+          },
+          {
+            "path": "scripts/collect-static-actions.cjs",
+            "bytes": 5324,
+            "sha256": "a23fb01720d8b8d6da4b1cf284e2f73f867b60491325b9e2998947bda6a3c1fe",
+            "modifiedAt": "2026-07-13T08:07:51.905Z"
+          },
+          {
+            "path": "scripts/run-runtime-inventory.cjs",
+            "bytes": 1326,
+            "sha256": "8d8c6927052279a85e6d067e693f0548fa9424efe4f527ac9b7b9bfde752c58f",
+            "modifiedAt": "2026-07-13T09:44:21.702Z"
+          },
+          {
+            "path": "scripts/sanitize-runtime-inventory.cjs",
+            "bytes": 1289,
+            "sha256": "4d12d3f6616dc746d6628c823506069e904961c6aaa872e89c212d578a17325f",
+            "modifiedAt": "2026-07-13T11:34:21.042Z"
+          },
+          {
+            "path": "scripts/synthesize-results.cjs",
+            "bytes": 7067,
+            "sha256": "02d21c7c38322306dac8db7ca24d48f3d2f91e4cd7b62903b589c8ad48e60e5b",
+            "modifiedAt": "2026-07-13T11:35:02.553Z"
+          },
+          {
+            "path": "scripts/validate-final-artifacts.cjs",
+            "bytes": 7104,
+            "sha256": "1bd68de6e7aba897aa313a4bc7cd26c2b0e03f01df34bf800bebef7bcc34d7fa",
+            "modifiedAt": "2026-07-13T11:38:02.727Z"
+          },
+          {
+            "path": "support/action-inventory.cjs",
+            "bytes": 3212,
+            "sha256": "c8eaf22041758485e784c7f886159c3322ac360bb5b80c52d6969b8552586cb2",
+            "modifiedAt": "2026-07-13T08:36:01.537Z"
+          },
+          {
+            "path": "support/audit-fixture.cjs",
+            "bytes": 2710,
+            "sha256": "036e85b7ba02635cc5fc8ce5dea13b7eb07bd0751a758280d7bc8c32dd20f294",
+            "modifiedAt": "2026-07-13T08:23:32.452Z"
+          },
+          {
+            "path": "support/database-evidence.cjs",
+            "bytes": 1334,
+            "sha256": "527c5138cd866068c234d9194a16176ad6095f666156f155a425ec6eb06bd131",
+            "modifiedAt": "2026-07-13T08:39:01.626Z"
+          },
+          {
+            "path": "support/environment.cjs",
+            "bytes": 662,
+            "sha256": "8e84c4b3390654d39cc6c5b61db9c2768de24f8ed729156d356185fa8f585861",
+            "modifiedAt": "2026-07-13T08:07:51.895Z"
+          },
+          {
+            "path": "support/global-setup.cjs",
+            "bytes": 4433,
+            "sha256": "a4cce8a6d61f98fc29b325ab0752116d9dd505a18f1a1670688eaf40cb376667",
+            "modifiedAt": "2026-07-13T08:22:23.460Z"
+          },
+          {
+            "path": "support/integrity.cjs",
+            "bytes": 4546,
+            "sha256": "7c95682d010b90995ebfe7b5a3d9d552bd886e146d6ca897a49fe522b5505abc",
+            "modifiedAt": "2026-07-13T11:33:28.516Z"
+          },
+          {
+            "path": "support/redaction.cjs",
+            "bytes": 5091,
+            "sha256": "08c5f5733ff8b2cde5c13a86ca2a9d9b509bd08d574bf7dd4b13e907598fcd3c",
+            "modifiedAt": "2026-07-13T11:55:36.263Z"
+          },
+          {
+            "path": "support/redaction.test.cjs",
+            "bytes": 1580,
+            "sha256": "a89cdc475e7d7498b496d64c433b02c98cea7b8505bbe76948bc50f957e572f4",
+            "modifiedAt": "2026-07-13T11:55:36.264Z"
+          },
+          {
+            "path": "tests/focused-route-smoke.spec.cjs",
+            "bytes": 1370,
+            "sha256": "dd6e7869074e44230172da244b8b6161b35346046551da74716d404d5057417c",
+            "modifiedAt": "2026-07-13T08:37:20.952Z"
+          },
+          {
+            "path": "tests/runtime-inventory.spec.cjs",
+            "bytes": 3694,
+            "sha256": "6b260db2abb5dbf4879922f1b3f2e7718a25f57c1a21c320422c3641d73c8703",
+            "modifiedAt": "2026-07-13T08:28:27.448Z"
+          },
+          {
+            "path": "tests/safe-confirmed-failures.spec.cjs",
+            "bytes": 3926,
+            "sha256": "0ae673df01dc76381f3c6d16433abfbb42a47c5fb60b3dfd4dd2c9c3796cba3f",
+            "modifiedAt": "2026-07-13T10:18:48.702Z"
+          }
+        ]
+      },
+      "auditHarnessEnd": {
+        "sha256": "e45b423facf5ae297a6fb46e04a523d41aa5ec302124749214e7f0d1cfecb4a6",
+        "fileCount": 26,
+        "files": [
+          {
+            "path": ".gitignore",
+            "bytes": 334,
+            "sha256": "c5247bf7de0522a36c57b27a0f643eb96e018277a1e2e4144ba9d105b63fc80d",
+            "modifiedAt": "2026-07-13T11:38:22.618Z"
+          },
+          {
+            "path": "package-lock.json",
+            "bytes": 2627,
+            "sha256": "86a77de47a823a41cbcfcec2809d5e05239aa1c04eec0047735043d7be8556fb",
+            "modifiedAt": "2026-07-13T08:08:02.103Z"
+          },
+          {
+            "path": "package.json",
+            "bytes": 1386,
+            "sha256": "71b989729f8afab4d9badf08eaa40920cbdd9d35f002c519999d16600eebb0c3",
+            "modifiedAt": "2026-07-13T11:38:22.617Z"
+          },
+          {
+            "path": "playwright.config.cjs",
+            "bytes": 1784,
+            "sha256": "b4f0c8512e9638e1a2efab30b49c3adb92a4ff95d5729a4816ae97ee6467656d",
+            "modifiedAt": "2026-07-13T08:15:41.910Z"
+          },
+          {
+            "path": "README.md",
+            "bytes": 2674,
+            "sha256": "915370813dfeb940363aa178b8bb3ed373e2e96aae42b707f62155f72e7acf3e",
+            "modifiedAt": "2026-07-13T11:38:22.620Z"
+          },
+          {
+            "path": "results/source-findings.cjs",
+            "bytes": 102958,
+            "sha256": "4e8f55752099c170229a0606e1aa05950765c61fbfafba61a957f1b597945c5e",
+            "modifiedAt": "2026-07-13T12:55:14.586Z"
+          },
+          {
+            "path": "scripts/begin-audit-run.cjs",
+            "bytes": 949,
+            "sha256": "5d6d27881da29229b93cbfd10bc8ae509a4c531b0069a62de95d60fb4c08b59d",
+            "modifiedAt": "2026-07-13T11:33:03.106Z"
+          },
+          {
+            "path": "scripts/build-cleanup-ledger.cjs",
+            "bytes": 3573,
+            "sha256": "1d13d22d5e9a089ed255ec24e4fd8e15b5d7ba028bf5d95d4f622bd3f7839680",
+            "modifiedAt": "2026-07-13T11:33:51.936Z"
+          },
+          {
+            "path": "scripts/build-final-artifacts.cjs",
+            "bytes": 15029,
+            "sha256": "5176b4a32c6816aa60f0196946e313c329de56e38eec4927c93f68c3d3bc3f4b",
+            "modifiedAt": "2026-07-13T12:54:55.943Z"
+          },
+          {
+            "path": "scripts/collect-pr-scope.cjs",
+            "bytes": 3707,
+            "sha256": "dd1d3e136e192ad2dfba88f0f1ab20638d3b8a531e0dedcce79fad887299aa5c",
+            "modifiedAt": "2026-07-13T11:33:28.517Z"
+          },
+          {
+            "path": "scripts/collect-static-actions.cjs",
+            "bytes": 5324,
+            "sha256": "a23fb01720d8b8d6da4b1cf284e2f73f867b60491325b9e2998947bda6a3c1fe",
+            "modifiedAt": "2026-07-13T08:07:51.905Z"
+          },
+          {
+            "path": "scripts/run-runtime-inventory.cjs",
+            "bytes": 1326,
+            "sha256": "8d8c6927052279a85e6d067e693f0548fa9424efe4f527ac9b7b9bfde752c58f",
+            "modifiedAt": "2026-07-13T09:44:21.702Z"
+          },
+          {
+            "path": "scripts/sanitize-runtime-inventory.cjs",
+            "bytes": 1289,
+            "sha256": "4d12d3f6616dc746d6628c823506069e904961c6aaa872e89c212d578a17325f",
+            "modifiedAt": "2026-07-13T11:34:21.042Z"
+          },
+          {
+            "path": "scripts/synthesize-results.cjs",
+            "bytes": 7067,
+            "sha256": "02d21c7c38322306dac8db7ca24d48f3d2f91e4cd7b62903b589c8ad48e60e5b",
+            "modifiedAt": "2026-07-13T11:35:02.553Z"
+          },
+          {
+            "path": "scripts/validate-final-artifacts.cjs",
+            "bytes": 7104,
+            "sha256": "1bd68de6e7aba897aa313a4bc7cd26c2b0e03f01df34bf800bebef7bcc34d7fa",
+            "modifiedAt": "2026-07-13T11:38:02.727Z"
+          },
+          {
+            "path": "support/action-inventory.cjs",
+            "bytes": 3212,
+            "sha256": "c8eaf22041758485e784c7f886159c3322ac360bb5b80c52d6969b8552586cb2",
+            "modifiedAt": "2026-07-13T08:36:01.537Z"
+          },
+          {
+            "path": "support/audit-fixture.cjs",
+            "bytes": 2710,
+            "sha256": "036e85b7ba02635cc5fc8ce5dea13b7eb07bd0751a758280d7bc8c32dd20f294",
+            "modifiedAt": "2026-07-13T08:23:32.452Z"
+          },
+          {
+            "path": "support/database-evidence.cjs",
+            "bytes": 1334,
+            "sha256": "527c5138cd866068c234d9194a16176ad6095f666156f155a425ec6eb06bd131",
+            "modifiedAt": "2026-07-13T08:39:01.626Z"
+          },
+          {
+            "path": "support/environment.cjs",
+            "bytes": 662,
+            "sha256": "8e84c4b3390654d39cc6c5b61db9c2768de24f8ed729156d356185fa8f585861",
+            "modifiedAt": "2026-07-13T08:07:51.895Z"
+          },
+          {
+            "path": "support/global-setup.cjs",
+            "bytes": 4433,
+            "sha256": "a4cce8a6d61f98fc29b325ab0752116d9dd505a18f1a1670688eaf40cb376667",
+            "modifiedAt": "2026-07-13T08:22:23.460Z"
+          },
+          {
+            "path": "support/integrity.cjs",
+            "bytes": 4546,
+            "sha256": "7c95682d010b90995ebfe7b5a3d9d552bd886e146d6ca897a49fe522b5505abc",
+            "modifiedAt": "2026-07-13T11:33:28.516Z"
+          },
+          {
+            "path": "support/redaction.cjs",
+            "bytes": 5091,
+            "sha256": "08c5f5733ff8b2cde5c13a86ca2a9d9b509bd08d574bf7dd4b13e907598fcd3c",
+            "modifiedAt": "2026-07-13T11:55:36.263Z"
+          },
+          {
+            "path": "support/redaction.test.cjs",
+            "bytes": 1580,
+            "sha256": "a89cdc475e7d7498b496d64c433b02c98cea7b8505bbe76948bc50f957e572f4",
+            "modifiedAt": "2026-07-13T11:55:36.264Z"
+          },
+          {
+            "path": "tests/focused-route-smoke.spec.cjs",
+            "bytes": 1370,
+            "sha256": "dd6e7869074e44230172da244b8b6161b35346046551da74716d404d5057417c",
+            "modifiedAt": "2026-07-13T08:37:20.952Z"
+          },
+          {
+            "path": "tests/runtime-inventory.spec.cjs",
+            "bytes": 3694,
+            "sha256": "6b260db2abb5dbf4879922f1b3f2e7718a25f57c1a21c320422c3641d73c8703",
+            "modifiedAt": "2026-07-13T08:28:27.448Z"
+          },
+          {
+            "path": "tests/safe-confirmed-failures.spec.cjs",
+            "bytes": 3926,
+            "sha256": "0ae673df01dc76381f3c6d16433abfbb42a47c5fb60b3dfd4dd2c9c3796cba3f",
+            "modifiedAt": "2026-07-13T10:18:48.702Z"
+          }
+        ]
+      },
+      "harnessUnchangedDuringAudit": true
+    },
+    "auditTreeTrackedFiles": 0,
+    "note": "Local read-only Git snapshot. No fetch, checkout, staging, commit, push, or ref mutation was performed."
+  },
+  "roleStateAvailability": {
+    "unauthenticated": {
+      "available": true,
+      "storageState": ".auth/unauthenticated.json"
+    },
+    "admin": {
+      "available": true,
+      "storageStates": [
+        ".auth/admin-desktop.json",
+        ".auth/admin-mobile.json"
+      ],
+      "reason": null
+    },
+    "org_admin": {
+      "available": false,
+      "reason": "No approved proof credentials; Auth user creation is forbidden."
+    },
+    "provider": {
+      "available": false,
+      "reason": "No approved proof credentials; Auth user creation is forbidden."
+    },
+    "sponsor": {
+      "available": false,
+      "reason": "No approved proof credentials; Auth user creation is forbidden."
+    },
+    "viewer": {
+      "available": false,
+      "reason": "No approved proof credentials; Auth user creation is forbidden."
+    }
+  },
+  "cleanup": {
+    "schemaVersion": 2,
+    "generatedAt": "2026-07-13T13:07:49.682Z",
+    "runId": "audit-20260713125750-2ac4a368",
+    "discoveryOnly": true,
+    "records": [],
+    "evidenceChecks": [],
+    "cleanupStatus": "not_required",
+    "cleanupApplicable": false,
+    "cleanupVerified": false,
+    "noSideEffectsVerified": false,
+    "verifiedScope": [],
+    "unverifiedDomains": [
+      "Auth users",
+      "Storage objects",
+      "Edge side effects",
+      "email",
+      "payments"
+    ],
+    "note": "The discovery and safe-failure passes executed no mutation probe, so no audit-created record required cleanup."
+  },
+  "confirmedFailures": [
+    {
+      "failureId": "B-AMB-CROSS-ORG-STATION",
+      "actionId": "ambulance.receiver.write",
+      "route": "/ambulances",
+      "role": "org_admin",
+      "locator": "ambulances INSERT/UPDATE receiver",
+      "sourceComponent": "frontend/src/services/ambulancesService.js; frontend/supabase/migrations/20260219000700_security.sql",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The mounted modal and service now reject cross-scope stations, but the canonical WITH CHECK still authorizes an ambulance when organization_id is owned OR hospital_id belongs to the caller. A forged direct payload can satisfy the first edge while crossing the second.",
+      "responseEvidence": "Normal Console use is mitigated; a direct authenticated table request can still accept the cross-organization hospital link.",
+      "databaseEvidence": "ambulances.hospital_id can point to a hospital outside ambulances.organization_id.",
+      "reproductionSteps": [
+        "In an isolated project authenticate as org_admin.",
+        "Submit an ambulance write with the caller organization_id and another organization's hospital_id.",
+        "Read back both ownership edges and verify the policy accepted the mismatched pair."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "B-HSP-RPC-ORG-ADMIN-SELF-VERIFY",
+      "actionId": "rpc.update-hospital.self-verify",
+      "route": "/hospitals",
+      "role": "org_admin",
+      "locator": "update_hospital_by_admin RPC",
+      "sourceComponent": "frontend/supabase/migrations/20260219010000_core_rpcs.sql",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The mounted form strips verification fields for org_admin, but the authenticated RPC still accepts verified and verification_status from a same-organization caller.",
+      "responseEvidence": "A direct org-admin RPC call can report success outside the protected UI path.",
+      "databaseEvidence": "The receiver can set hospitals.verified and verification_status without requiring platform-admin authority.",
+      "reproductionSteps": [
+        "In an isolated project, authenticate as org_admin for an owned hospital.",
+        "Invoke update_hospital_by_admin directly with verification fields.",
+        "Read back the hospital verification state."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "C-04-CREATE-OMITS-LINKED-VISIT",
+      "actionId": "emergency.create.submit",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Create request|Submit request/i })",
+      "sourceComponent": "console_create_emergency_request RPC; 20260219000900_automations.sql",
+      "crudOperation": "create",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The fallback receiver inserts only emergency_requests; the visit trigger is AFTER UPDATE and only updates an already existing visit.",
+      "responseEvidence": "Emergency creation can report success with no corresponding visit creation path.",
+      "databaseEvidence": "The new request has no linked visits row.",
+      "reproductionSteps": [
+        "Create an isolated audit emergency through the fallback path.",
+        "Wait for triggers to settle.",
+        "Query visits by emergency_request_id and verify no row was created."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "C-21-NEARBY-AMBULANCES-PUBLIC-DEFINER",
+      "actionId": "map.dispatch.nearest",
+      "route": "/map",
+      "role": "unauthenticated",
+      "locator": "nearby_ambulances RPC",
+      "sourceComponent": "frontend/supabase/migrations/20260219010000_core_rpcs.sql; frontend/src/services/emergencyResponseService.js",
+      "crudOperation": "read",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The dispatch candidate path calls a global SECURITY DEFINER nearby_ambulances projection, and maintained source contains no matching privilege revoke or actor-organization predicate.",
+      "responseEvidence": "A caller with function execution privilege can receive live fleet candidates outside an authorized console route.",
+      "databaseEvidence": "The function reads current ambulance location and availability without an auth.uid() or organization boundary in its body.",
+      "reproductionSteps": [
+        "In an isolated project, invoke nearby_ambulances without an authenticated operator role.",
+        "Verify execution privilege and returned fleet scope."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "FIN-EMG-RETRY-DUPLICATE-STALE",
+      "actionId": "emergency.retry-payment",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Retry payment/i })",
+      "sourceComponent": "retry payment RPC; EmergencyRequestsPage.jsx",
+      "crudOperation": "create",
+      "payloadCase": "double_submit",
+      "additionalPayloadCases": [
+        "concurrency",
+        "stale_row"
+      ],
+      "requestEvidence": "The receiver has no lock, idempotency key, or uniqueness guard for pending retries.",
+      "responseEvidence": "It inserts a payment but does not update request payment status, so Retry remains visible and concurrent/repeated calls can both succeed.",
+      "databaseEvidence": "Multiple pending payment rows can reference the same emergency request while its visible payment status remains declined.",
+      "reproductionSteps": [
+        "Use a synthetic declined audit request with a valid method.",
+        "Submit two retry commands concurrently or repeat before refetch.",
+        "Count pending payments and read request payment_status."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "FIN-EMG-RETRY-RPC-AUTH",
+      "actionId": "emergency.retry-payment",
+      "route": "/emergencies",
+      "role": "authenticated",
+      "locator": "getByRole('button', { name: /Retry payment/i })",
+      "sourceComponent": "retry payment RPC migration; EmergencyRequestsPage.jsx",
+      "crudOperation": "create",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The SECURITY DEFINER retry receiver does not check auth.uid, role, organization, request state, or patient ownership, and EXECUTE is not revoked from public/authenticated.",
+      "responseEvidence": "A direct authenticated caller who knows a request UUID can invoke the receiver outside the UI's intended authority.",
+      "databaseEvidence": "A pending payment can be inserted for another patient's request.",
+      "reproductionSteps": [
+        "In an isolated synthetic project authenticate as an unrelated low-authority user.",
+        "Invoke the retry RPC for a known AUDIT_ request UUID.",
+        "Verify whether a payment row was inserted despite no request authority."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "FIN-INS-POLICY-PROJECTION-RLS",
+      "actionId": "insurance.refresh",
+      "route": "/insurance",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src insurance service/page; insurance policy RLS",
+      "crudOperation": "read",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The service labels its result an admin exact projection, while policy permits only owner-scoped policy reads.",
+      "responseEvidence": "Admin receives zero/partial policies and exact counts without an authorization-unavailable state.",
+      "databaseEvidence": "Displayed collection/count can omit policies that exist for other users.",
+      "reproductionSteps": [
+        "Create policies for two audit users in isolation.",
+        "As admin open or refresh Insurance.",
+        "Compare the projection and totals to service-role exact counts."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "source_confirmed",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    }
+  ],
+  "resolvedFindings": [
+    {
+      "failureId": "B-HSP-SELF-VERIFY",
+      "actionId": "hospital.modal.edit.save",
+      "route": "/hospitals",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Save|Update hospital/i })",
+      "sourceComponent": "frontend/src/components/modals/HospitalModal.jsx; frontend/supabase/migrations RPC update_hospital_by_admin",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [
+        "full_valid"
+      ],
+      "requestEvidence": "The edit form exposes verified and submits verified=true for org_admin; the same-org RPC branch accepts it without requiring verification_status.",
+      "responseEvidence": "The RPC can return success to an org_admin caller.",
+      "databaseEvidence": "hospitals.verified becomes true; public hospital projection/RLS exposes verified rows.",
+      "reproductionSteps": [
+        "Use an org_admin state and open an owned unverified hospital.",
+        "Enable Verified and save.",
+        "Read back hospitals.verified and verification_status."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted hospital editor now exposes verification controls only to platform admins and strips verification fields from non-admin payloads; receiver defense in depth is tracked separately."
+    },
+    {
+      "failureId": "B-FAC-VERIFY-CLEARS-TAXONOMY-APPROVE",
+      "actionId": "verification.facility.approve",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Approve/i })",
+      "sourceComponent": "frontend/src/pages/VerificationPage.jsx; update_hospital_by_admin RPC",
+      "crudOperation": "update",
+      "payloadCase": "minimum_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Approve sends only verification_status and verified.",
+      "responseEvidence": "The receiver converts omitted specialties, service_types, and features to empty arrays and reports success.",
+      "databaseEvidence": "The approved hospital's taxonomy arrays are overwritten with {}.",
+      "reproductionSteps": [
+        "Select a pending facility with populated taxonomy arrays.",
+        "Choose Approve.",
+        "Compare all taxonomy columns before and after."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The deployed update_hospital_by_admin receiver is documented and live-verified as preserving omitted taxonomy arrays; the remaining gap is the unmerged canonical pillar branch."
+    },
+    {
+      "failureId": "B-FAC-VERIFY-CLEARS-TAXONOMY-REJECT",
+      "actionId": "verification.facility.reject",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Reject/i })",
+      "sourceComponent": "frontend/src/pages/VerificationPage.jsx; update_hospital_by_admin RPC",
+      "crudOperation": "update",
+      "payloadCase": "minimum_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Reject sends only verification_status and verified.",
+      "responseEvidence": "The receiver converts omitted specialties, service_types, and features to empty arrays and reports success.",
+      "databaseEvidence": "The rejected hospital's taxonomy arrays are overwritten with {}.",
+      "reproductionSteps": [
+        "Select a pending facility with populated taxonomy arrays.",
+        "Choose Reject.",
+        "Compare all taxonomy columns before and after."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The deployed update_hospital_by_admin receiver is documented and live-verified as preserving omitted taxonomy arrays; the remaining gap is the unmerged canonical pillar branch."
+    },
+    {
+      "failureId": "B-AMB-STALE-STATUS-OVERWRITE",
+      "actionId": "ambulance.modal.save",
+      "route": "/ambulances",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update ambulance/i })",
+      "sourceComponent": "frontend/src/components/modals/AmbulanceModal.jsx",
+      "crudOperation": "update",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [
+        "concurrency"
+      ],
+      "requestEvidence": "Every metadata edit resubmits the status value captured when the modal opened.",
+      "responseEvidence": "A later dispatch status update can be overwritten by the stale modal save.",
+      "databaseEvidence": "ambulances.status is restored to the stale form value while unrelated metadata is saved.",
+      "reproductionSteps": [
+        "Open an ambulance edit modal.",
+        "Change the same ambulance status through dispatch in a second session.",
+        "Save unrelated metadata from the stale modal and read back status."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Ambulance metadata edits omit status in both the modal payload and generic update whitelist; dispatch lifecycle state is read-only on existing units."
+    },
+    {
+      "failureId": "B-DOC-INVITED-STATUS-MUTATION",
+      "actionId": "doctor.modal.save",
+      "route": "/doctors",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update doctor/i })",
+      "sourceComponent": "frontend/src/components/modals/DoctorModal.jsx",
+      "crudOperation": "update",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The edit projection normalizes invited to off_duty and always submits status.",
+      "responseEvidence": "An unrelated doctor edit reports success.",
+      "databaseEvidence": "doctors.status changes from invited to off_duty without an explicit lifecycle action.",
+      "reproductionSteps": [
+        "Open an invited doctor for editing.",
+        "Change an unrelated field and save.",
+        "Read back doctors.status."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Staff editing preserves invited and unknown lifecycle values and no longer submits status during ordinary edits."
+    },
+    {
+      "failureId": "B-DOC-AVAILABLE-BUT-UNUSABLE",
+      "actionId": "doctor.modal.save",
+      "route": "/doctors",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update doctor/i })",
+      "sourceComponent": "frontend/src/components/modals/DoctorModal.jsx; emergency assignment receiver",
+      "crudOperation": "update",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Selecting available updates status but omits is_available.",
+      "responseEvidence": "The save succeeds, while canonical assignment requires both status and is_available.",
+      "databaseEvidence": "doctors.status='available' can coexist with is_available=false, leaving the doctor ineligible.",
+      "reproductionSteps": [
+        "Edit a doctor whose is_available is false.",
+        "Set status to Available and save.",
+        "Attempt canonical assignment or read both columns."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "fail_valid_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted Staff editor no longer advertises a lifecycle write, and rows with status available but is_available false are labeled unavailable for assignment. Generic receiver ownership remains separately blocked."
+    },
+    {
+      "failureId": "B-DOC-DELETE-CLINICAL-EVIDENCE",
+      "actionId": "doctor.delete.confirm",
+      "route": "/doctors",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm delete/i })",
+      "sourceComponent": "frontend/src/pages/DoctorsPage.jsx; doctor foreign keys",
+      "crudOperation": "delete",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The action performs a direct doctor delete without an active-assignment guard.",
+      "responseEvidence": "A policy-supported delete can succeed even when clinical references exist.",
+      "databaseEvidence": "Cascade/set-null foreign keys can remove or detach emergency assignment evidence.",
+      "reproductionSteps": [
+        "In an isolated synthetic project create an audit doctor with linked emergency evidence.",
+        "Confirm Delete.",
+        "Inspect dependent assignment rows and audit history."
+      ],
+      "failureClasses": [
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mounted single and bulk Staff deletion were removed from desktop, mobile, and the detail rail; generic receiver retirement remains separately blocked."
+    },
+    {
+      "failureId": "B-DOC-STALE-DELETE-SUCCESS",
+      "actionId": "doctor.delete.confirm",
+      "route": "/doctors",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm delete/i })",
+      "sourceComponent": "frontend/src/services/doctorsService.js; DoctorsPage.jsx",
+      "crudOperation": "delete",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Delete filters by id but requests no returned row/count.",
+      "responseEvidence": "A zero-row delete can resolve as success and trigger success UI.",
+      "databaseEvidence": "Pre/post target row is unchanged or already absent; affected-row proof is unavailable.",
+      "reproductionSteps": [
+        "Open a doctor deletion confirmation.",
+        "Delete the row in a second synthetic session.",
+        "Confirm from the stale first session and observe success messaging."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted Staff route no longer invokes doctor deletion, so stale zero-row success cannot be presented by the current page."
+    },
+    {
+      "failureId": "B-DOC-LINKED-DELETE-NOT-DURABLE",
+      "actionId": "doctor.delete.confirm",
+      "route": "/doctors",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm delete/i })",
+      "sourceComponent": "frontend/src/services/doctorsService.js; profile doctor automation",
+      "crudOperation": "delete",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The direct delete does not change the linked provider profile state that drives doctor automation.",
+      "responseEvidence": "Delete reports success, but a later profile update can recreate the doctor.",
+      "databaseEvidence": "A doctor row with the linked provider identity is reinserted after subsequent profile automation.",
+      "reproductionSteps": [
+        "Create an audit provider/doctor pair in isolation.",
+        "Delete the doctor from Console.",
+        "Update the linked profile and query doctors again."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted Staff route no longer invokes doctor deletion; durable backend retirement remains separately blocked."
+    },
+    {
+      "failureId": "B-VER-MODAL-FALSE-SUCCESS-APPROVE",
+      "actionId": "verification.modal.approve",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Approve/i })",
+      "sourceComponent": "frontend/src/pages/VerificationPage.jsx; VerificationModal.jsx",
+      "crudOperation": "update",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The page handler catches receiver errors and returns false.",
+      "responseEvidence": "VerificationModal ignores the false result, closes, and shows success.",
+      "databaseEvidence": "The target verification row remains unchanged after the failed request.",
+      "reproductionSteps": [
+        "Open a pending verification.",
+        "Intercept the approval receiver with HTTP 500.",
+        "Choose Approve and compare row state with the success UI."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Verification approval now withholds success and keeps the modal open when the receiver rejects or returns false."
+    },
+    {
+      "failureId": "B-VER-MODAL-FALSE-SUCCESS-REJECT",
+      "actionId": "verification.modal.reject",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Reject/i })",
+      "sourceComponent": "frontend/src/pages/VerificationPage.jsx; VerificationModal.jsx",
+      "crudOperation": "update",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The page handler catches receiver errors and returns false.",
+      "responseEvidence": "VerificationModal ignores the false result, closes, and shows success.",
+      "databaseEvidence": "The target verification row remains unchanged after the failed request.",
+      "reproductionSteps": [
+        "Open a pending verification.",
+        "Intercept the rejection receiver with HTTP 500.",
+        "Choose Reject and compare row state with the success UI."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The provider verification modal is approve-only; facility rejection is owned by a separate page action."
+    },
+    {
+      "failureId": "B-VER-MOBILE-BULK-RACE-APPROVE",
+      "actionId": "verification.mobile.bulk.approve",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Approve selected/i })",
+      "sourceComponent": "frontend/src/components/mobile/MobileVerification.jsx",
+      "crudOperation": "update",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [
+        "double_submit"
+      ],
+      "requestEvidence": "The handler starts async mutations inside forEach without awaiting them.",
+      "responseEvidence": "Selection and progress state clear before all approvals settle; per-item failures arrive later.",
+      "databaseEvidence": "Only a subset of selected rows may be approved at the time UI reports completion.",
+      "reproductionSteps": [
+        "Select several synthetic pending records on mobile.",
+        "Delay one approval response and reject another.",
+        "Choose Approve selected and compare immediate UI with final row states."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mobile provider approvals now run sequentially with progress and retain failed selections."
+    },
+    {
+      "failureId": "B-VER-MOBILE-BULK-RACE-REJECT",
+      "actionId": "verification.mobile.bulk.reject",
+      "route": "/verification",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Reject selected/i })",
+      "sourceComponent": "frontend/src/components/mobile/MobileVerification.jsx",
+      "crudOperation": "update",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [
+        "double_submit"
+      ],
+      "requestEvidence": "The handler starts async mutations inside forEach without awaiting them.",
+      "responseEvidence": "Selection and progress state clear before all rejections settle; per-item failures arrive later.",
+      "databaseEvidence": "Only a subset of selected rows may be rejected at the time UI reports completion.",
+      "reproductionSteps": [
+        "Select several synthetic pending records on mobile.",
+        "Delay one rejection response and reject another.",
+        "Choose Reject selected and compare immediate UI with final row states."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mobile verification selection is provider-only and the bulk surface no longer advertises rejection."
+    },
+    {
+      "failureId": "B-HSP-STALE-UPDATE-SUCCESS",
+      "actionId": "hospital.modal.edit.save",
+      "route": "/hospitals",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update hospital/i })",
+      "sourceComponent": "frontend/src/services/hospitalsService.js; update_hospital_by_admin RPC",
+      "crudOperation": "update",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The RPC path does not prove an affected row for a nonexistent hospital id.",
+      "responseEvidence": "The action can resolve and show success for a zero-row update.",
+      "databaseEvidence": "The stale hospital remains absent; no updated-row readback exists.",
+      "reproductionSteps": [
+        "Open a synthetic hospital edit modal.",
+        "Delete the row in another session.",
+        "Save the stale modal and compare UI result with exact row count."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Hospital updates now require a successful RPC result and an existing-row readback before the page can report success."
+    },
+    {
+      "failureId": "B-HSP-BLANK-CLEAR-NOOP",
+      "actionId": "hospital.modal.edit.save",
+      "route": "/hospitals",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update hospital/i })",
+      "sourceComponent": "frontend/src/components/modals/HospitalModal.jsx; hospitalsService.js",
+      "crudOperation": "update",
+      "payloadCase": "empty",
+      "additionalPayloadCases": [
+        "null"
+      ],
+      "requestEvidence": "Cleared optional fields are omitted from the update payload.",
+      "responseEvidence": "The receiver preserves omitted columns and the UI reports success.",
+      "databaseEvidence": "The old column values remain instead of being cleared.",
+      "reproductionSteps": [
+        "Open an audit hospital with optional text values.",
+        "Clear those inputs and save.",
+        "Read back the cleared columns."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Intentional clears for optional text fields now remain explicit empty values in the RPC payload instead of being omitted and silently preserved."
+    },
+    {
+      "failureId": "B-HSP-CAPACITY-SILENT-NORMALIZATION",
+      "actionId": "hospital.modal.edit.save",
+      "route": "/hospitals",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update hospital/i })",
+      "sourceComponent": "frontend/src/components/modals/HospitalModal.jsx; hospitalsService.js",
+      "crudOperation": "update",
+      "payloadCase": "boundary_number",
+      "additionalPayloadCases": [
+        "invalid_enum"
+      ],
+      "requestEvidence": "Negative capacity and inconsistent ICU/available/total/status values are clamped or normalized rather than rejected.",
+      "responseEvidence": "The action succeeds without explaining that the submitted values changed.",
+      "databaseEvidence": "Stored capacity/status differs from the values entered by the operator.",
+      "reproductionSteps": [
+        "Enter negative or internally inconsistent capacity values on an audit hospital.",
+        "Save.",
+        "Compare submitted payload, stored values, and visible confirmation."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The service rejects negative, fractional, cross-field inconsistent, and unsupported capacity/status values before the normalization trigger can rewrite them silently."
+    },
+    {
+      "failureId": "B-HSP-RESERVATION-FAILURE-AS-EMPTY",
+      "actionId": "hospital.reservations.view",
+      "route": "/hospitals",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Reservations|View reservations/i })",
+      "sourceComponent": "frontend/src/pages/HospitalsPage.jsx; reservation query service",
+      "crudOperation": "read",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Reservation read errors are only logged to console.",
+      "responseEvidence": "The surface renders No active reservations instead of an unavailable/error state.",
+      "databaseEvidence": "Database truth is unknown because the failed read is converted to an empty collection.",
+      "reproductionSteps": [
+        "Open a hospital reservation surface.",
+        "Intercept the reservation request with HTTP 500.",
+        "Observe the empty-state claim and captured failed request."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Bed read failures now propagate to a retryable modal error state; an empty reservation list is rendered only after a successful read."
+    },
+    {
+      "failureId": "B-DOC-EXTERNAL-FACILITY-OPTION",
+      "actionId": "doctor.modal.save",
+      "route": "/doctors",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Save|Update doctor/i })",
+      "sourceComponent": "frontend/src/components/modals/DoctorModal.jsx; doctor RLS",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The facility selector includes externally owned verified facilities visible through read policy.",
+      "responseEvidence": "The write policy rejects a valid-looking selection for org_admin.",
+      "databaseEvidence": "The doctor row remains unchanged after the rejected update.",
+      "reproductionSteps": [
+        "As org_admin edit an owned doctor.",
+        "Choose an externally owned verified facility offered by the form.",
+        "Save and capture the RLS failure."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The Staff editor now loads canonical organization-scoped facility options, and the service rejects missing, cleared, or forged external facility ids before Supabase for org_admin creates and updates."
+    },
+    {
+      "failureId": "B-ONB-STORAGE-CLEANUP-UNVERIFIED",
+      "actionId": "onboarding.submit",
+      "route": "/onboarding",
+      "role": "unauthenticated",
+      "locator": "getByRole('button', { name: /Submit|Complete onboarding/i })",
+      "sourceComponent": "frontend/src/pages/OnboardingPage.jsx; Storage cleanup",
+      "crudOperation": "create",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Documents upload before provisioning; the compensation remove result/error is ignored.",
+      "responseEvidence": "Provisioning can fail without proof that uploaded objects were removed.",
+      "databaseEvidence": "No profile/facility row is created, while one or more Storage objects may remain orphaned.",
+      "reproductionSteps": [
+        "Use an isolated audit signup and attach a document.",
+        "Fail the provisioning request after upload.",
+        "List the exact audit Storage paths and compare to created database rows."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Onboarding now inspects Storage remove results and surfaces DOCUMENT_CLEANUP_FAILED when cleanup is rejected; policy canon remains separately blocked."
+    },
+    {
+      "failureId": "B-ONB-SIGNOUT-UNHANDLED",
+      "actionId": "onboarding.signout",
+      "route": "/onboarding",
+      "role": "authenticated_incomplete",
+      "locator": "getByRole('button', { name: /Sign out/i })",
+      "sourceComponent": "frontend/src/pages/OnboardingPage.jsx",
+      "crudOperation": "auth",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The signOut promise has no catch/finally path.",
+      "responseEvidence": "A rejected sign-out can produce a page error and leave the loading state active.",
+      "databaseEvidence": "No database mutation; the Auth session remains active.",
+      "reproductionSteps": [
+        "Open onboarding in an incomplete authenticated state.",
+        "Inject a rejected signOut call.",
+        "Choose Sign out and capture pageerror plus the persistent pending UI."
+      ],
+      "failureClasses": [
+        "browser_error",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Onboarding awaits sign-out and AuthContext clears local state from a finally block when remote sign-out fails."
+    },
+    {
+      "failureId": "C-01-ORG-ADMIN-CREATE-MISSING-FACILITY",
+      "actionId": "emergency.create.submit",
+      "route": "/emergencies",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Create request|Submit request/i })",
+      "sourceComponent": "frontend/src/components/modals/EmergencyRequestModal.jsx; console_create_emergency_request RPC",
+      "crudOperation": "create",
+      "payloadCase": "minimum_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The advertised org_admin create form has no facility selector and sends hospital_id only when preloaded form data already contains one.",
+      "responseEvidence": "console_create_emergency_request rejects non-admin calls without hospital_id.",
+      "databaseEvidence": "No emergency_requests row is inserted for the otherwise valid form.",
+      "reproductionSteps": [
+        "As org_admin open /emergencies and choose Create new request.",
+        "Complete the visible required fields and submit.",
+        "Capture the RPC failure and verify the exact audit request was not inserted."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Org-admin emergency creation now requires and server-verifies a facility in the actor organization before either create receiver is called."
+    },
+    {
+      "failureId": "C-02-ADMIN-CREATE-DROPS-COORDINATES",
+      "actionId": "emergency.create.submit",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Create request|Submit request/i })",
+      "sourceComponent": "frontend/src/components/modals/EmergencyRequestModal.jsx; frontend/src/services/emergencyService.js",
+      "crudOperation": "create",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The modal submits coordinates under patient_location, while buildConsoleCreatePayload reads only top-level latitude/longitude or pickup_location.",
+      "responseEvidence": "The fallback create RPC can succeed without the entered geography.",
+      "databaseEvidence": "The inserted emergency row has null/missing coordinates despite valid entered coordinates.",
+      "reproductionSteps": [
+        "As admin create a request without a hospital and enter coordinates.",
+        "Submit and capture both the form payload and normalized RPC payload.",
+        "Read back the inserted geography columns."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Console emergency creation normalizes {lat,lng}, pickup, and scalar coordinate inputs into the patient_location and scalar receiver fields without dropping valid zero values."
+    },
+    {
+      "failureId": "C-03-CREATE-TYPE-COERCED",
+      "actionId": "emergency.create.submit",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Create request|Submit request/i })",
+      "sourceComponent": "frontend/src/components/modals/EmergencyRequestModal.jsx; console_create_emergency_request RPC",
+      "crudOperation": "create",
+      "payloadCase": "invalid_enum",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The Type field sends an incident token in service_type.",
+      "responseEvidence": "The receiver silently coerces any token outside ambulance/bed/booking to ambulance.",
+      "databaseEvidence": "emergency_requests.service_type stores ambulance rather than the operator-selected incident type.",
+      "reproductionSteps": [
+        "Choose a visible incident Type other than the receiver's service enum.",
+        "Submit the request.",
+        "Compare the selected value, RPC payload, and stored service_type."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The create surface and service accept only the canonical ambulance, bed, and booking service vocabulary; incident language remains separate from service_type."
+    },
+    {
+      "failureId": "C-06-PROVIDER-COMPLETE-OWNERSHIP-MISMATCH",
+      "actionId": "emergency.complete",
+      "route": "/emergencies",
+      "role": "provider",
+      "locator": "getByRole('button', { name: /Complete/i })",
+      "sourceComponent": "frontend/src/pages/EmergencyRequestsPage.jsx; complete emergency RPC",
+      "crudOperation": "workflow_command",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The UI exposes Complete from provider role plus lifecycle state, but does not require responder ownership.",
+      "responseEvidence": "The receiver rejects a hospital-scoped provider who is not the assigned responder.",
+      "databaseEvidence": "The request lifecycle remains unchanged after the rejected command.",
+      "reproductionSteps": [
+        "As a provider who can read a hospital request but is not its responder, open the request.",
+        "Choose Complete.",
+        "Capture the authorization failure and unchanged lifecycle."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Provider completion now requires the current actor to be the assigned responder in both page action state and the service boundary."
+    },
+    {
+      "failureId": "C-07-RETRY-PAYMENT-METHOD-RLS",
+      "actionId": "emergency.retry-payment",
+      "route": "/emergencies",
+      "role": "admin|org_admin|provider",
+      "locator": "getByRole('button', { name: /Retry payment/i })",
+      "sourceComponent": "frontend/src/pages/EmergencyRequestsPage.jsx; payment_methods RLS",
+      "crudOperation": "create",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The handler first reads the patient's payment_methods, but policy allows only auth.uid()=user_id.",
+      "responseEvidence": "An operator retrying another patient's declined payment receives no methods and cannot send the retry command.",
+      "databaseEvidence": "No new payment row is created and request payment status remains declined.",
+      "reproductionSteps": [
+        "As an authorized operator open another patient's declined request.",
+        "Choose Retry payment.",
+        "Capture the owner-only payment_methods read and verify no payment insert."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "receiver_only",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted retry-payment path is disconnected and the exported browser service now fails unavailable before invoking the unproved RPC; the insecure SQL receiver remains active as separate FIN findings."
+    },
+    {
+      "failureId": "C-08-DETAIL-REFRESH-REUSES-STALE-PROP",
+      "actionId": "emergency.details.refresh",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src/components/modals/EmergencyDetailsModal.jsx; emergencyService.js",
+      "crudOperation": "read",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "refreshProjection passes current request and getEmergencyDetailProjection reuses the matching initialRequest instead of re-reading the row.",
+      "responseEvidence": "Refresh completes while showing the old request values.",
+      "databaseEvidence": "Canonical request fields can differ from the unchanged modal projection.",
+      "reproductionSteps": [
+        "Open a synthetic request details modal.",
+        "Update the request in a second session.",
+        "Choose Refresh and compare the modal to a direct row read."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Emergency Details always rereads the canonical row by id and applies payment, visit, loading, error, and request state only for the latest open request sequence."
+    },
+    {
+      "failureId": "C-09-ANALYTICS-PARTIAL-AS-TOTAL",
+      "actionId": "emergency.analytics.open",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Analytics|View analytics/i })",
+      "sourceComponent": "frontend/src/pages/EmergencyRequestsPage.jsx",
+      "crudOperation": "read",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "When stats are unavailable, analytics falls back to counts from the currently loaded request page.",
+      "responseEvidence": "The modal presents page-derived values without a partial/unavailable label.",
+      "databaseEvidence": "Displayed totals are not proven against an exact database count.",
+      "reproductionSteps": [
+        "Ensure more requests exist than the loaded page size in an isolated project.",
+        "Fail only the stats request.",
+        "Open Analytics and compare displayed totals to exact counts."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The analytics entry point now treats loaded rows as an explicit preview and does not open complete statistics when the server summary is unavailable."
+    },
+    {
+      "failureId": "C-10-MOBILE-VISIT-INCIDENT-NO-DESTINATION",
+      "actionId": "visit.mobile.incident.open",
+      "route": "/visits",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /View incident|Incident details/i })",
+      "sourceComponent": "frontend/src/components/modals/VisitModal.jsx; VisitsPage.jsx",
+      "crudOperation": "view",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "VisitModal dispatches openEmergencyDetails and closes itself.",
+      "responseEvidence": "The mobile VisitsPage does not mount EmergencyDetailsModal, so no destination becomes visible.",
+      "databaseEvidence": "Read-only interaction; no database mutation occurs.",
+      "reproductionSteps": [
+        "On mobile open a visit linked to an incident.",
+        "Choose View incident.",
+        "Observe the visit modal close with no emergency details surface."
+      ],
+      "failureClasses": [
+        "do_nothing",
+        "wrong_destination"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The visit incident event now opens Emergency Details on mobile as well as desktop."
+    },
+    {
+      "failureId": "C-11-VISIT-DETAIL-RETRY-NO-CALLBACK",
+      "actionId": "visit.details.payment.retry",
+      "route": "/visits",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Retry payment/i })",
+      "sourceComponent": "frontend/src/pages/VisitsPage.jsx; EmergencyDetailsModal.jsx",
+      "crudOperation": "create",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Desktop VisitsPage mounts EmergencyDetailsModal without onRetryPayment; the handler returns when the callback is absent.",
+      "responseEvidence": "The visible Retry payment action produces no request and no feedback.",
+      "databaseEvidence": "No payment row or payment-status change occurs.",
+      "reproductionSteps": [
+        "On desktop open a visit's incident with declined payment.",
+        "Choose Retry payment.",
+        "Verify that no payment request is sent and the surface does not change."
+      ],
+      "failureClasses": [
+        "do_nothing",
+        "send_no_backend_request",
+        "fail_valid_payload"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Retry payment is rendered only when a real retry callback is supplied."
+    },
+    {
+      "failureId": "C-15-DRIVER-REJECTED-STATUS-FALSE-SUCCESS",
+      "actionId": "map.driver.mark-on-way",
+      "route": "/map",
+      "role": "provider",
+      "locator": "getByRole('button', { name: /Mark on way/i })",
+      "sourceComponent": "frontend/src/pages/GodModeMap.jsx; driverManagementService.js",
+      "crudOperation": "workflow_command",
+      "payloadCase": "invalid_enum",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The service catches receiver errors and returns null; the caller does not inspect the result.",
+      "responseEvidence": "A rejected backward Arrived to On way transition still triggers a success toast.",
+      "databaseEvidence": "The trip/request status remains Arrived despite visible success.",
+      "reproductionSteps": [
+        "Open an Arrived synthetic trip on the map.",
+        "Choose Mark on way.",
+        "Capture the rejected transition and compare the unchanged row to the success toast."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The map now treats a null or false lifecycle result as failure and withholds success feedback."
+    },
+    {
+      "failureId": "C-16-WRONG-ASSIGNEE-DRIVER-CONTROLS",
+      "actionId": "map.driver.lifecycle.action",
+      "route": "/map",
+      "role": "provider",
+      "locator": "getByRole('button', { name: /Accept|On way|Arrived|Complete/i })",
+      "sourceComponent": "frontend/src/pages/GodModeMap.jsx; lifecycle RPCs",
+      "crudOperation": "workflow_command",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "driverActiveEmergency grants controls on responder match OR ambulance match, while command authority is responder-keyed.",
+      "responseEvidence": "A provider associated only through the ambulance can see controls that the receiver rejects; error swallowing can also produce false success.",
+      "databaseEvidence": "The request lifecycle remains unchanged for the wrong responder.",
+      "reproductionSteps": [
+        "Assign an audit request to responder A and an ambulance visible to provider B.",
+        "As provider B use a lifecycle control.",
+        "Capture receiver rejection and unchanged lifecycle."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Map lifecycle controls now require the current provider identity to match the assigned responder before a command is exposed or submitted."
+    },
+    {
+      "failureId": "C-17-LOCATION-COMMIT-THEN-READ-FAILS",
+      "actionId": "map.responder.location.publish",
+      "route": "/map",
+      "role": "provider",
+      "locator": "Map location tracking interaction",
+      "sourceComponent": "frontend/src/services/emergencyResponseService.js",
+      "crudOperation": "update",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "updateResponderLocation commits through RPC, then performs a direct GET and throws if that follow-up read fails.",
+      "responseEvidence": "A post-commit read failure is surfaced as an update failure.",
+      "databaseEvidence": "Responder location is committed even though the client reports failure.",
+      "reproductionSteps": [
+        "Enable location tracking for an audit responder.",
+        "Allow the update RPC and fail only the follow-up GET.",
+        "Compare the error UI with the committed location row."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Responder location command success is returned independently from the optional projection reload, which now reports projectionState unavailable without reclassifying the committed command."
+    },
+    {
+      "failureId": "C-18-CROSS-ORG-NEAREST-DISPATCH",
+      "actionId": "map.dispatch.nearest",
+      "route": "/map",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Dispatch nearest|Assign ambulance/i })",
+      "sourceComponent": "frontend/src/services/emergencyResponseService.js; ambulancesService.js",
+      "crudOperation": "workflow_command",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Candidate discovery uses global SECURITY DEFINER nearby_ambulances and unscoped ambulance hydration, then picks the first eligible result without actor-org filtering.",
+      "responseEvidence": "A foreign nearest unit is selected and the org-scoped dispatch RPC rejects it instead of trying a farther same-org unit.",
+      "databaseEvidence": "No assignment is made although an authorized same-org ambulance is available.",
+      "reproductionSteps": [
+        "Place a foreign audit ambulance closer than an eligible same-org ambulance.",
+        "As org_admin choose Dispatch nearest.",
+        "Capture the rejected foreign command and verify the same-org unit was not attempted."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Nearest dispatch now validates the actor facility scope and excludes ambulance candidates outside the actor organization and canonical hospital set before invoking the receiver."
+    },
+    {
+      "failureId": "C-20-MAP-CAP-HIDDEN-FROM-OPERATOR",
+      "actionId": "map.refresh",
+      "route": "/map",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src/services/supabaseMapService.js; GodModeMap.jsx",
+      "crudOperation": "read",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The map caps emergencies at 100 and records sourceState.emergencies.partial.",
+      "responseEvidence": "GodModeMap and MobileMap do not consume that partial marker; live counts appear complete.",
+      "databaseEvidence": "Displayed request count equals capped loaded rows, not the exact source count when more than 100 match.",
+      "reproductionSteps": [
+        "In an isolated dataset create more than 100 matching audit emergencies.",
+        "Choose Refresh.",
+        "Compare visible map count to sourceState.partial and an exact database count."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Desktop Active routes now uses an RBAC-scoped exact count and labels its fallback as routes shown."
+    },
+    {
+      "failureId": "G-F001-EMERGENCY-NOTIFICATION-PARTIAL-COMMIT",
+      "actionId": "emergency.create.submit",
+      "route": "/emergencies",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Create request|Submit request/i })",
+      "sourceComponent": "frontend/src/components/modals/EmergencyRequestModal.jsx",
+      "crudOperation": "create",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [
+        "retry"
+      ],
+      "requestEvidence": "The authoritative emergency create is followed by an awaited notification create inside the same catch block.",
+      "responseEvidence": "If the emergency insert succeeds and notification insert fails, the modal reports failure and remains open; retry is enabled.",
+      "databaseEvidence": "emergency_requests changes 0 to 1 while notifications remains 0; retry can create another request.",
+      "reproductionSteps": [
+        "In tagged staging allow the audit emergency receiver to return 2xx and fail the notification receiver with 500.",
+        "Submit once and observe failure with the modal still open.",
+        "Verify the request exists before any retry."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure",
+        "accept_invalid_payload"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Notification failure is contained and no longer turns a committed emergency request into a retryable create failure."
+    },
+    {
+      "failureId": "G-F002-DOCTOR-DELETE-DOUBLE-CONFIRM",
+      "actionId": "doctor.delete.confirm",
+      "route": "/doctors",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm/i })",
+      "sourceComponent": "frontend/src/pages/DoctorsPage.jsx; ConfirmationModal.jsx",
+      "crudOperation": "delete",
+      "payloadCase": "double_submit",
+      "additionalPayloadCases": [
+        "concurrency"
+      ],
+      "requestEvidence": "DoctorsPage omits ConfirmationModal isLoading, so Confirm stays enabled while the first delete is pending.",
+      "responseEvidence": "Double activation sends two deletes; the first removes the row and the second returns zero-row/error or another 2xx.",
+      "databaseEvidence": "The tagged doctor changes 1 to 0 once despite two destructive requests.",
+      "reproductionSteps": [
+        "Delay the first delete for a synthetic doctor.",
+        "Activate Confirm twice.",
+        "Count delete requests/responses and exact affected rows."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted Staff route no longer exposes single deletion or a deletion confirmation surface."
+    },
+    {
+      "failureId": "G-F003-DOCTOR-BULK-PARTIAL-CONCURRENT",
+      "actionId": "doctors.bulk-delete.confirm",
+      "route": "/doctors",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Delete selected staff|Delete/i })",
+      "sourceComponent": "frontend/src/pages/DoctorsPage.jsx",
+      "crudOperation": "delete",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Bulk delete sends all selected deletes in Promise.all; one rejection rejects the batch after peer requests are already in flight.",
+      "responseEvidence": "One 2xx plus one 500 yields a generic failure and closes the modal while selection remains; optimistic snapshots can temporarily restore the successful peer.",
+      "databaseEvidence": "Two tagged doctors change 2 to 1 after a partial batch.",
+      "reproductionSteps": [
+        "Select two isolated audit doctors.",
+        "Allow one delete and fail the other.",
+        "Confirm bulk delete and compare selection/UI with exact remaining ids."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The mounted Staff selection bar no longer exposes bulk deletion."
+    },
+    {
+      "failureId": "G-F004-SUPPORT-BULK-PARTIAL-SEQUENTIAL",
+      "actionId": "support.bulk-delete.confirm",
+      "route": "/support-tickets",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Delete [0-9]+ selected tickets|Delete/i })",
+      "sourceComponent": "frontend/src/pages/SupportTicketsPage.jsx",
+      "crudOperation": "delete",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Bulk delete executes selected ticket deletes sequentially and stops after a later failure.",
+      "responseEvidence": "The modal closes with a generic error and selection is not cleared after a partial batch.",
+      "databaseEvidence": "Two tagged tickets change 2 to 1 when the first delete succeeds and second returns 500.",
+      "reproductionSteps": [
+        "Select two synthetic tickets.",
+        "Allow the first delete and fail the second.",
+        "Confirm bulk delete and compare remaining selection/UI with exact ids."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Bulk Support deletion settles every selected id, tombstones only exact receiver-confirmed identities, and leaves failed ids selected with accurate partial feedback."
+    },
+    {
+      "failureId": "G-F005-EMERGENCY-CANCEL-DOUBLE-CONFIRM",
+      "actionId": "emergency.cancel.confirm",
+      "route": "/emergencies",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Cancel request|Confirm/i })",
+      "sourceComponent": "frontend/src/pages/EmergencyRequestsPage.jsx; ConfirmationModal.jsx",
+      "crudOperation": "workflow_command",
+      "payloadCase": "double_submit",
+      "additionalPayloadCases": [
+        "concurrency"
+      ],
+      "requestEvidence": "EmergencyRequestsPage omits ConfirmationModal isLoading, leaving Confirm enabled across the trigger-sensitive cancel RPC.",
+      "responseEvidence": "Two cancel commands can race; the first transitions once and the second produces an invalid-transition/zero-row response, with contradictory feedback possible.",
+      "databaseEvidence": "One isolated request transitions active to cancelled exactly once despite two command requests.",
+      "reproductionSteps": [
+        "In serialized tagged staging open Cancel request for an isolated emergency.",
+        "Delay the first command and activate Confirm twice.",
+        "Compare request count/responses with the single lifecycle transition."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The emergency cancel confirmation now receives mutation pending state and cannot submit twice while the receiver is active."
+    },
+    {
+      "failureId": "G-F007-SUPPORT-CREATE-REFETCH-FAILURE",
+      "actionId": "support.ticket.create.submit",
+      "route": "/support-tickets",
+      "role": "provider",
+      "locator": "getByRole('button', { name: /Create request/i })",
+      "sourceComponent": "frontend/src/pages/SupportTicketsPage.jsx; useSupportTicketsMutations.js",
+      "crudOperation": "create",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Create has no optimistic row; onSettled starts but does not await invalidation/refetch.",
+      "responseEvidence": "Insert 2xx closes with success, then refetch 500 is hidden when a nonempty cache exists, so the new row stays absent.",
+      "databaseEvidence": "Exact audit subject changes 0 to 1 while the visible cached list lacks it.",
+      "reproductionSteps": [
+        "In tagged staging submit a valid audit support request.",
+        "Allow INSERT and fail only the follow-up list GET.",
+        "Compare exact row count with the unchanged cached list."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Support create writes the receiver-confirmed row into the active cache before awaited convergence; a failed refetch is rendered as a separate degraded state instead of a false insert failure."
+    },
+    {
+      "failureId": "G-F008-NOTIFICATIONS-FAILURE-FALSE-EMPTY",
+      "actionId": "notifications.open",
+      "route": "/settings",
+      "role": "viewer",
+      "locator": "getByRole('button', { name: /Open notifications|Notifications/i })",
+      "sourceComponent": "frontend/src/services/notificationService.js; NotificationCenter.jsx",
+      "crudOperation": "read",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [
+        "unauthorized_role"
+      ],
+      "requestEvidence": "Notification reads convert 401/403/429/500 failures to [] and cache the value for 60 seconds.",
+      "responseEvidence": "The panel says No notifications with no unavailable/error disclosure.",
+      "databaseEvidence": "Nonempty isolated notifications remain unchanged but are represented as empty.",
+      "reproductionSteps": [
+        "Open notifications for a synthetic account with at least one notification.",
+        "Intercept the GET with 500 or 401.",
+        "Observe No notifications and the cached false-empty state."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Notification query failures now propagate into retryable failure states instead of rendering false empty state."
+    },
+    {
+      "failureId": "G-F009-MARK-ALL-SILENT-ROLLBACK",
+      "actionId": "notifications.mark-all-read",
+      "route": "/settings",
+      "role": "viewer",
+      "locator": "getByRole('button', { name: /Mark all as read/i })",
+      "sourceComponent": "frontend/src/services/notificationService.js; NotificationCenter.jsx",
+      "crudOperation": "update",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The service converts update failure to false; the panel optimistically flips unread state then rolls back.",
+      "responseEvidence": "Rollback is silent: no toast/error and no pending guard explains the failure.",
+      "databaseEvidence": "Unread synthetic rows remain unread after the failed update.",
+      "reproductionSteps": [
+        "Open notifications containing unread audit rows.",
+        "Fail Mark all updates with 500.",
+        "Choose Mark all as read and compare silent rollback with unchanged rows."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mark all read now exposes pending and failure feedback and restores the prior row state when the receiver rejects."
+    },
+    {
+      "failureId": "G-F010-QUICK-SEARCH-FAILURE-FALSE-EMPTY",
+      "actionId": "quick-search.query",
+      "route": "/settings",
+      "role": "viewer",
+      "locator": "getByRole('button', { name: /Search/i }) then getByRole('searchbox')",
+      "sourceComponent": "frontend/src/components/QuickSearch.jsx; searchService.js",
+      "crudOperation": "read",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Category search methods ignore Supabase error objects, and the aggregate path converts failures to empty results that the UI does not distinguish.",
+      "responseEvidence": "The surface renders No results for the query after one/all category requests return 4xx/5xx.",
+      "databaseEvidence": "Matching synthetic rows remain present; tracking writes must be blocked during safe interception.",
+      "reproductionSteps": [
+        "Open Quick Search and enter a query known to match a synthetic row.",
+        "Fail the category GET requests.",
+        "Observe the false No results state."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Search projections now propagate failures and Quick Search renders sanitized retry feedback rather than false no-results copy."
+    },
+    {
+      "failureId": "G-F011-QUICK-SEARCH-OUT-OF-ORDER",
+      "actionId": "quick-search.query",
+      "route": "/settings",
+      "role": "viewer",
+      "locator": "getByRole('button', { name: /Search/i }) then getByRole('searchbox')",
+      "sourceComponent": "frontend/src/components/QuickSearch.jsx",
+      "crudOperation": "read",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Search requests have no abort or latest-generation guard.",
+      "responseEvidence": "If q2 returns before q1, the final input shows q2 while late q1 results overwrite the list; selecting can navigate to a stale object.",
+      "databaseEvidence": "Read-only test; matching rows remain unchanged.",
+      "reproductionSteps": [
+        "Enter q1 then q2 rapidly.",
+        "Return q2 first and q1 last.",
+        "Compare final input text, result labels, and selected destination."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Quick Search request sequencing prevents stale responses from replacing newer results after search, clear, close, or selection."
+    },
+    {
+      "failureId": "G-F012A-AMBULANCES-REFRESH-TIMEOUT-AMPLIFICATION",
+      "actionId": "ambulances.refresh",
+      "route": "/ambulances",
+      "role": "authorized_reader",
+      "locator": "getByRole('button', { name: /Refresh ambulances|Refresh/i })",
+      "sourceComponent": "frontend/src/pages/AmbulancesPage.jsx; ambulancesService.js; lib/utils.js; queryClient.js",
+      "crudOperation": "read",
+      "payloadCase": "retry",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The 8s Promise.race rejects without aborting the Supabase request; TanStack retry=2 can start up to three underlying attempts.",
+      "responseEvidence": "Refresh reports timeout while orphaned requests continue and late responses can arrive.",
+      "databaseEvidence": "Read-only operation; no database mutation.",
+      "reproductionSteps": [
+        "Intercept the ambulance data GET so each attempt exceeds eight seconds.",
+        "Choose Refresh.",
+        "Count three attempts and continued underlying requests after timeout."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Ambulance TanStack queries consume the provided abort signal, and one request budget now cancels the underlying PostgREST request instead of stacking timeout retries."
+    },
+    {
+      "failureId": "G-F012A-AMBULANCES-RETRY-TIMEOUT-AMPLIFICATION",
+      "actionId": "ambulances.error.retry",
+      "route": "/ambulances",
+      "role": "authorized_reader",
+      "locator": "getByRole('button', { name: /Retry/i })",
+      "sourceComponent": "frontend/src/pages/AmbulancesPage.jsx; ambulancesService.js; lib/utils.js; queryClient.js",
+      "crudOperation": "read",
+      "payloadCase": "retry",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The error-state Retry uses the same non-aborting timeout path; TanStack retry=2 can start up to three attempts.",
+      "responseEvidence": "Retry reports timeout while underlying requests continue and late responses can arrive.",
+      "databaseEvidence": "Read-only operation; no database mutation.",
+      "reproductionSteps": [
+        "Put Ambulances in its error state and delay every data GET beyond eight seconds.",
+        "Choose Retry.",
+        "Count attempts and requests that remain alive after the visible timeout."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Ambulance Retry uses the same abort-aware query owner and bounded retry policy as Refresh."
+    },
+    {
+      "failureId": "G-F012B-VISITS-REFRESH-TIMEOUT-AMPLIFICATION",
+      "actionId": "visits.refresh",
+      "route": "/visits",
+      "role": "authorized_reader",
+      "locator": "getByRole('button', { name: /Refresh visits|Refresh/i })",
+      "sourceComponent": "frontend/src/pages/VisitsPage.jsx; visitsService.js; lib/utils.js",
+      "crudOperation": "read",
+      "payloadCase": "retry",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The non-aborting Promise.race is wrapped by service withRetry(maxRetries=3), starting repeated underlying requests.",
+      "responseEvidence": "Refresh reports timeout while late attempts continue and may resolve out of order.",
+      "databaseEvidence": "Read-only operation; no database mutation.",
+      "reproductionSteps": [
+        "Delay every visits GET beyond eight seconds.",
+        "Choose Refresh.",
+        "Count service attempts and underlying requests surviving the timeout."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Visits owns one AbortController and one transient retry layer inside a single request budget; timeout, cancellation, supersession, and unmount abort the underlying requests."
+    },
+    {
+      "failureId": "G-F012B-VISITS-RETRY-TIMEOUT-AMPLIFICATION",
+      "actionId": "visits.error.retry",
+      "route": "/visits",
+      "role": "authorized_reader",
+      "locator": "getByRole('button', { name: /Retry/i })",
+      "sourceComponent": "frontend/src/pages/VisitsPage.jsx; visitsService.js; lib/utils.js",
+      "crudOperation": "read",
+      "payloadCase": "retry",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The error-state Retry uses the same non-aborting service retry path.",
+      "responseEvidence": "Retry reports timeout while repeated late requests remain active.",
+      "databaseEvidence": "Read-only operation; no database mutation.",
+      "reproductionSteps": [
+        "Put Visits in its error state and delay every data GET beyond eight seconds.",
+        "Choose Retry.",
+        "Count service attempts and late underlying responses."
+      ],
+      "failureClasses": [
+        "conditional_failure",
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Visits Retry reuses the same abort-aware bounded request owner instead of multiplying page and query retries."
+    },
+    {
+      "failureId": "D-ID-001-MFA-AAL1-BYPASS",
+      "actionId": "login.password.submit",
+      "route": "/login",
+      "role": "unauthenticated",
+      "locator": "getByRole('button', { name: /Sign in/i })",
+      "sourceComponent": "frontend/src/contexts/AuthContext.jsx; Login page; ProtectedRoute",
+      "crudOperation": "auth",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Password sign-in establishes an AAL1 session; user/profile state is published and Login navigates to / before MFA verification completes.",
+      "responseEvidence": "ProtectedRoute checks authentication/role but not an AAL2 assurance level.",
+      "databaseEvidence": "No CRUD row mutation; an MFA-enabled account retains an AAL1 Auth session while protected UI is reachable.",
+      "reproductionSteps": [
+        "Use an isolated MFA-enabled audit account.",
+        "Submit correct email/password but do not complete the second factor.",
+        "Observe navigation to a protected route and inspect the session AAL."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "conditional_failure"
+      ],
+      "severity": "critical",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "AuthContext now owns AAL assurance, MFA challenge, and verification state; Login retains an AAL1 MFA-required session for verification and ProtectedRoute never renders protected children before AAL satisfaction."
+    },
+    {
+      "failureId": "D-ID-002-CLEAR-OPTIONAL-PROFILE-NOOP",
+      "actionId": "users.profile.edit.save",
+      "route": "/users",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update user/i })",
+      "sourceComponent": "frontend/src/services/profilesService.js; update_profile_by_admin RPC",
+      "crudOperation": "update",
+      "payloadCase": "null",
+      "additionalPayloadCases": [
+        "empty"
+      ],
+      "requestEvidence": "Clearing username, phone, address, or DOB is serialized as JSON null.",
+      "responseEvidence": "The RPC uses ->> and preserves the old column when the extracted value is null, then reports success.",
+      "databaseEvidence": "The optional profile columns retain their previous values.",
+      "reproductionSteps": [
+        "Open an audit profile with optional values.",
+        "Clear one or more optional inputs and save.",
+        "Compare submitted JSON, success UI, and database readback."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Explicit optional-field clears are translated to the maintained admin RPC empty-value contract instead of becoming ignored JSON nulls."
+    },
+    {
+      "failureId": "D-ID-003-PROVIDER-SUBTYPE-PERSISTS",
+      "actionId": "users.profile.edit.save",
+      "route": "/users",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update user/i })",
+      "sourceComponent": "frontend/src/services/profilesService.js; update_profile_by_admin RPC",
+      "crudOperation": "update",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Changing provider to a non-provider role removes provider_type from the client object; the service omits it from the receiver payload.",
+      "responseEvidence": "The role update succeeds while the receiver preserves the old provider subtype.",
+      "databaseEvidence": "profiles.role is non-provider but provider_type remains populated.",
+      "reproductionSteps": [
+        "Open an audit provider profile.",
+        "Change role to a non-provider role and save.",
+        "Read back role and provider_type together."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Moving a profile out of the provider role now clears provider_type in both the mounted modal payload and the service invariant."
+    },
+    {
+      "failureId": "D-ID-004-AVATAR-CANCEL-ORPHAN",
+      "actionId": "profile.avatar.cancel",
+      "route": "/settings",
+      "role": "admin|provider",
+      "locator": "getByRole('button', { name: /Cancel|Close/i })",
+      "sourceComponent": "frontend/src settings/profile editor; Supabase Storage upload",
+      "crudOperation": "create",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Selecting an avatar uploads immediately before the form is saved.",
+      "responseEvidence": "Cancel, backdrop, and close dismiss the editor without removing the uploaded object.",
+      "databaseEvidence": "The profile row keeps its old avatar reference while an unreferenced Storage object remains.",
+      "reproductionSteps": [
+        "Open profile settings and select an AUDIT_-named avatar.",
+        "After upload completes, choose Cancel or close the modal.",
+        "Compare the profile avatar column with the exact Storage object list."
+      ],
+      "failureClasses": [
+        "mutate_wrong_row_fields",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Avatar selection now creates only a revocable local preview; upload starts on Save, and failed profile persistence performs reflected-read cleanup limited to the new owned object."
+    },
+    {
+      "failureId": "D-ID-005-PROFESSIONAL-PROFILE-NO-MODAL",
+      "actionId": "settings.mobile.professional-profile.open",
+      "route": "/settings",
+      "role": "provider",
+      "locator": "getByRole('button', { name: /Professional profile/i })",
+      "sourceComponent": "frontend/src settings mobile components",
+      "crudOperation": "view",
+      "payloadCase": "null",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The visible button sets modal state even when doctorProfile is absent.",
+      "responseEvidence": "The modal is conditionally not mounted, producing no request, dialog, or feedback.",
+      "databaseEvidence": "Read-only interaction; no database mutation occurs.",
+      "reproductionSteps": [
+        "Use a provider account without a doctor_profile.",
+        "On mobile open Settings.",
+        "Choose Professional profile and observe no visible result."
+      ],
+      "failureClasses": [
+        "do_nothing",
+        "send_no_backend_request"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mobile Settings now renders loading, available, and explicit unavailable professional-profile states with a guarded modal action."
+    },
+    {
+      "failureId": "D-ID-006-UNAUTHORIZED-GO-TODAY-LOOP",
+      "actionId": "unauthorized.go-today",
+      "route": "/unauthorized",
+      "role": "authenticated_missing_profile",
+      "locator": "getByRole('button', { name: /Go to Today/i })",
+      "sourceComponent": "frontend/src unauthorized page; ProtectedRoute",
+      "crudOperation": "navigate",
+      "payloadCase": "null",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The button navigates to / for an account whose profile cannot satisfy the route guard.",
+      "responseEvidence": "The guard immediately redirects back to /unauthorized.",
+      "databaseEvidence": "No mutation; profile remains missing/unavailable.",
+      "reproductionSteps": [
+        "Use an authenticated account whose profile lookup is unavailable.",
+        "On /unauthorized choose Go to Today.",
+        "Observe the redirect loop back to /unauthorized."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The Unauthorized surface now offers Today only when a confirmed profile can access the canonical root navigation item."
+    },
+    {
+      "failureId": "D-ID-007-USERS-COUNT-FAILS-AS-ZERO",
+      "actionId": "users.refresh",
+      "route": "/users",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src/pages/UsersPage.jsx; profilesService.js",
+      "crudOperation": "read",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Exact-count HEAD errors are swallowed and converted to zero while the list query can still succeed.",
+      "responseEvidence": "The refreshed page shows users but KPI totals of zero without an unavailable label.",
+      "databaseEvidence": "Displayed zero is not an exact database count; list rows prove at least one matching row.",
+      "reproductionSteps": [
+        "Allow the users list request and fail only a count request.",
+        "Choose Refresh.",
+        "Compare visible rows with the zero KPI and captured failed response."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Exact-count failure no longer becomes zero: loaded users remain visible while desktop and mobile render an explicit retryable totals-unavailable state."
+    },
+    {
+      "failureId": "D-ID-008-ORG-ADMIN-USERS-CONTEXT-DENIED",
+      "actionId": "users.context-panel.open",
+      "route": "/users",
+      "role": "org_admin",
+      "locator": "Navigate to /users and open the route context panel",
+      "sourceComponent": "frontend/src context panel routing; /users authority checks",
+      "crudOperation": "view",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The route and invite capability admit org_admin, but the /users context-panel branch checks only isAdmin.",
+      "responseEvidence": "A valid org_admin sees Access Restricted instead of the Invite/Stats/Filter panel.",
+      "databaseEvidence": "Read-only interaction; no database mutation occurs.",
+      "reproductionSteps": [
+        "Sign in as org_admin and navigate to /users.",
+        "Open the route context panel.",
+        "Observe Access Restricted despite the route's org_admin authority."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The Users context panel now accepts the same org_admin authority as the mounted route."
+    },
+    {
+      "failureId": "FIN-SUB-DATE-FILTER",
+      "actionId": "subscriptions.filters.apply",
+      "route": "/subscriptions",
+      "role": "admin",
+      "locator": "getByRole('button', { name: 'Apply' })",
+      "sourceComponent": "frontend/src/components/common/FilterSheet.jsx; subscription service",
+      "crudOperation": "read",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "FilterSheet emits dateRange as {start,end}; the service expects a scalar 7d/30d/90d token and therefore adds no created_at predicate.",
+      "responseEvidence": "Apply closes the filter sheet, but the result set is unchanged by the selected date range.",
+      "databaseEvidence": "Rows outside the requested interval remain in the returned projection.",
+      "reproductionSteps": [
+        "On Subscriptions choose a preset date range.",
+        "Choose Apply.",
+        "Inspect the outgoing query and verify it lacks a created_at range."
+      ],
+      "failureClasses": [
+        "do_nothing",
+        "incorrect_crud_payload",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Subscriber date filters now translate the selected start/end range into created_at bounds instead of silently dropping the predicate."
+    },
+    {
+      "failureId": "FIN-SUB-MOBILE-CAP-100",
+      "actionId": "subscriptions.mobile.next",
+      "route": "/subscriptions",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Next|Load more/i })",
+      "sourceComponent": "frontend/src mobile subscriptions page; subscription service",
+      "crudOperation": "read",
+      "payloadCase": "boundary_number",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Mobile requests currentPage*20 rows, but the service clamps every request to 100 while hasNext continues using the exact larger count.",
+      "responseEvidence": "Next remains available beyond 100 but no rows after the first 100 can appear.",
+      "databaseEvidence": "Rows 101+ exist and are included in the exact count but absent from the rendered collection.",
+      "reproductionSteps": [
+        "Seed more than 100 isolated audit subscriptions.",
+        "On mobile advance past the fifth 20-row page.",
+        "Compare rendered ids, requested limit, and exact count."
+      ],
+      "failureClasses": [
+        "do_nothing",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mobile subscriber pagination now requests true offset pages and accumulates settled rows without clamping the whole route to 100 records."
+    },
+    {
+      "failureId": "FIN-INS-ZERO-AMOUNT-RENDER",
+      "actionId": "insurance.record.open",
+      "route": "/insurance",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /View|Details/i })",
+      "sourceComponent": "frontend/src insurance record/detail components",
+      "crudOperation": "view",
+      "payloadCase": "boundary_number",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Amount rendering uses truthiness for numeric fields.",
+      "responseEvidence": "A valid numeric zero is shown as Not set.",
+      "databaseEvidence": "The stored amount is exactly 0, not null or missing.",
+      "reproductionSteps": [
+        "Open an isolated audit insurance record with an amount of 0.",
+        "Open its details.",
+        "Compare the Not set label with the database value."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Insurance amount projections use nullish checks, so a legitimate zero renders as money instead of an unavailable placeholder."
+    },
+    {
+      "failureId": "F-CONTENT-HN-ANALYTICS-SHAPE",
+      "actionId": "health-news.analytics.open",
+      "route": "/health-news",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Analytics/i })",
+      "sourceComponent": "frontend/src health news service; AnalyticsModal",
+      "crudOperation": "read",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The service returns scalar category totals, while AnalyticsModal reads bySource and byCategory collections.",
+      "responseEvidence": "The modal renders zeros/No data despite nonzero article category values.",
+      "databaseEvidence": "Stored and service-projected category counts are nonzero but not consumed by the modal shape.",
+      "reproductionSteps": [
+        "Ensure isolated audit news rows have multiple categories.",
+        "Open Health News Analytics.",
+        "Compare modal distributions with the service response."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Health News analytics now consumes the route projection and labels category and source distributions as current-page evidence."
+    },
+    {
+      "failureId": "F-SUPPORT-MOBILE-DELETE-STALE",
+      "actionId": "support.ticket.delete.confirm",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm/i })",
+      "sourceComponent": "frontend/src mobile support list accumulator",
+      "crudOperation": "delete",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The mobile accumulator merges nonempty refreshed pages but never removes an id absent from the refreshed source.",
+      "responseEvidence": "After a successful delete/refetch, the deleted ticket can remain visible on mobile.",
+      "databaseEvidence": "The ticket row is absent while the client accumulator still contains it.",
+      "reproductionSteps": [
+        "Delete a synthetic support ticket on mobile.",
+        "Allow the exact delete and refetch to succeed.",
+        "Compare the rendered accumulator with an exact id read."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Receiver-confirmed Support deletions become durable mobile tombstones that prune every loaded and later page window; failed mutations create no tombstone."
+    },
+    {
+      "failureId": "F-SUPPORT-DELETE-DOUBLE",
+      "actionId": "support.ticket.delete.confirm",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm/i })",
+      "sourceComponent": "frontend/src/pages/SupportTicketsPage.jsx; ConfirmationModal.jsx",
+      "crudOperation": "delete",
+      "payloadCase": "double_submit",
+      "additionalPayloadCases": [
+        "concurrency"
+      ],
+      "requestEvidence": "The support deletion mount does not pass isLoading to ConfirmationModal, so Confirm remains enabled during the async delete.",
+      "responseEvidence": "Rapid double-confirm can send two DELETE requests and produce conflicting success/error feedback.",
+      "databaseEvidence": "First request removes the row; the second affects zero rows or returns a receiver error.",
+      "reproductionSteps": [
+        "Open delete confirmation for a synthetic support ticket.",
+        "Delay the first DELETE and click Confirm twice.",
+        "Count outgoing deletes and compare their responses/affected rows."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Single-ticket deletion passes pending state to the confirmation surface and rejects a second submit while the receiver is active."
+    },
+    {
+      "failureId": "F-SUPPORT-STALE-DELETE-FALSE-SUCCESS",
+      "actionId": "support.ticket.delete.confirm",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Delete|Confirm/i })",
+      "sourceComponent": "frontend/src support ticket service/page",
+      "crudOperation": "delete",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Delete requests no returned row/count, so a PostgREST zero-row 204 is treated as success.",
+      "responseEvidence": "A stale or repeated delete shows success despite no mutation.",
+      "databaseEvidence": "The exact target row is already absent and the second request affects zero rows.",
+      "reproductionSteps": [
+        "Open a ticket deletion confirmation.",
+        "Delete the ticket in a second synthetic session.",
+        "Confirm from the stale session and compare success UI with affected-row evidence."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Support delete requires the exact returned deleted id and rejects stale, policy-filtered, or zero-row results before success feedback."
+    },
+    {
+      "failureId": "F-SUPPORT-ASSIGN-DOUBLE",
+      "actionId": "support.ticket.assign",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Assign|Assign to me/i })",
+      "sourceComponent": "frontend/src support desktop/mobile row actions",
+      "crudOperation": "update",
+      "payloadCase": "double_submit",
+      "additionalPayloadCases": [
+        "concurrency"
+      ],
+      "requestEvidence": "Desktop and mobile assignment controls have no mutation-pending disable/lock.",
+      "responseEvidence": "Rapid activation sends duplicate PATCH requests and duplicate toasts.",
+      "databaseEvidence": "Both requests target the same assignment fields; final value is last-write-wins with duplicate workflow activity.",
+      "reproductionSteps": [
+        "Delay assignment PATCH for a synthetic ticket.",
+        "Activate Assign twice rapidly.",
+        "Count PATCH requests, responses, and visible notifications."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Support assignment controls share a pending guard and remain disabled while the assignment receiver is active."
+    },
+    {
+      "failureId": "F-SUPPORT-MUTATION-DOUBLE-ERROR",
+      "actionId": "support.ticket.save",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update ticket/i })",
+      "sourceComponent": "frontend/src/pages/SupportTicketsPage.jsx; SupportTicketModal.jsx",
+      "crudOperation": "update",
+      "payloadCase": "network_failure",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Page handleSave calls handleApiError and rethrows; the modal catches the same rejection and calls handleApiError again.",
+      "responseEvidence": "One failed request produces two error notifications.",
+      "databaseEvidence": "The ticket row is unchanged after the single failed mutation.",
+      "reproductionSteps": [
+        "Open a synthetic ticket for edit.",
+        "Intercept save with HTTP 500.",
+        "Choose Save and count error notifications against one failed request."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Support save failures are handled once at the modal boundary instead of being reported by both page and modal."
+    },
+    {
+      "failureId": "F-SUPPORT-INVALID-ENUM-ACCEPTED",
+      "actionId": "support.ticket.save",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update ticket/i })",
+      "sourceComponent": "frontend/src support ticket service; support table schema",
+      "crudOperation": "update",
+      "payloadCase": "invalid_enum",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The service has no allowlist validation and the schema has no CHECK constraint for category/priority.",
+      "responseEvidence": "A syntactically valid request containing an unsupported enum token can succeed.",
+      "databaseEvidence": "The invalid category or priority token is stored verbatim.",
+      "reproductionSteps": [
+        "In an isolated audit project intercept/modify the save payload with an unsupported category or priority.",
+        "Allow the request to reach Supabase.",
+        "Read back the stored token."
+      ],
+      "failureClasses": [
+        "accept_invalid_payload",
+        "mutate_wrong_row_fields"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Mounted Support create, update, status, and filter paths validate category, priority, and status against one canonical service allowlist; database-wide CHECK authority remains separately blocked."
+    },
+    {
+      "failureId": "F-SUPPORT-ANALYTICS-WRONG",
+      "actionId": "support.analytics.open",
+      "route": "/support-tickets",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Analytics/i })",
+      "sourceComponent": "frontend/src support analytics projection/modal",
+      "crudOperation": "read",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "avgResolutionTime is hardcoded to zero and the high-priority bucket is mapped from urgent.",
+      "responseEvidence": "Analytics shows a zero average and mislabeled high-priority totals.",
+      "databaseEvidence": "Resolved timestamps and priority values can prove nonzero/different results.",
+      "reproductionSteps": [
+        "Create isolated resolved tickets with measurable durations and distinct high/urgent priorities.",
+        "Open Support Analytics.",
+        "Compare displayed values with exact calculations."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Support analytics derives resolution time and priority buckets from available ticket fields and labels the projection scope honestly."
+    },
+    {
+      "failureId": "F-SUB-ANALYTICS-SHAPE",
+      "actionId": "subscriptions.analytics.open",
+      "route": "/subscriptions",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Analytics/i })",
+      "sourceComponent": "frontend/src subscription analytics service/modal",
+      "crudOperation": "read",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The analytics object omits distribution structures consumed by the modal.",
+      "responseEvidence": "The modal renders zero/No data distributions although subscription rows exist.",
+      "databaseEvidence": "Exact grouped subscription counts are nonzero but absent from the consumed response shape.",
+      "reproductionSteps": [
+        "Seed isolated audit subscriptions across plans/statuses.",
+        "Open Subscription Analytics.",
+        "Compare modal distributions with exact grouped counts and the service object."
+      ],
+      "failureClasses": [
+        "stale_ui"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Subscriber analytics now exposes the distribution structures consumed by the modal and labels their available scope."
+    },
+    {
+      "failureId": "F-HEALTH-PARTIAL-STATS-FAIL-CLOSE",
+      "actionId": "health-news.refresh",
+      "route": "/health-news",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src health news page/service",
+      "crudOperation": "read",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Rows, count, and stats are combined with Promise.all.",
+      "responseEvidence": "Failure of one stats/count request rejects the whole load and hides otherwise readable article rows.",
+      "databaseEvidence": "Article rows remain readable in the database even though the route renders a failure/empty state.",
+      "reproductionSteps": [
+        "Allow the article row request and fail only a stats/count request.",
+        "Choose Refresh.",
+        "Compare captured successful rows with the rendered route state."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Health News auxiliary-stat failure now preserves successfully loaded rows and exact count while labeling the KPI fallback as loaded-row evidence."
+    },
+    {
+      "failureId": "F-SUBSCRIBER-PARTIAL-STATS-FAIL-CLOSE",
+      "actionId": "subscriptions.refresh",
+      "route": "/subscriptions",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src subscription page/service",
+      "crudOperation": "read",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Subscriber rows are coupled to eight count/stat requests in an all-or-nothing load path.",
+      "responseEvidence": "One auxiliary count failure blanks readable subscriber rows.",
+      "databaseEvidence": "Subscriber rows remain readable even though the combined route load fails.",
+      "reproductionSteps": [
+        "Allow subscriber rows and fail one auxiliary count request.",
+        "Choose Refresh.",
+        "Compare successful row evidence with the rendered route state."
+      ],
+      "failureClasses": [
+        "fail_valid_payload",
+        "conditional_failure"
+      ],
+      "severity": "medium",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Subscriber auxiliary-count failure now preserves successfully loaded rows and reports totals as unavailable instead of replacing the route with false empty state."
+    },
+    {
+      "failureId": "B-DOC-PROFILE-FIELDS-NOT-DURABLE",
+      "actionId": "doctor.modal.save",
+      "route": "/doctors",
+      "role": "org_admin",
+      "locator": "getByRole('button', { name: /Save/i })",
+      "sourceComponent": "frontend/src/components/modals/DoctorModal.jsx; doctorsService.js; 20260219000900_automations.sql",
+      "crudOperation": "update",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Doctor edits write name, email, and phone directly to the doctors row even when the row is linked to a profile.",
+      "responseEvidence": "The save can report success, but a later linked-profile update reprojects profile-owned identity fields over the doctor row.",
+      "databaseEvidence": "The profile-to-doctor automation overwrites linked doctor identity fields on later profile updates.",
+      "reproductionSteps": [
+        "Edit identity fields for a profile-linked doctor.",
+        "Update the linked profile.",
+        "Compare the doctor identity fields before and after automation."
+      ],
+      "failureClasses": [
+        "mutate_wrong_row_fields",
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Linked profile identity fields are read-only in the mounted Staff editor and are omitted from edit payloads; generic receiver ownership remains separately blocked."
+    },
+    {
+      "failureId": "C-22-CRITICAL-CARE-IMPOSSIBLE-FACET",
+      "actionId": "map.refresh",
+      "route": "/map",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Refresh/i })",
+      "sourceComponent": "frontend/src/services/supabaseMapService.js; 20260219000300_logistics.sql",
+      "crudOperation": "read",
+      "payloadCase": "invalid_enum",
+      "additionalPayloadCases": [],
+      "requestEvidence": "The map requests and displays an exact critical_care service-type facet.",
+      "responseEvidence": "The facet is structurally zero and can be mistaken for a real operational absence.",
+      "databaseEvidence": "Maintained emergency_requests.service_type permits ambulance, bed, and booking, but not critical_care.",
+      "reproductionSteps": [
+        "Open /map with an authorized operator.",
+        "Compare the Critical care facet to the maintained service_type constraint."
+      ],
+      "failureClasses": [
+        "incorrect_crud_payload",
+        "stale_ui"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "The impossible critical_care facet was removed; Requests and Map now use canonical ambulance, bed, booking, and active dimensions only."
+    },
+    {
+      "failureId": "D-ID-009-QUICK-SEARCH-ROLE-BLIND",
+      "actionId": "quick-search.result.open",
+      "route": "multiple",
+      "role": "viewer",
+      "locator": "Quick Search result",
+      "sourceComponent": "frontend/src/components/navigation/QuickSearch.jsx; searchService.js; App.js",
+      "crudOperation": "navigate",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Quick Search does not constrain categories or destinations to the actor's route authority.",
+      "responseEvidence": "A public-readable provider or facility result can navigate a lower-role actor directly to an org-admin route and Unauthorized.",
+      "databaseEvidence": "Public-readable directory policies can return rows whose console detail routes require org_admin.",
+      "reproductionSteps": [
+        "Use a viewer role and search for a public-readable facility or provider.",
+        "Open the result.",
+        "Observe navigation to an unauthorized destination."
+      ],
+      "failureClasses": [
+        "wrong_destination",
+        "conditional_failure"
+      ],
+      "severity": "high",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "resolved",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Quick Search now filters and rechecks destinations against the same canonical accessible navigation used by the active shell, including normalized query-string paths."
+    },
+    {
+      "failureId": "G-H001-CROSS-ACCOUNT-CACHE-SCOPE",
+      "actionId": "auth.signout-then-signin",
+      "route": "multiple",
+      "role": "admin_to_org_admin_or_provider",
+      "locator": "getByRole('button', { name: /Sign out/i }) then password sign-in",
+      "sourceComponent": "frontend/src query keys; queryClient.js; AuthContext.jsx",
+      "crudOperation": "read",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Requires two approved tagged accounts in the same browser. Query keys omit actor/org, cache is retained, and signOut does not clear it; real clinical data made this unsafe to exercise."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "resolved",
+      "blockedReason": "Requires two approved tagged accounts in the same browser. Query keys omit actor/org, cache is retained, and signOut does not clear it; real clinical data made this unsafe to exercise.",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "AuthContext clears the TanStack Query client whenever authenticated ownership changes or ends, while same-user token and MFA refreshes retain the cache; focused contracts cover replacement and sign-out paths."
+    },
+    {
+      "failureId": "G-H003-GO-BACK-EMPTY-HISTORY",
+      "actionId": "protected-route.go-back",
+      "route": "/unauthorized",
+      "role": "unauthorized",
+      "locator": "getByRole('button', { name: /Go back/i })",
+      "sourceComponent": "frontend/src ProtectedRoute unauthorized surface",
+      "crudOperation": "navigate",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Direct-entry empty-history behavior needs a dedicated clean browser context; source sets pending before navigate(-1) and has no reset if navigation is a no-op."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "resolved",
+      "blockedReason": "Direct-entry empty-history behavior needs a dedicated clean browser context; source sets pending before navigate(-1) and has no reset if navigation is a no-op.",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "resolvedAt": "2026-07-13T11:38:29Z",
+      "resolutionEvidence": "Unauthorized Go Back enters pending immediately, detects unusable history, and falls back to the first role-accessible canonical navigation route or signs out before Login when no console route exists."
+    }
+  ],
+  "blockedCandidates": [
+    {
+      "failureId": "G-H002-REALTIME-OPTIMISTIC-RACE",
+      "actionId": "domain.optimistic-mutation",
+      "route": "multiple",
+      "role": "authorized_mutator",
+      "locator": "Domain Save/Delete control",
+      "sourceComponent": "frontend/src TanStack mutations and realtime handlers",
+      "crudOperation": "update",
+      "payloadCase": "concurrency",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Requires two isolated tagged rows plus delayed mutation/refetch/realtime ordering. Query functions do not consume abort signals, so convergence must be proven in synthetic staging."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Requires two isolated tagged rows plus delayed mutation/refetch/realtime ordering. Query functions do not consume abort signals, so convergence must be proven in synthetic staging.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DB-HOSPITAL-ARRAY-CANON-MERGE",
+      "actionId": "schema.hospital-array-preservation.merge",
+      "route": "/verification",
+      "role": "schema_owner",
+      "locator": "ivisit-app branch fix/hospital-array-coalesce",
+      "sourceComponent": "ivisit-app commit 35c8c969; frontend/supabase/docs/PENDING_REVIEW_MERGES.md",
+      "crudOperation": "deploy",
+      "payloadCase": "stale_row",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "The live update_hospital_by_admin receiver is documented as array-preserving, but its canonical pillar fix remains on an unmerged ivisit-app branch. Merge that source before declaring clean-rebuild parity."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "The live update_hospital_by_admin receiver is documented as array-preserving, but its canonical pillar fix remains on an unmerged ivisit-app branch. Merge that source before declaring clean-rebuild parity.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DB-INSURANCE-PILLAR-DRIFT",
+      "actionId": "schema.insurance-policy-parity",
+      "route": "/insurance",
+      "role": "schema_owner",
+      "locator": "insurance_policies pillar versus generated/live projection",
+      "sourceComponent": "frontend/supabase/migrations/20260219000400_finance.sql; frontend/src/types/database.ts",
+      "crudOperation": "deploy",
+      "payloadCase": "partial_response",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Read-only live OpenAPI and generated types expose modern insurance policy columns that the maintained finance pillar does not create. Reconcile the canonical ivisit-app pillar before claiming clean-rebuild parity."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Read-only live OpenAPI and generated types expose modern insurance policy columns that the maintained finance pillar does not create. Reconcile the canonical ivisit-app pillar before claiming clean-rebuild parity.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DB-STORAGE-POLICY-CANON",
+      "actionId": "storage.upload.authority",
+      "route": "multiple",
+      "role": "authenticated",
+      "locator": "images/documents Storage upload controls",
+      "sourceComponent": "frontend/src upload services; frontend/supabase migrations",
+      "crudOperation": "create",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Read-only live evidence confirms public images and private documents buckets exist, but maintained migrations still do not capture their storage.objects policies. Upload authority and cleanup parity remain source-unproved."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Read-only live evidence confirms public images and private documents buckets exist, but maintained migrations still do not capture their storage.objects policies. Upload authority and cleanup parity remain source-unproved.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DOCTOR-GENERIC-UPDATE-RECEIVER",
+      "actionId": "doctor.service.update",
+      "route": "/doctors",
+      "role": "admin|org_admin|provider",
+      "locator": "doctorsService.updateDoctor",
+      "sourceComponent": "frontend/src/services/doctorsService.js; frontend/src/hooks/useDoctorProfile.js",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [
+        "full_valid"
+      ],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Mounted Staff editing no longer writes lifecycle or linked identity, but the generic exported service still accepts status and profile_id. Prove or replace the dedicated lifecycle/profile authority before reconnecting either field."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Mounted Staff editing no longer writes lifecycle or linked identity, but the generic exported service still accepts status and profile_id. Prove or replace the dedicated lifecycle/profile authority before reconnecting either field.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DOCTOR-GENERIC-DELETE-RECEIVER",
+      "actionId": "doctor.service.delete",
+      "route": "/doctors",
+      "role": "admin|org_admin",
+      "locator": "doctorsService.deleteDoctor",
+      "sourceComponent": "frontend/src/services/doctorsService.js; doctor foreign keys and profile automation",
+      "crudOperation": "delete",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [
+        "stale_row"
+      ],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Mounted single and bulk delete actions are removed, but the exported direct-table delete has no clinical-evidence, linked-profile, affected-row, or durable-retirement contract. Keep it disconnected until a canonical retirement receiver exists."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Mounted single and bulk delete actions are removed, but the exported direct-table delete has no clinical-evidence, linked-profile, affected-row, or durable-retirement contract. Keep it disconnected until a canonical retirement receiver exists.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-DOCTOR-RLS-ROLE-AUTHORITY",
+      "actionId": "doctor.receiver.role-authority",
+      "route": "/doctors",
+      "role": "provider|sponsor|viewer",
+      "locator": "direct doctors INSERT/UPDATE/DELETE in an organization",
+      "sourceComponent": "frontend/supabase/migrations/20260219000700_security.sql",
+      "crudOperation": "update",
+      "payloadCase": "unauthorized_role",
+      "additionalPayloadCases": [
+        "full_valid"
+      ],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "The maintained policy named Org Admins manage doctors checks only that doctors.hospital_id belongs to p_get_current_org_id() or that the caller is platform admin. p_get_current_org_id() returns organization_id for any authenticated profile and the policy has no org_admin role predicate, so non-admin organization members need isolated receiver-level authorization proof before doctor writes are trusted."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "The maintained policy named Org Admins manage doctors checks only that doctors.hospital_id belongs to p_get_current_org_id() or that the caller is platform admin. p_get_current_org_id() returns organization_id for any authenticated profile and the policy has no org_admin role predicate, so non-admin organization members need isolated receiver-level authorization proof before doctor writes are trusted.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "PR-SUPPORT-ENUM-CONSTRAINT",
+      "actionId": "schema.support-ticket-enum-authority",
+      "route": "/support-tickets",
+      "role": "schema_owner",
+      "locator": "support_tickets category/status/priority columns",
+      "sourceComponent": "frontend/supabase/migrations/20260219000500_ops_content.sql",
+      "crudOperation": "deploy",
+      "payloadCase": "invalid_enum",
+      "additionalPayloadCases": [],
+      "requestEvidence": "Not executed against connected data.",
+      "responseEvidence": "Runtime outcome intentionally unobserved.",
+      "databaseEvidence": "No mutation performed; cleanup ledger remained empty.",
+      "reproductionSteps": [
+        "Use a synthetic isolated project and the named role state.",
+        "Console service writes now enforce the mounted category, status, and priority vocabularies, but the canonical table still declares unconstrained TEXT columns. Add and reconcile database CHECK constraints before claiming ecosystem-wide enum enforcement."
+      ],
+      "failureClasses": [
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "evidenceStatus": "runtime_blocked",
+      "blockedReason": "Console service writes now enforce the mounted category, status, and priority vocabularies, but the canonical table still declares unconstrained TEXT columns. Add and reconcile database CHECK constraints before claiming ecosystem-wide enum enforcement.",
+      "capturedAt": "2026-07-13T11:38:29Z"
+    },
+    {
+      "failureId": "B-RQ-DERIVED-STALE-UI",
+      "actionId": "facility.modal.save",
+      "route": "/hospitals",
+      "role": "admin",
+      "locator": "getByRole('button', { name: /Save|Update/i })",
+      "sourceComponent": "frontend/src/hooks facility mutations; TanStack Query projections",
+      "crudOperation": "update",
+      "payloadCase": "full_valid",
+      "additionalPayloadCases": [
+        "network_failure"
+      ],
+      "requestEvidence": "onSettled starts invalidations but does not return/await them; the modal closes first.",
+      "responseEvidence": "The route can render the old enriched projection after a successful mutation.",
+      "databaseEvidence": "Canonical foreign-key value is updated while cached enrichment still shows the previous relationship.",
+      "reproductionSteps": [
+        "Edit a synthetic facility relationship.",
+        "Delay the refetch response.",
+        "Save and observe the route before invalidation settles, then compare DB state."
+      ],
+      "failureClasses": [
+        "stale_ui",
+        "conditional_failure"
+      ],
+      "severity": "unconfirmed",
+      "surfaceType": "mounted_ui",
+      "evidenceStatus": "runtime_blocked",
+      "capturedAt": "2026-07-13T11:38:29Z",
+      "blockedReason": "Invalidation is still not awaited, but the current modal no longer exposes the relationship field used by the original reproduction; the exact stale-derived-state claim needs synthetic runtime proof."
+    }
+  ],
+  "runtimeInventory": {
+    "surfaces": 42,
+    "visibleDefinitions": 1332,
+    "staticCandidates": 847
+  }
+}

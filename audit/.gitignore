@@ -1,0 +1,13 @@
+node_modules/
+.auth/
+results/artifacts/
+results/playwright-report/
+results/playwright-results.json
+results/runtime-inventory/
+results/static-actions.json
+results/role-state-availability.json
+results/pr-scope.json
+results/audit-run.json
+results/focused-smoke-*.json
+results/*-storage-state-failure.png
+results/confirmed-failures/*.png
