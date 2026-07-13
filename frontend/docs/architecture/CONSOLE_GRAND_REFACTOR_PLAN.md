@@ -1,8 +1,9 @@
 # iVisit Console — Grand Refactor Plan
 
-> **Status**: ADMISSION CANDIDATE - source and rendered gates green; audit artifacts are the final gate
+> **Status**: ADMISSION READY - source, rendered, and read-only audit gates are green
 > **Current main baseline**: `4d1de70a` (`main`, 2026-07-13)
 > **Current source checkpoint**: `482afadd`
+> **Current audit checkpoint**: `58e3f7b3` (`audit-20260713230137-22c0a46e`)
 > **Active implementation branch**: `codex/console-modularization-wave-2`
 > **Original audit date**: 2026-05-04
 > **Standard**: iVisit-app Gold Standard (5-Layer State Architecture)  
@@ -170,9 +171,12 @@ not tracked in a conflicting refactor document.
 - Rendered Map proof at 390 x 844 and 1280 x 720 confirmed nonblank Google tiles, the 5 km operational
   lens, 9 shown requests / 4 shown hospitals, bottom-island clearance for the request sheet, normalized
   trailing-slash navigation state, no session-id chrome, and no horizontal overflow.
+- Read-only audit run `audit-20260713230137-22c0a46e` captured 844 static candidates and 1,341
+  runtime-visible definitions across 42 role/viewport/route surfaces. It validated with zero active
+  confirmed failures, zero failure cases, zero blocked candidates, and 92 resolved findings. Five result
+  artifacts changed and were committed at `58e3f7b3`; `failures.csv` remained its valid header-only form.
 - No schema, migration, Edge Function, generated database type, command payload, or workflow receiver was
-  changed. The remaining admission gate is a clean-tree read-only audit run plus validation of its six
-  committed result artifacts.
+  changed. Source, rendered-browser, audit, redaction, and artifact-validation gates are complete.
 
 ---
 
