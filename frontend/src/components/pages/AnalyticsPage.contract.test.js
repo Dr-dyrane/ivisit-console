@@ -9,16 +9,34 @@ const gitShowBaseline = (file) => execFileSync(
   ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${file}`],
   { encoding: 'utf8' },
 );
+const readBundle = (...files) => files.map(read).join('\n');
+const readAnalyticsPage = () => readBundle(
+  'src/components/pages/Analytics.jsx',
+  'src/components/pages/analytics/AnalyticsPageView.jsx',
+  'src/components/pages/analytics/useAnalyticsPageChrome.js',
+  'src/components/pages/analytics/useAnalyticsPageController.js',
+  'src/components/pages/analytics/analyticsPageModel.js',
+);
+const readAnalyticsDesktop = () => readBundle(
+  'src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx',
+  'src/components/pages/analytics/AnalyticsDesktopSections.jsx',
+  'src/components/pages/analytics/AnalyticsDetailRail.jsx',
+  'src/components/pages/analytics/analyticsDesktopModel.js',
+);
+const readAppRoutes = () => readBundle(
+  'src/app/AppRoutes.jsx',
+  'src/app/appRouteMetadata.js',
+);
 
 describe('Analytics Page 13 workspace contract', () => {
   it('keeps the Git-backed intake story while promoting the guarded Statistics surfaces', () => {
     const oldPage = gitShowBaseline('frontend/src/components/pages/Analytics.jsx');
     const oldMobile = gitShowBaseline('frontend/src/components/mobile/MobileAnalytics.jsx');
-    const page = read('src/components/pages/Analytics.jsx');
+    const page = readAnalyticsPage();
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
-    const app = read('src/App.js');
+    const app = readAppRoutes();
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
     const dock = [
@@ -52,13 +70,14 @@ describe('Analytics Page 13 workspace contract', () => {
       'src/components/context/AnalyticsPanel.jsx',
     ].forEach((file) => expect(hardgate).toContain(file));
 
-    expect(app).toContain('<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />');
+    expect(app).toContain("analytics: lazyNamedPage(() => import('../components/pages/Analytics'), 'Analytics')");
+    expect(app).toContain("{ id: 'analytics', path: '/analytics', minRole: 'provider' }");
     expect(navigation).toContain("{ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' }");
     expect(mobileNavigation).toContain("{ id: 'statistics', path: '/analytics', label: 'Statistics' }");
   });
 
   it('applies the selected request window before aggregation and preserves source truth', () => {
-    const page = read('src/components/pages/Analytics.jsx');
+    const page = readAnalyticsPage();
     const service = read('src/services/analyticsService.js');
 
     expect(page).toContain('getAnalyticsIntakePage({');
@@ -75,12 +94,14 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(page).toContain('completedEmergencies: completed.length');
     expect(page).toContain('responseSampleSize: responseTimes.length');
     expect(page).toContain('successRate: requests.length > 0 ? Math.round((completed.length / requests.length) * 100) : 0');
-    expect(page).toContain('const sourceReadiness = useMemo(() => ({');
+    expect(page).toContain('const sourceReadiness = useMemo(() => getAnalyticsSourceReadiness({');
     expect(page).toContain("requests: snapshotReady && !issueSources.has('requests')");
-    expect(page).toContain('resolvedSubscriptionStats.sample.complete === true');
-    expect(page).toContain("!issueSources.has('finance') && Boolean(financeCurrency)");
+    expect(page).toContain('subscriptionStats?.sample?.complete === true');
+    expect(page).toContain("!issueSources.has('finance')");
+    expect(page).toContain('&& Boolean(financeCurrency)');
     expect(page).toContain('const [requestSample, setRequestSample] = useState(DEFAULT_REQUEST_SAMPLE);');
-    expect(page).toContain('setRequestSample(normalizeRequestSample(analyticsPage.requestSample))');
+    expect(page).toContain('requestSample: normalizeRequestSample(analyticsPage?.requestSample)');
+    expect(page).toContain('setRequestSample(snapshot.requestSample)');
     expect(page).toContain('requestSample,');
     expect(page).toContain('const currency = financeData[0]?.currency;');
     expect(page).toContain('currency: financeCurrency');
@@ -103,8 +124,8 @@ describe('Analytics Page 13 workspace contract', () => {
   });
 
   it('uses the donor desktop workspace grammar without turning measurements into filters', () => {
-    const page = read('src/components/pages/Analytics.jsx');
-    const desktop = read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx');
+    const page = readAnalyticsPage();
+    const desktop = readAnalyticsDesktop();
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const mobileSkeleton = read('src/components/mobile/MobileSkeleton.jsx');
     const analyticsSkeleton = mobileSkeleton.slice(mobileSkeleton.indexOf('export const MobileAnalyticsSkeleton'));
@@ -121,10 +142,10 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(mobileOrder).toEqual([...mobileOrder].sort((left, right) => left - right));
 
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
-    expect(page).toContain("if (isAdmin()) return 'admin'");
-    expect(page).toContain("if (isOrgAdmin()) return 'org_admin'");
-    expect(page).toContain("if (isSponsor()) return 'sponsor'");
-    expect(page).toContain("isDriver() ? 'driver' : 'provider'");
+    expect(page).toContain("if (admin) return 'admin'");
+    expect(page).toContain("if (orgAdmin) return 'org_admin'");
+    expect(page).toContain("if (sponsor) return 'sponsor'");
+    expect(page).toContain("if (provider) return driver ? 'driver' : 'provider'");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain('aria-busy={detailsOpening}');
     expect(page).toContain("data-state={detailsOpening ? 'opening' : 'idle'}");
@@ -173,7 +194,7 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(desktop).toContain('Subscriber statistics are unavailable because only part of the list loaded.');
     expect(desktop).toContain("new Intl.NumberFormat('en-US', {");
     expect(desktop).toContain('currency: safeCurrency');
-    expect(desktop).toContain('formatCurrency(financeSummary?.totalCredits, financeSummary?.currency)');
+    expect(desktop).toContain('formatAnalyticsCurrency(financeSummary?.totalCredits, financeSummary?.currency)');
     expect(desktop).not.toContain('`$${Number(financeSummary');
 
     expect(mobile).toContain('<MobileHero');
@@ -198,13 +219,13 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(primitives).toContain('export const AnalyticsTimeRangeControl');
     expect(primitives).toContain('aria-pressed={selected}');
     expect(primitives).toContain('export const getVolumeComparison');
-    expect(page).toContain('dataTimeRange={snapshotTimeRange}');
-    expect(page).toContain('requestSample={requestSample}');
+    expect(page).toContain('dataTimeRange={state.snapshotTimeRange}');
+    expect(page).toContain('requestSample={data.requestSample}');
   });
 
   it('keeps loading, partial, stale, detail, and reporting states honest', () => {
-    const page = read('src/components/pages/Analytics.jsx');
-    const desktop = read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx');
+    const page = readAnalyticsPage();
+    const desktop = readAnalyticsDesktop();
     const mobile = read('src/components/mobile/MobileAnalytics.jsx');
     const panel = read('src/components/context/AnalyticsPanel.jsx');
 
@@ -257,8 +278,11 @@ describe('Analytics Page 13 workspace contract', () => {
   });
 
   it('keeps route data, context panel, mobile navigation, and FAB ownership aligned', () => {
-    const page = read('src/components/pages/Analytics.jsx');
-    const pageData = read('src/contexts/PageDataContext.jsx');
+    const page = readAnalyticsPage();
+    const pageData = readBundle(
+      'src/contexts/PageDataContext.jsx',
+      'src/contexts/page-data/adapters/analyticsPageData.js',
+    );
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const contextAction = read('src/hooks/useContextAction.js');
     const designSystem = read('src/components/console/ConsoleDesignSystem.contract.test.js');
@@ -277,7 +301,7 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(contextAction).toContain("label: 'View analytics'");
     expect(contextAction).toContain("new CustomEvent('openAnalyticsModal')");
 
-    expect(designSystem).toContain("analyticsDesktopWorkspace: read('src/components/pages/analytics/AnalyticsDesktopWorkspace.jsx')");
+    expect(designSystem).toContain("readProductionTree('src/components/pages/analytics')");
     expect(designSystem).toContain("mobileAnalytics: read('src/components/mobile/MobileAnalytics.jsx')");
     expect(designSystem).toContain("'OrganizationsPanel', 'AnalyticsPanel', 'MapPanel', 'SettingsPanel'");
   });
