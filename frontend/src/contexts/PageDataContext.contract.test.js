@@ -1,6 +1,20 @@
 import fs from 'fs';
 import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
 
+const readPageDataImplementation = () => [
+  'src/contexts/PageDataContext.jsx',
+  'src/contexts/page-data/usePageDataDomains.js',
+  'src/contexts/page-data/usePageDataRealtime.js',
+  'src/contexts/page-data/pageDataSelectors.js',
+  'src/contexts/page-data/adapters/emergencyPageData.js',
+  'src/contexts/page-data/adapters/verificationPageData.js',
+  'src/contexts/page-data/adapters/doctorsPageData.js',
+  'src/contexts/page-data/adapters/visitsPageData.js',
+  'src/contexts/page-data/adapters/analyticsPageData.js',
+  'src/contexts/page-data/adapters/usersPageData.js',
+  'src/contexts/page-data/adapters/walletPageData.js',
+].map((path) => fs.readFileSync(path, 'utf8')).join('\n');
+
 describe('PageDataContext role loading contract', () => {
   it('keeps viewers out of startup domain loads', () => {
     expect(getPageDataAccessForRole('viewer')).toEqual({
@@ -13,7 +27,7 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('keeps providers scoped to provider startup domains only', () => {
-    const source = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const source = readPageDataImplementation();
 
     expect(getPageDataAccessForRole('provider')).toEqual({
       canLoadProviderData: true,
@@ -56,14 +70,14 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('keeps global analytics startup loads in summary mode', () => {
-    const source = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const source = readPageDataImplementation();
 
     expect(source).toContain("getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })");
     expect(source).not.toContain("getAnalyticsData({ timeRange: 'all', includeRawData: true })");
   });
 
   it('keeps PageData analytics summaries from inventing healthy numbers', () => {
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
     const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
 
     expect(analyticsSource).toContain("const successRateSource = totalEmergencies > 0 ? 'measured' : 'source_pending';");
@@ -95,18 +109,19 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('keeps provider Today emergency failures as UI state instead of noisy console fallback', () => {
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
     const emergencySource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
 
     expect(pageDataSource).toContain("getEmergencyRequests({ quiet: true, limit: 10 })");
     expect(pageDataSource).toContain("getEmergencyRequestsPageStats({}, undefined, true)");
-    expect(pageDataSource).toContain("markDomainError('emergency', error)");
+    expect(pageDataSource).toContain("domain: 'emergency'");
+    expect(pageDataSource).toContain('markDomainError(domain, error)');
     expect(pageDataSource).toContain('domainErrors,');
     expect(emergencySource).toContain("if (!filter?.quiet) {");
   });
 
   it('keeps Today and explicitly invoked finance failures as explicit domain errors', () => {
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
 
     for (const domain of [
       'verification',
@@ -116,9 +131,11 @@ describe('PageDataContext role loading contract', () => {
       'users',
       'wallet',
     ]) {
-      expect(pageDataSource).toContain(`markDomainError('${domain}'`);
-      expect(pageDataSource).toContain(`clearDomainError('${domain}'`);
+      expect(pageDataSource).toContain(`domain: '${domain}'`);
     }
+
+    expect(pageDataSource).toContain('markDomainError(domain, error)');
+    expect(pageDataSource).toContain('clearDomainError(domain)');
 
     expect(pageDataSource).toContain('getDoctors({ quiet: true })');
     expect(pageDataSource).toContain('getVisitsPageData({');
@@ -162,7 +179,7 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('loads only the domains each Today role actually renders', () => {
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
 
     expect(routeOwnsStartupDomains('/')).toBe(false);
     expect(routeOwnsStartupDomains('/emergencies')).toBe(true);
@@ -302,7 +319,7 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('keeps only Today-owned realtime subscriptions behind Today startup domains', () => {
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
 
     for (const domain of [
       'emergency',
