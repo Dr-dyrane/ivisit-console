@@ -57,7 +57,7 @@ export const MobileNavMenu = ({ onClose }) => {
     useEffect(() => {
         const modalEvents = [
             'openAnalyticsModal', 'openVisitModal', 'openEmergencyModal',
-            'openDoctorModal', 'openHospitalModal', 'openHealthNewsModal',
+            'openDoctorModal', 'openHospitalModal',
             'openSupportTicketModal', 'openInsuranceModal', 'openFilters',
             'openProfileModal', 'openSecurityModal', 'openSupportModal',
             'openSubscriptionModal', 'openEmailActionsModal', 'openPricingModal',

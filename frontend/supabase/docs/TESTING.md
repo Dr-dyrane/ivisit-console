@@ -164,6 +164,28 @@ npm run hardening:organizations-surface-field-guard
 npm run hardening:profiles-surface-field-guard
 ```
 
+### **Console Onboarding And Invitation Contract**
+
+Run the exact-source rollback contract before deploying changes to the Console identity, organization provisioning, evidence, or invitation boundary:
+
+```bash
+node supabase/tests/scripts/run_console_onboarding_contract.js
+```
+
+The runner extracts marked blocks from the maintained pillar migrations, applies them inside a transaction through the approved SQL test receiver, executes schema/trigger/RLS/RPC assertions, and rolls the transaction back. Its identity assertions include complete facility scope, organization-bound user statistics, denied unscoped statistics, and execute privileges. It can emit the exact deployment SQL when an explicitly approved linked-project deployment is required:
+
+```bash
+node supabase/tests/scripts/run_console_onboarding_contract.js --emit-deployment=.tmp/console-onboarding.sql
+```
+
+The live E2E is deliberately gated by the exact project reference and requires `IVISIT_TEST_ADMIN_EMAIL` for a deliverable plus-address invitation alias:
+
+```bash
+node supabase/tests/scripts/run_console_onboarding_live_e2e.js --project-ref=<expected-project-ref>
+```
+
+It verifies public-signup role safety, private Storage, canonical organization/profile/wallet/evidence provisioning, idempotency and duplicate rejection, complete facility identity reflection, organization-scoped user statistics, no-auth and role-scope invitation denial, successful Auth invitation, service-only profile assignment, and cleanup. The runner must remove every temporary Auth identity, row, and Storage object in its final cleanup path.
+
 ### **Preferences Surface Field Guard**
 ```bash
 # Detect preferences app/console type parity + relationship parity and

@@ -314,6 +314,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- 2. Stats & Analytics
+-- BEGIN CONSOLE_USER_STATISTICS_SCOPE
 CREATE OR REPLACE FUNCTION public.get_user_statistics()
 RETURNS TABLE (
     total_users BIGINT,
@@ -328,23 +329,102 @@ RETURNS TABLE (
     patient_count BIGINT,
     org_admin_count BIGINT,
     dispatcher_count BIGINT
-) AS $$
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
+    v_global_scope BOOLEAN := false;
 BEGIN
+    IF auth.role() = 'service_role' THEN
+        v_global_scope := true;
+    ELSE
+        SELECT profile.role, profile.organization_id
+        INTO v_actor_role, v_actor_org_id
+        FROM public.profiles profile
+        WHERE profile.id = auth.uid();
+
+        IF v_actor_role = 'admin' THEN
+            v_global_scope := true;
+        ELSIF v_actor_role = 'org_admin' AND v_actor_org_id IS NOT NULL THEN
+            v_global_scope := false;
+        ELSE
+            RAISE EXCEPTION 'USER_STATISTICS_SCOPE_DENIED';
+        END IF;
+    END IF;
+
     RETURN QUERY SELECT
-        (SELECT count(*)::BIGINT FROM auth.users),
-        (SELECT count(*)::BIGINT FROM public.profiles),
-        (SELECT count(*)::BIGINT FROM auth.users WHERE created_at > NOW() - INTERVAL '30 days'),
-        (SELECT count(*)::BIGINT FROM auth.users WHERE email_confirmed_at IS NOT NULL),
-        (SELECT count(*)::BIGINT FROM auth.users WHERE phone_confirmed_at IS NOT NULL),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'admin'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'provider'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'sponsor'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'viewer'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'patient'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'org_admin'),
-        (SELECT count(*)::BIGINT FROM public.profiles WHERE role = 'dispatcher');
+        (
+            SELECT count(*)::BIGINT
+            FROM auth.users auth_user
+            WHERE v_global_scope OR EXISTS (
+                SELECT 1
+                FROM public.profiles scoped_profile
+                WHERE scoped_profile.id = auth_user.id
+                  AND scoped_profile.organization_id = v_actor_org_id
+            )
+        ),
+        (
+            SELECT count(*)::BIGINT
+            FROM public.profiles profile
+            WHERE v_global_scope OR profile.organization_id = v_actor_org_id
+        ),
+        (
+            SELECT count(*)::BIGINT
+            FROM auth.users auth_user
+            WHERE auth_user.created_at > NOW() - INTERVAL '30 days'
+              AND (
+                  v_global_scope OR EXISTS (
+                      SELECT 1
+                      FROM public.profiles scoped_profile
+                      WHERE scoped_profile.id = auth_user.id
+                        AND scoped_profile.organization_id = v_actor_org_id
+                  )
+              )
+        ),
+        (
+            SELECT count(*)::BIGINT
+            FROM auth.users auth_user
+            WHERE auth_user.email_confirmed_at IS NOT NULL
+              AND (
+                  v_global_scope OR EXISTS (
+                      SELECT 1
+                      FROM public.profiles scoped_profile
+                      WHERE scoped_profile.id = auth_user.id
+                        AND scoped_profile.organization_id = v_actor_org_id
+                  )
+              )
+        ),
+        (
+            SELECT count(*)::BIGINT
+            FROM auth.users auth_user
+            WHERE auth_user.phone_confirmed_at IS NOT NULL
+              AND (
+                  v_global_scope OR EXISTS (
+                      SELECT 1
+                      FROM public.profiles scoped_profile
+                      WHERE scoped_profile.id = auth_user.id
+                        AND scoped_profile.organization_id = v_actor_org_id
+                  )
+              )
+        ),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'admin' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'provider' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'sponsor' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'viewer' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'patient' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'org_admin' AND (v_global_scope OR profile.organization_id = v_actor_org_id)),
+        (SELECT count(*)::BIGINT FROM public.profiles profile WHERE profile.role = 'dispatcher' AND (v_global_scope OR profile.organization_id = v_actor_org_id));
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_user_statistics() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_user_statistics() TO authenticated, service_role;
+-- END CONSOLE_USER_STATISTICS_SCOPE
 
 
 -- 3. Automation Hooks (Trending)
@@ -462,17 +542,64 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- update_profile_by_admin: Used by console profilesService
+-- BEGIN CONSOLE_PROFILE_ADMIN_RPC
 CREATE OR REPLACE FUNCTION public.update_profile_by_admin(target_user_id UUID, profile_data JSONB)
 RETURNS JSONB AS $$
 DECLARE
     v_actor_role TEXT;
+    v_actor_org_id UUID;
+    v_target public.profiles%ROWTYPE;
+    v_requested_role TEXT;
+    v_requested_org_id UUID;
 BEGIN
-    SELECT role INTO v_actor_role
+    SELECT role, organization_id INTO v_actor_role, v_actor_org_id
     FROM public.profiles
     WHERE id = auth.uid();
 
-    IF auth.uid() IS NULL OR v_actor_role NOT IN ('admin', 'org_admin', 'dispatcher') THEN
+    IF auth.uid() IS NULL OR v_actor_role NOT IN ('admin', 'org_admin') THEN
         RAISE EXCEPTION 'Unauthorized';
+    END IF;
+
+    SELECT * INTO v_target
+    FROM public.profiles
+    WHERE id = target_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Profile not found';
+    END IF;
+
+    IF profile_data ? 'email' THEN
+        RAISE EXCEPTION 'Email changes require the Auth account receiver';
+    END IF;
+
+    v_requested_role := NULLIF(BTRIM(profile_data->>'role'), '');
+    v_requested_org_id := CASE
+        WHEN profile_data ? 'organization_id' AND NULLIF(profile_data->>'organization_id', '') IS NOT NULL
+            THEN (profile_data->>'organization_id')::UUID
+        WHEN profile_data ? 'organization_id' THEN NULL
+        ELSE v_target.organization_id
+    END;
+
+    IF v_requested_org_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_requested_org_id) THEN
+        RAISE EXCEPTION 'Organization scope is invalid';
+    END IF;
+
+    IF v_actor_role = 'org_admin' THEN
+        IF v_actor_org_id IS NULL OR v_target.organization_id IS DISTINCT FROM v_actor_org_id THEN
+            RAISE EXCEPTION 'Organization scope does not match';
+        END IF;
+
+        IF profile_data ? 'bvn_verified'
+           OR (profile_data ? 'organization_id' AND v_requested_org_id IS DISTINCT FROM v_actor_org_id)
+           OR (v_requested_role IS NOT NULL AND v_requested_role NOT IN ('provider', 'viewer', 'dispatcher')) THEN
+            RAISE EXCEPTION 'Platform admin approval is required';
+        END IF;
+
+        IF v_target.role IN ('admin', 'org_admin', 'sponsor') THEN
+            RAISE EXCEPTION 'Platform admin approval is required';
+        END IF;
     END IF;
     
     UPDATE public.profiles
@@ -484,10 +611,9 @@ BEGIN
             ELSE username
         END,
         phone = COALESCE(profile_data->>'phone', phone),
-        role = COALESCE(profile_data->>'role', role),
+        role = COALESCE(v_requested_role, role),
         organization_id = CASE 
-            WHEN (profile_data->>'organization_id') = '' THEN NULL
-            WHEN (profile_data->>'organization_id') IS NOT NULL THEN (profile_data->>'organization_id')::UUID
+            WHEN profile_data ? 'organization_id' THEN v_requested_org_id
             ELSE organization_id
         END,
         provider_type = CASE 
@@ -514,9 +640,16 @@ BEGIN
         updated_at = NOW()
     WHERE id = target_user_id;
     
-    RETURN jsonb_build_object('success', true, 'id', target_user_id);
+    RETURN jsonb_build_object(
+        'success', true,
+        'id', target_user_id,
+        'role', COALESCE(v_requested_role, v_target.role),
+        'organizationId', v_requested_org_id
+    );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
+-- END CONSOLE_PROFILE_ADMIN_RPC
 
 -- notify_cash_approval_org_admins: Used by app notificationDispatcher to notify org/admin approvers
 CREATE OR REPLACE FUNCTION public.notify_cash_approval_org_admins(
@@ -3756,3 +3889,601 @@ GRANT EXECUTE ON FUNCTION public.process_wallet_payment(UUID, NUMERIC, UUID) TO 
 GRANT EXECUTE ON FUNCTION public.ensure_emergency_chat_room(UUID) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.send_emergency_chat_message(UUID, TEXT, TEXT, TEXT, JSONB) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.mark_emergency_chat_room_read(UUID, UUID) TO authenticated, service_role;
+
+-- ============================================================
+-- Console identity and organization onboarding
+-- ============================================================
+-- BEGIN CONSOLE_ONBOARDING_RPCS
+
+CREATE OR REPLACE FUNCTION public.get_console_identity_projection()
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_actor_id UUID := auth.uid();
+    v_profile public.profiles%ROWTYPE;
+    v_org public.organizations%ROWTYPE;
+    v_facility_ids UUID[] := ARRAY[]::UUID[];
+    v_primary_facility_id UUID;
+    v_wallet_ready BOOLEAN := false;
+    v_scope_state TEXT;
+BEGIN
+    IF v_actor_id IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+
+    SELECT * INTO v_profile
+    FROM public.profiles
+    WHERE id = v_actor_id;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'profile', NULL,
+            'profileSource', 'unavailable',
+            'organizationScope', jsonb_build_object(
+                'organizationId', NULL,
+                'organizationDisplayId', NULL,
+                'facilityIds', '[]'::JSONB,
+                'primaryFacilityId', NULL,
+                'walletInitialized', NULL,
+                'state', 'unavailable'
+            )
+        );
+    END IF;
+
+    IF v_profile.organization_id IS NULL THEN
+        v_scope_state := CASE
+            WHEN v_profile.onboarding_status IN ('pending', 'skipped') THEN 'pending_onboarding'
+            ELSE 'missing_org'
+        END;
+    ELSE
+        SELECT * INTO v_org
+        FROM public.organizations
+        WHERE id = v_profile.organization_id;
+
+        IF FOUND THEN
+            v_scope_state := 'ready';
+
+            SELECT COALESCE(
+                array_agg(
+                    facility.id
+                    ORDER BY (facility.org_admin_id = v_actor_id) DESC, facility.created_at ASC
+                ),
+                ARRAY[]::UUID[]
+            )
+            INTO v_facility_ids
+            FROM public.hospitals facility
+            WHERE facility.organization_id = v_org.id;
+
+            v_primary_facility_id := v_facility_ids[1];
+
+            SELECT EXISTS (
+                SELECT 1
+                FROM public.organization_wallets wallet
+                WHERE wallet.organization_id = v_org.id
+            ) INTO v_wallet_ready;
+        ELSIF EXISTS (
+            SELECT 1 FROM public.hospitals WHERE id = v_profile.organization_id
+        ) THEN
+            v_scope_state := 'hospital_id_mismatch';
+        ELSE
+            v_scope_state := 'missing_org';
+        END IF;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'profile', to_jsonb(v_profile),
+        'profileSource', 'backend_profile',
+        'organizationScope', jsonb_build_object(
+            'organizationId', CASE WHEN v_scope_state = 'ready' THEN v_org.id ELSE NULL END,
+            'organizationDisplayId', CASE WHEN v_scope_state = 'ready' THEN v_org.display_id ELSE NULL END,
+            'facilityIds', CASE
+                WHEN v_scope_state = 'ready' THEN to_jsonb(v_facility_ids)
+                ELSE '[]'::JSONB
+            END,
+            'primaryFacilityId', v_primary_facility_id,
+            'walletInitialized', CASE WHEN v_scope_state = 'ready' THEN v_wallet_ready ELSE NULL END,
+            'verificationStatus', CASE WHEN v_scope_state = 'ready' THEN v_org.verification_status ELSE NULL END,
+            'state', v_scope_state
+        )
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.search_onboarding_facilities(p_query TEXT)
+RETURNS TABLE (
+    id UUID,
+    name TEXT,
+    address TEXT,
+    provider_type TEXT,
+    verification_status TEXT,
+    requires_support BOOLEAN
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_actor_id UUID := auth.uid();
+    v_query TEXT := BTRIM(COALESCE(p_query, ''));
+BEGIN
+    IF v_actor_id IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+
+    IF LENGTH(v_query) < 3 OR LENGTH(v_query) > 80 THEN
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.profiles profile
+        WHERE profile.id = v_actor_id
+          AND profile.organization_id IS NULL
+          AND profile.onboarding_status IN ('pending', 'skipped')
+    ) THEN
+        RAISE EXCEPTION 'Registration account is not eligible';
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        hospital.id,
+        hospital.name,
+        hospital.address,
+        hospital.provider_type,
+        hospital.verification_status,
+        TRUE
+    FROM public.hospitals hospital
+    WHERE hospital.name ILIKE '%' || v_query || '%'
+       OR hospital.address ILIKE '%' || v_query || '%'
+    ORDER BY
+        CASE WHEN hospital.name ILIKE v_query || '%' THEN 0 ELSE 1 END,
+        hospital.name ASC
+    LIMIT 8;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.provision_console_organization(p_payload JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, storage
+AS $$
+DECLARE
+    v_actor_id UUID := auth.uid();
+    v_profile public.profiles%ROWTYPE;
+    v_org public.organizations%ROWTYPE;
+    v_facility public.hospitals%ROWTYPE;
+    v_org_type TEXT := LOWER(BTRIM(COALESCE(p_payload->>'organizationType', '')));
+    v_org_name TEXT := BTRIM(COALESCE(p_payload->>'organizationName', ''));
+    v_registration_number TEXT := NULLIF(BTRIM(COALESCE(p_payload->>'registrationNumber', '')), '');
+    v_address TEXT := BTRIM(COALESCE(p_payload->>'address', ''));
+    v_city TEXT := BTRIM(COALESCE(p_payload->>'city', ''));
+    v_state TEXT := BTRIM(COALESCE(p_payload->>'state', ''));
+    v_phone TEXT := NULLIF(BTRIM(COALESCE(p_payload->>'phone', '')), '');
+    v_contact_email TEXT;
+    v_full_address TEXT;
+    v_latitude DOUBLE PRECISION;
+    v_longitude DOUBLE PRECISION;
+    v_documents JSONB := COALESCE(p_payload->'documents', '[]'::JSONB);
+    v_document JSONB;
+    v_document_path TEXT;
+    v_document_type TEXT;
+    v_original_name TEXT;
+    v_mime_type TEXT;
+    v_size_text TEXT;
+    v_size_bytes BIGINT;
+    v_wallet_ready BOOLEAN;
+    v_evidence_count INTEGER;
+BEGIN
+    IF v_actor_id IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+
+    PERFORM pg_advisory_xact_lock(hashtextextended(v_actor_id::TEXT, 0));
+
+    SELECT * INTO v_profile
+    FROM public.profiles
+    WHERE id = v_actor_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PROFILE_NOT_READY';
+    END IF;
+
+    IF v_profile.organization_id IS NOT NULL THEN
+        SELECT * INTO v_org
+        FROM public.organizations
+        WHERE id = v_profile.organization_id
+          AND created_by = v_actor_id;
+
+        IF NOT FOUND OR v_profile.role <> 'org_admin' THEN
+            RAISE EXCEPTION 'ACCOUNT_ALREADY_SCOPED';
+        END IF;
+
+        SELECT * INTO v_facility
+        FROM public.hospitals
+        WHERE organization_id = v_org.id
+        ORDER BY (org_admin_id = v_actor_id) DESC, created_at ASC
+        LIMIT 1;
+    ELSE
+        IF v_profile.role NOT IN ('patient', 'viewer')
+           OR COALESCE(v_profile.onboarding_status, '') NOT IN ('pending', 'skipped') THEN
+            RAISE EXCEPTION 'REGISTRATION_NOT_ELIGIBLE';
+        END IF;
+
+        IF COALESCE((p_payload->>'termsAccepted')::BOOLEAN, false) IS NOT TRUE THEN
+            RAISE EXCEPTION 'TERMS_REQUIRED';
+        END IF;
+
+        IF v_org_type NOT IN ('hospital', 'clinic', 'ambulance_service') THEN
+            RAISE EXCEPTION 'ORGANIZATION_TYPE_INVALID';
+        END IF;
+
+        IF LENGTH(v_org_name) < 2 OR LENGTH(v_org_name) > 160 THEN
+            RAISE EXCEPTION 'ORGANIZATION_NAME_INVALID';
+        END IF;
+
+        IF LENGTH(v_address) < 4 OR LENGTH(v_address) > 240
+           OR LENGTH(v_city) < 2 OR LENGTH(v_city) > 80
+           OR LENGTH(v_state) < 2 OR LENGTH(v_state) > 80 THEN
+            RAISE EXCEPTION 'ORGANIZATION_ADDRESS_INVALID';
+        END IF;
+
+        IF v_registration_number IS NOT NULL AND LENGTH(v_registration_number) > 80 THEN
+            RAISE EXCEPTION 'REGISTRATION_NUMBER_INVALID';
+        END IF;
+
+        IF v_phone IS NOT NULL AND LENGTH(v_phone) > 40 THEN
+            RAISE EXCEPTION 'PHONE_INVALID';
+        END IF;
+
+        v_contact_email := NULLIF(BTRIM(COALESCE(p_payload->>'contactEmail', v_profile.email, '')), '');
+        IF v_contact_email IS NULL OR LENGTH(v_contact_email) > 254 OR POSITION('@' IN v_contact_email) = 0 THEN
+            RAISE EXCEPTION 'CONTACT_EMAIL_INVALID';
+        END IF;
+
+        IF NULLIF(p_payload->>'latitude', '') IS NOT NULL THEN
+            v_latitude := (p_payload->>'latitude')::DOUBLE PRECISION;
+            IF v_latitude < -90 OR v_latitude > 90 THEN
+                RAISE EXCEPTION 'LATITUDE_INVALID';
+            END IF;
+        END IF;
+
+        IF NULLIF(p_payload->>'longitude', '') IS NOT NULL THEN
+            v_longitude := (p_payload->>'longitude')::DOUBLE PRECISION;
+            IF v_longitude < -180 OR v_longitude > 180 THEN
+                RAISE EXCEPTION 'LONGITUDE_INVALID';
+            END IF;
+        END IF;
+
+        IF (v_latitude IS NULL) <> (v_longitude IS NULL) THEN
+            RAISE EXCEPTION 'LOCATION_INCOMPLETE';
+        END IF;
+
+        IF v_registration_number IS NOT NULL AND EXISTS (
+            SELECT 1
+            FROM public.organizations organization
+            WHERE LOWER(organization.registration_number) = LOWER(v_registration_number)
+              AND organization.verification_status <> 'rejected'
+        ) THEN
+            RAISE EXCEPTION 'REGISTRATION_NUMBER_EXISTS';
+        END IF;
+
+        v_full_address := CONCAT_WS(', ', v_address, v_city, v_state);
+
+        IF v_org_type IN ('hospital', 'clinic') AND EXISTS (
+            SELECT 1
+            FROM public.hospitals hospital
+            WHERE LOWER(BTRIM(hospital.name)) = LOWER(v_org_name)
+              AND LOWER(BTRIM(hospital.address)) = LOWER(v_full_address)
+        ) THEN
+            RAISE EXCEPTION 'FACILITY_ALREADY_EXISTS';
+        END IF;
+
+        INSERT INTO public.organizations (
+            name,
+            organization_type,
+            registration_number,
+            contact_email,
+            contact_phone,
+            address,
+            city,
+            state,
+            verification_status,
+            created_by,
+            is_active
+        ) VALUES (
+            v_org_name,
+            v_org_type,
+            v_registration_number,
+            v_contact_email,
+            v_phone,
+            v_address,
+            v_city,
+            v_state,
+            'pending',
+            v_actor_id,
+            true
+        )
+        RETURNING * INTO v_org;
+
+        IF v_org_type IN ('hospital', 'clinic') THEN
+            INSERT INTO public.hospitals (
+                name,
+                address,
+                phone,
+                type,
+                latitude,
+                longitude,
+                verified,
+                verification_status,
+                status,
+                org_admin_id,
+                organization_id,
+                provider_type,
+                emergency_eligible,
+                booking_eligible,
+                provider_source
+            ) VALUES (
+                v_org_name,
+                v_full_address,
+                v_phone,
+                CASE WHEN v_org_type = 'clinic' THEN 'clinic' ELSE 'standard' END,
+                v_latitude,
+                v_longitude,
+                false,
+                'pending',
+                'available',
+                v_actor_id,
+                v_org.id,
+                v_org_type,
+                v_org_type = 'hospital',
+                true,
+                'manual_seed'
+            )
+            RETURNING * INTO v_facility;
+        END IF;
+
+        UPDATE public.profiles
+        SET role = 'org_admin',
+            provider_type = v_org_type,
+            organization_id = v_org.id,
+            organization_name = v_org.name,
+            onboarding_status = 'complete',
+            updated_at = NOW()
+        WHERE id = v_actor_id
+        RETURNING * INTO v_profile;
+    END IF;
+
+    IF jsonb_typeof(v_documents) <> 'array' OR jsonb_array_length(v_documents) > 3 THEN
+        RAISE EXCEPTION 'DOCUMENTS_INVALID';
+    END IF;
+
+    FOR v_document IN SELECT value FROM jsonb_array_elements(v_documents)
+    LOOP
+        v_document_path := BTRIM(COALESCE(v_document->>'storagePath', ''));
+        v_document_type := LOWER(BTRIM(COALESCE(v_document->>'documentType', 'other')));
+        v_original_name := BTRIM(COALESCE(v_document->>'originalName', ''));
+
+        IF v_document_type NOT IN ('registration', 'license', 'identity', 'other')
+           OR LENGTH(v_original_name) < 1 OR LENGTH(v_original_name) > 180
+           OR v_document_path NOT LIKE 'onboarding/' || v_actor_id::TEXT || '/%'
+           OR POSITION('..' IN v_document_path) > 0
+           OR LOWER(storage.extension(v_document_path)) NOT IN ('pdf', 'jpg', 'jpeg', 'png') THEN
+            RAISE EXCEPTION 'DOCUMENT_METADATA_INVALID';
+        END IF;
+
+        SELECT
+            LOWER(COALESCE(object.metadata->>'mimetype', v_document->>'mimeType', '')),
+            COALESCE(object.metadata->>'size', v_document->>'sizeBytes')
+        INTO v_mime_type, v_size_text
+        FROM storage.objects object
+        WHERE object.bucket_id = 'documents'
+          AND object.name = v_document_path
+        LIMIT 1;
+
+        IF NOT FOUND OR v_size_text !~ '^[0-9]+$' THEN
+            RAISE EXCEPTION 'DOCUMENT_NOT_FOUND';
+        END IF;
+
+        v_size_bytes := v_size_text::BIGINT;
+        IF v_mime_type NOT IN ('application/pdf', 'image/jpeg', 'image/png')
+           OR v_size_bytes < 1 OR v_size_bytes > 10485760 THEN
+            RAISE EXCEPTION 'DOCUMENT_FILE_INVALID';
+        END IF;
+
+        INSERT INTO public.organization_verification_documents (
+            organization_id,
+            facility_id,
+            uploaded_by,
+            document_type,
+            storage_path,
+            original_name,
+            mime_type,
+            size_bytes
+        ) VALUES (
+            v_org.id,
+            v_facility.id,
+            v_actor_id,
+            v_document_type,
+            v_document_path,
+            v_original_name,
+            v_mime_type,
+            v_size_bytes
+        )
+        ON CONFLICT (storage_path) DO NOTHING;
+    END LOOP;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.organization_wallets wallet
+        WHERE wallet.organization_id = v_org.id
+    ) INTO v_wallet_ready;
+
+    SELECT COUNT(*)::INTEGER INTO v_evidence_count
+    FROM public.organization_verification_documents evidence
+    WHERE evidence.organization_id = v_org.id;
+
+    IF NOT v_wallet_ready THEN
+        RAISE EXCEPTION 'WALLET_NOT_INITIALIZED';
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'provisioningVerified', true,
+        'authUserId', v_actor_id,
+        'profileId', v_actor_id,
+        'role', 'org_admin',
+        'user', jsonb_build_object(
+            'id', v_actor_id,
+            'display_id', v_profile.display_id
+        ),
+        'organization', jsonb_build_object(
+            'id', v_org.id,
+            'display_id', v_org.display_id,
+            'name', v_org.name,
+            'type', v_org.organization_type,
+            'walletState', 'ready',
+            'verificationStatus', v_org.verification_status
+        ),
+        'facility', CASE WHEN v_facility.id IS NULL THEN NULL ELSE jsonb_build_object(
+            'id', v_facility.id,
+            'display_id', v_facility.display_id,
+            'verificationStatus', v_facility.verification_status,
+            'dispatchEligible', v_facility.dispatch_eligible
+        ) END,
+        'verification', jsonb_build_object(
+            'lane', 'organization',
+            'status', v_org.verification_status
+        ),
+        'evidence', jsonb_build_object(
+            'count', v_evidence_count,
+            'status', CASE WHEN v_evidence_count > 0 THEN 'submitted' ELSE 'not_submitted' END
+        )
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.complete_console_user_invitation(
+    p_target_user_id UUID,
+    p_actor_user_id UUID,
+    p_organization_id UUID,
+    p_role TEXT,
+    p_provider_type TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_actor public.profiles%ROWTYPE;
+    v_target public.profiles%ROWTYPE;
+    v_organization public.organizations%ROWTYPE;
+    v_role TEXT := LOWER(BTRIM(COALESCE(p_role, '')));
+    v_provider_type TEXT := NULLIF(LOWER(BTRIM(COALESCE(p_provider_type, ''))), '');
+    v_invited_by TEXT;
+    v_invited_at TIMESTAMPTZ;
+BEGIN
+    IF v_claims->>'role' <> 'service_role' THEN
+        RAISE EXCEPTION 'Service receiver required';
+    END IF;
+
+    IF v_role NOT IN ('provider', 'viewer', 'dispatcher', 'org_admin', 'sponsor') THEN
+        RAISE EXCEPTION 'INVITATION_ROLE_INVALID';
+    END IF;
+
+    IF v_role = 'provider'
+       AND v_provider_type NOT IN ('hospital', 'ambulance_service', 'ambulance', 'doctor', 'driver', 'paramedic', 'pharmacy', 'clinic') THEN
+        RAISE EXCEPTION 'INVITATION_PROVIDER_TYPE_REQUIRED';
+    ELSIF v_role <> 'provider' THEN
+        v_provider_type := NULL;
+    END IF;
+
+    SELECT * INTO v_actor
+    FROM public.profiles
+    WHERE id = p_actor_user_id;
+
+    IF NOT FOUND OR v_actor.role NOT IN ('admin', 'org_admin') THEN
+        RAISE EXCEPTION 'INVITATION_ACTOR_INVALID';
+    END IF;
+
+    SELECT * INTO v_organization
+    FROM public.organizations
+    WHERE id = p_organization_id
+      AND is_active = true;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'INVITATION_ORGANIZATION_INVALID';
+    END IF;
+
+    IF v_actor.role = 'org_admin'
+       AND (
+           v_actor.organization_id IS DISTINCT FROM p_organization_id
+           OR v_role NOT IN ('provider', 'viewer', 'dispatcher')
+       ) THEN
+        RAISE EXCEPTION 'INVITATION_SCOPE_DENIED';
+    END IF;
+
+    SELECT * INTO v_target
+    FROM public.profiles
+    WHERE id = p_target_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND
+       OR v_target.organization_id IS NOT NULL
+       OR v_target.role NOT IN ('patient', 'viewer')
+       OR COALESCE(v_target.onboarding_status, '') NOT IN ('pending', 'skipped') THEN
+        RAISE EXCEPTION 'INVITATION_TARGET_INVALID';
+    END IF;
+
+    SELECT
+        user_row.raw_user_meta_data->>'invited_by',
+        user_row.invited_at
+    INTO v_invited_by, v_invited_at
+    FROM auth.users user_row
+    WHERE user_row.id = p_target_user_id;
+
+    IF NOT FOUND
+       OR v_invited_at IS NULL
+       OR v_invited_by IS DISTINCT FROM p_actor_user_id::TEXT THEN
+        RAISE EXCEPTION 'INVITATION_PROOF_INVALID';
+    END IF;
+
+    UPDATE public.profiles
+    SET role = v_role,
+        provider_type = v_provider_type,
+        organization_id = v_organization.id,
+        organization_name = v_organization.name,
+        onboarding_status = 'complete',
+        updated_at = NOW()
+    WHERE id = p_target_user_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'profileId', p_target_user_id,
+        'role', v_role,
+        'providerType', v_provider_type,
+        'organizationId', v_organization.id
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_console_identity_projection() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.search_onboarding_facilities(TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.provision_console_organization(JSONB) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.complete_console_user_invitation(UUID, UUID, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.update_profile_by_admin(UUID, JSONB) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.get_console_identity_projection() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.search_onboarding_facilities(TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.provision_console_organization(JSONB) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.complete_console_user_invitation(UUID, UUID, UUID, TEXT, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.update_profile_by_admin(UUID, JSONB) TO authenticated, service_role;
+-- END CONSOLE_ONBOARDING_RPCS

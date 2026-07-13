@@ -1,632 +1,220 @@
-/**
- * @fileoverview Onboarding Service - Backend integration for organization registration
- * 
- * @description
- * Handles all backend operations for the onboarding flow:
- * - Organization creation in 'hospitals' table
- * - Admin user creation via Supabase Auth
- * - Profile creation with org_admin role
- * - Document upload to Supabase Storage
- * - Admin functions for verification queue
- * 
- * @database_requirements
- * - Table: hospitals (with fields for organization_type, verification_status, etc.)
- * - Table: profiles (with fields for role, organization_id)
- * - Storage bucket: documents
- * 
- * @environment
- * - REACT_APP_SUPABASE_URL: Supabase project URL
- * 
- * @rollback
- * To revert: git checkout HEAD~1 -- src/services/onboardingService.js
- * 
- * @author iVisit Console Team
- * @version 1.0.0
- * @since 2026-02-02
- */
-
-import { supabase } from "../lib/supabase";
-
-/**
- * Supabase project URL from environment
- * @constant {string}
- */
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-
-/**
- * Onboarding service object with all registration functions
- * @namespace onboardingService
- */
-export const onboardingService = {
-    /**
-     * Step 2: Create admin account and set onboarding_status = 'pending'
-     * If user already has a session (e.g., page refresh), skip creation.
-     * 
-     * @param {Object} formData - Admin account form data
-     * @returns {Object} - { success: boolean, user: object, skipped: boolean }
-     */
-    createAdminAccount: async (formData) => {
-        try {
-            // Check if user is already authenticated (e.g., refreshed during onboarding)
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                console.log('[Onboarding] User already authenticated, skipping account creation');
-                return {
-                    success: true,
-                    user: session.user,
-                    skipped: true,
-                    message: 'Already authenticated'
-                };
-            }
-
-            // Sign up the admin user
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.adminEmail,
-                password: formData.adminPassword,
-                options: {
-                    data: {
-                        full_name: formData.adminFullName,
-                    }
-                }
-            });
-
-            if (authError) {
-                console.error('Admin user creation failed:', authError);
-                // Handle common Supabase auth errors gracefully
-                const errorMessages = {
-                    'User already registered': 'This email is already registered. Please use a different email or try logging in.',
-                    'Password should be at least 6 characters': 'Password must be at least 6 characters long.',
-                    'Unable to validate email address': 'Please enter a valid email address.',
-                    'Signup is disabled': 'Registration is temporarily unavailable. Please try again later.',
-                    'Email rate limit exceeded': 'Too many attempts. Please wait a few minutes and try again.',
-                    'over_email_send_rate_limit': 'Too many attempts. Please wait a few minutes and try again.',
-                };
-                const userMessage = errorMessages[authError.message] ||
-                    errorMessages[authError.code] ||
-                    `Account creation failed: ${authError.message}`;
-                throw new Error(userMessage);
-            }
-
-            // Wait for profile trigger to create profile
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Set onboarding_status = 'pending' to enable hospital creation via RLS
-            if (authData.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .update({
-                        full_name: formData.adminFullName,
-                        onboarding_status: 'pending',
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', authData.user.id);
-
-                if (profileError) {
-                    console.error('Profile update failed:', profileError);
-                    // Don't throw - user is created, profile can be fixed later
-                }
-            }
-
-            return {
-                success: true,
-                user: authData.user,
-                skipped: false,
-                message: 'Admin account created successfully'
-            };
-
-        } catch (error) {
-            console.error('Admin account creation failed:', error);
-            // Re-throw with user-friendly message if not already formatted
-            if (error.message?.includes('fetch') || error.message?.includes('network')) {
-                throw new Error('Network error. Please check your connection and try again.');
-            }
-            throw error;
-        }
-    },
-
-    /**
-     * Search hospitals by name for autofill in Step 3
-     * User must be authenticated (after Step 2) to call this.
-     * 
-     * @param {string} query - Search query (min 2 characters)
-     * @returns {Array} - List of matching hospitals with claim status
-     * 
-     * @example
-     * const hospitals = await onboardingService.searchHospitalsByName('General');
-     * // Returns: [{ id, name, address, city, state, claimStatus: 'unclaimed'|'pending'|'verified' }]
-     */
-    searchHospitalsByName: async (query) => {
-        try {
-            if (!query || query.length < 2) return [];
-
-            // Search hospitals by name (case-insensitive partial match)
-            const { data: hospitals, error } = await supabase
-                .from('hospitals')
-                .select('id, name, address, phone, latitude, longitude, verification_status, verified')
-                .ilike('name', `%${query}%`)
-                .limit(10);
-
-            if (error) {
-                console.error('Hospital search failed:', error);
-                return [];
-            }
-
-            // Check which hospitals already have org admins (claimed)
-            const hospitalIds = hospitals.map(h => h.id);
-
-            const { data: claimedProfiles } = await supabase
-                .from('profiles')
-                .select('organization_id')
-                .in('organization_id', hospitalIds)
-                .not('organization_id', 'is', null);
-
-            const claimedOrgIds = new Set(claimedProfiles?.map(p => p.organization_id) || []);
-
-            // Transform to search result format with claim status
-            return hospitals.map(hospital => {
-                // Determine claim status
-                let claimStatus = 'unclaimed';
-                if (claimedOrgIds.has(hospital.id)) {
-                    claimStatus = hospital.verified ? 'verified' : 'pending';
-                }
-
-                // Parse address into components (if stored as full address)
-                const addressParts = hospital.address?.split(',').map(s => s.trim()) || [];
-
-                return {
-                    id: hospital.id,
-                    name: hospital.name,
-                    address: addressParts[0] || hospital.address,
-                    city: addressParts[1] || '',
-                    state: addressParts[2] || '',
-                    phone: hospital.phone,
-                    location: hospital.latitude && hospital.longitude
-                        ? { lat: hospital.latitude, lng: hospital.longitude }
-                        : null,
-                    claimStatus,
-                    isGoogleImported: false, // Could add a field for this
-                };
-            });
-
-        } catch (error) {
-            console.error('Hospital search error:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Step 5: Submit complete onboarding - creates organization and links to user
-     * User must be authenticated and have onboarding_status = 'pending'
-     *
-     * Idempotent on resubmit: reuses the pending organization created by a prior
-     * attempt (via formData.resumeOrganizationId, or a pending unverified match on
-     * the wizard's own name + phone) instead of inserting a duplicate. If the
-     * profile link fails, throws an error with code 'PROFILE_LINK_FAILED' and the
-     * created organizationId so the wizard can retry without re-creating.
-     *
-     * @param {Object} formData - Complete onboarding form data
-     * @returns {Object} - { success: boolean, organization: object }
-     */
-    submitOnboarding: async (formData) => {
-        try {
-            // Get current session
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) {
-                throw new Error('User must be authenticated to submit onboarding');
-            }
-
-            // Build full address from components
-            const fullAddress = [
-                formData.address,
-                formData.city,
-                formData.state
-            ].filter(Boolean).join(', ');
-
-            // Step 1: Reuse the organization from a prior attempt, or create it.
-            // Retry path: a previous submit already created the organization but
-            // failed on the profile link; the wizard threads the id back through
-            // formData.resumeOrganizationId so retry skips re-creation.
-            let organization = null;
-
-            if (formData.resumeOrganizationId) {
-                const { data: resumedOrg, error: resumeError } = await supabase
-                    .from('hospitals')
-                    .select('*')
-                    .eq('id', formData.resumeOrganizationId)
-                    .maybeSingle();
-
-                if (resumeError) {
-                    console.error('Organization resume lookup failed:', resumeError);
-                } else if (resumedOrg) {
-                    organization = resumedOrg;
-                }
-            }
-
-            // Idempotent resubmit: if an earlier attempt from this wizard already
-            // created a pending, unverified organization with the wizard's own
-            // name + phone, reuse it instead of inserting a duplicate row.
-            if (!organization && formData.organizationName) {
-                let duplicateQuery = supabase
-                    .from('hospitals')
-                    .select('*')
-                    .eq('name', formData.organizationName)
-                    .eq('verification_status', 'pending')
-                    .eq('verified', false)
-                    .order('created_at', { ascending: false })
-                    .limit(5);
-
-                if (formData.phone) {
-                    duplicateQuery = duplicateQuery.eq('phone', formData.phone);
-                }
-
-                const { data: priorOrgs, error: priorError } = await duplicateQuery;
-
-                if (priorError) {
-                    console.error('Duplicate organization check failed:', priorError);
-                } else if (priorOrgs?.length > 0) {
-                    // Never adopt a pending organization another account is linked to
-                    const { data: linkedProfiles } = await supabase
-                        .from('profiles')
-                        .select('id, organization_id')
-                        .in('organization_id', priorOrgs.map(org => org.id));
-
-                    const claimedByOthers = new Set(
-                        (linkedProfiles || [])
-                            .filter(profile => profile.id !== session.user.id)
-                            .map(profile => profile.organization_id)
-                    );
-
-                    organization = priorOrgs.find(org => !claimedByOthers.has(org.id)) || null;
-                }
-            }
-
-            if (!organization) {
-                const orgData = {
-                    name: formData.organizationName,
-                    address: fullAddress,
-                    phone: formData.phone,
-                    type: formData.organizationType || 'standard',
-                    specialties: formData.specialties || [],
-                    service_types: formData.serviceTypes || [],
-                    features: formData.features || [],
-                    available_beds: formData.bedCapacity || 0,
-                    ambulances_count: formData.fleetSize || 0,
-                    latitude: formData.location?.lat || null,
-                    longitude: formData.location?.lng || null,
-                    verification_status: 'pending',
-                    verified: false,
-                    status: 'available',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                };
-
-                const { data: createdOrg, error: orgError } = await supabase
-                    .from('hospitals')
-                    .insert(orgData)
-                    .select()
-                    .single();
-
-                if (orgError) {
-                    console.error('Organization creation failed:', orgError);
-                    throw new Error('Failed to create organization: ' + orgError.message);
-                }
-
-                organization = createdOrg;
-            }
-
-            // Step 2: Update profile with org_admin role and link to organization
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({
-                    role: 'org_admin',
-                    organization_id: organization.id,
-                    onboarding_status: 'complete', // Mark onboarding done
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', session.user.id);
-
-            if (profileError) {
-                console.error('Profile update failed:', profileError);
-                // Keep the created hospital, but do not report success: without the
-                // profile link the user stays 'pending' and every protected route
-                // bounces back to the wizard. Surface the failure so the wizard can
-                // retry the profile link against the same organization id.
-                const linkError = new Error(
-                    'Your organization was saved, but we could not finish linking your admin account. Please submit again to retry.'
-                );
-                linkError.code = 'PROFILE_LINK_FAILED';
-                linkError.organizationId = organization.id;
-                throw linkError;
-            }
-
-            // Step 3: Upload verification documents (if any)
-            if (formData.documents?.length > 0) {
-                for (const doc of formData.documents) {
-                    if (doc.file) {
-                        const filePath = `organizations/${organization.id}/verification/${doc.name}`;
-                        const { error: uploadError } = await supabase.storage
-                            .from('documents')
-                            .upload(filePath, doc.file);
-
-                        if (uploadError) {
-                            console.error('Document upload failed:', uploadError);
-                        }
-                    }
-                }
-            }
-
-            // Step 4: Fetch display IDs
-            const { getDisplayId } = await import('./displayIdService');
-            const orgDisplayId = await getDisplayId(organization.id);
-            const userDisplayId = await getDisplayId(session.user.id);
-
-            return {
-                success: true,
-                organization: {
-                    ...organization,
-                    display_id: orgDisplayId
-                },
-                user: {
-                    ...session.user,
-                    display_id: userDisplayId
-                },
-                message: 'Registration submitted successfully'
-            };
-
-        } catch (error) {
-            console.error('Onboarding submission failed:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Skip onboarding - allows user into dashboard but tracks incomplete state
-     * User must be authenticated and have onboarding_status = 'pending'
-     */
-    skipOnboarding: async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) throw new Error('User not authenticated');
-
-            const { data, error } = await supabase
-                .from('profiles')
-                .update({
-                    onboarding_status: 'skipped',
-                    role: 'viewer', // Stay as viewer until registration is complete
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', session.user.id)
-                .select()
-                .single();
-
-            if (error) throw error;
-            return { success: true, profile: data };
-        } catch (error) {
-            console.error('Failed to skip onboarding:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Check if email is already registered
-     */
-    checkEmailAvailability: async (email) => {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', email)
-                .single();
-
-            if (error && error.code === 'PGRST116') {
-                // No rows returned - email is available
-                return { available: true };
-            }
-
-            return { available: false, message: 'Email already registered' };
-        } catch (error) {
-            console.error('Email check failed:', error);
-            return { available: true }; // Assume available on error
-        }
-    },
-
-    /**
-     * Search hospitals by name for autocomplete
-     * Returns matching hospitals with claim status
-     * NOTE: Requires authenticated session (called after admin account step)
-     * 
-     * @important SCHEMA: Only these columns exist in hospitals table:
-     * id, name, address, phone, rating, type, image, specialties, service_types,
-     * features, emergency_level, available_beds, ambulances_count, wait_time,
-     * price_range, latitude, longitude, verified, status, created_at, updated_at
-     * 
-     * @param {string} query - Search query (min 2 characters)
-     * @returns {Promise<Array>} Matching hospitals with claim status
-     */
-    searchHospitalsByName: async (query) => {
-        if (!query || query.length < 2) {
-            return [];
-        }
-
-        try {
-            // ONLY query columns that exist in the schema!
-            const { data, error } = await supabase
-                .from('hospitals')
-                .select('id, name, address, phone, latitude, longitude, specialties, verified, type, status')
-                .ilike('name', `%${query}%`)
-                .order('name')
-                .limit(8);
-
-            if (error) {
-                console.error('Hospital search failed:', error);
-                return [];
-            }
-
-            // Enrich with display IDs
-            const { getDisplayIds } = await import('./displayIdService');
-            const displayIds = await getDisplayIds(data.map(h => h.id));
-
-            // Add claim status based on 'verified' boolean (only column that exists)
-            // verified=true means hospital is claimed and verified
-            // verified=false could be unclaimed OR pending (can't distinguish without more columns)
-            return (data || []).map(hospital => ({
-                ...hospital,
-                display_id: displayIds.get(hospital.id) || null,
-                // Parse city/state from address if needed (format: "street, city, state")
-                city: hospital.address?.split(', ')[1] || '',
-                state: hospital.address?.split(', ')[2] || '',
-                // Claim status based on verified boolean only
-                isClaimed: hospital.verified === true,
-                isGoogleImported: false, // Can't determine without google_place_id column
-                claimStatus: hospital.verified ? 'verified' : 'unclaimed',
-            }));
-        } catch (error) {
-            console.error('Hospital search error:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Check detailed claim status of a specific hospital
-     * Used when user selects a hospital from suggestions
-     * 
-     * @important SCHEMA: Only 'verified' boolean exists, no 'verification_status' column
-     * - verified=true: Hospital is claimed and verified → BLOCK
-     * - verified=false: Hospital is available → CAN CLAIM
-     * 
-     * @param {string} hospitalId - Hospital ID to check
-     * @returns {Promise<Object>} Claim status details
-     */
-    checkHospitalClaimStatus: async (hospitalId) => {
-        try {
-            // Only query columns that exist!
-            const { data: hospital, error } = await supabase
-                .from('hospitals')
-                .select('id, name, verified, status')
-                .eq('id', hospitalId)
-                .single();
-
-            if (error) {
-                console.error('Hospital claim check failed:', error);
-                return { canClaim: false, error: 'Hospital not found' };
-            }
-
-            // Only 'verified' boolean exists - use it to determine claim status
-            // verified=true means hospital is already claimed by a verified organization
-            if (hospital.verified === true) {
-                return {
-                    canClaim: false,
-                    reason: 'verified',
-                    message: `${hospital.name} is already registered and verified.`,
-                    hospital,
-                };
-            }
-
-            // Hospital can be claimed (verified=false means unclaimed or never claimed)
-            return {
-                canClaim: true,
-                reason: 'unclaimed',
-                message: 'This hospital is available for registration.',
-                hospital,
-            };
-        } catch (error) {
-            console.error('Hospital claim check error:', error);
-            return { canClaim: false, error: error.message };
-        }
-    },
-
-    /**
-     * Admin: Get pending organization registrations
-     */
-    getPendingOrganizations: async () => {
-        try {
-            const { data, error } = await supabase
-                .from('hospitals')
-                .select('*')
-                .eq('verification_status', 'pending')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return data || [];
-        } catch (error) {
-            console.error('Failed to fetch pending organizations:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Admin: Approve an organization
-     */
-    approveOrganization: async (organizationId) => {
-        try {
-            const { error } = await supabase
-                .from('hospitals')
-                .update({
-                    verification_status: 'verified',
-                    verified_at: new Date().toISOString()
-                })
-                .eq('id', organizationId);
-
-            if (error) throw error;
-
-            // Also update the org admin's profile
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({ verification_status: 'verified' })
-                .eq('organization_id', organizationId)
-                .eq('role', 'org_admin');
-
-            if (profileError) {
-                console.error('Profile verification update failed:', profileError);
-            }
-
-            return { success: true };
-        } catch (error) {
-            console.error('Organization approval failed:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Admin: Reject an organization
-     */
-    rejectOrganization: async (organizationId, reason) => {
-        try {
-            const { error } = await supabase
-                .from('hospitals')
-                .update({
-                    verification_status: 'rejected',
-                    rejection_reason: reason,
-                    rejected_at: new Date().toISOString()
-                })
-                .eq('id', organizationId);
-
-            if (error) throw error;
-            return { success: true };
-        } catch (error) {
-            console.error('Organization rejection failed:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get organization verification status
-     */
-    getVerificationStatus: async (organizationId) => {
-        try {
-            const { data, error } = await supabase
-                .from('hospitals')
-                .select('verification_status, rejection_reason, verified_at, rejected_at')
-                .eq('id', organizationId)
-                .single();
-
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error('Failed to fetch verification status:', error);
-            throw error;
-        }
+import { supabase } from '../lib/supabase';
+
+const DOCUMENT_BUCKET = 'documents';
+const MAX_DOCUMENTS = 3;
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+const ALLOWED_DOCUMENT_TYPES = new Map([
+  ['application/pdf', 'pdf'],
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+]);
+
+const ERROR_COPY = {
+  ACCOUNT_ALREADY_SCOPED: 'This account already belongs to an organization.',
+  CONTACT_EMAIL_INVALID: 'Enter a valid organization email.',
+  DOCUMENT_FILE_INVALID: 'Use PDF, JPG, or PNG files up to 10 MB each.',
+  DOCUMENT_CLEANUP_FAILED: 'Registration did not finish, and uploaded documents could not be removed. Contact support before trying again.',
+  DOCUMENT_METADATA_INVALID: 'One of the selected documents could not be prepared.',
+  DOCUMENT_NOT_FOUND: 'One of the selected documents did not finish uploading.',
+  DOCUMENTS_INVALID: `Choose no more than ${MAX_DOCUMENTS} documents.`,
+  FACILITY_ALREADY_EXISTS: 'This facility is already listed. Ask its administrator or contact support.',
+  LOCATION_INCOMPLETE: 'Choose a complete location or remove it.',
+  ORGANIZATION_ADDRESS_INVALID: 'Enter the organization address, city, and state.',
+  ORGANIZATION_NAME_INVALID: 'Enter the organization name.',
+  ORGANIZATION_TYPE_INVALID: 'Choose an organization type.',
+  PROFILE_NOT_READY: 'Your account is still being prepared. Try again in a moment.',
+  REGISTRATION_NOT_ELIGIBLE: 'This account cannot start a new organization registration.',
+  REGISTRATION_NUMBER_EXISTS: 'That registration number is already in use.',
+  TERMS_REQUIRED: 'Accept the terms before submitting.',
+  WALLET_NOT_INITIALIZED: 'The organization was not fully prepared. Try again.',
+};
+
+const createOnboardingError = (code, fallback) => {
+  const error = new Error(ERROR_COPY[code] || fallback || 'We could not complete registration. Try again.');
+  error.code = code;
+  return error;
+};
+
+const getErrorCode = (error) => {
+  const message = String(error?.message || '');
+  return Object.keys(ERROR_COPY).find((code) => message.includes(code)) || error?.code || 'ONBOARDING_FAILED';
+};
+
+const safeFileName = (file, userId) => {
+  const extension = ALLOWED_DOCUMENT_TYPES.get(file.type);
+  const randomId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `onboarding/${userId}/${randomId}.${extension}`;
+};
+
+const validateDocuments = (documents = []) => {
+  if (!Array.isArray(documents) || documents.length > MAX_DOCUMENTS) {
+    throw createOnboardingError('DOCUMENTS_INVALID');
+  }
+
+  documents.forEach(({ file }) => {
+    if (!file || !ALLOWED_DOCUMENT_TYPES.has(file.type) || file.size < 1 || file.size > MAX_DOCUMENT_SIZE) {
+      throw createOnboardingError('DOCUMENT_FILE_INVALID');
     }
+  });
+};
+
+const removeUploadedDocuments = async (paths) => {
+  if (!paths?.length) return;
+
+  try {
+    const { error } = await supabase.storage.from(DOCUMENT_BUCKET).remove(paths);
+    if (error) throw error;
+  } catch (cause) {
+    const cleanupError = createOnboardingError('DOCUMENT_CLEANUP_FAILED');
+    cleanupError.cause = cause;
+    throw cleanupError;
+  }
+};
+
+const uploadDocuments = async (documents, userId) => {
+  validateDocuments(documents);
+  const uploaded = [];
+
+  try {
+    for (const item of documents) {
+      const storagePath = safeFileName(item.file, userId);
+      const { error } = await supabase.storage
+        .from(DOCUMENT_BUCKET)
+        .upload(storagePath, item.file, { cacheControl: '3600', upsert: false });
+
+      if (error) throw error;
+      uploaded.push({
+        storagePath,
+        documentType: item.documentType || 'other',
+        originalName: item.file.name,
+        mimeType: item.file.type,
+        sizeBytes: item.file.size,
+      });
+    }
+
+    return uploaded;
+  } catch {
+    await removeUploadedDocuments(uploaded.map((item) => item.storagePath));
+    throw createOnboardingError('DOCUMENT_UPLOAD_FAILED', 'A document could not be uploaded. Check your connection and try again.');
+  }
+};
+
+export const onboardingService = {
+  async createAdminAccount(formData) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) {
+      return { success: true, accountReady: true, user: sessionData.session.user };
+    }
+
+    const email = String(formData.adminEmail || '').trim().toLowerCase();
+    const fullName = String(formData.adminFullName || '').trim();
+    const password = String(formData.adminPassword || '');
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/onboarding`,
+        data: { full_name: fullName },
+      },
+    });
+
+    if (error) {
+      throw createOnboardingError(
+        error.status === 429 ? 'ACCOUNT_RATE_LIMITED' : 'ACCOUNT_CREATE_FAILED',
+        error.status === 429
+          ? 'Please wait a moment before trying again.'
+          : 'We could not create that account. Sign in if the email is already registered.'
+      );
+    }
+
+    return {
+      success: true,
+      accountReady: Boolean(data?.session?.user),
+      confirmationRequired: Boolean(data?.user && !data?.session),
+      user: data?.user || null,
+    };
+  },
+
+  async signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/onboarding` },
+    });
+
+    if (error) {
+      throw createOnboardingError('OAUTH_FAILED', 'Google sign-in is unavailable right now.');
+    }
+  },
+
+  async searchFacilities(query) {
+    const normalized = String(query || '').trim();
+    if (normalized.length < 3) return [];
+
+    const { data, error } = await supabase.rpc('search_onboarding_facilities', {
+      p_query: normalized.slice(0, 80),
+    });
+
+    if (error) {
+      throw createOnboardingError('FACILITY_SEARCH_FAILED', 'We could not search facilities. Try again.');
+    }
+
+    return Array.isArray(data) ? data : [];
+  },
+
+  async getIdentityProjection() {
+    const { data, error } = await supabase.rpc('get_console_identity_projection');
+    if (error) throw createOnboardingError('IDENTITY_REFRESH_FAILED', 'We could not refresh your access yet.');
+    return data;
+  },
+
+  async submitOnboarding(formData) {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (sessionError || !session?.user) {
+      throw createOnboardingError('AUTH_REQUIRED', 'Sign in again to finish registration.');
+    }
+
+    const uploadedDocuments = await uploadDocuments(formData.documents || [], session.user.id);
+
+    const payload = {
+      organizationType: formData.organizationType,
+      organizationName: String(formData.organizationName || '').trim(),
+      registrationNumber: String(formData.registrationNumber || '').trim() || null,
+      contactEmail: String(formData.contactEmail || session.user.email || '').trim(),
+      phone: String(formData.phone || '').trim() || null,
+      address: String(formData.address || '').trim(),
+      city: String(formData.city || '').trim(),
+      state: String(formData.state || '').trim(),
+      latitude: formData.location?.lat ?? null,
+      longitude: formData.location?.lng ?? null,
+      termsAccepted: formData.termsAccepted === true,
+      documents: uploadedDocuments,
+    };
+
+    const { data, error } = await supabase.rpc('provision_console_organization', {
+      p_payload: payload,
+    });
+
+    if (error) {
+      await removeUploadedDocuments(uploadedDocuments.map((item) => item.storagePath));
+      const code = getErrorCode(error);
+      throw createOnboardingError(code);
+    }
+
+    if (!data?.success || data?.provisioningVerified !== true || !data?.organization?.id) {
+      await removeUploadedDocuments(uploadedDocuments.map((item) => item.storagePath));
+      throw createOnboardingError('PROVISIONING_UNVERIFIED', 'Registration finished without a complete access record. Contact support.');
+    }
+
+    return data;
+  },
+};
+
+export const ONBOARDING_DOCUMENT_RULES = {
+  maxDocuments: MAX_DOCUMENTS,
+  maxDocumentSize: MAX_DOCUMENT_SIZE,
+  acceptedTypes: [...ALLOWED_DOCUMENT_TYPES.keys()],
 };
 
 export default onboardingService;

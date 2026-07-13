@@ -17,6 +17,7 @@ describe('DoctorsPage Staff contract', () => {
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
+  const modalChromeHookSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
   const appSource = () => fs.readFileSync('src/App.js', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
@@ -72,7 +73,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(contextPanel).not.toContain('<DoctorsPanel doctorsData={doctorsData} />');
   });
 
-  it('wires Staff create/edit/delete + selection while excluding unproved schedule controls', () => {
+  it('wires Staff create/edit + selection while excluding destructive and unproved schedule controls', () => {
     const page = pageSource();
     const list = listSource();
     const table = tableSource();
@@ -129,43 +130,44 @@ describe('DoctorsPage Staff contract', () => {
     expect(mobile).not.toContain('MobileDetailIslands');
     expect(mobile).not.toContain('MobileSheetActions');
 
-    // Restored capability: single delete + row-selection/bulk delete are wired
-    // through the current React Query mutation pattern (useDoctorsMutations +
-    // applyOptimisticRemove), NOT resurrected direct-service calls.
-    expect(page).toContain("import { deleteDoctor } from '../../services/doctorsService';");
-    expect(page).toContain("import { useDoctorsMutations, applyOptimisticRemove } from '../../hooks/useDoctorsMutations';");
-    expect(page).toContain("import { ConfirmationModal } from '../modals/ConfirmationModal';");
+    // Selection stays mounted for non-destructive workflows, while the route has
+    // no single or bulk destructive doctor action.
     expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
-    expect(page).toContain('const deleteDoctorMutation = useDoctorsMutations({');
-    expect(page).toContain('mutationFn: (id) => deleteDoctor(id),');
-    expect(page).toContain('applyOptimistic: applyOptimisticRemove,');
-    expect(page).toContain('const confirmDelete = useCallback');
-    expect(page).toContain('const handleBulkDelete = useCallback');
-    expect(page).toContain('onDelete={confirmDelete}');
+    expect(page).not.toContain('deleteDoctor');
+    expect(page).not.toContain('applyOptimisticRemove');
+    expect(page).not.toContain('ConfirmationModal');
+    expect(page).not.toContain('confirmDelete');
+    expect(page).not.toContain('handleBulkDelete');
+    expect(page).not.toContain('onDelete=');
     // Selection is now the SHARED useRowSelection hook (gains shift-range + prune-to-
     // visible); the mobile surface consumes handleToggleSelect/handleSelectAll from it.
     expect(page).toContain('onSelect={handleToggleSelect}');
     expect(page).toContain('onSelectAll={handleSelectAll}');
     expect(page).toContain('selectionEnabled={canManageStaff}');
-    expect(page).toContain('<ConfirmationModal');
     expect(page).toContain('<BulkActionBar');
 
-    // Views + mobile expose the delete/selection UI behind the gated props.
+    // Legacy density components retain dormant props, but the mounted page/mobile
+    // path does not pass or render destructive actions.
     expect(table).toContain('const canDeleteRow = canDelete && canManage && Boolean(onDelete)');
     expect(table).toContain('<Checkbox');
     expect(list).toContain('canDelete && onDelete && (');
     // Canon selection: the row is `selectable` (gated by canSelect) and toggles / long-
     // presses through the SHARED onSelect; the old MobileMetricRow onSelect prop is retired.
-    // Staff bulk delete is AUTHORIZED here (deleteDoctor receiver) — the mobile bar carries a
-    // LIVE delete, not the fail-closed disabled stub the fleet/facility/visit pages use.
     expect(mobile).toContain('const canSelect = selectionEnabled && canManage && Boolean(onSelect);');
     expect(mobile).toContain('selectable={canSelect}');
     expect(mobile).toContain('onToggleSelect={(it) => onSelect?.(it.id');
     expect(mobile).toContain('<MobileSelectionBar');
-    expect(mobile).toContain('canBulkDelete && onBulkDelete && (');
+    expect(mobile).not.toContain('canBulkDelete');
+    expect(mobile).not.toContain('onBulkDelete');
+    expect(mobile).not.toContain('canDelete');
+    expect(mobile).not.toContain('onDelete');
+    expect(mobile).not.toContain('Trash2');
+    expect(page).toContain("staff?.is_available === false ? 'unavailable' : status");
+    expect(mobile).toContain("doctor?.is_available === false ? 'unavailable' : status");
+    expect(mobile).toContain("statusPill('off_duty', 'Unavailable for assignment')");
 
-    // Scheduling stays unproved for Staff, and the delete copy is "Delete"
-    // (never "Remove"), so these remain excluded from the active surface.
+    // Scheduling stays unproved for Staff; destructive copy is separately excluded
+    // from the mounted page/mobile source below.
     [
       'Remove selected',
       'Remove staff',
@@ -175,6 +177,10 @@ describe('DoctorsPage Staff contract', () => {
       'aria-label={`Schedule',
     ].forEach((blockedTerm) => {
       expect(activeStaffSource).not.toContain(blockedTerm);
+    });
+
+    ['Delete selected', 'Delete staff', 'Delete staff member'].forEach((blockedTerm) => {
+      expect(`${page}\n${mobile}`).not.toContain(blockedTerm);
     });
 
     expect(page).not.toContain('clinical availability');
@@ -300,15 +306,25 @@ describe('DoctorsPage Staff contract', () => {
     const service = serviceSource();
     const hook = hookSource();
 
-    expect(modal).toContain("import { createDoctor, updateDoctor } from '../../services/doctorsService';");
+    expect(modal).toContain("from '../../services/doctorsService';");
+    expect(modal).toContain('filterDoctorFacilityOptions');
+    expect(modal).toContain('assertDoctorWriteScope(payload, actorScope');
     expect(modal).toContain("import { getHospitals } from '../../services/hospitalsService';");
     expect(modal).toContain('if (!isOpen) return;');
     expect(modal).toContain('getHospitals({ quiet: true, limit: 500 })');
     expect(modal).toContain('toast.error(\'Select a facility first.\')');
     expect(modal).toContain('toast.success(\'Staff member added.\')');
     expect(modal).toContain('toast.success(\'Staff changes saved.\')');
-    expect(modal).toContain("const editableStaffStatuses = new Set(['available', 'busy', 'on_call', 'off_duty']);");
     expect(modal).toContain('status: normalizeStaffDirectoryStatus(doctor?.status)');
+    expect(modal).toContain("label: 'Invited'");
+    expect(modal).toContain("label: 'Unavailable for assignment'");
+    expect(modal).toContain('const isProfileLinked = Boolean(doctor?.profile_id);');
+    expect(modal).toContain('buildStaffPayload(formData, { isCreate, isProfileLinked })');
+    expect(modal).toContain('if (isCreate || !isProfileLinked)');
+    expect(modal).toContain("if (isCreate) payload.status = 'available';");
+    expect(modal).toContain('Synced from the linked account');
+    expect(modal).not.toContain("updateField('status'");
+    expect(modal).not.toContain('status: formData.status');
     expect(modal).toContain('Staff profile');
     expect(modal).toContain('Add staff');
     expect(modal).toContain('Save changes');
@@ -317,8 +333,6 @@ describe('DoctorsPage Staff contract', () => {
     expect(modal).not.toContain('getProfilesByRole');
     expect(modal).not.toContain('inviteUser');
     expect(modal).not.toContain('uploadImage');
-    expect(modal).not.toContain('invited');
-    expect(modal).not.toContain('Invited');
     expect(modal).not.toContain('Send Invitation');
     expect(modal).not.toContain('Add Professional');
     expect(modal).not.toContain('Professional Profile');
@@ -333,6 +347,11 @@ describe('DoctorsPage Staff contract', () => {
     expect(service).toContain('async function getDoctorExactCount');
     expect(service).toContain('async function getDoctorPageStats');
     expect(service).toContain('applyDoctorFilters(query, user, filter)');
+    expect(service).toContain('export function filterDoctorFacilityOptions');
+    expect(service).toContain('export function assertDoctorWriteScope');
+    expect(service).toContain("error.code = 'DOCTOR_SCOPE_DENIED';");
+    expect(service).toContain('assertDoctorWriteScope(input, actor, { requireFacility: actor?.role === \'org_admin\' });');
+    expect(service).toContain('assertDoctorWriteScope(input, actor);');
     expect(service).toContain("query.or(`name.ilike.%${search}%,specialization.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)");
     expect(service).toContain("query = query.gte('created_at'");
     expect(service).toContain("query = query.lte('created_at'");
@@ -344,13 +363,17 @@ describe('DoctorsPage Staff contract', () => {
 
   it('keeps the Staff modal above mobile app chrome', () => {
     const shell = modalShellSource();
+    const chromeHook = modalChromeHookSource();
     const header = smartHeaderSource();
     const app = appSource();
 
-    expect(shell).toContain("document.querySelectorAll('[data-modal-chrome=\"true\"], #dynamic-bottom-bar')");
+    expect(shell).toContain("import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression'");
+    expect(shell).toContain('useModalChromeSuppression(isOpen);');
+    expect(shell).not.toContain('document.querySelectorAll');
+    expect(chromeHook).toContain("document.querySelectorAll('[data-modal-chrome=\"true\"], #dynamic-bottom-bar')");
+    expect(chromeHook).toContain("node.setAttribute('aria-hidden', 'true')");
     expect(shell).toContain('z-[420]');
     expect(shell).toContain('backdrop-blur-sm');
-    expect(shell).toContain("node.setAttribute('aria-hidden', 'true')");
     expect(header).toContain('data-modal-chrome="true"');
     expect(app).toContain('data-modal-chrome="true"');
     expect(app).not.toContain('z-[9999]');

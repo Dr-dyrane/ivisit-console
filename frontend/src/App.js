@@ -236,15 +236,15 @@ const AppShell = ({ children }) => {
 							// Right padding - 24px for consistency.
 							paddingRight: (isMobile || isBleedPage) ? 0 : 48,
 							// Top padding when scrolled - 16px.
-							paddingTop: isMobile ? 0 : (isBleedPage ? 0 : (isScrolledDown ? 0 : 16)),
+							paddingTop: (hideNav || isMobile) ? 0 : (isBleedPage ? 0 : (isScrolledDown ? 0 : 16)),
 							// Bottom padding - Respect iOS Safe Areas + Base clearance (Stable Restore)
-							paddingBottom: 'calc(16px + var(--safe-bottom))'
+							paddingBottom: hideNav ? 0 : 'calc(16px + var(--safe-bottom))'
 						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
 					>			{/* Simple Static Dot Grid - Apple-level simplicity */}
 
-						<div className={isBleedPage ? "" : "md:p-6"}>
+						<div className={(hideNav || isBleedPage) ? "" : "md:p-6"}>
 							{children}
 						</div>
 					</motion.div>

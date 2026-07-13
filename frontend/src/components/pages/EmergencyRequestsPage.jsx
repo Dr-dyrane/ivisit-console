@@ -9,14 +9,11 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import {
   cancelEmergencyRequest,
+  EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON,
   getEmergencyRequest,
-  getUserActivePaymentMethods,
-  retryPaymentWithDifferentMethod,
 } from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
-import * as walletService from '../../services/walletService';
 import { Button } from '../ui/button';
-import { ModalShell } from '../ui/ModalShell';
 // Console design system: the workspace grammar lives in shared components --
 // pages compose the canon instead of re-remembering it. This page is the DONOR
 // (the components carry its own markup verbatim), so adoption is zero-visual.
@@ -47,9 +44,7 @@ import {
   LayoutGrid,
   Loader2,
   MapPin,
-  RefreshCw,
   Send,
-  ShieldCheck,
   Trash2,
   UserRound,
   Wallet
@@ -145,12 +140,20 @@ const kpiOptions = [
     activeClass: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
     restClass: 'bg-card/65 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
   },
+  {
+    id: 'booking',
+    label: 'Booking',
+    icon: ClipboardCheck,
+    colorClass: 'text-emerald-600 dark:text-emerald-200',
+    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
+    restClass: 'bg-card/65 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-200',
+  },
 ];
 
 // Canon: AT MOST 3 chips, data-driven smart context, Today-matched tile spec --
 // the strip architecture now lives in the shared KpiStrip (S1.2); the page keeps
 // only the DOMAIN inputs: options, importance, pins, counts.
-const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, mine: 3, bed: 4, ambulance: 5 };
+const KPI_IMPORTANCE = { all: 0, pending: 1, active: 2, mine: 3, bed: 4, ambulance: 5, booking: 6 };
 
 const statusStyles = {
   pending_approval: {
@@ -187,7 +190,7 @@ const statusStyles = {
 const serviceIconMap = {
   ambulance: Ambulance,
   bed: BedDouble,
-  critical_care: ShieldCheck,
+  booking: ClipboardCheck,
 };
 
 const normalizeCount = (value, fallback = 0) => {
@@ -311,9 +314,9 @@ const getKpiCount = ({ id, stats, requests }) => {
     const rowCount = requests.filter((request) => isActiveEmergencyStatus(request.status)).length;
     return normalizeCount(stats?.active, rowCount);
   }
-  if (id === 'critical') {
-    const rowCount = requests.filter((request) => request.service_type === 'critical_care').length;
-    return normalizeCount(stats?.critical, rowCount);
+  if (id === 'booking') {
+    const rowCount = requests.filter((request) => request.service_type === 'booking').length;
+    return normalizeCount(stats?.booking, rowCount);
   }
   if (id === 'bed') {
     const rowCount = requests.filter((request) => request.service_type === 'bed').length;
@@ -374,13 +377,13 @@ const getRequestSignal = ({ stats, requests, kpiFilter, loadError }) => {
     };
   }
 
-  if (activeOption.id === 'critical') {
+  if (activeOption.id === 'booking') {
     return {
-      icon: ShieldCheck,
-      tone: 'critical',
-      label: 'Critical',
-      headline: count > 0 ? `${count} critical request${count === 1 ? '' : 's'}` : 'No critical requests',
-      subhead: count > 0 ? 'Prioritize critical care first.' : 'Critical requests will appear here.',
+      icon: ClipboardCheck,
+      tone: 'info',
+      label: 'Booking',
+      headline: count > 0 ? `${count} booking request${count === 1 ? '' : 's'}` : 'No booking requests',
+      subhead: count > 0 ? 'Review scheduled care requests.' : 'Booking requests will appear here.',
     };
   }
 
@@ -445,7 +448,6 @@ const requestToneClass = {
   danger: 'bg-destructive/12 text-destructive shadow-e2',
   clear: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200',
   warning: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
-  critical: 'bg-rose-500/10 text-rose-700 shadow-e2 dark:text-rose-200',
   info: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200',
   primary: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200',
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
@@ -455,12 +457,11 @@ const railPrimaryActionClass = {
   review: 'bg-destructive text-white shadow-e2-strong hover:bg-destructive/90',
   dispatch: 'bg-sky-600 text-white shadow-e2-strong hover:bg-sky-500',
   complete: 'bg-emerald-600 text-white shadow-e2-strong hover:bg-emerald-500',
-  retry: 'bg-amber-500 text-slate-950 shadow-e2-strong hover:bg-amber-400',
   details: 'bg-foreground text-background shadow-e2-strong hover:bg-foreground/90',
 };
 
 export const EmergencyRequestsPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId, profile, user, loading: authLoading } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver, profile, user, loading: authLoading } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
 
@@ -496,10 +497,6 @@ export const EmergencyRequestsPage = () => {
     confirmLabel: 'Cancel'
   });
   const [completeModal, setCompleteModal] = useState({ open: false, request: null });
-  const [retryModal, setRetryModal] = useState({ open: false, request: null, methods: [], selectedId: null });
-  // Retry is a direct service call (not a mutation hook), so pending is tracked
-  // manually — mirrors dispatchMutation.isPending / completeMutation.isPending.
-  const [retryPending, setRetryPending] = useState(false);
   // Wayfinding dock: first-click-wins navigation with the pressed-pill feedback
   // window comes from the shared stage (useWayfindingNav).
   const { routingPath, handleRailNavigate } = useWayfindingNav();
@@ -606,7 +603,7 @@ export const EmergencyRequestsPage = () => {
     filter: queryFilter,
   });
   const completeMutation = useEmergencyMutations({
-    mutationFn: ({ id }) => completeEmergency(id),
+    mutationFn: ({ id, request }) => completeEmergency(id, request),
     applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'completed'),
     filter: queryFilter,
   });
@@ -658,10 +655,22 @@ export const EmergencyRequestsPage = () => {
     setIsEmergencyModalOpen(true);
   }, []);
 
+  const handleOpenAnalytics = useCallback(() => {
+    if (!requestStats) {
+      const loadedCount = requests.length;
+      toast.info('Statistics unavailable', {
+        description: loadedCount > 0
+          ? `${loadedCount} loaded request${loadedCount === 1 ? '' : 's'} are a preview, not complete statistics.`
+          : 'Statistics are unavailable until the server summary loads.'
+      });
+      return;
+    }
+    setAnalyticsModalOpen(true);
+  }, [requestStats, requests.length]);
+
   useEffect(() => {
     const handleOpenModal = () => handleCreateEmergency();
     const handleOpenFilters = () => setFilterSheetOpen(true);
-    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openEmergencyModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
@@ -672,7 +681,7 @@ export const EmergencyRequestsPage = () => {
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [handleCreateEmergency]);
+  }, [handleCreateEmergency, handleOpenAnalytics]);
 
   const filterSchema = useMemo(() => [
     {
@@ -1029,21 +1038,6 @@ export const EmergencyRequestsPage = () => {
     }
 
     try {
-      if (isOrgAdmin() || isAdmin()) {
-        const targetOrgId = orgId || request.organization_id || request.hospital_id;
-        if (targetOrgId && targetOrgId.length === 36) {
-          const estimatedAmount = request.service_type === 'ambulance' ? 50 : 25;
-          const isEligible = await walletService.checkCashEligibility(targetOrgId, estimatedAmount);
-
-          if (!isEligible) {
-            toast.error('Wallet balance is too low', {
-              description: 'Top up the organization wallet before accepting cash jobs.'
-            });
-            return;
-          }
-        }
-      }
-
       toast.loading('Dispatching request...', { id: 'dispatch' });
       // Reused console_dispatch_emergency RPC (dispatchEmergency) wrapped by the
       // mutation; onSettled invalidates ['emergency'] so no manual refetch here.
@@ -1066,18 +1060,33 @@ export const EmergencyRequestsPage = () => {
       // operator knows why and does not retry blindly into the same collision.
       toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });
     }
-  }, [dispatchMutation.mutateAsync, fetchRequests, isAdmin, isOrgAdmin, orgId]);
+  }, [dispatchMutation.mutateAsync, fetchRequests]);
+
+  const canCurrentActorCompleteRequest = useCallback((request) => {
+    const actionState = getEmergencyActionState(request);
+    if (!actionState.canComplete) return false;
+    if (isAdmin() || isOrgAdmin()) return true;
+    return isProvider() && Boolean(user?.id) && request?.responder_id === user.id;
+  }, [isAdmin, isOrgAdmin, isProvider, user?.id]);
 
   const handleComplete = useCallback((request) => {
+    if (!canCurrentActorCompleteRequest(request)) {
+      toast.info('Only the assigned responder can complete this request.');
+      return;
+    }
     setCompleteModal({ open: true, request });
-  }, []);
+  }, [canCurrentActorCompleteRequest]);
 
   const executeComplete = useCallback(async (request) => {
     setCompleteModal({ open: false, request: null });
+    if (!canCurrentActorCompleteRequest(request)) {
+      toast.info('Only the assigned responder can complete this request.');
+      return;
+    }
     try {
       // Reused console_complete_emergency RPC (completeEmergency) wrapped by the
       // mutation; onSettled invalidates ['emergency'] so no manual refetch here.
-      await completeMutation.mutateAsync({ id: request.id });
+      await completeMutation.mutateAsync({ id: request.id, request });
 
       if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
         toast.warning('Cash follow-up needed', {
@@ -1088,9 +1097,9 @@ export const EmergencyRequestsPage = () => {
       }
     } catch (error) {
       console.error('Complete failed:', error);
-      toast.error('Failed to complete request');
+      toast.error(error?.message || 'Failed to complete request');
     }
-  }, [completeMutation.mutateAsync]);
+  }, [canCurrentActorCompleteRequest, completeMutation.mutateAsync]);
 
   const handleProcessCash = useCallback(() => {
     toast.info('Cash settlement is not ready here yet', {
@@ -1098,96 +1107,12 @@ export const EmergencyRequestsPage = () => {
     });
   }, []);
 
-  const formatMethodLabel = useCallback((method, index) => {
-    const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
-    const last4 = method?.last4 ? ` **** ${method.last4}` : '';
-    const exp =
-      Number.isFinite(Number(method?.expiry_month)) && Number.isFinite(Number(method?.expiry_year))
-        ? ` - exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
-        : '';
-    const defaultTag = method?.is_default ? ' (default)' : '';
-    return `${index + 1}. ${brand}${last4}${exp}${defaultTag}`;
+  const handleRetryPaymentUnavailable = useCallback(() => {
+    toast.info('Payment retry unavailable', {
+      description: EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON,
+    });
+    return false;
   }, []);
-
-  const handleRetryPayment = useCallback(async (request, preferredPaymentMethodId = null) => {
-    if (retryPending) return false;
-    const actionState = getEmergencyActionState(request);
-    if (!actionState.canRetryPayment) {
-      toast.info('This request is not ready for payment retry. Refreshing list...');
-      await fetchRequests();
-      return false;
-    }
-
-    const requestId = request?.id;
-    const userId = request?.user_id;
-    if (!requestId || !userId) {
-      toast.error('Missing request or patient identifier for retry');
-      return false;
-    }
-
-    try {
-      setRetryPending(true);
-      toast.loading('Preparing payment retry...', { id: 'retry-pay' });
-
-      if (preferredPaymentMethodId) {
-        await retryPaymentWithDifferentMethod(requestId, preferredPaymentMethodId, userId);
-        toast.success('Payment retry created', { id: 'retry-pay' });
-        await fetchRequests();
-        return true;
-      }
-
-      const methods = await getUserActivePaymentMethods(userId);
-      if (!Array.isArray(methods) || methods.length === 0) {
-        throw new Error('No active payment methods found for this patient');
-      }
-
-      toast.dismiss('retry-pay');
-
-      if (methods.length === 1) {
-        await retryPaymentWithDifferentMethod(requestId, methods[0].id, userId);
-        toast.success('Payment retry created', { id: 'retry-pay' });
-        await fetchRequests();
-        return true;
-      }
-
-      const defaultIndex = Math.max(0, methods.findIndex((method) => method.is_default));
-      setRetryModal({
-        open: true,
-        request,
-        methods,
-        selectedId: methods[defaultIndex]?.id || methods[0]?.id
-      });
-      return false;
-    } catch (error) {
-      console.error('Payment retry failed:', error);
-      toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
-      return false;
-    } finally {
-      setRetryPending(false);
-    }
-  }, [fetchRequests, retryPending]);
-
-  const closeRetryModal = useCallback(() => {
-    setRetryModal({ open: false, request: null, methods: [], selectedId: null });
-  }, []);
-
-  const executeRetryPayment = useCallback(async () => {
-    const { request, selectedId } = retryModal;
-    closeRetryModal();
-    if (!request?.id || !selectedId) return;
-    try {
-      setRetryPending(true);
-      toast.loading('Retrying payment...', { id: 'retry-pay' });
-      await retryPaymentWithDifferentMethod(request.id, selectedId, request.user_id);
-      toast.success('Payment retry created', { id: 'retry-pay' });
-      await fetchRequests();
-    } catch (error) {
-      console.error('Payment retry failed:', error);
-      toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
-    } finally {
-      setRetryPending(false);
-    }
-  }, [retryModal, fetchRequests, closeRetryModal]);
 
   return (
     <div className="min-h-screen text-foreground">
@@ -1205,9 +1130,9 @@ export const EmergencyRequestsPage = () => {
           onDispatch={handleDispatch}
           onComplete={handleComplete}
           onProcessCash={handleProcessCash}
-          onRetryPayment={handleRetryPayment}
+          onRetryPayment={handleRetryPaymentUnavailable}
           onRefresh={fetchRequests}
-          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          onViewAnalytics={handleOpenAnalytics}
           isAdmin={isAdmin() || isOrgAdmin()}
           onOpenFilters={() => setFilterSheetOpen(true)}
           filterSheetOpen={filterSheetOpen}
@@ -1234,7 +1159,6 @@ export const EmergencyRequestsPage = () => {
           includeMine={isDriver()}
           dispatchPending={dispatchMutation.isPending}
           completePending={completeMutation.isPending}
-          retryPending={retryPending}
           stats={requestStats}
           filters={filters}
           setFilters={setFilters}
@@ -1248,7 +1172,6 @@ export const EmergencyRequestsPage = () => {
           onDispatch={handleDispatch}
           onComplete={handleComplete}
           onProcessCash={handleProcessCash}
-          onRetryPayment={handleRetryPayment}
           pagination={pagination}
           openFilters={() => setFilterSheetOpen(true)}
           filterSheetOpen={filterSheetOpen}
@@ -1294,7 +1217,6 @@ export const EmergencyRequestsPage = () => {
           }
         }}
         request={activeDetailRequest}
-        onRetryPayment={handleRetryPayment}
       />
 
       <EmergencyRequestModal
@@ -1321,13 +1243,7 @@ export const EmergencyRequestsPage = () => {
       <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={requestStats || {
-          total: requests.length,
-          active: requests.filter((request) => isActiveEmergencyStatus(request.status)).length,
-          pending: requests.filter((request) => request.status === 'pending_approval').length,
-          critical: requests.filter((request) => request.service_type === 'critical_care').length,
-          avgResponseTime: 0
-        }}
+        analytics={requestStats}
         type="emergency"
       />
 
@@ -1339,6 +1255,7 @@ export const EmergencyRequestsPage = () => {
         description={confirmationModal.description}
         variant={confirmationModal.variant}
         confirmLabel={confirmationModal.confirmLabel}
+        isLoading={cancelMutation.isPending}
       />
 
       <ConfirmationModal
@@ -1351,53 +1268,6 @@ export const EmergencyRequestsPage = () => {
         confirmLabel="Mark complete"
       />
 
-      <ModalShell
-        isOpen={retryModal.open}
-        onClose={closeRetryModal}
-        title="Select payment method"
-        subtitle="Choose a saved method for the retry."
-        icon={<RefreshCw className="h-4 w-4 text-primary" />}
-        size="sm"
-        footer={(
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              className="flex-1 rounded-button"
-              onClick={closeRetryModal}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="flex-1 rounded-button font-bold"
-              onClick={executeRetryPayment}
-              disabled={!retryModal.selectedId || retryPending}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
-      >
-        <div className="flex flex-col gap-2 p-4 pt-1 md:px-6 md:pb-6">
-          {retryModal.methods.map((method, index) => (
-            <label
-              key={method.id}
-              className={`flex cursor-pointer items-center gap-3 rounded-inner p-3 transition-colors ${retryModal.selectedId === method.id ? 'bg-foreground/[0.06] text-foreground' : 'bg-muted/25 hover:bg-muted/40'}`}
-            >
-              <input
-                type="radio"
-                name="paymentMethod"
-                value={method.id}
-                checked={retryModal.selectedId === method.id}
-                onChange={() => setRetryModal(prev => ({ ...prev, selectedId: method.id }))}
-                className="accent-primary"
-              />
-              <span className="text-sm font-medium">{formatMethodLabel(method, index)}</span>
-            </label>
-          ))}
-        </div>
-      </ModalShell>
     </div>
   );
 };
@@ -1409,7 +1279,6 @@ const RequestsDesktopWorkspace = ({
   includeMine = false,
   dispatchPending = false,
   completePending = false,
-  retryPending = false,
   stats,
   filters,
   setFilters,
@@ -1423,7 +1292,6 @@ const RequestsDesktopWorkspace = ({
   onDispatch,
   onComplete,
   onProcessCash,
-  onRetryPayment,
   pagination,
   openFilters,
   filterSheetOpen,
@@ -1476,13 +1344,11 @@ const RequestsDesktopWorkspace = ({
           hasFilter={hasFilter}
           dispatchPending={dispatchPending}
           completePending={completePending}
-          retryPending={retryPending}
           onView={onView}
           onDelete={onDelete}
           onDispatch={onDispatch}
           onComplete={onComplete}
           onProcessCash={onProcessCash}
-          onRetryPayment={onRetryPayment}
         />
       )}
     >
@@ -1784,13 +1650,11 @@ const RequestDetailRail = ({
   hasFilter = false,
   dispatchPending = false,
   completePending = false,
-  retryPending = false,
   onView,
   onDelete,
   onDispatch,
   onComplete,
   onProcessCash,
-  onRetryPayment,
 }) => {
   // Hooks must run unconditionally — derive the projection before the early returns.
   const railProjection = request ? getRequestProjection(request) : null;
@@ -1884,7 +1748,10 @@ const RequestDetailRail = ({
       ].filter(Boolean).join(' · ')
     : '';
   const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();
-  const canCompleteAsProvider = currentUser.isProvider() && actionState.canComplete;
+  const canCompleteAsProvider = currentUser.isProvider()
+    && Boolean(currentUser.user?.id)
+    && request?.responder_id === currentUser.user.id
+    && actionState.canComplete;
   const primaryAction = getPrimaryRailAction({
     request,
     actionState,
@@ -1893,7 +1760,6 @@ const RequestDetailRail = ({
     onView,
     onDispatch,
     onComplete,
-    onRetryPayment,
   });
   const PrimaryIcon = primaryAction.icon;
   const StatusIcon = status.icon || AlertCircle;
@@ -1902,8 +1768,7 @@ const RequestDetailRail = ({
   // toast) acknowledges the round-trip and a double-tap cannot fire two RPCs.
   const primaryPending =
     (primaryAction.kind === 'dispatch' && dispatchPending) ||
-    (primaryAction.kind === 'complete' && completePending) ||
-    (primaryAction.kind === 'retry' && retryPending);
+    (primaryAction.kind === 'complete' && completePending);
 
   return (
     <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
@@ -2029,9 +1894,6 @@ const RequestDetailRail = ({
           {(canManage || canCompleteAsProvider) && actionState.canComplete && primaryAction.kind !== 'complete' && (
             <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} pending={completePending} />
           )}
-          {actionState.canRetryPayment && primaryAction.kind !== 'retry' && (
-            <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} pending={retryPending} />
-          )}
           {primaryAction.kind !== 'details' && (
             <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
           )}
@@ -2086,7 +1948,6 @@ const getPrimaryRailAction = ({
   onView,
   onDispatch,
   onComplete,
-  onRetryPayment,
 }) => {
   const status = canonicalizeEmergencyStatus(request?.status, null);
   if (status === 'pending_approval') {
@@ -2111,14 +1972,6 @@ const getPrimaryRailAction = ({
       label: 'Complete',
       icon: CheckCheck,
       onClick: onComplete,
-    };
-  }
-  if (actionState.canRetryPayment) {
-    return {
-      kind: 'retry',
-      label: 'Retry payment',
-      icon: RefreshCw,
-      onClick: onRetryPayment,
     };
   }
   return {

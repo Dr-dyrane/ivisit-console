@@ -11,7 +11,12 @@ import { CopyChip } from '../console/primitives';
 import { useAuth } from '../../contexts/AuthContext';
 import { handleApiError } from '../../utils/errorHandler';
 import { createNotification, NotificationActions, NotificationTypes } from '../../services/notificationService';
-import { createAmbulance, updateAmbulance } from '../../services/ambulancesService';
+import {
+  assertAmbulanceWriteScope,
+  createAmbulance,
+  filterAmbulanceStationOptions,
+  updateAmbulance,
+} from '../../services/ambulancesService';
 import { getHospitals } from '../../services/hospitalsService';
 import { useAmbulancesMutations, applyOptimisticUpsert } from '../../hooks/useAmbulancesMutations';
 
@@ -97,11 +102,10 @@ const getStatusTone = (status) => {
   return 'bg-muted/40 text-muted-foreground';
 };
 
-const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
+export const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
   const payload = {
     call_sign: formData.call_sign?.trim(),
     type: formData.type,
-    status: formData.status,
     vehicle_number: formData.vehicle_number?.trim(),
     license_plate: formData.license_plate?.trim(),
     hospital_id: formData.hospital_id || '',
@@ -113,6 +117,10 @@ const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
     // write payload (hand-typing it would write parallel dispatch truth).
     base_price: formData.base_price === '' ? undefined : Number(formData.base_price),
   };
+
+  // Existing status may have changed through dispatch after this modal opened.
+  // Generic edits therefore never submit it; only creation establishes a unit state.
+  if (isCreate) payload.status = formData.status || 'available';
 
   if (formData.organization_id) {
     payload.organization_id = formData.organization_id;
@@ -130,9 +138,17 @@ const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter }) => {
   const isView = mode === 'view';
   const isCreate = mode === 'create';
-  const { isOrgAdmin, orgId } = useAuth();
+  const { isAdmin, isOrgAdmin, orgId, profile } = useAuth();
+  const isAdminRole = isAdmin();
+  const isOrgAdminRole = isOrgAdmin();
+  const actorScope = useMemo(() => ({
+    role: isAdminRole ? 'admin' : (isOrgAdminRole ? 'org_admin' : profile?.role),
+    organization_id: profile?.organization_id || orgId || null,
+    hospital_ids: profile?.hospital_ids || [],
+    organization_scope: profile?.organization_scope || null,
+  }), [isAdminRole, isOrgAdminRole, orgId, profile]);
 
-  const [formData, setFormData] = useState(() => normalizeFormData(ambulance, orgId, isCreate, isOrgAdmin()));
+  const [formData, setFormData] = useState(() => normalizeFormData(ambulance, orgId, isCreate, isOrgAdminRole));
   const [hospitals, setHospitals] = useState([]);
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -163,8 +179,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
   });
 
   useEffect(() => {
-    setFormData(normalizeFormData(ambulance, orgId, isCreate, isOrgAdmin()));
-  }, [ambulance, orgId, isCreate, isOrgAdmin]);
+    setFormData(normalizeFormData(ambulance, orgId, isCreate, isOrgAdminRole));
+  }, [ambulance, orgId, isCreate, isOrgAdminRole]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -174,7 +190,9 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
 
     getHospitals({ quiet: true, limit: 500 })
       .then((rows) => {
-        if (!cancelled) setHospitals(Array.isArray(rows) ? rows : []);
+        if (!cancelled) {
+          setHospitals(filterAmbulanceStationOptions(Array.isArray(rows) ? rows : [], actorScope));
+        }
       })
       .catch((error) => {
         if (!cancelled) {
@@ -189,7 +207,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [actorScope, isOpen]);
 
   const stationName = useMemo(() => {
     const selected = hospitals.find((hospital) => hospital.id === formData.hospital_id);
@@ -198,7 +216,17 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
 
   const status = String(formData.status || 'available').toLowerCase();
   const tripOwnedStatus = TRIP_OWNED_STATUSES.has(status);
-  const canSubmit = !isView && formData.call_sign?.trim() && formData.type && !loading;
+  const selectedStationIsInScope = !formData.hospital_id
+    || hospitals.some((hospital) => hospital.id === formData.hospital_id);
+  const stationOutOfScope = isOrgAdminRole
+    && Boolean(formData.hospital_id)
+    && !loadingHospitals
+    && !selectedStationIsInScope;
+  const canSubmit = !isView
+    && formData.call_sign?.trim()
+    && formData.type
+    && !stationOutOfScope
+    && !loading;
   const modalTitle = isCreate ? 'New unit' : formData.call_sign || 'Ambulance unit';
   // display_id + CopyChip in the subtitle (perk 10; mirrors HospitalModal) -- a
   // fleet-unit reference, never a write key.
@@ -229,7 +257,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
     setLoading(true);
 
     try {
-      const payload = buildAmbulancePayload(formData, { isCreate, isOrgAdmin: isOrgAdmin(), orgId });
+      const payload = buildAmbulancePayload(formData, { isCreate, isOrgAdmin: isOrgAdminRole, orgId });
+      assertAmbulanceWriteScope(payload, actorScope);
       // mutateAsync routes through the same createAmbulance / updateAmbulance RPCs,
       // adding optimistic upsert + rollback and the single onSettled refresh. Carry
       // the id in the update variables so applyOptimisticUpsert matches the cached
@@ -377,14 +406,14 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
                   <ReadOnlyField value={stationName} subtext={formData.hospital_id || ''} icon={<MapPin className="h-4 w-4" />} />
                 ) : (
                   <Select
-                    value={formData.hospital_id || undefined}
+                    value={selectedStationIsInScope ? (formData.hospital_id || undefined) : undefined}
                     onValueChange={(value) => setFormData((current) => ({ ...current, hospital_id: value }))}
                   >
                     <SelectTrigger className={`${modalFieldClassName} h-12`}>
-                      <SelectValue placeholder={loadingHospitals ? 'Loading stations...' : 'Select station'} />
+                      <SelectValue placeholder={loadingHospitals ? 'Loading stations...' : (stationOutOfScope ? 'Select an authorized station' : 'Select station')} />
                     </SelectTrigger>
                     <SelectContent className={modalSelectContentClassName}>
-                      {formData.hospital_id && !hospitals.some((hospital) => hospital.id === formData.hospital_id) && (
+                      {isAdminRole && formData.hospital_id && !hospitals.some((hospital) => hospital.id === formData.hospital_id) && (
                         <SelectItem value={formData.hospital_id}>{stationName}</SelectItem>
                       )}
                       {hospitals.map((hospital) => (
@@ -394,6 +423,11 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
                       ))}
                     </SelectContent>
                   </Select>
+                )}
+                {stationOutOfScope && (
+                  <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-200" role="alert">
+                    This station is outside your organization. Select an authorized station before saving.
+                  </p>
                 )}
               </FieldGroup>
 
@@ -417,10 +451,10 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode, listFilter })
           <GlassCard icon={<Wrench />} title="Status">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FieldGroup label="Current status">
-                {isView || tripOwnedStatus ? (
+                {!isCreate ? (
                   <ReadOnlyField
                     value={formatLabel(status, 'Available')}
-                    subtext={tripOwnedStatus && !isView ? 'Trip status changes stay in Requests.' : ''}
+                    subtext={tripOwnedStatus ? 'Trip status changes stay in Requests.' : 'Status changes require the authorized fleet workflow.'}
                     icon={<Activity className="h-4 w-4" />}
                   />
                 ) : (

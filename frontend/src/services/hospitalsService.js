@@ -62,6 +62,7 @@ const HOSPITAL_UPDATE_FIELDS = [
   'place_id',
   'updated_at',
 ];
+const HOSPITAL_STATUS_VALUES = new Set(['available', 'busy', 'closed', 'full']);
 
 const toTrimmedOrNull = (value) => {
   if (value === undefined || value === null) return null;
@@ -75,10 +76,13 @@ const toFiniteOrNull = (value) => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-const toNonNegativeIntOrNull = (value) => {
+const toNonNegativeIntOrNull = (value, fieldName) => {
   const numberValue = toFiniteOrNull(value);
   if (numberValue === null) return null;
-  return Math.max(0, Math.round(numberValue));
+  if (!Number.isInteger(numberValue) || numberValue < 0) {
+    throw new Error(`${fieldName} must be a whole number of zero or more`);
+  }
+  return numberValue;
 };
 
 const toTextArray = (value) => {
@@ -210,7 +214,7 @@ export async function getHospitalPageStats(filters = {}, quiet = false) {
   };
 }
 
-function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
+export function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
   const payload = {};
   const hasOwn = (key) => Object.prototype.hasOwnProperty.call(input, key);
 
@@ -220,51 +224,54 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
     payload.name = name || 'Unnamed Facility';
     payload.address = address || 'Address unavailable';
   } else {
+    if (hasOwn('name') && name === null) throw new Error('Facility name is required');
+    if (hasOwn('address') && address === null) throw new Error('Facility address is required');
     if (name !== null) payload.name = name;
     if (address !== null) payload.address = address;
   }
 
   const phone = toTrimmedOrNull(input.phone);
-  if (phone !== null || isCreate) payload.phone = phone;
+  if (isCreate || hasOwn('phone')) payload.phone = phone ?? '';
 
   const rating = toFiniteOrNull(input.rating);
   if (rating !== null || isCreate) payload.rating = rating ?? 0;
 
   const type = toTrimmedOrNull(input.type);
+  if (!isCreate && hasOwn('type') && type === null) throw new Error('Facility tier is required');
   if (type !== null || isCreate) payload.type = type ?? 'standard';
 
   const image = toTrimmedOrNull(input.image);
-  if (image !== null || isCreate) payload.image = image;
+  if (isCreate || hasOwn('image')) payload.image = image ?? '';
 
   if (isCreate || hasOwn('specialties')) payload.specialties = toTextArray(input.specialties);
   if (isCreate || hasOwn('service_types')) payload.service_types = toTextArray(input.service_types);
   if (isCreate || hasOwn('features')) payload.features = toTextArray(input.features);
 
   const emergencyLevel = toTrimmedOrNull(input.emergency_level);
-  if (emergencyLevel !== null || isCreate) payload.emergency_level = emergencyLevel;
+  if (isCreate || hasOwn('emergency_level')) payload.emergency_level = emergencyLevel ?? '';
 
-  const availableBeds = toNonNegativeIntOrNull(input.available_beds);
+  const availableBeds = toNonNegativeIntOrNull(input.available_beds, 'Available beds');
   if (availableBeds !== null || isCreate) payload.available_beds = availableBeds ?? 0;
 
-  const icuBedsAvailable = toNonNegativeIntOrNull(input.icu_beds_available);
+  const icuBedsAvailable = toNonNegativeIntOrNull(input.icu_beds_available, 'ICU beds');
   if (icuBedsAvailable !== null || isCreate) payload.icu_beds_available = icuBedsAvailable ?? 0;
 
-  const totalBeds = toNonNegativeIntOrNull(input.total_beds);
+  const totalBeds = toNonNegativeIntOrNull(input.total_beds, 'Total beds');
   if (totalBeds !== null || isCreate) payload.total_beds = totalBeds ?? 0;
 
-  const ambulancesCount = toNonNegativeIntOrNull(input.ambulances_count);
+  const ambulancesCount = toNonNegativeIntOrNull(input.ambulances_count, 'Ambulances');
   if (ambulancesCount !== null || isCreate) payload.ambulances_count = ambulancesCount ?? 0;
 
-  const emergencyWaitMinutes = toNonNegativeIntOrNull(input.emergency_wait_time_minutes);
+  const emergencyWaitMinutes = toNonNegativeIntOrNull(input.emergency_wait_time_minutes, 'Emergency wait time');
   if (emergencyWaitMinutes !== null || isCreate) {
     payload.emergency_wait_time_minutes = emergencyWaitMinutes ?? 0;
   }
 
   const waitTime = toTrimmedOrNull(input.wait_time);
-  if (waitTime !== null || isCreate) payload.wait_time = waitTime;
+  if (isCreate || hasOwn('wait_time')) payload.wait_time = waitTime ?? '';
 
   const priceRange = toTrimmedOrNull(input.price_range);
-  if (priceRange !== null || isCreate) payload.price_range = priceRange;
+  if (isCreate || hasOwn('price_range')) payload.price_range = priceRange ?? '';
 
   const latitude = toFiniteOrNull(input.latitude);
   const longitude = toFiniteOrNull(input.longitude);
@@ -278,10 +285,26 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
   if (verificationStatus !== null || isCreate) payload.verification_status = verificationStatus ?? 'pending';
 
   const status = toTrimmedOrNull(input.status);
+  if (status !== null && !HOSPITAL_STATUS_VALUES.has(status)) {
+    throw new Error('Operational status is not recognized');
+  }
   if (status !== null || isCreate) payload.status = status ?? 'available';
 
   const placeId = toTrimmedOrNull(input.place_id);
-  if (placeId !== null || isCreate) payload.place_id = placeId;
+  if (isCreate || hasOwn('place_id')) payload.place_id = placeId ?? '';
+
+  if (availableBeds !== null && totalBeds !== null && availableBeds > totalBeds) {
+    throw new Error('Available beds cannot exceed total beds');
+  }
+  if (icuBedsAvailable !== null && availableBeds !== null && icuBedsAvailable > availableBeds) {
+    throw new Error('ICU beds cannot exceed available beds');
+  }
+  if (status === 'available' && availableBeds === 0) {
+    throw new Error('Available facilities must report at least one available bed');
+  }
+  if (status === 'full' && availableBeds !== null && availableBeds > 0) {
+    throw new Error('Full facilities cannot report available beds');
+  }
 
   const nowIso = new Date().toISOString();
   payload.updated_at = nowIso;
@@ -489,13 +512,24 @@ export async function updateHospital(hospitalId, input) {
     // withAudit: critical write to the shared `hospitals` table via SECURITY
     // DEFINER RPC. Return shape unchanged (the RPC's data).
     return await withAudit('hospital.update', 'hospital', async () => {
-      const { data, error } = await supabase.rpc('update_hospital_by_admin', {
+      const { data: rpcResult, error } = await supabase.rpc('update_hospital_by_admin', {
         target_hospital_id: hospitalId,
         payload
       });
 
       if (error) throw error;
+      if (!rpcResult?.success) {
+        throw new Error(rpcResult?.error || 'Facility update was not confirmed');
+      }
 
+      const { data, error: readError } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('id', hospitalId)
+        .maybeSingle();
+
+      if (readError) throw readError;
+      if (!data) throw new Error('Facility no longer exists');
       return data;
     }, { hospital_id: hospitalId });
   } catch (error) {

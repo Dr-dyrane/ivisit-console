@@ -21,7 +21,6 @@ describe('SupportTicketsPage canonical source contract', () => {
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
-  const pageDataSource = () => fs.readFileSync('src/config/pageDataAccess.js', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
   const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
@@ -91,7 +90,6 @@ describe('SupportTicketsPage canonical source contract', () => {
   it('locks Support to the shared shell and route-owned data model', () => {
     const page = pageSource();
     const service = serviceSource();
-    const pageData = pageDataSource();
     const contextPanel = contextPanelSource();
     const fab = fabSource();
     const bottomBar = bottomBarSource();
@@ -177,7 +175,6 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(service).toContain('export async function getSupportTicketsPageStats');
     expect(service).toContain('throw error;');
 
-    expect(pageData).toContain("pathname === '/support-tickets'");
     expect(routeOwnsStartupDomains('/support-tickets')).toBe(true);
     expect(getPageDataStartupDomainsForRole('provider', '/support-tickets')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('org_admin', '/support-tickets')).toEqual([]);
@@ -209,6 +206,10 @@ describe('SupportTicketsPage canonical source contract', () => {
     );
 
     expect(service).toContain('export async function deleteSupportTicket(ticketId)');
+    expect(service).toContain(".select('id')");
+    expect(service).toContain('.maybeSingle()');
+    expect(service).toContain('if (!data?.id)');
+    expect(service).toContain('return deletedTicket;');
     expect(service).toContain('export async function updateTicketStatus(ticketId, status)');
     expect(service).toContain('export async function assignTicket(ticketId, assignedTo)');
 
@@ -242,6 +243,70 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(modal).not.toContain('assigned_to');
   });
 
+  it('guards destructive and assignment commands while one layer owns save errors', () => {
+    const page = pageSource();
+    const modal = modalSource();
+    const saveHandler = page.slice(
+      page.indexOf('const handleSave = useCallback'),
+      page.indexOf('const closeConfirmation = useCallback')
+    );
+
+    expect(page).toContain('const deletePendingRef = useRef(false);');
+    expect(page).toContain('const assignPendingRef = useRef(false);');
+    expect(page).toContain('if (deletePendingRef.current) return;');
+    expect(page).toContain('if (assignPendingRef.current) return;');
+    expect(page).toContain('isLoading={deletePending}');
+    expect(page).toContain('disabled={assignPending}');
+    expect(page).toContain('disabled={deletePending}');
+    expect(saveHandler).not.toContain('handleApiError');
+    expect(modal).toContain("handleApiError(error, isCreate ? 'create' : 'update')");
+  });
+
+  it('tombstones only receiver-confirmed deletes across every mobile page and Support cache', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const singleDelete = page.slice(
+      page.indexOf('// Single delete:'),
+      page.indexOf('// Bulk delete')
+    );
+    const bulkDelete = page.slice(
+      page.indexOf('// Bulk delete'),
+      page.indexOf('// Provider self-assign')
+    );
+
+    expect(page).toContain('const [confirmedDeletedTicketIds, setConfirmedDeletedTicketIds] = useState([]);');
+    expect(page).toContain('recordConfirmedTicketDeletion');
+    expect(page).toContain("{ queryKey: ['support'] }");
+    expect(page).toContain('pruneSupportTicketIdsFromCache(cache, confirmedDeletedTicketIds)');
+    expect(page).toContain('currentPage={pagination.currentPage}');
+    expect(page).toContain('confirmedDeletedTicketIds={confirmedDeletedTicketIds}');
+    expect(singleDelete.indexOf('recordConfirmedTicketDeletion')).toBeGreaterThan(singleDelete.indexOf('mutateAsync(ticket.id)'));
+    expect(bulkDelete.indexOf('recordConfirmedTicketDeletion')).toBeGreaterThan(bulkDelete.indexOf('mutateAsync(id)'));
+
+    expect(mobile).toContain('createMobileSupportAccumulator');
+    expect(mobile).toContain('reconcileMobileSupportAccumulator');
+    expect(mobile).toContain('lastSourceByPage: new Map()');
+    expect(mobile).toContain('deletedIds: new Set()');
+    expect(mobile).toContain('store.pages.set(normalizedPage');
+    expect(mobile).toContain('store.deletedIds.has(id)');
+    expect(mobile).toContain('confirmedDeletedTicketIds = EMPTY_TICKET_IDS');
+  });
+
+  it('labels Support analytics as a visible-page projection without fake high or timing values', () => {
+    const page = pageSource();
+    const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+
+    expect(page).toContain('buildAnalytics(supportStats, ticketRows)');
+    expect(page).toContain("averageResolutionScope: 'visible_page'");
+    expect(page).toContain("distributionScope: 'visible_page'");
+    expect(page).toContain('byPriority[priority] = (byPriority[priority] || 0) + 1;');
+    expect(page).not.toContain('high: safeStats.urgent');
+    expect(page).not.toContain('averageResolutionTime: 0');
+    expect(analyticsModal).toContain("type === 'support'");
+    expect(analyticsModal).toContain("'Avg on page'");
+    expect(analyticsModal).toContain("'High on page'");
+  });
+
   it('recomposes mobile Support to the canon LIST while preserving f31f29f affordances', () => {
     const mobile = mobileSource();
     const oldMobile = headSource('frontend/src/components/mobile/MobileSupportTickets.jsx');
@@ -266,7 +331,7 @@ describe('SupportTicketsPage canonical source contract', () => {
 
     // Canon LIST composition (mirrors MobileUsers exactly): heading + KPI strip + canon
     // SearchRow + grouped panel + group-shaped skeleton + warm-up + Updating pill on the
-    // REAL refetch signal (isFetching) + id-keyed load-more accumulator, all mount-motion-free.
+    // REAL refetch signal (isFetching) + page-keyed load-more accumulator, all mount-motion-free.
     expect(mobile).toContain('MobileHeading');
     expect(mobile).toContain('SearchRow');
     expect(mobile).toContain('GroupPanel');

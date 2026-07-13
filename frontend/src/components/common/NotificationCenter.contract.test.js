@@ -17,8 +17,13 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain('if (fetchSeq !== fetchSeqRef.current) return;');
     expect(centerSource).toContain('fetchNotifications({ force: true })');
     expect(centerSource).toContain('notification refresh should not break the shell');
+    expect(centerSource).toContain("setLoadError('Notifications could not be refreshed. Try again.')");
+    expect(centerSource).toContain('<NotificationLoadError onRetry={handleRetryNotifications} />');
+    expect(centerSource).toContain('role="alert"');
+    expect(centerSource).toContain('Notifications unavailable');
     expect(serviceSource).toContain('export const getNotifications = async (userId, limit = 50, read = null, options = {})');
     expect(serviceSource).toContain('if (!options?.quiet) {');
+    expect(serviceSource).toMatch(/if \(!options\?\.quiet\) \{[\s\S]*?throw error;\s*\}\s*\};/);
   });
 
   it('keeps notifications as shared shell chrome with immediate feedback', () => {
@@ -39,8 +44,13 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain('? { ...notification, read: true }');
     expect(centerSource).toContain('const results = await Promise.all(');
     expect(centerSource).toContain('const failedIds = results.filter(result => !result.ok).map(result => result.id);');
-    expect(centerSource).toContain('? { ...notification, read: false }');
-    expect(centerSource).toContain('const handleMarkAllRead = useCallback(() =>');
+    expect(centerSource).toContain('previousReadById.get(notification.id)');
+    expect(centerSource).toContain('const handleMarkAllRead = useCallback(async () =>');
+    expect(centerSource).toContain('setMarkingAll(true)');
+    expect(centerSource).toContain('setMarkingAll(false)');
+    expect(centerSource).toContain("setMutationError('Some notifications could not be marked as read. Try again.')");
+    expect(centerSource).toContain("data-state={markingAll ? 'pending' : 'ready'}");
+    expect(centerSource).toContain("markingAll ? 'Marking as read...' : unreadCount === 0 ? 'All caught up' : 'Mark all as read'");
     expect(centerSource).toContain('onClick={handleMarkAllRead}');
     expect(centerSource).not.toContain("import { Card } from '../ui/card';");
     expect(centerSource).not.toContain('border-b');

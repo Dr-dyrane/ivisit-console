@@ -12,6 +12,19 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { getAvatarFallback } from '../../lib/avatarUtils';
 
+export const runVerificationAction = async ({
+  onVerify,
+  providerId,
+  value,
+  onSuccess,
+}) => {
+  const result = await onVerify(providerId, value);
+  if (result === false) return false;
+
+  onSuccess?.();
+  return true;
+};
+
 export const VerificationModal = ({
   isOpen,
   provider,
@@ -58,9 +71,15 @@ export const VerificationModal = ({
 
     try {
       if (mode === 'edit') {
-        await onVerify(provider.id, formData);
-        toast.success('Verification status updated successfully');
-        onClose();
+        await runVerificationAction({
+          onVerify,
+          providerId: provider.id,
+          value: formData,
+          onSuccess: () => {
+            toast.success('Verification status updated successfully');
+            onClose();
+          },
+        });
       }
     } catch (error) {
       console.error('VerificationModal save failed:', error);
@@ -92,9 +111,15 @@ export const VerificationModal = ({
   const handleVerifyAction = async (approved) => {
     setLoading(true);
     try {
-      await onVerify(provider.id, approved);
-      toast.success(approved ? 'Provider approved successfully!' : 'Provider verification rejected');
-      onClose();
+      await runVerificationAction({
+        onVerify,
+        providerId: provider.id,
+        value: approved,
+        onSuccess: () => {
+          toast.success(approved ? 'Provider approved successfully!' : 'Provider verification rejected');
+          onClose();
+        },
+      });
     } catch (error) {
       handleApiError(error, 'update');
     } finally {

@@ -26,9 +26,10 @@ import {
 // (isAdmin||isOrgAdmin). Free status transition (updateTicketStatus) is service-inventory
 // only and NEVER wired here. Bulk selection stays DESKTOP-ONLY by design -- this mobile
 // carries no row-selection state / selection bar.
-// grammar:loadmore-append=id-keyed-accumulator -- the page query is WINDOWED (offset =
-// paginationRange.start), so each page REPLACES `tickets`; the accumulatorRef below stitches
-// windows into the growing list (see MobileUsers). Load-more APPENDS, never replaces.
+// grammar:loadmore-append=page-keyed-accumulator -- the page query is WINDOWED (offset =
+// paginationRange.start), so each page REPLACES `tickets`; the accumulatorRef below retains
+// each settled window. Receiver-confirmed delete tombstones prune every window and block stale
+// cache or later load-more rows from reviving a deleted ticket.
 import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupPanel } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
@@ -44,6 +45,102 @@ import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
 const metricValue = (value, fallback = 0) => {
     const numericValue = Number(value);
     return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const EMPTY_TICKET_IDS = Object.freeze([]);
+const ticketIdKey = (value) => {
+    if (value === null || value === undefined) return null;
+    const key = String(value).trim();
+    return key || null;
+};
+
+const deletedTicketIdSet = (ticketIds = EMPTY_TICKET_IDS) => new Set(
+    (Array.isArray(ticketIds) ? ticketIds : [])
+        .map(ticketIdKey)
+        .filter(Boolean)
+);
+
+export const createMobileSupportAccumulator = () => ({
+    signature: null,
+    pages: new Map(),
+    lastSourceByPage: new Map(),
+    deletedIds: new Set(),
+});
+
+export const reconcileMobileSupportAccumulator = ({
+    accumulator,
+    signature,
+    pageKey = 1,
+    sourceTickets = [],
+    confirmedDeletedTicketIds = EMPTY_TICKET_IDS,
+}) => {
+    const store = accumulator || createMobileSupportAccumulator();
+    if (!(store.pages instanceof Map)) store.pages = new Map();
+    if (!(store.lastSourceByPage instanceof Map)) store.lastSourceByPage = new Map();
+    if (!(store.deletedIds instanceof Set)) store.deletedIds = new Set();
+
+    const normalizedPage = Number.isFinite(Number(pageKey)) && Number(pageKey) > 0
+        ? Number(pageKey)
+        : 1;
+    const rows = Array.isArray(sourceTickets) ? sourceTickets : [];
+
+    deletedTicketIdSet(confirmedDeletedTicketIds).forEach((id) => store.deletedIds.add(id));
+
+    if (store.signature !== signature) {
+        store.signature = signature;
+        store.pages = new Map();
+        store.lastSourceByPage = new Map();
+    }
+
+    if (store.lastSourceByPage.get(normalizedPage) !== rows) {
+        store.lastSourceByPage.set(normalizedPage, rows);
+        store.pages.set(normalizedPage, rows.filter((ticket) => {
+            const id = ticketIdKey(ticket?.id);
+            return id && !store.deletedIds.has(id);
+        }));
+    }
+
+    for (const [page, pageRows] of store.pages.entries()) {
+        const visibleRows = pageRows.filter((ticket) => {
+            const id = ticketIdKey(ticket?.id);
+            return id && !store.deletedIds.has(id);
+        });
+        if (visibleRows.length !== pageRows.length) store.pages.set(page, visibleRows);
+    }
+
+    const orderedPages = [...store.pages.entries()].sort(([left], [right]) => Number(left) - Number(right));
+    const order = [];
+    const byId = new Map();
+    orderedPages.forEach(([, pageRows]) => {
+        pageRows.forEach((ticket) => {
+            const id = ticketIdKey(ticket?.id);
+            if (!id || store.deletedIds.has(id)) return;
+            if (!byId.has(id)) order.push(id);
+            byId.set(id, ticket);
+        });
+    });
+
+    return order.map((id) => byId.get(id));
+};
+
+export const pruneSupportTicketIdsFromCache = (cache, ticketIds = EMPTY_TICKET_IDS) => {
+    if (!cache || !Array.isArray(cache.data)) return cache;
+
+    const deletedIds = deletedTicketIdSet(ticketIds);
+    if (deletedIds.size === 0) return cache;
+
+    const data = cache.data.filter((ticket) => !deletedIds.has(ticketIdKey(ticket?.id)));
+    const removedCount = cache.data.length - data.length;
+    if (removedCount === 0) return cache;
+
+    const currentCount = Number(cache.count);
+    return {
+        ...cache,
+        data,
+        count: Number.isFinite(currentCount)
+            ? Math.max(0, currentCount - removedCount)
+            : cache.count,
+    };
 };
 
 const priorityLabel = (value) => {
@@ -147,6 +244,7 @@ export const MobileSupportTickets = ({
     loading = false,
     isFetching = false,
     errorMessage = null,
+    convergenceMessage = null,
     onRetry,
     onOpenFilters,
     onViewAnalytics,
@@ -154,6 +252,8 @@ export const MobileSupportTickets = ({
     analyticsOpen = false,
     hasMore = false,
     onLoadMore,
+    currentPage = 1,
+    confirmedDeletedTicketIds = EMPTY_TICKET_IDS,
 }) => {
     const observerTarget = useRef(null);
     const [activeTicket, setActiveTicket] = useState(null);
@@ -179,10 +279,9 @@ export const MobileSupportTickets = ({
         return () => observer.disconnect();
     }, [hasMore, triggerLoad]);
 
-    // Load-more ACCUMULATES (id-keyed store): the page query is WINDOWED (offset =
-    // paginationRange.start), so each page REPLACES `tickets`; this stitches windows into the
-    // growing list. Scope change (search/kpi/filters) resets; same-scope non-empty appends;
-    // same-scope settled-empty clears (kills placeholder poisoning).
+    // Load-more retains each page window separately. That lets an optimistic delete roll a
+    // failed page back exactly, while only receiver-confirmed ids become durable tombstones.
+    // Tombstones prune every loaded page and are also applied to every future page payload.
     const filterSignature = JSON.stringify({
         search: filters?.search || '',
         kpi: filters?.kpiFilter || 'all',
@@ -190,28 +289,24 @@ export const MobileSupportTickets = ({
         priority: filters?.priority || [],
         category: filters?.category || [],
     });
-    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map(), lastSource: null });
-    const ticketRows = useMemo(() => {
-        const store = accumulatorRef.current;
-        const reset = () => { store.order = []; store.byId = new Map(); };
-        const absorb = (row) => {
-            const id = row?.id;
-            if (id === null || id === undefined) return;
-            if (!store.byId.has(id)) store.order.push(id);
-            store.byId.set(id, row);
-        };
-        if (store.signature !== filterSignature) {
-            store.signature = filterSignature;
-            store.lastSource = sourceTickets;
-            reset();
-            sourceTickets.forEach(absorb);
-        } else if (store.lastSource !== sourceTickets) {
-            store.lastSource = sourceTickets;
-            if (sourceTickets.length === 0) reset();
-            else sourceTickets.forEach(absorb);
-        }
-        return store.order.map((id) => store.byId.get(id));
-    }, [sourceTickets, filterSignature]);
+    const accumulatorRef = useRef(createMobileSupportAccumulator());
+    const ticketRows = useMemo(() => reconcileMobileSupportAccumulator({
+        accumulator: accumulatorRef.current,
+        signature: filterSignature,
+        pageKey: currentPage,
+        sourceTickets,
+        confirmedDeletedTicketIds,
+    }), [confirmedDeletedTicketIds, currentPage, filterSignature, sourceTickets]);
+    const confirmedDeletedIds = useMemo(
+        () => deletedTicketIdSet(confirmedDeletedTicketIds),
+        [confirmedDeletedTicketIds]
+    );
+
+    useEffect(() => {
+        if (!activeTicket) return;
+        const activeId = ticketIdKey(activeTicket.id);
+        if (activeId && confirmedDeletedIds.has(activeId)) setActiveTicket(null);
+    }, [activeTicket, confirmedDeletedIds]);
 
     const { displayItems: displayTickets, isBuffering } = useStableList(ticketRows, loading);
     const warmingUp = useSkeletonWarmup();
@@ -278,7 +373,7 @@ export const MobileSupportTickets = ({
                 orbClass={orbClassFor(status)}
                 icon={statusIcon(status)}
                 title={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
-                meta={`${priorityLabel(priority)} priority · ${categoryLabel(ticket.category)}`}
+                meta={`${priorityLabel(priority)} priority - ${categoryLabel(ticket.category)}`}
                 time={formatRelativeTime(ticket.created_at)}
                 markerChip={urgent ? priorityLabel(priority) : null}
                 pill={vital?.pill}
@@ -326,7 +421,34 @@ export const MobileSupportTickets = ({
                         <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
                         <div className="mt-3 space-y-2">
-                            {errorMessage && displayTickets.length > 0 && (
+                            {convergenceMessage && (
+                                <div
+                                    role="status"
+                                    className="rounded-card bg-amber-500/10 p-4 text-amber-900 dark:text-amber-100"
+                                    data-testid="mobile-support-create-convergence-warning"
+                                >
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold">Request saved</p>
+                                            <p className="mt-1 text-xs leading-5 text-amber-900/75 dark:text-amber-100/75">
+                                                {convergenceMessage}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {onRetry && (
+                                        <button
+                                            type="button"
+                                            onClick={onRetry}
+                                            className="mt-3 h-9 rounded-inner bg-amber-500/10 px-4 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-500/15 active:scale-[0.96] dark:text-amber-100"
+                                        >
+                                            Refresh
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {errorMessage && !convergenceMessage && displayTickets.length > 0 && (
                                 <div
                                     className="rounded-card bg-destructive/10 p-4 text-destructive"
                                     data-testid="mobile-support-degraded-state"

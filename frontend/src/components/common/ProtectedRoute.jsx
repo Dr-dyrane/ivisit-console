@@ -1,12 +1,39 @@
 import React from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { ASSURANCE_STATUS, useAuth } from "../../contexts/AuthContext";
 import { DynamicAuthSkeleton } from "../ui/skeleton";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { Loader2, LockKeyhole, LogOut } from "lucide-react";
 import { getAccessibleNav } from "../../config/navigation";
 import { toast } from "sonner";
+
+const BACK_NAVIGATION_FALLBACK_MS = 450;
+
+export const hasUsableBrowserHistory = () => {
+	if (typeof window === 'undefined') return false;
+	const routerIndex = window.history.state?.idx;
+	if (Number.isInteger(routerIndex)) return routerIndex > 0;
+	return window.history.length > 1;
+};
+
+export const getAccessibleFallbackPath = (profile, canHelper, providedNav = null) => {
+	if (!profile) return null;
+	const accessibleNav = providedNav || getAccessibleNav(profile, canHelper);
+	const candidates = [
+		...(accessibleNav.main || []),
+		...(accessibleNav.ops?.items || []),
+		...(accessibleNav.mgmt?.items || []),
+		...(accessibleNav.finance?.items || []),
+		...(accessibleNav.user?.items || []),
+	];
+	const fallback = candidates.find((item) => (
+		item?.path
+		&& item.path !== '/unauthorized'
+		&& checkPathAccess(item.path, accessibleNav)
+	));
+	return fallback?.path || null;
+};
 
 export const ProtectedRoute = ({
 	children,
@@ -15,7 +42,17 @@ export const ProtectedRoute = ({
 	resource = null,
 	path = null,
 }) => {
-	const { user, profile, authError, loading, hasRole, hasMinRole, can, isOnboarding } = useAuth();
+	const {
+		user,
+		profile,
+		authError,
+		assuranceState,
+		loading,
+		hasRole,
+		hasMinRole,
+		can,
+		isOnboarding,
+	} = useAuth();
 	const location = useLocation();
 	const normalizePath = (value) => {
 		if (!value) return "/";
@@ -31,6 +68,18 @@ export const ProtectedRoute = ({
 
 	if (!user) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
+	}
+
+	if (assuranceState?.status === ASSURANCE_STATUS.CHECKING) {
+		return <DynamicAuthSkeleton pathname={currentPath} />;
+	}
+
+	if (assuranceState?.status === ASSURANCE_STATUS.MFA_REQUIRED) {
+		return <Navigate to="/login" state={{ reason: 'mfa_required', from: location }} replace />;
+	}
+
+	if (assuranceState?.status !== ASSURANCE_STATUS.SATISFIED) {
+		return <Navigate to="/login" state={{ reason: 'assurance_unavailable', from: location }} replace />;
 	}
 
 	// Wait for profile to be fetched before checking access
@@ -113,20 +162,99 @@ function checkPathAccess(path, accessibleNav) {
 }
 
 export const UnauthorizedPage = () => {
-	const { profile, signOut, can } = useAuth();
+	const { user, profile, signOut, can } = useAuth();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const reason = location.state?.reason;
 	const missingProfile = reason === 'profile_missing' || reason === 'profile_unavailable' || reason === 'session_unavailable';
 	const [pendingAction, setPendingAction] = React.useState(null);
+	const startBackTimerRef = React.useRef(null);
+	const fallbackBackTimerRef = React.useRef(null);
+	const mountedRef = React.useRef(true);
+	const locationRef = React.useRef(location);
+	locationRef.current = location;
+
+	const accessibleNav = React.useMemo(
+		() => profile ? getAccessibleNav(profile, can) : null,
+		[can, profile]
+	);
+	const accessibleFallbackPath = React.useMemo(
+		() => getAccessibleFallbackPath(profile, can, accessibleNav),
+		[accessibleNav, can, profile]
+	);
+
+	const clearBackTimers = React.useCallback(() => {
+		if (startBackTimerRef.current !== null) {
+			window.clearTimeout(startBackTimerRef.current);
+			startBackTimerRef.current = null;
+		}
+		if (fallbackBackTimerRef.current !== null) {
+			window.clearTimeout(fallbackBackTimerRef.current);
+			fallbackBackTimerRef.current = null;
+		}
+	}, []);
+
+	React.useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			clearBackTimers();
+		};
+	}, [clearBackTimers]);
+
 	// Personas whose accessible nav cannot reach '/' (e.g. patient resolves to
 	// level 0) must not get a Today CTA that bounces straight back here.
 	const isPatient = profile?.role === 'patient';
-	const canOpenToday = !profile || checkPathAccess('/', getAccessibleNav(profile, can));
+	const canOpenToday = Boolean(profile)
+		&& !missingProfile
+		&& checkPathAccess('/', accessibleNav);
+
+	const navigateToAccessibleFallback = React.useCallback(async () => {
+		clearBackTimers();
+		if (!mountedRef.current) return;
+
+		if (accessibleFallbackPath) {
+			navigate(accessibleFallbackPath, { replace: true });
+			return;
+		}
+
+		if (!user) {
+			navigate('/login', { replace: true });
+			return;
+		}
+
+		try {
+			await signOut();
+			if (mountedRef.current) navigate('/login', { replace: true });
+		} catch (error) {
+			console.error('Denied-route recovery sign out failed:', error);
+			toast.error('Could not return to sign in. Try again.');
+			if (mountedRef.current) setPendingAction(null);
+		}
+	}, [accessibleFallbackPath, clearBackTimers, navigate, signOut, user]);
 
 	const handleBack = () => {
+		if (pendingAction) return;
 		setPendingAction('back');
-		navigate(-1);
+		clearBackTimers();
+
+		startBackTimerRef.current = window.setTimeout(() => {
+			startBackTimerRef.current = null;
+			if (!mountedRef.current) return;
+
+			if (!hasUsableBrowserHistory()) {
+				void navigateToAccessibleFallback();
+				return;
+			}
+
+			navigate(-1);
+			fallbackBackTimerRef.current = window.setTimeout(() => {
+				fallbackBackTimerRef.current = null;
+				if (mountedRef.current && locationRef.current.pathname === '/unauthorized') {
+					void navigateToAccessibleFallback();
+				}
+			}, BACK_NAVIGATION_FALLBACK_MS);
+		}, 0);
 	};
 
 	const handleToday = () => {
@@ -206,6 +334,7 @@ export const UnauthorizedPage = () => {
 						<button
 							onClick={handleBack}
 							disabled={Boolean(pendingAction)}
+							aria-busy={pendingAction === 'back'}
 							className="w-full h-12 rounded-button bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors"
 						>
 							{pendingAction === 'back' ? 'Opening previous page...' : 'Go back'}

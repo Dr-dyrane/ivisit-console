@@ -193,7 +193,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       : 'Visit';
   const modalSubtitle = dateTimeLabel;
   const statusBadge = (
-    <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+    <Badge className={`rounded-pill px-3 py-0.5 text-xs font-semibold ${getStatusColor(formData.status)}`}>
       {formData.status?.toUpperCase() || 'SCHEDULED'}
     </Badge>
   );
@@ -229,10 +229,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           value={formData.user_id}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 h-14 font-normal">
+                          <SelectTrigger className="h-14 rounded-inner bg-muted/30 font-normal">
                             <SelectValue placeholder="Select patient" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
+                          <SelectContent className="rounded-inner bg-background/95 shadow-xl">
                             {users.map(u => (
                               <SelectItem key={u.id} value={u.id}>
                                 <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           <Input
                             value={doctorLabel}
                             disabled
-                            className="rounded-2xl bg-muted/30 h-12 md:h-14 font-normal"
+                            className="h-12 rounded-inner bg-muted/30 font-normal md:h-14"
                           />
                         )}
                       </div>
@@ -280,10 +280,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           value={formData.hospital_id || ''}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 md:h-14 font-normal">
+                          <SelectTrigger className="h-12 rounded-inner bg-muted/30 font-normal md:h-14">
                             <SelectValue placeholder="Select facility" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
+                          <SelectContent className="rounded-inner bg-background/95 shadow-xl">
                             {hospitals.map(h => (
                               <SelectItem key={h.id} value={h.id}>
                                 <div className="flex items-center gap-2">
@@ -311,10 +311,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           value={formData.visit_type}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, visit_type: value }))}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
+                          <SelectTrigger className="h-12 rounded-inner bg-muted/30 font-normal">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
+                          <SelectContent className="rounded-inner bg-background/95 shadow-xl">
                             <SelectItem value="checkup">Checkup</SelectItem>
                             <SelectItem value="Regular Checkup">Regular Checkup</SelectItem>
                             <SelectItem value="emergency">Emergency</SelectItem>
@@ -340,10 +340,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                           disabled={isTerminalStatus}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
+                          <SelectTrigger className="h-12 rounded-inner bg-muted/30 font-normal">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 ">
+                          <SelectContent className="rounded-inner bg-background/95 shadow-xl">
                             {/* 'upcoming' canonicalizes to 'scheduled' (visitStatus.js), so offering
                                 both was a vocabulary leak; prefill maps upcoming -> scheduled. */}
                             <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -372,7 +372,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           type="datetime-local"
                           value={formData.date || ''}
                           onChange={handleChange}
-                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 text-sm md:text-base font-normal md:font-mono"
+                          className="h-12 w-full min-w-0 max-w-full rounded-inner bg-muted/30 text-sm font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] md:font-mono md:text-base"
                         />
                       )}
                     </div>
@@ -409,7 +409,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           name="room_number"
                           value={formData.room_number || ''}
                           onChange={handleChange}
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-mono"
+                          className="h-12 rounded-inner bg-muted/30 font-mono focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                           placeholder="e.g. 405-B"
                         />
                       )}
@@ -424,7 +424,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           name="estimated_duration"
                           value={formData.estimated_duration || ''}
                           onChange={handleChange}
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12"
+                          className="h-12 rounded-inner bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                           placeholder="e.g. 30 mins"
                         />
                       )}
@@ -439,7 +439,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           name="cost"
                           value={formData.cost || ''}
                           onChange={handleChange}
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-mono"
+                          className="h-12 rounded-inner bg-muted/30 font-mono focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                           placeholder="e.g. $150"
                         />
                       )}
@@ -449,12 +449,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       {isView ? (
                         <ReadOnlyField value={insuranceLabel} icon={<FileText className="h-4 w-4" />} />
                       ) : (
-                        <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/30 hover:bg-primary/5 transition-colors">
+                        <div className="flex items-center gap-2 rounded-inner bg-muted/30 p-3 transition-colors hover:bg-primary/5">
                           <input
                             type="checkbox"
                             checked={formData.insurance_covered}
                             onChange={(e) => setFormData(prev => ({ ...prev, insurance_covered: e.target.checked }))}
-                            className="w-5 h-5 rounded text-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                            className="h-5 w-5 rounded-button text-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                           />
                           <span className="text-sm font-medium">Covered by Insurance</span>
                         </div>
@@ -477,7 +477,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           value={formData.preparation || ''}
                           onChange={handleChange}
                           placeholder="One instruction per line..."
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] min-h-[80px] resize-none p-4"
+                          className="min-h-[80px] resize-none rounded-inner bg-muted/30 p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                         />
                       )}
                     </div>
@@ -492,7 +492,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           name="notes"
                           value={formData.notes || ''}
                           onChange={handleChange}
-                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] min-h-[100px] resize-none p-4"
+                          className="min-h-[100px] resize-none rounded-inner bg-muted/30 p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
                           placeholder="Add notes here..."
                         />
                       )}
@@ -504,13 +504,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 {loadingContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Loading Incident Context">
                     <div className="flex items-center justify-center py-8">
-                      <div className="animate-pulse rounded-full h-6 w-6 bg-red-500/20 "></div>
+                      <div className="h-6 w-6 animate-pulse rounded-pill bg-red-500/20"></div>
                     </div>
                   </GlassCard>
                 ) : emergencyContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
                     <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-red-500/5 ">
+                      <div className="rounded-inner bg-red-500/5 p-4">
                         <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Original Situation Report</p>
                         <p className="text-sm leading-relaxed italic">"{emergencyContext.emergency?.description || 'No description provided'}"</p>
                       </div>
@@ -539,7 +539,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full rounded-xl text-red-500 hover:bg-red-500/5 text-[10px] font-bold uppercase tracking-wider"
+                        className="w-full rounded-button text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/5"
                         onClick={() => {
                           const event = new CustomEvent('openEmergencyDetails', { detail: emergencyContext.emergency });
                           window.dispatchEvent(event);
@@ -553,21 +553,21 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 ) : null}
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                <div className="flex justify-end gap-3 rounded-inner bg-muted/30 p-4 sm:p-6">
                   {!isView ? (
                     <>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
+                        className="rounded-button font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8"
+                        className="rounded-button bg-primary px-8 font-semibold hover:bg-primary/90"
                         disabled={loading}
                       >
                         {loading ? (
@@ -582,7 +582,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
+                      className="rounded-button bg-muted px-8 font-semibold text-foreground hover:bg-muted/80"
                     >
                       Close
                     </Button>
@@ -596,9 +596,9 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+  <div className="rounded-card bg-muted/30 p-4 sm:p-6">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+      <div className="rounded-icon bg-muted/50 p-1.5 sm:p-2">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
@@ -613,9 +613,9 @@ const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
     : String(value || 'Not set');
 
   return (
-    <div className={`flex gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-sm ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
+    <div className={`flex gap-3 rounded-inner bg-muted/30 px-3 py-3 text-sm ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
       {icon && (
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background/50 text-muted-foreground">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/50 text-muted-foreground">
           {icon}
         </span>
       )}

@@ -55,11 +55,11 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
         className
       )}
       {...props}>
-      {/* Mobile grab handle (native bottom-sheet affordance) — hidden on desktop */}
+      {/* Mobile grab handle (native bottom-sheet affordance) - hidden on desktop */}
       <div aria-hidden="true" className="absolute left-1/2 top-2 h-[5px] w-[42px] -translate-x-1/2 rounded-pill bg-foreground/15 sm:hidden" />
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        className="absolute right-4 top-4 rounded-button p-1 opacity-70 transition-opacity hover:bg-foreground/[0.055] hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:pointer-events-none data-[state=open]:bg-foreground/[0.055] data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { AlertTriangle, Ambulance, Hospital, Phone, Send, CheckCheck, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { toast } from 'sonner';
 // PULLBACK NOTE: Added imports for patient data standardization and location display
 // NEW: import { getStandardizedPatient } from '../../utils/patientUtils";
@@ -32,6 +33,9 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 	// OLD: Used selectedMarker.data.name directly
 	// NEW: Uses getStandardizedPatient for consistent patient info across app
 	const patientData = selectedMarker.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
+	const emergencyActionState = selectedMarker.type === "emergency"
+		? getEmergencyActionState(selectedMarker.data)
+		: null;
 	const commandBusy = mapCommand !== null;
 
 	const runMapCommand = async (command, loadingCopy, successCopy, fallbackCopy, action) => {
@@ -148,9 +152,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 
 								<div className="flex gap-2">
 									{/* Send unit for unassigned emergencies */}
-									{(isAdmin() || isOrgAdmin()) &&
-										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
-										!selectedMarker.data.ambulance_id && (
+									{(isAdmin() || isOrgAdmin()) && emergencyActionState?.canDispatch && (
 											<Button
 										className="flex-1 rounded-button bg-emerald-600 font-semibold text-white shadow-e2 hover:bg-emerald-500"
 												size="lg"
@@ -173,9 +175,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										)}
 
 									{/* Close completed emergencies */}
-									{(isAdmin() || isOrgAdmin()) &&
-										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
-										selectedMarker.data.status !== 'completed' && (
+									{(isAdmin() || isOrgAdmin()) && emergencyActionState?.canComplete && (
 											<Button
 										className="flex-1 rounded-button bg-sky-600 font-semibold text-white shadow-e2 hover:bg-sky-500"
 												size="lg"
@@ -190,7 +190,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 													}
 
 													await runMapCommand("close", "Closing request...", "Request closed", "Could not close request", async () => {
-														await completeEmergency(selectedMarker.data.id);
+																await completeEmergency(selectedMarker.data.id, selectedMarker.data);
 														setSelectedMarker(null);
 														if (onRefresh) await onRefresh();
 													});

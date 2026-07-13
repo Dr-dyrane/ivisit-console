@@ -93,10 +93,10 @@ references. All three must close before the trivial console reconnection + gover
 
 ## Note
 
-The mobile dock FAB already surfaces these as **gated-create** affordances (Users "Add user",
-Subscriptions "Add subscriber", Health News "New article") that open to the honest "not ready"
-feedback — so when a receiver lands, only the page handler + gate doc + contract flip; the FAB is
-already correct (see `MOBILE_DESIGN_SYSTEM.md` FAB canon + `fab-mirrors-desktop-cta`).
+The mobile dock FAB surfaces the admitted **gated-create** affordances (Users "Add user" and
+Subscriptions "Add subscriber") with honest "not ready" feedback. Read-only Health News instead
+opens its proved statistics view; when an authoring receiver is admitted, its page handler, FAB,
+gate doc, and contract must change together (see `MOBILE_DESIGN_SYSTEM.md` FAB canon).
 
 ---
 

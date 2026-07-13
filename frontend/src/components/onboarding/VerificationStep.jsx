@@ -1,367 +1,162 @@
-/**
- * @fileoverview VerificationStep - Premium Apple-standard design
- * 
- * @description
- * Final onboarding step with premium UX patterns:
- * - Progressive disclosure for summary sections
- * - Premium drag-and-drop zone with animations
- * - Section-based focus (blur inactive areas)
- * - Premium microinteractions
- * 
- * @author iVisit Console Team
- * @version 2.0.0 - Premium redesign
- * @since 2026-02-02
- */
-
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Label } from '../ui/label';
-import { Button } from '../ui/button';
-import { Upload, FileText, Check, AlertCircle, Shield, ChevronDown, X, Sparkles } from 'lucide-react';
-import { Badge } from '../ui/badge';
+import React, { useEffect, useRef, useState } from 'react';
+import { Building2, FileText, Mail, MapPin, Plus, Trash2, Upload } from 'lucide-react';
+import { ONBOARDING_DOCUMENT_RULES } from '../../services/onboardingService';
+import { useOnboarding } from '../../contexts/OnboardingContext';
 
-// ============================================================================
-// ANIMATION VARIANTS
-// ============================================================================
+const formatSize = (bytes) => `${Math.max(bytes / (1024 * 1024), 0.01).toFixed(1)} MB`;
 
-const sectionVariants = {
-    inactive: {
-        opacity: 0.5,
-        filter: 'blur(0px)',
-        scale: 0.98,
-        transition: { type: 'spring', stiffness: 300, damping: 25 }
-    },
-    active: {
-        opacity: 1,
-        filter: 'blur(0px)',
-        scale: 1,
-        transition: { type: 'spring', stiffness: 300, damping: 25 }
-    },
-};
+const SUMMARY_ROWS = [
+  { key: 'organization', icon: Building2, label: 'Organization' },
+  { key: 'email', icon: Mail, label: 'Contact' },
+  { key: 'address', icon: MapPin, label: 'Address' },
+];
 
-const revealVariants = {
-    hidden: { opacity: 0, height: 0 },
-    visible: {
-        opacity: 1,
-        height: 'auto',
-        transition: { type: 'spring', stiffness: 300, damping: 25 }
-    },
-};
+export const VerificationStep = () => {
+  const { formData, updateFormData, setStepValid } = useOnboarding();
+  const inputRef = useRef(null);
+  const [documentError, setDocumentError] = useState('');
 
-const dropZoneVariants = {
-    default: { scale: 1 },
-    dragover: {
-        scale: 1.02,
-        transition: { type: 'spring', stiffness: 400, damping: 25 }
-    },
-};
+  const documentsValid = formData.documents.every(({ file }) => (
+    ONBOARDING_DOCUMENT_RULES.acceptedTypes.includes(file?.type)
+    && file.size > 0
+    && file.size <= ONBOARDING_DOCUMENT_RULES.maxDocumentSize
+  ));
+  const isValid = formData.termsAccepted && documentsValid;
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+  useEffect(() => {
+    setStepValid('review', isValid);
+  }, [isValid, setStepValid]);
 
-export const VerificationStep = ({ formData, updateFormData, setStepValid, onSubmit }) => {
-    const [uploadedFiles, setUploadedFiles] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isDragOver, setIsDragOver] = useState(false);
-    const [activeSection, setActiveSection] = useState('summary'); // 'summary' | 'upload' | 'info'
-    const [summaryExpanded, setSummaryExpanded] = useState(false);
-    const hasSetValidRef = useRef(false);
+  const summaryValues = {
+    organization: `${formData.organizationName} - ${String(formData.organizationType || '').replace('_', ' ')}`,
+    email: formData.contactEmail,
+    address: [formData.address, formData.city, formData.state].filter(Boolean).join(', '),
+  };
 
-    // Step is always valid (documents are optional)
-    useEffect(() => {
-        if (!hasSetValidRef.current) {
-            hasSetValidRef.current = true;
-            setStepValid(true);
-        }
-    }, [setStepValid]);
+  const handleFiles = (event) => {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!selected.length) return;
 
-    // Handle file upload
-    const handleFileUpload = useCallback((files) => {
-        const newFiles = Array.from(files).map(file => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            file: file,
-        }));
+    const next = [...formData.documents];
+    for (const file of selected) {
+      if (next.length >= ONBOARDING_DOCUMENT_RULES.maxDocuments) {
+        setDocumentError(`Choose no more than ${ONBOARDING_DOCUMENT_RULES.maxDocuments} documents.`);
+        break;
+      }
+      if (!ONBOARDING_DOCUMENT_RULES.acceptedTypes.includes(file.type) || file.size > ONBOARDING_DOCUMENT_RULES.maxDocumentSize) {
+        setDocumentError('Use PDF, JPG, or PNG files up to 10 MB each.');
+        continue;
+      }
+      next.push({ file, documentType: next.length === 0 ? 'registration' : 'license' });
+      setDocumentError('');
+    }
+    updateFormData({ documents: next });
+  };
 
-        setUploadedFiles(prev => [...prev, ...newFiles]);
-        updateFormData({ documents: [...(formData.documents || []), ...newFiles] });
-    }, [formData.documents, updateFormData]);
+  const updateDocumentType = (index, documentType) => {
+    updateFormData({
+      documents: formData.documents.map((item, itemIndex) => (
+        itemIndex === index ? { ...item, documentType } : item
+      )),
+    });
+  };
 
-    // Handle drag and drop
-    const handleDrop = useCallback((e) => {
-        e.preventDefault();
-        setIsDragOver(false);
-        if (e.dataTransfer.files.length) {
-            handleFileUpload(e.dataTransfer.files);
-        }
-    }, [handleFileUpload]);
+  const removeDocument = (index) => {
+    updateFormData({ documents: formData.documents.filter((_, itemIndex) => itemIndex !== index) });
+    setDocumentError('');
+  };
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragOver(true);
-    };
-
-    const handleDragLeave = () => {
-        setIsDragOver(false);
-    };
-
-    // Remove file
-    const removeFile = (fileId) => {
-        setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
-        updateFormData({
-            documents: formData.documents?.filter(f => f.id !== fileId)
-        });
-    };
-
-    // Format file size
-    const formatSize = (bytes) => {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    };
-
-    const getSectionState = (section) => (activeSection === section ? 'active' : 'inactive');
-
-    // ========================================================================
-    // Summary Section - Progressive Disclosure
-    // ========================================================================
-    const renderSummary = () => (
-        <motion.div
-            variants={sectionVariants}
-            animate={getSectionState('summary')}
-            className="relative overflow-hidden rounded-card bg-card"
-            onClick={() => setActiveSection('summary')}
-        >
-            {/* Header - Always visible */}
-            <button
-                onClick={() => setSummaryExpanded(!summaryExpanded)}
-                className="w-full flex items-center justify-between p-5 text-left"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center">
-                        <Check className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-semibold text-foreground">Registration Summary</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">
-                            {formData.organizationName} • {formData.organizationType?.replace('_', ' ')}
-                        </p>
-                    </div>
-                </div>
-                <motion.div
-                    animate={{ rotate: summaryExpanded ? 180 : 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                >
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                </motion.div>
-            </button>
-
-            {/* Progressive Disclosure: Details */}
-            <AnimatePresence>
-                {summaryExpanded && (
-                    <motion.div
-                        variants={revealVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                        className="px-5 pb-5 space-y-3"
-                    >
-                        <div className="pt-4 space-y-3">
-                            {[
-                                { label: 'Organization', value: formData.organizationName },
-                                { label: 'Type', value: formData.organizationType?.replace('_', ' '), badge: true },
-                                { label: 'Admin', value: formData.adminEmail },
-                                { label: 'Location', value: `${formData.city}, ${formData.state}` },
-                            ].map((item, i) => (
-                                <motion.div
-                                    key={item.label}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                    className="flex justify-between items-center px-3 py-2 rounded-inner bg-muted/40"
-                                >
-                                    <span className="text-xs font-bold text-muted-foreground">
-                                        {item.label}
-                                    </span>
-                                    {item.badge ? (
-                                        <Badge variant="outline" className="bg-muted text-foreground text-[10px] font-semibold">
-                                            {item.value}
-                                        </Badge>
-                                    ) : (
-                                        <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
-                                            {item.value}
-                                        </span>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-
-    // ========================================================================
-    // Upload Section - Premium Drag & Drop
-    // ========================================================================
-    const renderUpload = () => (
-        <motion.div
-            variants={sectionVariants}
-            animate={getSectionState('upload')}
-            className="space-y-3"
-            onClick={() => setActiveSection('upload')}
-        >
-            <Label className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                Verification Documents
-                <span className="text-xs text-muted-foreground">(Optional)</span>
-            </Label>
-
-            {/* Premium Drop Zone */}
-            <motion.div
-                variants={dropZoneVariants}
-                animate={isDragOver ? 'dragover' : 'default'}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                className={`
-                    relative rounded-card p-8 text-center transition-all
-                    ${isDragOver
-                        ? 'bg-muted/60'
-                        : 'bg-muted/25 hover:bg-muted/40'}
-                `}
-            >
-                <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileUpload(e.target.files)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <motion.div
-                    animate={isDragOver ? { scale: 1.1, y: -5 } : { scale: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                >
-                    <div className={`
-                        w-16 h-16 mx-auto mb-4 rounded-icon flex items-center justify-center transition-colors
-                        ${isDragOver ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}
-                    `}>
-                        <Upload className="w-8 h-8" />
-                    </div>
-                </motion.div>
-                <p className="text-sm text-foreground font-medium">
-                    Drag & drop files here
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                    or <span className="text-foreground font-medium">browse</span> to upload
-                </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-3">
-                    CAC Certificate, License, etc. (PDF, JPG, PNG)
-                </p>
-            </motion.div>
-
-            {/* Uploaded Files */}
-            <AnimatePresence>
-                {uploadedFiles.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2"
-                    >
-                        {uploadedFiles.map((file, i) => (
-                            <motion.div
-                                key={file.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                transition={{ delay: i * 0.05 }}
-                                className="flex items-center justify-between p-3 bg-muted/40 rounded-inner"
-                            >
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center">
-                                        <FileText className="w-4 h-4 text-muted-foreground" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium truncate">{file.name}</p>
-                                        <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => removeFile(file.id)}
-                                    className="p-2 rounded-button hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-
-    // ========================================================================
-    // Info Section - What happens next
-    // ========================================================================
-    const renderInfo = () => (
-        <motion.div
-            variants={sectionVariants}
-            animate={getSectionState('info')}
-            className="space-y-4"
-            onClick={() => setActiveSection('info')}
-        >
-            {/* What happens next */}
-            <div className="flex gap-3 p-4 bg-muted/40 rounded-card">
-                <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">What happens next?</p>
-                    <ul className="text-xs text-muted-foreground space-y-1.5">
-                        <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
-                            Your registration will be reviewed by our team
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
-                            Confirmation email within 24-48 hours
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
-                            Full access to iVisit Console once verified
-                        </li>
-                    </ul>
-                </div>
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        {SUMMARY_ROWS.map(({ key, icon: Icon, label }) => (
+          <div key={key} className="flex items-start gap-3 rounded-inner bg-foreground/[0.035] px-4 py-3 dark:bg-white/[0.05]">
+            <Icon className="mt-0.5 h-4 w-4 flex-none text-muted-foreground" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</p>
+              <p className="mt-0.5 break-words text-sm font-medium capitalize">{summaryValues[key]}</p>
             </div>
+          </div>
+        ))}
+      </div>
 
-            {/* Pending status note */}
-            <div className="flex gap-3 p-3 bg-amber-500/10 rounded-inner">
-                <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                    Your organization will be in "Pending Verification" status until approved.
-                    You can start exploring the dashboard immediately.
-                </p>
-            </div>
-        </motion.div>
-    );
-
-    return (
-        <div className="space-y-6">
-            <p className="text-center text-muted-foreground mb-8">
-                Almost there! Upload verification documents (optional).
-            </p>
-
-            {renderSummary()}
-            {renderUpload()}
-            {renderInfo()}
+      <section aria-labelledby="verification-documents-title">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 id="verification-documents-title" className="text-sm font-semibold">Verification documents</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Optional, up to 3 files.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={formData.documents.length >= ONBOARDING_DOCUMENT_RULES.maxDocuments}
+            className="flex h-10 items-center justify-center gap-2 rounded-button bg-foreground/[0.055] px-3 text-sm font-semibold hover:bg-foreground/[0.09] disabled:opacity-45"
+          >
+            {formData.documents.length ? <Plus className="h-4 w-4" aria-hidden="true" /> : <Upload className="h-4 w-4" aria-hidden="true" />}
+            Add file
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+            onChange={handleFiles}
+            className="sr-only"
+          />
         </div>
-    );
+
+        {formData.documents.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {formData.documents.map(({ file, documentType }, index) => (
+              <div key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-3 rounded-inner bg-foreground/[0.035] p-3 dark:bg-white/[0.05]">
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-icon bg-background text-muted-foreground shadow-e1">
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
+                </div>
+                <label className="sr-only" htmlFor={`document-type-${index}`}>Document type</label>
+                <select
+                  id={`document-type-${index}`}
+                  value={documentType}
+                  onChange={(event) => updateDocumentType(index, event.target.value)}
+                  className="h-9 max-w-28 rounded-button bg-background px-2 text-xs font-semibold shadow-e1"
+                >
+                  <option value="registration">Registration</option>
+                  <option value="license">License</option>
+                  <option value="identity">Identity</option>
+                  <option value="other">Other</option>
+                </select>
+                <button type="button" onClick={() => removeDocument(index)} aria-label={`Remove ${file.name}`} className="flex h-9 w-9 flex-none items-center justify-center rounded-button text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {documentError && <p role="alert" className="mt-2 text-xs font-medium text-destructive">{documentError}</p>}
+      </section>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-inner bg-foreground/[0.035] p-4 dark:bg-white/[0.05]">
+        <input
+          type="checkbox"
+          checked={formData.termsAccepted}
+          onChange={(event) => updateFormData({ termsAccepted: event.target.checked })}
+          className="mt-0.5 h-4 w-4 accent-foreground"
+        />
+        <span className="text-sm leading-5 text-muted-foreground">
+          I confirm these details are accurate and accept the{' '}
+          <a href="https://www.ivisit.ng/terms" target="_blank" rel="noreferrer" className="font-semibold text-foreground underline underline-offset-4">terms</a>
+          {' '}and{' '}
+          <a href="https://www.ivisit.ng/privacy" target="_blank" rel="noreferrer" className="font-semibold text-foreground underline underline-offset-4">privacy policy</a>.
+        </span>
+      </label>
+    </div>
+  );
 };
 
 export default VerificationStep;

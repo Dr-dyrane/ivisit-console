@@ -2,9 +2,24 @@
 
 ## Status
 
-Detailed implementation subplan only. No product, database, Auth admin call, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
+Receiver-admitted implementation record for the organization onboarding, Console identity projection, password recovery, and scoped user invitation slice. The implementation was authorized and verified on 2026-07-12. Organization CRUD, existing-facility ownership transfer, provider/facility verification commands, destructive user commands, and data repair remain separately gated.
 
 This subplan covers organization registry, onboarding, profile/admin identity, provider verification, facility verification, RBAC helper usage, display IDs, and readiness for provider operations.
+
+### 2026-07-12 Implementation Proof
+
+- Canonical source truth lives in the maintained `ivisit-app/supabase` pillar migrations. The same migrations, generated types, docs, and seed are synchronized into `ivisit-console/frontend/supabase` and `frontend/src/types/database.ts` through `supabase/scripts/sync_to_console.js`.
+- `handle_new_user()` now creates every public signup as `patient` with `onboarding_status = pending`; user-controlled Auth metadata cannot grant a Console role. Profile column grants exclude role, organization scope, provider type, BVN state, and financial/dispatch identity from ordinary self-update.
+- `get_console_identity_projection()` is the backend-confirmed source for Console role, organization scope, onboarding state, complete facility UUID scope, and wallet reflection. `AuthContext` primes service filters from `organizationScope.facilityIds` and only uses a deployment-order fallback that validates `profiles.organization_id` against `organizations.id` and resolves its facilities.
+- `get_user_statistics()` now scopes its `SECURITY DEFINER` aggregation inside the receiver: platform admins receive global totals, organization admins receive only profiles and Auth state linked to their organization, and unscoped actors are denied. This prevents public provider-directory visibility or platform totals from becoming an organization KPI.
+- `provision_console_organization(JSONB)` owns the atomic organization/profile/wallet/evidence chain. The browser uploads at most three validated files to private `documents/onboarding/{auth.uid()}/*`, submits those paths to the RPC, and removes unsubmitted files after a failed receiver call.
+- Existing-facility ownership is support/admin review only. Public onboarding may search `search_onboarding_facilities(TEXT)` to prevent duplicate registration, but it cannot claim or relink an existing facility.
+- `complete_console_user_invitation(...)` is executable only by `service_role`. The `invite-user` Edge Function authenticates the caller, constrains platform-admin versus organization-admin roles and scope, sends through `inviteUserByEmail`, and reflects email queued, role granted, and organization linked separately.
+- `check-user` is deployed as a generic HTTP 410 retirement response. Login no longer performs account discovery and therefore does not expose account existence, role, or password-state inference.
+- The expanded exact-source rollback harness passed schema, trigger, RLS, Storage, RPC, complete-facility projection, tenant-statistics, wallet, evidence, duplicate, invitation, and reflection assertions, then rolled the transaction back.
+- A live linked-project E2E on `dlwtcmhdzoklveihuhjf` passed Auth, Storage, RPC, organization provisioning, complete facility scope, tenant-bound statistics, profile scope, wallet, evidence, idempotency, duplicate rejection, invitation scope, and metadata-safety assertions. Its temporary Auth, organization, facility, profile, wallet, and Storage data were removed. Temporary deployment history was repaired, leaving local and remote maintained pillar migration history aligned.
+- A separate browser E2E used a disposable confirmed account and completed Account, Organization, Essentials, Review, reflected success, Console entry, and sign-out. It proved organization/facility display IDs, one ready wallet, pending verification, no fabricated dispatch eligibility, the empty new-organization Today state, direct `/set-password` and `/onboarding-success` recovery, no relevant console warnings/errors, and no horizontal overflow at mobile and desktop sizes. The disposable Auth user and all database rows were removed with zero residue.
+- Public routes no longer inherit authenticated-shell desktop or safe-area padding. Login, Set Password, Onboarding, and Onboarding Success own their responsive spacing and render without the shell-created 16/80px empty scroll.
 
 ## Source Evidence
 
@@ -50,9 +65,13 @@ Console files inspected:
 - `frontend/src/services/authService.js`
 - `frontend/src/services/displayIdService.js`
 - `frontend/src/services/rbacPatterns.js`
+- `frontend/supabase/functions/check-user/index.ts`
+- `frontend/supabase/functions/invite-user/index.ts`
 - `frontend/supabase/functions/payments/index.ts`
 - `frontend/supabase/functions/discovery/index.ts`
 - `frontend/supabase/functions/README.md`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/tests/scripts/run_console_onboarding_contract.js`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/tests/scripts/run_console_onboarding_live_e2e.js`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/reviewDemoAuthService.js`
 
 Audit docs:
@@ -63,7 +82,7 @@ Audit docs:
 - Stage 6 implementation pass plan.
 - Identity/admin/provider service map.
 
-Observed source signals:
+Historical source signals observed before the 2026-07-12 implementation (retained as the audit baseline):
 
 - `organizationsService.js` is now explicitly covered after Stage 5 and is consumed by `PageDataContext`, `OrganizationsPage`, and `UsersPage`.
 - `organizationsService.getOrganizations` manually maps `organization_wallets` to organizations.
@@ -106,6 +125,14 @@ Observed source signals:
 - Existing source contains corrupted rendered characters in verification status comments/organization KPI copy, the unauthorized-page symbol, mounted `SecurityModal` password placeholders and the mounted onboarding `VerificationStep` registration-summary separator; implementation must repair visible encoding while preserving the audit evidence.
 - `UserListView` is a mounted desktop registry variant and renders corrupted separators between email, organization and provider type; the identity encoding gate must include this list presentation, not only onboarding/security copy.
 - The patient app has a `review-demo-auth` Edge path for review/demo login. It is not a Console operator enrollment, invite, role-grant or route-authority receiver and must remain explicitly excluded from identity repair decisions.
+
+Current resolution for the implemented slice:
+
+- The hospital-as-organization onboarding write, ignored selected-facility state, public role metadata, account-discovery login call, generated-link invitation response, hospital-backed invitation selector, and raw onboarding/Auth error logs are removed from mounted product behavior.
+- Canonical provisioning receiver: admitted. It creates an `organizations` row, reflects its wallet, links the actor profile to the organization UUID, optionally creates the correct facility type, records evidence, and returns a verified result in one transaction.
+- Existing-facility ownership: support/admin review only. Search results are read-only duplicate/ownership guidance and cannot advance the public wizard as a claim.
+- Invitation command: admitted for platform and organization administrators within receiver scope. Direct profile creation and destructive deletion remain unavailable.
+- Verification queue, organization direct CRUD, historical hospital-ID mismatch repair, and provider self-service remain governed by their existing Pass 4/Pass 5 gates.
 
 ## User Flow
 
@@ -373,17 +400,21 @@ type OrganizationProvisioningResult = {
 };
 ```
 
-Implementation must not keep hospital rows as organization identity. The first safe path is:
+Implementation must not keep hospital rows as organization identity. The safe path is:
 
 - read-only projection that detects current valid organization/facility chain and mismatches;
 - disable invite/onboarding/verification copy that promises role, email, wallet or dispatch readiness when the chain is incomplete;
-- then separately repair the provisioning receiver after the audit confirms deployment, RLS and cleanup requirements.
+- repair the provisioning receiver only after the audit confirms deployment, RLS and cleanup requirements.
+
+Implemented 2026-07-12: the projection, provisioning, private evidence, and invitation receivers above now satisfy this target. The returned organization UUID is legal/wallet scope; facility UUIDs remain facility identity. The public UI only renders success when `success`, `provisioningVerified`, organization identity, and `walletState = ready` are reflected by the RPC.
 
 ## Pass 4E Implementation Sequence And Blocker Matrix
 
 This pass is an upstream safety gate for nearly every other Console lane. Wallet scope, facility pricing, fleet ownership, support visibility, analytics role access and verification controls all depend on backend-confirmed identity. The first implementation must therefore remove false authority before adding new organization or verification capability.
 
 ### Work Order
+
+The table below records the work order at audit start. The 2026-07-12 closure table immediately after the blocker matrix supersedes its readiness labels for the implemented slice.
 
 | Order | Slice | Can start now? | Target | Must not do |
 |---|---|---:|---|---|
@@ -399,6 +430,8 @@ This pass is an upstream safety gate for nearly every other Console lane. Wallet
 | 10 | Evidence upload/storage | Blocked until storage proof | Keep verification document upload private and unavailable/pending unless bucket policy, actor scope, retention and cleanup are proved. | Do not treat `documents/organizations/...` upload paths as legal org proof or data-room documents. |
 
 ### Blocker Matrix
+
+This matrix is retained as pre-implementation evidence. Items resolved on 2026-07-12 are marked in the closure table below; unrelated Pass 4 blockers remain active.
 
 | Status | Work item | Reason |
 |---|---|---|
@@ -416,9 +449,22 @@ This pass is an upstream safety gate for nearly every other Console lane. Wallet
 | Blocked | Organization direct CRUD | Direct table writes require RLS/receiver/audit proof before keeping create/update/delete enabled. |
 | Blocked | Verification evidence upload | Active Storage policy and retention proof is missing. |
 
+### 2026-07-12 Closure Matrix
+
+| Work item | Current decision | Proof |
+|---|---|---|
+| Client privilege removal and identity projection | Admitted | Public signup is always patient; profile role/scope columns are not self-writable; `get_console_identity_projection()` owns the reflected identity chain. |
+| Account discovery | Retired | Mounted Login does not call `check-user`; deployed function returns generic HTTP 410. |
+| Canonical onboarding | Admitted | Four-step wizard calls Auth, private Storage, and `provision_console_organization()` only; rollback and live E2E passed. |
+| Existing-facility ownership | Support/admin review only | Search RPC is read-only; existing mode cannot advance or mutate facility ownership. |
+| Evidence upload | Admitted for onboarding | MIME/size/count validation, actor-owned private path, Storage policies, RPC linkage, and failed-submit cleanup are proved. |
+| User invitation | Admitted in scope | Authenticated Edge receiver, real organization selector, allowed-role matrix, Auth email delivery, service-only profile assignment, and reflected consequences are proved. |
+| Direct user creation and destructive deletion | Unavailable | Active entry points use invitation; no active `delete_user_by_admin` call remains. |
+| Organization CRUD and historical mismatch repair | Still blocked | No new direct browser table authority or repair mutation was introduced. |
+
 ### First Implementation Ticket Contract
 
-The first code pass should make identity safer, not more capable:
+The first code pass should make identity safer, not more capable. This historical ticket contract governed the initial safety slice; after it closed, the 2026-07-12 receiver work proceeded under explicit authorization and the proof recorded above.
 
 - Create or identify a small identity/access projection service/hook, for example `frontend/src/services/consoleIdentityProjectionService.js` plus a hook wrapper if needed.
 - Return `ConsoleIdentityProjection` with explicit states for:
@@ -444,7 +490,7 @@ The first code pass should make identity safer, not more capable:
 - Default unsafe commands to unavailable with `disabledReason`.
 - Preserve direct Supabase Auth own-user operations in `SecurityModal` only as a documented Auth adapter exception with clear loading/error/recovery behavior.
 
-The first implementation ticket should not touch:
+The initial safety ticket did not touch the following. Later receiver work touched Auth invitation, Edge, onboarding, and Storage only after their proof chain closed; the remaining organization CRUD, verification mutation, and data-repair exclusions still apply.
 
 - Auth admin invite creation,
 - deployed Edge Function behavior,
@@ -605,6 +651,16 @@ Acceptance gate:
 - Display ID lookups are entity-aware where ambiguity can affect writes.
 
 ## Verification Plan
+
+Executed proof, 2026-07-12:
+
+- Exact-source rollback-only database contract: expanded identity/facility/statistics assertions passed; transaction rolled back.
+- Live linked-project E2E: Auth, Storage, provisioning, complete facility identity reflection, organization-scoped statistics, wallet, evidence, duplicate rejection, invitation role/scope, no-auth denial, organization-admin denial for privileged roles, and cleanup passed.
+- Deployed `check-user` retirement returned HTTP 410 with generic copy.
+- Deployed `invite-user` rejected no-auth callers and completed a scoped invitation with service-only profile assignment.
+- Browser E2E: signed-out desktop/mobile Login, authenticated four-step mobile registration, reflected success, Console entry, sign-out, expired Set Password recovery, direct Success recovery, and post-cleanup signed-out handoff passed with no relevant browser warnings/errors or horizontal overflow.
+- Browser-discovered cross-tenant KPI regression closed: a new organization initially rendered the platform-wide `773` provider count through the old global statistics receiver; after receiver and projection hardening the same account rendered the honest empty staff state.
+- Production frontend compile and focused strict-radius auth/onboarding hardgate passed before documentation closure; the complete repository gates are rerun at final admission.
 
 Static:
 

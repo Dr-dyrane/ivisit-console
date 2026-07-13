@@ -43,6 +43,7 @@ describe('AuthContext startup disclosure contract', () => {
   });
 
   it('deduplicates service-level current-user profile reads', () => {
+    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
     const authServiceSource = fs.readFileSync('src/services/authService.js', 'utf8');
 
     expect(authServiceSource).toContain('const CURRENT_USER_CACHE_MS = 60000');
@@ -50,6 +51,10 @@ describe('AuthContext startup disclosure contract', () => {
     expect(authServiceSource).toContain('export function clearCurrentUserCache()');
     expect(authServiceSource).toContain('export function primeCurrentUserCache(sessionUser, profile)');
     expect(authServiceSource).toContain("profile.role === 'org_admin'");
+    expect(authServiceSource).toContain('Array.isArray(profile.hospital_ids) ? profile.hospital_ids : []');
+    expect(authSource).toContain('Array.isArray(scope.facilityIds)');
+    expect(authSource).toContain('hospital_ids: facilityIds');
+    expect(authSource).toContain(".eq('organization_id', organization.id)");
     expect(authServiceSource).toContain('currentUserCache.userId === session.user.id');
     expect(authServiceSource).toContain('currentUserPromise?.userId === session.user.id');
     expect(authServiceSource).toContain('loadCurrentUserWithProfile(session.user)');
@@ -63,5 +68,15 @@ describe('AuthContext startup disclosure contract', () => {
     expect(authServiceSource).toContain('/signal is aborted without reason/i.test(message)');
     expect(authServiceSource).toContain('if (!options.quiet && !isSupabaseAuthLockAbort(error)) {');
     expect(authServiceSource).toContain("console.error('Error getting current user:', error);");
+  });
+
+  it('clears unscoped React Query truth only when authenticated ownership changes or ends', () => {
+    const authSource = fs.readFileSync('src/contexts/AuthContext.jsx', 'utf8');
+    const queryClientSource = fs.readFileSync('src/lib/queryClient.js', 'utf8');
+
+    expect(queryClientSource).toContain('export const clearPrincipalScopedQueryCache = () => {');
+    expect(queryClientSource).toContain('queryClient.clear();');
+    expect(authSource).toContain('previousUserId && nextUserId && previousUserId !== nextUserId');
+    expect(authSource).toContain('if (userRef.current) clearPrincipalScopedQueryCache();');
   });
 });

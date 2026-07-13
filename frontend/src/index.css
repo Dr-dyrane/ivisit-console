@@ -132,24 +132,7 @@ code {
 		--bottom-bar-height: 80px;
 		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 16px);
 
-		/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
-		/* Core Glass Tokens - (RESTORED) */
-		--glow-blur: 48px;
-		--glow-scale: 1.1;
-		--glow-opacity: 0.2;
-		--glow-duration: 500ms;
-
-		/* Glass Border System */
-		--glass-border-light: hsl(var(--primary) / 0.2);
-		--glass-border-dark: hsl(var(--primary) / 0.4);
-
-		/* Surface Tokens */
-		--glass-bg-light: hsl(var(--background) / 0.92);
-		--glass-bg-dark: hsl(var(--glass-bg));
-		--glass-blur: 20px;
-		--glass-saturation: 140%;
-
-		/* App-grounded Liquid Glass — CHROME ONLY (nav/header/island/sheet/panel).
+		/* App-grounded Liquid Glass - CHROME ONLY (nav/header/island/sheet/panel).
 		   Mirrors ivisit-app mapGlassTokens/paymentGlassTokens for web: frosted,
 		   BORDERLESS, no specular. Depth = blur + soft float shadow (never a border).
 		   Content stays opaque; never glassify rows/tables/badges. */
@@ -181,7 +164,6 @@ code {
 		/* Level 3 - subtle elevation */
 		--surface-raised: 0 0% 98.5%;
 		/* Cards/panels - gentle lift */
-		--surface-border: 0 0% 96%;
 		/* Subtle divider */
 		--primary: 357 74% 26%;
 		/* brandPrimary #86100E */
@@ -233,14 +215,12 @@ code {
 		--spark-ink: 28 65% 30%;
 
 		/* Enhanced Premium Effects */
-		--glass-bg: 0 0% 100% / 0.92;
-		--glass-border: 357 74% 26% / 0.2;
 		--shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04);
 		--shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06);
 		--shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
 		--shadow-xl: 0 20px 40px -8px rgb(0 0 0 / 0.12);
-		--shadow-glow: 0 0 32px hsl(var(--primary) / 0.15);
-		--shadow-premium: 0 25px 50px -12px rgb(134 16 14 / 0.15);
+		--shadow-glow: 0 6px 16px rgb(0 0 0 / 0.12);
+		--shadow-premium: 0 12px 32px rgb(0 0 0 / 0.10);
 		--transition-smooth: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
 		/* Apple-inspired depth hierarchy */
@@ -252,7 +232,6 @@ code {
 		/* Level 3 - subtle elevation */
 		--surface-raised: 0 0% 98.5%;
 		/* Cards/panels - gentle lift */
-		--surface-border: 0 0% 96%;
 		/* Subtle divider */
 	}
 
@@ -262,7 +241,7 @@ code {
 		--foreground: 0 0% 100%;
 		/* Pure white text */
 		--card: 224 41% 12%;
-		/* Elevated surface — LIGHTER than --background (7%) so cards LIFT, not recede (Apple dark elevation). Was 0 0% 3% (inverted). */
+		/* Elevated surface - LIGHTER than --background (7%) so cards LIFT, not recede (Apple dark elevation). Was 0 0% 3% (inverted). */
 		--card-foreground: 0 0% 100%;
 		/* Pure white text */
 		--popover: 0 0% 3%;
@@ -312,9 +291,7 @@ code {
 		--chart-3: 0 70% 55%;
 		--chart-4: 0 84% 65%;
 		--chart-5: 15 80% 60%;
-		--glass-bg: 217 30% 9% / 0.35;
-		--glass-border: 357 74% 26% / 0.4;
-		/* App-grounded Liquid Glass (chrome) — dark */
+		/* App-grounded Liquid Glass (chrome) - dark */
 		--chrome-glass:        rgba(17, 24, 39, 0.62);
 		--chrome-glass-strong: rgba(11, 15, 26, 0.74);
 		--chrome-float:        0 14px 40px rgba(0, 0, 0, 0.45);
@@ -323,7 +300,7 @@ code {
 		--shadow-md: 0 6px 16px -3px rgb(0 0 0 / 0.2);
 		--shadow-lg: 0 12px 32px -6px rgb(0 0 0 / 0.15);
 		--shadow-xl: 0 20px 48px -8px rgb(0 0 0 / 0.12);
-		--shadow-glow: 0 0 36px hsl(var(--primary) / 0.25);
+		--shadow-glow: 0 6px 16px rgb(0 0 0 / 0.32);
 
 		/* Dark mode surface hierarchy */
 		--surface-1: 0 0% 0%;
@@ -334,7 +311,6 @@ code {
 		/* Level 3 - visible elevation */
 		--surface-raised: 0 0% 10%;
 		/* Cards/panels - clear lift */
-		--surface-border: 0 0% 16%;
 		/* Subtle divider */
 		/* Glowing Ember for Dark Mode */
 		--spark: 32 90% 70%;
@@ -343,10 +319,6 @@ code {
 }
 
 @layer base {
-	* {
-		@apply border-border;
-	}
-
 	body {
 		@apply text-foreground;
 	}
@@ -354,49 +326,10 @@ code {
 
 @layer utilities {
 	.glass {
-		background: hsl(var(--glass-bg));
-		backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		border: 1px solid var(--glass-border-light);
-		/* iOS fallback */
-		background-color: var(--glass-bg-light);
-	}
-
-	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
-	/* Gold Standard Glow Utilities */
-	.hover-glow {
-		position: absolute;
-		inset: 0;
-		background: currentColor;
-		opacity: 0;
-		filter: blur(var(--glow-blur)) brightness(1.2);
-		transform: scale(var(--glow-scale));
-		transition: opacity var(--glow-duration) ease;
-		z-index: -1;
-	}
-
-	.group:hover .hover-glow {
-		opacity: var(--glow-opacity);
-	}
-
-	.hover-glow-primary {
-		color: hsl(var(--primary));
-	}
-
-	.hover-glow-success {
-		color: hsl(var(--success));
-	}
-
-	.hover-glow-warning {
-		color: hsl(var(--warning));
-	}
-
-	.hover-glow-info {
-		color: hsl(var(--info));
-	}
-
-	.hover-glow-secondary {
-		color: hsl(var(--secondary));
+		background: var(--chrome-glass);
+		backdrop-filter: blur(var(--chrome-blur)) saturate(var(--chrome-saturate));
+		-webkit-backdrop-filter: blur(var(--chrome-blur)) saturate(var(--chrome-saturate));
+		box-shadow: var(--chrome-float);
 	}
 
 	/* Dot Grid Pattern - Inspired by ivisit design */
@@ -411,32 +344,22 @@ code {
 	}
 
 	.glass-card-premium {
-		@apply glass shadow-premium;
-		border: 1px solid hsl(var(--border));
+		background: hsl(var(--card) / 0.92);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 0.10);
 		color: hsl(var(--foreground));
 	}
 
 	.dark .glass-card-premium {
-		@apply glass shadow-premium;
-		border: 1px solid hsl(var(--primary) / 0.4);
+		background: hsl(var(--card) / 0.78);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 0.28);
 		color: hsl(var(--foreground));
 	}
 
-	.glass-card-premium:hover {
-		border-color: hsl(var(--primary) / 0.5);
-	}
-
-	.dark .glass-card-premium:hover {
-		border-color: hsl(var(--primary) / 0.5);
-	}
-
 	.glass-strong {
-		background: hsl(var(--background) / 0.8);
-		backdrop-filter: blur(32px) saturate(180%);
-		-webkit-backdrop-filter: blur(32px) saturate(180%);
-		border: 1px solid hsl(var(--border) / 0.5);
-		/* iOS fallback */
-		background-color: hsl(var(--background) / 0.9);
+		background: var(--chrome-glass-strong);
+		backdrop-filter: blur(var(--chrome-blur-strong)) saturate(var(--chrome-saturate));
+		-webkit-backdrop-filter: blur(var(--chrome-blur-strong)) saturate(var(--chrome-saturate));
+		box-shadow: var(--chrome-float-strong);
 	}
 
 	/* DEPRECATED glass -> opaque control surface. Blur/glass is now ONLY chrome-glass
@@ -458,7 +381,7 @@ code {
 		background: hsl(var(--muted) / 0.4);
 	}
 
-	/* App-grounded Liquid Glass chrome — floating, frosted, BORDERLESS, no specular.
+	/* App-grounded Liquid Glass chrome - floating, frosted, BORDERLESS, no specular.
 	   Use on chrome only (header, nav island, sheet, panel). Depth = blur + float shadow.
 	   Radius comes from the semantic ladder (rounded-card/pill/sheet), never here. */
 	.chrome-glass {
@@ -475,7 +398,7 @@ code {
 		box-shadow: var(--chrome-float-strong);
 	}
 
-	/* Canon eyebrow / caption — the one uppercase micro-label (Mobile DS Layer 3, elements).
+	/* Canon eyebrow / caption - the one uppercase micro-label (Mobile DS Layer 3, elements).
 	   Replaces the re-inlined `text-[10px] font-semibold uppercase tracking-[0.14em]
 	   text-muted-foreground`. Compose with layout classes, e.g. `className="eyebrow mb-3"`. */
 	.eyebrow {
@@ -486,17 +409,17 @@ code {
 		color: hsl(var(--muted-foreground));
 	}
 
-	/* ── Mobile surface system (agreed token set) ──────────────────────────────
+	/* Mobile surface system (agreed token set)
 	   Every mobile surface differentiates using ONE relationship, not ad-hoc bg-*:
-	     • GROUND      = bg-background (page + sheet + modal base)
-	     • RAISED      = .surface-card (below) — list cards, KPI chips, modal section
+	     - GROUND      = bg-background (page + sheet + modal base)
+	     - RAISED      = .surface-card (below) - list cards, KPI chips, modal section
 	                      cards, sheet islands, context-panel cards. A recessing film
 	                      on light (foreground tint) + a lifting film on dark (white
 	                      tint), so it reads with the same delta over any ground.
-	     • GLASS       = chrome-glass / chrome-glass-strong — floating chrome only
+	     - GLASS       = chrome-glass / chrome-glass-strong - floating chrome only
 	                      (nav bar, bottom dock).
-	     • HAIRLINE    = hsl(var(--muted-foreground)/0.08) — intra-group row separators
-	                      (a whisper, not a border — borderless-first).
+	     - HAIRLINE    = hsl(var(--muted-foreground)/0.08) - intra-group row separators
+	                      (a whisper, not a border; borderless-first).
 	   Rules: borderless; shadow only on floating chrome; the one loud action = --primary. */
 	.surface-card {
 		background-color: hsl(var(--foreground) / 0.05);
@@ -505,14 +428,14 @@ code {
 		background-color: hsl(0 0% 100% / 0.07);
 	}
 
-	/* Body type tokens (Mobile DS Layer 1 — size only; weight/color composed at call site).
+	/* Body type tokens (Mobile DS Layer 1 - size only; weight/color composed at call site).
 	   text-identity = record/row name; text-meta = secondary / meta line. Eyebrow/caption =
 	   .eyebrow. Titles use the Tailwind scale (text-xl/2xl+). Avoid sub-10px body text. */
 	.text-identity { font-size: 14px; }
 	.text-meta { font-size: 12px; }
 
 	/* Fallback: no backdrop-filter (or user prefers reduced transparency) -> near-opaque,
-	   no blur — mirrors the app's Android/web frosted fallback (~0.94). */
+	   no blur - mirrors the app's Android/web frosted fallback (~0.94). */
 	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
 		.chrome-glass { background: hsl(var(--background) / 0.94); }
 		.chrome-glass-strong { background: hsl(var(--background) / 0.96); }
@@ -740,7 +663,7 @@ code {
 	}
 
 	.surface-border {
-		background: hsl(var(--surface-border));
+		background: hsl(var(--muted-foreground) / 0.08);
 		height: 1px;
 	}
 
@@ -853,7 +776,7 @@ code {
 	}
 
 	.shadow-premium {
-		box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 0.10);
 	}
 
 	.transition-smooth {
@@ -965,102 +888,6 @@ code {
 		@apply bg-black/5 dark:bg-white/5 focus-within:bg-black/[0.08] dark:focus-within:bg-white/[0.08] transition-colors;
 	}
 
-	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
-	/* Enhanced Dark Mode Neon Effects */
-	.dark .glass-card {
-		background: hsl(var(--glass-bg));
-		backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		border: 1px solid hsl(var(--primary) / 0.3);
-		box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
-	}
-
-	.dark .glass-card-premium {
-		background: hsl(var(--glass-bg));
-		backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-		border: 1px solid hsl(var(--primary) / 0.4);
-		box-shadow: 0 0 32px hsl(var(--primary) / 0.15);
-	}
-
-	/* Dark Mode Neon Glow Enhancement */
-	.dark .hover-glow-primary {
-		color: hsl(var(--primary));
-		filter: blur(60px) brightness(1.5);
-	}
-
-	.dark .hover-glow-success {
-		color: hsl(var(--success));
-		filter: blur(60px) brightness(1.5);
-	}
-
-	.dark .hover-glow-info {
-		color: hsl(var(--info));
-		filter: blur(60px) brightness(1.5);
-	}
-
-	.dark .hover-glow-warning {
-		color: hsl(var(--warning));
-		filter: blur(60px) brightness(1.5);
-	}
-
-	.dark .hover-glow-secondary {
-		color: hsl(var(--secondary));
-		filter: blur(60px) brightness(1.5);
-	}
-
-	/* Dark Mode Icon Neon Effects */
-	.dark .bg-primary\/20 {
-		background: hsl(var(--primary) / 0.3);
-		box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
-	}
-
-	.dark .bg-success\/20 {
-		background: hsl(var(--success) / 0.3);
-		box-shadow: 0 0 15px hsl(var(--success) / 0.2);
-	}
-
-	.dark .bg-info\/20 {
-		background: hsl(var(--info) / 0.3);
-		box-shadow: 0 0 15px hsl(var(--info) / 0.2);
-	}
-
-	.dark .bg-warning\/20 {
-		background: hsl(var(--warning) / 0.3);
-		box-shadow: 0 0 15px hsl(var(--warning) / 0.2);
-	}
-
-	.dark .bg-secondary\/20 {
-		background: hsl(var(--secondary) / 0.3);
-		box-shadow: 0 0 15px hsl(var(--secondary) / 0.2);
-	}
-
-	/* DEPRECATED (pre-2026-07-06 neon era) — do not use in new pages; scheduled for removal */
-	/* Dark Mode Border Neon Enhancement */
-	.dark .border-primary\/30 {
-		border-color: hsl(var(--primary) / 0.6);
-		box-shadow: 0 0 10px hsl(var(--primary) / 0.2);
-	}
-
-	.dark .border-success\/30 {
-		border-color: hsl(var(--success) / 0.6);
-		box-shadow: 0 0 10px hsl(var(--success) / 0.2);
-	}
-
-	.dark .border-info\/30 {
-		border-color: hsl(var(--info) / 0.6);
-		box-shadow: 0 0 10px hsl(var(--info) / 0.2);
-	}
-
-	.dark .border-warning\/30 {
-		border-color: hsl(var(--warning) / 0.6);
-		box-shadow: 0 0 10px hsl(var(--warning) / 0.2);
-	}
-
-	.dark .border-secondary\/30 {
-		border-color: hsl(var(--secondary) / 0.6);
-		box-shadow: 0 0 10px hsl(var(--secondary) / 0.2);
-	}
 }
 
 @layer base {
@@ -1080,18 +907,6 @@ code {
 		column-gap: inherit;
 		row-gap: inherit;
 		gap: inherit;
-		border-left-width: inherit;
-		border-right-width: inherit;
-		border-top-width: inherit;
-		border-bottom-width: inherit;
-		border-left-style: inherit;
-		border-right-style: inherit;
-		border-top-style: inherit;
-		border-bottom-style: inherit;
-		border-left-color: inherit;
-		border-right-color: inherit;
-		border-top-color: inherit;
-		border-bottom-color: inherit;
 	}
 }
 
@@ -1099,7 +914,7 @@ code {
  * Native-feel: kill the default mobile tap-flash (the grey/blue box iOS and
  * Android paint on tap) on every pressable so touch feedback is our own press +
  * haptic, not the browser's. Applies to onClick divs too, not just <button>.
- * See docs/design-system/MOTION_AND_INTERACTION_CANON.md §0.
+ * See docs/design-system/MOTION_AND_INTERACTION_CANON.md section 0.
  */
 * {
 	-webkit-tap-highlight-color: transparent;

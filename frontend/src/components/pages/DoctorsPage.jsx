@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useDoctorsQuery } from '../../hooks/useDoctorsQuery';
-import { useDoctorsMutations, applyOptimisticRemove } from '../../hooks/useDoctorsMutations';
-import { deleteDoctor } from '../../services/doctorsService';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -26,7 +24,6 @@ import { DoctorModal } from '../modals/DoctorModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { MobileDoctors } from '../mobile/MobileDoctors';
 import {
@@ -44,7 +41,6 @@ import {
   Plus,
   ShieldAlert,
   Stethoscope,
-  Trash2,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -61,6 +57,7 @@ const STAFF_STATUS_META = {
   busy: { label: 'Busy', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200', icon: Clock },
   off_duty: { label: 'Away', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]', icon: UserRound },
   invited: { label: 'Invited', tone: 'bg-violet-500/10 text-violet-700 dark:text-violet-200', icon: Mail },
+  unavailable: { label: 'Unavailable for assignment', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200', icon: ShieldAlert },
 };
 
 const titleCase = (value) => String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -72,6 +69,11 @@ const getStaffStatusMeta = (status) => {
     tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
     icon: UserRound,
   };
+};
+
+const getEffectiveStaffStatus = (staff) => {
+  const status = String(staff?.status || '').toLowerCase();
+  return status === 'available' && staff?.is_available === false ? 'unavailable' : status;
 };
 
 const getInitials = (name = 'Staff') => {
@@ -135,7 +137,7 @@ const getStaffProjection = (staff) => ({
   displayId: staff?.display_id || null,
   experience: staff?.experience,
   joined: staff?.created_at,
-  statusMeta: getStaffStatusMeta(staff?.status),
+  statusMeta: getStaffStatusMeta(getEffectiveStaffStatus(staff)),
 });
 
 const getStaffSignal = ({ stats, kpiFilter, loadError, hasAny }) => {
@@ -205,14 +207,6 @@ export const DoctorsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    variant: 'default',
-    confirmLabel: 'Confirm',
-    onConfirm: () => { },
-  });
 
   const pagination = usePagination(20);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
@@ -278,9 +272,8 @@ export const DoctorsPage = () => {
   // Auto-select the focused record via the console-wide shared store (already correct).
   const { focusedRecord: focusedStaff, setFocused, isFocused } = useFocusedRecord('doctors', staffRows);
 
-  // Selection via the shared hook (gains shift-range + prune-to-visible). This is the
-  // canonical mechanism; Staff KEEPS its WORKING bulk delete (deleteDoctor is a proven
-  // receiver -- a real domain difference from Hospitals' fail-closed bar).
+  // Selection remains available for non-destructive, authority-backed workflows.
+  // Clinical evidence is never deleted from this mounted directory surface.
   const {
     selectedIds,
     handleSelectClick,
@@ -311,12 +304,6 @@ export const DoctorsPage = () => {
   // insert burst cannot stack over the operator. (PageDataContext's channel does NOT fire
   // on the route-owned /doctors route, so this page carries its own.)
   const lastInsertToastAtRef = useRef(0);
-  const deleteDoctorMutation = useDoctorsMutations({
-    mutationFn: (id) => deleteDoctor(id),
-    applyOptimistic: applyOptimisticRemove,
-    filter: queryFilter,
-  });
-
   useEffect(() => {
     let active = true;
     const channel = supabase
@@ -346,53 +333,6 @@ export const DoctorsPage = () => {
     const id = new URLSearchParams(window.location.search).get('id');
     if (id && staffRows.some((d) => d.id === id)) setFocused(id);
   }, [staffRows, setFocused]);
-
-  const handleDelete = useCallback(async (doctor) => {
-    if (!canManageStaff || !doctor?.id) return;
-    try {
-      await deleteDoctorMutation.mutateAsync(doctor.id);
-      toast.success('Staff member deleted.');
-    } catch (error) {
-      toast.error('Failed to delete staff member.');
-    } finally {
-      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-    }
-  }, [canManageStaff, deleteDoctorMutation]);
-
-  const confirmDelete = useCallback((doctor) => {
-    if (!canManageStaff) return;
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Doctor',
-      description: `Delete ${doctor?.name || 'this staff member'}? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete',
-      onConfirm: () => handleDelete(doctor),
-    });
-  }, [canManageStaff, handleDelete]);
-
-  const handleBulkDelete = useCallback(() => {
-    if (!canManageStaff || selectedIds.length === 0) return;
-    const ids = [...selectedIds];
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete selected staff',
-      description: `Delete ${ids.length} staff member${ids.length === 1 ? '' : 's'}? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete',
-      onConfirm: async () => {
-        try {
-          await Promise.all(ids.map(id => deleteDoctorMutation.mutateAsync(id)));
-          toast.success(`${ids.length} staff member${ids.length === 1 ? '' : 's'} deleted.`);
-          clearSelection();
-        } catch (error) {
-          toast.error('Failed to delete selected staff.');
-        } finally {
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        }
-      },
-    });
-  }, [canManageStaff, selectedIds, deleteDoctorMutation, clearSelection]);
 
   const handleCreate = useCallback(() => {
     if (!canManageStaff) return;
@@ -564,13 +504,11 @@ export const DoctorsPage = () => {
           setFilters={setFilters}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={confirmDelete}
           onRefresh={fetchDoctors}
           onViewAnalytics={() => setAnalyticsModalOpen(true)}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
           canManage={canManageStaff}
-          canDelete={canManageStaff}
           selectionEnabled={canManageStaff}
           selectedIds={selectedIds}
           onSelect={handleToggleSelect}
@@ -581,8 +519,6 @@ export const DoctorsPage = () => {
           isFetching={isFetching}
           errorMessage={loadError}
           onRetry={fetchDoctors}
-          onBulkDelete={handleBulkDelete}
-          canBulkDelete={canManageStaff}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
@@ -603,30 +539,7 @@ export const DoctorsPage = () => {
 
         <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="doctor" />
 
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          onConfirm={confirmationModal.onConfirm}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
-        />
-
-        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
-          {canManageStaff && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBulkDelete}
-              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96]"
-              title="Delete selected"
-              aria-label="Delete selected staff"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
-        </BulkActionBar>
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection} />
       </div>
     );
   }
@@ -664,7 +577,6 @@ export const DoctorsPage = () => {
         onSelectAll={handleSelectAll}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={confirmDelete}
         onCreate={handleCreate}
         moduleRailItems={visibleModuleRail}
         routingPath={routingPath}
@@ -672,19 +584,7 @@ export const DoctorsPage = () => {
       />
 
       {selectable && (
-        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBulkDelete}
-            disabled={selectedIds.length === 0}
-            className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96] disabled:opacity-40"
-            title="Delete selected"
-            aria-label="Delete selected staff"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        </BulkActionBar>
+        <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection} />
       )}
 
       {modalMode && (
@@ -703,15 +603,6 @@ export const DoctorsPage = () => {
 
       <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="doctor" />
 
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
-      />
     </div>
   );
 };
@@ -745,7 +636,6 @@ const StaffDesktopWorkspace = ({
   onSelectAll,
   onView,
   onEdit,
-  onDelete,
   onCreate,
   moduleRailItems,
   routingPath,
@@ -780,7 +670,6 @@ const StaffDesktopWorkspace = ({
           canManage={canManage}
           onView={onView}
           onEdit={onEdit}
-          onDelete={onDelete}
         />
       )}
     >
@@ -997,7 +886,7 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
   </Button>
 );
 
-const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, onEdit, onDelete }) => {
+const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, onEdit }) => {
   if (loading) {
     return (
       <DetailRailShell>
@@ -1103,17 +992,6 @@ const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, onEdit,
             <RailActionButton icon={Edit} label="Edit" onClick={() => onEdit(staff)} />
             <RailActionButton icon={Info} label="Open record" onClick={() => onView(staff)} />
           </div>
-        )}
-
-        {canManage && (
-          <Button
-            variant="ghost"
-            className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
-            onClick={() => onDelete(staff)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete staff
-          </Button>
         )}
 
         {!canManage && (

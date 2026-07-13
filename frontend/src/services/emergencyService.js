@@ -16,6 +16,10 @@ import {
 } from '../utils/emergencyRequestMapper';
 
 const TABLE_NAME = 'emergency_requests';
+const EMERGENCY_CREATE_FACILITY_LIMIT = 100;
+const SUPPORTED_CONSOLE_SERVICE_TYPES = new Set(['ambulance', 'bed', 'booking']);
+export const EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON =
+  'Payment retry is unavailable until an authorized receiver is connected.';
 // PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
 // OLD: minimal set - missing cost breakdown, bed/patient metadata, payment tracking columns
 // NEW: full parity with database.ts emergency_requests Row type
@@ -93,25 +97,30 @@ const CONSOLE_UPDATE_EMERGENCY_PAYLOAD_FIELDS = [
   'payment_status',
 ];
 
+function normalizePoint(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
 function parsePointInput(input) {
   if (!input) return null;
 
   if (typeof input === 'object') {
-    if (typeof input.lat === 'number' && typeof input.lng === 'number') {
-      return { lat: input.lat, lng: input.lng };
-    }
-    if (typeof input.latitude === 'number' && typeof input.longitude === 'number') {
-      return { lat: input.latitude, lng: input.longitude };
-    }
+    const directPoint = normalizePoint(
+      input.lat ?? input.latitude,
+      input.lng ?? input.longitude
+    );
+    if (directPoint) return directPoint;
     if (
       input.type === 'Point' &&
       Array.isArray(input.coordinates) &&
       input.coordinates.length >= 2
     ) {
       const [lng, lat] = input.coordinates;
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        return { lat, lng };
-      }
+      return normalizePoint(lat, lng);
     }
     return null;
   }
@@ -119,11 +128,7 @@ function parsePointInput(input) {
   if (typeof input === 'string') {
     const match = input.match(/POINT\s*\(\s*([-.\d]+)\s+([-.\d]+)\s*\)/i);
     if (match) {
-      const lng = Number(match[1]);
-      const lat = Number(match[2]);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        return { lat, lng };
-      }
+      return normalizePoint(match[2], match[1]);
     }
   }
 
@@ -138,6 +143,7 @@ function buildLegacyEmergencyPayload(input) {
     pickup_location: input.pickup_location,
     destination_location: input.destination_location,
     patient_snapshot: input.patient_snapshot,
+    patient_location: input.patient_location,
     hospital_id: input.hospital_id,
     hospital_name: input.hospital_name,
     ambulance_type: input.ambulance_type,
@@ -164,22 +170,29 @@ function pickDefinedPayloadFields(input, allowedFields) {
 }
 
 function buildConsoleCreatePayload(input, fallbackPayload) {
+  const normalizedPatientLocation =
+    parsePointInput(input?.patient_location) ||
+    parsePointInput(input?.pickup_location) ||
+    normalizePoint(input?.latitude, input?.longitude);
   const payload = pickDefinedPayloadFields(
     {
       ...fallbackPayload,
       user_id: input?.user_id ?? fallbackPayload?.user_id ?? null,
       service_type: input?.service_type ?? fallbackPayload?.service_type ?? 'ambulance',
       status: fallbackPayload?.status ?? canonicalizeEmergencyStatus(input?.status, 'in_progress'),
+      patient_location: normalizedPatientLocation || fallbackPayload?.patient_location,
       latitude:
         input?.latitude ??
+        normalizedPatientLocation?.lat ??
         input?.pickup_location?.latitude ??
         input?.pickup_location?.lat ??
-        null,
+        undefined,
       longitude:
         input?.longitude ??
+        normalizedPatientLocation?.lng ??
         input?.pickup_location?.longitude ??
         input?.pickup_location?.lng ??
-        null,
+        undefined,
       description: input?.description ?? null,
     },
     CONSOLE_CREATE_EMERGENCY_PAYLOAD_FIELDS
@@ -187,6 +200,74 @@ function buildConsoleCreatePayload(input, fallbackPayload) {
 
   Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
   return payload;
+}
+
+function normalizeConsoleServiceType(value) {
+  const normalized = String(value || 'ambulance').trim().toLowerCase();
+  if (!SUPPORTED_CONSOLE_SERVICE_TYPES.has(normalized)) {
+    throw new Error('Select Ambulance, Bed, or Booking as the request service.');
+  }
+  return normalized;
+}
+
+async function requireScopedCreateFacility(input, user) {
+  if (user?.role !== 'org_admin') return input;
+  if (!user?.organization_id || !input?.hospital_id) {
+    throw new Error('Select a facility in your organization before creating this request.');
+  }
+
+  const { data, error } = await supabase
+    .from('hospitals')
+    .select('id,name,organization_id')
+    .eq('id', input.hospital_id)
+    .eq('organization_id', user.organization_id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Emergency create facility scope check failed:', error);
+    throw new Error('Facility scope could not be verified. Try again.');
+  }
+  if (!data) {
+    throw new Error('Select a facility in your organization before creating this request.');
+  }
+
+  return {
+    ...input,
+    hospital_id: data.id,
+    hospital_name: data.name,
+  };
+}
+
+export async function getEmergencyCreateFacilityOptions() {
+  const user = await getCurrentUser();
+  if (!user || !['admin', 'org_admin'].includes(user.role)) {
+    return { data: [], isPartial: false };
+  }
+  if (user.role === 'org_admin' && !user.organization_id) {
+    throw new Error('Facility scope is unavailable for this account.');
+  }
+
+  let query = supabase
+    .from('hospitals')
+    .select('id,name,organization_id', { count: 'exact' })
+    .order('name', { ascending: true })
+    .limit(EMERGENCY_CREATE_FACILITY_LIMIT);
+
+  if (user.role === 'org_admin') {
+    query = query.eq('organization_id', user.organization_id);
+  }
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error('Emergency create facility options failed:', error);
+    throw new Error('Facilities could not be loaded. Try again.');
+  }
+
+  const rows = data || [];
+  return {
+    data: rows,
+    isPartial: Number.isFinite(count) && count > rows.length,
+  };
 }
 
 function buildConsoleUpdatePayload(input, normalizedStatus) {
@@ -272,7 +353,7 @@ function applyEmergencyListFilters(query, filter = {}) {
 function applyEmergencyKpiFilter(query, kpiFilter) {
   if (kpiFilter === 'ambulance') return query.eq('service_type', 'ambulance');
   if (kpiFilter === 'bed') return query.eq('service_type', 'bed');
-  if (kpiFilter === 'critical') return query.eq('service_type', 'critical_care');
+  if (kpiFilter === 'booking') return query.eq('service_type', 'booking');
   if (kpiFilter === 'pending') return query.eq('status', 'pending_approval');
   if (kpiFilter === 'inProgress') return query.eq('status', 'in_progress');
   if (kpiFilter === 'active') return query.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
@@ -318,8 +399,7 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       active,
       bed,
       ambulance,
-      critical,
-      emergency,
+      booking,
       inProgress,
       accepted,
       arrived,
@@ -332,8 +412,7 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       getEmergencyPageExactCount({ ...baseFilter, kpiFilter: 'active' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, service_type: 'bed' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, service_type: 'ambulance' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, service_type: 'critical_care' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, service_type: 'emergency_room' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'booking' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'in_progress' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'accepted' }, scopedUser),
       getEmergencyPageExactCount({ ...baseFilter, status: 'arrived' }, scopedUser),
@@ -351,8 +430,7 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       pending_approval: pending,
       bed,
       ambulance,
-      critical,
-      emergency,
+      booking,
       inProgress,
       accepted,
       arrived,
@@ -552,10 +630,8 @@ export async function getLatestEmergencyPayment(requestId) {
   }
 }
 
-export async function getEmergencyDetailProjection(requestId, initialRequest = null) {
-  const request = initialRequest?.id === requestId
-    ? initialRequest
-    : await getEmergencyRequest(requestId);
+export async function getEmergencyDetailProjection(requestId) {
+  const request = await getEmergencyRequest(requestId);
 
   if (!request) {
     return {
@@ -625,14 +701,21 @@ export function subscribeToEmergencyDetail(requestId, callback) {
  */
 export async function createEmergencyRequest(input) {
   try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+    const scopedInput = await requireScopedCreateFacility(input, user);
+    const createInput = {
+      ...scopedInput,
+      service_type: normalizeConsoleServiceType(scopedInput?.service_type),
+    };
     const normalizedPatientLocation =
-      parsePointInput(input.patient_location) ||
-      parsePointInput(input.pickup_location);
+      parsePointInput(createInput.patient_location) ||
+      parsePointInput(createInput.pickup_location);
 
     const canUseAtomicRpc = Boolean(
-      input?.user_id &&
-      input?.hospital_id &&
-      input?.service_type &&
+      createInput?.user_id &&
+      createInput?.hospital_id &&
+      createInput?.service_type &&
       normalizedPatientLocation
     );
 
@@ -640,26 +723,26 @@ export async function createEmergencyRequest(input) {
 
     if (canUseAtomicRpc) {
       const requestData = {
-        hospital_id: input.hospital_id,
-        hospital_name: input.hospital_name,
-        service_type: input.service_type,
-        specialty: input.specialty,
-        ambulance_type: input.ambulance_type,
-        patient_snapshot: input.patient_snapshot || {},
+        hospital_id: createInput.hospital_id,
+        hospital_name: createInput.hospital_name,
+        service_type: createInput.service_type,
+        specialty: createInput.specialty,
+        ambulance_type: createInput.ambulance_type,
+        patient_snapshot: createInput.patient_snapshot || {},
         patient_location: normalizedPatientLocation
       };
 
-      const paymentMethod = input.payment_method || input.payment_method_id || null;
+      const paymentMethod = createInput.payment_method || createInput.payment_method_id || null;
       const paymentData = paymentMethod ? {
         method: paymentMethod,
-        method_id: input.payment_method_id || null,
-        total_amount: input.total_cost ?? input.amount ?? 0,
-        fee_amount: input.ivisit_fee_amount ?? null,
-        currency: input.currency || 'USD'
+        method_id: createInput.payment_method_id || null,
+        total_amount: createInput.total_cost ?? createInput.amount ?? 0,
+        fee_amount: createInput.ivisit_fee_amount ?? null,
+        currency: createInput.currency || 'USD'
       } : null;
 
       const { data: rpcResult, error: rpcError } = await supabase.rpc('create_emergency_v4', {
-        p_user_id: input.user_id,
+        p_user_id: createInput.user_id,
         p_request_data: requestData,
         p_payment_data: paymentData
       });
@@ -675,8 +758,8 @@ export async function createEmergencyRequest(input) {
       }
     } else {
       // Fallback path for console-created records with incomplete payment context.
-      const payload = buildLegacyEmergencyPayload(input);
-      const fallbackPayload = buildConsoleCreatePayload(input, payload);
+      const payload = buildLegacyEmergencyPayload(createInput);
+      const fallbackPayload = buildConsoleCreatePayload(createInput, payload);
 
       const { data: rpcResult, error: rpcError } = await supabase.rpc('console_create_emergency_request', {
         p_payload: fallbackPayload,
@@ -694,12 +777,12 @@ export async function createEmergencyRequest(input) {
     try {
       await logEmergencyActivity.created(
         data.id,
-        `New emergency request from ${input.pickup_location?.address || 'Unknown location'}`,
+        `New emergency request from ${createInput.pickup_location?.address || createInput.patient_snapshot?.location_text || 'Unknown location'}`,
         {
-          service_type: input.service_type,
-          specialty: input.specialty,
-          location: input.pickup_location?.address,
-          priority: input.priority || 'medium'
+          service_type: createInput.service_type,
+          specialty: createInput.specialty,
+          location: createInput.pickup_location?.address || createInput.patient_snapshot?.location_text,
+          priority: createInput.priority || createInput.patient_snapshot?.priority || 'medium'
         }
       );
     } catch (activityError) {
@@ -1040,27 +1123,10 @@ export async function getUserActivePaymentMethods(userId) {
  * Retry a declined emergency payment with a different payment method.
  */
 export async function retryPaymentWithDifferentMethod(requestId, paymentMethodId, userId) {
-  try {
-    if (!isValidUUID(requestId) || !isValidUUID(paymentMethodId) || !isValidUUID(userId)) {
-      throw new Error('Missing valid request, payment method, or user identifier');
-    }
-
-    return await withAudit('payment.retry', 'payments', async () => {
-      const { data, error } = await supabase.rpc('retry_payment_with_different_method', {
-        p_emergency_request_id: requestId,
-        p_new_payment_method_id: paymentMethodId,
-        p_user_id: userId,
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Payment retry failed');
-
-      return data;
-    }, { request_id: requestId, payment_method_id: paymentMethodId, user_id: userId });
-  } catch (error) {
-    console.error(`Error retrying payment for request ${requestId}:`, error);
-    throw error;
-  }
+  void requestId;
+  void paymentMethodId;
+  void userId;
+  throw new Error(EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON);
 }
 
 /**

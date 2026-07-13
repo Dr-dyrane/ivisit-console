@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       access_requests: {
@@ -1622,6 +1597,86 @@ export type Database = {
           },
         ]
       }
+      organization_verification_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          facility_id: string | null
+          id: string
+          mime_type: string
+          organization_id: string
+          original_name: string
+          rejection_reason: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          facility_id?: string | null
+          id?: string
+          mime_type: string
+          organization_id: string
+          original_name: string
+          rejection_reason?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          facility_id?: string | null
+          id?: string
+          mime_type?: string
+          organization_id?: string
+          original_name?: string
+          rejection_reason?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_verification_documents_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_verification_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_verification_documents_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_verification_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_wallets: {
         Row: {
           balance: number | null
@@ -1662,42 +1717,90 @@ export type Database = {
       }
       organizations: {
         Row: {
+          address: string | null
+          city: string | null
           contact_email: string | null
+          contact_phone: string | null
           created_at: string
+          created_by: string | null
           display_id: string | null
           fee_tier: string | null
           id: string
           is_active: boolean | null
           ivisit_fee_percentage: number | null
           name: string
+          organization_type: string
+          registration_number: string | null
+          rejection_reason: string | null
+          state: string | null
           stripe_account_id: string | null
           updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           display_id?: string | null
           fee_tier?: string | null
           id?: string
           is_active?: boolean | null
           ivisit_fee_percentage?: number | null
           name: string
+          organization_type?: string
+          registration_number?: string | null
+          rejection_reason?: string | null
+          state?: string | null
           stripe_account_id?: string | null
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           display_id?: string | null
           fee_tier?: string | null
           id?: string
           is_active?: boolean | null
           ivisit_fee_percentage?: number | null
           name?: string
+          organization_type?: string
+          registration_number?: string | null
+          rejection_reason?: string | null
+          state?: string | null
           stripe_account_id?: string | null
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizations_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patient_wallets: {
         Row: {
@@ -3011,6 +3114,16 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
+      complete_console_user_invitation: {
+        Args: {
+          p_actor_user_id: string
+          p_organization_id: string
+          p_provider_type?: string
+          p_role: string
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
       complete_trip: { Args: { request_uuid: string }; Returns: boolean }
       console_cancel_emergency: {
         Args: { p_reason?: string; p_request_id: string }
@@ -3276,6 +3389,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_console_identity_projection: { Args: never; Returns: Json }
       get_emergency_medical_data: { Args: { p_user_id: string }; Returns: Json }
       get_entity_id: { Args: { p_display_id: string }; Returns: string }
       get_insurance_policies: {
@@ -3560,6 +3674,10 @@ export type Database = {
             }
             Returns: Json
           }
+      provision_console_organization: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       rate_visit: {
         Args: { p_comment?: string; p_rating: number; p_visit_id: string }
         Returns: Json
@@ -3590,6 +3708,17 @@ export type Database = {
           last_sign_in_at: string
           phone: string
           raw_user_meta_data: Json
+        }[]
+      }
+      search_onboarding_facilities: {
+        Args: { p_query: string }
+        Returns: {
+          address: string
+          id: string
+          name: string
+          provider_type: string
+          requires_support: boolean
+          verification_status: string
         }[]
       }
       send_emergency_chat_message: {
@@ -4405,9 +4534,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

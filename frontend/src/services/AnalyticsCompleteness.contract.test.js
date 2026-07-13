@@ -9,7 +9,17 @@ describe('Analytics completeness contract', () => {
     expect(source).toContain(".select('*', { count: 'exact' })");
     expect(source).toContain('.limit(ANALYTICS_REQUEST_SAMPLE_LIMIT)');
     expect(source).toContain('requestSample: {');
-    expect(source).toContain('Number(requestsRes.count) <= (requestsRes.data || []).length');
+    expect(source).toContain('requestTotalCount <= (requestsRes.data || []).length');
+  });
+
+  it('keeps count-only network reads separate from bounded hospital capacity rows', () => {
+    const source = read('src/services/analyticsService.js');
+    expect(source).toContain('const ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT = 1000;');
+    expect(source).toContain("select('id', { count: 'exact', head: true })");
+    expect(source).toContain("select('id, total_beds, available_beds, icu_beds_available', { count: 'exact' })");
+    expect(source).toContain('hospitalSample: {');
+    expect(source).toContain("kind: 'partial'");
+    expect(source).toContain("reason: 'capacity_sample_incomplete'");
   });
 
   it('fails finance analytics closed without one identified wallet and a complete ledger window', () => {
@@ -26,6 +36,6 @@ describe('Analytics completeness contract', () => {
     const source = read('src/services/subscriptionService.js');
     expect(source).toContain(".select('type, status, new_user, welcome_email_sent, created_at, subscription_date', { count: 'exact' })");
     expect(source).toContain('sample: {');
-    expect(source).toContain('Number(count) <= (data?.length || 0)');
+    expect(source).toContain('exactTotalCount <= (data?.length || 0)');
   });
 });

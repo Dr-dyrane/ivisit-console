@@ -1,6 +1,18 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 
+const MAP_REQUEST_LIMIT = 100;
+const MAP_ENTITY_LIMIT = 1000;
+const MAP_REQUEST_TYPES = ['ambulance', 'bed'];
+const MAP_ACTIVE_ROUTE_STATUSES = ['in_progress', 'accepted', 'arrived'];
+
+const getSourceState = (error, rows, count, limit) => ({
+  ready: !error,
+  partial: !error && (Number.isFinite(count) ? count > rows.length : rows.length >= limit),
+  limit,
+  total: Number.isFinite(count) ? count : null,
+});
+
 /**
  * Supabase Map Service
  * Aggregates data streams for the Console Map View with RBAC
@@ -19,26 +31,45 @@ export const supabaseMapService = {
     try {
       const user = await getCurrentUser();
 
-      // 1. Emergencies with RBAC
-      let emergenciesQuery = supabase
-        .from('emergency_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      // Apply RBAC for emergencies
-      emergenciesQuery = applyAuthFilter(emergenciesQuery, user, {
+      const emergencyScope = {
         userIdField: 'user_id',
         orgIdField: 'hospital_id',
         providerIdField: 'responder_id',
         resourceType: 'emergency'
-      });
+      };
+      // 1. Emergencies with RBAC
+      let emergenciesQuery = supabase
+        .from('emergency_requests')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(MAP_REQUEST_LIMIT);
+
+      emergenciesQuery = applyAuthFilter(emergenciesQuery, user, emergencyScope);
+      const emergencyFacetQueries = MAP_REQUEST_TYPES.map((serviceType) => (
+        applyAuthFilter(
+          supabase
+            .from('emergency_requests')
+            .select('id', { count: 'exact', head: true }),
+          user,
+          emergencyScope
+        ).eq('service_type', serviceType)
+      ));
+      const activeRoutesQuery = applyAuthFilter(
+        supabase
+          .from('emergency_requests')
+          .select('id', { count: 'exact', head: true }),
+        user,
+        emergencyScope
+      )
+        .eq('service_type', 'ambulance')
+        .in('status', MAP_ACTIVE_ROUTE_STATUSES);
 
       // 2. Ambulances with RBAC
       let ambulancesQuery = supabase
         .from('ambulances')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(MAP_ENTITY_LIMIT);
 
       // Apply RBAC for ambulances
       ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
@@ -50,8 +81,9 @@ export const supabaseMapService = {
       // 3. Hospitals with RBAC
       let hospitalsQuery = supabase
         .from('hospitals')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(MAP_ENTITY_LIMIT);
 
       // Apply RBAC for hospitals (org admins see their org's hospitals, admins see all)
       if (user?.role !== 'admin' && user?.hospital_ids?.length) {
@@ -65,22 +97,45 @@ export const supabaseMapService = {
         hospitalsQuery = hospitalsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
       }
 
-      const { data: emergencies, error: errEmergencies } = await emergenciesQuery;
-      const { data: ambulances, error: errAmbulances } = await ambulancesQuery;
-      const { data: hospitals, error: errHospitals } = await hospitalsQuery;
+      const [emergencyResult, ambulanceResult, hospitalResult, activeRoutesResult, ...emergencyFacetResults] = await Promise.all([
+        emergenciesQuery,
+        ambulancesQuery,
+        hospitalsQuery,
+        activeRoutesQuery,
+        ...emergencyFacetQueries,
+      ]);
+      const { data: emergencies, error: errEmergencies, count: emergencyCount } = emergencyResult;
+      const { data: ambulances, error: errAmbulances, count: ambulanceCount } = ambulanceResult;
+      const { data: hospitals, error: errHospitals, count: hospitalCount } = hospitalResult;
 
       if (errEmergencies && !quiet) console.error("Error fetching map emergencies:", errEmergencies);
       if (errAmbulances && !quiet) console.error("Error fetching map ambulances:", errAmbulances);
       if (errHospitals && !quiet) console.error("Error fetching map hospitals:", errHospitals);
+      if (activeRoutesResult.error && !quiet) console.error("Error counting active map routes:", activeRoutesResult.error);
+
+      const emergencyFacets = Object.fromEntries(MAP_REQUEST_TYPES.map((serviceType, index) => {
+        const result = emergencyFacetResults[index] || {};
+        if (result.error && !quiet) console.error(`Error counting ${serviceType} map requests:`, result.error);
+        return [serviceType, {
+          ready: !result.error,
+          total: !result.error && Number.isFinite(result.count) ? result.count : null,
+        }];
+      }));
 
       const sourceState = {
         emergencies: {
-          ready: !errEmergencies,
-          partial: !errEmergencies && (emergencies || []).length >= 100,
-          limit: 100,
+          ...getSourceState(errEmergencies, emergencies || [], emergencyCount, MAP_REQUEST_LIMIT),
+          facets: emergencyFacets,
+          activeRoutes: {
+            ready: !activeRoutesResult.error,
+            exact: !activeRoutesResult.error && Number.isFinite(activeRoutesResult.count),
+            total: !activeRoutesResult.error && Number.isFinite(activeRoutesResult.count)
+              ? activeRoutesResult.count
+              : null,
+          },
         },
-        ambulances: { ready: !errAmbulances, partial: false, limit: null },
-        hospitals: { ready: !errHospitals, partial: false, limit: null },
+        ambulances: getSourceState(errAmbulances, ambulances || [], ambulanceCount, MAP_ENTITY_LIMIT),
+        hospitals: getSourceState(errHospitals, hospitals || [], hospitalCount, MAP_ENTITY_LIMIT),
       };
 
       return {
@@ -144,20 +199,18 @@ export const supabaseMapService = {
   },
 
   /**
-   * Subscribe to all changes in users (for patient location tracking)
-   * This assumes the 'users' table or similar exists and is public. 
-   * Based on plan, we are monitoring 'users' table if it exists, roughly.
-   * If 'users' table isn't heavily used yet, we might fallback to emergency_requests updates.
+   * Subscribe to hospital changes so the map can refresh its scoped facility
+   * projection when availability or location changes.
    */
-  subscribeToUsers(onChange) {
+  subscribeToHospitals(onChange) {
     const channel = supabase
-      .channel('map_users_all')
+      .channel('map_hospitals_all')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'users' // Configured in migration
+          table: 'hospitals'
         },
         (payload) => {
           onChange(payload.eventType, payload.new, payload.old);
@@ -187,21 +240,13 @@ export const supabaseMapService = {
 
       if (error) {
         if (!quiet) console.error('Error fetching nearby hospitals:', error);
-        // Fallback to basic hospital query if function doesn't exist yet
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('hospitals')
-          .select('*')
-          .eq('status', 'available')
-          .order('name');
-
-        if (fallbackError) throw fallbackError;
-        return fallbackData || [];
+        throw new Error('Nearby facility search is temporarily unavailable.');
       }
 
       return data || [];
     } catch (error) {
       if (!quiet) console.error('Error in getNearbyHospitals:', error);
-      return [];
+      throw error;
     }
   }
 };

@@ -65,8 +65,7 @@ export const bedManagementService = {
       }));
     } catch (error) {
       console.error('Error fetching active reservations:', error);
-      toast.error('Failed to load bed reservations');
-      return [];
+      throw error;
     }
   },
 
@@ -110,8 +109,7 @@ export const bedManagementService = {
       };
     } catch (error) {
       console.error('Error fetching bed utilization:', error);
-      toast.error('Failed to load bed statistics');
-      return null;
+      throw error;
     }
   },
 

@@ -85,7 +85,7 @@ export const ContextPanel = () => {
     const panelAccess = {
       '/': true, // Today - everyone can access
       '/emergencies': !isPatient() && !isViewer(), // Operational roles only
-      '/users': isAdmin(), // Admin only
+      '/users': isAdmin() || isOrgAdmin(), // Match the org_admin authority supported by the route.
       '/verification': isAdmin() || isOrgAdmin(), // Approvals is org_admin-reachable (route minRole org_admin); the panel is REVIEW context (read-only side data), so an org_admin reviewer must get it too. Approval COMMANDS stay admin-gated inside the panel/page (canApprove = isAdmin()).
       '/analytics': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
       '/doctors': isAdmin() || isOrgAdmin(), // Management only
@@ -105,7 +105,7 @@ export const ContextPanel = () => {
 
     // Check if current path starts with any protected path
     for (const [path, allowed] of Object.entries(panelAccess)) {
-      if (currentPath === path || currentPath.startsWith(path + '/')) {
+      if (panelPath === path || panelPath.startsWith(path + '/')) {
         return allowed;
       }
     }

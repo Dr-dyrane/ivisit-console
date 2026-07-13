@@ -9,6 +9,7 @@ import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/Layou
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
+import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression';
 import { getAvatarFallback, getAvatarUrl, markAvatarUrlAsFailed } from '../../lib/avatarUtils';
 import { getDisplayId } from '../../services/displayIdService';
 import { handleAuthError } from '../../utils/errorHandler';
@@ -49,6 +50,8 @@ export const SettingsPage = () => {
     const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
 
+    useModalChromeSuppression(isProfileModalOpen || isSecurityModalOpen);
+
     const darkMode = theme === 'dark';
     const providerAccount = isProvider();
     const canOpenSupport = isAdmin() || isOrgAdmin() || providerAccount;
@@ -70,7 +73,19 @@ export const SettingsPage = () => {
 
     const handleOpenProfile = useCallback(() => setIsProfileModalOpen(true), []);
     const handleOpenSecurity = useCallback(() => setIsSecurityModalOpen(true), []);
-    const handleOpenDoctor = useCallback(() => setIsDoctorModalOpen(true), []);
+    const handleOpenDoctor = useCallback(() => {
+        if (doctorProfileLoading && !doctorProfile) {
+            toast.info('Professional profile is still loading');
+            return;
+        }
+
+        if (!doctorProfile) {
+            toast.info('No professional profile is available for this account.');
+            return;
+        }
+
+        setIsDoctorModalOpen(true);
+    }, [doctorProfile, doctorProfileLoading]);
 
     const handleOpenSupport = useCallback(() => {
         if (!isAdmin() && !isOrgAdmin() && !isProvider()) {
@@ -209,6 +224,8 @@ export const SettingsPage = () => {
                     onSignOut={handleSignOut}
                     isSigningOut={isSigningOut}
                     isProvider={providerAccount}
+                    hasDoctorProfile={Boolean(doctorProfile)}
+                    doctorProfileLoading={doctorProfileLoading}
                     onOpenDoctor={handleOpenDoctor}
                 />
 

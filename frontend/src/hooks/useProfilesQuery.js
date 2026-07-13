@@ -12,8 +12,9 @@ import { getUsersPage } from '../services/profilesService';
  *
  * @param {object} filter - { limit, offset, search, role, provider_type, verified,
  *   created_at, sortKey, sortDirection, quiet }
- * @returns {{ users: any[], count: number, stats: object, loading: boolean,
- *   isFetching: boolean, error: unknown, refetch: function }}
+ * @returns {{ users: any[], count: number|null, stats: object|null,
+ *   statsError: object|null, loading: boolean, isFetching: boolean,
+ *   error: unknown, refetch: function }}
  */
 export function useProfilesQuery(filter = {}) {
   const query = useQuery({
@@ -26,8 +27,9 @@ export function useProfilesQuery(filter = {}) {
 
   return {
     users: query.data?.data ?? [],
-    count: query.data?.count ?? 0,
-    stats: query.data?.stats ?? { total: 0, provider: 0, org_admin: 0, patient: 0, verified: 0 },
+    count: query.data?.count ?? null,
+    stats: query.data?.stats ?? null,
+    statsError: query.data?.statsError ?? null,
     loading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,

@@ -95,7 +95,8 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(service).toContain("getAnalyticsSourceIssue('requests', requestsRes)");
     expect(service).toContain("getAnalyticsSourceIssue('finance', { error: financeError })");
     expect(service).toContain('requestSample: {');
-    expect(service).toContain('Number(requestsRes.count) <= (requestsRes.data || []).length');
+    expect(service).toContain('requestTotalCount !== null');
+    expect(service).toContain('requestTotalCount <= (requestsRes.data || []).length');
   });
 
   it('uses the donor desktop workspace grammar without turning measurements into filters', () => {

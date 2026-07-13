@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2, Loader2 } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, Shield, BadgeCheck, Building2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
-import { getHospitals } from '../../services/hospitalsService';
+import { getOrganizationOptions } from '../../services/organizationsService';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
 export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
@@ -19,7 +19,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
   const isCreate = mode === 'create';
 
   const { isAdmin, isOrgAdmin, orgId } = useAuth();
-  const [hospitals, setHospitals] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
 
   const inferRole = (u) => {
     if (!u) return 'patient';
@@ -29,7 +29,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
     return 'patient';
   };
 
-  const getInitialFormState = (sourceUser) => ({
+  const getInitialFormState = useCallback((sourceUser) => ({
     ...(sourceUser || {}),
     username: sourceUser?.username || sourceUser?.profile_username || '',
     full_name: sourceUser?.full_name || '',
@@ -43,7 +43,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
     bvn_verified: !!sourceUser?.bvn_verified,
     organization_id: sourceUser?.organization_id || (isOrgAdmin() ? orgId : ''),
     image_uri: sourceUser?.image_uri || sourceUser?.avatar_url || '',
-  });
+  }), [isOrgAdmin, orgId]);
 
   const [formData, setFormData] = useState(getInitialFormState(user));
 
@@ -53,29 +53,25 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       setFormData(prev => ({
         ...prev,
         ...getInitialFormState(user),
-        // Ensure normalized values win over raw source strings.
-        role: inferRole(user),
-        provider_type: user.provider_type || '',
-        organization_id: user.organization_id || (isOrgAdmin() ? orgId : ''),
-        image_uri: user.image_uri || user.avatar_url || '',
       }));
     } else if (isCreate) {
       // Reset for create mode
       setFormData(getInitialFormState(null))
     }
-  }, [user, isCreate, isOrgAdmin, orgId]);
+  }, [user, isCreate, getInitialFormState]);
 
   useEffect(() => {
     if (isAdmin()) {
-      const fetchHospitals = async () => {
+      const fetchOrganizations = async () => {
         try {
-          const data = await getHospitals({ limit: 100 });
-          setHospitals(data);
+          const data = await getOrganizationOptions({ limit: 200 });
+          setOrganizations(data);
         } catch (error) {
-          console.error("Failed to load hospitals", error);
+          setOrganizations([]);
+          toast.error(error.message || 'Organizations are unavailable right now.');
         }
       };
-      fetchHospitals();
+      fetchOrganizations();
     }
   }, [isAdmin]);
 
@@ -122,8 +118,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
     }
 
     if (!onSave) {
-      console.error('UserModal: onSave prop is required but was not provided');
-      toast.error('Configuration error: cannot save. Please reload the page.');
+      toast.error('This profile cannot be saved right now.');
       return;
     }
     setLoading(true);
@@ -132,16 +127,19 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       const payload = {
         ...formData,
         role: normalizedRole,
-        provider_type: normalizedRole === 'provider' ? normalizedProviderType : '',
         full_name: normalizedFullName,
-        email: normalizedEmail,
       };
+
+      if (normalizedRole === 'provider') payload.provider_type = normalizedProviderType;
+      else payload.provider_type = '';
+      if (!isAdmin()) delete payload.bvn_verified;
+      if (isCreate) payload.email = normalizedEmail;
+      else delete payload.email;
 
       await onSave(payload);
       toast.success(isCreate ? 'User created successfully' : 'User updated successfully');
       onClose(true);
     } catch (error) {
-      console.error('Error saving user:', error);
       handleApiError(error, 'update');
     } finally {
       setLoading(false);
@@ -216,11 +214,12 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           type="email"
                           value={formData.email || ''}
                           onChange={handleChange}
-                          disabled={isView}
+                          disabled={isView || isEdit}
                           className="rounded-card bg-muted/30 h-11 md:h-12 pl-10 font-normal"
                           placeholder="john@example.com"
                         />
                       </div>
+                      {isEdit && <p className="text-[11px] text-muted-foreground">Email changes use account security.</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">Phone Number</Label>
@@ -263,17 +262,21 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       <Select
                         value={formData.role || undefined}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
-                        disabled={isView}
+                        disabled={isView || (!isAdmin() && ['admin', 'org_admin', 'sponsor'].includes(formData.role))}
                       >
                         <SelectTrigger className="rounded-card bg-muted/30 h-12 font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-card shadow-sm bg-background/95">
-                          <SelectItem value="patient">Patient</SelectItem>
                           <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="provider">Provider</SelectItem>
+                          <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                          {!isAdmin() && formData.role === 'org_admin' && <SelectItem value="org_admin">Organization Admin</SelectItem>}
+                          {!isAdmin() && formData.role === 'sponsor' && <SelectItem value="sponsor">Sponsor</SelectItem>}
+                          {!isAdmin() && formData.role === 'admin' && <SelectItem value="admin">Platform Admin</SelectItem>}
                           {isAdmin() && (
                             <>
+                              <SelectItem value="patient">Patient</SelectItem>
                               <SelectItem value="sponsor">Sponsor</SelectItem>
                               <SelectItem value="org_admin">Organization Admin</SelectItem>
                               <SelectItem value="admin">Platform Admin</SelectItem>
@@ -302,9 +305,9 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                                 <SelectValue placeholder="Select Organization" />
                               </SelectTrigger>
                               <SelectContent className="rounded-card shadow-sm bg-background/95">
-                                {hospitals?.filter(h => h.organization_id).map(hospital => (
-                                  <SelectItem key={hospital.organization_id} value={hospital.organization_id}>
-                                    {hospital.name}
+                                {organizations.map(organization => (
+                                  <SelectItem key={organization.id} value={organization.id}>
+                                    {organization.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -352,7 +355,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       <Switch
                         checked={formData.bvn_verified}
                         onCheckedChange={(checked) => setFormData(prev => ({ ...prev, bvn_verified: checked }))}
-                        disabled={isView}
+                        disabled={isView || !isAdmin()}
                       />
                     </div>
                   </div>

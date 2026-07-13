@@ -22,6 +22,7 @@ import {
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { LocationCell } from '../ui/LocationCell';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import mobileMotion from './mobileMotion';
@@ -89,16 +90,27 @@ export const MobileMap = ({
     // the route-owned MapPanel contract instead of unrelated map entity totals.
     const mapKPIs = useMemo(() => {
         const requests = Array.isArray(mapData?.emergencyRequests) ? mapData.emergencyRequests : [];
+        const requestSource = mapData?.sourceState?.emergencies;
+        const exactTotal = Number.isFinite(requestSource?.total) ? requestSource.total : null;
+        const facetValue = (serviceType) => {
+            const exactFacet = requestSource?.facets?.[serviceType]?.total;
+            if (Number.isFinite(exactFacet)) return exactFacet;
+            if (requestSource?.partial) return 'N/A';
+            return requests.filter((item) => item?.service_type === serviceType).length;
+        };
+
         return [
-            { id: 'all', label: 'All', value: requests.length },
-            { id: 'ambulance', label: 'Ambulance', value: requests.filter((item) => item?.service_type === 'ambulance').length },
-            { id: 'bed', label: 'Bed', value: requests.filter((item) => item?.service_type === 'bed').length },
-            { id: 'critical_care', label: 'Critical care', value: requests.filter((item) => item?.service_type === 'critical_care').length },
+            { id: 'all', label: 'All', value: exactTotal ?? (requestSource?.partial ? `${requests.length}+` : requests.length) },
+            { id: 'ambulance', label: 'Ambulance', value: facetValue('ambulance') },
+            { id: 'bed', label: 'Bed', value: facetValue('bed') },
         ];
-    }, [mapData?.emergencyRequests]);
+    }, [mapData?.emergencyRequests, mapData?.sourceState?.emergencies]);
 
     // Format selected marker for the sheet
     const patientData = selectedMarker?.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
+    const emergencyActionState = selectedMarker?.type === "emergency"
+        ? getEmergencyActionState(selectedMarker.data)
+        : null;
     const commandBusy = mapCommand !== null;
 
     useEffect(() => {
@@ -389,7 +401,7 @@ export const MobileMap = ({
                                             </div>
 
                                             <div className="flex gap-3 pt-2">
-                                                {canManageRequests && !selectedMarker.data.ambulance_id && (
+                                                {canManageRequests && emergencyActionState?.canDispatch && (
                                                     <Button
                                                         className="h-14 flex-1 rounded-button bg-emerald-500/15 font-semibold text-emerald-700 dark:text-emerald-200"
                                                         disabled={commandBusy}
@@ -406,7 +418,7 @@ export const MobileMap = ({
                                                         {mapCommand === "send" ? "Sending" : "Send unit"}
                                                     </Button>
                                                 )}
-                                                {canManageRequests && selectedMarker.data.ambulance_id && (
+                                                {canManageRequests && emergencyActionState?.canComplete && (
                                                     <Button
                                                         className="h-14 flex-1 rounded-button bg-sky-500/15 font-semibold text-sky-700 dark:text-sky-200"
                                                         disabled={commandBusy}
@@ -420,7 +432,7 @@ export const MobileMap = ({
                                                             }
 
                                                             await runMapCommand("close", "Closing request...", "Request closed", "Could not close request", async () => {
-                                                                await completeEmergency(selectedMarker.data.id);
+                                                                await completeEmergency(selectedMarker.data.id, selectedMarker.data);
                                                                 setSelectedMarker(null);
                                                                 await refresh();
                                                             });

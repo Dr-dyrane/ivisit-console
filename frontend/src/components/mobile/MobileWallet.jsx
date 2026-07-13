@@ -104,7 +104,6 @@ const formatDateTime = (value) => {
 
 const normalizedValue = (value) => String(value || '').toLowerCase();
 const isCompletedPayment = (payment) => normalizedValue(payment?.status) === 'completed';
-const needsPaymentReview = (payment) => !['completed', 'refunded'].includes(normalizedValue(payment?.status));
 
 const matchesDateRange = (value, range = {}) => {
   if (!range.start && !range.end) return true;
@@ -188,6 +187,8 @@ export const MobileWallet = ({
   hasLoaded = false,
   wallet,
   readState = {},
+  financeMetrics = null,
+  financeMetricsStale = false,
   ledger = [],
   payments = [],
   activeTab = 'ledger',
@@ -294,21 +295,25 @@ export const MobileWallet = ({
     }).format(value);
   }, [wallet?.balance, wallet?.currency]);
 
-  const kpis = useMemo(() => {
-    const moneyIn = ledger
-      .filter((entry) => String(entry.transaction_type || '').toLowerCase() === 'credit')
-      .reduce((total, entry) => total + Math.abs(Number(entry.amount || 0)), 0);
-    const moneyOut = ledger
-      .filter((entry) => String(entry.transaction_type || '').toLowerCase() === 'debit')
-      .reduce((total, entry) => total + Math.abs(Number(entry.amount || 0)), 0);
-    const needsReview = payments.filter(needsPaymentReview).length;
-
-    return [
-      { id: 'credit', label: 'Credit', value: formatCurrency(moneyIn, wallet?.currency), color: readyColor },
-      { id: 'debit', label: 'Debit', value: formatCurrency(moneyOut, wallet?.currency), color: neutralColor },
-      { id: 'needs-review', label: 'Needs review', value: needsReview, color: waitingColor },
-    ];
-  }, [formatCurrency, ledger, payments, wallet?.currency]);
+  const ledgerTotalsAvailable = ['ready', 'stale'].includes(readState?.financeMetrics)
+    && financeMetrics?.complete === true;
+  const ledgerScopeLabel = ledgerTotalsAvailable
+    ? financeMetricsStale ? 'Last confirmed ledger totals' : financeMetrics.scopeLabel
+    : 'Ledger totals unavailable for this account';
+  const kpis = useMemo(() => [
+    {
+      id: 'credit',
+      label: 'Credits',
+      value: ledgerTotalsAvailable ? formatCurrency(financeMetrics.credits, wallet?.currency) : 'Unavailable',
+      color: readyColor,
+    },
+    {
+      id: 'debit',
+      label: 'Debits',
+      value: ledgerTotalsAvailable ? formatCurrency(financeMetrics.debits, wallet?.currency) : 'Unavailable',
+      color: neutralColor,
+    },
+  ], [financeMetrics, formatCurrency, ledgerTotalsAvailable, wallet?.currency]);
 
   const renderActivityRow = (item) => {
     const isLedger = activeTab === 'ledger';
@@ -385,7 +390,7 @@ export const MobileWallet = ({
               )}
             >
               <p className="mt-3 text-3xl font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
-                {readState?.wallet === 'ready'
+                {['ready', 'stale'].includes(readState?.wallet)
                   ? showBalance ? compactBalance : 'Balance hidden'
                   : 'Balance unavailable'}
               </p>
@@ -395,11 +400,12 @@ export const MobileWallet = ({
             <MobileKPIStrip
               kpis={kpis}
               interactive={false}
-              ariaLabel="Loaded payment KPIs"
+              ariaLabel="Wallet ledger totals"
               loading={false}
-              loadingCount={3}
+              loadingCount={2}
               animateOnMount={false}
             />
+            <p className="px-4 text-[11px] font-medium text-muted-foreground">{ledgerScopeLabel}</p>
 
             <section className="px-4">
               <WalletActivityTabs activeTab={activeTab} setActiveTab={handleTabChange} />

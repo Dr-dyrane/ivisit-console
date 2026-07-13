@@ -23,6 +23,7 @@ import {
     Wallet,
     ShieldCheck,
     Users,
+    UserPlus,
     Building2,
     Newspaper,
     LifeBuoy,
@@ -36,7 +37,6 @@ import {
     HospitalModal,
     AmbulanceModal,
     DoctorModal,
-    VisitModal,
     SupportTicketModal,
     SubscriptionModal
 } from '../modals/index';
@@ -159,7 +159,7 @@ const DynamicBottomBarContent = () => {
                 context FAB's modals below) — keeps the '/' New-request tap honest. */}
             <AnimatePresence>
                 {routeModal === 'emergency' && (
-                    <EmergencyRequestModal isOpen onClose={() => setRouteModal(null)} />
+                    <EmergencyRequestModal isOpen onClose={() => setRouteModal(null)} mode="create" />
                 )}
             </AnimatePresence>
         </>
@@ -210,7 +210,7 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         return {
             icon: BarChart3,
             label: 'View statistics',
-            color: 'primary',
+            color: 'utility',
             action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
         };
     }
@@ -229,10 +229,10 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
 
     if (pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)) {
         return {
-            icon: Calendar,
-            label: 'New visit',
-            color: 'primary',
-            action: () => window.dispatchEvent(new CustomEvent('openVisitModal'))
+            icon: BarChart3,
+            label: 'View statistics',
+            color: 'utility',
+            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
         };
     }
 
@@ -276,7 +276,7 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         return {
             icon: ClipboardCheck,
             label: 'New ticket',
-            color: 'primary',
+            color: 'staff',
             action: () => window.dispatchEvent(new CustomEvent('openSupportTicketModal'))
         };
     }
@@ -300,18 +300,12 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Users (/users): the FAB is the PRIMARY action — ADD USER — mirroring the desktop page's
-    // primary CTA (UsersPage's gated "Add user" button) and the sibling create FABs ("Add
-    // staff", "New visit"). It must NOT be a "Filter" FAB: the canon SearchRow already renders
-    // an in-page filter trigger (its onOpenFilters), so a filter FAB duplicates an affordance
-    // that's already on the page. Invite is FAIL-CLOSED (identity authority unproved), so
-    // dispatching 'openUserModal' hits the page's own listener (UsersPage.jsx) and surfaces the
-    // honest "invites not ready" feedback — exactly like the desktop button. Gate = management
-    // roles (org_admin/admin, who add users), matching the desktop create gate.
+    // Users owns invitation as its primary identity command. The legacy event name is
+    // retained for compatibility, but the mounted page resolves it to InviteUserModal.
     if (pathname.startsWith('/users') && ['org_admin', 'admin'].includes(userRole)) {
         return {
-            icon: Plus,
-            label: 'Add user',
+            icon: UserPlus,
+            label: 'Invite user',
             color: 'staff',
             action: () => window.dispatchEvent(new CustomEvent('openUserModal'))
         };
@@ -329,19 +323,14 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         };
     }
 
-    // Health News (/health-news): the FAB mirrors the desktop's primary CTA -- the gated "New
-    // article" button surfaced to management roles. Content authoring is FAIL-CLOSED at the write
-    // layer (handleCreateUnavailable toasts "unavailable until the published feed writer is
-    // approved" + handleSave throws; the createHealthNews receiver EXISTS but is NOT admitted), so
-    // dispatching 'openHealthNewsModal' hits the page's own listener and surfaces the honest "not
-    // ready" feedback -- NOT a redundant filter, exactly like Subscriptions' "Add subscriber".
-    // Gate = management roles (who see the gated button; canManageContent = isAdmin||isOrgAdmin).
+    // Health News is a read-only published-feed projection. Keep its mobile FAB useful without
+    // advertising an authoring receiver: the page owns this analytics event on both layouts.
     if (pathname.startsWith('/health-news') && ['org_admin', 'admin'].includes(userRole)) {
         return {
-            icon: Newspaper,
-            label: 'New article',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openHealthNewsModal'))
+            icon: BarChart3,
+            label: 'News stats',
+            color: 'utility',
+            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
         };
     }
 
@@ -353,7 +342,7 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         return {
             icon: BarChart3,
             label: 'Payment stats',
-            color: 'primary',
+            color: 'utility',
             action: () => window.dispatchEvent(new CustomEvent('openWalletAnalytics'))
         };
     }
@@ -365,7 +354,7 @@ const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
         return {
             icon: BarChart3,
             label: 'Policy stats',
-            color: 'primary',
+            color: 'utility',
             action: () => window.dispatchEvent(new CustomEvent('openInsuranceAnalytics'))
         };
     }
@@ -432,7 +421,6 @@ const DynamicBottomAction = ({ isScrolledDown }) => {
         hospital: false,
         ambulance: false,
         doctor: false,
-        visit: false,
         supportTicket: false,
         subscription: false,
         emailActions: false
@@ -486,12 +474,11 @@ const DynamicBottomAction = ({ isScrolledDown }) => {
                     if (!isOpen) return null;
                     const props = { isOpen, onClose: () => closeModal(key) };
                     switch (key) {
-                        case 'emergency': return <EmergencyRequestModal key={key} {...props} />;
+                        case 'emergency': return <EmergencyRequestModal key={key} {...props} mode="create" />;
                         case 'user': return <UserModal key={key} {...props} />;
                         case 'hospital': return <HospitalModal key={key} {...props} />;
                         case 'ambulance': return <AmbulanceModal key={key} {...props} />;
                         case 'doctor': return <DoctorModal key={key} {...props} />;
-                        case 'visit': return <VisitModal key={key} {...props} />;
                         case 'supportTicket':
                             return (
                                 <SupportTicketModal

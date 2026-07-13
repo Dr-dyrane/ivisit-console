@@ -128,14 +128,16 @@ const defaultFiles = [
   'src/components/onboarding/OrganizationTypeStep.jsx',
   'src/components/onboarding/AdminAccountStep.jsx',
   'src/components/onboarding/OrganizationDetailsStep.jsx',
-  'src/components/onboarding/InitialSetupStep.jsx',
   'src/components/onboarding/VerificationStep.jsx',
+  'src/components/modals/InviteUserModal.jsx',
+  'src/components/modals/UserModal.jsx',
 ];
 
-const rawArgs = process.argv.slice(2);
-const strictRadius = rawArgs.includes('--strict-radius') || process.env.UI_RADIUS_STRICT === '1';
-const requestedFiles = rawArgs.filter((arg) => arg !== '--strict-radius');
-const files = requestedFiles.length > 0 ? requestedFiles : defaultFiles;
+const CANONICAL_HAIRLINE_TOKEN = 'hsl(var(--muted-foreground)/0.08)';
+const SOURCE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.css'];
+const MAP_MARKER_CONTRAST_ALLOWLIST = new Set([
+  'src/components/map/MarkerIcons/createIcon.js',
+]);
 
 const strictRadiusPatterns = [
   {
@@ -159,7 +161,11 @@ const bannedPatterns = [
   },
   {
     name: 'surface token',
-    regex: /(?:^|\s)((?:[A-Za-z0-9_!-]+:)*(?:border|ring|outline|divide)(?:-[^\s"'`]+)?|(?:[A-Za-z0-9_!-]+:)*(?:h|w|min-h|min-w|max-h|max-w)-px)(?=\s|$)/g,
+    regex: /(?:^|[\s"'`])((?:[A-Za-z0-9_!\/\[\]().%=&>#@-]+:)*(?:(?:border|ring)(?:-[^\s"'`:]+)?|outline-[^\s"'`:]+|divide-[^\s"'`:]+|(?:h|w|min-h|min-w|max-h|max-w)-px))(?=[\s"'`]|$)/g,
+  },
+  {
+    name: 'inline decorative border',
+    regex: /\b((?:border|outline)(?:Top|Right|Bottom|Left|Inline|Block)?(?:Width|Style|Color)?)\s*:\s*['"`]?[^,;}]*?(?:\d+(?:\.\d+)?px|solid|dashed|dotted)/gi,
   },
   {
     name: 'pixel hairline',
@@ -187,9 +193,19 @@ const bannedCssPatterns = [
     name: 'nonzero letter spacing',
     regex: /letter-spacing:\s*(?!0(?:;|\s|$))(?!var\()[^;\s][^;]*/g,
   },
+  {
+    name: 'decorative border declaration',
+    regex: /(?:^|[;{]\s*)(border(?!-(?:radius|collapse|spacing)\b)(?:-[a-z-]+)?)\s*:/gi,
+  },
+  {
+    name: 'decorative outline declaration',
+    regex: /(?:^|[;{]\s*)(outline(?:-[a-z-]+)?)\s*:/gi,
+  },
+  {
+    name: 'decorative border apply',
+    regex: /@apply[^;\n]*\b((?:border|divide)(?:-[^\s;]+)?)/g,
+  },
 ];
-
-const findings = [];
 
 const requiredSnippets = {
   'src/App.js': [
@@ -258,52 +274,147 @@ const requiredSnippets = {
     "overflowOwner: 'avatar'",
     'bottomMenuButton: false',
     "userRole === 'sponsor'",
-    "{ id: 'approvals', path: '/verification', label: 'Approvals' }",
-    "{ id: 'staff', path: '/doctors', label: 'Staff' }",
+    "{ id: 'statistics', path: '/analytics', label: 'Statistics' }",
+    "{ prefix: '/verification', id: 'approvals', path: '/verification', label: 'Approvals' }",
+    "{ prefix: '/doctors', id: 'staff', path: '/doctors', label: 'Staff' }",
   ],
 };
 
-for (const relativeFile of files) {
-  const absoluteFile = path.resolve(repoRoot, relativeFile);
+const normalizeRelativePath = (filePath) => {
+  const absoluteFile = path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(repoRoot, filePath);
+  return path.relative(repoRoot, absoluteFile).split(path.sep).join('/');
+};
 
-  if (!absoluteFile.startsWith(repoRoot + path.sep)) {
-    findings.push({
-      file: relativeFile,
-      line: 0,
-      token: 'path',
-      text: 'File is outside the frontend workspace.',
-    });
-    continue;
+const resolveLocalImport = (fromRelativeFile, specifier) => {
+  let basePath;
+
+  if (specifier.startsWith('@/')) {
+    basePath = path.resolve(repoRoot, 'src', specifier.slice(2));
+  } else if (specifier.startsWith('.')) {
+    basePath = path.resolve(repoRoot, path.dirname(fromRelativeFile), specifier);
+  } else {
+    return null;
   }
 
-  if (!fs.existsSync(absoluteFile)) {
-    findings.push({
-      file: relativeFile,
-      line: 0,
-      token: 'missing',
-      text: 'File does not exist.',
-    });
-    continue;
+  const candidates = [
+    basePath,
+    ...SOURCE_EXTENSIONS.map((extension) => `${basePath}${extension}`),
+    ...SOURCE_EXTENSIONS.map((extension) => path.join(basePath, `index${extension}`)),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate.startsWith(repoRoot + path.sep)) continue;
+    if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) continue;
+    return normalizeRelativePath(candidate);
   }
 
-  const lines = fs.readFileSync(absoluteFile, 'utf8').split(/\r?\n/);
-  const fileText = lines.join('\n');
+  return null;
+};
 
-  for (const snippet of requiredSnippets[relativeFile] || []) {
-    if (!fileText.includes(snippet)) {
-      findings.push({
-        file: relativeFile,
-        line: 0,
-        token: `missing contract: ${snippet}`,
-        text: 'Required Today shell contract was not found.',
-      });
+const extractLocalImports = (source) => {
+  const specifiers = new Set();
+  const patterns = [
+    /(?:^|\n)\s*(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /import\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /require\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /@import\s+(?:url\()?['"]([^'"]+)['"]/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+      specifiers.add(match[1]);
+    }
+  }
+
+  return [...specifiers];
+};
+
+const collectReachableFiles = (entryFiles) => {
+  const queue = entryFiles.map(normalizeRelativePath);
+  const visited = new Set();
+
+  while (queue.length > 0) {
+    const relativeFile = queue.shift();
+    if (visited.has(relativeFile)) continue;
+    visited.add(relativeFile);
+
+    const absoluteFile = path.resolve(repoRoot, relativeFile);
+    if (!absoluteFile.startsWith(repoRoot + path.sep)) continue;
+    if (!fs.existsSync(absoluteFile) || !fs.statSync(absoluteFile).isFile()) continue;
+
+    const source = fs.readFileSync(absoluteFile, 'utf8');
+    for (const specifier of extractLocalImports(source)) {
+      const dependency = resolveLocalImport(relativeFile, specifier);
+      if (dependency && !visited.has(dependency)) queue.push(dependency);
+    }
+  }
+
+  return [...visited];
+};
+
+const isFocusIndicatorToken = (token) => {
+  const parts = token.split(':');
+  const utility = parts.pop();
+  const hasFocusVariant = parts.some((part) => part === 'focus' || part === 'focus-visible');
+  return hasFocusVariant && /^(?:ring|outline)(?:-|$)/.test(utility);
+};
+
+const isCanonicalHairline = (token, lineText) => {
+  const utility = token.split(':').pop();
+  return (utility === 'h-px' || utility === 'w-px')
+    && lineText.includes(CANONICAL_HAIRLINE_TOKEN);
+};
+
+const isNonVisualReset = (token) => {
+  const utility = token.split(':').pop();
+  return utility === 'border-0'
+    || utility === 'border-none'
+    || utility === 'border-transparent'
+    || utility === 'ring-0'
+    || utility === 'border-collapse'
+    || utility === 'border-separate';
+};
+
+const isAllowedFinding = ({ file, patternName, token, lineText }) => {
+  if (patternName === 'surface token') {
+    return isFocusIndicatorToken(token)
+      || isCanonicalHairline(token, lineText)
+      || isNonVisualReset(token);
+  }
+
+  if (patternName === 'inline decorative border') {
+    return MAP_MARKER_CONTRAST_ALLOWLIST.has(file);
+  }
+
+  return false;
+};
+
+const scanSource = (relativeFile, source, options = {}) => {
+  const findings = [];
+  const lines = source.split(/\r?\n/);
+
+  if (options.checkRequiredSnippets !== false) {
+    for (const snippet of requiredSnippets[relativeFile] || []) {
+      if (!source.includes(snippet)) {
+        findings.push({
+          file: relativeFile,
+          line: 0,
+          token: `missing contract: ${snippet}`,
+          text: 'Required Today shell contract was not found.',
+        });
+      }
     }
   }
 
   lines.forEach((lineText, index) => {
+    if (/^(?:\/\/|\/\*|\*|\*\/)/.test(lineText.trim())) return;
+
     const activePatterns = relativeFile.endsWith('.css')
       ? bannedCssPatterns
-      : strictRadius
+      : options.strictRadius
         ? [...strictRadiusPatterns, ...bannedPatterns]
         : bannedPatterns;
 
@@ -312,7 +423,14 @@ for (const relativeFile of files) {
       let match;
 
       while ((match = pattern.regex.exec(lineText)) !== null) {
-        const token = match[1];
+        const token = match[1] || match[0];
+        if (isAllowedFinding({
+          file: relativeFile,
+          patternName: pattern.name,
+          token,
+          lineText,
+        })) continue;
+
         findings.push({
           file: relativeFile,
           line: index + 1,
@@ -322,19 +440,75 @@ for (const relativeFile of files) {
       }
     }
   });
-}
 
-if (findings.length > 0) {
-  console.error('UI surface hardgate failed.');
-  console.error('Active revamp surfaces cannot use decorative borders, rings, outlines, dividers, or px hairlines.');
-  console.error('Use role-based radius tokens, spacing, surface depth, tone, and motion instead.\n');
+  return findings;
+};
 
-  for (const finding of findings) {
-    console.error(`${finding.file}:${finding.line} ${finding.token}`);
-    console.error(`  ${finding.text}`);
+const runHardgate = (args = process.argv.slice(2)) => {
+  const strictRadius = args.includes('--strict-radius') || process.env.UI_RADIUS_STRICT === '1';
+  const requestedFiles = args.filter((arg) => arg !== '--strict-radius');
+  const rootFiles = (requestedFiles.length > 0 ? requestedFiles : defaultFiles).map(normalizeRelativePath);
+  const rootFileSet = new Set(rootFiles);
+  const files = collectReachableFiles(rootFiles);
+  const findings = [];
+
+  for (const relativeFile of files) {
+    const absoluteFile = path.resolve(repoRoot, relativeFile);
+
+    if (!absoluteFile.startsWith(repoRoot + path.sep)) {
+      findings.push({
+        file: relativeFile,
+        line: 0,
+        token: 'path',
+        text: 'File is outside the frontend workspace.',
+      });
+      continue;
+    }
+
+    if (!fs.existsSync(absoluteFile)) {
+      findings.push({
+        file: relativeFile,
+        line: 0,
+        token: 'missing',
+        text: 'File does not exist.',
+      });
+      continue;
+    }
+
+    const source = fs.readFileSync(absoluteFile, 'utf8');
+    findings.push(...scanSource(relativeFile, source, {
+      checkRequiredSnippets: rootFileSet.has(relativeFile),
+      strictRadius: strictRadius && rootFileSet.has(relativeFile),
+    }));
   }
 
-  process.exit(1);
+  return { files, findings, rootFiles, strictRadius };
+};
+
+if (require.main === module) {
+  const result = runHardgate();
+
+  if (result.findings.length > 0) {
+    console.error('UI surface hardgate failed.');
+    console.error('Active revamp surfaces and their shared imports cannot use decorative borders, rings, outlines, dividers, or px hairlines.');
+    console.error(`Use role-based radius tokens, surface depth, and tone. The only divider exception is ${CANONICAL_HAIRLINE_TOKEN}.\n`);
+
+    for (const finding of result.findings) {
+      console.error(`${finding.file}:${finding.line} ${finding.token}`);
+      console.error(`  ${finding.text}`);
+    }
+
+    process.exitCode = 1;
+  } else {
+    console.log(`UI surface hardgate passed for ${result.rootFiles.length} root file(s) and ${result.files.length} reachable file(s).${result.strictRadius ? ' Strict radius mode enabled for roots.' : ''}`);
+  }
 }
 
-console.log(`UI surface hardgate passed for ${files.length} file(s).${strictRadius ? ' Strict radius mode enabled.' : ''}`);
+module.exports = {
+  CANONICAL_HAIRLINE_TOKEN,
+  MAP_MARKER_CONTRAST_ALLOWLIST,
+  collectReachableFiles,
+  extractLocalImports,
+  runHardgate,
+  scanSource,
+};

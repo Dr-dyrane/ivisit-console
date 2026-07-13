@@ -227,15 +227,15 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Insurance Page 12 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending.');
     expect(gate).toContain('first policy command recertification kept create/edit/delete/status/verify exports fail-closed; legacy policy adapter reads/realtime/coverage helpers and legacy service/hook list/detail reads now fail closed.');
     expect(gate).toContain('Analytics Page 13 guarded source parity was completed on 2026-07-12 as a role-scoped Summary composition.');
-    expect(gate).toContain('Users is Page 14 intake audit only. It is not admitted and no visual revamp, invite/role/delete enablement, shared Requests pattern reuse, route-owned action promotion, or hardgate promotion is authorized until identity projection, invite receiver, role mutation, destructive command, and mobile metric blockers are closed.');
+    expect(gate).toContain('Users is Page 14 and is admitted to the shared list-workspace canon. Its scoped invitation command was receiver-admitted on 2026-07-12; direct profile creation and destructive deletion remain unavailable.');
     expect(gate).toContain('Organizations Page 15 source parity was completed on 2026-07-11 with a canonical desktop workspace');
     expect(gate).toContain('Settings Page 16 guarded source parity was completed on 2026-07-11 as an own-account dashboard.');
     expect(gate).toContain('Subscriptions Page 17 source parity was completed on 2026-07-11 as a read-only visual composition; authenticated rendered admission remains pending.');
     expect(gate).toContain('Pricing Page 18 source parity was completed on 2026-07-11 as a read-only pricing registry.');
-    expect(gate).toContain('Login is Page 19 and its public-auth visual surface is admitted for guarded continuation only (`LoginPage.jsx`). It is not a Requests multi-data pattern source. No auth-flow rewrite, auth copy rewrite, OAuth/reset/MFA promotion, or Requests pattern reuse is authorized until Auth receiver ownership, Edge `check-user` deployment truth, redirect/deep-link behavior, session/onboarding redirects, MFA factor/challenge state, and rendered public-flow proof blockers are closed.');
-    expect(gate).toContain('Set Password is Page 20 and its public-recovery visual surface is admitted for guarded continuation only (`SetPasswordPage.jsx`). It is not a Requests multi-data pattern source. No recovery-flow rewrite, recovery copy rewrite, Auth update promotion, or Requests pattern reuse is authorized until recovery-session truth, password update receiver ownership, invalid/expired-link handling, redirect behavior, and rendered public-flow proof blockers are closed.');
-    expect(gate).toContain('Onboarding is Page 21 and its public-registration visual surface is admitted for guarded continuation only (the route shell `OnboardingPage.jsx`, the wizard `OnboardingWizard.jsx`, and the five step components). It is not a Requests multi-data pattern source. No registration-flow rewrite, registration copy rewrite, account/org/facility creation promotion, document upload promotion, or Requests pattern reuse is authorized until admin account receiver ownership, organization/hospital identity, existing-facility claim behavior, Storage evidence, wallet/verification consequence, and rendered public-flow proof blockers are closed.');
-    expect(gate).toContain('Onboarding Success is Page 22 and its visual surface is admitted for guarded public confirmation-recovery continuation only. It is not a Requests multi-data pattern source. No success-flow rewrite, dashboard-access promise, review-timing promise, display-ID product promotion, support receiver, or backend success-state source is admitted until success-state source, direct-link behavior, verification consequence, dashboard redirect outcome, support handoff, and rendered public-flow proof blockers are closed.');
+    expect(gate).toContain('Login is Page 19 and is admitted as a public auth gateway, not a Requests multi-data pattern source. Password/MFA sign-in and generic reset/setup delivery are receiver-admitted; account discovery is retired and deployed `check-user` returns HTTP 410.');
+    expect(gate).toContain('Set Password is Page 20 and is admitted as a public recovery gateway. Explicit recovery/invite link intent, bounded session verification, missing/error states, Auth password update, URL cleanup, and redirect ownership are receiver-admitted.');
+    expect(gate).toContain('Onboarding is Page 21 and its four-step Account/Organization/Essentials/Review flow is receiver-admitted. It uses Auth, private actor-owned Storage, and atomic canonical organization provisioning; existing-facility ownership remains support/admin review only.');
+    expect(gate).toContain('Onboarding Success is Page 22 and is admitted as a backend-reflected confirmation surface. It renders success only from the verified organization/wallet provisioning result and degrades honestly on direct navigation or refresh without that state.');
     expect(gate).toContain('Unauthorized is Page 23 intake audit only. It is not admitted and no visual revamp, denied-state copy rewrite, missing-profile recovery promotion, role display promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until redirect origin, role/resource denial source, missing-profile semantics, action feedback, sign-out receiver, and rendered public-flow proof blockers are closed. `ProtectedRoute.jsx` remains in the default hardgate as shared guard code, not as Unauthorized visual admission.');
     expect(gate).toContain('Catch-All Not Found is Page 24 intake audit only. It is not admitted and no visual revamp, 404 copy rewrite, unknown-route redirect behavior, app-shell rendering, public-shell hardgate promotion, or Requests pattern reuse is authorized until route ownership, auth/shell exposure, missing-route recovery, action feedback, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Insurance | `/insurance` | Page 12 intake audit only. Not admitted under the Today/Requests canon.');
@@ -634,7 +634,7 @@ describe('Today/Requests revamp gate contract', () => {
     });
   });
 
-  it('keeps reachable but unadmitted routes queued outside the Requests canon and hardgate', () => {
+  it('keeps the reachable route queue and admitted exceptions explicit', () => {
     const gate = gateSource();
     const app = appSource();
     const navigation = navigationSource();
@@ -645,12 +645,12 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('### Reachable But Unadmitted Route Queue - 2026-07-05');
     expect(gate).toContain('Route/nav inventory checked `App.js`, `navigation.js`, `mobileNavigation.js`, `consoleModuleRail.js`, and `scripts/check-ui-surface-hardgate.js`.');
     expect(gate).toContain('| `/analytics` | Main nav `Statistics`, sponsor mobile `Statistics`, module rail `Statistics`; route min role `provider`. | Not admitted.');
-    expect(gate).toContain('| `/users` | Admin nav `Users`; route min role `org_admin`. | Not admitted.');
+    expect(gate).toContain('| `/users` | Admin nav `Users`; route min role `org_admin`. | Admitted. Server projection and shared list-workspace canon are closed; scoped invitation is receiver-admitted. Direct creation and destructive deletion stay unavailable. |');
     expect(gate).toContain('| `/organizations` | Admin nav `Organizations`; route min role `admin`. | Not admitted.');
     expect(gate).toContain('| `/settings` | Account nav `Settings`, viewer/sponsor mobile `Settings`; protected route. | Not admitted.');
     expect(gate).toContain('| `/subscriptions` | Admin nav `Email Subscribers`; route min role `admin`. | Not admitted.');
     expect(gate).toContain('| `/pricing` | Payments nav `Pricing`; route min role `org_admin`. | Not admitted.');
-    expect(gate).toContain('Public/auth shell routes are separate from the authenticated console route queue. `/login` has Page 19 admitted as a guarded public-auth visual-surface exception only (receivers still blocked), `/set-password` has Page 20 admitted as a guarded public-recovery visual-surface exception only (receivers still blocked), `/onboarding` has Page 21 admitted as a guarded public-registration visual-surface exception only (receivers still blocked), `/onboarding-success` has Page 22 admitted as a guarded confirmation-recovery exception only, `/unauthorized` has opened Page 23 intake only, and the `*` catch-all has opened Page 24 intake only. No other public/auth shell route is visually admitted from this intake sequence until its own blockers and rendered proof close.');
+    expect(gate).toContain('Public/auth shell routes are separate from the authenticated console route queue. `/login`, `/set-password`, `/onboarding`, and `/onboarding-success` are admitted public-shell exceptions with the receiver boundaries recorded in Pages 19-22 and Pass 4. `/unauthorized` has opened Page 23 intake only, and the `*` catch-all has opened Page 24 intake only.');
 
     expect(app).toContain('<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />');
     expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
@@ -705,19 +705,20 @@ describe('Today/Requests revamp gate contract', () => {
     // Page 20 Set Password visual surface admitted 2026-07-07: SetPasswordPage.jsx is in the default hardgate; the recovery-authority owners stay out.
     expect(hardgate).toContain('src/components/pages/SetPasswordPage.jsx');
     expect(gate).toContain('### Page 20 Admission - Set Password');
-    expect(gate).toContain('Public/auth hardgate exception, 2026-07-07: `OnboardingSuccessPage.jsx` is in the default UI hardgate as the admitted Page 22 public confirmation-recovery surface only.');
-    // Page 21 Onboarding visual surface admitted 2026-07-07: the seven visual files are in the default hardgate; the backend files stay out.
+    expect(gate).toContain('Public/auth receiver closure, 2026-07-12: Login, Set Password, the six active Onboarding visual files, Onboarding Success, Invite User, and User edit modal are in the default UI hardgate.');
+    // Page 21 Onboarding receiver closure: the six active visual files are in the default hardgate; backend authority stays service-owned.
     [
       'src/components/pages/OnboardingPage.jsx',
       'src/components/onboarding/OnboardingWizard.jsx',
       'src/components/onboarding/OrganizationTypeStep.jsx',
       'src/components/onboarding/AdminAccountStep.jsx',
       'src/components/onboarding/OrganizationDetailsStep.jsx',
-      'src/components/onboarding/InitialSetupStep.jsx',
       'src/components/onboarding/VerificationStep.jsx',
     ].forEach((file) => {
       expect(hardgate).toContain(file);
     });
+    expect(hardgate).toContain('src/components/modals/InviteUserModal.jsx');
+    expect(hardgate).toContain('src/components/modals/UserModal.jsx');
     expect(gate).toContain('### Page 21 Admission - Onboarding');
     expect(hardgate).toContain('src/components/common/ProtectedRoute.jsx');
     expect(gate).toContain('`ProtectedRoute.jsx` remains in the default hardgate as shared guard code, not as Unauthorized visual admission.');
@@ -826,7 +827,8 @@ describe('Today/Requests revamp gate contract', () => {
     expect(fab).not.toContain("import { HealthNewsModal }");
     expect(fab).not.toContain("case 'healthNews'");
     expect(bottomBar).toContain("pathname.startsWith('/health-news')");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openHealthNewsModal'))");
+    expect(bottomBar).toContain("label: 'News stats'");
+    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
     expect(bottomBar).not.toContain("case 'healthNews'");
     // Stale-pin reconciliation (2026-07-09): the generic hospitals context action
     // was REMOVED by the shell-parity pass (HospitalsPage.contract pins the ban);
@@ -834,9 +836,10 @@ describe('Today/Requests revamp gate contract', () => {
     // route action (user arbitration #2). This inventory pin flips to match.
     expect(contextAction).not.toContain("label: 'Add facility'");
     expect(contextAction).toContain("label: 'Add unit'");
-    expect(contextAction).toContain("label: 'New article'");
+    expect(contextAction).toContain("label: 'News stats'");
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openAmbulanceModal'))");
-    expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openHealthNewsModal'))");
+    expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(contextAction).not.toContain("window.dispatchEvent(new CustomEvent('openHealthNewsModal'))");
     expect(contextAction).not.toContain("label: 'Add Hospital'");
     expect(contextAction).not.toContain("label: 'Add Ambulance'");
     expect(contextAction).not.toContain("label: 'Add News'");
@@ -898,7 +901,10 @@ describe('Today/Requests revamp gate contract', () => {
     expect(requests).toContain('<RequestsDesktopWorkspace');
     expect(requests).toContain('<MobileEmergency');
     expect(requests).toContain('<FilterSheet');
-    expect(requests).toContain('<ModalShell');
+    expect(requests).toContain('<EmergencyDetailsModal');
+    expect(requests).toContain('<EmergencyRequestModal');
+    expect(requests).toContain('<ConfirmationModal');
+    expect(requests).toContain('<AnalyticsModal');
     expect(requests).not.toContain('EmergencyRequestListView');
     expect(requests).not.toContain('EmergencyRequestTableView');
 

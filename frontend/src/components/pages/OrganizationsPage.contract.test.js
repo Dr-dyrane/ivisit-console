@@ -78,7 +78,8 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(routes).toContain("title: 'Organizations'");
     expect(routeOwnsStartupDomains('/organizations')).toBe(true);
     expect(getPageDataStartupDomainsForRole('admin', '/organizations')).toEqual([]);
-    expect(pageDataAccess).toContain("pathname === '/organizations'");
+    expect(pageDataAccess).toContain("const isTodayPath = (pathname = '') => pathname === '' || pathname === '/';");
+    expect(pageDataAccess).toContain('return !isTodayPath(pathname);');
 
     expect(page).toContain("import { useOrganizationsQuery } from '../../hooks/useOrganizationsQuery';");
     expect(page).toContain('kpiFilter,');

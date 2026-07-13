@@ -14,6 +14,7 @@ describe('HospitalsPage admission audit contract', () => {
   const tableSource = () => fs.readFileSync('src/components/views/HospitalTableView.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/HospitalModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/hospitalsService.js', 'utf8');
+  const bedServiceSource = () => fs.readFileSync('src/services/bedManagementService.js', 'utf8');
   const viewModeSource = () => fs.readFileSync('src/hooks/useViewMode.js', 'utf8');
   // S3 React Query migration (mirrors DoctorsPage): the page reads via
   // useHospitalsQuery and writes via useHospitalsMutations. These readers let the
@@ -709,8 +710,15 @@ describe('HospitalsPage admission audit contract', () => {
     expect(service).toContain('export async function createHospital(input)');
     expect(service).toContain('export async function updateHospital(hospitalId, input)');
     expect(service).toContain("supabase.rpc('update_hospital_by_admin'");
+    expect(service).toContain("if (!rpcResult?.success)");
+    expect(service).toContain("if (!data) throw new Error('Facility no longer exists')");
+    expect(service).toContain('Available beds cannot exceed total beds');
+    expect(service).toContain("payload.phone = phone ?? ''");
     expect(service).toContain('export async function deleteHospital(hospitalId)');
     expect(service).toContain("supabase.rpc('delete_hospital_by_admin'");
+    expect(modal).toContain('reservationError');
+    expect(modal).toContain('Reservation data is unavailable. Try again.');
+    expect(bedServiceSource()).toContain('throw error;');
 
     expect(viewMode).toContain("const allowedViewModes = new Set(['grid', 'list', 'table'])");
     expect(viewMode).toContain('if (!allowedViewModes.has(newMode))');

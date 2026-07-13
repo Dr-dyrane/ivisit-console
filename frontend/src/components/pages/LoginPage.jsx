@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -15,9 +15,8 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useAuth } from "../../contexts/AuthContext";
+import { ASSURANCE_STATUS, useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { handleAuthError } from "../../utils/errorHandler";
 import ThemeToggle from "../ui/theme-toggle";
 
 const emailSchema = z.string().email("Enter a valid email address");
@@ -54,8 +53,21 @@ const PrimaryButton = ({ loading, children, disabled = false }) => (
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { signIn, loading: authLoading, user, profile } = useAuth();
+  const location = useLocation();
+  const {
+    signIn,
+    signOut,
+    loading: authLoading,
+    user,
+    profile,
+    assuranceState,
+    refreshAssurance,
+    mfaChallenge,
+    beginMfaChallenge,
+    verifyMfa,
+  } = useAuth();
   const submitLockRef = useRef(false);
+  const redirectLockRef = useRef(false);
 
   const [step, setStep] = useState("email");
   const [direction, setDirection] = useState(1);
@@ -65,13 +77,34 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [setupLinkSent, setSetupLinkSent] = useState(false);
-  const [mfaFactorId, setMfaFactorId] = useState(null);
-  const [mfaChallengeId, setMfaChallengeId] = useState(null);
   const [mfaCode, setMfaCode] = useState("");
 
+  const requestedLocation = location.state?.from;
+  const requestedPath = typeof requestedLocation?.pathname === 'string'
+    && requestedLocation.pathname.startsWith('/')
+    && requestedLocation.pathname !== '/login'
+    ? `${requestedLocation.pathname}${requestedLocation.search || ''}${requestedLocation.hash || ''}`
+    : '/';
+  const assuranceStatus = assuranceState?.status || ASSURANCE_STATUS.CHECKING;
+  const hasSatisfiedSession = Boolean(
+    !authLoading
+    && user
+    && profile
+    && assuranceStatus === ASSURANCE_STATUS.SATISFIED
+  );
+  const sessionGateActive = Boolean(user && !hasSatisfiedSession);
+  const activeStep = sessionGateActive ? '2fa' : step;
+
   useEffect(() => {
-    if (!authLoading && user && profile) navigate("/", { replace: true });
-  }, [authLoading, navigate, profile, user]);
+    if (!user) {
+      redirectLockRef.current = false;
+      return;
+    }
+    if (!hasSatisfiedSession || redirectLockRef.current) return;
+
+    redirectLockRef.current = true;
+    navigate(requestedPath, { replace: true });
+  }, [hasSatisfiedSession, navigate, requestedPath, user]);
 
   const begin = () => {
     if (submitLockRef.current) return false;
@@ -92,6 +125,16 @@ export const LoginPage = () => {
     setStep(nextStep);
   };
 
+  useEffect(() => {
+    if (!user || assuranceStatus !== ASSURANCE_STATUS.MFA_REQUIRED) return;
+
+    setDirection(1);
+    setStep((currentStep) => currentStep === '2fa' ? currentStep : '2fa');
+    if (mfaChallenge?.status === 'idle') {
+      void beginMfaChallenge();
+    }
+  }, [assuranceStatus, beginMfaChallenge, mfaChallenge?.status, user]);
+
   const handleEmailSubmit = async (event) => {
     event.preventDefault();
     if (!begin()) return;
@@ -99,19 +142,9 @@ export const LoginPage = () => {
     try {
       const normalizedEmail = emailSchema.parse(email.trim().toLowerCase());
       setEmail(normalizedEmail);
-
-      const { data, error: checkError } = await supabase.functions.invoke("check-user", {
-        body: { email: normalizedEmail },
-      });
-
-      if (!checkError && data?.exists === false) {
-        setError("No account was found for this email.");
-        return;
-      }
-
-      moveTo(!checkError && data?.hasPassword === false ? "setup" : "password");
+      moveTo("password");
     } catch (caught) {
-      setError(caught instanceof z.ZodError ? caught.errors[0].message : "We could not check this email. Try again.");
+      setError(caught instanceof z.ZodError ? caught.errors[0].message : "Enter a valid email address.");
     } finally {
       finish();
     }
@@ -128,8 +161,7 @@ export const LoginPage = () => {
       if (resetError) throw resetError;
       setSetupLinkSent(true);
       toast.success("Password setup link sent");
-    } catch (caught) {
-      handleAuthError(caught, "reset");
+    } catch {
       setError("We could not send the link. Try again.");
     } finally {
       finish();
@@ -140,32 +172,21 @@ export const LoginPage = () => {
     event.preventDefault();
     if (!begin()) return;
 
-    setMfaFactorId(null);
-    setMfaChallengeId(null);
     setMfaCode("");
 
     try {
-      const { error: signInError } = await signIn(email, password);
-      if (signInError) throw signInError;
-
-      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
-      if (factorsError) throw factorsError;
-      const enrolledFactor = (factors?.all || []).find((factor) => factor.status === "verified");
-
-      if (!enrolledFactor) {
+      const { assurance } = await signIn(email, password);
+      if (assurance?.status === ASSURANCE_STATUS.SATISFIED) {
         toast.success("Signed in");
-        navigate("/", { replace: true });
         return;
       }
 
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: enrolledFactor.id,
-      });
-      if (challengeError) throw challengeError;
+      if (assurance?.status === ASSURANCE_STATUS.MFA_REQUIRED) {
+        moveTo("2fa");
+        return;
+      }
 
-      setMfaFactorId(enrolledFactor.id);
-      setMfaChallengeId(challenge.id);
-      moveTo("2fa");
+      setError(assurance?.error || "We could not confirm your account security. Try again.");
     } catch {
       setError("The email or password is incorrect.");
     } finally {
@@ -178,24 +199,74 @@ export const LoginPage = () => {
     if (!begin()) return;
 
     const code = mfaCode.trim();
-    if (code.length !== 6 || !mfaFactorId || !mfaChallengeId) {
-      setError(code.length !== 6 ? "Enter the 6-digit code." : "This security check expired. Sign in again.");
-      if (!mfaFactorId || !mfaChallengeId) moveTo("password", -1);
+    if (code.length !== 6) {
+      setError("Enter the 6-digit code.");
       finish();
       return;
     }
 
     try {
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: mfaChallengeId,
-        code,
-      });
-      if (verifyError) throw verifyError;
+      const result = await verifyMfa(code);
+      if (!result.ok) {
+        setError(result.error || "That code could not be verified. Try again.");
+        return;
+      }
+
       toast.success("Signed in");
-      navigate("/", { replace: true });
     } catch {
-      setError("That code is not valid. Try again.");
+      setError("We could not verify that code. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handleRetryAssurance = async () => {
+    if (!begin()) return;
+
+    try {
+      const nextAssurance = await refreshAssurance({ force: true });
+      if (nextAssurance.status === ASSURANCE_STATUS.ERROR) {
+        setError(nextAssurance.error || "We could not confirm your account security. Try again.");
+        return;
+      }
+
+      if (nextAssurance.status === ASSURANCE_STATUS.MFA_REQUIRED) {
+        setMfaCode("");
+        const nextChallenge = await beginMfaChallenge({ force: true });
+        if (nextChallenge.status === 'error') setError(nextChallenge.error);
+      }
+    } catch {
+      setError("We could not retry the security check. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handleRetryChallenge = async () => {
+    if (!begin()) return;
+
+    try {
+      setMfaCode("");
+      const nextChallenge = await beginMfaChallenge({ force: true });
+      if (nextChallenge.status === 'error') setError(nextChallenge.error);
+    } catch {
+      setError("We could not start a new security check. Try again.");
+    } finally {
+      finish();
+    }
+  };
+
+  const handleUseAnotherAccount = async () => {
+    if (!begin()) return;
+
+    try {
+      await signOut();
+      setPassword("");
+      setMfaCode("");
+      setSetupLinkSent(false);
+      moveTo("email", -1);
+    } catch {
+      setError("We could not sign out. Try again.");
     } finally {
       finish();
     }
@@ -209,8 +280,8 @@ export const LoginPage = () => {
         options: { redirectTo: window.location.origin },
       });
       if (oauthError) throw oauthError;
-    } catch (caught) {
-      handleAuthError(caught, "authenticate");
+    } catch {
+      setError("Google sign-in is unavailable right now.");
       finish();
     }
   };
@@ -222,16 +293,52 @@ export const LoginPage = () => {
         redirectTo: `${window.location.origin}/set-password`,
       });
       if (resetError) throw resetError;
+      setSetupLinkSent(true);
       toast.success("Password reset link sent");
-    } catch (caught) {
-      handleAuthError(caught, "reset");
+    } catch {
+      setError("We could not send the link. Try again.");
     } finally {
       finish();
     }
   };
 
-  const stepTitle = step === "email" ? "Sign in" : step === "password" ? "Enter your password" : step === "setup" ? "Set up your password" : "Security check";
-  const stepDescription = step === "email" ? "Use your organization email to continue." : step === "password" ? email : step === "setup" ? email : "Enter the code from your authenticator app.";
+  const assuranceLookupFailed = assuranceStatus === ASSURANCE_STATUS.ERROR || Boolean(
+    user
+    && ![
+      ASSURANCE_STATUS.CHECKING,
+      ASSURANCE_STATUS.SATISFIED,
+      ASSURANCE_STATUS.MFA_REQUIRED,
+    ].includes(assuranceStatus)
+  );
+  const challengeFailed = mfaChallenge?.status === 'error';
+  const securityPending = Boolean(
+    user
+    && (
+      assuranceStatus === ASSURANCE_STATUS.CHECKING
+      || mfaChallenge?.status === 'starting'
+      || mfaChallenge?.status === 'verifying'
+      || (assuranceStatus === ASSURANCE_STATUS.SATISFIED && (authLoading || !profile))
+    )
+  );
+  const securityError = error || mfaChallenge?.error || assuranceState?.error || '';
+  const stepTitle = activeStep === "email"
+    ? "Sign in"
+    : activeStep === "password"
+      ? "Enter your password"
+      : assuranceLookupFailed || challengeFailed
+        ? "Security check unavailable"
+        : securityPending
+          ? "Checking your account"
+          : "Security check";
+  const stepDescription = activeStep === "email"
+    ? "Use your organization email to continue."
+    : activeStep === "password"
+      ? email
+      : assuranceLookupFailed || challengeFailed
+        ? "Retry the security check or sign out safely."
+        : securityPending
+          ? "Confirming the security level for this session."
+          : "Enter the code from your authenticator app.";
 
   return (
     <div className="min-h-[100dvh] overflow-y-auto bg-background text-foreground">
@@ -269,7 +376,7 @@ export const LoginPage = () => {
 
             <AnimatePresence mode="wait" custom={direction} initial={false}>
               <motion.div
-                key={step}
+                key={activeStep}
                 custom={direction}
                 variants={stepMotion}
                 initial="enter"
@@ -277,7 +384,7 @@ export const LoginPage = () => {
                 exit="exit"
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
-                {step === "email" && (
+                {activeStep === "email" && (
                   <>
                     <form onSubmit={handleEmailSubmit} className="space-y-4">
                       <div>
@@ -306,9 +413,9 @@ export const LoginPage = () => {
                     </form>
 
                     <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
-                      <span className="h-px flex-1 bg-foreground/10" />
+                      <span className="h-px flex-1 bg-[hsl(var(--muted-foreground)/0.08)]" />
                       or
-                      <span className="h-px flex-1 bg-foreground/10" />
+                      <span className="h-px flex-1 bg-[hsl(var(--muted-foreground)/0.08)]" />
                     </div>
 
                     <button
@@ -333,7 +440,7 @@ export const LoginPage = () => {
                   </>
                 )}
 
-                {step === "password" && (
+                {activeStep === "password" && (
                   <>
                     <button type="button" onClick={() => moveTo("email", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
                       <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Change email
@@ -366,64 +473,98 @@ export const LoginPage = () => {
                         Sign in <ArrowRight className="h-4 w-4" aria-hidden="true" />
                       </PrimaryButton>
                     </form>
-                    <button type="button" onClick={handleForgotPassword} disabled={isLoading} className="mt-6 text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
-                      Forgot your password?
-                    </button>
-                  </>
-                )}
-
-                {step === "setup" && (
-                  <>
-                    <button type="button" onClick={() => moveTo("email", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Change email
-                    </button>
                     {setupLinkSent ? (
-                      <div role="status" className="rounded-inner bg-emerald-500/10 p-5 text-emerald-800 dark:text-emerald-200">
-                        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-                        <p className="mt-3 font-semibold">Check your email</p>
-                        <p className="mt-1 text-sm opacity-80">Open the latest link to create your password.</p>
+                      <div role="status" className="mt-5 flex items-start gap-3 rounded-inner bg-emerald-500/10 p-4 text-emerald-800 dark:text-emerald-200">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold">Check your email</p>
+                          <p className="mt-1 text-xs opacity-80">Open the latest link to set or reset your password.</p>
+                        </div>
                       </div>
                     ) : (
-                      <form onSubmit={handleSetupLink} className="space-y-4">
-                        <p className="rounded-inner bg-foreground/[0.045] p-4 text-sm leading-relaxed text-muted-foreground dark:bg-white/[0.06]">
-                          This account needs a password. We will only send a setup link after you confirm.
-                        </p>
-                        <FieldError message={error} />
-                        <PrimaryButton loading={isLoading}>
-                          Send setup link <Mail className="h-4 w-4" aria-hidden="true" />
-                        </PrimaryButton>
-                      </form>
+                      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3">
+                        <button type="button" onClick={handleForgotPassword} disabled={isLoading} className="text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+                          Forgot password?
+                        </button>
+                        <button type="button" onClick={handleSetupLink} disabled={isLoading} className="text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+                          Set up password
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
 
-                {step === "2fa" && (
+                {activeStep === "2fa" && (
                   <>
-                    <button type="button" onClick={() => moveTo("password", -1)} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back
-                    </button>
-                    <form onSubmit={handle2FASubmit} className="space-y-4">
-                      <div>
-                        <label htmlFor="mfa-code" className="sr-only">Six-digit authentication code</label>
-                        <input
-                          id="mfa-code"
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          autoFocus
-                          value={mfaCode}
-                          onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                          className="h-16 w-full rounded-inner bg-foreground/[0.045] text-center font-mono text-2xl dark:bg-white/[0.06]"
-                          placeholder="000000"
-                          disabled={isLoading}
-                          aria-invalid={Boolean(error)}
-                        />
-                        <FieldError message={error} />
+                    {securityPending ? (
+                      <div role="status" className="flex min-h-40 flex-col items-center justify-center rounded-inner bg-foreground/[0.035] px-6 py-8 text-center dark:bg-white/[0.05]">
+                        <Loader2 className="mb-3 h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Confirming this session</p>
+                        <p className="mt-1 text-xs text-muted-foreground">This should only take a moment.</p>
                       </div>
-                      <PrimaryButton loading={isLoading} disabled={mfaCode.length !== 6}>
-                        Verify <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                      </PrimaryButton>
-                    </form>
+                    ) : assuranceLookupFailed || challengeFailed ? (
+                      <div role="alert" className="rounded-inner bg-destructive/[0.07] p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+                          <p className="text-sm leading-5 text-foreground">{securityError}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={assuranceLookupFailed ? handleRetryAssurance : handleRetryChallenge}
+                          disabled={isLoading}
+                          aria-busy={isLoading}
+                          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-button bg-foreground px-4 text-sm font-semibold text-background disabled:opacity-55"
+                        >
+                          {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                          {assuranceLookupFailed ? 'Retry security check' : 'Start a new security check'}
+                        </button>
+                      </div>
+                    ) : assuranceStatus === ASSURANCE_STATUS.MFA_REQUIRED && mfaChallenge?.status === 'ready' ? (
+                      <form onSubmit={handle2FASubmit} className="space-y-4">
+                        <div>
+                          <label htmlFor="mfa-code" className="sr-only">Six-digit authentication code</label>
+                          <input
+                            id="mfa-code"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            autoFocus
+                            value={mfaCode}
+                            onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                            className="h-16 w-full rounded-inner bg-foreground/[0.045] text-center font-mono text-2xl dark:bg-white/[0.06]"
+                            placeholder="000000"
+                            disabled={isLoading}
+                            aria-invalid={Boolean(securityError)}
+                          />
+                          <FieldError message={securityError} />
+                        </div>
+                        <PrimaryButton loading={isLoading} disabled={mfaCode.length !== 6}>
+                          Verify <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                        </PrimaryButton>
+                        <button
+                          type="button"
+                          onClick={handleRetryChallenge}
+                          disabled={isLoading}
+                          className="w-full text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50"
+                        >
+                          Start a new security check
+                        </button>
+                      </form>
+                    ) : (
+                      <div role="status" className="flex min-h-40 flex-col items-center justify-center rounded-inner bg-foreground/[0.035] px-6 py-8 text-center dark:bg-white/[0.05]">
+                        <Loader2 className="mb-3 h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Preparing security check</p>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleUseAnotherAccount}
+                      disabled={isLoading || mfaChallenge?.status === 'verifying'}
+                      className="mt-5 w-full text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50"
+                    >
+                      Use another account
+                    </button>
                   </>
                 )}
               </motion.div>

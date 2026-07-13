@@ -51,9 +51,9 @@ export const PullToRefresh = ({ onRefresh, children }) => {
             >
                 <motion.div
                     style={{ rotate }}
-                    className="w-10 h-10 rounded-pill glass flex items-center justify-center shadow-xl"
+                    className="flex h-10 w-10 items-center justify-center rounded-pill bg-card/90 shadow-[0_4px_12px_rgb(0_0_0/0.07)] backdrop-blur-xl dark:bg-card/75"
                 >
-                    <RefreshCw size={18} className={isRefreshing ? "animate-spin text-primary" : "text-primary"} />
+                    <RefreshCw size={18} className={isRefreshing ? "animate-spin text-foreground" : "text-foreground"} />
                 </motion.div>
             </motion.div>
 

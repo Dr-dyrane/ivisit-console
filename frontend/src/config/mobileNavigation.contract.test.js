@@ -42,9 +42,13 @@ describe('mobile navigation canonical contract', () => {
     expect(withPath('provider', '/visits', 'driver')).toEqual(['Today', 'Requests', 'Map', 'Visits']);
   });
 
-  it('keeps org admin bottom island on approvals and staff', () => {
-    expect(labelsFor('org_admin')).toEqual(['Today', 'Approvals', 'Staff', 'Settings']);
-    expect(pathsFor('org_admin')).toEqual(['/', '/verification', '/doctors', '/settings']);
+  it('keeps organization admins on the same main operational slate', () => {
+    expect(labelsFor('org_admin')).toEqual(['Today', 'Requests', 'Map', 'Statistics']);
+    expect(pathsFor('org_admin')).toEqual(['/', '/emergencies', '/map', '/analytics']);
+    expect(getMobileNavigationItems('org_admin', undefined, '/verification').map((item) => item.label))
+      .toEqual(['Today', 'Requests', 'Map', 'Approvals']);
+    expect(getMobileNavigationItems('org_admin', undefined, '/doctors').map((item) => item.label))
+      .toEqual(['Today', 'Requests', 'Map', 'Staff']);
   });
 
   it('keeps provider bottom island on requests and visits', () => {

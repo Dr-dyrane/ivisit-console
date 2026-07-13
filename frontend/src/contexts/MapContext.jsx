@@ -21,7 +21,6 @@ export const MapProvider = ({ children }) => {
     emergencyRequests: [],
     ambulances: [],
     hospitals: [],
-    users: [], // Patient locations
     // PULLBACK NOTE: Changed defaults from false to true for better UX
     // OLD: showLayers: { emergencies: false, ambulances: true, hospitals: false }
     // NEW: showLayers: { emergencies: true, ambulances: true, hospitals: true }
@@ -32,14 +31,14 @@ export const MapProvider = ({ children }) => {
     error: null,
     sourceState: {
       emergencies: { ready: false, partial: false, limit: 100 },
-      ambulances: { ready: false, partial: false, limit: null },
-      hospitals: { ready: false, partial: false, limit: null },
+      ambulances: { ready: false, partial: false, limit: 1000 },
+      hospitals: { ready: false, partial: false, limit: 1000 },
     },
   });
 
-  const initializeMapData = React.useCallback(async ({ shouldCommit = () => true } = {}) => {
+  const initializeMapData = React.useCallback(async ({ shouldCommit = () => true, showLoading = true } = {}) => {
     try {
-      setMapData(prev => ({ ...prev, loading: true }));
+      if (showLoading) setMapData(prev => ({ ...prev, loading: true }));
       const { emergencies, ambulances, hospitals, sourceState } = await supabaseMapService.fetchInitialMapData({ quiet: true });
       const failedSources = Object.entries(sourceState || {})
         .filter(([, state]) => !state?.ready)
@@ -68,6 +67,7 @@ export const MapProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     const subscriptions = [];
+    let refreshTimer = null;
 
     if (!mapRouteActive) {
       setMapData(prev => (
@@ -82,59 +82,21 @@ export const MapProvider = ({ children }) => {
 
     initializeMapData({ shouldCommit: () => mounted });
 
-    // Subscribe to Emergencies
-    const unsubEmergencies = supabaseMapService.subscribeToEmergencies((eventType, newRecord, oldRecord) => {
+    const scheduleScopedRefresh = () => {
       if (!mounted) return;
-      setMapData(prev => {
-        let newList = [...prev.emergencyRequests];
-        if (eventType === 'INSERT') {
-          newList.unshift(newRecord);
-        } else if (eventType === 'UPDATE') {
-          newList = newList.map(item => item.id === newRecord.id ? newRecord : item);
-        } else if (eventType === 'DELETE') {
-          newList = newList.filter(item => item.id !== oldRecord.id);
-        }
-        return { ...prev, emergencyRequests: newList };
-      });
-    });
-    subscriptions.push(unsubEmergencies);
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        initializeMapData({ shouldCommit: () => mounted, showLoading: false });
+      }, 250);
+    };
 
-    // Subscribe to Ambulances
-    const unsubAmbulances = supabaseMapService.subscribeToAmbulances((eventType, newRecord, oldRecord) => {
-      if (!mounted) return;
-      setMapData(prev => {
-        let newList = [...prev.ambulances];
-        if (eventType === 'INSERT') {
-          newList.push(newRecord);
-        } else if (eventType === 'UPDATE') {
-          newList = newList.map(item => item.id === newRecord.id ? newRecord : item);
-        } else if (eventType === 'DELETE') {
-          newList = newList.filter(item => item.id !== oldRecord.id);
-        }
-        return { ...prev, ambulances: newList };
-      });
-    });
-    subscriptions.push(unsubAmbulances);
-
-    // Subscribe to Users (if needed/avail)
-    const unsubUsers = supabaseMapService.subscribeToUsers((eventType, newRecord, oldRecord) => {
-      if (!mounted) return;
-      setMapData(prev => {
-        let newList = [...prev.users];
-        if (eventType === 'INSERT') {
-          newList.push(newRecord);
-        } else if (eventType === 'UPDATE') {
-          newList = newList.map(item => item.id === newRecord.id ? newRecord : item);
-        } else if (eventType === 'DELETE') {
-          newList = newList.filter(item => item.id !== oldRecord.id);
-        }
-        return { ...prev, users: newList };
-      });
-    });
-    subscriptions.push(unsubUsers);
+    subscriptions.push(supabaseMapService.subscribeToEmergencies(scheduleScopedRefresh));
+    subscriptions.push(supabaseMapService.subscribeToAmbulances(scheduleScopedRefresh));
+    subscriptions.push(supabaseMapService.subscribeToHospitals(scheduleScopedRefresh));
 
     return () => {
       mounted = false;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       subscriptions.forEach(unsub => {
         if (typeof unsub === 'function') unsub();
       });

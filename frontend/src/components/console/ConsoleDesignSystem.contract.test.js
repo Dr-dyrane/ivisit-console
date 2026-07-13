@@ -51,10 +51,9 @@ describe('Console design system contract', () => {
     { name: 'support', page: 'src/components/pages/SupportTicketsPage.jsx', modal: 'src/components/modals/SupportTicketModal.jsx' },
     // Health News: a READ-ONLY published-feed list page. It composes the full workspace
     // grammar (one ActivitySheet, one Time header on created_at) so every list estate law
-    // covers it, but authoring is fail-closed -- "New article" is gated-visible and routes
-    // to an honest toast, handleSave throws, and the paired HealthNewsModal never reaches a
-    // reachable write. Selection + arrival-toast are recorded exclusions (published feed,
-    // no bulk write target / no realtime). The modal carries the submit spinner (animate-spin).
+    // covers it, but authoring is absent and the route FAB opens read-only statistics. Selection
+    // and arrival-toast are recorded exclusions (published feed, no bulk write target / no
+    // realtime). The paired HealthNewsModal is a read-only details surface.
     { name: 'news', page: 'src/components/pages/HealthNewsManagementPage.jsx', modal: 'src/components/modals/HealthNewsModal.jsx' },
     // Organizations: a READ-ONLY registry list page (payout-readiness axis: Registry/Funded/
     // Payout gap). It composes the full workspace grammar (one ActivitySheet, one Time header

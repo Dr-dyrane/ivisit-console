@@ -3,6 +3,42 @@ import { supabase } from '../lib/supabase';
 const SEARCH_HISTORY_TABLE = 'search_history';
 const SEARCH_EVENTS_TABLE = 'search_events';
 
+export const normalizeSearchDestinationPath = (destination) => {
+  if (typeof destination !== 'string' || !destination.trim()) return null;
+
+  const path = destination.trim().split(/[?#]/, 1)[0];
+  if (!path) return null;
+
+  const absolutePath = path.startsWith('/') ? path : `/${path}`;
+  return absolutePath.length > 1 && absolutePath.endsWith('/')
+    ? absolutePath.slice(0, -1)
+    : absolutePath;
+};
+
+const getAccessibleSearchPaths = (accessibleNav) => new Set([
+  ...(accessibleNav?.main || []),
+  ...(accessibleNav?.ops?.items || []),
+  ...(accessibleNav?.mgmt?.items || []),
+  ...(accessibleNav?.finance?.items || []),
+  ...(accessibleNav?.user?.items || []),
+].map(item => normalizeSearchDestinationPath(item.path)).filter(Boolean));
+
+export const isSearchDestinationAccessible = (destination, accessibleNav) => (
+  getAccessibleSearchPaths(accessibleNav).has(normalizeSearchDestinationPath(destination))
+);
+
+export const filterSearchResultsByNavigation = (searchResults, accessibleNav) => {
+  const accessiblePaths = getAccessibleSearchPaths(accessibleNav);
+
+  return (Array.isArray(searchResults) ? searchResults : [])
+    .map(category => ({
+      ...category,
+      items: (Array.isArray(category?.items) ? category.items : [])
+        .filter(item => accessiblePaths.has(normalizeSearchDestinationPath(item?.path))),
+    }))
+    .filter(category => category.items.length > 0);
+};
+
 const isMissingRelationError = (error, relationName) => {
   if (!error) return false;
   if (error.code === '42P01' || error.code === 'PGRST204') return true;
@@ -39,12 +75,12 @@ export const searchService = {
       return { results, total: results.reduce((sum, cat) => sum + cat.items.length, 0) };
     } catch (error) {
       console.error('Search error:', error);
-      return { results: [], total: 0, error };
+      throw error;
     }
   },
 
   async searchDoctors(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('doctors')
       .select(`
         id,
@@ -59,6 +95,8 @@ export const searchService = {
       `)
       .or(`name.ilike.%${query}%,specialization.ilike.%${query}%,department.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map((doctor) => {
       const hospitalName = Array.isArray(doctor.hospitals)
@@ -78,11 +116,13 @@ export const searchService = {
   },
 
   async searchHospitals(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('hospitals')
       .select('id, name, type, address, rating')
       .or(`name.ilike.%${query}%,type.ilike.%${query}%,address.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map(h => ({
       id: h.id,
@@ -95,11 +135,13 @@ export const searchService = {
   },
 
   async searchAmbulances(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('ambulances')
       .select('id, call_sign, type, status')
       .or(`call_sign.ilike.%${query}%,type.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map(a => ({
       id: a.id,
@@ -111,11 +153,13 @@ export const searchService = {
   },
 
   async searchVisits(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('visits')
       .select('id, hospital, doctor, specialty, date, status')
       .or(`hospital.ilike.%${query}%,doctor.ilike.%${query}%,specialty.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map(v => ({
       id: v.id,
@@ -127,11 +171,13 @@ export const searchService = {
   },
 
   async searchEmergencies(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('emergency_requests')
       .select('id, service_type, hospital_name, status, created_at')
       .or(`service_type.ilike.%${query}%,hospital_name.ilike.%${query}%,status.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map(e => ({
       id: e.id,
@@ -143,11 +189,13 @@ export const searchService = {
   },
 
   async searchUsers(query, limit) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('id, username, email, avatar_url, role')
       .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
       .limit(limit);
+
+    if (error) throw error;
 
     return (data || []).map(u => ({
       id: u.id,

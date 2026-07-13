@@ -36,26 +36,19 @@ export const SmartFooter = () => {
                         right: `${rightOffset}px`,
                     }}
                 >
-                    <div className="pointer-events-auto backdrop-blur-[2px]">
+                    <div className="pointer-events-auto">
                         <div
-                            className={`pointer-events-auto glass-card rounded-pill px-6 h-12 flex items-center gap-6 min-w-[320px] justify-between relative overflow-hidden group ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
-                                }`}
-                            style={{
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                            }}
-                        >            {/* Simple Static Dot Grid - Apple-level simplicity */}
-                            
-                            {/* Shared RGB Hive Effect */}
-                            <div className="hover-glow hover-glow-success" />
+                            className="chrome-glass pointer-events-auto relative flex h-12 min-w-[320px] items-center justify-between gap-6 overflow-hidden rounded-pill px-6"
+                        >
 
                             {/* Left Section: Status/Context */}
-                            <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap">
+                            <div className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-muted-foreground">
                                 {footerConfig.type === 'pagination' ? (
-                                    <Database className="w-3.5 h-3.5 text-primary" />
+                                    <Database className="h-3.5 w-3.5 text-sky-600 dark:text-sky-300" />
                                 ) : (
-                                    <Activity className="w-3.5 h-3.5 text-success" />
+                                    <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
                                 )}
-                                <span>{footerConfig.data?.label || 'SYSTEM STATUS'}</span>
+                                <span>{footerConfig.data?.label || 'System status'}</span>
                             </div>
 
                             {/* Center Section: Dynamic Content (Pagination or Custom) */}
@@ -63,8 +56,8 @@ export const SmartFooter = () => {
                                 {footerConfig.content || (
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-white/5 ">
-                                            <div className="w-1.5 h-1.5 rounded-pill bg-success" />
-                                            <span className="text-[10px] font-semibold text-foreground/80">LIVE SYNC ACTIVE</span>
+                                            <div className="h-1.5 w-1.5 rounded-pill bg-emerald-500" />
+                                            <span className="text-xs font-medium text-foreground/80">Live sync active</span>
                                         </div>
                                     </div>
                                 )}
@@ -77,7 +70,7 @@ export const SmartFooter = () => {
                                         {footerConfig.data.stats}
                                     </div>
                                 )}
-                                <div className="p-1.5 rounded-pill bg-success/10 text-success">
+                                <div className="rounded-pill bg-emerald-500/10 p-1.5 text-emerald-700 dark:text-emerald-200">
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                 </div>
                             </div>

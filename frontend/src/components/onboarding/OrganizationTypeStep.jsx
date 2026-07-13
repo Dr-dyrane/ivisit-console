@@ -1,329 +1,150 @@
-/**
- * @fileoverview OrganizationTypeStep - Premium Bento Grid Design
- * 
- * @description
- * Step 1 of onboarding with premium UX:
- * - Bento grid layout (responsive, equal space)
- * - Smooth animations (no jank)
- * - No select state (advances immediately on confirm)
- * - Glass morphism effects
- * 
- * @author iVisit Console Team
- * @version 3.0.0 - Bento grid redesign
- * @since 2026-02-02
- */
-
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Building2, Stethoscope, Ambulance, ArrowRight, ChevronLeft } from 'lucide-react';
-import { Button } from '../ui/button';
+import React, { useEffect, useState } from 'react';
+import { Ambulance, Building2, ExternalLink, Hospital, Loader2, Search, Stethoscope } from 'lucide-react';
+import { onboardingService } from '../../services/onboardingService';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
 const ORGANIZATION_TYPES = [
-    {
-        id: 'hospital',
-        title: 'Hospital',
-        description: 'Full-service medical facility with emergency care, inpatient beds, and multiple departments.',
-        icon: Building2,
-        features: ['Emergency Dept', 'Inpatient Beds', 'Multiple Specialties'],
-    },
-    {
-        id: 'clinic',
-        title: 'Clinic',
-        description: 'Outpatient medical practice focused on specific specialties or primary care services.',
-        icon: Stethoscope,
-        features: ['Outpatient Care', 'Specialty Focus', 'Appointments'],
-    },
-    {
-        id: 'ambulance_service',
-        title: 'Ambulance',
-        description: 'Emergency medical transport with trained first responders and equipped vehicles.',
-        icon: Ambulance,
-        features: ['Emergency Response', 'Medical Transport', 'Trained EMTs'],
-    },
+  { value: 'hospital', label: 'Hospital', icon: Hospital },
+  { value: 'clinic', label: 'Clinic', icon: Stethoscope },
+  { value: 'ambulance_service', label: 'Ambulance', icon: Ambulance },
 ];
 
-// ============================================================================
-// ANIMATION CONFIG - Premium smooth springs
-// ============================================================================
+export const OrganizationTypeStep = () => {
+  const { formData, updateFormData, setStepValid } = useOnboarding();
+  const [matches, setMatches] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
-const spring = {
-    type: 'spring',
-    stiffness: 200,
-    damping: 30,
-    mass: 1,
-};
+  const isExistingMode = formData.organizationMode === 'existing';
+  const query = formData.organizationName.trim();
+  const isValid = !isExistingMode && Boolean(formData.organizationType) && query.length >= 2;
 
-const gentleSpring = {
-    type: 'spring',
-    stiffness: 150,
-    damping: 25,
-    mass: 0.8,
-};
+  useEffect(() => {
+    setStepValid('organization', isValid);
+  }, [isValid, setStepValid]);
 
-// ============================================================================
-// COLLAPSED CARD (shown in grid)
-// ============================================================================
+  useEffect(() => {
+    if (query.length < 3) {
+      setMatches([]);
+      setSearchError('');
+      return undefined;
+    }
 
-const CollapsedCard = memo(({ type, onExpand }) => {
-    const Icon = type.icon;
-
-    return (
-        <motion.button
-            layoutId={`card-${type.id}`}
-            onClick={() => onExpand(type.id)}
-            className={`
-                relative w-full aspect-square lg:aspect-[4/3] p-6 lg:p-8
-                rounded-card overflow-hidden
-                bg-card
-                flex flex-col items-center justify-center text-center
-                cursor-pointer group
-                transition-colors duration-300
-            `}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={spring}
-        >
-            {/* Subtle hover tone */}
-            <div className="absolute inset-0 bg-muted/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-            {/* Icon */}
-            <motion.div
-                layoutId={`icon-${type.id}`}
-                className="w-16 h-16 lg:w-20 lg:h-20 rounded-icon bg-muted flex items-center justify-center mb-4"
-                transition={gentleSpring}
-            >
-                <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-foreground" />
-            </motion.div>
-
-            {/* Title */}
-            <motion.h3
-                layoutId={`title-${type.id}`}
-                className="text-xl lg:text-2xl font-bold text-foreground"
-                transition={gentleSpring}
-            >
-                {type.title}
-            </motion.h3>
-
-            {/* Hint */}
-            <p className="text-xs text-muted-foreground/60 mt-2 group-hover:text-muted-foreground transition-colors">
-                Tap to learn more
-            </p>
-        </motion.button>
-    );
-});
-
-CollapsedCard.displayName = 'CollapsedCard';
-
-// ============================================================================
-// EXPANDED CARD (full view)
-// ============================================================================
-
-const ExpandedCard = memo(({ type, onConfirm, onBack }) => {
-    const Icon = type.icon;
-
-    return (
-        <motion.div
-            layoutId={`card-${type.id}`}
-            className={`
-                w-full p-8 lg:p-12
-                rounded-card overflow-hidden
-                bg-card
-            `}
-            transition={spring}
-        >
-            <div className="flex flex-col lg:flex-row lg:items-center gap-8">
-                {/* Left: Icon + Title */}
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                    <motion.div
-                        layoutId={`icon-${type.id}`}
-                        className="w-24 h-24 lg:w-32 lg:h-32 rounded-icon bg-muted flex items-center justify-center mb-4"
-                        transition={gentleSpring}
-                    >
-                        <Icon className="w-12 h-12 lg:w-16 lg:h-16 text-foreground" />
-                    </motion.div>
-
-                    <motion.h3
-                        layoutId={`title-${type.id}`}
-                        className="text-3xl lg:text-4xl font-bold text-foreground"
-                        transition={gentleSpring}
-                    >
-                        {type.title}
-                    </motion.h3>
-                </div>
-
-                {/* Right: Content */}
-                <div className="flex-1 space-y-6">
-                    {/* Description */}
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ ...spring, delay: 0.1 }}
-                        className="text-base lg:text-lg text-muted-foreground leading-relaxed"
-                    >
-                        {type.description}
-                    </motion.p>
-
-                    {/* Features */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ ...spring, delay: 0.15 }}
-                        className="flex flex-wrap gap-2"
-                    >
-                        {type.features.map((feature, i) => (
-                            <span
-                                key={i}
-                                className="px-4 py-2 rounded-pill bg-muted text-sm font-medium text-foreground"
-                            >
-                                {feature}
-                            </span>
-                        ))}
-                    </motion.div>
-
-                    {/* CTA - Spotify Play Button */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ ...spring, delay: 0.2 }}
-                        className="pt-4 flex justify-center lg:justify-end"
-                    >
-                        <button
-                            onClick={() => onConfirm(type.id)}
-                            className="w-16 h-16 lg:w-20 lg:h-20 rounded-pill bg-foreground flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
-                        >
-                            <ArrowRight className="w-7 h-7 lg:w-8 lg:h-8 text-background" />
-                        </button>
-                    </motion.div>
-                </div>
-            </div>
-
-            {/* Back button */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mt-6 lg:mt-0 lg:absolute lg:top-6 lg:left-6"
-            >
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onBack}
-                    className="gap-1 text-muted-foreground hover:text-foreground"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                    Back
-                </Button>
-            </motion.div>
-        </motion.div>
-    );
-});
-
-ExpandedCard.displayName = 'ExpandedCard';
-
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
-export const OrganizationTypeStep = ({ formData, updateFormData, setStepValid }) => {
-    const { goNext } = useOnboarding();
-    const [expandedId, setExpandedId] = useState(null);
-    const prevValidRef = useRef(null);
-
-    // Always valid when expanded, but we advance immediately on confirm
-    useEffect(() => {
-        const isValid = !!formData.organizationType;
-        if (prevValidRef.current !== isValid) {
-            prevValidRef.current = isValid;
-            setStepValid(isValid);
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      setSearchError('');
+      try {
+        const results = await onboardingService.searchFacilities(query);
+        if (active) setMatches(results);
+      } catch (error) {
+        if (active) {
+          setMatches([]);
+          setSearchError(error.message);
         }
-    }, [formData.organizationType, setStepValid]);
+      } finally {
+        if (active) setSearching(false);
+      }
+    }, 350);
 
-    const handleExpand = useCallback((id) => {
-        setExpandedId(id);
-    }, []);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [query]);
 
-    const handleCollapse = useCallback(() => {
-        setExpandedId(null);
-    }, []);
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-2 rounded-inner bg-foreground/[0.045] p-1 dark:bg-white/[0.06]" aria-label="Organization type">
+        {ORGANIZATION_TYPES.map(({ value, label, icon: Icon }) => {
+          const selected = formData.organizationType === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => updateFormData({ organizationType: value })}
+              className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-button px-2 py-2 text-xs font-semibold transition-[background,color,box-shadow,transform] active:scale-[0.98] ${selected ? 'bg-background text-foreground shadow-e1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className="w-full truncate">{label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-    const handleConfirm = useCallback((id) => {
-        updateFormData({ organizationType: id });
-        // Small delay for visual feedback, then advance
-        setTimeout(() => goNext(), 150);
-    }, [updateFormData, goNext]);
+      <div className="flex gap-1 rounded-inner bg-foreground/[0.035] p-1 dark:bg-white/[0.05]" aria-label="Registration mode">
+        {[
+          { value: 'new', label: 'Register new' },
+          { value: 'existing', label: 'Already listed' },
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={formData.organizationMode === option.value}
+            onClick={() => updateFormData({ organizationMode: option.value, organizationName: '' })}
+            className={`h-10 flex-1 rounded-button px-3 text-sm font-semibold transition-[background,color,box-shadow] ${formData.organizationMode === option.value ? 'bg-background text-foreground shadow-e1' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
 
-    const expandedType = ORGANIZATION_TYPES.find(t => t.id === expandedId);
-
-    return (
-        <div className="w-full min-h-[400px] flex flex-col">
-            {/* Header */}
-            <AnimatePresence mode="wait">
-                {!expandedId && (
-                    <motion.div
-                        key="header"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={gentleSpring}
-                        className="text-center mb-8"
-                    >
-                        <h2 className="text-xl lg:text-2xl font-semibold text-foreground mb-2">
-                            Select your organization type
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            Choose the option that best describes your healthcare facility
-                        </p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Cards */}
-            <LayoutGroup>
-                <AnimatePresence mode="wait">
-                    {expandedId ? (
-                        <motion.div
-                            key="expanded"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={gentleSpring}
-                            className="flex-1 flex items-center"
-                        >
-                            <ExpandedCard
-                                type={expandedType}
-                                onConfirm={handleConfirm}
-                                onBack={handleCollapse}
-                            />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="grid"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={gentleSpring}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6"
-                        >
-                            {ORGANIZATION_TYPES.map((type) => (
-                                <CollapsedCard
-                                    key={type.id}
-                                    type={type}
-                                    onExpand={handleExpand}
-                                />
-                            ))}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </LayoutGroup>
+      <div>
+        <label htmlFor="organization-name" className="sr-only">Organization or facility name</label>
+        <div className="relative rounded-inner bg-foreground/[0.045] transition-colors focus-within:bg-foreground/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]">
+          {searching ? (
+            <Loader2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-muted-foreground" aria-hidden="true" />
+          ) : isExistingMode ? (
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          ) : (
+            <Building2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          )}
+          <input
+            id="organization-name"
+            autoFocus
+            type="text"
+            value={formData.organizationName}
+            onChange={(event) => updateFormData({ organizationName: event.target.value })}
+            placeholder={isExistingMode ? 'Search by facility name or address' : 'Organization name'}
+            className="h-14 w-full bg-transparent pl-12 pr-4 text-base placeholder:text-muted-foreground/60"
+          />
         </div>
-    );
+        {searchError && <p role="alert" className="mt-2 px-1 text-xs font-medium text-destructive">{searchError}</p>}
+      </div>
+
+      {query.length >= 3 && !searchError && (
+        <div className="space-y-2" aria-live="polite">
+          {matches.length > 0 ? matches.map((facility) => (
+            <div key={facility.id} className="flex items-start gap-3 rounded-inner bg-foreground/[0.035] p-3 dark:bg-white/[0.05]">
+              <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-icon bg-background text-muted-foreground shadow-e1">
+                <Hospital className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{facility.name}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{facility.address}</p>
+              </div>
+              <span className="rounded-pill bg-foreground/[0.055] px-2 py-1 text-[10px] font-semibold text-muted-foreground">Listed</span>
+            </div>
+          )) : !searching && isExistingMode ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">No matching facility found.</p>
+          ) : null}
+        </div>
+      )}
+
+      {isExistingMode && (
+        <div className="rounded-inner bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
+          <p className="font-semibold">Existing access needs review</p>
+          <p className="mt-1 leading-5 opacity-80">Ask the current administrator to invite you, or contact support to review ownership.</p>
+          <a href="mailto:support@ivisit.ng" className="mt-3 inline-flex items-center gap-1.5 font-semibold underline underline-offset-4">
+            Contact support <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default OrganizationTypeStep;

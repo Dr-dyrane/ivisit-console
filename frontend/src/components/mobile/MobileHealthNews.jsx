@@ -137,11 +137,8 @@ export const MobileHealthNews = ({
   // query layer; the page synthesises isFetching = loading over a non-empty feed).
   const refetching = isFetching || false;
 
-  // NOTE: the dock FAB is a GATED "New article" (DynamicBottomBar) -- content authoring is
-  // fail-closed (the page's handleCreateUnavailable + handleSave throw), so the FAB dispatches
-  // 'openHealthNewsModal' to the page and surfaces the honest "not ready" feedback, like
-  // Subscriptions' "Add subscriber". This LIST stays read-only (the detail sheet's only CTA is
-  // Details); the SearchRow owns the in-page filter -- so the FAB is a create, never a filter.
+  // The dock FAB opens the page-owned statistics view. Authoring remains absent because this is a
+  // read-only published-feed projection with no approved Console writer receiver.
 
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 

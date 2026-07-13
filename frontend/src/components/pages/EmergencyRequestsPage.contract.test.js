@@ -23,7 +23,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('setRequestStats(stats || null)');
     expect(pageSource).toContain('statistics={requestStats}');
     expect(pageSource).toContain('stats={requestStats}');
-    expect(pageSource).toContain('analytics={requestStats || {');
+    expect(pageSource).toContain('analytics={requestStats}');
+    expect(pageSource).not.toContain('analytics={requestStats || {');
 
     expect(serviceSource).toContain('export async function getEmergencyRequestsPage');
     expect(serviceSource).toContain('export async function getEmergencyRequestsPageStats');
@@ -79,7 +80,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
       .toBeGreaterThan(serviceSource.indexOf('if (Array.isArray(filter.status)) {'));
     expect(serviceSource).not.toContain("if (Array.isArray(filter.status) && filter.status.length > 0) {\n    query = query.in('status', filter.status);\n  } else if (filter.status) {");
     expect(serviceSource).toContain('query = applyEmergencyKpiFilter(query, filter.kpiFilter);');
-    expect(serviceSource).toContain("if (kpiFilter === 'critical') return query.eq('service_type', 'critical_care');");
+    expect(serviceSource).toContain("if (kpiFilter === 'booking') return query.eq('service_type', 'booking');");
     expect(serviceSource).toContain('const countPromise = getEmergencyPageExactCount(filter, user);');
     expect(serviceSource).toContain('const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);');
     expect(serviceSource).toContain("const sortKey = EMERGENCY_REQUEST_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';");
@@ -100,6 +101,29 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("request.id === requestId || request.display_id === requestId");
     expect(pageSource).toContain("toast.info('Request is unavailable in your current scope.')");
     expect(pageSource).not.toContain('deep-link excluded by decision:');
+  });
+
+  it('refreshes request details from canonical row truth instead of the opening prop', () => {
+    const modalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
+    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+
+    expect(modalSource).toContain('const projection = await getEmergencyDetailProjection(targetRequestId);');
+    expect(modalSource).toContain('setDetailRequest(projection.request);');
+    expect(modalSource).toContain('buildEmergencyRenderProjection(activeRequest');
+    expect(modalSource).toContain('const sequence = ++refreshSequenceRef.current;');
+    expect(modalSource).toContain('latestRequestPropRef.current !== request ||');
+    expect(modalSource).toContain('activeRequestIdRef.current !== requestId ||');
+    expect(modalSource).toContain('detailOpenRef.current !== isOpen');
+    expect(modalSource).toContain('refreshSequenceRef.current += 1;');
+    expect(modalSource).toContain('activeRequestId: activeRequestIdRef.current');
+    expect(modalSource).toContain('if (!isCurrentRefresh()) return null;');
+    expect(modalSource.indexOf('if (!isCurrentRefresh()) return null;'))
+      .toBeLessThan(modalSource.indexOf('setPaymentData(projection.latestPayment || null);'));
+    expect(modalSource.indexOf('if (!isCurrentRefresh()) return null;'))
+      .toBeLessThan(modalSource.indexOf('setVisitOutcome(projection.visitOutcome || null);'));
+    expect(modalSource).not.toContain('getEmergencyDetailProjection(request.id, request)');
+    expect(serviceSource).toContain('const request = await getEmergencyRequest(requestId);');
+    expect(serviceSource).not.toContain('initialRequest?.id === requestId');
   });
 
   it('keeps legacy Requests density views out of the active route renderer', () => {
@@ -153,7 +177,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // renders ConsoleModuleRail); the page stopped importing the rail directly.
     expect(pageSource).toContain("import { WorkspaceStage, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';");
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
-    expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(pageSource).not.toContain("import { ModalShell } from '../ui/ModalShell';");
     expect(pageSource).toContain('const RequestDetailRail = ({');
     expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
     expect(pageSource).toContain('usePageHeader(');
@@ -405,8 +429,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("if (pending > 0) return 'pending';");
     expect(pageSource).toContain("if (active > 0) return 'active';");
     expect(pageSource).toContain('kpiFilter: selectedKpiFilter');
-    expect(pageSource).toContain("request.service_type === 'critical_care'");
-    expect(pageSource).toContain("critical: requests.filter((request) => request.service_type === 'critical_care').length");
+    expect(pageSource).toContain("request.service_type === 'booking'");
+    expect(pageSource).toContain("label: 'Booking'");
+    expect(pageSource).not.toContain('critical_care');
     expect(pageSource).not.toContain("label: 'Critical care'");
     expect(pageSource).not.toContain("priority === 'critical'");
     expect(pageSource).not.toContain('requests.length > 0 ? rowCount : normalizeCount(stats?.pending, rowCount)');
@@ -469,7 +494,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('{primaryAction.label}');
     expect(pageSource).toContain("primaryAction.kind !== 'dispatch'");
     expect(pageSource).toContain("primaryAction.kind !== 'complete'");
-    expect(pageSource).toContain("primaryAction.kind !== 'retry'");
+    expect(pageSource).not.toContain("primaryAction.kind !== 'retry'");
+    expect(pageSource).not.toContain("kind: 'retry'");
     expect(pageSource).toContain('<RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />');
     expect(pageSource).toContain("aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}");
     expect(pageSource).not.toContain('aria-label={`Select ${patientName}`}');
@@ -479,6 +505,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("id: 'active'");
     expect(mobileSource).toContain("label: 'Active'");
     expect(mobileSource).toContain('return countNumber(statistics?.active, rowCount);');
+    expect(mobileSource).toContain("return countNumber(statistics?.booking, rowCount);");
     expect(mobileSource).not.toContain("label: 'Critical care'");
     expect(mobileSource).not.toContain('emergencies.length > 0 ? rowCount : countNumber(statistics?.pending, rowCount)');
     expect(mobileSource).toContain('const getMobileRequestAvatarClass = (request) =>');
@@ -553,10 +580,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(allRequestsSource).not.toContain('window.confirm');
     expect(allRequestsSource).not.toMatch(/\bprompt\s*\(/);
     expect(allRequestsSource).not.toMatch(/\bconfirm\s*\(/);
-    expect(pageSource).toContain('setRetryModal({');
-    expect(pageSource).toContain('selectedId: methods[defaultIndex]?.id || methods[0]?.id');
-    expect(pageSource).toContain('name="paymentMethod"');
-    expect(pageSource).toContain('checked={retryModal.selectedId === method.id}');
+    expect(pageSource).not.toContain('setRetryModal({');
+    expect(pageSource).not.toContain('selectedId: methods[defaultIndex]?.id || methods[0]?.id');
+    expect(pageSource).not.toContain('name="paymentMethod"');
+    expect(pageSource).toContain('handleRetryPaymentUnavailable');
     expect(pageSource).toContain("setCompleteModal({ open: true, request });");
     expect(pageSource).toContain('title="Mark request complete"');
     expect(pageSource).toContain('onConfirm={() => executeComplete(completeModal.request)}');
@@ -575,6 +602,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(emergencyPanelSource).toContain('export const EmergencyPanel = ({ requestContext }) =>');
     expect(emergencyPanelSource).toContain('Requests overview');
     expect(emergencyPanelSource).toContain('Current route scope');
+    expect(emergencyPanelSource).toContain('const active = toCount(stats.active, 0);');
+    expect(emergencyPanelSource).toContain('booking: {');
+    expect(emergencyPanelSource).not.toContain('Critical care');
+    expect(emergencyPanelSource).not.toContain('critical_care');
     expect(emergencyPanelSource).toContain('Panel actions');
     expect(emergencyPanelSource).toContain('Current list');
     expect(emergencyPanelSource).toContain('role="status" aria-live="polite"');
@@ -614,39 +645,36 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const actionSource = fs.readFileSync('src/utils/emergencyActions.js', 'utf8');
     const responseServiceSource = fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
     const emergencyServiceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const profilesServiceSource = fs.readFileSync('src/services/profilesService.js', 'utf8');
 
     // Dispatch/complete/cancel now route through useEmergencyMutations.mutateAsync,
     // whose mutationFn is the SAME reused RPC service fn (never bypassed).
     expect(pageSource).toContain('dispatchEmergency(id, request)');
     expect(pageSource).toContain('dispatchMutation.mutateAsync({ id: request.id, request })');
-    expect(pageSource).toContain('completeEmergency(id)');
-    expect(pageSource).toContain('completeMutation.mutateAsync({ id: request.id })');
-    expect(pageSource).toContain('retryPaymentWithDifferentMethod(requestId');
+    expect(pageSource).toContain('completeEmergency(id, request)');
+    expect(pageSource).toContain('completeMutation.mutateAsync({ id: request.id, request })');
+    expect(pageSource).not.toContain('retryPaymentWithDifferentMethod(');
     expect(pageSource).toContain("if (currentUser.isAdmin() || currentUser.isOrgAdmin())");
     expect(pageSource).toContain('const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();');
-    expect(pageSource).toContain('const canCompleteAsProvider = currentUser.isProvider() && actionState.canComplete;');
+    expect(pageSource).toContain('request?.responder_id === currentUser.user.id');
     expect(pageSource).toContain('if (!actionState.canDispatch)');
     expect(pageSource).toContain('This request is not ready to dispatch. Refreshing list...');
     expect(pageSource).toContain("toast.loading('Dispatching request...', { id: 'dispatch' });");
     expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
     expect(pageSource).toContain("toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });");
     expect(pageSource).toContain('setCompleteModal({ open: true, request });');
-    expect(pageSource).toContain('await completeMutation.mutateAsync({ id: request.id });');
+    expect(pageSource).toContain('await completeMutation.mutateAsync({ id: request.id, request });');
     expect(pageSource).toContain("toast.success('Request completed');");
-    expect(pageSource).toContain("toast.error('Failed to complete request');");
+    expect(pageSource).toContain("toast.error(error?.message || 'Failed to complete request');");
+    expect(pageSource).not.toContain('walletService.checkCashEligibility');
+    expect(pageSource).not.toContain('request.organization_id || request.hospital_id');
     expect(pageSource).toContain("toast.info('Cash settlement is not ready here yet'");
     expect(pageSource).toContain('The finance receiver pass still owns this action.');
-    expect(pageSource).toContain('if (!actionState.canRetryPayment)');
-    expect(pageSource).toContain('This request is not ready for payment retry. Refreshing list...');
-    expect(pageSource).toContain('Missing request or patient identifier for retry');
-    expect(pageSource).toContain("toast.loading('Preparing payment retry...', { id: 'retry-pay' });");
-    expect(pageSource).toContain("toast.success('Payment retry created', { id: 'retry-pay' });");
-    expect(pageSource).toContain("toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });");
-    expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
-    expect(pageSource).toContain('<ModalShell');
-    expect(pageSource).toContain('title="Select payment method"');
-    expect(pageSource).toContain('onClick={executeRetryPayment}');
-    expect(pageSource).toContain('onClose={closeRetryModal}');
+    expect(pageSource).toContain('const handleRetryPaymentUnavailable = useCallback(() => {');
+    expect(pageSource).toContain("toast.info('Payment retry unavailable'");
+    expect(pageSource).not.toContain('title="Select payment method"');
+    expect(pageSource).not.toContain('executeRetryPayment');
+    expect(pageSource).not.toContain('onRetryPayment={handleRetryPayment}');
     expect(pageSource).toContain('cancelEmergencyRequest(id, reason)');
     expect(pageSource).toContain("cancelMutation.mutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
     expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
@@ -691,12 +719,33 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(requestModalSource).not.toContain('Dispatch Unit');
     expect(requestModalSource).not.toContain('NEW EMERGENCY');
     expect(requestModalSource).not.toContain('Incident dispatch');
+    expect(requestModalSource).toContain('getEmergencyPatientOptions()');
+    expect(requestModalSource).toContain('getEmergencyCreateFacilityOptions()');
+    expect(requestModalSource).toContain("Facility{facilityRequired ? ' (required)' : ''}");
+    expect(requestModalSource).toContain('hospital_id: value');
+    expect(requestModalSource).toContain('patient_location: hasLatitude ? { lat: latitude, lng: longitude } : undefined');
+    expect(requestModalSource).toContain('incident_type: submitData.emergency_type || undefined');
+    expect(requestModalSource).toContain('<SelectItem value="ambulance">Ambulance</SelectItem>');
+    expect(requestModalSource).not.toContain('service_type: value || prev.service_type');
+    expect(requestModalSource).not.toContain(".from('profiles')");
+    expect(profilesServiceSource).toContain('export async function getEmergencyPatientOptions()');
+    expect(profilesServiceSource).toContain(".select('id, username, full_name, phone, avatar_url', { count: 'exact' })");
+    expect(profilesServiceSource).toContain(".eq('role', 'patient')");
     expect(requestModalSource).not.toMatch(/\bborder(?:-| |")/);
 
     expect(responseServiceSource).toContain("supabase.rpc('console_dispatch_emergency'");
+    expect(responseServiceSource).toContain("supabase.rpc('nearby_ambulances'");
     expect(responseServiceSource).toContain("supabase.rpc('console_complete_emergency'");
+    expect(responseServiceSource).toContain('ambulanceIsWithinActorScope(ambulance, actor)');
+    expect(responseServiceSource).toContain("throw new Error('Only the assigned responder can complete this request.')");
+    expect(responseServiceSource).not.toContain('Math.random');
     expect(emergencyServiceSource).toContain("supabase.rpc('console_cancel_emergency'");
-    expect(emergencyServiceSource).toContain("supabase.rpc('retry_payment_with_different_method'");
+    expect(emergencyServiceSource).not.toContain("supabase.rpc('retry_payment_with_different_method'");
+    expect(emergencyServiceSource).toContain('const SUPPORTED_CONSOLE_SERVICE_TYPES = new Set');
+    expect(emergencyServiceSource).toContain('async function requireScopedCreateFacility(input, user)');
+    expect(emergencyServiceSource).toContain(".eq('organization_id', user.organization_id)");
+    expect(emergencyServiceSource).toContain('patient_location: normalizedPatientLocation || fallbackPayload?.patient_location');
+    expect(emergencyServiceSource).toContain('throw new Error(EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON)');
     expect(actionSource).toContain('const canCancel = !isTerminal');
     expect(actionSource).toContain('canDispatch,');
     expect(actionSource).toContain('canComplete,');
@@ -716,10 +765,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   it('keeps closed request modals from preloading requester profiles', () => {
     const modalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
 
-    expect(modalSource).toContain('if (!isOpen) return;');
-    expect(modalSource.indexOf('if (!isOpen) return;'))
-      .toBeLessThan(modalSource.indexOf('fetchUsers();'));
-    expect(modalSource).toContain('[fetchUsers, isOpen]');
+    expect(modalSource).toContain('if (!isOpen || isView) return undefined;');
+    expect(modalSource.indexOf('if (!isOpen || isView) return undefined;'))
+      .toBeLessThan(modalSource.indexOf('getEmergencyPatientOptions()'));
+    expect(modalSource).toContain('[isOpen, isView]');
   });
 
   it('keeps legacy Requests density views free of decorative chrome tokens', () => {
@@ -783,11 +832,23 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // (getEmergencyActionState -> canTransition).
     expect(pageSource).toContain('const actionState = getEmergencyActionState(request);');
     expect(pageSource).toContain('if (!actionState.canDispatch)');
-    expect(pageSource).toContain('if (!actionState.canRetryPayment)');
+    expect(pageSource).not.toContain('if (!actionState.canRetryPayment)');
+    expect(pageSource).toContain('const handleRetryPaymentUnavailable = useCallback(() => {');
 
     // PageDataContext emergency realtime now invalidates the cache; dashboards keep
     // their slice hydration via fetchEmergencyData on mount.
     expect(pageDataSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] })");
     expect(pageDataSource).toContain('const fetchEmergencyData = useCallback(');
+  });
+
+  it('keeps request statistics and cancel feedback honest under partial or pending state', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+
+    expect(pageSource).toContain("toast.info('Statistics unavailable'");
+    expect(pageSource).toContain('are a preview, not complete statistics.');
+    expect(pageSource).toContain('onViewAnalytics={handleOpenAnalytics}');
+    expect(pageSource).toContain('analytics={requestStats}');
+    expect(pageSource).not.toContain('analytics={requestStats || {');
+    expect(pageSource).toContain('isLoading={cancelMutation.isPending}');
   });
 });

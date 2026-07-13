@@ -31,7 +31,9 @@ describe('Navigation shell contract', () => {
     expect(app).not.toContain('<GlobalFinancialModals />');
     expect(app).not.toContain('import { GlobalFinancialModals }');
     expect(app).toContain('const isBleedPage = !hideNav && pageShellConfig?.bleed;');
-    expect(app).toContain('className={isBleedPage ? "" : "md:p-6"}');
+    expect(app).toContain('className={(hideNav || isBleedPage) ? "" : "md:p-6"}');
+    expect(app).toContain('paddingTop: (hideNav || isMobile) ? 0');
+    expect(app).toContain("paddingBottom: hideNav ? 0 : 'calc(16px + var(--safe-bottom))'");
     expect(app).toContain('hidden md:block');
     expect(island).toContain('data-desktop-nav-shell="true"');
     expect(island).toContain('aria-label="Primary desktop"');
@@ -139,9 +141,9 @@ describe('Navigation shell contract', () => {
     expect(getMobileNavigationItems('admin', undefined, '/subscriptions').map((item) => item.label))
       .toEqual(['Today', 'Requests', 'Map', 'Subscribers']);
     expect(getMobileNavigationItems('org_admin', undefined, '/pricing').map((item) => item.label))
-      .toEqual(['Today', 'Approvals', 'Staff', 'Pricing']);
+      .toEqual(['Today', 'Requests', 'Map', 'Pricing']);
     expect(getMobileNavigationItems('org_admin', undefined, '/wallet').map((item) => item.label))
-      .toEqual(['Today', 'Approvals', 'Staff', 'Payments']);
+      .toEqual(['Today', 'Requests', 'Map', 'Payments']);
     expect(getMobileNavigationItems('admin', undefined, '/insurance').map((item) => item.label))
       .toEqual(['Today', 'Requests', 'Map', 'Insurance']);
     expect(getAccessibleNav({ role: 'admin' }).main.map((item) => item.label))

@@ -1,436 +1,180 @@
-/**
- * @fileoverview OnboardingWizard - Responsive multi-step registration wizard
- * 
- * @description
- * Main wizard component for organization registration with:
- * - Desktop: Side-by-side bento layout (progress sidebar + form)
- * - Mobile: Vertical layout with progress dots
- * - Apple-style animations and focus states
- * 
- * @usage
- * Must be wrapped in OnboardingProvider:
- * <OnboardingProvider>
- *   <OnboardingWizard />
- * </OnboardingProvider>
- * 
- * @rollback
- * To revert to previous version:
- * 1. git checkout HEAD~1 -- src/components/onboarding/OnboardingWizard.jsx
- * 2. Remove OnboardingContext.jsx if not needed
- * 
- * @author iVisit Console Team
- * @version 2.0.0 - Responsive bento layout
- * @since 2026-02-02
- */
-
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    ChevronLeft,
-    ChevronRight,
-    Check,
-    Building2,
-    Users,
-    Stethoscope,
-    Ambulance,
-    Shield,
-    Loader2
-} from 'lucide-react';
-import { Button } from '../ui/button';
-import { useOnboarding, ONBOARDING_STEPS } from '../../contexts/OnboardingContext';
-
-// Step components
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowLeft, ArrowRight, Building2, Check, CheckCircle2, ClipboardList, Loader2, ShieldCheck } from 'lucide-react';
+import { useOnboarding } from '../../contexts/OnboardingContext';
+import { AdminAccountStep } from './AdminAccountStep';
 import { OrganizationTypeStep } from './OrganizationTypeStep';
 import { OrganizationDetailsStep } from './OrganizationDetailsStep';
-import { AdminAccountStep } from './AdminAccountStep';
-import { InitialSetupStep } from './InitialSetupStep';
 import { VerificationStep } from './VerificationStep';
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-/**
- * Icons for each step
- */
 const STEP_ICONS = {
-    type: Building2,
-    details: Users,
-    account: Stethoscope,
-    setup: Ambulance,
-    verify: Shield,
+  account: ShieldCheck,
+  organization: Building2,
+  essentials: ClipboardList,
+  review: CheckCircle2,
 };
 
-// ============================================================================
-// SUB-COMPONENTS
-// ============================================================================
-
-/**
- * ProgressSidebar - Desktop step navigation
- * Shows all steps with completion status and allows clicking to navigate
- */
-const ProgressSidebar = () => {
-    const {
-        currentStep,
-        stepValidity,
-        goToStep,
-        steps
-    } = useOnboarding();
-
-    return (
-        <div className="hidden lg:flex flex-col gap-2 p-4">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-4">
-                Registration steps
-            </h3>
-            {steps.map((step, index) => {
-                const isCompleted = index < currentStep;
-                const isCurrent = index === currentStep;
-                const isAccessible = index <= currentStep || stepValidity[steps[index - 1]?.id];
-                const Icon = STEP_ICONS[step.id];
-
-                return (
-                    <motion.button
-                        key={step.id}
-                        onClick={() => isAccessible && goToStep(index)}
-                        disabled={!isAccessible}
-                        className={`
-                            group relative flex items-center gap-3 p-3 rounded-inner text-left transition-all
-                            ${isCurrent
-                                ? 'bg-muted/60 shadow-lg'
-                                : isCompleted
-                                    ? 'bg-muted/30 hover:bg-muted/50'
-                                    : 'opacity-40 cursor-not-allowed'}
-                        `}
-                        whileHover={isAccessible ? { scale: 1.02 } : {}}
-                        whileTap={isAccessible ? { scale: 0.98 } : {}}
-                    >
-                        {/* Step number/check */}
-                        <div className={`
-                            flex-shrink-0 w-8 h-8 rounded-icon flex items-center justify-center text-sm font-bold
-                            ${isCurrent
-                                ? 'bg-foreground text-background'
-                                : isCompleted
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-muted text-muted-foreground'}
-                        `}>
-                            {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
-                        </div>
-
-                        {/* Step info */}
-                        <div className="flex-1 min-w-0">
-                            <p className={`font-medium text-sm ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                {step.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                                {step.description}
-                            </p>
-                        </div>
-
-                        {/* Icon */}
-                        <Icon className={`w-4 h-4 flex-shrink-0 ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`} />
-
-                        {/* Active indicator line - centered vertically */}
-                        {isCurrent && (
-                            <motion.div
-                                layoutId="activeStep"
-                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-foreground rounded-r-pill"
-                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            />
-                        )}
-                    </motion.button>
-                );
-            })}
-        </div>
-    );
-};
-
-/**
- * MobileProgress - Dots for mobile view
- */
-const MobileProgress = () => {
-    const { currentStep, steps } = useOnboarding();
-
-    return (
-        <div className="flex lg:hidden justify-center items-center gap-2 py-4">
-            {steps.map((step, index) => {
-                const isCompleted = index < currentStep;
-                const isCurrent = index === currentStep;
-
-                return (
-                    <motion.div
-                        key={step.id}
-                        className={`
-                            relative flex items-center justify-center h-2 rounded-pill
-                            transition-all duration-300
-                            ${isCompleted ? 'bg-foreground' : isCurrent ? 'bg-foreground' : 'bg-muted-foreground/30'}
-                        `}
-                        animate={{ width: isCurrent ? 32 : 8 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    >
-                        {isCompleted && (
-                            <Check className="w-1.5 h-1.5 text-background" />
-                        )}
-                    </motion.div>
-                );
-            })}
-        </div>
-    );
-};
-
-/**
- * StepContent - Renders the current step component with animations
- */
 const StepContent = () => {
-    const {
-        currentStep,
-        currentStepConfig,
-        direction,
-        formData,
-        updateFormData,
-        setStepValid
-    } = useOnboarding();
+  const { currentStep, currentStepConfig, direction } = useOnboarding();
+  const components = {
+    account: AdminAccountStep,
+    organization: OrganizationTypeStep,
+    essentials: OrganizationDetailsStep,
+    review: VerificationStep,
+  };
+  const ActiveStep = components[currentStepConfig.id];
 
-    const slideVariants = {
-        enter: (dir) => ({
-            x: dir > 0 ? 100 : -100,
-            opacity: 0,
-        }),
-        center: {
-            x: 0,
-            opacity: 1,
-        },
-        exit: (dir) => ({
-            x: dir < 0 ? 100 : -100,
-            opacity: 0,
-        }),
-    };
-
-    // Memoize the setStepValid callback to prevent infinite re-renders
-    const handleSetStepValid = React.useCallback((isValid) => {
-        setStepValid(currentStepConfig.id, isValid);
-    }, [setStepValid, currentStepConfig.id]);
-
-    const stepProps = {
-        formData,
-        updateFormData,
-        setStepValid: handleSetStepValid,
-    };
-
-    const renderStep = () => {
-        switch (currentStepConfig.id) {
-            case 'type':
-                return <OrganizationTypeStep {...stepProps} />;
-            case 'details':
-                return <OrganizationDetailsStep {...stepProps} />;
-            case 'account':
-                return <AdminAccountStep {...stepProps} />;
-            case 'setup':
-                return <InitialSetupStep {...stepProps} />;
-            case 'verify':
-                return <VerificationStep {...stepProps} />;
-            default:
-                return null;
-        }
-    };
-
-    return (
-        <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-                key={currentStep}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="w-full"
-            >
-                {/* Step header - mobile only */}
-                <div className="lg:hidden text-center mb-6">
-                    <motion.h2
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-xl font-bold text-foreground"
-                    >
-                        {currentStepConfig.title}
-                    </motion.h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        {currentStepConfig.description}
-                    </p>
-                </div>
-
-                {renderStep()}
-            </motion.div>
-        </AnimatePresence>
-    );
+  return (
+    <AnimatePresence mode="wait" initial={false} custom={direction}>
+      <motion.div
+        key={currentStepConfig.id}
+        custom={direction}
+        initial={{ opacity: 0, x: direction >= 0 ? 18 : -18 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: direction >= 0 ? -18 : 18 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <ActiveStep />
+      </motion.div>
+    </AnimatePresence>
+  );
 };
 
-/**
- * NavigationButtons - Back/Continue buttons
- */
-const NavigationButtons = () => {
-    const {
-        isFirstStep,
-        isLastStep,
-        isCurrentStepValid,
-        isSubmitting,
-        goPrev,
-        goNext,
-        skipOnboarding,
-        createAdminAccount,
-        submitOnboarding,
-        currentStepConfig,
-    } = useOnboarding();
+const ProgressRail = () => {
+  const { currentStep, steps, goToStep, user } = useOnboarding();
+  const minimumStep = user ? 1 : 0;
 
-    const handleContinue = async () => {
-        if (isLastStep) {
-            await submitOnboarding();
-        } else if (currentStepConfig?.id === 'account') {
-            // Step 2: Create admin account before continuing
-            // This authenticates the user and sets onboarding_status = 'pending'
-            await createAdminAccount();
-            // goNext is called inside createAdminAccount on success
-        } else {
-            goNext();
-        }
-    };
-
-    // Hide footer on first step (type selection uses play button for continue)
-    if (isFirstStep) {
-        return null;
-    }
-
-    return (
-        <div className="flex justify-between items-center pt-6">
-            <div className="flex items-center gap-4">
-                <Button
-                    variant="ghost"
-                    onClick={goPrev}
-                    disabled={isSubmitting}
-                    className="gap-2"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                    Back
-                </Button>
-
-                {/* Skip option for users with identity (Step 3+) */}
-                {currentStepConfig?.id !== 'type' && currentStepConfig?.id !== 'account' && (
-                    <button
-                        onClick={skipOnboarding}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
-                    >
-                        Skip for now
-                    </button>
-                )}
-            </div>
-
-            <Button
-                onClick={handleContinue}
-                disabled={!isCurrentStepValid || isSubmitting}
-                className="gap-2 min-w-[120px]"
+  return (
+    <ol className="space-y-1">
+      {steps.map((step, index) => {
+        const Icon = STEP_ICONS[step.id];
+        const active = index === currentStep;
+        const complete = index < currentStep || (step.id === 'account' && Boolean(user));
+        const canReturn = index >= minimumStep && index < currentStep;
+        return (
+          <li key={step.id}>
+            <button
+              type="button"
+              onClick={() => goToStep(index)}
+              disabled={!canReturn}
+              aria-current={active ? 'step' : undefined}
+              className={`flex w-full items-center gap-3 rounded-inner px-3 py-3 text-left transition-colors ${active ? 'bg-foreground/[0.055]' : canReturn ? 'hover:bg-foreground/[0.035]' : ''}`}
             >
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Submitting...
-                    </>
-                ) : (
-                    <>
-                        {isLastStep ? 'Submit' : 'Continue'}
-                        {!isLastStep && <ChevronRight className="w-4 h-4" />}
-                    </>
-                )}
-            </Button>
-        </div>
-    );
+              <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-icon ${active ? 'bg-foreground text-background' : complete ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' : 'bg-foreground/[0.045] text-muted-foreground'}`}>
+                {complete ? <Check className="h-4 w-4" aria-hidden="true" /> : <Icon className="h-4 w-4" aria-hidden="true" />}
+              </span>
+              <span className="min-w-0">
+                <span className={`block text-sm font-semibold ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+                <span className="mt-0.5 block truncate text-xs text-muted-foreground">{step.description}</span>
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
 };
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+const Navigation = () => {
+  const {
+    currentStep,
+    currentStepConfig,
+    isCurrentStepValid,
+    isLastStep,
+    isSubmitting,
+    goPrev,
+    createAdminAccount,
+    submitOnboarding,
+    goNext,
+    user,
+  } = useOnboarding();
+  const minimumStep = user ? 1 : 0;
+  const canGoBack = currentStep > minimumStep;
 
-/**
- * OnboardingWizard - Main wizard component
- * 
- * Responsive layout:
- * - Desktop (lg+): Side-by-side bento layout
- * - Mobile: Vertical with progress dots
- */
+  const handleContinue = () => {
+    if (currentStepConfig.id === 'account') return createAdminAccount();
+    if (isLastStep) return submitOnboarding();
+    return goNext();
+  };
+
+  return (
+    <div className="mt-8 flex items-center justify-between gap-3 pt-1">
+      {canGoBack ? (
+        <button type="button" onClick={goPrev} disabled={isSubmitting} className="flex h-11 items-center justify-center gap-2 rounded-button px-3 text-sm font-semibold text-muted-foreground hover:bg-foreground/[0.055] hover:text-foreground disabled:opacity-45">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back
+        </button>
+      ) : <span />}
+      <button
+        type="button"
+        onClick={handleContinue}
+        disabled={!isCurrentStepValid || isSubmitting}
+        aria-busy={isSubmitting}
+        data-state={isSubmitting ? 'pending' : 'ready'}
+        className="flex h-12 min-w-36 items-center justify-center gap-2 rounded-button bg-foreground px-5 text-sm font-semibold text-background shadow-e2 transition-[background,transform] hover:bg-foreground/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        {isSubmitting ? (
+          <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {isLastStep ? 'Submitting' : 'Please wait'}</>
+        ) : (
+          <>{isLastStep ? 'Submit registration' : 'Continue'} <ArrowRight className="h-4 w-4" aria-hidden="true" /></>
+        )}
+      </button>
+    </div>
+  );
+};
+
 export const OnboardingWizard = () => {
-    const { progressPercent } = useOnboarding();
+  const { currentStep, currentStepConfig, flowError, progressPercent, steps } = useOnboarding();
 
-    return (
-        <div className="min-h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-6">
-            {/* Desktop: Progress Sidebar */}
-            <aside className="hidden lg:block w-80 flex-shrink-0">
-                <div className="sticky top-4 bg-card rounded-card overflow-hidden shadow-sm">
-                    {/* Progress bar */}
-                    <div className="h-1 bg-muted">
-                        <motion.div
-                            className="h-full bg-foreground"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progressPercent}%` }}
-                            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-                        />
-                    </div>
-                    <ProgressSidebar />
-                </div>
-            </aside>
-
-            {/* Mobile: Progress Dots */}
-            <MobileProgress />
-
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col">
-                <div className="h-auto bg-card rounded-card p-6 lg:p-8 shadow-sm">
-                    {/* Desktop: Step Header */}
-                    <div className="hidden lg:block mb-8">
-                        <StepHeader />
-                    </div>
-
-                    {/* Step Content - Full width for card-based steps */}
-                    <div className="w-full">
-                        <StepContent />
-                    </div>
-
-                    {/* Navigation - Hidden on first step */}
-                    <div className="w-full mt-8">
-                        <NavigationButtons />
-                    </div>
-                </div>
-            </main>
+  return (
+    <div className="grid w-full gap-8 lg:grid-cols-[260px_minmax(0,560px)] lg:justify-center lg:gap-14">
+      <aside className="hidden lg:block" aria-label="Registration progress">
+        <div className="sticky top-10">
+          <p className="mb-4 px-3 text-xs font-semibold text-muted-foreground">Registration</p>
+          <ProgressRail />
         </div>
-    );
-};
+      </aside>
 
-/**
- * StepHeader - Desktop step title with icon
- */
-const StepHeader = () => {
-    const { currentStepConfig } = useOnboarding();
-    const Icon = STEP_ICONS[currentStepConfig.id];
+      <section className="min-w-0" aria-labelledby="onboarding-step-title">
+        <div className="mb-6 lg:hidden">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+            <span>Step {currentStep + 1} of {steps.length}</span>
+            <span>{currentStepConfig.title}</span>
+          </div>
+          <div className="mt-3 h-1 overflow-hidden rounded-pill bg-foreground/[0.07]">
+            <motion.div className="h-full rounded-pill bg-foreground" animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.25 }} />
+          </div>
+        </div>
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-4 pb-6"
-        >
-            <div className="w-12 h-12 rounded-icon bg-muted flex items-center justify-center shadow-sm">
-                <Icon className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <div>
-                <h2 className="text-2xl font-bold text-foreground">
-                    {currentStepConfig.title}
-                </h2>
-                <p className="text-muted-foreground">
-                    {currentStepConfig.description}
-                </p>
-            </div>
-        </motion.div>
-    );
+        <header className="mb-7">
+          <p className="text-xs font-semibold text-muted-foreground">{currentStepConfig.title}</p>
+          <h1 id="onboarding-step-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+            {currentStepConfig.id === 'account' && 'Create your administrator account'}
+            {currentStepConfig.id === 'organization' && 'Tell us who you represent'}
+            {currentStepConfig.id === 'essentials' && 'Add the review essentials'}
+            {currentStepConfig.id === 'review' && 'Review your registration'}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {currentStepConfig.id === 'account' && 'Use email and password, or continue with Google.'}
+            {currentStepConfig.id === 'organization' && 'Register a new organization or check whether a facility is already listed.'}
+            {currentStepConfig.id === 'essentials' && 'Only the details needed to identify and contact your organization.'}
+            {currentStepConfig.id === 'review' && 'Confirm the details before they enter the review queue.'}
+          </p>
+        </header>
+
+        {flowError && (
+          <div role="alert" className="mb-5 flex items-start gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" />
+            <span>{flowError}</span>
+          </div>
+        )}
+
+        <StepContent />
+        <Navigation />
+      </section>
+    </div>
+  );
 };
 
 export default OnboardingWizard;

@@ -4,158 +4,129 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle, ArrowRight, Clock, Shield, Building2, User } from 'lucide-react';
-import { Button } from '../ui/button';
+import { AlertCircle, ArrowRight, Building2, Check, CheckCircle2, Clock, FileCheck2, WalletCards } from 'lucide-react';
+import ThemeToggle from '../ui/theme-toggle';
 
-/**
- * OnboardingSuccessPage - Registration confirmation
- * Shows after successful registration submission
- */
+const setupItems = {
+  hospital: ['Departments and specialties', 'Bed capacity', 'Care team'],
+  clinic: ['Specialties and hours', 'Care team', 'Services'],
+  ambulance_service: ['Fleet and coverage', 'Response team', 'Operating hours'],
+};
+
 export const OnboardingSuccessPage = () => {
-    const location = useLocation();
-    const result = location.state?.result;
-    const organization = result?.organization;
-    const user = result?.user;
-    const hasSubmissionResult = Boolean(result?.success && result?.provisioningVerified === true);
+  const location = useLocation();
+  const result = location.state?.result;
+  const organization = result?.organization;
+  const facility = result?.facility;
+  const hasSubmissionResult = Boolean(
+    result?.success
+    && result?.provisioningVerified === true
+    && organization?.id
+    && organization?.walletState === 'ready'
+  );
+  const nextItems = setupItems[organization?.type] || setupItems.hospital;
 
-    return (
-        <>
-            <Helmet>
-                <title>Registration Submitted | iVisit Console</title>
-            </Helmet>
+  return (
+    <>
+      <Helmet><title>Registration Submitted | iVisit Console</title></Helmet>
+      <div className="min-h-[100dvh] bg-background text-foreground">
+        <header className="mx-auto flex h-16 w-full max-w-4xl items-center justify-between px-5 sm:px-8">
+          <span className="text-sm font-semibold">iVisit Console</span>
+          <ThemeToggle size="xs" />
+        </header>
 
-            <div className="min-h-screen bg-background flex items-center justify-center px-5 py-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    className="w-full max-w-md text-center"
-                >
-                    {!hasSubmissionResult ? (
-                        <>
-                            <div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center mx-auto mb-6">
-                                <AlertCircle className="w-8 h-8 text-muted-foreground" />
-                            </div>
+        <main className="mx-auto flex w-full max-w-4xl justify-center px-5 pb-14 pt-8 sm:px-8 sm:pt-14">
+          <motion.section
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[520px]"
+          >
+            {!hasSubmissionResult ? (
+              <div className="text-center">
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-icon bg-destructive/10 text-destructive">
+                  <AlertCircle className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h1 className="mt-5 text-2xl font-semibold">Registration status unavailable</h1>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                  No verified provisioning result was found for this page.
+                </p>
+                <div className="mt-8 space-y-2">
+                  <Link to="/onboarding" className="flex h-12 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2 hover:bg-foreground/90">
+                    Return to registration <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                  <a href="mailto:support@ivisit.ng" className="flex h-11 w-full items-center justify-center rounded-button text-sm font-semibold text-muted-foreground hover:bg-foreground/[0.055] hover:text-foreground">
+                    Contact support
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-center">
+                  <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-icon bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                    <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <p className="mt-5 text-xs font-semibold text-muted-foreground">Submitted for review</p>
+                  <h1 className="mt-2 text-2xl font-semibold">{organization.name} is ready in Console</h1>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                    Your organization and wallet are prepared. Verification remains pending until review is complete.
+                  </p>
+                </div>
 
-                            <h1 className="text-2xl font-bold text-foreground mb-2">
-                                Registration status unavailable
-                            </h1>
-                            <p className="text-sm text-muted-foreground mb-8">
-                                We could not verify a completed organization setup. Return to registration or contact support.
-                            </p>
+                <div className="mt-8 space-y-2">
+                  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.035] px-4 py-3 dark:bg-white/[0.05]">
+                    <Building2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organization ID</p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold">{organization.display_id || organization.id}</p>
+                    </div>
+                    <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  </div>
+                  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.035] px-4 py-3 dark:bg-white/[0.05]">
+                    <WalletCards className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">Wallet</p>
+                      <p className="mt-0.5 text-sm font-semibold">Ready</p>
+                    </div>
+                    <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  </div>
+                  <div className="flex items-center gap-3 rounded-inner bg-foreground/[0.035] px-4 py-3 dark:bg-white/[0.05]">
+                    {result.evidence?.count > 0 ? <FileCheck2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> : <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">Review evidence</p>
+                      <p className="mt-0.5 text-sm font-semibold">{result.evidence?.count > 0 ? `${result.evidence.count} file${result.evidence.count === 1 ? '' : 's'} submitted` : 'Not submitted'}</p>
+                    </div>
+                    <span className="rounded-pill bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-800 dark:text-amber-200">Pending</span>
+                  </div>
+                  {facility?.display_id && (
+                    <div className="px-4 pt-1 text-xs text-muted-foreground">Facility ID: <span className="font-mono font-semibold text-foreground">{facility.display_id}</span></div>
+                  )}
+                </div>
 
-                            <div className="space-y-3">
-                                <Button asChild variant="ghost" className="w-full gap-2 h-12 rounded-button bg-foreground text-background hover:bg-foreground/90 hover:text-background">
-                                    <Link to="/onboarding">
-                                        Continue registration
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                </Button>
-                                <Button variant="ghost" asChild className="w-full h-12 rounded-button text-muted-foreground">
-                                    <a href="mailto:support@ivisit.ng">
-                                        Contact Support
-                                    </a>
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* Success Icon */}
-                            <div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center mx-auto mb-6">
-                                <CheckCircle className="w-8 h-8 text-foreground" />
-                            </div>
+                <section className="mt-8" aria-labelledby="next-setup-title">
+                  <h2 id="next-setup-title" className="text-sm font-semibold">Complete in Console</h2>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    {nextItems.map((item) => (
+                      <div key={item} className="rounded-inner bg-foreground/[0.035] px-3 py-3 text-xs font-medium text-muted-foreground dark:bg-white/[0.05]">{item}</div>
+                    ))}
+                  </div>
+                </section>
 
-                            {/* Title */}
-                            <h1 className="text-2xl font-bold text-foreground mb-2">
-                                Registration submitted
-                            </h1>
-                            <p className="text-sm text-muted-foreground mb-6">
-                                We received your registration details.
-                            </p>
-
-                            {/* Display IDs - Proof of Registration */}
-                            {(organization?.display_id || user?.display_id) && (
-                                <div className="grid grid-cols-1 gap-3 mb-8">
-                                    {organization?.display_id && (
-                                        <div className="p-4 rounded-inner bg-muted/40">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-muted rounded-icon">
-                                                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <span className="text-[11px] font-semibold text-muted-foreground block">Organization ID</span>
-                                                        <span className="font-mono text-lg font-semibold text-foreground">{organization.display_id}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="w-2 h-2 rounded-pill bg-muted-foreground/30" />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {user?.display_id && (
-                                        <div className="p-4 rounded-inner bg-muted/40">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-muted rounded-icon">
-                                                        <User className="w-4 h-4 text-muted-foreground" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <span className="text-[11px] font-semibold text-muted-foreground block">Administrator ID</span>
-                                                        <span className="font-mono text-lg font-semibold text-foreground">{user.display_id}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="w-2 h-2 rounded-pill bg-muted-foreground/30" />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* What's Next */}
-                            <div className="bg-muted/50 rounded-inner p-6 mb-8 text-left space-y-4">
-                                <h2 className="font-semibold text-foreground">What happens next?</h2>
-
-                                <div className="flex gap-3">
-                                    <Clock className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="font-medium text-sm">Review follows the admin queue</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            We will use the submitted details for review.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <Shield className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="font-medium text-sm">Console access depends on your account state</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            If the console asks you to sign in or continue setup, follow that prompt.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="space-y-3">
-                                <Button asChild variant="ghost" className="w-full gap-2 h-12 rounded-button bg-foreground text-background hover:bg-foreground/90 hover:text-background">
-                                    <Link to="/">
-                                        Open console
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                </Button>
-                                <Button variant="ghost" asChild className="w-full h-12 rounded-button text-muted-foreground">
-                                    <a href="mailto:support@ivisit.ng">
-                                        Contact Support
-                                    </a>
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </motion.div>
-            </div>
-        </>
-    );
+                <div className="mt-8 space-y-2">
+                  <a href="/" className="flex h-12 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2 hover:bg-foreground/90">
+                    Open Console <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </a>
+                  <a href="mailto:support@ivisit.ng" className="flex h-11 w-full items-center justify-center rounded-button text-sm font-semibold text-muted-foreground hover:bg-foreground/[0.055] hover:text-foreground">
+                    Contact support
+                  </a>
+                </div>
+              </>
+            )}
+          </motion.section>
+        </main>
+      </div>
+    </>
+  );
 };
 
 export default OnboardingSuccessPage;

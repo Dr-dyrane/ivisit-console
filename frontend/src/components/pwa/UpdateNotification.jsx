@@ -6,8 +6,7 @@ import { RefreshCw, X } from 'lucide-react';
 import { Button } from '../ui/button';
 
 /**
- * UpdateNotification - App update prompt
- * Elegant toast for service worker updates
+ * UpdateNotification - App update prompt.
  */
 export const UpdateNotification = ({ isVisible, onUpdate, onDismiss }) => {
     return (
@@ -20,11 +19,11 @@ export const UpdateNotification = ({ isVisible, onUpdate, onDismiss }) => {
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className="fixed top-20 right-4 z-[100] max-w-sm"
                 >
-                    <div className="glass-card border border-primary/30 rounded-xl p-4 shadow-2xl">
+                    <div className="relative rounded-card bg-card/92 p-4 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/72">
                         {/* Close button */}
                         <button
                             onClick={onDismiss}
-                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted/50 transition-colors"
+                            className="absolute right-2 top-2 rounded-button p-1 transition-colors hover:bg-foreground/[0.055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                             aria-label="Dismiss"
                         >
                             <X className="w-3 h-3 text-muted-foreground" />
@@ -32,12 +31,12 @@ export const UpdateNotification = ({ isVisible, onUpdate, onDismiss }) => {
 
                         <div className="flex items-start gap-3">
                             {/* Icon */}
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-icon bg-foreground/[0.055] text-foreground dark:bg-white/[0.07]">
                                 <motion.div
                                     animate={{ rotate: 360 }}
                                     transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
                                 >
-                                    <RefreshCw className="w-5 h-5 text-primary" />
+                                    <RefreshCw className="h-5 w-5" />
                                 </motion.div>
                             </div>
 

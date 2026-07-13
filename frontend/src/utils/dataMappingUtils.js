@@ -4,7 +4,7 @@
  * Follows Alexander-Apple DRY principles
  */
 
-export {
+import {
   getPatientName,
   getPatientContact,
   getPatientAvatar,
@@ -12,7 +12,7 @@ export {
   getStandardizedPatient
 } from './patientUtils';
 
-export {
+import {
   getHospitalName,
   getHospitalAddress,
   getHospitalContact,
@@ -20,11 +20,27 @@ export {
   getStandardizedHospital
 } from './hospitalUtils';
 
-export {
+import {
   formatEmergencyLocation,
   extractCoordinates,
   decodePostGISGeometry
 } from './locationUtils';
+
+export {
+  getPatientName,
+  getPatientContact,
+  getPatientAvatar,
+  getPatientInitials,
+  getStandardizedPatient,
+  getHospitalName,
+  getHospitalAddress,
+  getHospitalContact,
+  getHospitalId,
+  getStandardizedHospital,
+  formatEmergencyLocation,
+  extractCoordinates,
+  decodePostGISGeometry
+};
 
 /**
  * Complete standardized data object for any record

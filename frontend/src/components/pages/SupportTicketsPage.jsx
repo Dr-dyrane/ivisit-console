@@ -11,12 +11,20 @@ import { useRowSelection } from '../../hooks/useRowSelection';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { useSupportTicketsQuery } from '../../hooks/useSupportTicketsQuery';
-import { useSupportTicketsMutations, applyOptimisticUpsert, applyOptimisticRemove } from '../../hooks/useSupportTicketsMutations';
+import {
+  useSupportTicketsMutations,
+  applyOptimisticUpsert,
+  applyOptimisticRemove,
+  settleSupportTicketDeletes,
+} from '../../hooks/useSupportTicketsMutations';
 import {
   createSupportTicket,
   updateSupportTicket,
   deleteSupportTicket,
   assignTicket,
+  SUPPORT_TICKET_CATEGORIES,
+  SUPPORT_TICKET_PRIORITIES,
+  SUPPORT_TICKET_STATUSES,
 } from '../../services/supportTicketsService';
 import { handleApiError } from '../../utils/errorHandler';
 // Console design system: Support COMPOSES the shared workspace grammar (donor: Requests;
@@ -58,31 +66,34 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { MobileSupportTickets } from '../mobile/MobileSupportTickets';
+import { MobileSupportTickets, pruneSupportTicketIdsFromCache } from '../mobile/MobileSupportTickets';
 
-const PRIORITIES = [
-  { value: 'low', label: 'Low', color: 'blue' },
-  { value: 'normal', label: 'Normal', color: 'green' },
-  { value: 'high', label: 'High', color: 'orange' },
-  { value: 'urgent', label: 'Urgent', color: 'red' },
-];
+const PRIORITY_LABELS = {
+  low: 'Low',
+  normal: 'Normal',
+  high: 'High',
+  urgent: 'Urgent',
+};
+const PRIORITY_COLORS = {
+  low: 'blue',
+  normal: 'green',
+  high: 'orange',
+  urgent: 'red',
+};
+const STATUS_LABELS = {
+  open: 'Open',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+  closed: 'Closed',
+};
 
-const STATUSES = [
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In progress' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'closed', label: 'Closed' },
-];
-
-const CATEGORIES = [
-  'general',
-  'technical',
-  'billing',
-  'account',
-  'feature_request',
-  'bug_report',
-  'medical',
-];
+const PRIORITIES = SUPPORT_TICKET_PRIORITIES.map((value) => ({
+  value,
+  label: PRIORITY_LABELS[value],
+  color: PRIORITY_COLORS[value],
+}));
+const STATUSES = SUPPORT_TICKET_STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] }));
+const CATEGORIES = SUPPORT_TICKET_CATEGORIES;
 
 // KPI/state strip options: the STATUS axis (All / Open / Active / Resolved). `closed`
 // folds into the Resolved tone; `urgent` is a cross-cut PRIORITY overlay (row + rail pill
@@ -235,26 +246,46 @@ const titleCase = (value) => String(value || '')
   .replace('_', ' ')
   .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const buildAnalytics = (stats = {}) => {
+const buildAnalytics = (stats = {}, rows = []) => {
   const safeStats = stats || {};
+  const visibleRows = Array.isArray(rows) ? rows : [];
+  const byStatus = {};
+  const byPriority = {};
+  const byCategory = {};
+  const resolutionHours = [];
+
+  visibleRows.forEach((ticket) => {
+    const status = String(ticket?.status || 'unknown').trim().toLowerCase() || 'unknown';
+    const priority = String(ticket?.priority || 'unknown').trim().toLowerCase() || 'unknown';
+    const category = String(ticket?.category || 'uncategorized').trim().toLowerCase() || 'uncategorized';
+    byStatus[status] = (byStatus[status] || 0) + 1;
+    byPriority[priority] = (byPriority[priority] || 0) + 1;
+    byCategory[category] = (byCategory[category] || 0) + 1;
+
+    if (status === 'resolved' && ticket?.created_at && ticket?.updated_at) {
+      const createdAt = new Date(ticket.created_at).getTime();
+      const updatedAt = new Date(ticket.updated_at).getTime();
+      if (Number.isFinite(createdAt) && Number.isFinite(updatedAt) && updatedAt >= createdAt) {
+        resolutionHours.push((updatedAt - createdAt) / 3600000);
+      }
+    }
+  });
 
   return {
     total: safeStats.total || 0,
     resolved: safeStats.resolved || 0,
     open: safeStats.open || 0,
     active: safeStats.active || 0,
-    averageResolutionTime: 0,
-    byStatus: {
-      open: safeStats.open || 0,
-      in_progress: safeStats.inProgress || 0,
-      resolved: safeStats.resolved || 0,
-      closed: safeStats.closed || 0,
-    },
-    byPriority: {
-      urgent: safeStats.urgent || 0,
-      high: safeStats.urgent || 0,
-    },
-    byCategory: {},
+    averageResolutionTime: resolutionHours.length > 0
+      ? resolutionHours.reduce((sum, hours) => sum + hours, 0) / resolutionHours.length
+      : null,
+    averageResolutionScope: 'visible_page',
+    byStatus,
+    byPriority,
+    byCategory,
+    distributionScope: 'visible_page',
+    distributionLabel: 'Current page',
+    visibleCount: visibleRows.length,
   };
 };
 
@@ -281,11 +312,17 @@ export const SupportTicketsPage = () => {
     description: '',
     onConfirm: null,
   });
+  const [deletePending, setDeletePending] = useState(false);
+  const [assignPending, setAssignPending] = useState(false);
+  const [confirmedDeletedTicketIds, setConfirmedDeletedTicketIds] = useState([]);
+  const [createConvergenceNotice, setCreateConvergenceNotice] = useState(null);
   const pagination = usePagination(20);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
   const isMountedRef = useRef(false);
   const actionFeedbackTimerRef = useRef(null);
   const deepLinkHandledRef = useRef(null);
+  const deletePendingRef = useRef(false);
+  const assignPendingRef = useRef(false);
 
   const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : (isProvider() ? 'provider' : 'viewer'));
   const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
@@ -330,10 +367,44 @@ export const SupportTicketsPage = () => {
   // the honest-failed-hero source threaded into the workspace signal.
   const supportError = queryError ? 'Support could not load. Try again.' : null;
   const loadError = supportError;
-  // fetchSupportTickets is now the RQ refetch (Retry on desktop, pull-to-refresh on mobile).
-  const fetchSupportTickets = refetch;
+  // A successful explicit retry clears any post-create convergence warning. React Query's
+  // refetch resolves with an error result, so inspect it instead of assuming fulfillment.
+  const fetchSupportTickets = useCallback(async () => {
+    const result = await refetch();
+    if (!result?.error) setCreateConvergenceNotice(null);
+    return result;
+  }, [refetch]);
 
   const ticketRows = useMemo(() => (Array.isArray(tickets) ? tickets : []), [tickets]);
+  const recordConfirmedTicketDeletion = useCallback((requestedId, deletedTicket) => {
+    const requestedKey = requestedId === null || requestedId === undefined
+      ? ''
+      : String(requestedId);
+    const confirmedKey = deletedTicket?.id === null || deletedTicket?.id === undefined
+      ? ''
+      : String(deletedTicket.id);
+    if (!requestedKey || confirmedKey !== requestedKey) {
+      throw new Error('Support ticket deletion was not confirmed by the receiver.');
+    }
+
+    setConfirmedDeletedTicketIds((current) => (
+      current.includes(requestedKey) ? current : [...current, requestedKey]
+    ));
+    queryClient.setQueriesData(
+      { queryKey: ['support'] },
+      (cache) => pruneSupportTicketIdsFromCache(cache, [requestedKey])
+    );
+
+    return requestedKey;
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (confirmedDeletedTicketIds.length === 0) return;
+    queryClient.setQueriesData(
+      { queryKey: ['support'] },
+      (cache) => pruneSupportTicketIdsFromCache(cache, confirmedDeletedTicketIds)
+    );
+  }, [confirmedDeletedTicketIds, queryClient, ticketRows]);
 
   // Auto-select the focused record via the console-wide shared store (never empty when data).
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('support', ticketRows);
@@ -353,7 +424,7 @@ export const SupportTicketsPage = () => {
   const selectable = canManageSupport;
 
   const hasFilter = hasActiveSupportFilters(filters, kpiFilter);
-  const analytics = useMemo(() => buildAnalytics(supportStats), [supportStats]);
+  const analytics = useMemo(() => buildAnalytics(supportStats, ticketRows), [supportStats, ticketRows]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -515,12 +586,22 @@ export const SupportTicketsPage = () => {
   // lifecycle, so the ['support', queryFilter] cache is the single post-write refresh
   // (handleSave no longer refetches).
   //
-  // Create omits the optimistic reducer: the server owns the new id, so an optimistic
-  // row would render keyless. onSettled invalidation refetches the real row. Update
-  // carries the id in the variables so applyOptimisticUpsert merges the cached row;
-  // the mutationFn strips it back off for updateSupportTicket(id, changes).
+  // Create cannot write a speculative row because the server owns the id. Once the insert
+  // returns, applyCommitted writes that receiver-confirmed row immediately; a failed
+  // invalidation is surfaced separately and never reclassified as an insert failure.
+  const handleCreateConvergenceError = useCallback((_error, context) => {
+    const ticketId = String(context?.data?.id || '').trim() || null;
+    setCreateConvergenceNotice({
+      ticketId,
+      message: 'Request created. Refresh is unavailable, so the confirmed request is shown from the saved response.',
+    });
+    toast.warning('Request created, but the support list did not refresh.');
+  }, []);
+
   const createTicketMutation = useSupportTicketsMutations({
     mutationFn: createSupportTicket,
+    applyCommitted: applyOptimisticUpsert,
+    onConvergenceError: handleCreateConvergenceError,
     filter: queryFilter,
   });
   const updateTicketMutation = useSupportTicketsMutations({
@@ -545,25 +626,23 @@ export const SupportTicketsPage = () => {
   });
 
   const handleSave = useCallback(async (...args) => {
-    try {
-      if (args.length === 1) {
-        await createTicketMutation.mutateAsync(args[0]);
-      } else {
-        await updateTicketMutation.mutateAsync({ id: args[0], ...args[1] });
-      }
-      return true;
-    } catch (error) {
-      handleApiError(error, args.length === 1 ? 'create' : 'update');
-      throw error;
+    if (args.length === 1) {
+      setCreateConvergenceNotice(null);
+      await createTicketMutation.mutateAsync(args[0]);
+    } else {
+      await updateTicketMutation.mutateAsync({ id: args[0], ...args[1] });
     }
+    return true;
   }, [createTicketMutation, updateTicketMutation]);
 
   const closeConfirmation = useCallback(() => {
+    if (deletePendingRef.current) return;
     setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
   // Single delete: admin/org-admin only, always behind an explicit confirm.
   const handleDelete = useCallback((ticket) => {
+    if (deletePendingRef.current) return;
     if (!canManageSupport || !ticket?.id) {
       toast.info('Delete is unavailable for this request');
       return;
@@ -573,21 +652,28 @@ export const SupportTicketsPage = () => {
       title: 'Delete ticket',
       description: `Delete "${ticket.subject || 'this request'}"? This cannot be undone.`,
       onConfirm: async () => {
+        if (deletePendingRef.current) return;
+        deletePendingRef.current = true;
+        setDeletePending(true);
         try {
-          await deleteTicketMutation.mutateAsync(ticket.id);
+          const deletedTicket = await deleteTicketMutation.mutateAsync(ticket.id);
+          recordConfirmedTicketDeletion(ticket.id, deletedTicket);
           toast.success('Ticket deleted');
         } catch (error) {
           handleApiError(error, 'delete');
         } finally {
+          deletePendingRef.current = false;
+          setDeletePending(false);
           closeConfirmation();
         }
       },
     });
-  }, [canManageSupport, closeConfirmation, deleteTicketMutation]);
+  }, [canManageSupport, closeConfirmation, deleteTicketMutation, recordConfirmedTicketDeletion]);
 
-  // Bulk delete loops the same delete mutation over the current selection so each
-  // row leaves the cache optimistically; onSettled invalidation converges once.
+  // Bulk delete settles every selected id. Only exact receiver-confirmed identities become
+  // tombstones; failed rows are restored and remain selected for a deliberate retry.
   const handleBulkDelete = useCallback(() => {
+    if (deletePendingRef.current) return;
     if (!canManageSupport || selectedIds.length === 0) return;
     const ids = [...selectedIds];
     const count = ids.length;
@@ -596,28 +682,52 @@ export const SupportTicketsPage = () => {
       title: `Delete ${count} ticket${count === 1 ? '' : 's'}`,
       description: `Delete ${count} selected request${count === 1 ? '' : 's'}? This cannot be undone.`,
       onConfirm: async () => {
+        if (deletePendingRef.current) return;
+        deletePendingRef.current = true;
+        setDeletePending(true);
         try {
-          for (const id of ids) {
-            await deleteTicketMutation.mutateAsync(id);
-          }
+          const outcome = await settleSupportTicketDeletes(
+            ids,
+            (id) => deleteTicketMutation.mutateAsync(id)
+          );
+
+          outcome.confirmed.forEach(({ id, ticket }) => {
+            recordConfirmedTicketDeletion(id, ticket);
+          });
+
           clearSelection();
-          toast.success(`${count} ticket${count === 1 ? '' : 's'} deleted`);
+          outcome.failed.forEach(({ id }) => handleToggleSelect(id, true));
+
+          const deletedCount = outcome.confirmed.length;
+          const failedCount = outcome.failed.length;
+          if (failedCount === 0) {
+            toast.success(`${deletedCount} ticket${deletedCount === 1 ? '' : 's'} deleted`);
+          } else if (deletedCount === 0) {
+            toast.error(`No tickets were deleted. ${failedCount} remain selected.`);
+          } else {
+            toast.warning(`${deletedCount} deleted. ${failedCount} could not be deleted and remain selected.`);
+          }
         } catch (error) {
           handleApiError(error, 'delete');
         } finally {
+          deletePendingRef.current = false;
+          setDeletePending(false);
           closeConfirmation();
         }
       },
     });
-  }, [canManageSupport, clearSelection, closeConfirmation, deleteTicketMutation, selectedIds]);
+  }, [canManageSupport, clearSelection, closeConfirmation, deleteTicketMutation, handleToggleSelect, recordConfirmedTicketDeletion, selectedIds]);
 
   // Provider self-assign ("Assign to me"): mirrors main's canAssign = isProvider().
   const canAssign = isProvider();
   const handleAssign = useCallback(async (ticket) => {
+    if (assignPendingRef.current) return;
     if (!ticket?.id || !profile?.id) {
       toast.info('Assignment is unavailable for this request');
       return;
     }
+    assignPendingRef.current = true;
+    setAssignPending(true);
     markActionFeedback(`assign-${ticket.id}`);
     try {
       await assignTicketMutation.mutateAsync({
@@ -628,6 +738,9 @@ export const SupportTicketsPage = () => {
       toast.success('Ticket assigned to you');
     } catch (error) {
       handleApiError(error, 'update');
+    } finally {
+      assignPendingRef.current = false;
+      setAssignPending(false);
     }
   }, [assignTicketMutation, markActionFeedback, profile?.id]);
 
@@ -796,6 +909,7 @@ export const SupportTicketsPage = () => {
           loading={loading}
           isFetching={isFetching}
           errorMessage={supportError}
+          convergenceMessage={createConvergenceNotice?.message || null}
           onRetry={fetchSupportTickets}
           onOpenFilters={handleOpenFilters}
           onViewAnalytics={canManageSupport ? handleOpenAnalytics : null}
@@ -803,6 +917,8 @@ export const SupportTicketsPage = () => {
           analyticsOpen={analyticsModalOpen}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          currentPage={pagination.currentPage}
+          confirmedDeletedTicketIds={confirmedDeletedTicketIds}
         />
         <SupportPageModals
           modalMode={modalMode}
@@ -822,6 +938,7 @@ export const SupportTicketsPage = () => {
           analytics={analytics}
           confirmationModal={confirmationModal}
           onCloseConfirmation={closeConfirmation}
+          deletePending={deletePending}
           isMobile={isMobile}
         />
       </div>
@@ -838,12 +955,14 @@ export const SupportTicketsPage = () => {
         loading={loading}
         isFetching={isFetching}
         loadError={loadError}
+        convergenceMessage={createConvergenceNotice?.message || null}
         isProviderOnly={isProviderOnly}
         canCreate={canCreate}
         canManage={canManageSupport}
         canAssign={canAssign}
         canEditTicket={canEditTicket}
-        assignPending={assignTicketMutation.isPending}
+        assignPending={assignPending}
+        deletePending={deletePending}
         focusedTicket={focusedTicket}
         setFocused={setFocused}
         filters={filters}
@@ -884,7 +1003,8 @@ export const SupportTicketsPage = () => {
               variant="ghost"
               size="icon"
               onClick={handleBulkDelete}
-              disabled={selectedIds.length === 0}
+              disabled={selectedIds.length === 0 || deletePending}
+              aria-busy={deletePending}
               className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96] disabled:opacity-40"
               title="Delete selected"
               aria-label={`Delete ${selectedIds.length} selected ticket${selectedIds.length === 1 ? '' : 's'}`}
@@ -913,6 +1033,7 @@ export const SupportTicketsPage = () => {
         analytics={analytics}
         confirmationModal={confirmationModal}
         onCloseConfirmation={closeConfirmation}
+        deletePending={deletePending}
         isMobile={isMobile}
       />
     </div>
@@ -925,12 +1046,14 @@ const SupportDesktopWorkspace = ({
   loading,
   isFetching,
   loadError,
+  convergenceMessage,
   isProviderOnly,
   canCreate,
   canManage,
   canAssign,
   canEditTicket,
   assignPending,
+  deletePending,
   focusedTicket,
   setFocused,
   filters,
@@ -993,6 +1116,7 @@ const SupportDesktopWorkspace = ({
           canAssign={canAssign}
           canCreate={canCreate}
           assignPending={assignPending}
+          deletePending={deletePending}
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}
@@ -1037,6 +1161,27 @@ const SupportDesktopWorkspace = ({
           />
         )}
       >
+        {convergenceMessage && (
+          <div
+            role="status"
+            data-testid="support-create-convergence-warning"
+            className="mt-3 flex flex-col gap-3 rounded-inner bg-amber-500/10 px-4 py-3 text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:text-amber-100"
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-sm font-medium leading-5">{convergenceMessage}</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onRetry}
+              className="h-9 shrink-0 rounded-button bg-amber-500/10 px-4 text-xs font-semibold text-amber-900 hover:bg-amber-500/15 dark:text-amber-100"
+            >
+              Refresh
+            </Button>
+          </div>
+        )}
+
         <div
           ref={listScrollRef}
           tabIndex={0}
@@ -1103,6 +1248,8 @@ const SupportDesktopWorkspace = ({
               onEdit={onEdit}
               onDelete={onDelete}
               onAssign={onAssign}
+              assignPending={assignPending}
+              deletePending={deletePending}
               activeActionFeedback={activeActionFeedback}
             />
           ))}
@@ -1148,6 +1295,8 @@ const SupportTicketRow = ({
   onEdit,
   onDelete,
   onAssign,
+  assignPending = false,
+  deletePending = false,
   activeActionFeedback,
 }) => {
   const statusMeta = getStatusMeta(ticket.status);
@@ -1212,11 +1361,13 @@ const SupportTicketRow = ({
             variant="ghost"
             size="icon"
             onClick={(event) => { event.stopPropagation(); onAssign(ticket); }}
+            disabled={assignPending}
+            aria-busy={assignPending}
             data-state={activeActionFeedback === `assign-${ticket.id}` ? 'opening' : 'idle'}
             className="h-8 w-8 rounded-pill bg-background/45 text-muted-foreground transition-all hover:bg-foreground hover:text-background active:scale-95"
             aria-label={`Assign ${title} to me`}
           >
-            <UserPlus className="h-4 w-4" />
+            {assignPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           </Button>
         )}
         {canEdit && (
@@ -1236,6 +1387,8 @@ const SupportTicketRow = ({
             variant="ghost"
             size="icon"
             onClick={(event) => { event.stopPropagation(); onDelete(ticket); }}
+            disabled={deletePending}
+            aria-busy={deletePending}
             className="h-8 w-8 rounded-pill bg-destructive/10 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-95"
             aria-label={`Delete ${title}`}
           >
@@ -1259,7 +1412,7 @@ const RailActionButton = ({ icon: Icon, label, onClick, disabled = false, spinni
   </Button>
 );
 
-const SupportDetailRail = ({ ticket, loading, hasFilter, canEdit, canManage, canAssign, canCreate, assignPending, onView, onEdit, onDelete, onAssign, onCreate }) => {
+const SupportDetailRail = ({ ticket, loading, hasFilter, canEdit, canManage, canAssign, canCreate, assignPending, deletePending, onView, onEdit, onDelete, onAssign, onCreate }) => {
   if (loading && !ticket) {
     return (
       <DetailRailShell>
@@ -1380,9 +1533,11 @@ const SupportDetailRail = ({ ticket, loading, hasFilter, canEdit, canManage, can
             variant="ghost"
             className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
             onClick={() => onDelete(ticket)}
+            disabled={deletePending}
+            aria-busy={deletePending}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete request
+            {deletePending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            {deletePending ? 'Deleting...' : 'Delete request'}
           </Button>
         )}
 
@@ -1416,6 +1571,7 @@ const SupportPageModals = ({
   analytics,
   confirmationModal,
   onCloseConfirmation,
+  deletePending,
   isMobile,
 }) => (
   <>
@@ -1451,6 +1607,7 @@ const SupportPageModals = ({
       description={confirmationModal?.description}
       confirmLabel="Delete"
       variant="destructive"
+      isLoading={deletePending}
     />
   </>
 );

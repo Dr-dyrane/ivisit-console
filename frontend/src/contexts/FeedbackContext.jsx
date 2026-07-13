@@ -5,22 +5,22 @@ const FeedbackContext = createContext(null);
 
 const FEEDBACK_VARIANTS = {
     click: {
-        colors: ['hsl(var(--primary))', 'hsl(var(--spark))'],
+        colors: ['hsl(var(--foreground))', 'hsl(var(--spark))'],
         haptic: [4],
         sound: { start: 560, end: 650, gain: 0.012, duration: 0.055, type: 'sine' }
     },
     success: {
-        colors: ['hsl(var(--spark))', 'hsl(var(--primary))', 'hsl(var(--success))'],
+        colors: ['rgb(16 185 129)', 'rgb(52 211 153)', 'hsl(var(--spark))'],
         haptic: [5],
         sound: { start: 610, end: 920, gain: 0.02, duration: 0.09, type: 'sine' }
     },
     info: {
-        colors: ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--spark))'],
+        colors: ['rgb(14 165 233)', 'rgb(56 189 248)', 'hsl(var(--spark))'],
         haptic: [4],
         sound: { start: 500, end: 760, gain: 0.014, duration: 0.075, type: 'triangle' }
     },
     warning: {
-        colors: ['hsl(var(--spark))', 'hsl(var(--warning))', 'hsl(var(--primary))'],
+        colors: ['rgb(245 158 11)', 'rgb(251 191 36)', 'hsl(var(--spark))'],
         haptic: [4, 8, 4],
         sound: { start: 420, end: 620, gain: 0.015, duration: 0.08, type: 'triangle' }
     },
@@ -41,30 +41,30 @@ export const FEEDBACK_TYPES = Object.freeze({
 const getHaloFill = (variant) => {
     switch (variant) {
         case 'success':
-            return 'hsl(var(--spark) / 0.16)';
+            return 'rgb(16 185 129 / 0.16)';
         case 'info':
-            return 'hsl(var(--primary) / 0.14)';
+            return 'rgb(14 165 233 / 0.14)';
         case 'warning':
-            return 'hsl(var(--warning) / 0.14)';
+            return 'rgb(245 158 11 / 0.14)';
         case 'destructive':
             return 'hsl(var(--destructive) / 0.14)';
         default:
-            return 'hsl(var(--primary) / 0.12)';
+            return 'hsl(var(--foreground) / 0.10)';
     }
 };
 
 const getSheenGradient = (variant) => {
     switch (variant) {
         case 'success':
-            return 'linear-gradient(110deg, transparent 0%, hsl(var(--spark) / 0.0) 20%, hsl(var(--spark) / 0.34) 50%, hsl(var(--primary) / 0.12) 70%, transparent 100%)';
+            return 'linear-gradient(110deg, transparent 0%, rgb(16 185 129 / 0) 20%, rgb(16 185 129 / 0.34) 50%, rgb(52 211 153 / 0.12) 70%, transparent 100%)';
         case 'info':
-            return 'linear-gradient(110deg, transparent 0%, hsl(var(--primary) / 0.0) 20%, hsl(var(--primary) / 0.3) 50%, hsl(var(--spark) / 0.1) 70%, transparent 100%)';
+            return 'linear-gradient(110deg, transparent 0%, rgb(14 165 233 / 0) 20%, rgb(14 165 233 / 0.3) 50%, rgb(56 189 248 / 0.1) 70%, transparent 100%)';
         case 'warning':
-            return 'linear-gradient(110deg, transparent 0%, hsl(var(--warning) / 0.0) 20%, hsl(var(--warning) / 0.3) 50%, hsl(var(--spark) / 0.12) 70%, transparent 100%)';
+            return 'linear-gradient(110deg, transparent 0%, rgb(245 158 11 / 0) 20%, rgb(245 158 11 / 0.3) 50%, rgb(251 191 36 / 0.12) 70%, transparent 100%)';
         case 'destructive':
             return 'linear-gradient(110deg, transparent 0%, hsl(var(--destructive) / 0.0) 20%, hsl(var(--destructive) / 0.3) 50%, hsl(var(--primary) / 0.12) 70%, transparent 100%)';
         default:
-            return 'linear-gradient(110deg, transparent 0%, hsl(var(--primary) / 0.0) 20%, hsl(var(--primary) / 0.28) 50%, hsl(var(--spark) / 0.12) 70%, transparent 100%)';
+            return 'linear-gradient(110deg, transparent 0%, hsl(var(--foreground) / 0) 20%, hsl(var(--foreground) / 0.18) 50%, hsl(var(--spark) / 0.12) 70%, transparent 100%)';
     }
 };
 
@@ -137,7 +137,7 @@ export const FeedbackProvider = ({ children }) => {
         const x = Number.isFinite(options.x) ? options.x : viewportWidth / 2;
         const y = Number.isFinite(options.y) ? options.y : viewportHeight / 2;
         const variant = options.variant || 'click';
-        const color = options.color || FEEDBACK_VARIANTS[variant]?.colors?.[0] || 'hsl(var(--spark))';
+        const color = options.color || FEEDBACK_VARIANTS[variant]?.colors?.[0] || 'hsl(var(--foreground))';
         const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
         if (options.haptic !== false) triggerSoftHaptic(variant);
@@ -182,7 +182,7 @@ export const FeedbackProvider = ({ children }) => {
                                 <>
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.97 }}
-                                        animate={{ opacity: [0, 0.9, 0], scale: [0.97, 1.01, 1.02] }}
+                                        animate={{ opacity: [0, 0.12, 0], scale: [0.97, 1.01, 1.02] }}
                                         transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
                                         className="fixed pointer-events-none"
                                         style={{
@@ -191,13 +191,12 @@ export const FeedbackProvider = ({ children }) => {
                                             width: burst.focusRect.width,
                                             height: burst.focusRect.height,
                                             borderRadius: burst.focusRadius,
-                                            border: `1.5px solid ${burst.color}`,
-                                            boxShadow: `0 0 16px ${burst.color}66, inset 0 0 10px ${burst.color}22`
+                                            backgroundColor: burst.color
                                         }}
                                     />
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.96 }}
-                                        animate={{ opacity: [0, 0.45, 0], scale: [0.96, 1.025, 1.04] }}
+                                        animate={{ opacity: [0, 0.06, 0], scale: [0.96, 1.025, 1.04] }}
                                         transition={{ duration: 0.68, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
                                         className="fixed pointer-events-none"
                                         style={{
@@ -206,7 +205,7 @@ export const FeedbackProvider = ({ children }) => {
                                             width: burst.focusRect.width,
                                             height: burst.focusRect.height,
                                             borderRadius: burst.focusRadius + 2,
-                                            border: `1px solid ${burst.color}55`
+                                            backgroundColor: burst.color
                                         }}
                                     />
                                 </>
@@ -215,36 +214,36 @@ export const FeedbackProvider = ({ children }) => {
                                 initial={{ scale: 0.56, opacity: 0.48 }}
                                 animate={{ scale: 2.2, opacity: 0 }}
                                 transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
-                                className="absolute -left-3 -top-3 h-6 w-6 rounded-full"
-                                style={{ border: `1.25px solid ${burst.color}66` }}
+                                className="absolute -left-3 -top-3 h-6 w-6 rounded-pill"
+                                style={{ backgroundColor: burst.color }}
                             />
                             <motion.span
                                 initial={{ scale: 0.44, opacity: 0.28 }}
                                 animate={{ scale: 1.8, opacity: 0 }}
                                 transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
-                                className="absolute -left-4 -top-4 h-8 w-8 rounded-full"
+                                className="absolute -left-4 -top-4 h-8 w-8 rounded-pill"
                                 style={{ background: getHaloFill(burst.variant) }}
                             />
                             <motion.span
                                 initial={{ scale: 0.3, opacity: 0 }}
                                 animate={{ scale: 2.75, opacity: [0, 0.16, 0] }}
                                 transition={{ duration: 0.74, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
-                                className="absolute -left-6 -top-6 h-12 w-12 rounded-full"
-                                style={{ border: `1px solid ${burst.color}33` }}
+                                className="absolute -left-6 -top-6 h-12 w-12 rounded-pill"
+                                style={{ backgroundColor: burst.color }}
                             />
                             <motion.span
                                 initial={{ opacity: 0, x: -24, scaleX: 0.75 }}
                                 animate={{ opacity: [0, 0.85, 0], x: 26, scaleX: 1.14 }}
                                 transition={{ duration: 0.42, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
-                                className="absolute -left-12 -top-4 h-8 w-24 rounded-full"
+                                className="absolute -left-12 -top-4 h-8 w-24 rounded-pill"
                                 style={{ backgroundImage: getSheenGradient(burst.variant), filter: 'blur(0.6px)' }}
                             />
                             <motion.span
                                 initial={{ scale: 0.8, opacity: 0.2 }}
                                 animate={{ scale: 1.25, opacity: 0 }}
                                 transition={{ duration: 0.62, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                                className="absolute -left-7 -top-7 h-14 w-14 rounded-full"
-                                style={{ boxShadow: `0 0 24px 3px ${burst.color}22 inset` }}
+                                className="absolute -left-7 -top-7 h-14 w-14 rounded-pill"
+                                style={{ backgroundColor: getHaloFill(burst.variant) }}
                             />
                             {burst.particles.map((particle) => (
                                 <motion.span
@@ -256,12 +255,11 @@ export const FeedbackProvider = ({ children }) => {
                                         delay: (particle.id % 5) * 0.015,
                                         ease: [0.16, 1, 0.3, 1]
                                     }}
-                                    className="absolute rounded-[3px]"
+                                    className="absolute rounded-pill"
                                     style={{
                                         width: particle.size,
                                         height: particle.size,
-                                        background: particle.color,
-                                        boxShadow: `0 0 7px ${particle.color}`
+                                        background: particle.color
                                     }}
                                 />
                             ))}

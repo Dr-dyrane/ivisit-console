@@ -3,7 +3,6 @@ import {
     Stethoscope,
     Eye,
     Edit,
-    Trash2,
     Hospital,
     Mail,
     Phone,
@@ -17,8 +16,8 @@ import {
 // ADAPTIVELY: resolveAdaptiveGroups scores the FACILITY split and uses it only if it
 // distributes, else falls to join-recency (the proven fallback — always buckets, never
 // singleton-sprawls). Trailing time = directory freshness (when the record was last
-// touched). Bulk delete is a REAL authorized action here (deleteDoctor receiver), unlike
-// the fleet/facility/visit pages whose bulk control is a fail-closed disabled stub.
+// touched). Selection remains available for non-destructive authorized workflows;
+// clinical evidence is not deleted from this directory surface.
 // grammar:loadmore-append=cumulative-limit — the mobile query uses offset 0 + a limit that
 // grows with currentPage, so the server returns the ACCUMULATED list; useStableList over
 // sourceDoctors already holds the full set. No client accumulator needed (unlike windowed
@@ -41,7 +40,17 @@ const metricValue = (value, fallback = 0) => {
     return Number.isFinite(numericValue) ? numericValue : fallback;
 };
 
-const getStatus = (doctor) => String(doctor?.status || 'available').toLowerCase();
+const getStatus = (doctor) => {
+    const status = String(doctor?.status || 'available').toLowerCase();
+    return status === 'available' && doctor?.is_available === false ? 'unavailable' : status;
+};
+
+const getDoctorStatusPill = (doctor) => {
+    const status = getStatus(doctor);
+    return status === 'unavailable'
+        ? statusPill('off_duty', 'Unavailable for assignment')
+        : statusPill(status);
+};
 
 // The staff member's home facility — the directory's orthogonal grouping axis.
 const getFacility = (doctor) => doctor?.hospitals?.name || null;
@@ -72,7 +81,9 @@ const orbClassFor = (status) => (
                 ? 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
                 : status === 'off_duty'
                     ? 'bg-muted/40 text-muted-foreground'
-                    : 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
+                    : status === 'unavailable'
+                        ? 'bg-muted/40 text-muted-foreground'
+                        : 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
 );
 
 // Atlas stage (donor recipe: MobileAmbulancesAtlasLayer — Lesson 25 macro-stage item 1;
@@ -115,7 +126,6 @@ export const MobileDoctors = ({
     setFilters,
     onView,
     onEdit,
-    onDelete,
     onRefresh,
     onViewAnalytics,
     isAdmin,
@@ -129,13 +139,10 @@ export const MobileDoctors = ({
     errorMessage = null,
     onRetry,
     canManage: canManageOverride,
-    canDelete = false,
     selectionEnabled = false,
     selectedIds = [],
     onSelect,
-    onSelectAll,
-    onBulkDelete,
-    canBulkDelete = false
+    onSelectAll
 }) => {
     const observerTarget = useRef(null);
     const [activeDoctor, setActiveDoctor] = useState(null);
@@ -218,7 +225,7 @@ export const MobileDoctors = ({
                 title={doctor.name || 'Unknown staff'}
                 meta={`${specialty} · ${facility}`}
                 time={formatRelativeTime(doctor.updated_at || doctor.created_at)}
-                pill={statusPill(status)}
+                pill={getDoctorStatusPill(doctor)}
                 selectable={canSelect}
                 selected={selectedIdSet.has(doctor.id)}
                 selectionMode={selectionMode}
@@ -273,23 +280,7 @@ export const MobileDoctors = ({
                                     count={selectedIdSet.size}
                                     onSelectAll={() => onSelectAll?.(true)}
                                     onClear={() => onSelectAll?.(false)}
-                                >
-                                    {/* Staff bulk delete is AUTHORIZED (deleteDoctor receiver), so this is a
-                                        LIVE control — routed to the page's handleBulkDelete, which confirms via
-                                        ConfirmationModal before the mutation. Not the fail-closed disabled stub
-                                        the fleet/facility/visit pages carry. */}
-                                    {canBulkDelete && onBulkDelete && (
-                                        <button
-                                            type="button"
-                                            onClick={() => onBulkDelete()}
-                                            aria-label={`Delete ${selectedIdSet.size} staff`}
-                                            className="flex h-8 items-center gap-1.5 rounded-button bg-destructive/12 px-3 text-[12px] font-semibold text-destructive transition-transform active:scale-95 hover:bg-destructive/20"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                            Delete {selectedIdSet.size}
-                                        </button>
-                                    )}
-                                </MobileSelectionBar>
+                                />
                             )}
 
                             {errorMessage && displayDoctors.length > 0 && (
@@ -370,10 +361,10 @@ export const MobileDoctors = ({
                             isOpen={!!activeDoctor}
                             onClose={() => setActiveDoctor(null)}
                             icon={Stethoscope}
-                            iconTone={status === 'busy' ? 'hsl(38 92% 50%)' : status === 'off_duty' ? 'hsl(var(--muted-foreground))' : 'hsl(199 89% 48%)'}
+                            iconTone={status === 'busy' ? 'hsl(38 92% 50%)' : (status === 'off_duty' || status === 'unavailable') ? 'hsl(var(--muted-foreground))' : 'hsl(199 89% 48%)'}
                             eyebrow="Staff member"
                             title={name}
-                            statusPill={statusPill(status)}
+                            statusPill={getDoctorStatusPill(activeDoctor)}
                             islands={[
                                 { icon: Stethoscope, label: 'Specialty', value: specialty },
                                 { icon: Hospital, label: 'Facility', value: facility },
@@ -384,19 +375,7 @@ export const MobileDoctors = ({
                             ]}
                             primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveDoctor(null); onView?.(activeDoctor); } }}
                             secondary={canManage ? { icon: Edit, onClick: () => { setActiveDoctor(null); onEdit?.(activeDoctor); }, 'aria-label': `Edit ${name}` } : undefined}
-                        >
-                            {canManage && canDelete && onDelete && (
-                                <button
-                                    type="button"
-                                    onClick={() => { setActiveDoctor(null); onDelete(activeDoctor); }}
-                                    className="flex h-11 w-full items-center justify-center gap-2 rounded-button bg-destructive/10 text-sm font-semibold text-destructive transition-transform hover:bg-destructive/15 active:scale-[0.96]"
-                                    aria-label={`Delete ${name}`}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete staff member
-                                </button>
-                            )}
-                        </MobileDetailSheet>
+                        />
                     );
                 })()}
             </MobilePageShell>

@@ -83,7 +83,7 @@ export const MobileFeaturedMetric = ({
                             alt=""
                             loading="lazy"
                             decoding="async"
-                            fetchpriority="low"
+                            fetchPriority="low"
                             className="w-full h-full object-cover opacity-20 grayscale-[0.6]"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />

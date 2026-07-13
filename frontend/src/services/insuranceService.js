@@ -9,6 +9,8 @@ import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'insurance_policies';
 const BILLING_TABLE_NAME = 'insurance_billing';
+const INSURANCE_PROJECTION_ERROR_MESSAGE = 'Insurance policies could not load. Try again.';
+const INSURANCE_BILLING_PROJECTION_ERROR_MESSAGE = 'Insurance billing outcomes could not load. Try again.';
 const INSURANCE_SORT_FIELDS = new Set([
   'created_at',
   'updated_at',
@@ -57,12 +59,7 @@ const throwLegacyInsuranceReadUnavailable = () => {
   throw new Error('Legacy insurance policy reads are unavailable; use getInsurancePage() from insuranceService.');
 };
 
-const toFailureMessage = (error) => {
-  const message = String(error?.message || error || '').trim();
-  return message || 'Insurance data could not load.';
-};
-
-const buildInsuranceFailedPage = (error) => ({
+const buildInsuranceFailedPage = () => ({
   data: [],
   count: 0,
   stats: {
@@ -73,12 +70,12 @@ const buildInsuranceFailedPage = (error) => ({
   denied: false,
   reason: 'query_failed',
   failed: true,
-  errorMessage: toFailureMessage(error),
+  errorMessage: INSURANCE_PROJECTION_ERROR_MESSAGE,
   exactCounts: false,
   scope: 'admin_policy_projection',
 });
 
-const buildInsuranceBillingFailedPage = (error) => ({
+const buildInsuranceBillingFailedPage = () => ({
   data: [],
   count: 0,
   stats: {
@@ -89,7 +86,7 @@ const buildInsuranceBillingFailedPage = (error) => ({
   denied: false,
   reason: 'query_failed',
   failed: true,
-  errorMessage: toFailureMessage(error),
+  errorMessage: INSURANCE_BILLING_PROJECTION_ERROR_MESSAGE,
   exactCounts: false,
   scope: 'admin_billing_outcome_projection',
 });
@@ -105,6 +102,15 @@ function normalizeFilterList(value) {
   }
   const text = String(value || '').trim();
   return text && text !== 'all' ? [text] : [];
+}
+
+function withoutInsuranceFilterDimensions(filter = {}, dimensions = []) {
+  const next = { ...filter };
+  delete next.kpiFilter;
+  dimensions.forEach((dimension) => {
+    delete next[dimension];
+  });
+  return next;
 }
 
 function parseCoverageDetails(value) {
@@ -329,8 +335,10 @@ async function getInsuranceExactCount(filter = {}, user, quiet = false) {
 
     const { count, error } = await query;
     if (error) throw error;
-
-    return Number.isFinite(count) ? count : 0;
+    if (count === null || count === undefined || !Number.isFinite(Number(count))) {
+      throw new Error('Insurance policy count is unavailable.');
+    }
+    return Number(count);
   } catch (error) {
     if (!quiet) {
       console.error('Error fetching insurance exact count:', error);
@@ -365,14 +373,18 @@ export async function getInsurancePageStats(filter = {}, user, quiet = false) {
     };
   }
 
+  const totalStatsFilter = withoutInsuranceFilterDimensions(filter, ['status', 'verified']);
+  const statusStatsFilter = withoutInsuranceFilterDimensions(filter, ['status']);
+  const verificationStatsFilter = withoutInsuranceFilterDimensions(filter, ['verified']);
+
   const [total, active, pending, expired, verified, unverified, expiringSoon] = await Promise.all([
-    getInsuranceExactCount(filter, user, quiet),
-    getInsuranceExactCount({ ...filter, status: 'active', kpiFilter: 'all' }, user, quiet),
-    getInsuranceExactCount({ ...filter, status: 'pending', kpiFilter: 'all' }, user, quiet),
-    getInsuranceExactCount({ ...filter, status: 'expired', kpiFilter: 'all' }, user, quiet),
-    getInsuranceExactCount({ ...filter, verified: 'verified', kpiFilter: 'all' }, user, quiet),
-    getInsuranceExactCount({ ...filter, verified: 'unverified', kpiFilter: 'all' }, user, quiet),
-    getInsuranceExpiringSoonCount({ ...filter, kpiFilter: 'all' }, user, quiet),
+    getInsuranceExactCount(totalStatsFilter, user, quiet),
+    getInsuranceExactCount({ ...statusStatsFilter, status: 'active' }, user, quiet),
+    getInsuranceExactCount({ ...statusStatsFilter, status: 'pending' }, user, quiet),
+    getInsuranceExactCount({ ...statusStatsFilter, status: 'expired' }, user, quiet),
+    getInsuranceExactCount({ ...verificationStatsFilter, verified: 'verified' }, user, quiet),
+    getInsuranceExactCount({ ...verificationStatsFilter, verified: 'unverified' }, user, quiet),
+    getInsuranceExpiringSoonCount(statusStatsFilter, user, quiet),
   ]);
 
   return {
@@ -480,8 +492,10 @@ async function getInsuranceBillingExactCount(filter = {}, user, quiet = false) {
 
     const { count, error } = await query;
     if (error) throw error;
-
-    return Number.isFinite(count) ? count : 0;
+    if (count === null || count === undefined || !Number.isFinite(Number(count))) {
+      throw new Error('Insurance billing count is unavailable.');
+    }
+    return Number(count);
   } catch (error) {
     if (!quiet) {
       console.error('Error fetching insurance billing exact count:', error);
@@ -499,12 +513,15 @@ export async function getInsuranceBillingOutcomeStats(filter = {}, user, quiet =
     };
   }
 
+  const statusStatsFilter = { ...filter };
+  delete statusStatsFilter.status;
+
   const [total, pending, approved, paid, rejected] = await Promise.all([
-    getInsuranceBillingExactCount(filter, user, quiet),
-    getInsuranceBillingExactCount({ ...filter, status: 'pending' }, user, quiet),
-    getInsuranceBillingExactCount({ ...filter, status: 'approved' }, user, quiet),
-    getInsuranceBillingExactCount({ ...filter, status: 'paid' }, user, quiet),
-    getInsuranceBillingExactCount({ ...filter, status: 'rejected' }, user, quiet),
+    getInsuranceBillingExactCount(statusStatsFilter, user, quiet),
+    getInsuranceBillingExactCount({ ...statusStatsFilter, status: 'pending' }, user, quiet),
+    getInsuranceBillingExactCount({ ...statusStatsFilter, status: 'approved' }, user, quiet),
+    getInsuranceBillingExactCount({ ...statusStatsFilter, status: 'paid' }, user, quiet),
+    getInsuranceBillingExactCount({ ...statusStatsFilter, status: 'rejected' }, user, quiet),
   ]);
 
   return {

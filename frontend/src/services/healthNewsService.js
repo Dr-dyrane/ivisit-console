@@ -11,6 +11,19 @@ import { isValidUUID } from '../lib/utils';
 const TABLE_NAME = 'health_news';
 const RECENT_NEWS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const HEALTH_NEWS_SORT_FIELDS = new Set(['created_at', 'title', 'source', 'category', 'published']);
+const HEALTH_NEWS_STATS_UNAVAILABLE = Object.freeze({
+  total: null,
+  published: null,
+  draft: null,
+  medical: null,
+  recent: null,
+  categories: null,
+  exactCounts: false,
+  available: false,
+  reason: 'stats_query_failed',
+  scope: 'published_feed',
+  draftUnavailable: true,
+});
 const WRITABLE_COLUMNS = new Set([
   'title',
   'source',
@@ -203,6 +216,7 @@ export async function getHealthNewsPageStats(filter = {}, quiet = false) {
     recent,
     categories,
     exactCounts: true,
+    available: true,
     scope: 'published_feed',
     draftUnavailable: true,
   };
@@ -264,10 +278,11 @@ export async function getHealthNewsPage(filter = {}) {
     await getCurrentUser();
     const statsFilter = filter.statsFilter || {};
 
-    const countPromise = getHealthNewsExactCount(filter, true);
-    const statsPromise = getHealthNewsPageStats(statsFilter, true);
+    const statsPromise = getHealthNewsPageStats(statsFilter, true)
+      .then((stats) => ({ stats }))
+      .catch(() => ({ stats: HEALTH_NEWS_STATS_UNAVAILABLE }));
 
-    let dataQuery = supabase.from(TABLE_NAME).select('*');
+    let dataQuery = supabase.from(TABLE_NAME).select('*', { count: 'exact' });
     dataQuery = applyHealthNewsFilters(dataQuery, filter);
 
     const sortKey = HEALTH_NEWS_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
@@ -279,17 +294,19 @@ export async function getHealthNewsPage(filter = {}) {
       dataQuery = dataQuery.range(offset, offset + limit - 1);
     }
 
-    const [{ count }, { data, error }, stats] = await Promise.all([
-      countPromise.then((value) => ({ count: value })),
+    const [{ data, count, error }, { stats }] = await Promise.all([
       dataQuery,
       statsPromise,
     ]);
 
     if (error) throw error;
+    if (count === null || count === undefined || !Number.isFinite(Number(count))) {
+      throw new Error('Health news page count is unavailable.');
+    }
 
     return {
       data: (data || []).map(normalizeHealthNewsRow),
-      count: count || 0,
+      count: Number(count),
       stats,
     };
   } catch (error) {

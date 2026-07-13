@@ -9,6 +9,7 @@ import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
+export const SUBSCRIPTION_PROJECTION_ERROR_MESSAGE = 'Subscribers could not load. Try again.';
 const EMPTY_SUBSCRIPTION_STATS = Object.freeze({
   total: 0,
   active: 0,
@@ -19,9 +20,43 @@ const EMPTY_SUBSCRIPTION_STATS = Object.freeze({
   newUsers: 0,
   welcomeSent: 0,
   exactCounts: true,
+  available: true,
+  scope: 'admin_subscriber_projection',
+});
+const UNAVAILABLE_SUBSCRIPTION_STATS = Object.freeze({
+  total: null,
+  active: null,
+  pending: null,
+  unsubscribed: null,
+  paid: null,
+  free: null,
+  newUsers: null,
+  welcomeSent: null,
+  exactCounts: false,
+  available: false,
+  reason: 'stats_query_failed',
   scope: 'admin_subscriber_projection',
 });
 const TERMINAL_SUBSCRIBER_STATUSES = ['unsubscribed', 'bounced', 'inactive', 'cancelled', 'expired'];
+
+const withoutSubscriberFilterDimensions = (filter = {}, dimensions = []) => {
+  const next = { ...filter, kpiFilter: undefined };
+  dimensions.forEach((dimension) => {
+    delete next[dimension];
+  });
+  return next;
+};
+
+const toSubscriberDateBoundary = (value, endOfDay = false) => {
+  const text = String(value || '').trim();
+  if (!text) return null;
+
+  const candidate = /^\d{4}-\d{2}-\d{2}$/.test(text)
+    ? `${text}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`
+    : text;
+  const parsed = new Date(candidate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
 
 const applySubscriberBaseFilters = (query, filter = {}) => {
   let next = query;
@@ -31,8 +66,15 @@ const applySubscriberBaseFilters = (query, filter = {}) => {
   if (filter.welcomeEmailSent === 'sent') next = next.eq('welcome_email_sent', true);
   if (filter.welcomeEmailSent === 'pending') next = next.eq('welcome_email_sent', false);
   if (filter.dateRange && filter.dateRange !== 'all') {
-    const days = { '7d': 7, '30d': 30, '90d': 90 }[filter.dateRange];
-    if (days) next = next.gte('created_at', new Date(Date.now() - days * 86400000).toISOString());
+    if (typeof filter.dateRange === 'object') {
+      const start = toSubscriberDateBoundary(filter.dateRange.start);
+      const end = toSubscriberDateBoundary(filter.dateRange.end, true);
+      if (start) next = next.gte('created_at', start);
+      if (end) next = next.lte('created_at', end);
+    } else {
+      const days = { '7d': 7, '30d': 30, '90d': 90 }[filter.dateRange];
+      if (days) next = next.gte('created_at', new Date(Date.now() - days * 86400000).toISOString());
+    }
   }
   return next;
 };
@@ -55,7 +97,10 @@ const exactSubscriberCount = async (filter, applyBucket = (query) => query) => {
   query = applyBucket(query);
   const { count, error } = await query;
   if (error) throw error;
-  return Number(count || 0);
+  if (count === null || count === undefined || !Number.isFinite(Number(count))) {
+    throw new Error('Subscriber count is unavailable.');
+  }
+  return Number(count);
 };
 
 export async function getSubscriptionsPage(filter = {}) {
@@ -67,7 +112,14 @@ export async function getSubscriptionsPage(filter = {}) {
   try {
     const user = await getCurrentUser();
     if (user?.role !== 'admin') {
-      return { data: [], count: 0, denied: true, failed: false, reason: 'admin_only', stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false } };
+      return {
+        data: [],
+        count: 0,
+        denied: true,
+        failed: false,
+        reason: 'admin_only',
+        stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false, available: false, reason: 'admin_only' },
+      };
     }
 
     let rowsQuery = supabase.from(TABLE_NAME).select('*', { count: 'exact' });
@@ -75,33 +127,60 @@ export async function getSubscriptionsPage(filter = {}) {
     rowsQuery = applySubscriberKpiFilter(rowsQuery, filter.kpiFilter);
     rowsQuery = rowsQuery.order(sortKey, { ascending, nullsFirst: false }).range(offset, offset + limit - 1);
 
-    const [rowsResult, total, active, pending, unsubscribed, paid, free, newUsers, welcomeSent] = await Promise.all([
+    // KPI counts are navigation for two independent dimensions. Status buckets
+    // ignore the sheet status selection, type buckets ignore the sheet type
+    // selection, and Total ignores both. Search/date/welcome scope remains intact.
+    const kpiAgnosticFilter = withoutSubscriberFilterDimensions(filter);
+    const totalStatsFilter = withoutSubscriberFilterDimensions(filter, ['status', 'type']);
+    const statusStatsFilter = withoutSubscriberFilterDimensions(filter, ['status']);
+    const typeStatsFilter = withoutSubscriberFilterDimensions(filter, ['type']);
+
+    const statsPromise = Promise.all([
+      exactSubscriberCount(totalStatsFilter),
+      exactSubscriberCount(statusStatsFilter, (query) => query.eq('status', 'active')),
+      exactSubscriberCount(statusStatsFilter, (query) => query.not('status', 'eq', 'active').not('status', 'in', `(${TERMINAL_SUBSCRIBER_STATUSES.join(',')})`)),
+      exactSubscriberCount(statusStatsFilter, (query) => query.in('status', TERMINAL_SUBSCRIBER_STATUSES)),
+      exactSubscriberCount(typeStatsFilter, (query) => query.eq('type', 'paid')),
+      exactSubscriberCount(typeStatsFilter, (query) => query.eq('type', 'free')),
+      exactSubscriberCount(kpiAgnosticFilter, (query) => query.eq('new_user', true)),
+      exactSubscriberCount(kpiAgnosticFilter, (query) => query.eq('welcome_email_sent', true)),
+    ]).then(([total, active, pending, unsubscribed, paid, free, newUsers, welcomeSent]) => ({
+      total,
+      active,
+      pending,
+      unsubscribed,
+      paid,
+      free,
+      newUsers,
+      welcomeSent,
+      exactCounts: true,
+      available: true,
+      scope: 'admin_subscriber_projection',
+    })).catch(() => UNAVAILABLE_SUBSCRIPTION_STATS);
+
+    const [rowsResult, stats] = await Promise.all([
       rowsQuery,
-      exactSubscriberCount(filter),
-      exactSubscriberCount(filter, (query) => query.eq('status', 'active')),
-      exactSubscriberCount(filter, (query) => query.not('status', 'eq', 'active').not('status', 'in', `(${TERMINAL_SUBSCRIBER_STATUSES.join(',')})`)),
-      exactSubscriberCount(filter, (query) => query.in('status', TERMINAL_SUBSCRIBER_STATUSES)),
-      exactSubscriberCount(filter, (query) => query.eq('type', 'paid')),
-      exactSubscriberCount(filter, (query) => query.eq('type', 'free')),
-      exactSubscriberCount(filter, (query) => query.eq('new_user', true)),
-      exactSubscriberCount(filter, (query) => query.eq('welcome_email_sent', true)),
+      statsPromise,
     ]);
     if (rowsResult.error) throw rowsResult.error;
+    if (rowsResult.count === null || rowsResult.count === undefined || !Number.isFinite(Number(rowsResult.count))) {
+      throw new Error('Subscriber page count is unavailable.');
+    }
 
     return {
       data: rowsResult.data || [],
-      count: Number(rowsResult.count || 0),
+      count: Number(rowsResult.count),
       denied: false,
       failed: false,
       reason: null,
-      stats: { total, active, pending, unsubscribed, paid, free, newUsers, welcomeSent, exactCounts: true, scope: 'admin_subscriber_projection' },
+      stats,
     };
   } catch (error) {
     if (!filter.quiet) console.error('Subscriber page query error:', error);
     return {
       data: [], count: 0, denied: false, failed: true, reason: 'query_failed',
-      errorMessage: error?.message || 'Subscriber projection failed.',
-      stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false },
+      errorMessage: SUBSCRIPTION_PROJECTION_ERROR_MESSAGE,
+      stats: { ...EMPTY_SUBSCRIPTION_STATS, exactCounts: false, available: false, reason: 'query_failed' },
     };
   }
 }
@@ -411,6 +490,10 @@ export async function getSubscriptionAnalytics(options = {}) {
 
     if (error) throw error;
 
+    const exactTotalCount = count !== null && count !== undefined && Number.isFinite(Number(count))
+      ? Number(count)
+      : null;
+
     // Calculate analytics
     const analytics = {
       total: data?.length || 0,
@@ -434,8 +517,8 @@ export async function getSubscriptionAnalytics(options = {}) {
       inactivePremium: data?.filter(item => item.status !== 'active' && item.type === 'paid').length || 0,
       sample: {
         returnedCount: data?.length || 0,
-        totalCount: Number.isFinite(Number(count)) ? Number(count) : null,
-        complete: Number.isFinite(Number(count)) && Number(count) <= (data?.length || 0),
+        totalCount: exactTotalCount,
+        complete: exactTotalCount !== null && exactTotalCount <= (data?.length || 0),
       },
     };
 

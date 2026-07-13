@@ -6,8 +6,7 @@ import { Download, X, Smartphone } from 'lucide-react';
 import { Button } from '../ui/button';
 
 /**
- * InstallPrompt - Elegant PWA install banner
- * Apple-style glassmorphism with smooth animations
+ * InstallPrompt - Delayed PWA install banner.
  */
 export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -84,11 +83,11 @@ export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className="fixed bottom-24 left-4 right-4 z-50 md:bottom-4 md:left-auto md:right-4 md:max-w-sm"
                 >
-                    <div className="glass-card border border-border/50 rounded-2xl p-4 shadow-2xl">
+                    <div className="relative rounded-card bg-card/92 p-4 shadow-[0_12px_32px_rgb(0_0_0/0.10)] backdrop-blur-2xl dark:bg-card/72">
                         {/* Close button */}
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted/50 transition-colors"
+                            className="absolute right-3 top-3 rounded-button p-1.5 transition-colors hover:bg-foreground/[0.055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                             aria-label="Dismiss"
                         >
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -96,8 +95,8 @@ export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
 
                         <div className="flex items-start gap-4">
                             {/* Icon */}
-                            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Smartphone className="w-6 h-6 text-primary" />
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-icon bg-foreground/[0.055] text-foreground dark:bg-white/[0.07]">
+                                <Smartphone className="h-6 w-6" />
                             </div>
 
                             {/* Content */}

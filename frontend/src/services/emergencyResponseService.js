@@ -1,23 +1,94 @@
 /**
  * Emergency Response Service
- * Handles intelligent dispatch and response coordination
+ * Handles scoped dispatch and response coordination
  * Bridges app requests with console response actions
  */
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
-import { getAvailableAmbulances } from './ambulancesService';
-import { getHospitals, getHospital } from './hospitalsService';
-import { getDoctors } from './doctorsService';
+import { getAmbulance } from './ambulancesService';
+import { getEmergencyActionState } from '../utils/emergencyActions';
+import { extractCoordinatePair } from '../utils/emergencyRequestMapper';
+
+const DISPATCH_RADIUS_KM = 50;
+const DISPATCH_CANDIDATE_LIMIT = 50;
+
+const normalizeType = (value) => String(value || '').trim().toLowerCase();
+
+const matchesRequiredType = (ambulance, requiredType) => {
+  const requested = normalizeType(requiredType);
+  if (!requested || requested === 'any' || requested === 'standard') return true;
+
+  return [ambulance?.type, ambulance?.call_sign]
+    .map(normalizeType)
+    .some((value) => value && (value === requested || value.includes(requested)));
+};
+
+const getActorHospitalIds = (actor) => new Set(
+  Array.isArray(actor?.hospital_ids) ? actor.hospital_ids.filter(Boolean) : []
+);
+
+const assertDispatchRequestScope = (actor, emergencyDetails) => {
+  if (actor?.role !== 'org_admin') return;
+  const hospitalIds = getActorHospitalIds(actor);
+  if (!emergencyDetails?.hospital_id || !hospitalIds.has(emergencyDetails.hospital_id)) {
+    throw new Error('Assign a facility in your organization before dispatching this request.');
+  }
+};
+
+const ambulanceIsWithinActorScope = (ambulance, actor) => {
+  if (actor?.role === 'admin') return true;
+  if (actor?.role !== 'org_admin' || !actor?.organization_id) return false;
+
+  const hospitalIds = getActorHospitalIds(actor);
+  if (!ambulance?.hospital_id || !hospitalIds.has(ambulance.hospital_id)) return false;
+  if (ambulance?.organization_id && ambulance.organization_id !== actor.organization_id) return false;
+  return true;
+};
+
+const getDispatchErrorMessage = (result, fallback) => {
+  const code = String(result?.code || '').toUpperCase();
+  if (code === 'NO_AMBULANCE_AVAILABLE' || code === 'AMBULANCE_UNAVAILABLE') {
+    return 'No eligible ambulance is currently available.';
+  }
+  if (code === 'REQUEST_TERMINAL' || code === 'INVALID_TRANSITION') {
+    return 'This request changed state and is no longer ready for that action.';
+  }
+  return fallback;
+};
+
+const DISPATCH_PUBLIC_MESSAGES = [
+  /^Authentication required$/,
+  /^This request changed state/,
+  /^Assign a facility/,
+  /^No eligible ambulance/,
+  /^A valid request location/,
+  /^Ambulance matching is temporarily unavailable\.$/,
+  /^The request could not be dispatched\.$/,
+  /^The bed request could not be accepted\.$/,
+];
+
+const getPublicDispatchError = (error) => {
+  const message = String(error?.message || '');
+  return DISPATCH_PUBLIC_MESSAGES.some((pattern) => pattern.test(message))
+    ? error
+    : new Error('Request dispatch is temporarily unavailable.');
+};
 
 /**
- * Intelligent Emergency Dispatch
- * Automatically assigns optimal resources based on emergency details
+ * Dispatch through the canonical receiver after selecting the nearest
+ * RLS-visible available ambulance. Client-generated ETA, hospital, doctor, and
+ * bed assignments are never presented as backend truth.
  */
 export async function dispatchEmergency(emergencyId, emergencyDetails) {
   try {
     const user = await getCurrentUser();
     if (!user) throw new Error('Authentication required');
+    const actionState = getEmergencyActionState(emergencyDetails);
+    if (!actionState.canDispatch) {
+      throw new Error('This request changed state and is not ready to dispatch.');
+    }
+
     const serviceType = String(
       emergencyDetails?.service_type ||
       emergencyDetails?.serviceType ||
@@ -25,54 +96,22 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       'ambulance'
     ).toLowerCase();
     const isBedFlow = serviceType === 'bed';
+    const targetHospital = emergencyDetails?.hospital_id
+      ? {
+          id: emergencyDetails.hospital_id,
+          name: emergencyDetails.hospital_name || null,
+        }
+      : null;
 
-    // 1. Find nearest available ambulance (ambulance-only dispatch path).
-    let assignedAmbulance = null;
-    if (!isBedFlow) {
-      const ambulances = await getAvailableAmbulances();
-      assignedAmbulance = await findBestAmbulance(
-        ambulances,
-        emergencyDetails.pickup_location,
-        emergencyDetails.ambulance_type
-      );
+    assertDispatchRequestScope(user, emergencyDetails);
+
+    if (isBedFlow && !targetHospital?.id) {
+      throw new Error('Assign a facility before accepting this bed request.');
     }
 
-    // 2. Find suitable hospital if not assigned
-    let targetHospital = null;
-    if (emergencyDetails.hospital_id) {
-      targetHospital = await getHospital(emergencyDetails.hospital_id);
-    } else {
-      targetHospital = await findBestHospital(
-        emergencyDetails.pickup_location,
-        emergencyDetails.specialty
-      );
-    }
-
-    // 3. Find on-call doctor for critical cases
-    let assignedDoctor = null;
-    if (emergencyDetails.priority === 'critical' && emergencyDetails.specialty) {
-      assignedDoctor = await findOnCallDoctor(
-        emergencyDetails.specialty,
-        targetHospital?.id
-      );
-    }
-
-    // 4. Reserve bed if needed.
-    let assignedBed = null;
-    const requestedBedCategory = emergencyDetails?.bed_category || emergencyDetails?.bed_type || null;
-    if (requestedBedCategory && targetHospital) {
-      assignedBed = await reserveBed(
-        targetHospital.id,
-        requestedBedCategory
-      );
-    }
-
-    if (!isBedFlow && !assignedAmbulance?.id) {
-      throw new Error('No available ambulance to dispatch');
-    }
-
-    // 5. Dispatch through canonical RPC boundary.
+    // Dispatch through the canonical RPC boundary.
     let dispatchedEmergency = null;
+    let assignedAmbulance = null;
     if (isBedFlow) {
       const { data: updateResult, error } = await supabase.rpc('console_update_emergency_request', {
         p_request_id: emergencyId,
@@ -80,21 +119,27 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
           status: 'accepted',
           hospital_id: targetHospital?.id || null,
           hospital_name: targetHospital?.name || null,
-          bed_number: assignedBed?.bedNumber || null,
+          bed_number: emergencyDetails?.bed_number || null,
         },
       });
       if (error) throw error;
       if (!updateResult?.success || !updateResult?.request) {
-        throw new Error(updateResult?.error || 'Bed dispatch update failed');
+        throw new Error(getDispatchErrorMessage(updateResult, 'The bed request could not be accepted.'));
       }
       dispatchedEmergency = updateResult.request;
     } else {
+      assignedAmbulance = await findNearestAvailableAmbulance(
+        emergencyDetails,
+        emergencyDetails?.ambulance_type,
+        user
+      );
+
       const { data: dispatchResult, error } = await supabase.rpc('console_dispatch_emergency', {
         p_request_id: emergencyId,
         p_ambulance_id: assignedAmbulance.id,
         p_hospital_id: targetHospital?.id || null,
         p_hospital_name: targetHospital?.name || null,
-        p_bed_number: assignedBed?.bedNumber || null,
+        p_bed_number: emergencyDetails?.bed_number || null,
         p_responder_name: assignedAmbulance?.crew?.[0]?.name || null,
         p_responder_phone: assignedAmbulance?.phone || null,
         p_responder_vehicle_type: assignedAmbulance?.type || null,
@@ -103,7 +148,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
 
       if (error) throw error;
       if (!dispatchResult?.success) {
-        throw new Error(dispatchResult?.error || 'Dispatch RPC failed');
+        throw new Error(getDispatchErrorMessage(dispatchResult, 'The request could not be dispatched.'));
       }
       dispatchedEmergency = dispatchResult.request || null;
     }
@@ -114,78 +159,53 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       assignments: {
         ambulance: assignedAmbulance,
         hospital: targetHospital,
-        doctor: assignedDoctor,
-        bed: assignedBed
+        doctor: null,
+        bed: emergencyDetails?.bed_number
+          ? { bedNumber: emergencyDetails.bed_number, hospitalId: targetHospital?.id || null }
+          : null,
       }
     };
 
   } catch (error) {
     console.error('Emergency dispatch failed:', error);
-    throw error;
+    throw getPublicDispatchError(error);
   }
 }
 
-/**
- * Find best ambulance based on proximity and capability
- */
-async function findBestAmbulance(ambulances, pickupLocation, requiredType) {
-  if (!ambulances || ambulances.length === 0) return null;
-
-  // Simple proximity-based selection (can be enhanced with traffic data)
-  return ambulances[0]; // For now, return first available
-}
-
-/**
- * Find best hospital based on specialty and availability
- */
-async function findBestHospital(patientLocation, specialty) {
-  const hospitals = await getHospitals({ verified: true });
-
-  // Filter by specialty and available beds
-  const suitable = hospitals.filter(h =>
-    h.available_beds > 0 &&
-    (!specialty || h.specialties?.includes(specialty))
+async function findNearestAvailableAmbulance(emergencyDetails, requiredType, actor) {
+  const coordinates = extractCoordinatePair(
+    emergencyDetails?.patient_location,
+    emergencyDetails?.pickup_location,
+    emergencyDetails?.location
   );
+  if (!coordinates) {
+    throw new Error('A valid request location is required before automatic dispatch.');
+  }
 
-  return suitable[0] || null;
-}
-
-/**
- * Find on-call doctor for specialty
- */
-async function findOnCallDoctor(specialty, hospitalId) {
-  const doctors = await getDoctors({
-    specialization: specialty,
-    hospital_id: hospitalId,
-    status: 'available'
+  const { data, error } = await supabase.rpc('nearby_ambulances', {
+    user_lat: coordinates.lat,
+    user_lng: coordinates.lng,
+    radius_km: DISPATCH_RADIUS_KM,
   });
+  if (error) {
+    console.error('Nearest ambulance lookup failed:', error);
+    throw new Error('Ambulance matching is temporarily unavailable.');
+  }
 
-  return doctors[0] || null;
-}
+  const nearbyCandidates = (data || []).slice(0, DISPATCH_CANDIDATE_LIMIT);
+  for (const candidate of nearbyCandidates) {
+    const ambulance = await getAmbulance(candidate.id);
+    if (!ambulance || normalizeType(ambulance.status) !== 'available') continue;
+    if (!ambulanceIsWithinActorScope(ambulance, actor)) continue;
+    if (!matchesRequiredType(ambulance, requiredType)) continue;
 
-/**
- * Reserve hospital bed
- */
-async function reserveBed(hospitalId, bedType) {
-  // No parallel truth: a bed number must come from real bed inventory, not a fabricated
-  // random value that ivisit-app cannot reconcile. Until a real bed-reservation RPC
-  // (bedManagementService) is wired into the dispatch transaction, do NOT invent one —
-  // return no bed so bed_number stays null (honest) instead of a fake 'B-###'.
-  // Verified 2026-07-08: 0 of 168 live emergency_requests ever carried the fabricated
-  // pattern, so this changes no production behavior; it only removes the landmine.
-  return {
-    bedNumber: null,
-    bedType: bedType || 'standard',
-    hospitalId
-  };
-}
+    return {
+      ...ambulance,
+      distance_km: Number.isFinite(Number(candidate.distance)) ? Number(candidate.distance) : null,
+    };
+  }
 
-/**
- * Calculate ETA between two points
- */
-function calculateETA(pickupLocation, hospitalCoords) {
-  // Simple calculation - can be enhanced with real traffic data
-  return `${Math.floor(Math.random() * 10) + 5} mins`;
+  throw new Error(`No eligible ambulance is available within ${DISPATCH_RADIUS_KM} km.`);
 }
 
 /**
@@ -193,23 +213,40 @@ function calculateETA(pickupLocation, hospitalCoords) {
  */
 export async function updateResponderLocation(emergencyId, location, heading) {
   try {
-    const { data, error } = await supabase.rpc('console_update_responder_location', {
+    const { data: commandResult, error } = await supabase.rpc('console_update_responder_location', {
       p_request_id: emergencyId,
       p_location: location,
       p_heading: heading ?? null
     });
 
     if (error) throw error;
-    if (!data?.success) throw new Error(data?.error || 'Responder location update failed');
+    if (!commandResult?.success) {
+      throw new Error(commandResult?.error || 'Responder location update failed');
+    }
 
-    const { data: emergency, error: emergencyError } = await supabase
-      .from('emergency_requests')
-      .select('*')
-      .eq('id', emergencyId)
-      .single();
-    if (emergencyError) throw emergencyError;
+    try {
+      const { data: emergency, error: emergencyError } = await supabase
+        .from('emergency_requests')
+        .select('*')
+        .eq('id', emergencyId)
+        .single();
+      if (emergencyError) throw emergencyError;
 
-    return { success: true, emergency };
+      return {
+        success: true,
+        commandResult,
+        emergency,
+        projectionState: 'loaded',
+      };
+    } catch (projectionError) {
+      console.warn('Responder location updated, but its projection could not be reloaded:', projectionError);
+      return {
+        success: true,
+        commandResult,
+        emergency: null,
+        projectionState: 'unavailable',
+      };
+    }
   } catch (error) {
     console.error('Failed to update responder location:', error);
     throw error;
@@ -219,8 +256,20 @@ export async function updateResponderLocation(emergencyId, location, heading) {
 /**
  * Complete emergency response
  */
-export async function completeEmergency(emergencyId) {
+export async function completeEmergency(emergencyId, emergencyDetails = null) {
   try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+    if (emergencyDetails && !getEmergencyActionState(emergencyDetails).canComplete) {
+      throw new Error('This request changed state and is not ready to complete.');
+    }
+    if (
+      user.role === 'provider' &&
+      (!emergencyDetails?.responder_id || emergencyDetails.responder_id !== user.id)
+    ) {
+      throw new Error('Only the assigned responder can complete this request.');
+    }
+
     const { data, error } = await supabase.rpc('console_complete_emergency', {
       p_request_id: emergencyId
     });
@@ -230,6 +279,9 @@ export async function completeEmergency(emergencyId) {
     return { success: true, emergency: data?.request || null };
   } catch (error) {
     console.error('Failed to complete emergency:', error);
-    throw error;
+    const message = String(error?.message || '');
+    if (/^This request changed state/.test(message)) throw error;
+    if (/^Only the assigned responder/.test(message)) throw error;
+    throw new Error('Request completion is temporarily unavailable.');
   }
 }

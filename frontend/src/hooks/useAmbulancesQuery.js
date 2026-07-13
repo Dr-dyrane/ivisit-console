@@ -1,5 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAmbulancesPageData } from '../services/ambulancesService';
+import { isTransientReadError } from '../services/queryAbort';
+
+export const shouldRetryAmbulanceQuery = (failureCount, error) => (
+  failureCount < 2 && isTransientReadError(error)
+);
 
 /**
  * useAmbulancesQuery - real-data ambulance fleet list via React Query (TanStack
@@ -20,7 +25,10 @@ import { getAmbulancesPageData } from '../services/ambulancesService';
 export function useAmbulancesQuery(filter = {}) {
   const query = useQuery({
     queryKey: ['ambulances', filter],
-    queryFn: () => getAmbulancesPageData(filter),
+    queryFn: ({ signal }) => getAmbulancesPageData({ ...filter, abortSignal: signal }),
+    // TanStack owns transient retries for this route. Timeouts and cancellations
+    // are terminal so one refresh cannot expand into repeated timeout windows.
+    retry: shouldRetryAmbulanceQuery,
     staleTime: 30_000,
     // v5 equivalent of keepPreviousData - avoids a flash to empty while refetching
     placeholderData: (previous) => previous,

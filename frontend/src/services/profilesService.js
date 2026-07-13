@@ -10,20 +10,22 @@ import { isValidUUID } from '../lib/utils';
 import { withRetry, withAudit } from './supabaseHelpers';
 
 const TABLE_NAME = 'profiles';
+const PROFILE_AVATAR_BUCKET = 'images';
+const EMERGENCY_PATIENT_OPTION_LIMIT = 100;
+const SELF_EDITABLE_FIELDS = new Set([
+  'phone', 'username', 'first_name', 'last_name', 'full_name',
+  'image_uri', 'avatar_url', 'address', 'gender', 'date_of_birth', 'updated_at'
+]);
+const ADMIN_RPC_EMPTY_CLEAR_FIELDS = new Set([
+  'phone', 'username', 'address', 'gender', 'date_of_birth', 'provider_type'
+]);
 
-/**
- * Check if current user is admin
- */
-async function isAdmin() {
-  try {
-    const { data, error } = await supabase.rpc('current_user_is_admin');
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error checking admin status:', error);
-    return false;
-  }
-}
+const toAdminProfilePayload = (payload) => Object.fromEntries(
+  Object.entries(payload).map(([field, value]) => [
+    field,
+    value === null && ADMIN_RPC_EMPTY_CLEAR_FIELDS.has(field) ? '' : value,
+  ])
+);
 
 /**
  * Get profiles with auth data (admin only)
@@ -308,20 +310,16 @@ function applyUserListFilters(query, filter = {}) {
 }
 
 // One RBAC-scoped exact HEAD count, respecting the sheet filters + an extra bucket predicate.
-async function getUserExactCount(baseFilter, user, extra, quiet) {
-  try {
-    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
-    query = applyAuthFilter(query, user, { userIdField: 'id', orgIdField: 'organization_id' });
-    query = applyUserListFilters(query, baseFilter);
-    if (extra?.role) query = query.eq('role', extra.role);
-    if (extra?.verified !== undefined) query = query.eq('bvn_verified', extra.verified);
-    const { count, error } = await query;
-    if (error) throw error;
-    return Number.isFinite(count) ? count : 0;
-  } catch (error) {
-    if (!quiet) console.error('Error fetching user exact count:', error);
-    return 0;
-  }
+async function getUserExactCount(baseFilter, user, extra) {
+  let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+  query = applyAuthFilter(query, user, { userIdField: 'id', orgIdField: 'organization_id' });
+  query = applyUserListFilters(query, baseFilter);
+  if (extra?.role) query = query.eq('role', extra.role);
+  if (extra?.verified !== undefined) query = query.eq('bvn_verified', extra.verified);
+  const { count, error } = await query;
+  if (error) throw error;
+  if (!Number.isFinite(count)) throw new Error('Exact user count is unavailable');
+  return count;
 }
 
 // KPI-agnostic scoped stats: the role/verification chips stay STABLE while the active KPI
@@ -332,14 +330,28 @@ async function getUserPageStats(filter, user, quiet) {
     created_at: filter.created_at,
     provider_type: filter.provider_type,
   };
-  const [total, provider, org_admin, patient, verified] = await Promise.all([
-    getUserExactCount(statsFilter, user, {}, quiet),
-    getUserExactCount(statsFilter, user, { role: 'provider' }, quiet),
-    getUserExactCount(statsFilter, user, { role: 'org_admin' }, quiet),
-    getUserExactCount(statsFilter, user, { role: 'patient' }, quiet),
-    getUserExactCount(statsFilter, user, { verified: true }, quiet),
-  ]);
-  return { total, provider, org_admin, patient, verified };
+  try {
+    const [total, provider, org_admin, patient, verified] = await Promise.all([
+      getUserExactCount(statsFilter, user, {}),
+      getUserExactCount(statsFilter, user, { role: 'provider' }),
+      getUserExactCount(statsFilter, user, { role: 'org_admin' }),
+      getUserExactCount(statsFilter, user, { role: 'patient' }),
+      getUserExactCount(statsFilter, user, { verified: true }),
+    ]);
+    return {
+      stats: { total, provider, org_admin, patient, verified },
+      error: null,
+    };
+  } catch (error) {
+    if (!quiet) console.error('Error fetching user page statistics:', error);
+    return {
+      stats: null,
+      error: {
+        kind: 'count_unavailable',
+        message: 'User totals are unavailable. Retry to refresh them.',
+      },
+    };
+  }
 }
 
 /**
@@ -364,6 +376,7 @@ export async function getUsersPage(filter = {}) {
       if (result.error) throw result.error;
       return result;
     });
+    if (!Number.isFinite(count)) throw new Error('Exact users page count is unavailable');
 
     let enriched = data || [];
     if (enriched.length > 0) {
@@ -376,8 +389,13 @@ export async function getUsersPage(filter = {}) {
       }));
     }
 
-    const stats = await getUserPageStats(filter, user, filter.quiet);
-    return { data: enriched, count: count || 0, stats };
+    const statsProjection = await getUserPageStats(filter, user, filter.quiet);
+    return {
+      data: enriched,
+      count,
+      stats: statsProjection.stats,
+      statsError: statsProjection.error,
+    };
   } catch (error) {
     if (!filter.quiet) console.error('Error fetching users page:', error);
     throw error;
@@ -484,7 +502,7 @@ export async function updateProfile(profileId, input) {
   try {
     // Whitelist allowed fields to prevent contaminating the DB with join fields
     const allowedFields = [
-      'email', 'phone', 'username', 'first_name', 'last_name', 'full_name',
+      'phone', 'username', 'first_name', 'last_name', 'full_name',
       'image_uri', 'avatar_url', 'role', 'organization_id', 'provider_type',
       'bvn_verified', 'address', 'gender', 'date_of_birth'
     ];
@@ -496,6 +514,19 @@ export async function updateProfile(profileId, input) {
     const enumFields = new Set(['role', 'provider_type']);
 
     const normalizeString = (value) => typeof value === 'string' ? value.trim() : value;
+
+    if (input.email !== undefined) {
+      const requestedEmail = String(input.email || '').trim().toLowerCase();
+      const { data: targetIdentity, error: identityError } = await supabase
+        .from(TABLE_NAME)
+        .select('email')
+        .eq('id', profileId)
+        .maybeSingle();
+      if (identityError) throw identityError;
+      if (!targetIdentity || requestedEmail !== String(targetIdentity.email || '').trim().toLowerCase()) {
+        throw new Error('Email changes use account security.');
+      }
+    }
 
     allowedFields.forEach(field => {
       if (input[field] !== undefined) {
@@ -525,8 +556,11 @@ export async function updateProfile(profileId, input) {
       }
     });
 
-    // Guard provider consistency on update. If provider type is set but role is omitted/empty, preserve provider.
-    if (payload.provider_type && !payload.role) {
+    // Provider subtype cannot survive a move to a non-provider role. The admin
+    // receiver uses an empty string as its explicit clear sentinel.
+    if (payload.role && payload.role !== 'provider') {
+      payload.provider_type = null;
+    } else if (payload.provider_type && !payload.role) {
       payload.role = 'provider';
     }
 
@@ -535,12 +569,41 @@ export async function updateProfile(profileId, input) {
     // Check if this is a self-update or admin updating another user
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const isSelfUpdate = currentUser?.id === profileId;
+    const restrictedSelfFields = Object.keys(payload).filter((field) => !SELF_EDITABLE_FIELDS.has(field));
+    let hasRestrictedSelfFields = restrictedSelfFields.length > 0;
+
+    if (isSelfUpdate && hasRestrictedSelfFields) {
+      const { data: currentProfile, error: currentProfileError } = await supabase
+        .from(TABLE_NAME)
+        .select('role, organization_id, provider_type, bvn_verified')
+        .eq('id', profileId)
+        .single();
+      if (currentProfileError) throw currentProfileError;
+
+      const normalizeRestricted = (field, value) => {
+        if (field === 'bvn_verified') return Boolean(value);
+        if (field === 'organization_id' || field === 'provider_type') return value || null;
+        return value;
+      };
+      const changedRestrictedFields = restrictedSelfFields.filter((field) => (
+        normalizeRestricted(field, payload[field]) !== normalizeRestricted(field, currentProfile[field])
+      ));
+
+      restrictedSelfFields
+        .filter((field) => !changedRestrictedFields.includes(field))
+        .forEach((field) => delete payload[field]);
+
+      if (changedRestrictedFields.length > 0 && currentProfile.role !== 'admin') {
+        throw new Error('Access settings require another administrator.');
+      }
+      hasRestrictedSelfFields = changedRestrictedFields.length > 0;
+    }
 
     // Critical mutation on the shared `profiles` table - wrap in withAudit. The
     // branch return shapes are preserved exactly (self-update returns the row;
     // admin RPC returns whatever update_profile_by_admin returns).
     return await withAudit('profile.update', 'profile', async () => {
-      if (isSelfUpdate) {
+      if (isSelfUpdate && !hasRestrictedSelfFields) {
         // Self-update: direct table update works (own-row RLS)
         const { data, error } = await supabase
           .from(TABLE_NAME)
@@ -555,7 +618,7 @@ export async function updateProfile(profileId, input) {
         // Admin updating another user: use SECURITY DEFINER RPC
         const { data, error } = await supabase.rpc('update_profile_by_admin', {
           target_user_id: profileId,
-          profile_data: payload
+          profile_data: toAdminProfilePayload(payload)
         });
 
         if (error) throw error;
@@ -617,6 +680,47 @@ export async function getProfilesByRole(role) {
     console.error(`Error fetching profiles by role ${role}:`, error);
     throw error;
   }
+}
+
+/**
+ * Return the bounded patient identity projection used by the emergency request
+ * form. Organization admins are explicitly scoped to their own organization;
+ * database RLS remains the final read authority for every role.
+ */
+export async function getEmergencyPatientOptions() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || !['admin', 'org_admin'].includes(currentUser.role)) {
+    throw new Error('Patient lookup is unavailable for this account.');
+  }
+  if (currentUser.role === 'org_admin' && !currentUser.organization_id) {
+    throw new Error('Your organization scope is not available.');
+  }
+
+  const { data, error, count } = await withRetry(async () => {
+    let query = supabase
+      .from(TABLE_NAME)
+      .select('id, username, full_name, phone, avatar_url', { count: 'exact' })
+      .eq('role', 'patient')
+      .order('username', { ascending: true })
+      .limit(EMERGENCY_PATIENT_OPTION_LIMIT);
+
+    if (currentUser.role === 'org_admin') {
+      query = query.eq('organization_id', currentUser.organization_id);
+    }
+
+    const result = await query;
+    if (result.error) throw result.error;
+    return result;
+  });
+  if (error) throw error;
+
+  const options = data || [];
+  return {
+    data: options,
+    count: Number.isFinite(count) ? count : options.length,
+    isPartial: Number.isFinite(count) && count > options.length,
+    limit: EMERGENCY_PATIENT_OPTION_LIMIT,
+  };
 }
 
 /**
@@ -735,24 +839,86 @@ export function subscribeToProfile(profileId, callback) {
  * Upload profile avatar to storage
  */
 export async function uploadProfileAvatar(userId, file) {
+  let uploadedPath = null;
+
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('images')
+      .from(PROFILE_AVATAR_BUCKET)
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
+    uploadedPath = filePath;
 
     const { data } = supabase.storage
-      .from('images')
+      .from(PROFILE_AVATAR_BUCKET)
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    if (!data?.publicUrl) throw new Error('Avatar URL is unavailable after upload');
+
+    return {
+      bucket: PROFILE_AVATAR_BUCKET,
+      path: filePath,
+      publicUrl: data.publicUrl,
+    };
   } catch (error) {
+    if (uploadedPath) {
+      try {
+        await withRetry(async () => {
+          const result = await supabase.storage
+            .from(PROFILE_AVATAR_BUCKET)
+            .remove([uploadedPath]);
+          if (result.error) throw result.error;
+          return result;
+        });
+      } catch (cleanupError) {
+        console.error('Error cleaning up incomplete avatar upload:', cleanupError);
+      }
+    }
     console.error('Error uploading avatar:', error);
     throw error;
   }
+}
+
+/**
+ * Remove a newly uploaded avatar only when reflected profile truth proves that
+ * the object is not the profile's persisted avatar.
+ */
+export async function discardUnpersistedProfileAvatar(userId, upload) {
+  const uploadPath = upload?.path;
+  const publicUrl = upload?.publicUrl;
+  const ownsPath = typeof uploadPath === 'string' && uploadPath.startsWith(`${userId}/`);
+
+  if (!userId || upload?.bucket !== PROFILE_AVATAR_BUCKET || !ownsPath || !publicUrl) {
+    throw new Error('Avatar cleanup scope is invalid');
+  }
+
+  const { data: currentProfile } = await withRetry(async () => {
+    const result = await supabase
+      .from(TABLE_NAME)
+      .select('image_uri, avatar_url')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error('Profile avatar state is unavailable');
+    return result;
+  });
+
+  if ([currentProfile.image_uri, currentProfile.avatar_url].includes(publicUrl)) {
+    return { removed: false, reason: 'persisted' };
+  }
+
+  await withRetry(async () => {
+    const result = await supabase.storage
+      .from(PROFILE_AVATAR_BUCKET)
+      .remove([uploadPath]);
+    if (result.error) throw result.error;
+    return result;
+  });
+
+  return { removed: true, reason: 'unpersisted' };
 }

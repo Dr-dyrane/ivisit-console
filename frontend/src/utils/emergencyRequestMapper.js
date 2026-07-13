@@ -33,7 +33,7 @@ const isFiniteCoordinate = (lat, lng) => (
   lng <= 180
 );
 
-const extractCoordinatePair = (...values) => {
+export const extractCoordinatePair = (...values) => {
   for (const value of values) {
     if (!value) continue;
 

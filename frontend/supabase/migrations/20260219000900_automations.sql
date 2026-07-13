@@ -2,6 +2,8 @@
 -- Centralized Logic for Multi-Module Synchronization
 
 -- 1. Global User Initialization (After Profile, Preferences, Medical, and Wallet Tables exist)
+-- BEGIN CONSOLE_ONBOARDING_AUTOMATIONS
+-- BEGIN CONSOLE_NEW_USER_FUNCTION
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -39,7 +41,9 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', NEW.email),
         v_avatar,
         v_avatar, -- Sync image_uri with avatar_url for mobile parity
-        COALESCE(NEW.raw_user_meta_data->>'role', 'patient'),
+        -- Public Auth metadata is user-controlled. Elevated Console roles are
+        -- issued only by audited backend receivers after scope is proved.
+        'patient',
         'pending'
     );
     
@@ -55,7 +59,9 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, auth;
+-- END CONSOLE_NEW_USER_FUNCTION
 
 -- Hook into auth.users (Supabase Managed)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -66,6 +72,7 @@ FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- 1B. Organization Wallet Auto-Creation
 -- When a new org is created, automatically create its wallet.
+-- BEGIN CONSOLE_ORG_WALLET_FUNCTION
 CREATE OR REPLACE FUNCTION public.handle_new_organization()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -74,12 +81,15 @@ BEGIN
     ON CONFLICT (organization_id) DO NOTHING;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
+-- END CONSOLE_ORG_WALLET_FUNCTION
 
 DROP TRIGGER IF EXISTS on_org_created ON public.organizations;
 CREATE TRIGGER on_org_created
 AFTER INSERT ON public.organizations
 FOR EACH ROW EXECUTE PROCEDURE public.handle_new_organization();
+-- END CONSOLE_ONBOARDING_AUTOMATIONS
 
 -- 1C. Doctor Registry Auto-Sync (Profile -> doctors)
 -- When a profile becomes a provider doctor (or doctor profile details change), ensure a doctors row exists.

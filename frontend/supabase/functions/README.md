@@ -1,195 +1,172 @@
 # Supabase Edge Functions
 
-This directory contains all Supabase Edge Functions organized by category.
+This directory contains Supabase Edge Functions organized by category.
 
-## 📁 **Directory Structure**
+## Directory Structure
 
-```
+```text
 functions/
-├── payments/              # Payment-related functions
-│   ├── invite-user/
-│   ├── process-subscribers/
-│   ├── sendBulkEmail/
-│   ├── sendCustomEmail/
-│   └── sendWelcome/
-├── discovery/             # Discovery and search functions
-│   └── check-user/
-├── webhooks/              # Webhook handlers
-│   └── unsubscribe/
-└── shared/                # Shared utilities and helpers
+|-- payments/
+|   |-- create-payment-intent/
+|   |-- create-payout/
+|   |-- manage-payment-methods/
+|   |-- billing-quote/
+|   `-- refresh-exchange-rates/
+|-- discovery/
+|   `-- discover-hospitals/
+|-- check-user/
+|-- invite-user/
+|-- webhooks/
+|   `-- stripe-webhook/
+`-- shared/
 ```
 
-## 💳 **Payment Functions**
+## Payment Functions
 
-### **invite-user**
-Invites new users to the platform with payment processing.
+### create-payment-intent
 
-**Endpoint**: `/functions/v1/invite-user`
-**Method**: POST
-**Authentication**: Admin required
+Creates payment intents for emergency services and wallet top-ups.
 
-### **process-subscribers**
-Processes subscription payments and renewals.
+- Endpoint: `/functions/v1/create-payment-intent`
+- Method: `POST`
+- Authentication: required
 
-**Endpoint**: `/functions/v1/process-subscribers`
-**Method**: POST
-**Authentication**: Service role
+### create-payout
 
-### **sendBulkEmail**
-Sends bulk emails to user lists.
+Processes payouts to healthcare providers and ambulance services.
 
-**Endpoint**: `/functions/v1/sendBulkEmail`
-**Method**: POST
-**Authentication**: Admin required
+- Endpoint: `/functions/v1/create-payout`
+- Method: `POST`
+- Authentication: admin required
 
-### **sendCustomEmail**
-Sends custom email campaigns.
+### manage-payment-methods
 
-**Endpoint**: `/functions/v1/sendCustomEmail`
-**Method**: POST
-**Authentication**: Admin required
+Manages patient payment methods.
 
-### **sendWelcome**
-Sends welcome emails to new users.
+- Endpoint: `/functions/v1/manage-payment-methods`
+- Method: `GET`, `POST`, `DELETE`
+- Authentication: required
 
-**Endpoint**: `/functions/v1/sendWelcome`
-**Method**: POST
-**Authentication**: Service role
+### billing-quote
 
-## 🔍 **Discovery Functions**
+Returns a deterministic billing quote snapshot for the authenticated user.
 
-### **check-user**
-Validates user existence and status.
+- Endpoint: `/functions/v1/billing-quote`
+- Method: `POST`
+- Authentication: required
 
-**Endpoint**: `/functions/v1/check-user`
-**Method**: GET
-**Authentication**: Optional
+Body:
 
-**Query Parameters**:
-- `email`: User email (required)
-- `include_profile`: Include profile data (optional)
+- `amount` or `amount_usd`: numeric
+- `source_currency`: optional, defaults to `USD`
+- `billing_country_code`: optional explicit override
+- `billing_currency_code`: optional explicit override
 
-## 🪝 **Webhook Functions**
+If billing overrides are omitted, the function resolves them from `preferences`.
 
-### **unsubscribe**
-Handles email unsubscribe webhooks.
+### refresh-exchange-rates
 
-**Endpoint**: `/functions/v1/unsubscribe`
-**Method**: POST
-**Authentication**: Webhook signature verification
+Refreshes the finance-owned `exchange_rates` cache.
 
-**Events Handled**:
-- Email unsubscribe requests
-- Newsletter opt-outs
-- Communication preferences
+- Endpoint: `/functions/v1/refresh-exchange-rates`
+- Method: `POST`
+- Authentication: admin or org-admin required
 
-## 🛠️ **Shared Utilities**
+The function reads either:
 
-Common utilities and helpers used across functions.
+- `FX_MANUAL_RATES_JSON`
+- or a provider configured through `FX_PROVIDER_URL`
 
-### **Authentication**
-- JWT token validation
-- Role-based access control
-- User session management
+## Discovery Functions
 
-### **Validation**
-- Input sanitization
-- Parameter validation
-- Error handling
+### discover-hospitals
 
-### **Database**
-- Supabase client initialization
-- Connection pooling
-- Error handling
+Searches for hospitals based on location, specialty, and availability.
 
-## 🚀 **Deployment**
+- Endpoint: `/functions/v1/discover-hospitals`
+- Method: `GET`
+- Authentication: optional
 
-### **Local Development**
+### bootstrap-demo-ecosystem
+
+Builds the deterministic demo healthcare ecosystem for low or unverified coverage zones.
+
+- Endpoint: `/functions/v1/bootstrap-demo-ecosystem`
+- Method: `POST`
+- Authentication: required
+
+See [`docs/flows/emergency/DEMO_MODE_COVERAGE_FLOW.md`](../../docs/flows/emergency/DEMO_MODE_COVERAGE_FLOW.md).
+
+### review-demo-auth
+
+Allows review testers to complete the OTP step without mailbox access.
+
+- Endpoint: `/functions/v1/review-demo-auth`
+- Method: `POST`
+- Authentication: public, guarded by exact email plus review OTP
+
+## Console Identity Functions
+
+### check-user
+
+Retired account-discovery endpoint. It returns HTTP 410 with generic copy and never inspects Auth or profile identity.
+
+- Endpoint: `/functions/v1/check-user`
+- Method: any non-preflight request returns `410 Gone`
+- Authentication: not applicable
+
+### invite-user
+
+Sends a Console invitation and assigns a proved organization-scoped role through the service-only `complete_console_user_invitation` RPC.
+
+- Endpoint: `/functions/v1/invite-user`
+- Method: `POST`
+- Authentication: platform admin or organization admin required
+- Organization admins: limited to their own organization and provider, viewer, or dispatcher roles
+- Success reflection: email queued, role granted, and organization linked must all be true
+
+## Webhook Functions
+
+### stripe-webhook
+
+Handles Stripe webhook events for payment processing.
+
+- Endpoint: `/functions/v1/stripe-webhook`
+- Method: `POST`
+- Authentication: Stripe signature verification
+
+## Deployment
+
 ```bash
-# Start local development server
 supabase functions serve
-
-# Test specific function
-supabase functions serve check-user
-```
-
-### **Deployment**
-```bash
-# Deploy all functions
 supabase functions deploy
-
-# Deploy specific function
+supabase functions deploy billing-quote
+supabase functions deploy refresh-exchange-rates
 supabase functions deploy check-user
+supabase functions deploy invite-user
 ```
 
-## 📋 **Development Guidelines**
+## Environment Variables
 
-### **Function Structure**
-Each function should follow this structure:
-```
-function-name/
-├── index.ts          # Main function logic
-├── types.ts          # TypeScript definitions
-├── utils.ts          # Function-specific utilities
-└── README.md         # Function documentation
-```
-
-### **Naming Conventions**
-- **Directories**: kebab-case (e.g., `check-user`)
-- **Files**: kebab-case (e.g., `index.ts`, `types.ts`)
-- **Endpoints**: `/functions/v1/{function-name}`
-- **Environment**: Use `process.env` for configuration
-
-### **Error Handling**
-- Use standardized error responses
-- Log errors for debugging
-- Return appropriate HTTP status codes
-- Include error details in response
-
-### **Security**
-- Validate all inputs
-- Use authentication middleware
-- Implement rate limiting
-- Sanitize outputs
-
-## 🔧 **Environment Variables**
-
-Required environment variables:
 ```bash
-# Supabase Configuration
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Email Configuration
-RESEND_API_KEY=your_resend_key
-EMAIL_FROM_ADDRESS=noreply@ivisit.ng
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_webhook_secret
 
-# Other Services
-WEBHOOK_SECRET=your_webhook_secret
+FX_PROVIDER_URL=optional_provider_url
+FX_PROVIDER_API_KEY=optional_provider_api_key
+FX_PROVIDER_AUTH_HEADER=Authorization
+FX_PROVIDER_SOURCE=provider_cache
+FX_STALE_HOURS=24
+FX_MANUAL_RATES_JSON={"base":"USD","rates":{"NGN":1540,"GBP":0.79}}
 ```
 
-## 📊 **Monitoring**
+## Related Documentation
 
-### **Logging**
-- Use structured logging with timestamps
-- Include correlation IDs for request tracking
-- Log errors with full context
-- Monitor performance metrics
-
-### **Health Checks**
-- Implement health check endpoints
-- Monitor function response times
-- Track error rates
-- Set up alerts for failures
-
-## 🔗 **Related Documentation**
-
-- [Supabase Edge Functions Documentation](https://supabase.com/docs/guides/functions)
-- [API Reference](../docs/REFERENCE.md)
-- [Testing Guide](../docs/TESTING.md)
-- [Contribution Guidelines](../docs/CONTRIBUTING.md)
-
----
-
-**All functions should follow the established patterns and guidelines for consistency and maintainability.**
+- [`supabase/docs/CONTRIBUTING.md`](../docs/CONTRIBUTING.md)
+- [`supabase/docs/TESTING.md`](../docs/TESTING.md)
+- [`docs/deployment/EDGE_FUNCTION_ROLLBACK_RUNBOOK.md`](../../docs/deployment/EDGE_FUNCTION_ROLLBACK_RUNBOOK.md)
+- [`docs/flows/payment/BILLING_CURRENCY_QUOTE_LANE_PLAN_V1.md`](../../docs/flows/payment/BILLING_CURRENCY_QUOTE_LANE_PLAN_V1.md)

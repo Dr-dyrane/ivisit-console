@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSubscriptionsPage } from '../services/subscriptionService';
+import {
+  getSubscriptionsPage,
+  SUBSCRIPTION_PROJECTION_ERROR_MESSAGE,
+} from '../services/subscriptionService';
 
 export function useSubscriptionsQuery(filter = {}) {
   const query = useQuery({
@@ -11,11 +14,11 @@ export function useSubscriptionsQuery(filter = {}) {
   });
 
   const projection = query.data;
-  const projectionError = projection?.failed
-    ? new Error(projection.errorMessage || 'Subscriber projection failed.')
+  const projectionError = projection?.failed || query.error
+    ? new Error(SUBSCRIPTION_PROJECTION_ERROR_MESSAGE)
     : projection?.denied
       ? new Error('Subscriber access is unavailable for this role.')
-      : query.error;
+      : null;
 
   return {
     subscribers: projection?.data ?? [],

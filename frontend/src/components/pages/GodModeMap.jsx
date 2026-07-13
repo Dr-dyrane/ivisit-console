@@ -26,11 +26,9 @@ import { useWayfindingNav } from "../console/WorkspaceStage";
 import { supabaseMapService } from "../../services/supabaseMapService";
 import { updateResponderLocation } from "../../services/emergencyResponseService";
 import { driverManagementService } from "../../services/driverManagementService";
-// PULLBACK NOTE: Added imports for PostGIS geometry support and patient data standardization
+// PULLBACK NOTE: Added imports for PostGIS geometry support
 // NEW: import { decodePostGISGeometry } from "../../utils/locationUtils";
-// NEW: import { getStandardizedPatient } from "../../utils/patientUtils";
 import { decodePostGISGeometry } from "../../utils/locationUtils";
-import { getStandardizedPatient } from "../../utils/patientUtils";
 
 // Import extracted map components
 import {
@@ -120,7 +118,8 @@ const GodModeMapContent = () => {
 		filter,
 		selectedMarker,
 		loading,
-		error
+		error,
+		sourceState
 	} = mapData;
 
 	const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
@@ -185,7 +184,7 @@ const GodModeMapContent = () => {
 						lng: position.coords.longitude,
 					});
 				},
-				(error) => {
+				() => {
 					console.info("[GodModeMap] Geolocation unavailable; using default map center");
 					setUserLocation(LAGOS_CENTER);
 				},
@@ -208,8 +207,8 @@ const GodModeMapContent = () => {
 			try {
 				const nearby = await supabaseMapService.getNearbyHospitals(userLocation, 100, { quiet: true }); // 100km radius
 				setNearbyHospitals(nearby);
-				console.log(`[GodModeMap] Found ${nearby.length} nearby hospitals`);
-			} catch (error) {
+			} catch {
+				setNearbyHospitals([]);
 				console.info('[GodModeMap] Nearby hospitals unavailable');
 			}
 		};
@@ -224,7 +223,7 @@ const GodModeMapContent = () => {
 	// OLD: Only handled legacy lat/lng fields
 	// NEW: Handles patient_location, pickup_location, responder_location (PostGIS) + legacy lat/lng
 	const resolveLocation = useMemo(() => {
-		return (item, indexSeed, forceSimulate = false) => {
+		return (item) => {
 			if (!item) return null;
 
 			// PULLBACK NOTE: NEW - Handle emergency requests with PostGIS geometry
@@ -332,6 +331,12 @@ const GodModeMapContent = () => {
 			{ total: 0, live: 0, stale: 0, lost: 0, inactive: 0 }
 		);
 	}, [activeAmbulanceRequests]);
+	const activeRouteProjection = sourceState?.emergencies?.activeRoutes;
+	const hasExactActiveRouteCount = activeRouteProjection?.exact === true
+		&& Number.isFinite(activeRouteProjection?.total);
+	const activeRouteCount = hasExactActiveRouteCount
+		? activeRouteProjection.total
+		: liveStatusSummary.total;
 
 	const assignedAmbulance = useMemo(() => {
 		if (!isDriverMode || !user?.id) return null;
@@ -345,15 +350,13 @@ const GodModeMapContent = () => {
 	const driverActiveEmergency = useMemo(() => {
 		if (!isDriverMode || !user?.id) return null;
 
-		const scoped = activeAmbulanceRequests.filter((request) => {
-			const responderMatch = request?.responder_id === user.id;
-			const ambulanceMatch = assignedAmbulance?.id && request?.ambulance_id === assignedAmbulance.id;
-			return responderMatch || ambulanceMatch;
-		});
+		const scoped = activeAmbulanceRequests.filter(
+			(request) => request?.responder_id === user.id
+		);
 
 		if (!scoped.length) return null;
 		return [...scoped].sort((a, b) => Date.parse(b?.updated_at || 0) - Date.parse(a?.updated_at || 0))[0];
-	}, [activeAmbulanceRequests, assignedAmbulance?.id, isDriverMode, user?.id]);
+	}, [activeAmbulanceRequests, isDriverMode, user?.id]);
 
 	const driverLocationStatus = useMemo(() => {
 		if (!driverActiveEmergency) {
@@ -379,7 +382,7 @@ const GodModeMapContent = () => {
 	}, []);
 
 	const handleDriverPingLocation = useCallback(async () => {
-		if (!driverActiveEmergency?.id) {
+		if (!driverActiveEmergency?.id || driverActiveEmergency?.responder_id !== user?.id) {
 			toast.warning("No active assignment to publish location for");
 			return;
 		}
@@ -405,10 +408,10 @@ const GodModeMapContent = () => {
 		} finally {
 			setDriverAction(null);
 		}
-	}, [driverActiveEmergency?.id, refresh, requestBrowserLocation]);
+	}, [driverActiveEmergency?.id, driverActiveEmergency?.responder_id, refresh, requestBrowserLocation, user?.id]);
 
 	const handleDriverStatusUpdate = useCallback(async (status) => {
-		if (!driverActiveEmergency?.id) {
+		if (!driverActiveEmergency?.id || driverActiveEmergency?.responder_id !== user?.id) {
 			toast.warning("No active assignment to update");
 			return;
 		}
@@ -422,7 +425,11 @@ const GodModeMapContent = () => {
 		const toastId = `map-driver-${status}`;
 		toast.loading(copy.loading, { id: toastId });
 		try {
-			await driverManagementService.updateTripStatus(driverActiveEmergency.id, status);
+			const updatedRequest = await driverManagementService.updateTripStatus(driverActiveEmergency.id, status);
+			if (!updatedRequest) {
+				toast.error(copy.error, { id: toastId });
+				return;
+			}
 			toast.success(copy.success, { id: toastId });
 			await refresh();
 		} catch (error) {
@@ -430,7 +437,7 @@ const GodModeMapContent = () => {
 		} finally {
 			setDriverAction(null);
 		}
-	}, [driverActiveEmergency?.id, refresh]);
+	}, [driverActiveEmergency?.id, driverActiveEmergency?.responder_id, refresh, user?.id]);
 
 
 	// 2. Combine for Rendering Markers
@@ -745,19 +752,21 @@ const GodModeMapContent = () => {
 								<div className="mb-3 text-[11px] font-medium text-muted-foreground">Live status</div>
 								<div className="grid grid-cols-2 gap-2 text-xs">
 									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-muted-foreground">Active routes</div>
-										<div className="text-sm font-semibold">{liveStatusSummary.total}</div>
+										<div className="text-muted-foreground">
+											{hasExactActiveRouteCount ? "Active routes" : "Active routes shown"}
+										</div>
+										<div className="text-sm font-semibold">{activeRouteCount}</div>
 									</div>
 									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-emerald-600 dark:text-emerald-300">Current</div>
+										<div className="text-emerald-600 dark:text-emerald-300">Current shown</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.live}</div>
 									</div>
 									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-amber-600 dark:text-amber-300">Delayed</div>
+										<div className="text-amber-600 dark:text-amber-300">Delayed shown</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.stale}</div>
 									</div>
 									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-destructive">Offline</div>
+										<div className="text-destructive">Offline shown</div>
 										<div className="text-sm font-semibold">{liveStatusSummary.lost}</div>
 									</div>
 								</div>

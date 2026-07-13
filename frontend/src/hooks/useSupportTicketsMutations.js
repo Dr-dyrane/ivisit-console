@@ -80,6 +80,38 @@ export function applyOptimisticRemove(cache, ticketId) {
   };
 }
 
+/**
+ * Attempt every selected deletion and classify each receiver result by id. A
+ * fulfilled request is still a failure unless the receiver returns the exact
+ * deleted identity, so callers can tombstone only proved deletions.
+ */
+export async function settleSupportTicketDeletes(ticketIds = [], deleteOne) {
+  if (typeof deleteOne !== 'function') {
+    throw new TypeError('A support ticket delete function is required');
+  }
+
+  const requestedIds = (Array.isArray(ticketIds) ? ticketIds : [])
+    .map((ticketId) => String(ticketId ?? '').trim())
+    .filter(Boolean);
+  const outcomes = await Promise.allSettled(requestedIds.map(async (ticketId) => {
+    const deletedTicket = await deleteOne(ticketId);
+    const confirmedId = String(deletedTicket?.id ?? '').trim();
+    if (confirmedId !== ticketId) {
+      throw new Error(`Support ticket deletion was not confirmed for ${ticketId}`);
+    }
+    return { id: ticketId, ticket: deletedTicket };
+  }));
+
+  return outcomes.reduce((summary, outcome, index) => {
+    if (outcome.status === 'fulfilled') {
+      summary.confirmed.push(outcome.value);
+    } else {
+      summary.failed.push({ id: requestedIds[index], error: outcome.reason });
+    }
+    return summary;
+  }, { confirmed: [], failed: [] });
+}
+
 // --- Pure options factory (testable without renderHook) -------------------
 /**
  * Build the useMutation options object implementing the optimistic pattern
@@ -93,7 +125,11 @@ export function applyOptimisticRemove(cache, ticketId) {
  * @param {(cache:any, variables:any)=>any} [params.applyOptimistic] - pure
  *   reducer producing the optimistic cache value. Omit to mutate without an
  *   optimistic write (rollback still restores the exact snapshot).
- * @param {() => void} [params.invalidate] - convergence step; defaults to
+ * @param {(cache:any, data:any, variables:any)=>any} [params.applyCommitted] -
+ *   reducer that writes a receiver-confirmed result before refetch convergence.
+ * @param {(error:unknown, context:object)=>void} [params.onConvergenceError] -
+ *   reports a failed post-commit invalidation without reclassifying the write.
+ * @param {(options?:object) => Promise<void>} [params.invalidate] - convergence step; defaults to
  *   invalidating the SUPPORT_KEY_ROOT prefix.
  * @param {Array} [params.listKey] - exact cache key to snapshot/patch/rollback.
  */
@@ -101,6 +137,8 @@ export function buildSupportTicketsMutationOptions({
   queryClient,
   mutationFn,
   applyOptimistic,
+  applyCommitted,
+  onConvergenceError,
   invalidate,
   listKey = supportListKey(),
 }) {
@@ -132,13 +170,32 @@ export function buildSupportTicketsMutationOptions({
       }
     },
 
-    // Always converge to server truth, whether the mutation succeeded or the
-    // rollback ran - the optimistic value is only ever a placeholder.
-    onSettled() {
-      if (typeof invalidate === 'function') {
-        invalidate();
-      } else {
-        queryClient.invalidateQueries({ queryKey: SUPPORT_KEY_ROOT });
+    // A successful create has a server-owned id. Put that returned row in the
+    // active list before attempting refetch so a later convergence failure
+    // cannot make a committed insert invisible.
+    onSuccess(data, variables) {
+      if (typeof applyCommitted === 'function' && data !== undefined) {
+        queryClient.setQueryData(listKey, (current) => applyCommitted(current, data, variables));
+      }
+    },
+
+    // Always attempt convergence. Refetch failure is deliberately caught after
+    // a committed mutation: callers receive the successful service result and a
+    // separate degraded-convergence signal, never a false insert failure.
+    async onSettled(data, error, variables, context) {
+      try {
+        if (typeof invalidate === 'function') {
+          await invalidate({ throwOnError: true });
+        } else {
+          await queryClient.invalidateQueries(
+            { queryKey: SUPPORT_KEY_ROOT },
+            { throwOnError: true }
+          );
+        }
+      } catch (convergenceError) {
+        if (!error && typeof onConvergenceError === 'function') {
+          onConvergenceError(convergenceError, { data, variables, context });
+        }
       }
     },
   };
@@ -153,11 +210,21 @@ export function buildSupportTicketsMutationOptions({
  *   createSupportTicket, or ({ id, ...changes }) => updateSupportTicket(id, changes).
  * @param {(cache:any, variables:any)=>any} [params.applyOptimistic] - a pure
  *   reducer such as applyOptimisticUpsert (omit for create).
+ * @param {(cache:any, data:any, variables:any)=>any} [params.applyCommitted] -
+ *   reducer for a receiver-confirmed result, such as create's returned row.
+ * @param {(error:unknown, context:object)=>void} [params.onConvergenceError] -
+ *   post-commit refetch failure observer.
  * @param {object} [params.filter] - the same filter the page passed to
  *   useSupportTicketsQuery, so the optimistic write patches that page's cache entry.
  * @returns the React Query mutation object ({ mutate, mutateAsync, isPending, ... }).
  */
-export function useSupportTicketsMutations({ mutationFn, applyOptimistic, filter } = {}) {
+export function useSupportTicketsMutations({
+  mutationFn,
+  applyOptimistic,
+  applyCommitted,
+  onConvergenceError,
+  filter,
+} = {}) {
   const queryClient = useQueryClient();
   const invalidateSupport = useInvalidateSupportTickets();
 
@@ -166,6 +233,8 @@ export function useSupportTicketsMutations({ mutationFn, applyOptimistic, filter
       queryClient,
       mutationFn,
       applyOptimistic,
+      applyCommitted,
+      onConvergenceError,
       invalidate: invalidateSupport,
       listKey: supportListKey(filter),
     })

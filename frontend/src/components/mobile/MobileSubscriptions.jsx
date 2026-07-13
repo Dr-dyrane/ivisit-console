@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { Users, Mail, Crown, BadgeCheck, Clock, Eye, MailX } from 'lucide-react';
+import { AlertTriangle, Users, Mail, Crown, BadgeCheck, Clock, Eye, MailX } from 'lucide-react';
 // LIST-type page, DIRECTORY expression (MOBILE_DESIGN_SYSTEM section 5) -- rebuilt to canon
 // 2026-07-11, MIRRORING MobileUsers / MobileSupportTickets / MobileHealthNews: the 5-stage
 // state machine (warm-up -> group-shaped skeleton -> useStableList buffer -> isFetching
@@ -30,10 +30,9 @@ import { Users, Mail, Crown, BadgeCheck, Clock, Eye, MailX } from 'lucide-react'
 //
 // grammar:refetch-signal=page synthesises isFetching (loading over a non-empty list) since
 // useSubscription exposes no React Query isFetching; the component consumes it for the pill.
-// grammar:loadmore-append=page owns the growing prefix (mobileVisibleSubscribers =
-// filteredSubscribers.slice(0, page*itemsPerPage)); each load-more grows the SAME prefix, so the
-// window only ever appends -- no client id-keyed accumulator is needed (useStableList holds the
-// last settled set so a refetch never flashes to empty).
+// grammar:loadmore-append=page requests fixed offset pages and owns an id-keyed accumulator of
+// settled pages. This component receives the appended feed; useStableList keeps that feed visible
+// while the next page is loading.
 import { SearchRow, useSkeletonWarmup, UpdatingPillRow, MobileHeading, GroupPanel, MobileListRow, Hairline, SkeletonGroupList } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileDetailSheet } from './MobileDetailSheet';
@@ -122,13 +121,14 @@ const hasActiveSubscriptionFilters = (filters = {}) => Boolean(
 
 /**
  * MobileSubscriptions -- the subscriber directory on the canon LIST grammar. Page-owned
- * search/KPI (the page re-filters + grows the prefix); this component renders. Read-only:
+ * search/KPI and paged append; this component renders. Read-only:
  * the detail sheet's single CTA is Details, and there is no create / edit / delete / status /
  * email path -- subscriber command authority stays fail-closed and unauthorized here.
  */
 export const MobileSubscriptions = ({
     subscribers = [],
     stats,
+    statsUnavailable = false,
     filters,
     setFilters,
     onView,
@@ -161,15 +161,18 @@ export const MobileSubscriptions = ({
     // NOTE: the dock FAB is a GATED "Add subscriber" (DynamicBottomBar) -- subscriber authoring
     // is fail-closed (the page's handleSubscriptionCommandUnavailable fires a toast + the
     // subscriptions-action-feedback banner), so the FAB dispatches 'openSubscriptionModal' to the
-    // page and surfaces the honest "not ready" feedback, like Health News' "New article". This
+    // page and surfaces the honest "not ready" feedback. This
     // LIST stays read-only (the detail sheet's only CTA is Details); the SearchRow owns the
     // in-page filter -- so the FAB is a gated create, never a filter.
 
-    // The PAGE grows the prefix (mobileVisibleSubscribers) and passes it as `subscribers`, so
-    // render directly -- no client accumulator (see the loadmore-append waiver in the header).
+    // The page passes its de-duplicated, settled page accumulator as `subscribers`.
     const sourceSubscribers = useMemo(() => (Array.isArray(subscribers) ? subscribers : []), [subscribers]);
 
-    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({
+        hasMore,
+        loading: loading || refetching,
+        onLoadMore,
+    });
 
     useEffect(() => {
         if (!hasMore) return;
@@ -318,6 +321,17 @@ export const MobileSubscriptions = ({
 
                         <UpdatingPillRow show={(refetching || isBuffering) && !showTopSectionLoading} />
 
+                        {statsUnavailable && (
+                            <p
+                                className="mt-3 flex items-start gap-2 rounded-inner bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-900 dark:text-amber-100"
+                                role="status"
+                                aria-live="polite"
+                            >
+                                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                                <span>Subscriber statistics are unavailable. Counts use the loaded rows; the list remains current.</span>
+                            </p>
+                        )}
+
                         {actionNotice && (
                             <p
                                 id="subscriptions-action-feedback"
@@ -389,7 +403,7 @@ export const MobileSubscriptions = ({
                             <div ref={observerTarget} className="min-h-[64px] flex flex-col items-center justify-center gap-2">
                                 {refetching && !showTopSectionLoading && hasMore && displaySubscribers.length > 0 && <MobileListLoadingMore />}
                                 {!loading && !refetching && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
-                                {!loading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
+                                {!loading && !refetching && !showTopSectionLoading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
                             </div>
 
                             {displaySubscribers.length === 0 && !loading && !showTopSectionLoading && (

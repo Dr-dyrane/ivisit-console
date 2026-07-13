@@ -20,7 +20,10 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(service).toContain("reason: 'admin_only'");
     expect(service).toContain("reason: 'query_failed'");
     expect(service).toContain("select('*', { count: 'exact' })");
-    expect(service).toContain('exactSubscriberCount(filter');
+    expect(service).toContain('const exactSubscriberCount = async (filter');
+    expect(service).toContain('exactSubscriberCount(totalStatsFilter)');
+    expect(service).toContain('exactSubscriberCount(statusStatsFilter');
+    expect(service).toContain('exactSubscriberCount(typeStatsFilter');
     expect(queryHook).toContain("queryKey: ['subscriptions', filter]");
     expect(queryHook).toContain('placeholderData: (previous) => previous');
     expect(queryHook).toContain('isPlaceholderData: query.isPlaceholderData');
@@ -29,10 +32,12 @@ describe('Subscriptions Page 17 intake contract', () => {
     const page = read('src/components/pages/SubscriptionManagementPage.jsx');
     const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
     expect(page).toContain('subscribeToSubscribers(() => invalidateSubscriptions())');
-    expect(page).toContain("distributionScope: 'exact_filtered_projection'");
+    expect(page).toContain("subscriptionStatsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
     expect(page).toContain('analytics={subscriptionAnalytics}');
     expect(page).not.toContain('total: subscribers.length');
-    expect(page).toContain('useRowSelection(paginatedSubscribers)');
+    expect(page).toContain('useRowSelection(visibleSubscriberRows)');
+    expect(page).toContain('byType: { paid, free }');
+    expect(page).toContain('byStatus: { active, pending, unsubscribed }');
     expect(desktop).toContain('<Checkbox');
     expect(desktop).toContain('selectedIds.includes(subscriber.id)');
     expect(page).toContain("key: 'dateRange'");
@@ -44,10 +49,10 @@ describe('Subscriptions Page 17 intake contract', () => {
     const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
     const mobileListRow = read('src/components/mobile/canon/GroupedList.jsx');
 
-    // One page-owned selection state follows the rows in the current query window.
+    // One page-owned selection state follows every row currently rendered on each viewport.
     expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
     expect(page).toContain('const canManageSubscribers = isAdmin();');
-    expect(page).toContain('useRowSelection(paginatedSubscribers)');
+    expect(page).toContain('useRowSelection(visibleSubscriberRows)');
     expect(page).toContain('selectable={canManageSubscribers}');
     expect(page).toContain('selectionEnabled={canManageSubscribers}');
     expect(page).toContain('selectedIds={selectedIds}');
@@ -72,6 +77,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
     expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
     expect(mobileListRow).toContain('{selectable && selected && (');
+    expect(mobile).toContain('!loading && !refetching && !showTopSectionLoading && !hasMore');
 
     // Selection never implies write authority: both bulk controls are disabled and no
     // subscriber/email mutation is called from the page or mobile surface.
@@ -82,6 +88,49 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).not.toContain('sendBulkEmail');
     expect(page).not.toContain('await deleteSubscriber');
     expect(mobile).not.toContain('sendBulkEmail');
+  });
+
+  it('uses fixed offset pages and appends only settled mobile results', () => {
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+
+    expect(page).toContain('limit: pagination.itemsPerPage');
+    expect(page).toContain('offset: (pagination.currentPage - 1) * pagination.itemsPerPage');
+    expect(page).not.toContain('pagination.currentPage * pagination.itemsPerPage');
+    expect(page).toContain('mobileSubscriberPagesRef');
+    expect(page).toContain('if (!isMobile || isPlaceholderData || loading || error || subscriptionDenied) return;');
+    expect(page).toContain('pages.set(pagination.currentPage, pageRows)');
+    expect(page).toContain('seen.has(subscriber.id)');
+    expect(mobile).toContain('loading: loading || refetching');
+  });
+
+  it('keeps subscriber rows visible with explicit loaded-row stats when auxiliary counts fail', () => {
+    const service = read('src/services/subscriptionService.js');
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+
+    expect(service).toContain('UNAVAILABLE_SUBSCRIPTION_STATS');
+    expect(service).toContain("reason: 'stats_query_failed'");
+    expect(service).toContain('statsPromise');
+    expect(page).toContain('buildVisibleSubscriptionStats');
+    expect(page).toContain('subscriptionStatsUnavailable');
+    expect(page).toContain("subscriptionStatsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
+    expect(page).toContain('stats={subscriptionDisplayStats}');
+    expect(mobile).toContain('statsUnavailable = false');
+    expect(mobile).toContain('Subscriber statistics are unavailable. Counts use the loaded rows; the list remains current.');
+  });
+
+  it('maps exact subscriber type and status buckets to their analytics phases', () => {
+    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const analyticsModal = read('src/components/modals/AnalyticsModal.jsx');
+
+    expect(page).toContain('byType: { paid, free }');
+    expect(page).toContain('byStatus: { active, pending, unsubscribed }');
+    expect(analyticsModal).toContain("type === 'subscription'");
+    expect(analyticsModal).toContain('? (analytics.byType || {})');
+    expect(analyticsModal).toContain('? (analytics.byStatus || {})');
+    expect(analyticsModal).toContain("{ id: 'tiers', label: 'Types' }");
+    expect(analyticsModal).toContain("{ id: 'growth', label: 'Status' }");
   });
 
   it('closes the desktop shell with donor rails, shared KPIs, stats, context, and honest states', () => {
@@ -599,6 +648,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(hook).toContain('if (!autoSubscribe) return undefined;');
     expect(hook).toContain('return subscribeToSubscribers((payload) => {');
     expect(pageDataAccess).not.toContain("domains.push('subscribers'");
-    expect(pageDataAccess).toContain("pathname === '/subscriptions'");
+    expect(routeOwnsStartupDomains('/subscriptions')).toBe(true);
+    expect(getPageDataStartupDomainsForRole('admin', '/subscriptions')).toEqual([]);
   });
 });

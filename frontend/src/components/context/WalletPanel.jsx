@@ -10,6 +10,7 @@ import {
     Plus,
     LockKeyhole,
 } from 'lucide-react';
+import { StatusPill } from '../console/primitives';
 
 export const WalletPanel = ({ walletContext }) => {
     const {
@@ -19,6 +20,8 @@ export const WalletPanel = ({ walletContext }) => {
         paymentMethods = [],
         readState = {},
         hasMore = {},
+        financeMetrics = null,
+        financeMetricsStale = false,
         counts = {},
         loading = false,
         isFetching = false,
@@ -28,13 +31,14 @@ export const WalletPanel = ({ walletContext }) => {
         canManage = false,
     } = walletContext || {};
     const [panelStatus, setPanelStatus] = React.useState('');
+    const transactionsCount = counts.ledger ?? ledger.length;
+    const patientPaymentsCount = counts.payments ?? payments.length;
 
     const formatCurrency = (amount, currency = wallet?.currency || 'USD') => {
         try {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: String(currency || wallet?.currency || 'USD').toUpperCase(),
-                maximumFractionDigits: 0
             }).format(amount || 0);
         } catch {
             return 'Amount unavailable';
@@ -52,7 +56,7 @@ export const WalletPanel = ({ walletContext }) => {
             return;
         }
 
-        announce('Exporting transactions.');
+        announce(`Exporting ${transactionsCount} loaded transaction${transactionsCount === 1 ? '' : 's'}.`);
         window.dispatchEvent(new CustomEvent('exportLedger'));
     };
 
@@ -69,8 +73,27 @@ export const WalletPanel = ({ walletContext }) => {
         .slice(0, 4);
     const cardState = readState.paymentMethods === 'ready' ? paymentMethods.length : 'Unavailable';
     const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : 'Not available';
-    const transactionsCount = counts.ledger ?? ledger.length;
-    const patientPaymentsCount = counts.payments ?? payments.length;
+    const ledgerTotalsAvailable = ['ready', 'stale'].includes(readState.financeMetrics)
+        && financeMetrics?.complete === true
+        && Number.isFinite(Number(financeMetrics?.credits))
+        && Number.isFinite(Number(financeMetrics?.debits));
+    const ledgerScopeLabel = ledgerTotalsAvailable
+        ? financeMetricsStale ? 'Last confirmed ledger totals' : financeMetrics.scopeLabel
+        : 'Ledger totals unavailable for this account';
+    const freshnessLabel = loading
+        ? 'Loading'
+        : isFetching
+            ? 'Updating'
+            : readState.wallet === 'stale'
+                ? 'Last confirmed'
+                : readState.wallet === 'ready'
+                    ? 'Up to date'
+                    : 'Unavailable';
+    const freshnessTone = readState.wallet === 'stale'
+        ? 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100'
+        : readState.wallet === 'ready'
+            ? 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100'
+            : 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]';
 
     return (
         <div className="space-y-4">
@@ -94,22 +117,32 @@ export const WalletPanel = ({ walletContext }) => {
                         {balanceLabel}
                     </h2>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <span className="rounded-pill bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
-                            {loading ? 'Loading' : isFetching ? 'Updating' : loadError ? 'May be out of date' : wallet ? 'Up to date' : 'Unavailable'}
-                        </span>
+                        <StatusPill label={freshnessLabel} className={freshnessTone} />
                         <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
                     </div>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <History className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
-                            <span className="text-xs font-medium text-muted-foreground">Payment activity</span>
+                            <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-700 transition-transform dark:text-emerald-100" />
+                            <span className="text-xs font-medium text-muted-foreground">Credits</span>
                         </div>
-                        <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">{transactionsCount + patientPaymentsCount}</p>
+                        <p className="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-100">
+                            {ledgerTotalsAvailable ? formatCurrency(financeMetrics.credits) : 'Unavailable'}
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-1 rounded-inner bg-muted/24 p-4 transition-colors hover:bg-muted/34">
+                        <div className="flex items-center gap-2">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform" />
+                            <span className="text-xs font-medium text-muted-foreground">Debits</span>
+                        </div>
+                        <p className="text-sm font-semibold tracking-tight">
+                            {ledgerTotalsAvailable ? formatCurrency(financeMetrics.debits) : 'Unavailable'}
+                        </p>
                     </div>
                 </div>
+                <p className="px-1 text-[11px] font-medium text-muted-foreground">{ledgerScopeLabel}</p>
             </div>
 
             <div className="space-y-2">
@@ -128,7 +161,7 @@ export const WalletPanel = ({ walletContext }) => {
                     className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
                 >
                     <Download className="h-5 w-5 text-muted-foreground transition-transform" />
-                    <span className="text-sm font-semibold">Export</span>
+                    <span className="text-sm font-semibold">Export shown</span>
                 </button>
                 </div>
                 <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">

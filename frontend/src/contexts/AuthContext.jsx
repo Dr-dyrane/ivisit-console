@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { clearPrincipalScopedQueryCache } from '../lib/queryClient';
 import { DynamicAuthSkeleton } from '../components/ui/skeleton';
-import { updateProfile as updateProfileService, uploadProfileAvatar } from '../services/profilesService';
+import {
+  discardUnpersistedProfileAvatar,
+  updateProfile as updateProfileService,
+  uploadProfileAvatar,
+} from '../services/profilesService';
 import { clearCurrentUserCache, primeCurrentUserCache, updatePassword as updatePasswordService } from '../services/authService';
 
 const AuthContext = createContext({});
@@ -24,19 +29,191 @@ const ROLE_HIERARCHY = {
   viewer: 1,
 };
 
+export const ASSURANCE_STATUS = Object.freeze({
+  CHECKING: 'checking',
+  SATISFIED: 'satisfied',
+  MFA_REQUIRED: 'mfa_required',
+  ERROR: 'error',
+  SIGNED_OUT: 'signed_out',
+});
+
+const AUTH_OPERATION_TIMEOUT_MS = 10000;
+
+const createAssuranceState = (status = ASSURANCE_STATUS.CHECKING, overrides = {}) => ({
+  status,
+  currentLevel: null,
+  nextLevel: null,
+  checkedUserId: null,
+  error: null,
+  ...overrides,
+});
+
+const createMfaChallengeState = (overrides = {}) => ({
+  status: 'idle',
+  userId: null,
+  factorId: null,
+  challengeId: null,
+  error: null,
+  ...overrides,
+});
+
+export const classifyAssuranceLevel = (assurance) => {
+  const currentLevel = assurance?.currentLevel;
+  const nextLevel = assurance?.nextLevel;
+  const knownLevels = ['aal1', 'aal2'];
+
+  if (!knownLevels.includes(currentLevel) || !knownLevels.includes(nextLevel)) {
+    return ASSURANCE_STATUS.ERROR;
+  }
+
+  if (currentLevel === 'aal1' && nextLevel === 'aal2') {
+    return ASSURANCE_STATUS.MFA_REQUIRED;
+  }
+
+  if (currentLevel === nextLevel) {
+    return ASSURANCE_STATUS.SATISFIED;
+  }
+
+  return ASSURANCE_STATUS.ERROR;
+};
+
+const withAuthTimeout = (operation) => {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Auth operation timed out')), AUTH_OPERATION_TIMEOUT_MS);
+  });
+
+  return Promise.race([operation, timeout]).finally(() => clearTimeout(timeoutId));
+};
+
+const isMissingIdentityProjection = (error) => (
+  error?.code === 'PGRST202'
+  || error?.code === '42883'
+  || /get_console_identity_projection.*does not exist/i.test(String(error?.message || ''))
+);
+
+const loadValidatedProfile = async (userId) => {
+  const { data: projection, error: projectionError } = await supabase.rpc('get_console_identity_projection');
+
+  if (!projectionError && projection?.profile) {
+    const rawOrganizationId = projection.profile.organization_id || null;
+    const scope = projection.organizationScope || {};
+    const facilityIds = Array.isArray(scope.facilityIds)
+      ? scope.facilityIds.filter(Boolean)
+      : scope.primaryFacilityId
+        ? [scope.primaryFacilityId]
+        : [];
+    return {
+      ...projection.profile,
+      source_organization_id: rawOrganizationId,
+      organization_id: scope.organizationId || null,
+      hospital_ids: facilityIds,
+      organization_scope_state: scope.state || 'unavailable',
+      organization_scope: scope,
+    };
+  }
+
+  if (projectionError && !isMissingIdentityProjection(projectionError)) {
+    throw projectionError;
+  }
+
+  // Deployment-order fallback for environments that have not received the
+  // projection RPC yet. Scope is still proved against organizations before use.
+  const { data: rawProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+  if (!rawProfile) return null;
+
+  let organization = null;
+  let facilityIds = [];
+  if (rawProfile.organization_id) {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('id, display_id')
+      .eq('id', rawProfile.organization_id)
+      .maybeSingle();
+    if (error) throw error;
+    organization = data;
+
+    if (organization) {
+      const { data: facilities, error: facilitiesError } = await supabase
+        .from('hospitals')
+        .select('id')
+        .eq('organization_id', organization.id);
+      if (facilitiesError) throw facilitiesError;
+      facilityIds = (facilities || []).map((facility) => facility.id).filter(Boolean);
+    }
+  }
+
+  const scopeState = organization
+    ? 'ready'
+    : rawProfile.organization_id
+      ? 'missing_org'
+      : rawProfile.onboarding_status === 'pending' || rawProfile.onboarding_status === 'skipped'
+        ? 'pending_onboarding'
+        : 'missing_org';
+
+  return {
+    ...rawProfile,
+    source_organization_id: rawProfile.organization_id || null,
+    organization_id: organization?.id || null,
+    hospital_ids: facilityIds,
+    organization_scope_state: scopeState,
+    organization_scope: {
+      organizationId: organization?.id || null,
+      organizationDisplayId: organization?.display_id || null,
+      facilityIds,
+      primaryFacilityId: facilityIds[0] || null,
+      walletInitialized: null,
+      state: scopeState,
+    },
+  };
+};
+
 export const AuthProvider = ({ children, pathname = "/" }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authError, setAuthError] = useState(null);
+  const [assuranceState, setAssuranceState] = useState(() => createAssuranceState());
+  const [mfaChallenge, setMfaChallenge] = useState(() => createMfaChallengeState());
+  const userRef = React.useRef(null);
   const profileRef = React.useRef(null);
   const loadedProfileUserIdRef = React.useRef(null);
+  const assuranceRef = React.useRef(createAssuranceState());
+  const mfaChallengeRef = React.useRef(createMfaChallengeState());
+  const assuranceRequestRef = React.useRef(null);
+  const challengeRequestRef = React.useRef(null);
+  const verifyRequestRef = React.useRef(null);
 
-  // Sync ref with state
-  const setProfileState = (newProfile) => {
+  const setUserState = useCallback((newUser) => {
+    const previousUserId = userRef.current?.id || null;
+    const nextUserId = newUser?.id || null;
+    if (previousUserId && nextUserId && previousUserId !== nextUserId) {
+      clearPrincipalScopedQueryCache();
+    }
+    userRef.current = newUser;
+    setUser(newUser);
+  }, []);
+
+  const setProfileState = useCallback((newProfile) => {
     profileRef.current = newProfile;
     setProfile(newProfile);
-  };
+  }, []);
+
+  const setCanonicalAssuranceState = useCallback((nextState) => {
+    assuranceRef.current = nextState;
+    setAssuranceState(nextState);
+  }, []);
+
+  const setCanonicalMfaChallenge = useCallback((nextState) => {
+    mfaChallengeRef.current = nextState;
+    setMfaChallenge(nextState);
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
@@ -44,39 +221,27 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   // Ref to track active fetch to prevent loops
   const activeFetchRef = React.useRef(null);
 
-  const fetchProfile = async (userId, email, sessionUser = null) => {
+  const fetchProfile = useCallback(async (userId, email, sessionUser = null, options = {}) => {
     // Prevent concurrent fetches for same user
     if (
       activeFetchRef.current === userId ||
-      profileRef.current?.id === userId ||
-      loadedProfileUserIdRef.current === userId
+      (!options.force && profileRef.current?.id === userId) ||
+      (!options.force && loadedProfileUserIdRef.current === userId)
     ) {
       return;
     }
-
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 10000);
-    });
 
     try {
       activeFetchRef.current = userId;
       setAuthError(null);
 
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
-
-      if (error) throw error;
+      const data = await withAuthTimeout(loadValidatedProfile(userId));
 
       if (data) {
         loadedProfileUserIdRef.current = userId;
         primeCurrentUserCache(sessionUser || { id: userId, email }, data);
         setProfileState(data);
+        return data;
       } else {
         clearCurrentUserCache();
         loadedProfileUserIdRef.current = null;
@@ -85,8 +250,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           type: 'profile_missing',
           message: 'Your console profile is not ready yet.',
         });
+        return null;
       }
-    } catch (error) {
+    } catch {
       // Keep degraded auth startup visible through app state, not raw browser diagnostics.
       clearCurrentUserCache();
       loadedProfileUserIdRef.current = null;
@@ -95,18 +261,314 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         type: 'profile_unavailable',
         message: 'We could not load your console profile.',
       });
+      return null;
     } finally {
       activeFetchRef.current = null;
       setLoading(false);
       setInitializing(false);
     }
-  };
+  }, [setProfileState]);
+
+  const resetMfaChallenge = useCallback(() => {
+    challengeRequestRef.current = null;
+    verifyRequestRef.current = null;
+    setCanonicalMfaChallenge(createMfaChallengeState());
+  }, [setCanonicalMfaChallenge]);
+
+  const readAssuranceLevel = useCallback(async (userId, options = {}) => {
+    if (!userId) {
+      const signedOutState = createAssuranceState(ASSURANCE_STATUS.SIGNED_OUT);
+      setCanonicalAssuranceState(signedOutState);
+      return signedOutState;
+    }
+
+    const inFlight = assuranceRequestRef.current;
+    if (inFlight?.userId === userId) return inFlight.promise;
+
+    const current = assuranceRef.current;
+    if (
+      !options.force
+      && current.checkedUserId === userId
+      && [ASSURANCE_STATUS.SATISFIED, ASSURANCE_STATUS.MFA_REQUIRED].includes(current.status)
+    ) {
+      return current;
+    }
+
+    if (userRef.current?.id === userId) {
+      setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.CHECKING, {
+        checkedUserId: userId,
+      }));
+    }
+
+    const promise = (async () => {
+      try {
+        const { data, error } = await withAuthTimeout(
+          supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        );
+        if (error) throw error;
+
+        const status = classifyAssuranceLevel(data);
+        if (status === ASSURANCE_STATUS.ERROR) {
+          throw new Error('Unrecognized assurance level');
+        }
+
+        const nextState = createAssuranceState(status, {
+          currentLevel: data.currentLevel,
+          nextLevel: data.nextLevel,
+          checkedUserId: userId,
+        });
+        if (userRef.current?.id === userId) setCanonicalAssuranceState(nextState);
+        return nextState;
+      } catch {
+        const failedState = createAssuranceState(ASSURANCE_STATUS.ERROR, {
+          checkedUserId: userId,
+          error: 'We could not confirm your account security. Try again.',
+        });
+        if (userRef.current?.id === userId) setCanonicalAssuranceState(failedState);
+        return failedState;
+      }
+    })();
+
+    assuranceRequestRef.current = { userId, promise };
+    try {
+      return await promise;
+    } finally {
+      if (assuranceRequestRef.current?.promise === promise) {
+        assuranceRequestRef.current = null;
+      }
+    }
+  }, [setCanonicalAssuranceState]);
+
+  const refreshAssurance = useCallback(async (options = {}) => {
+    const sessionUser = options.sessionUser || userRef.current;
+    if (!sessionUser?.id) {
+      const signedOutState = createAssuranceState(ASSURANCE_STATUS.SIGNED_OUT);
+      setCanonicalAssuranceState(signedOutState);
+      setLoading(false);
+      setInitializing(false);
+      return signedOutState;
+    }
+
+    const userChanged = userRef.current?.id !== sessionUser.id;
+    if (userChanged) {
+      clearCurrentUserCache();
+      loadedProfileUserIdRef.current = null;
+      setProfileState(null);
+      resetMfaChallenge();
+    }
+
+    setUserState(sessionUser);
+    setLoading(true);
+
+    let nextState = await readAssuranceLevel(sessionUser.id, { force: options.force });
+    if (userRef.current?.id !== sessionUser.id) return nextState;
+
+    if (
+      options.requireAal2
+      && (nextState.status !== ASSURANCE_STATUS.SATISFIED || nextState.currentLevel !== 'aal2')
+    ) {
+      nextState = createAssuranceState(ASSURANCE_STATUS.ERROR, {
+        currentLevel: nextState.currentLevel,
+        nextLevel: nextState.nextLevel,
+        checkedUserId: sessionUser.id,
+        error: 'We could not confirm the completed security check. Try again.',
+      });
+      setCanonicalAssuranceState(nextState);
+    }
+
+    if (nextState.status === ASSURANCE_STATUS.SATISFIED) {
+      await fetchProfile(
+        sessionUser.id,
+        sessionUser.email,
+        sessionUser,
+        { force: Boolean(options.forceProfile) }
+      );
+    } else {
+      clearCurrentUserCache();
+      loadedProfileUserIdRef.current = null;
+      setProfileState(null);
+      setAuthError(null);
+    }
+
+    setLoading(false);
+    setInitializing(false);
+    return nextState;
+  }, [
+    fetchProfile,
+    readAssuranceLevel,
+    resetMfaChallenge,
+    setCanonicalAssuranceState,
+    setProfileState,
+    setUserState,
+  ]);
+
+  const beginMfaChallenge = useCallback(async (options = {}) => {
+    const sessionUser = userRef.current;
+    if (!sessionUser?.id) {
+      const unavailableState = createMfaChallengeState({
+        status: 'error',
+        error: 'Your session ended. Sign in again.',
+      });
+      setCanonicalMfaChallenge(unavailableState);
+      return unavailableState;
+    }
+
+    let currentAssurance = assuranceRef.current;
+    if (currentAssurance.status !== ASSURANCE_STATUS.MFA_REQUIRED) {
+      currentAssurance = await refreshAssurance({ sessionUser, force: true });
+      if (currentAssurance.status !== ASSURANCE_STATUS.MFA_REQUIRED) {
+        return createMfaChallengeState({
+          status: currentAssurance.status === ASSURANCE_STATUS.SATISFIED ? 'idle' : 'error',
+          userId: sessionUser.id,
+          error: currentAssurance.error,
+        });
+      }
+    }
+
+    const inFlight = challengeRequestRef.current;
+    if (inFlight?.userId === sessionUser.id) return inFlight.promise;
+
+    const currentChallenge = mfaChallengeRef.current;
+    if (
+      !options.force
+      && currentChallenge.userId === sessionUser.id
+      && currentChallenge.status === 'ready'
+    ) {
+      return currentChallenge;
+    }
+
+    const startingState = createMfaChallengeState({
+      status: 'starting',
+      userId: sessionUser.id,
+    });
+    setCanonicalMfaChallenge(startingState);
+
+    const promise = (async () => {
+      try {
+        const { data: factors, error: factorsError } = await withAuthTimeout(
+          supabase.auth.mfa.listFactors()
+        );
+        if (factorsError) throw factorsError;
+
+        const factorList = [
+          ...(Array.isArray(factors?.totp) ? factors.totp : []),
+          ...(Array.isArray(factors?.all) ? factors.all : []),
+        ];
+        const verifiedFactor = factorList.find((factor) => (
+          factor.status === 'verified'
+          && (factor.factorType === 'totp' || factor.factor_type === 'totp')
+        ));
+        if (!verifiedFactor?.id) throw new Error('Verified factor unavailable');
+
+        const { data: challenge, error: challengeError } = await withAuthTimeout(
+          supabase.auth.mfa.challenge({ factorId: verifiedFactor.id })
+        );
+        if (challengeError || !challenge?.id) throw challengeError || new Error('Challenge unavailable');
+
+        const readyState = createMfaChallengeState({
+          status: 'ready',
+          userId: sessionUser.id,
+          factorId: verifiedFactor.id,
+          challengeId: challenge.id,
+        });
+        if (userRef.current?.id === sessionUser.id) setCanonicalMfaChallenge(readyState);
+        return readyState;
+      } catch {
+        const failedState = createMfaChallengeState({
+          status: 'error',
+          userId: sessionUser.id,
+          error: 'We could not start the security check. Try again or sign out.',
+        });
+        if (userRef.current?.id === sessionUser.id) setCanonicalMfaChallenge(failedState);
+        return failedState;
+      }
+    })();
+
+    challengeRequestRef.current = { userId: sessionUser.id, promise };
+    try {
+      return await promise;
+    } finally {
+      if (challengeRequestRef.current?.promise === promise) {
+        challengeRequestRef.current = null;
+      }
+    }
+  }, [refreshAssurance, setCanonicalMfaChallenge]);
+
+  const verifyMfa = useCallback(async (code) => {
+    const normalizedCode = String(code || '').replace(/\D/g, '').slice(0, 6);
+    const sessionUser = userRef.current;
+    const challenge = mfaChallengeRef.current;
+
+    if (normalizedCode.length !== 6) {
+      return { ok: false, error: 'Enter the 6-digit code.' };
+    }
+    if (
+      !sessionUser?.id
+      || challenge.userId !== sessionUser.id
+      || !challenge.factorId
+      || !challenge.challengeId
+    ) {
+      return { ok: false, error: 'This security check expired. Start a new check.' };
+    }
+
+    const inFlight = verifyRequestRef.current;
+    if (inFlight?.userId === sessionUser.id) return inFlight.promise;
+
+    setCanonicalMfaChallenge({ ...challenge, status: 'verifying', error: null });
+
+    const promise = (async () => {
+      try {
+        const { error: verifyError } = await withAuthTimeout(
+          supabase.auth.mfa.verify({
+            factorId: challenge.factorId,
+            challengeId: challenge.challengeId,
+            code: normalizedCode,
+          })
+        );
+        if (verifyError) throw verifyError;
+
+        const verifiedAssurance = await refreshAssurance({
+          sessionUser,
+          force: true,
+          requireAal2: true,
+        });
+        if (verifiedAssurance.status !== ASSURANCE_STATUS.SATISFIED) {
+          const failedState = createMfaChallengeState({
+            status: 'error',
+            userId: sessionUser.id,
+            error: verifiedAssurance.error || 'We could not confirm the security check. Try again.',
+          });
+          setCanonicalMfaChallenge(failedState);
+          return { ok: false, error: failedState.error };
+        }
+
+        resetMfaChallenge();
+        return { ok: true, assurance: verifiedAssurance };
+      } catch {
+        const retryState = {
+          ...challenge,
+          status: 'ready',
+          error: 'That code could not be verified. Try again or start a new check.',
+        };
+        if (userRef.current?.id === sessionUser.id) setCanonicalMfaChallenge(retryState);
+        return { ok: false, error: retryState.error };
+      }
+    })();
+
+    verifyRequestRef.current = { userId: sessionUser.id, promise };
+    try {
+      return await promise;
+    } finally {
+      if (verifyRequestRef.current?.promise === promise) {
+        verifyRequestRef.current = null;
+      }
+    }
+  }, [refreshAssurance, resetMfaChallenge, setCanonicalMfaChallenge]);
 
   useEffect(() => {
-    // Force absolute initialization check
     let mounted = true;
+    const scheduledAuthTasks = new Set();
 
-    // Add timeout to prevent hanging on mobile or bad networks
     const timeoutId = setTimeout(() => {
       if (mounted) {
         setInitializing(prev => {
@@ -117,32 +579,40 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           return prev;
         });
       }
-    }, 8000); // 8 second timeout for robust cold-starts
+    }, 8000);
 
-    // Get initial session
+    const clearSessionState = () => {
+      clearPrincipalScopedQueryCache();
+      clearCurrentUserCache();
+      assuranceRequestRef.current = null;
+      loadedProfileUserIdRef.current = null;
+      setAuthError(null);
+      setProfileState(null);
+      setUserState(null);
+      setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.SIGNED_OUT));
+      resetMfaChallenge();
+      setLoading(false);
+      setInitializing(false);
+    };
+
     const checkInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await withAuthTimeout(supabase.auth.getSession());
         if (!mounted) return;
 
         clearTimeout(timeoutId);
-
         if (error) throw error;
 
         if (session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.user.id, session.user.email, session.user);
+          await refreshAssurance({ sessionUser: session.user, force: true });
         } else {
-          clearCurrentUserCache();
-          setUser(null);
-          setAuthError(null);
-          loadedProfileUserIdRef.current = null;
-          setProfileState(null);
-          setLoading(false);
-          setInitializing(false);
+          clearSessionState();
         }
-      } catch (error) {
+      } catch {
         if (mounted) {
+          setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.ERROR, {
+            error: 'We could not confirm your session. Try again.',
+          }));
           setAuthError({
             type: 'session_unavailable',
             message: 'We could not confirm your session.',
@@ -155,55 +625,85 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
     checkInitialSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      // COORDINATION: only fetch if we don't already have the correct profile
-      if (currentUser) {
-        // Use ref for synchronous check to avoid closure staleness
-        if (profileRef.current && profileRef.current.id === currentUser.id) {
-          setLoading(false);
-          setInitializing(false);
-        } else {
-          // Need to fetch (ref check inside fetchProfile prevents loops)
-          fetchProfile(currentUser.id, currentUser.email, currentUser);
-        }
-      }
-
       if (event === 'SIGNED_OUT') {
-        clearCurrentUserCache();
-        setAuthError(null);
-        loadedProfileUserIdRef.current = null;
-        setProfileState(null);
-        setUser(null);
-        setLoading(false);
-        setInitializing(false);
+        clearSessionState();
+        return;
       } else if (event === 'PASSWORD_RECOVERY') {
         navigate('/set-password');
       }
+
+      const currentUser = session?.user ?? null;
+      if (!currentUser) return;
+
+      if (userRef.current?.id && userRef.current.id !== currentUser.id) {
+        clearCurrentUserCache();
+        loadedProfileUserIdRef.current = null;
+        setProfileState(null);
+        resetMfaChallenge();
+      }
+      setUserState(currentUser);
+      const taskId = setTimeout(async () => {
+        scheduledAuthTasks.delete(taskId);
+        if (!mounted || userRef.current?.id !== currentUser.id) return;
+
+        const requireAal2 = event === 'MFA_CHALLENGE_VERIFIED'
+          || mfaChallengeRef.current.status === 'verifying';
+        await refreshAssurance({
+          sessionUser: currentUser,
+          force: true,
+          requireAal2,
+        });
+      }, 0);
+      scheduledAuthTasks.add(taskId);
     });
 
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
+      scheduledAuthTasks.forEach(clearTimeout);
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [
+    navigate,
+    refreshAssurance,
+    resetMfaChallenge,
+    setCanonicalAssuranceState,
+    setProfileState,
+    setUserState,
+  ]);
 
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
-  };
+  const signIn = useCallback(async (email, password) => {
+    resetMfaChallenge();
+    setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.CHECKING));
+    setAuthError(null);
+    setLoading(true);
 
-  const signUp = async (email, password, username) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      if (!data?.user) throw new Error('Sign-in session unavailable');
+
+      const assurance = await refreshAssurance({
+        sessionUser: data.user,
+        force: true,
+      });
+      return { ...data, assurance };
+    } catch (error) {
+      if (!userRef.current) {
+        setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.SIGNED_OUT));
+      }
+      setLoading(false);
+      throw error;
+    }
+  }, [refreshAssurance, resetMfaChallenge, setCanonicalAssuranceState]);
+
+  const signUp = useCallback(async (email, password, username) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -213,26 +713,37 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     });
     if (error) throw error;
     return data;
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Attempt to sign out from Supabase server
-      const { error } = await supabase.auth.signOut();
-      if (error) console.error('Error during Supabase sign out:', error);
-    } catch (error) {
-      console.error('Unexpected error during sign out:', error);
+      await withAuthTimeout(supabase.auth.signOut());
+    } catch {
+      // Local state is still cleared below so the user is never left in limbo.
     } finally {
       // Always clear local state regardless of server response
+      if (userRef.current) clearPrincipalScopedQueryCache();
       clearCurrentUserCache();
-      setUser(null);
+      assuranceRequestRef.current = null;
+      setUserState(null);
       setAuthError(null);
       loadedProfileUserIdRef.current = null;
       setProfileState(null);
+      setCanonicalAssuranceState(createAssuranceState(ASSURANCE_STATUS.SIGNED_OUT));
+      resetMfaChallenge();
+      setLoading(false);
+      setInitializing(false);
       // Optional: Clear any other local storage items if you have custom ones
       localStorage.removeItem('supabase.auth.token'); // Fallback cleanup
     }
-  };
+  }, [resetMfaChallenge, setCanonicalAssuranceState, setProfileState, setUserState]);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user || assuranceRef.current.status !== ASSURANCE_STATUS.SATISFIED) return null;
+    loadedProfileUserIdRef.current = null;
+    return fetchProfile(user.id, user.email, user, { force: true });
+  }, [fetchProfile, user]);
 
   const hasRole = useCallback((roles) => {
     if (!profile) return false;
@@ -253,8 +764,8 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isSponsor = useCallback(() => hasRole('sponsor'), [hasRole]);
   const isOrgAdmin = useCallback(() => hasRole('org_admin'), [hasRole]);
   const isProvider = useCallback(() => hasRole('provider'), [hasRole]);
-  // Persona derivation — no schema change: responder-shaped provider types share the
-  // driver lens (arbitration of record, docs/rbac/PERSONA_MATRIX_2026-07-09.md §3.3).
+  // Persona derivation: responder-shaped provider types share the driver lens
+  // (arbitration of record, docs/rbac/PERSONA_MATRIX_2026-07-09.md section 3.3).
   // Same equivalence set as TodayHome useRoleKind and mobileNavigation's responder slate.
   const isDriver = useCallback(
     () => hasRole('provider') && ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type),
@@ -319,28 +830,23 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     }
 
     return false;
-  }, [isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile]);
+  }, [isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer]);
 
   const updateProfile = useCallback(async (updates) => {
-    try {
-      if (!user) throw new Error('No user logged in');
-      const data = await updateProfileService(user.id, updates);
-      setProfileState(data);
-      return data;
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
-  }, [user]);
+    if (!user) throw new Error('No user logged in');
+    const data = await updateProfileService(user.id, updates);
+    setProfileState(data);
+    return data;
+  }, [setProfileState, user]);
 
   const uploadAvatar = useCallback(async (file) => {
-    try {
-      if (!user) throw new Error('No user logged in');
-      return await uploadProfileAvatar(user.id, file);
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      throw error;
-    }
+    if (!user) throw new Error('No user logged in');
+    return uploadProfileAvatar(user.id, file);
+  }, [user]);
+
+  const discardAvatarUpload = useCallback(async (upload) => {
+    if (!user) throw new Error('No user logged in');
+    return discardUnpersistedProfileAvatar(user.id, upload);
   }, [user]);
 
   const updatePassword = useCallback(async (password) => {
@@ -351,13 +857,20 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     user,
     profile,
     authError,
+    assuranceState,
+    mfaChallenge,
     orgId: profile?.organization_id || null,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshAssurance,
+    beginMfaChallenge,
+    verifyMfa,
+    refreshProfile,
     updateProfile,
     uploadAvatar,
+    discardAvatarUpload,
     updatePassword,
     hasRole,
     hasMinRole,
@@ -375,12 +888,19 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     user,
     profile,
     authError,
+    assuranceState,
+    mfaChallenge,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshAssurance,
+    beginMfaChallenge,
+    verifyMfa,
+    refreshProfile,
     updateProfile,
     uploadAvatar,
+    discardAvatarUpload,
     updatePassword,
     hasRole,
     hasMinRole,

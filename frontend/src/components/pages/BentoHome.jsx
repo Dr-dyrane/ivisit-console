@@ -8,7 +8,6 @@ import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { transformActivityData } from '../../utils/activityUtils';
 import { BentoSkeleton } from '../common/Skeletons';
 import {
   Activity,
@@ -426,10 +425,8 @@ export const BentoHome = () => {
     visitsData,
     visitsStats,
     verificationData,
-    activityData,
     userData,
     loading,
-    fetchActivityData,
     refreshAllData,
     refreshAllData: refreshAction
   } = usePageData();
@@ -506,9 +503,6 @@ export const BentoHome = () => {
   //   });
   // }, [emergencyStats, analyticsData, doctorsStats, visitsStats, verificationData, appStats]);
 
-  // Transform activity data for display
-  const recentActivities = transformActivityData(activityData || []).slice(0, 5);
-
   const roleHomeKind = isOrgAdmin() && !isAdmin()
     ? 'org_admin'
     : isProvider() && !isAdmin() && !isOrgAdmin() && !isSponsor() && !isPatient() && !isViewer()
@@ -544,13 +538,13 @@ export const BentoHome = () => {
     <Button
       variant="outline"
       size="sm"
-      onClick={refreshAllData || fetchActivityData}
+      onClick={refreshAllData}
       className="surface-raised rounded-pill h-8 px-3 text-[10px] font-semibold"
     >
       <RefreshCw className="h-3 w-3 mr-1" />
       REFRESH STATS
     </Button>
-  ), [refreshAllData, fetchActivityData]);
+  ), [refreshAllData]);
 
   // Fetch subscription analytics
   useEffect(() => {
@@ -585,10 +579,13 @@ export const BentoHome = () => {
 
   // Fetch wallet stats
   useEffect(() => {
+    if (roleHomeKind) return undefined;
+
     if (isAdmin() || isOrgAdmin() || isSponsor()) {
       getWalletSummary(profile, isAdmin() || isSponsor()).then(setWalletStats);
     }
-  }, [isAdmin, isOrgAdmin, isSponsor, profile]);
+    return undefined;
+  }, [isAdmin, isOrgAdmin, isSponsor, profile, roleHomeKind]);
 
   const chartData = [];
 
@@ -799,8 +796,8 @@ export const BentoHome = () => {
           appStats={appStats}
           walletStats={walletStats}
           subscriptionStats={subscriptionStats}
-          recentActivities={recentActivities}
-          onRefresh={refreshAction || fetchActivityData}
+          recentActivities={[]}
+          onRefresh={refreshAction}
           roleContext={{
             isAdmin: isAdmin(),
             isProvider: isProvider(),
@@ -1486,51 +1483,6 @@ export const BentoHome = () => {
               </Card>
             </motion.div>
           )}
-
-          {/* Recent Activity (Wide) */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.65 }}
-          >
-            <Card className="h-full min-h-[300px] rounded-card bg-card/70 shadow-sm p-7 flex flex-col w-full relative overflow-hidden group">
-              {/* Subtle Diagonal Lines */}
-              <div className="absolute inset-0 opacity-5"
-                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 2px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
-              </div>
-
-              {/* Apple hover glow effect */}
-              <div className="" />
-
-              <h4 className="font-bold text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
-              <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity, idx) => (
-                    <div key={activity.id || idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
-                      <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
-                        <activity.icon className={`h-5 w-5 ${activity.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold leading-snug truncate-2">{activity.msg}</p>
-                        <p className="text-xs text-muted-foreground mt-1 font-medium">{activity.time}</p>
-                        {activity.user && (
-                          <p className="text-xs text-muted-foreground mt-1 font-normal">by {activity.user}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                    <Activity className="h-8 w-8 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground font-normal">No recent activity</p>
-                    <p className="text-xs text-muted-foreground mt-1">Activity will appear here as users interact with the system</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
 
         </motion.div>
       </LayoutGroup>

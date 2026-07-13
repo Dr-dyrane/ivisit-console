@@ -23,6 +23,28 @@ const SUPPORT_TICKET_UPDATE_FIELDS = [
   'priority',
 ];
 
+// The table stores these fields as TEXT without CHECK constraints. Keep the
+// service boundary aligned with the values already exposed by the mounted
+// Support controls and the maintained support lifecycle; do not pass arbitrary
+// tokens through to Supabase.
+export const SUPPORT_TICKET_CATEGORIES = Object.freeze([
+  'general',
+  'technical',
+  'billing',
+  'account',
+  'feature_request',
+  'bug_report',
+  'medical',
+]);
+export const SUPPORT_TICKET_PRIORITIES = Object.freeze(['low', 'normal', 'high', 'urgent']);
+export const SUPPORT_TICKET_STATUSES = Object.freeze(['open', 'in_progress', 'resolved', 'closed']);
+
+const SUPPORT_TICKET_ENUM_VALUES = {
+  category: new Set(SUPPORT_TICKET_CATEGORIES),
+  priority: new Set(SUPPORT_TICKET_PRIORITIES),
+  status: new Set(SUPPORT_TICKET_STATUSES),
+};
+
 const SUPPORT_TICKET_SORT_FIELDS = new Set(['created_at', 'updated_at', 'subject', 'status', 'priority', 'category']);
 
 const normalizeFilterList = (value) => {
@@ -32,6 +54,24 @@ const normalizeFilterList = (value) => {
   const text = String(value || '').trim();
   return text ? [text] : [];
 };
+
+const normalizeSupportTicketEnum = (field, value, fallback) => {
+  const allowedValues = SUPPORT_TICKET_ENUM_VALUES[field];
+  const candidate = value === null || value === undefined || String(value).trim() === ''
+    ? fallback
+    : value;
+  const normalized = String(candidate ?? '').trim().toLowerCase();
+
+  if (!allowedValues?.has(normalized)) {
+    throw new Error(`Unsupported support ticket ${field}: ${normalized || 'empty'}`);
+  }
+
+  return normalized;
+};
+
+const normalizeSupportTicketFilterList = (field, value) => (
+  normalizeFilterList(value).map((entry) => normalizeSupportTicketEnum(field, entry))
+);
 
 const sanitizeSearchTerm = (value) => String(value || '')
   .trim()
@@ -63,21 +103,21 @@ function applySupportTicketScope(query, user) {
 }
 
 function applySupportTicketFilters(query, filter = {}) {
-  const statusValues = normalizeFilterList(filter.status);
+  const statusValues = normalizeSupportTicketFilterList('status', filter.status);
   if (statusValues.length === 1) {
     query = query.eq('status', statusValues[0]);
   } else if (statusValues.length > 1) {
     query = query.in('status', statusValues);
   }
 
-  const priorityValues = normalizeFilterList(filter.priority);
+  const priorityValues = normalizeSupportTicketFilterList('priority', filter.priority);
   if (priorityValues.length === 1) {
     query = query.eq('priority', priorityValues[0]);
   } else if (priorityValues.length > 1) {
     query = query.in('priority', priorityValues);
   }
 
-  const categoryValues = normalizeFilterList(filter.category);
+  const categoryValues = normalizeSupportTicketFilterList('category', filter.category);
   if (categoryValues.length === 1) {
     query = query.eq('category', categoryValues[0]);
   } else if (categoryValues.length > 1) {
@@ -320,10 +360,10 @@ export async function createSupportTicket(input) {
     payload.organization_id = payload.organization_id || user?.organization_id || null;
     payload.subject = (payload.subject || '').trim();
     payload.message = (payload.message || '').trim();
-    payload.category = payload.category || 'general';
-    payload.priority = payload.priority || 'normal';
+    payload.category = normalizeSupportTicketEnum('category', payload.category, 'general');
+    payload.priority = normalizeSupportTicketEnum('priority', payload.priority, 'normal');
     payload.assigned_to = payload.assigned_to || null;
-    payload.status = payload.status || 'open';
+    payload.status = normalizeSupportTicketEnum('status', payload.status, 'open');
 
     if (!payload.subject) {
       throw new Error('Support ticket subject is required');
@@ -376,6 +416,12 @@ export async function updateSupportTicket(ticketId, input) {
         throw new Error('Support ticket message cannot be empty');
       }
     }
+    if (Object.prototype.hasOwnProperty.call(payload, 'category')) {
+      payload.category = normalizeSupportTicketEnum('category', payload.category);
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'priority')) {
+      payload.priority = normalizeSupportTicketEnum('priority', payload.priority);
+    }
 
     if (Object.keys(payload).length === 0) {
       return getSupportTicket(ticketId);
@@ -412,21 +458,28 @@ export async function updateSupportTicket(ticketId, input) {
  */
 export async function deleteSupportTicket(ticketId) {
   try {
-    // withAudit: destructive delete gets an activity-log entry. Return value stays
-    // undefined for callers (they ignore it); withAudit only observes the outcome.
-    await withAudit(
+    // Require the receiver to return the deleted identity. A policy-filtered or stale
+    // id must not be reported as success when no row was affected.
+    const deletedTicket = await withAudit(
       'support_ticket.delete',
       'support_ticket',
       async () => {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from(TABLE_NAME)
           .delete()
-          .eq('id', ticketId);
+          .eq('id', ticketId)
+          .select('id')
+          .maybeSingle();
         if (error) throw error;
-        return { id: ticketId };
+        if (!data?.id) {
+          throw new Error('Support ticket was not deleted. It may no longer exist or be available to this account.');
+        }
+        return data;
       },
       { ticket_id: ticketId }
     );
+
+    return deletedTicket;
   } catch (error) {
     console.error(`Error deleting support ticket ${ticketId}:`, error);
     throw error;
@@ -463,6 +516,7 @@ export async function getUserSupportTickets(userId) {
  */
 export async function updateTicketStatus(ticketId, status) {
   try {
+    const normalizedStatus = normalizeSupportTicketEnum('status', status);
     // withAudit: operator workflow state change - log the status transition.
     const data = await withAudit(
       'support_ticket.status',
@@ -471,7 +525,7 @@ export async function updateTicketStatus(ticketId, status) {
         const result = await supabase
           .from(TABLE_NAME)
           .update({
-            status: status,
+            status: normalizedStatus,
             updated_at: new Date().toISOString(),
           })
           .eq('id', ticketId)
@@ -480,7 +534,7 @@ export async function updateTicketStatus(ticketId, status) {
         if (result.error) throw result.error;
         return result.data;
       },
-      { ticket_id: ticketId, status }
+      { ticket_id: ticketId, status: normalizedStatus }
     );
 
     return data;

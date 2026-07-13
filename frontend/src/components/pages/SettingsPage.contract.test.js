@@ -9,6 +9,21 @@ const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Settings Page 16 intake contract', () => {
+  it('keeps mobile Settings dialogs above and clear of the bottom navigation pill', () => {
+    const page = read('src/components/pages/SettingsPage.jsx');
+    const profileModal = read('src/components/modals/ProfileEditModal.jsx');
+    const securityModal = read('src/components/modals/SecurityModal.jsx');
+    const chromeSuppression = read('src/hooks/useModalChromeSuppression.js');
+
+    expect(page).toContain("import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression';");
+    expect(page).toContain('useModalChromeSuppression(isProfileModalOpen || isSecurityModalOpen);');
+    expect(profileModal).toContain('fixed inset-0 z-[420]');
+    expect(securityModal).toContain('fixed inset-0 z-[420]');
+    expect(chromeSuppression).toContain('[data-modal-chrome="true"], #dynamic-bottom-bar');
+    expect(chromeSuppression).toContain("node.style.visibility = 'hidden';");
+    expect(chromeSuppression).toContain("node.setAttribute('aria-hidden', 'true');");
+  });
+
   it('preserves Settings intake archaeology and admits the guarded active surfaces', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
@@ -318,9 +333,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(securityModal).not.toContain('w-px');
 
     for (const source of [oldProfileModal, profileModal]) {
-      expect(source).toContain('uploadAvatar(file)');
       expect(source).toContain('updateProfile({');
-      expect(source).toContain("toast.success('Image uploaded successfully')");
       expect(source).toContain("toast.success('Profile updated successfully')");
       expect(source).toContain('avatar-upload');
       expect(source).toContain('Tap to change photo');
@@ -328,18 +341,25 @@ describe('Settings Page 16 intake contract', () => {
       expect(source).toContain('AnimatePresence');
       expect(source).toContain('role="dialog"');
     }
+    expect(oldProfileModal).toContain('uploadAvatar(file)');
+    expect(oldProfileModal).toContain("toast.success('Image uploaded successfully')");
     expect(oldProfileModal).toContain("console.error('Error uploading image:', error)");
     expect(oldProfileModal).toContain('console.error(error)');
     expect(profileModal).not.toContain('console.error');
-    expect(profileModal).toContain("toast.error('Error uploading image')");
+    expect(profileModal).not.toContain("toast.success('Image uploaded successfully')");
+    expect(profileModal).toContain('const nextPreviewUrl = URL.createObjectURL(file);');
+    expect(profileModal).toContain('URL.revokeObjectURL(avatarPreviewUrlRef.current);');
+    expect(profileModal).toContain('uploadedAvatar = await uploadAvatar(selectedAvatarFile);');
+    expect(profileModal).toContain('await discardAvatarUpload(uploadedAvatar);');
+    expect(profileModal).toContain("toast.error('The photo was not saved, and cleanup could not be confirmed.');");
     expect(profileModal).toContain("handleApiError(error, 'update')");
     expect(profileModal).toContain('const file = event.target.files?.[0];');
     expect(profileModal).toContain('if (!file) return;');
     expect(profileModal).toContain('role="status" aria-live="polite"');
-    expect(profileModal).toContain('Uploading photo...');
-    expect(profileModal).toContain("data-state={uploading ? 'pending' : 'ready'}");
-    expect(profileModal).toContain("data-state={(loading || uploading) ? 'blocked' : 'ready'}");
-    expect(profileModal).toContain("data-state={loading ? 'pending' : uploading ? 'blocked' : 'ready'}");
+    expect(profileModal).toContain('Photo selected. Save to apply it.');
+    expect(profileModal).toContain("data-state={selectedAvatarFile ? 'selected' : 'ready'}");
+    expect(profileModal).toContain("data-state={loading ? 'blocked' : 'ready'}");
+    expect(profileModal).toContain("data-state={loading ? 'pending' : 'ready'}");
     expect(profileModal).toContain("aria-busy={loading ? 'true' : undefined}");
     expect(profileModal).toContain('Saving...');
     expect(profileModal).toContain('rounded-modal');

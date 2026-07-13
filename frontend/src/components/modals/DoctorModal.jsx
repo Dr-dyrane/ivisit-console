@@ -18,7 +18,12 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { ModalShell } from '../ui/ModalShell';
 import { useAuth } from '../../contexts/AuthContext';
-import { createDoctor, updateDoctor } from '../../services/doctorsService';
+import {
+  assertDoctorWriteScope,
+  createDoctor,
+  filterDoctorFacilityOptions,
+  updateDoctor,
+} from '../../services/doctorsService';
 import { getHospitals } from '../../services/hospitalsService';
 import { handleApiError } from '../../utils/errorHandler';
 import { useDoctorsMutations, applyOptimisticUpsert } from '../../hooks/useDoctorsMutations';
@@ -53,18 +58,39 @@ const statusMeta = {
     label: 'Off duty',
     className: 'bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.07] dark:text-slate-200',
   },
+  invited: {
+    label: 'Invited',
+    className: 'bg-violet-500/12 text-violet-700 dark:bg-violet-300/16 dark:text-violet-100',
+  },
+  unavailable: {
+    label: 'Unavailable for assignment',
+    className: 'bg-amber-500/12 text-amber-700 dark:bg-amber-300/16 dark:text-amber-100',
+  },
 };
 
-const editableStaffStatuses = new Set(['available', 'busy', 'on_call', 'off_duty']);
-
 const normalizeStaffDirectoryStatus = (status) => {
-  const value = String(status || 'available').toLowerCase();
-  return editableStaffStatuses.has(value) ? value : 'off_duty';
+  const value = String(status || '').trim().toLowerCase();
+  return value || 'available';
+};
+
+const formatStatusLabel = (status) => String(status || '')
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const getStaffStatusMeta = (status, isAvailable) => {
+  const normalizedStatus = normalizeStaffDirectoryStatus(status);
+  if (normalizedStatus === 'available' && isAvailable === false) {
+    return statusMeta.unavailable;
+  }
+  return statusMeta[normalizedStatus] || {
+    label: formatStatusLabel(normalizedStatus) || 'Unknown',
+    className: statusMeta.off_duty.className,
+  };
 };
 
 const fieldClassName = 'h-11 w-full rounded-inner bg-background/[0.72] px-4 text-sm font-medium text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04),0_12px_28px_rgb(0_0_0/0.06)] transition-[background,box-shadow,transform] placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-60 focus:bg-background/[0.84] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.07] dark:focus:bg-white/[0.09]';
 
-const normalizeForm = (doctor) => ({
+export const normalizeForm = (doctor) => ({
   ...EMPTY_FORM,
   name: doctor?.name || '',
   specialization: doctor?.specialization || '',
@@ -83,21 +109,29 @@ const cleanText = (value) => {
   return text.length > 0 ? text : null;
 };
 
-const buildStaffPayload = (formData) => {
+export const buildStaffPayload = (formData, { isCreate = false, isProfileLinked = false } = {}) => {
   const experience = formData.experience === '' ? null : Number(formData.experience);
 
-  return {
-    name: cleanText(formData.name),
+  const payload = {
     specialization: cleanText(formData.specialization),
-    phone: cleanText(formData.phone),
-    email: cleanText(formData.email),
     hospital_id: formData.hospital_id || null,
-    status: formData.status || 'available',
     experience: Number.isFinite(experience) ? experience : null,
     license_number: cleanText(formData.license_number),
     about: cleanText(formData.about),
     consultation_fee: cleanText(formData.consultation_fee),
   };
+
+  if (isCreate || !isProfileLinked) {
+    payload.name = cleanText(formData.name);
+    payload.phone = cleanText(formData.phone);
+    payload.email = cleanText(formData.email);
+  }
+
+  // Creation pairs the database's is_available=true default with available.
+  // Ordinary edits do not own either lifecycle field.
+  if (isCreate) payload.status = 'available';
+
+  return payload;
 };
 
 const getFacilityName = (doctor, facilities, hospitalId) => {
@@ -119,8 +153,17 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
   const isView = resolvedMode === 'view';
   const isEdit = resolvedMode === 'edit';
   const isCreate = resolvedMode === 'create';
-  const { isAdmin, isOrgAdmin } = useAuth();
-  const canManageStaff = Boolean(isAdmin?.() || isOrgAdmin?.());
+  const isProfileLinked = Boolean(doctor?.profile_id);
+  const { isAdmin, isOrgAdmin, profile } = useAuth();
+  const isAdminRole = Boolean(isAdmin?.());
+  const isOrgAdminRole = Boolean(isOrgAdmin?.());
+  const canManageStaff = isAdminRole || isOrgAdminRole;
+  const actorScope = useMemo(() => ({
+    role: isAdminRole ? 'admin' : (isOrgAdminRole ? 'org_admin' : profile?.role),
+    organization_id: profile?.organization_id || null,
+    hospital_ids: profile?.hospital_ids || [],
+    organization_scope: profile?.organization_scope || null,
+  }), [isAdminRole, isOrgAdminRole, profile]);
 
   const [formData, setFormData] = useState(() => normalizeForm(doctor));
   const [facilities, setFacilities] = useState([]);
@@ -173,11 +216,12 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
         const visibleFacilities = Array.isArray(rows) ? rows : rows?.data || [];
         if (cancelled) return;
 
-        setFacilities(visibleFacilities);
-        if (isCreate && visibleFacilities.length === 1) {
+        const scopedFacilities = filterDoctorFacilityOptions(visibleFacilities, actorScope);
+        setFacilities(scopedFacilities);
+        if (isCreate && scopedFacilities.length === 1) {
           setFormData((current) => ({
             ...current,
-            hospital_id: current.hospital_id || visibleFacilities[0].id,
+            hospital_id: current.hospital_id || scopedFacilities[0].id,
           }));
         }
       } catch (error) {
@@ -195,13 +239,20 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
     return () => {
       cancelled = true;
     };
-  }, [isCreate, isOpen]);
+  }, [actorScope, isCreate, isOpen]);
 
-  const status = statusMeta[formData.status] || statusMeta.off_duty;
+  const status = getStaffStatusMeta(formData.status, doctor?.is_available);
   const facilityName = useMemo(
     () => getFacilityName(doctor, facilities, formData.hospital_id),
     [doctor, facilities, formData.hospital_id]
   );
+  const selectedFacilityIsInScope = isAdminRole
+    || !formData.hospital_id
+    || facilities.some((facility) => facility.id === formData.hospital_id);
+  const facilityOutOfScope = isOrgAdminRole
+    && Boolean(formData.hospital_id)
+    && !loadingFacilities
+    && !selectedFacilityIsInScope;
   const title = isCreate ? 'Add staff' : formData.name || 'Staff profile';
   const subtitle = isCreate ? 'Create a directory record' : formData.specialization || 'Staff member';
 
@@ -226,13 +277,20 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
       return;
     }
 
-    const payload = buildStaffPayload(formData);
-    if (!payload.name || !payload.email || !payload.specialization) {
+    const payload = buildStaffPayload(formData, { isCreate, isProfileLinked });
+    if (!cleanText(formData.name) || !cleanText(formData.email) || !payload.specialization) {
       toast.error('Name, email, and specialty are required.');
       return;
     }
     if (!payload.hospital_id) {
       toast.error('Select a facility first.');
+      return;
+    }
+
+    try {
+      assertDoctorWriteScope(payload, actorScope, { requireFacility: isCreate && isOrgAdminRole });
+    } catch (scopeError) {
+      toast.error(scopeError.message);
       return;
     }
 
@@ -318,15 +376,24 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Full name">
-                    <input
+                  {isProfileLinked ? (
+                    <ReadOnlyItem
+                      icon={UserRound}
+                      label="Full name"
                       value={formData.name}
-                      onChange={(event) => updateField('name', event.target.value)}
-                      required
-                      placeholder="Name"
-                      className={fieldClassName}
+                      hint="Synced from the linked account"
                     />
-                  </Field>
+                  ) : (
+                    <Field label="Full name">
+                      <input
+                        value={formData.name}
+                        onChange={(event) => updateField('name', event.target.value)}
+                        required
+                        placeholder="Name"
+                        className={fieldClassName}
+                      />
+                    </Field>
+                  )}
 
                   <Field label="Specialty">
                     <input
@@ -338,35 +405,56 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
                     />
                   </Field>
 
-                  <Field label="Email">
-                    <input
-                      type="email"
+                  {isProfileLinked ? (
+                    <ReadOnlyItem
+                      icon={Mail}
+                      label="Email"
                       value={formData.email}
-                      onChange={(event) => updateField('email', event.target.value)}
-                      required
-                      placeholder="name@example.com"
-                      className={fieldClassName}
+                      hint="Synced from the linked account"
                     />
-                  </Field>
+                  ) : (
+                    <Field label="Email">
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(event) => updateField('email', event.target.value)}
+                        required
+                        placeholder="name@example.com"
+                        className={fieldClassName}
+                      />
+                    </Field>
+                  )}
 
-                  <Field label="Phone">
-                    <input
+                  {isProfileLinked ? (
+                    <ReadOnlyItem
+                      icon={Phone}
+                      label="Phone"
                       value={formData.phone}
-                      onChange={(event) => updateField('phone', event.target.value)}
-                      placeholder="Phone"
-                      className={fieldClassName}
+                      hint="Synced from the linked account"
                     />
-                  </Field>
+                  ) : (
+                    <Field label="Phone">
+                      <input
+                        value={formData.phone}
+                        onChange={(event) => updateField('phone', event.target.value)}
+                        placeholder="Phone"
+                        className={fieldClassName}
+                      />
+                    </Field>
+                  )}
 
                   <Field label="Facility">
                     <select
-                      value={formData.hospital_id}
+                      value={selectedFacilityIsInScope ? formData.hospital_id : ''}
                       onChange={(event) => updateField('hospital_id', event.target.value)}
                       disabled={loadingFacilities}
                       required
                       className={fieldClassName}
                     >
                       <option value="">{loadingFacilities ? 'Loading facilities' : 'Select facility'}</option>
+                      {isAdminRole && formData.hospital_id && !facilities.some((facility) => facility.id === formData.hospital_id) && (
+                        <option value={formData.hospital_id}>{facilityName}</option>
+                      )}
                       {facilities.map((facility) => (
                         <option key={facility.id} value={facility.id}>
                           {facility.name || 'Unnamed facility'}
@@ -378,20 +466,21 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
                         {facilityError}
                       </span>
                     )}
+                    {facilityOutOfScope && (
+                      <span className="mt-2 block text-xs font-medium text-amber-700 dark:text-amber-100" role="alert">
+                        This facility is outside your organization. Select an authorized facility before saving.
+                      </span>
+                    )}
                   </Field>
 
-                  <Field label="Status">
-                    <select
-                      value={formData.status}
-                      onChange={(event) => updateField('status', event.target.value)}
-                      className={fieldClassName}
-                    >
-                      <option value="available">Available</option>
-                      <option value="busy">Busy</option>
-                      <option value="off_duty">Off duty</option>
-                      <option value="on_call">On call</option>
-                    </select>
-                  </Field>
+                  <ReadOnlyItem
+                    icon={CheckCircle2}
+                    label="Status"
+                    value={status.label}
+                    hint={isCreate
+                      ? 'New staff starts available for assignment'
+                      : 'Managed by the authorized availability workflow'}
+                  />
 
                   <Field label="License">
                     <input
@@ -441,7 +530,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode, listFilter }) => {
           {!isView && (
             <Button
               type="submit"
-              disabled={saving || !canManageStaff}
+              disabled={saving || !canManageStaff || facilityOutOfScope}
               className="h-11 rounded-button bg-sky-600 px-7 font-semibold text-white shadow-[0_16px_36px_rgb(14_165_233/0.28)] transition-transform hover:bg-sky-500 active:scale-[0.98] disabled:opacity-60"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -479,7 +568,7 @@ const SummaryItem = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-const ReadOnlyItem = ({ icon: Icon, label, value, wide = false }) => (
+const ReadOnlyItem = ({ icon: Icon, label, value, hint, wide = false }) => (
   <div className={`rounded-inner bg-muted/22 p-4 shadow-[0_12px_34px_rgb(0_0_0/0.07)] ${wide ? 'sm:col-span-2' : ''}`}>
     <div className="flex items-center gap-2 text-muted-foreground">
       <Icon className="h-4 w-4" />
@@ -490,6 +579,11 @@ const ReadOnlyItem = ({ icon: Icon, label, value, wide = false }) => (
     <p className="mt-2 text-sm font-semibold text-foreground">
       {value || 'Not set'}
     </p>
+    {hint && (
+      <p className="mt-1 text-xs text-muted-foreground">
+        {hint}
+      </p>
+    )}
   </div>
 );
 

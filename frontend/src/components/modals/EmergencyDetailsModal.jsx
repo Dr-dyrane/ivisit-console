@@ -31,6 +31,7 @@ import {
 } from '../../services/emergencyService';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
+import { canApplyEmergencyDetailProjection } from '../../utils/emergencyDetailRefresh';
 import { resolveVital } from '../../constants/vitalTracks';
 
 const formatRequestTitle = (value) => {
@@ -54,6 +55,7 @@ const getRequestOrbClass = (status) => {
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment }) => {
   const navigate = useNavigate();
+  const [detailRequest, setDetailRequest] = React.useState(request || null);
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
@@ -62,51 +64,88 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
   const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
+  const requestId = request?.id || null;
+  const refreshSequenceRef = React.useRef(0);
+  const activeRequestIdRef = React.useRef(requestId);
+  const latestRequestPropRef = React.useRef(request);
+  const detailOpenRef = React.useRef(isOpen);
+  React.useLayoutEffect(() => {
+    if (
+      latestRequestPropRef.current !== request ||
+      activeRequestIdRef.current !== requestId ||
+      detailOpenRef.current !== isOpen
+    ) {
+      refreshSequenceRef.current += 1;
+    }
+    latestRequestPropRef.current = request;
+    activeRequestIdRef.current = requestId;
+    detailOpenRef.current = isOpen;
+  }, [isOpen, request, requestId]);
+  const activeRequest = detailRequest?.id === requestId ? detailRequest : request;
   const renderProjection = React.useMemo(
-    () => buildEmergencyRenderProjection(request, {
+    () => buildEmergencyRenderProjection(activeRequest, {
       latestPayment: paymentData,
       paymentVisibilityState,
       visitOutcome,
       visitVisibilityState,
     }),
-    [request, paymentData, paymentVisibilityState, visitOutcome, visitVisibilityState]
+    [activeRequest, paymentData, paymentVisibilityState, visitOutcome, visitVisibilityState]
   );
   const normalizedStatus = renderProjection.statusDisplay.status;
   const isApprovalPending = normalizedStatus === 'pending_approval';
   const isPaymentDeclined = normalizedStatus === 'payment_declined';
+  const canRetryPayment = typeof onRetryPayment === 'function';
   const sceneCoordinates = renderProjection.locationDisplay.coordinates;
   const showCashApprovalCard = isApprovalPending && (
-    request?.status === 'pending_approval' ||
-    request?.payment_status === 'pending' ||
+    activeRequest?.status === 'pending_approval' ||
+    activeRequest?.payment_status === 'pending' ||
     Boolean(paymentData)
   );
-  const etaDisplay = request?.eta_display || null;
-  const bedCategory = request?.bed_category || null;
+  const etaDisplay = activeRequest?.eta_display || null;
+  const bedCategory = activeRequest?.bed_category || null;
 
   const refreshProjection = React.useCallback(async () => {
-    if (!isOpen || !request?.id) return null;
+    const sequence = ++refreshSequenceRef.current;
+    const targetRequestId = requestId;
+    if (!isOpen || !targetRequestId) return null;
+
+    const isCurrentRefresh = () => canApplyEmergencyDetailProjection({
+      sequence,
+      latestSequence: refreshSequenceRef.current,
+      requestId: targetRequestId,
+      activeRequestId: activeRequestIdRef.current,
+      isOpen: detailOpenRef.current,
+    });
 
     setDetailLoading(true);
     setLoadingOutcome(true);
     try {
-      const projection = await getEmergencyDetailProjection(request.id, request);
+      const projection = await getEmergencyDetailProjection(targetRequestId);
+      if (!isCurrentRefresh()) return null;
+      if (!projection.request) {
+        throw new Error('Request is no longer available in your current scope.');
+      }
+      setDetailRequest(projection.request);
       setPaymentData(projection.latestPayment || null);
       setPaymentVisibilityState(projection.paymentVisibilityState);
       setVisitOutcome(projection.visitOutcome || null);
       setVisitVisibilityState(projection.visitVisibilityState);
       return projection;
     } catch (error) {
+      if (!isCurrentRefresh()) return null;
       console.error('Error loading emergency detail projection:', error);
       toast.error('Failed to load emergency detail');
       return null;
     } finally {
-      setDetailLoading(false);
-      setLoadingOutcome(false);
+      if (isCurrentRefresh()) {
+        setDetailLoading(false);
+        setLoadingOutcome(false);
+      }
     }
-  }, [isOpen, request]);
+  }, [isOpen, requestId]);
 
   const handleApprove = async () => {
-    if (!request) return;
+    if (!activeRequest) return;
     if (!paymentData) {
       console.warn('[EmergencyDetailsModal] Cannot approve: payment record unavailable');
       toast.error('Payment record unavailable for this request. Refreshing backend detail.');
@@ -115,7 +154,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
     setIsProcessingApproval(true);
     try {
-      await approveCashPayment(paymentData.id, request.id);
+      await approveCashPayment(paymentData.id, activeRequest.id);
       const projection = await refreshProjection();
       const nextStatus = canonicalizeEmergencyStatus(
         projection?.request?.status,
@@ -135,7 +174,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   };
 
   const handleDecline = async () => {
-    if (!request) return;
+    if (!activeRequest) return;
     if (!paymentData) {
       console.warn('[EmergencyDetailsModal] Cannot decline: payment record unavailable');
       toast.error('Payment record unavailable for this request. Refreshing backend detail.');
@@ -144,7 +183,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
     setIsProcessingApproval(true);
     try {
-      await declineCashPayment(paymentData.id, request.id);
+      await declineCashPayment(paymentData.id, activeRequest.id);
       await refreshProjection();
       toast.success('Cash payment decline recorded.');
       onClose(true); // Close and refresh
@@ -156,10 +195,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   };
 
   const handleRetry = async () => {
-    if (!request || typeof onRetryPayment !== 'function') return;
+    if (!activeRequest || !canRetryPayment) return;
     setIsRetryingPayment(true);
     try {
-      const ok = await onRetryPayment(request);
+      const ok = await onRetryPayment(activeRequest);
       if (ok) {
         await refreshProjection();
         onClose(true);
@@ -170,18 +209,25 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   };
 
   React.useEffect(() => {
+    setDetailRequest(request || null);
+    setPaymentData(null);
+    setPaymentVisibilityState('not_created');
+    setVisitOutcome(null);
+    setVisitVisibilityState('not_expected_yet');
+  }, [request]);
+
+  React.useEffect(() => {
     void refreshProjection();
   }, [refreshProjection]);
 
   React.useEffect(() => {
-    if (!isOpen || !request?.id) return undefined;
-    const requestId = request.id;
+    if (!isOpen || !requestId) return undefined;
     return subscribeToEmergencyDetail(requestId, () => {
       void refreshProjection();
     });
-  }, [isOpen, request?.id, refreshProjection]);
+  }, [isOpen, requestId, refreshProjection]);
 
-  if (!request) return null;
+  if (!activeRequest) return null;
 
   // SCHEMA NOTE: emergency_requests has NO `priority` column (see types/database.ts Row).
   // The old priority colour/badge branches were dead code that always fell to the
@@ -199,11 +245,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
   };
 
-  const modalTitle = formatRequestTitle(request.service_type);
-  const modalSubtitle = `Case ID: #${request.id?.slice(0, 8) || 'unknown'} / ${request.created_at ? format(new Date(request.created_at), 'MMM dd, HH:mm') : 'Recently'}`;
-  const vital = resolveVital('emergency', request.status);
+  const modalTitle = formatRequestTitle(activeRequest.service_type);
+  const modalSubtitle = `Case ID: #${activeRequest.id?.slice(0, 8) || 'unknown'} / ${activeRequest.created_at ? format(new Date(activeRequest.created_at), 'MMM dd, HH:mm') : 'Recently'}`;
+  const vital = resolveVital('emergency', activeRequest.status);
   const patient = renderProjection.patientDisplay;
-  const requesterUsername = request.patient_snapshot?.username || request.profiles?.username || 'Patient';
+  const requesterUsername = activeRequest.patient_snapshot?.username || activeRequest.profiles?.username || 'Patient';
   const facilityName = renderProjection.facilityDisplay.name;
 
   return (
@@ -212,7 +258,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
       onClose={() => onClose(false)}
       title={modalTitle}
       subtitle={modalSubtitle}
-      icon={<span className="text-muted-foreground">{getEmergencyIcon(request.service_type)}</span>}
+      icon={<span className="text-muted-foreground">{getEmergencyIcon(activeRequest.service_type)}</span>}
       size="lg"
       managed
     >
@@ -224,7 +270,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
             <div className="flex items-start gap-3.5">
               <Avatar className="h-12 w-12 shrink-0 rounded-pill">
                 <AvatarImage src={patient.avatar} />
-                <AvatarFallback className={`text-sm font-semibold ${getRequestOrbClass(request.status)}`}>
+                <AvatarFallback className={`text-sm font-semibold ${getRequestOrbClass(activeRequest.status)}`}>
                   {patient.initials}
                 </AvatarFallback>
               </Avatar>
@@ -292,7 +338,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           )}
 
           {/* Payment Declined Action */}
-          {isPaymentDeclined && (
+          {isPaymentDeclined && canRetryPayment && (
             <PanelCard className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-amber-500/10 text-amber-600 dark:text-amber-300">
@@ -314,7 +360,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           )}
 
           {/* Dispatch Source Indicator */}
-          {request.ambulance_id && (
+          {activeRequest.ambulance_id && (
             <div className="flex items-center justify-center gap-2 rounded-card bg-foreground/[0.05] p-3 dark:bg-white/[0.07]">
               <Ambulance className="h-4 w-4 text-sky-500" />
               <span className="text-sm font-medium text-sky-600 dark:text-sky-300">Auto-dispatched from mobile app</span>
@@ -417,14 +463,14 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
               <DetailRow label="Hospital" value={renderProjection.facilityDisplay.name} />
               <DetailRow label="Service Type" value={renderProjection.serviceDisplay.label} />
               <DetailRow label="Request ID" value={renderProjection.identity.displayId || 'N/A'} valueClassName="font-mono" />
-              {request.patient_location && (
+              {activeRequest.patient_location && (
                 <div>
                   <p className="eyebrow">Patient Location</p>
                   <div className="mt-1 font-mono text-sm text-foreground">
                     <LocationCell
-                      location={request.patient_location}
-                      pickupLocation={request.pickup_location}
-                      responderLocation={request.responder_location}
+                      location={activeRequest.patient_location}
+                      pickupLocation={activeRequest.pickup_location}
+                      responderLocation={activeRequest.responder_location}
                     />
                   </div>
                 </div>
@@ -442,7 +488,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           </SectionCard>
 
           {/* Ambulance Details */}
-          {request.service_type === 'ambulance' && renderProjection.serviceDisplay.hasAmbulanceType && (
+          {activeRequest.service_type === 'ambulance' && renderProjection.serviceDisplay.hasAmbulanceType && (
             <SectionCard title="Ambulance Details" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
               <DetailRow label="Type" value={renderProjection.serviceDisplay.ambulanceTypeLabel} />
               <DetailRow label="ETA" value={renderProjection.responderDisplay.etaLabel || etaDisplay || 'N/A'} />
@@ -451,24 +497,24 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           )}
 
           {/* Bed Details */}
-          {request.service_type === 'bed' && (
+          {activeRequest.service_type === 'bed' && (
             <SectionCard title="Bed Details" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              <DetailRow label="Bed Number" value={request.bed_number || 'N/A'} />
+              <DetailRow label="Bed Number" value={activeRequest.bed_number || 'N/A'} />
               <DetailRow label="Bed Type" value={bedCategory || 'N/A'} valueClassName="capitalize" />
               <DetailRow label="Specialty" value={renderProjection.serviceDisplay.specialtyLabel} />
             </SectionCard>
           )}
 
           {/* Responder Information */}
-          {request.responder_name && (
+          {activeRequest.responder_name && (
             <SectionCard title="Responder Information" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4">
-              <DetailRow label="Responder Name" value={request.responder_name || 'N/A'} />
-              <DetailRow label="Contact" value={request.responder_phone || 'N/A'} />
-              {request.responder_vehicle_plate && (
-                <DetailRow label="Vehicle Plate" value={request.responder_vehicle_plate || 'N/A'} />
+              <DetailRow label="Responder Name" value={activeRequest.responder_name || 'N/A'} />
+              <DetailRow label="Contact" value={activeRequest.responder_phone || 'N/A'} />
+              {activeRequest.responder_vehicle_plate && (
+                <DetailRow label="Vehicle Plate" value={activeRequest.responder_vehicle_plate || 'N/A'} />
               )}
-              {request.responder_vehicle_type && (
-                <DetailRow label="Vehicle Type" value={request.responder_vehicle_type || 'N/A'} valueClassName="capitalize" />
+              {activeRequest.responder_vehicle_type && (
+                <DetailRow label="Vehicle Type" value={activeRequest.responder_vehicle_type || 'N/A'} valueClassName="capitalize" />
               )}
             </SectionCard>
           )}

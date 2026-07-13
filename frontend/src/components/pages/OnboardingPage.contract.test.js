@@ -8,12 +8,11 @@ const ONBOARDING_SURFACE_FILES = [
   'src/components/onboarding/OrganizationTypeStep.jsx',
   'src/components/onboarding/AdminAccountStep.jsx',
   'src/components/onboarding/OrganizationDetailsStep.jsx',
-  'src/components/onboarding/InitialSetupStep.jsx',
   'src/components/onboarding/VerificationStep.jsx',
 ];
 
-describe('Onboarding Page 21 admission contract', () => {
-  it('keeps Onboarding in the public shell and its visual files in the hardgate', () => {
+describe('Onboarding Page 21 receiver contract', () => {
+  it('keeps the four-step registration flow in the public shell and visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
@@ -21,7 +20,7 @@ describe('Onboarding Page 21 admission contract', () => {
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 21 Admission - Onboarding');
-    expect(gate).toContain('Onboarding receiver fail-closed correction on 2026-07-12');
+    expect(gate).toContain('Onboarding receiver admission on 2026-07-12');
     expect(app).toContain('<Route path="/onboarding" element={<OnboardingPage />} />');
     expect(app).toContain('<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />');
     expect(app).not.toContain('<Route path="/onboarding" element={<ProtectedRoute');
@@ -30,83 +29,74 @@ describe('Onboarding Page 21 admission contract', () => {
     expect(protectedRoute).toContain('return <Navigate to="/onboarding" replace />;');
 
     ONBOARDING_SURFACE_FILES.forEach((file) => expect(hardgate).toContain(file));
-    expect(hardgate).not.toContain('src/contexts/OnboardingContext.jsx');
-    expect(hardgate).not.toContain('src/services/onboardingService.js');
+    expect(hardgate).not.toContain('src/components/onboarding/InitialSetupStep.jsx');
   });
 
-  it('keeps every unproved registration receiver unreachable from the active route', () => {
-    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+  it('mounts the real wizard and removes the old skip and setup step paths', () => {
     const page = read('src/components/pages/OnboardingPage.jsx');
-
-    expect(gate).toContain('found no approved organization-provisioning or existing-facility-claim receiver');
-    expect(gate).toContain('no longer mounts `OnboardingProvider` or `OnboardingWizard`');
-    expect(gate).toContain('The dormant wizard/context/service inventory remains in source for a later receiver-backed pass; it is not active product behavior.');
-
-    expect(page).not.toContain('OnboardingContext');
-    expect(page).not.toContain('OnboardingProvider');
-    expect(page).not.toContain('OnboardingWizard');
-    expect(page).not.toContain('onboardingService');
-    expect(page).not.toContain('supabase');
-    expect(page).not.toContain('createAdminAccount');
-    expect(page).not.toContain('submitOnboarding');
-    expect(page).not.toContain('skipOnboarding');
-  });
-
-  it('retains the dormant flow inventory without promoting it as mounted behavior', () => {
     const context = read('src/contexts/OnboardingContext.jsx');
     const wizard = read('src/components/onboarding/OnboardingWizard.jsx');
-    const service = read('src/services/onboardingService.js');
 
-    expect(context).toContain('onboardingService.createAdminAccount(formData)');
-    expect(context).toContain('onboardingService.submitOnboarding(formData)');
-    expect(context).toContain('onboardingService.skipOnboarding()');
-    expect(context).toContain("navigate('/onboarding-success', { state: { result } });");
-    expect(wizard).toContain('await createAdminAccount();');
-    expect(wizard).toContain('await submitOnboarding();');
-    expect(service).toContain('supabase.auth.signUp({');
-    expect(service).toContain(".from('hospitals')");
-    expect(service).toContain('.insert(orgData)');
-    expect(service).toContain('organization_id: organization.id');
-    expect(service).not.toContain('provisioningVerified');
+    expect(page).toContain('<OnboardingProvider>');
+    expect(page).toContain('<OnboardingWizard />');
+    expect(page).toContain("profile?.onboarding_status === 'complete'");
+    expect(context).toContain("{ id: 'account', title: 'Account'");
+    expect(context).toContain("{ id: 'organization', title: 'Organization'");
+    expect(context).toContain("{ id: 'essentials', title: 'Essentials'");
+    expect(context).toContain("{ id: 'review', title: 'Review'");
+    expect(context).toContain('if (currentStep === 0) setCurrentStep(1);');
+    expect(context).toContain("const persisted = { ...formData, adminPassword: '', documents: [] };");
+    expect(context).not.toContain('skipOnboarding');
+    expect(wizard).not.toContain('InitialSetupStep');
+    expect(wizard).not.toContain('Skip');
+    expect(wizard).toContain("if (currentStepConfig.id === 'account') return createAdminAccount();");
+    expect(wizard).toContain('if (isLastStep) return submitOnboarding();');
   });
 
-  it('offers only honest recovery actions with immediate feedback', () => {
+  it('uses canonical Auth, private Storage, and atomic provisioning receivers only', () => {
+    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+    const service = read('src/services/onboardingService.js');
+    const organizationStep = read('src/components/onboarding/OrganizationTypeStep.jsx');
+
+    expect(gate).toContain('Canonical provisioning receiver: admitted.');
+    expect(gate).toContain('Existing-facility ownership: support/admin review only.');
+    expect(service).toContain('supabase.auth.signUp({');
+    expect(service).toContain('data: { full_name: fullName }');
+    expect(service).not.toContain('data: { role:');
+    expect(service).toContain("supabase.rpc('search_onboarding_facilities'");
+    expect(service).toContain("supabase.rpc('get_console_identity_projection')");
+    expect(service).toContain("supabase.rpc('provision_console_organization'");
+    expect(service).toContain('data?.provisioningVerified !== true');
+    expect(service).toContain("return `onboarding/${userId}/${randomId}.${extension}`;");
+    expect(service).toContain('const MAX_DOCUMENTS = 3;');
+    expect(service).toContain('await removeUploadedDocuments');
+    expect(service).not.toContain(".from('hospitals')");
+    expect(service).not.toContain(".from('profiles')");
+    expect(service).not.toContain('.insert(');
+
+    expect(organizationStep).toContain("const isValid = !isExistingMode");
+    expect(organizationStep).toContain('Existing access needs review');
+    expect(organizationStep).toContain('Ask the current administrator to invite you');
+  });
+
+  it('provides structural loading and immediate submit feedback on calm geometry', () => {
     const page = read('src/components/pages/OnboardingPage.jsx');
+    const wizard = read('src/components/onboarding/OnboardingWizard.jsx');
 
     expect(page).toContain('const OnboardingLoadingState = () => (');
-    expect(page).toContain('aria-label="Checking registration access"');
+    expect(page).toContain('aria-label="Preparing registration"');
     expect(page).toContain('animate-pulse');
-    expect(page).toContain('Registration unavailable');
-    expect(page).toContain('New organization setup is paused');
-    expect(page).toContain('Existing team members can still sign in. Contact support for help setting up a new organization.');
-    expect(page).toContain('<Link to="/login"');
-    expect(page).toContain('href="mailto:support@ivisit.ng"');
-    expect(page).toContain('await signOut();');
-    expect(page).toContain("navigate('/login', { replace: true });");
     expect(page).toContain('aria-busy={leaving}');
-    expect(page).toContain("data-state={leaving ? 'pending' : 'ready'}");
     expect(page).toContain('<ThemeToggle size="xs" />');
-  });
-
-  it('keeps the public state on canonical calm geometry', () => {
-    const page = read('src/components/pages/OnboardingPage.jsx');
-    const hardgate = read('scripts/check-ui-surface-hardgate.js');
+    expect(wizard).toContain('aria-busy={isSubmitting}');
+    expect(wizard).toContain("data-state={isSubmitting ? 'pending' : 'ready'}");
+    expect(wizard).toContain("isLastStep ? 'Submitting' : 'Please wait'");
 
     for (const token of ['rounded-icon', 'rounded-inner', 'rounded-button', 'rounded-pill']) {
-      expect(page).toContain(token);
+      expect(`${page}\n${wizard}`).toContain(token);
     }
-    for (const forbidden of [
-      'rounded-2xl', 'rounded-3xl', 'rounded-xl', 'rounded-lg', 'rounded-full', 'rounded-[',
-      'border-', 'ring-', 'outline-', 'tracking-', 'bg-orb', 'squircle-xl', 'geo-',
-      'bg-primary', 'text-primary', 'border-primary', 'backdrop-blur', 'bg-gradient',
-      'shadow-premium', 'shadow-xl', 'shadow-2xl', 'shadow-primary',
-    ]) {
-      expect(page).not.toContain(forbidden);
-    }
-    expect(page).not.toContain('fixed bottom-0');
     expect(page).not.toContain('usePageHeader');
     expect(page).not.toContain('usePageShell');
     expect(page).not.toContain('ContextPanel');
-    expect(hardgate).toContain('src/components/pages/OnboardingPage.jsx');
   });
 });

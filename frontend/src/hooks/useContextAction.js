@@ -2,14 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Plus,
     MapPin,
-    Users,
+    UserPlus,
     Ambulance,
     Stethoscope,
-    Calendar,
     Shield,
     Settings,
     BarChart3,
-    Newspaper,
     Headphones,
     Mail,
     Send,
@@ -30,8 +28,8 @@ export const useContextAction = (openModal) => {
         };
     } else if (currentPath.includes('/users')) {
         return {
-            icon: Users,
-            label: 'Add user',
+            icon: UserPlus,
+            label: 'Invite user',
             color: 'primary',
             action: () => {
                 window.dispatchEvent(new CustomEvent('openUserModal'));
@@ -77,10 +75,12 @@ export const useContextAction = (openModal) => {
         };
     } else if (currentPath.includes('/visits')) {
         return {
-            icon: Calendar,
-            label: 'Schedule Visit',
+            icon: BarChart3,
+            label: 'View statistics',
             color: 'primary',
-            action: () => openModal('visit')
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
+            }
         };
     } else if (currentPath.includes('/verification')) {
         return {
@@ -113,11 +113,11 @@ export const useContextAction = (openModal) => {
         };
     } else if (currentPath.includes('/health-news')) {
         return {
-            icon: Newspaper,
-            label: 'New article',
+            icon: BarChart3,
+            label: 'News stats',
             color: 'primary',
             action: () => {
-                window.dispatchEvent(new CustomEvent('openHealthNewsModal'));
+                window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
             }
         };
     } else if (currentPath.includes('/support-tickets')) {

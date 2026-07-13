@@ -135,6 +135,7 @@ export const MobileHospitals = ({
 }) => {
     const observerTarget = useRef(null);
     const [activeHospital, setActiveHospital] = useState(null);
+    const { triggerFromEvent } = useFeedback();
     // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
     // MECHANISM renders but the bulk WRITE stays locked — HospitalsPage's only bulk
     // control is a DISABLED delete ("locked, no DELETE receiver"), so mobile shows the

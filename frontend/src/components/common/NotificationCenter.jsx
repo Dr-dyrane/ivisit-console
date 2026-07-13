@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Bell, X } from 'lucide-react';
+import { AlertCircle, Bell, Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationCard } from './NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
@@ -146,6 +146,42 @@ const NotificationGroupList = ({ notifications, onDismiss, onMarkRead, onOpenNot
   );
 };
 
+const NotificationLoadError = ({ onRetry }) => (
+  <div role="alert" className="py-12 text-center">
+    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-destructive/[0.08]">
+      <AlertCircle className="h-5 w-5 text-destructive" />
+    </div>
+    <p className="text-sm font-semibold text-foreground">Notifications unavailable</p>
+    <p className="mx-auto mt-1 max-w-[240px] text-xs leading-5 text-muted-foreground">
+      We could not load notifications right now.
+    </p>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="mt-3 rounded-button bg-muted/50 text-xs font-semibold hover:bg-muted"
+      onClick={onRetry}
+    >
+      Try again
+    </Button>
+  </div>
+);
+
+const NotificationInlineError = ({ message, onRetry }) => (
+  <div role="alert" className="mb-3 flex items-start gap-2 rounded-inner bg-destructive/[0.07] px-3 py-2.5">
+    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+    <p className="min-w-0 flex-1 text-xs leading-5 text-foreground">{message}</p>
+    {onRetry && (
+      <button
+        type="button"
+        onClick={onRetry}
+        className="shrink-0 rounded-pill px-1 text-xs font-semibold text-foreground transition-opacity hover:opacity-70"
+      >
+        Retry
+      </button>
+    )}
+  </div>
+);
+
 export const NotificationCenter = () => {
   const { user } = useAuth();
   const { isMobile } = useNavigation();
@@ -153,6 +189,9 @@ export const NotificationCenter = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [mutationError, setMutationError] = useState(null);
+  const [markingAll, setMarkingAll] = useState(false);
   const fetchSeqRef = useRef(0);
   const inFlightUserIdRef = useRef(null);
   const lastFetchedUserIdRef = useRef(null);
@@ -172,6 +211,7 @@ export const NotificationCenter = () => {
     fetchSeqRef.current = fetchSeq;
     inFlightUserIdRef.current = user.id;
 
+    setLoadError(null);
     setLoading(true);
 
     try {
@@ -181,7 +221,10 @@ export const NotificationCenter = () => {
       setNotifications(data);
       lastFetchedUserIdRef.current = user.id;
     } catch {
+      if (fetchSeq !== fetchSeqRef.current) return;
+
       // Keep the existing list; notification refresh should not break the shell.
+      setLoadError('Notifications could not be refreshed. Try again.');
     } finally {
       if (inFlightUserIdRef.current === user.id) inFlightUserIdRef.current = null;
       if (fetchSeq === fetchSeqRef.current) setLoading(false);
@@ -195,6 +238,7 @@ export const NotificationCenter = () => {
   useEffect(() => {
     if (!user?.id) return;
     const unsubscribe = subscribeToNotifications(user.id, (newNotification) => {
+      setLoadError(null);
       setNotifications(prev => [newNotification, ...prev]);
     });
 
@@ -215,46 +259,82 @@ export const NotificationCenter = () => {
 
   const markNotificationsReadOptimistically = useCallback(async (notificationIds) => {
     const ids = [...new Set(notificationIds)].filter(Boolean);
-    if (ids.length === 0) return;
+    if (ids.length === 0) return { failedIds: [] };
+
+    const idSet = new Set(ids);
+    const previousReadById = new Map(
+      notifications
+        .filter(notification => idSet.has(notification.id))
+        .map(notification => [notification.id, Boolean(notification.read)])
+    );
 
     setNotifications(prev =>
       prev.map(notification =>
-        ids.includes(notification.id)
+        idSet.has(notification.id)
           ? { ...notification, read: true }
           : notification
       )
     );
 
     const results = await Promise.all(
-      ids.map(async (id) => ({
-        id,
-        ok: await markNotificationAsRead(id),
-      }))
+      ids.map(async (id) => {
+        try {
+          return { id, ok: await markNotificationAsRead(id) };
+        } catch {
+          return { id, ok: false };
+        }
+      })
     );
 
     const failedIds = results.filter(result => !result.ok).map(result => result.id);
-    if (failedIds.length === 0) return;
+    if (failedIds.length === 0) return { failedIds };
+
+    const failedIdSet = new Set(failedIds);
 
     setNotifications(prev =>
-      prev.map(notification =>
-        failedIds.includes(notification.id)
-          ? { ...notification, read: false }
-          : notification
-      )
+      prev.map((notification) => {
+        if (!failedIdSet.has(notification.id) || !previousReadById.has(notification.id)) {
+          return notification;
+        }
+
+        return { ...notification, read: previousReadById.get(notification.id) };
+      })
     );
-  }, []);
+
+    return { failedIds };
+  }, [notifications]);
 
   const handleMarkRead = useCallback(async (notificationId) => {
-    await markNotificationsReadOptimistically([notificationId]);
+    setMutationError(null);
+    const { failedIds } = await markNotificationsReadOptimistically([notificationId]);
+    if (failedIds.length > 0) {
+      setMutationError('This notification could not be marked as read. Try again.');
+    }
   }, [markNotificationsReadOptimistically]);
 
-  const handleMarkAllRead = useCallback(() => {
-    markNotificationsReadOptimistically(
-      notifications
-        .filter(notification => !notification.read)
-        .map(notification => notification.id)
-    );
-  }, [markNotificationsReadOptimistically, notifications]);
+  const handleMarkAllRead = useCallback(async () => {
+    if (markingAll) return;
+
+    const unreadIds = notifications
+      .filter(notification => !notification.read)
+      .map(notification => notification.id);
+    if (unreadIds.length === 0) return;
+
+    setMutationError(null);
+    setMarkingAll(true);
+    try {
+      const { failedIds } = await markNotificationsReadOptimistically(unreadIds);
+      if (failedIds.length > 0) {
+        setMutationError('Some notifications could not be marked as read. Try again.');
+      }
+    } finally {
+      setMarkingAll(false);
+    }
+  }, [markNotificationsReadOptimistically, markingAll, notifications]);
+
+  const handleRetryNotifications = useCallback(() => {
+    fetchNotifications({ force: true });
+  }, [fetchNotifications]);
 
   const handleOpenNotification = useCallback((destination) => {
     setIsOpen(false);
@@ -303,7 +383,13 @@ export const NotificationCenter = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto px-1 pb-3 no-scrollbar">
-              {loading ? (
+              {loadError && notifications.length > 0 && (
+                <NotificationInlineError message={loadError} onRetry={handleRetryNotifications} />
+              )}
+              {mutationError && (
+                <NotificationInlineError message={mutationError} />
+              )}
+              {loading && notifications.length === 0 ? (
                 <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
                     <div
@@ -312,6 +398,8 @@ export const NotificationCenter = () => {
                     />
                   ))}
                 </div>
+              ) : loadError && notifications.length === 0 ? (
+                <NotificationLoadError onRetry={handleRetryNotifications} />
               ) : notifications.length === 0 ? (
                 <div className="py-14 text-center">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-muted/40">
@@ -336,8 +424,12 @@ export const NotificationCenter = () => {
                   size="sm"
                   className="w-full rounded-button text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   onClick={handleMarkAllRead}
+                  disabled={markingAll || unreadCount === 0}
+                  aria-busy={markingAll}
+                  data-state={markingAll ? 'pending' : 'ready'}
                 >
-                  Mark all as read
+                  {markingAll && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                  {markingAll ? 'Marking as read...' : unreadCount === 0 ? 'All caught up' : 'Mark all as read'}
                 </Button>
               </div>
             )}
@@ -381,7 +473,13 @@ export const NotificationCenter = () => {
                   </div>
 
                   <div className="max-h-[50vh] overflow-y-auto px-3 pb-3">
-                    {loading ? (
+                    {loadError && notifications.length > 0 && (
+                      <NotificationInlineError message={loadError} onRetry={handleRetryNotifications} />
+                    )}
+                    {mutationError && (
+                      <NotificationInlineError message={mutationError} />
+                    )}
+                    {loading && notifications.length === 0 ? (
                       <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (
                           <div
@@ -390,6 +488,8 @@ export const NotificationCenter = () => {
                           />
                         ))}
                       </div>
+                    ) : loadError && notifications.length === 0 ? (
+                      <NotificationLoadError onRetry={handleRetryNotifications} />
                     ) : notifications.length === 0 ? (
                       <div className="py-14 text-center">
                         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-muted/40">
@@ -414,8 +514,12 @@ export const NotificationCenter = () => {
                         size="sm"
                         className="w-full rounded-button text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                         onClick={handleMarkAllRead}
+                        disabled={markingAll || unreadCount === 0}
+                        aria-busy={markingAll}
+                        data-state={markingAll ? 'pending' : 'ready'}
                       >
-                        Mark all as read
+                        {markingAll && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                        {markingAll ? 'Marking as read...' : unreadCount === 0 ? 'All caught up' : 'Mark all as read'}
                       </Button>
                     </div>
                   )}

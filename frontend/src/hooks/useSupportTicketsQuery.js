@@ -49,7 +49,7 @@ export function useSupportTicketsQuery(filter = {}) {
  */
 export function useInvalidateSupportTickets() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['support'] });
+  return (options) => queryClient.invalidateQueries({ queryKey: ['support'] }, options);
 }
 
 export default useSupportTicketsQuery;

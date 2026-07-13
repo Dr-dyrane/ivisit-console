@@ -142,6 +142,11 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(page).not.toContain('handleTogglePublish');
     expect(page).not.toContain('selectedIds');
     expect(page).not.toContain('handleEditUnavailable');
+    expect(page).not.toContain('handleCreate');
+    expect(page).not.toContain('handleSave');
+    expect(page).not.toContain('New article');
+    expect(page).not.toContain('openHealthNewsModal');
+    expect(page).toContain("window.addEventListener('openAnalyticsModal', handleOpenAnalytics)");
     expect(page).not.toContain('{isAdmin && (');
     expect(page).not.toContain("onEdit={");
     expect(page).not.toContain("onDelete={");
@@ -164,6 +169,11 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(modal).toContain('ModalShell');
     expect(modal).toContain('size="lg"');
     expect(modal).toContain('managed');
+    expect(modal).not.toContain('<form');
+    expect(modal).not.toContain('onSubmit');
+    expect(modal).not.toContain('onSave');
+    expect(modal).not.toContain('Create Article');
+    expect(modal).not.toContain('Save Changes');
     expect(modal).not.toContain('fixed inset-0');
     expect(modal).not.toContain('role="dialog"');
     expect(modal).not.toContain('aria-modal="true"');
@@ -212,7 +222,7 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(mobile).toContain('mobile-health-news-search');
     expect(mobile).toContain('mobile-health-news-error-state');
     expect(modal).toContain('HealthNewsReadView');
-    expect(modal).toContain('Read-only until the writer receiver is proved.');
+    expect(modal).toContain('Published feed record');
     expect(filterSheet).toContain('role="dialog"');
     expect(filterSheet).toContain('aria-modal="true"');
     expect(filterSheet).toContain("data-testid={isMobile ? 'mobile-filter-sheet' : 'filter-sheet'}");
@@ -238,6 +248,34 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(gate).toContain('Rendered Browser/IAB proof reused one static production server on `127.0.0.1:3000`');
     expect(gate).toContain('The mobile filter tap opened one `role="dialog"`/`aria-modal="true"` bottom sheet');
     expect(gate).toContain('Health News is admitted for guarded read-only continuation only.');
+  });
+
+  it('mounts honest visible-page source and category analytics', () => {
+    const page = pageSource();
+    const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+
+    expect(page).toContain('const newsAnalytics = useMemo(() => {');
+    expect(page).toContain('bySource[source] = (bySource[source] || 0) + 1;');
+    expect(page).toContain('byCategory[category] = (byCategory[category] || 0) + 1;');
+    expect(page).toContain("distributionScope: 'visible_page'");
+    expect(page).toContain('analytics={newsAnalytics}');
+    expect(analyticsModal).toContain("type === 'news'");
+    expect(analyticsModal).toContain('? (analytics.bySource || {})');
+    expect(analyticsModal).toContain("type === 'news' || type === 'support'");
+  });
+
+  it('keeps readable rows visible when auxiliary Health News statistics are unavailable', () => {
+    const page = pageSource();
+    const service = serviceSource();
+
+    expect(service).toContain('HEALTH_NEWS_STATS_UNAVAILABLE');
+    expect(service).toContain("select('*', { count: 'exact' })");
+    expect(service).toContain('.catch(() => ({ stats: HEALTH_NEWS_STATS_UNAVAILABLE }))');
+    expect(service).toContain("reason: 'stats_query_failed'");
+    expect(page).toContain('buildVisibleHealthNewsStats');
+    expect(page).toContain('statsUnavailable');
+    expect(page).toContain('Health News statistics are unavailable. Counts use the loaded rows; the list remains current.');
+    expect(page).toContain("distributionLabel: statsUnavailable ? 'Loaded rows (statistics unavailable)' : 'Current page'");
   });
 
   it('keeps the Health News context panel route-owned and density views read/details-only', () => {
@@ -282,7 +320,7 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(page).not.toContain('onEdit={');
     expect(page).not.toContain('isAdmin={canManageContent}');
     expect(page).not.toContain('selectionEnabled');
-    // useHealthNews.js deleted 2026-07-08 (orphaned — 0 importers). Removal proof.
+    // useHealthNews.js deleted 2026-07-08 (orphaned, 0 importers). Removal proof.
     expect(fs.existsSync('src/hooks/useHealthNews.js')).toBe(false);
 
     expect(gate).toContain('Context panel now renders the route-owned Health News projection instead of starting a second feed request.');

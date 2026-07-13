@@ -202,6 +202,6 @@ export const getNotifications = async (userId, limit = 50, read = null, options 
         error
       });
     }
-    return [];
+    throw error;
   }
 };

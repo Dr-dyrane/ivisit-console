@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { createVisit, updateVisit, getVisit, getVisitsPageData } from '../../services/visitsService';
-import { getHospitalOptions } from '../../services/hospitalsService';
-import { getProfiles } from '../../services/profilesService';
+import { getVisit, getVisitsPageData, VISIT_MUTATION_UNAVAILABLE_REASON } from '../../services/visitsService';
+import { isQueryAbortError } from '../../services/queryAbort';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -197,7 +196,7 @@ const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {
       tone: 'info',
       label: 'Scheduled',
       headline: count > 0 ? `${count} scheduled visit${count === 1 ? '' : 's'}` : 'No scheduled visits',
-      subhead: count > 0 ? 'Open the next visit before changing the schedule.' : 'New scheduled visits will appear here.',
+      subhead: count > 0 ? 'Open the next visit to review its details.' : 'New scheduled visits will appear here.',
     };
   }
 
@@ -236,7 +235,7 @@ const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {
     tone: 'primary',
     label: 'Visits',
     headline: count > 0 ? `${count} visit record${count === 1 ? '' : 's'}` : 'No visit records',
-    subhead: count > 0 ? 'Pick one record, then view details or edit scheduling.' : 'Schedule the first visit when care is ready.',
+    subhead: count > 0 ? 'Pick one record, then review its details.' : 'No visit records are available in this scope.',
   };
 };
 
@@ -248,7 +247,7 @@ const VISIT_EMPTY_HEADINGS = {
 };
 
 export const VisitsPage = () => {
-  const { user, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
 
@@ -285,8 +284,6 @@ export const VisitsPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState(null);
-  const [patients, setPatients] = useState([]);
-  const [hospitals, setHospitals] = useState([]);
   const [visitPageStats, setVisitPageStats] = useState(null);
   const [visitPageError, setVisitPageError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
@@ -313,10 +310,11 @@ export const VisitsPage = () => {
 
   const pagination = usePagination(20);
   const { paginationRange, setTotalCount } = pagination;
-  const canEditVisits = isAdmin() || isOrgAdmin();
-  const canCreateVisits = isAdmin() || isOrgAdmin() || isProvider();
+  const canEditVisits = false;
+  const canCreateVisits = false;
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
+  const fetchAbortControllerRef = useRef(null);
   const hasLoadedRef = useRef(false);
   const lastInsertToastAtRef = useRef(0);
   const actionFeedbackTimerRef = useRef(null);
@@ -348,6 +346,8 @@ export const VisitsPage = () => {
     return () => {
       isMountedRef.current = false;
       fetchRequestRef.current += 1;
+      fetchAbortControllerRef.current?.abort();
+      fetchAbortControllerRef.current = null;
       if (actionFeedbackTimerRef.current) {
         window.clearTimeout(actionFeedbackTimerRef.current);
       }
@@ -368,6 +368,9 @@ export const VisitsPage = () => {
   const fetchVisits = useCallback(async () => {
     const requestId = fetchRequestRef.current + 1;
     fetchRequestRef.current = requestId;
+    fetchAbortControllerRef.current?.abort();
+    const requestController = new AbortController();
+    fetchAbortControllerRef.current = requestController;
 
     try {
       if (isMountedRef.current) {
@@ -385,6 +388,7 @@ export const VisitsPage = () => {
         range: paginationRange,
         sortConfig,
         quiet: true,
+        abortSignal: requestController.signal,
       });
 
       if (!isMountedRef.current || fetchRequestRef.current !== requestId) {
@@ -396,6 +400,7 @@ export const VisitsPage = () => {
       setVisits(pageData.visits || []);
       setVisitPageError(null);
     } catch (error) {
+      if (isQueryAbortError(error)) return;
       if (!isMountedRef.current || fetchRequestRef.current !== requestId) {
         return;
       }
@@ -404,6 +409,9 @@ export const VisitsPage = () => {
       setVisitPageError('Visits could not load. Try again.');
       handleApiError(error, 'fetch');
     } finally {
+      if (fetchAbortControllerRef.current === requestController) {
+        fetchAbortControllerRef.current = null;
+      }
       if (isMountedRef.current && fetchRequestRef.current === requestId) {
         hasLoadedRef.current = true;
         setLoading(false);
@@ -461,29 +469,11 @@ export const VisitsPage = () => {
     };
   }, [fetchVisits]);
 
-  // Fetch Dropdown Data
-  useEffect(() => {
-    const fetchDropdowns = async () => {
-      try {
-        const [patientsData, hospitalsData] = await Promise.all([
-          getProfiles({ role: 'patient' }),
-          getHospitalOptions()
-        ]);
-        setPatients(patientsData || []);
-        setHospitals(hospitalsData || []);
-      } catch (error) {
-        console.error('Failed to load form data:', error);
-      }
-    };
-    if (modalMode === 'create' || modalMode === 'edit') {
-      fetchDropdowns();
-    }
-  }, [modalMode]);
-
   const handleCreate = useCallback(() => {
     markActionFeedback('create');
-    setSelectedVisit(null);
-    setModalMode('create');
+    toast.info('Visit changes unavailable', {
+      description: VISIT_MUTATION_UNAVAILABLE_REASON,
+    });
   }, [markActionFeedback]);
 
   const handleOpenFilters = useCallback(() => {
@@ -576,8 +566,9 @@ export const VisitsPage = () => {
   const handleEdit = useCallback((visit) => {
     markActionFeedback(`edit-${visit?.id || 'unknown'}`);
     setFocusedVisitId(visit?.id || null);
-    setSelectedVisit(visit);
-    setModalMode('edit');
+    toast.info('Visit changes unavailable', {
+      description: VISIT_MUTATION_UNAVAILABLE_REASON,
+    });
   }, [markActionFeedback]);
 
   const handleSort = useCallback((key) => {
@@ -586,33 +577,6 @@ export const VisitsPage = () => {
       direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
   }, []);
-
-  const handleSaveVisit = useCallback(async (formData) => {
-    // A visit's patient must be an explicit choice: the old `|| user.id` fallback
-    // silently wrote the OPERATOR as the patient (data-sync audit S11.3).
-    if (modalMode === 'create' && !formData.user_id) {
-      toast.error('Pick a patient before scheduling.');
-      throw new Error('patient_required');
-    }
-
-    try {
-      if (modalMode === 'create') {
-        await createVisit({
-          ...formData,
-        });
-        toast.success('Visit scheduled successfully');
-      } else if (modalMode === 'edit' && selectedVisit) {
-        await updateVisit(selectedVisit.id, formData);
-        toast.success('Visit updated successfully');
-      }
-      fetchVisits();
-      setModalMode(null);
-    } catch (error) {
-      console.error('Save error:', error);
-      handleApiError(error, 'create');
-      throw error; // Re-throw for modal to handle loading state
-    }
-  }, [modalMode, selectedVisit, fetchVisits]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -718,7 +682,7 @@ export const VisitsPage = () => {
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        <SEOHead title="Visits" description="Schedule and manage visits." />
+        <SEOHead title="Visits" description="Review visit records in your current scope." />
         <MobileVisits
           visits={visits}
           loading={loading}
@@ -756,11 +720,14 @@ export const VisitsPage = () => {
             onClose={handleModalClose}
             visit={selectedVisit}
             mode={modalMode}
-            onSave={handleSaveVisit}
-            users={patients}
-            hospitals={hospitals}
           />
         )}
+
+        <EmergencyDetailsModal
+          isOpen={emergencyModal.isOpen}
+          onClose={() => setEmergencyModal(prev => ({ ...prev, isOpen: false }))}
+          request={emergencyModal.request}
+        />
 
         <FilterSheet
           isOpen={filterSheetOpen}
@@ -784,7 +751,7 @@ export const VisitsPage = () => {
 
   return (
     <div className="min-h-screen text-foreground">
-      <SEOHead title="Visits" description="Schedule and manage visits." />
+      <SEOHead title="Visits" description="Review visit records in your current scope." />
 
       <VisitsDesktopWorkspace
         visits={visits}
@@ -845,9 +812,6 @@ export const VisitsPage = () => {
             onClose={handleModalClose}
             visit={selectedVisit}
             mode={modalMode}
-            onSave={handleSaveVisit}
-            users={patients}
-            hospitals={hospitals}
           />
         )
       }
@@ -1025,7 +989,7 @@ const VisitsDesktopWorkspace = ({
                 <EmptyState
                   icon={Calendar}
                   heading={hasFilter ? 'No matching visits' : (VISIT_EMPTY_HEADINGS[kpiFilter] || 'No visits yet')}
-                  body={hasFilter ? 'Change filters or search again.' : 'Schedule the first visit when care is ready.'}
+                  body={hasFilter ? 'Change filters or search again.' : 'No visit records are available in this scope.'}
                 >
                   {hasFilter && (
                     <Button

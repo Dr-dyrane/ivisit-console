@@ -52,8 +52,8 @@ const PHASES_CONFIG = {
   ],
   subscription: [
     { id: 'summary', label: 'Summary' },
-    { id: 'tiers', label: 'Plans' },
-    { id: 'growth', label: 'Retention' },
+    { id: 'tiers', label: 'Types' },
+    { id: 'growth', label: 'Status' },
   ],
   visit: [
     { id: 'summary', label: 'Summary' },
@@ -105,6 +105,8 @@ const SHARE_LABELS = {
 
 const SECONDARY_LABELS = {
   insurance: 'Pending',
+  support: 'Open',
+  subscription: 'Pending',
 };
 
 // Modal section-card canon (adapted to opaque-DOM tokens): translucent panel, borderless,
@@ -143,6 +145,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
     if (!hasRows || !Number.isFinite(parsed)) return 'No data';
     return `${parsed.toFixed(1)}m`;
   };
+  const formatHours = (value, total) => {
+    if (Number(total) <= 0) return 'No data';
+    if (value === null || value === undefined || value === '') return 'Unavailable';
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? `${parsed.toFixed(1)}h` : 'Unavailable';
+  };
   const getDataSetTotal = (dataSet = {}) => (
     Object.values(dataSet).reduce((sum, value) => sum + (Number(value) || 0), 0)
   );
@@ -162,6 +170,20 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
     const requestTotal = getCount(analytics.total || analytics.totalEmergencies);
     const userTotal = getCount(analytics.totalUsers);
     const genericTotal = getCount(analytics.total);
+    const shareValue = {
+      news: analytics.published,
+      emergency: analytics.active,
+      hospital: analytics.verified,
+      ambulance: analytics.active,
+      doctor: analytics.verified,
+      insurance: analytics.active,
+      verification: analytics.approved ?? analytics.verified,
+      support: analytics.resolved,
+      user: analytics.verifiedUsers,
+      subscription: analytics.active,
+      visit: analytics.completed,
+      payments: analytics.completed,
+    }[type] ?? analytics.active;
     const data = {
       news: [
         { label: 'Articles', value: getCount(analytics.total), icon: Newspaper, color: 'hsl(199 89% 48%)' },
@@ -178,8 +200,8 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
       support: [
         { label: 'Tickets', value: getCount(analytics.total), icon: Headphones, color: 'hsl(199 89% 48%)' },
         { label: 'Resolved', value: getCount(analytics.resolved), trend: getTrendPercentage(analytics.resolved, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
-        { label: 'Avg time', value: analytics.total > 0 ? `${Math.round(Number(analytics.averageResolutionTime) || 0)}h` : 'No data', icon: Clock, color: 'hsl(199 89% 48%)' },
-        { label: 'High priority', value: getCount(analytics.byPriority?.high), icon: AlertTriangle, color: getCount(analytics.byPriority?.high) > 0 ? 'hsl(38 92% 50%)' : 'hsl(var(--muted-foreground))' }
+        { label: analytics.averageResolutionScope === 'visible_page' ? 'Avg on page' : 'Avg time', value: formatHours(analytics.averageResolutionTime, analytics.total), icon: Clock, color: 'hsl(199 89% 48%)' },
+        { label: isVisibleScopedDistribution ? 'High on page' : 'High priority', value: getCount(analytics.byPriority?.high), icon: AlertTriangle, color: getCount(analytics.byPriority?.high) > 0 ? 'hsl(38 92% 50%)' : 'hsl(var(--muted-foreground))' }
       ],
       user: [
         { label: 'Users', value: userTotal, icon: Users, color: 'hsl(199 89% 48%)' },
@@ -228,6 +250,12 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         { label: 'Approved', value: getCount(analytics.approved || analytics.verified), trend: getTrendPercentage(analytics.approved || analytics.verified, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
         { label: 'Pending', value: getCount(analytics.pending), icon: Clock, color: 'hsl(38 92% 50%)' },
         { label: 'Rejected', value: getCount(analytics.rejected), icon: Ban, color: getCount(analytics.rejected) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
+      ],
+      subscription: [
+        { label: 'Subscribers', value: genericTotal, icon: Users, color: 'hsl(199 89% 48%)' },
+        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
+        { label: 'Paid type', value: getCount(analytics.paid), icon: Star, color: 'hsl(199 89% 48%)' },
+        { label: 'Pending', value: getCount(analytics.pending), icon: Clock, color: 'hsl(38 92% 50%)' }
       ]
     };
 
@@ -235,7 +263,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
       { label: 'Items', value: getCount(analytics.total), icon: BarChart3, color: 'hsl(199 89% 48%)' },
       { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: Activity, color: 'hsl(160 84% 39%)' },
       { label: 'Recent', value: getCount(analytics.recent), icon: TrendingUp, color: 'hsl(199 89% 48%)' },
-      { label: 'Diversity', value: Object.keys(analytics.byCategory || analytics.roleDistribution || {}).length, icon: Tag, color: 'hsl(38 92% 50%)' }
+      { label: 'Diversity', value: Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byType || {}).length, icon: Tag, color: 'hsl(38 92% 50%)' }
     ];
 
     return (
@@ -266,7 +294,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           <div className="flex flex-col items-center">
             <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">
               {getSafePercentage(
-                analytics.active || analytics.published || analytics.verifiedUsers || analytics.resolved || analytics.completed,
+                shareValue,
                 type === 'payments' ? analytics.paymentCount : (analytics.total || analytics.totalUsers)
               )}
             </span>
@@ -274,12 +302,18 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           </div>
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
+            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">
+              {getCount(type === 'support'
+                ? analytics.open
+                : type === 'subscription'
+                  ? analytics.pending
+                  : (analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical))}
+            </span>
             <span className="eyebrow mt-1 text-muted-foreground/55">{SECONDARY_LABELS[type] || 'Recent'}</span>
           </div>
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
+            <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byType || analytics.byStatus || {}).length}</span>
             <span className="eyebrow mt-1 text-muted-foreground/55">Groups</span>
           </div>
         </div>
@@ -288,7 +322,13 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   };
 
   const renderDistributionPhase = () => {
-    const dataSet = analytics.bySource || analytics.byPriority || analytics.roleDistribution || analytics.byProvider || analytics.byOrg || analytics.byCategory || {};
+    const dataSet = type === 'news'
+      ? (analytics.bySource || {})
+      : type === 'support'
+        ? (analytics.byPriority || {})
+        : type === 'subscription'
+          ? (analytics.byType || {})
+          : (analytics.bySource || analytics.byPriority || analytics.roleDistribution || analytics.byProvider || analytics.byOrg || analytics.byCategory || {});
     const total = analytics.total || analytics.totalUsers || 1;
     const scopedTotal = isVisibleScopedDistribution
       ? (Number(analytics.visibleCount) || getDataSetTotal(dataSet) || 1)
@@ -345,7 +385,11 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
     const isLifecyclePhase = phases[phase]?.id === 'lifecycle';
     const dataSet = isLifecyclePhase
       ? (analytics.byStatus || {})
-      : (analytics.byCategory || analytics.byStatus || analytics.byTier || analytics.hospitalStats || {});
+      : type === 'news' || type === 'support'
+        ? (analytics.byCategory || {})
+        : type === 'subscription'
+          ? (analytics.byStatus || {})
+          : (analytics.byCategory || analytics.byStatus || analytics.byTier || analytics.hospitalStats || {});
     const scopedTotal = isLifecyclePhase
       ? (Number(analytics.lifecycleCount) || getDataSetTotal(dataSet) || 1)
       : isVisibleScopedDistribution
@@ -475,7 +519,7 @@ const StatNode = ({ label, value, trend, icon: Icon, color }) => (
     whileTap={{ scale: 0.98 }}
     className="p-3.5 rounded-inner bg-foreground/[0.03] dark:bg-white/[0.04] relative overflow-hidden group active:bg-foreground/[0.06] transition-colors"
   >
-    {/* Action node — icon + optional trend */}
+    {/* Action node: icon + optional trend */}
     <div className="flex justify-between items-start mb-2.5">
       <div
         className="w-8 h-8 rounded-icon flex items-center justify-center relative z-10"

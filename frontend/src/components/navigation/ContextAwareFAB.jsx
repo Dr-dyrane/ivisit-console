@@ -10,7 +10,6 @@ import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { DoctorModal } from '../modals/DoctorModal';
-import { VisitModal } from '../modals/VisitModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
@@ -35,7 +34,6 @@ const ContextAwareFABContent = () => {
     hospital: false,
     ambulance: false,
     doctor: false,
-    visit: false,
     supportTicket: false,
     subscription: false,
     emailActions: false
@@ -52,6 +50,7 @@ const ContextAwareFABContent = () => {
   // Use the shared hook
   const actionConfig = useContextAction(openModal);
   const { createTicket } = useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true });
+  const isDestructive = actionConfig.color === 'destructive';
 
   // Constants for SupportTicketModal
   const TICKET_PRIORITIES = [
@@ -77,23 +76,15 @@ const ContextAwareFABContent = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={actionConfig.action}
-          className="relative w-14 h-14 glass-card rounded-button bg-background/80 backdrop-blur-xl transition-all duration-300 group flex items-center justify-center overflow-hidden"
-          style={{
-            boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)'
-          }}
+          className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-button shadow-[0_6px_16px_rgb(0_0_0/0.12)] transition-[background-color,color,box-shadow,transform] duration-300 ${isDestructive
+            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            : 'bg-foreground text-background hover:bg-foreground/90'
+            }`}
           title={actionConfig.label}
           aria-label={actionConfig.label}
         >
-          {/* Shared RGB Hive Effect */}
-          <div className={`hover-glow ${actionConfig.color === 'destructive' ? 'hover-glow-primary' : 'hover-glow-success'}`} />
-          
           {/* Icon */}
-          <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-primary' : 'text-success'}`} />
-
-          {/* Pulse cue for important actions */}
-          {actionConfig.color === 'destructive' && (
-            <div className="absolute inset-0 bg-current opacity-20 animate-ping" />
-          )}
+          <actionConfig.icon className="h-6 w-6" />
 
           {/* Tooltip */}
           <motion.div
@@ -113,13 +104,12 @@ const ContextAwareFABContent = () => {
           if (!isOpen) return null;
           const props = { isOpen, onClose: () => closeModal(key) };
           switch (key) {
-            case 'emergency': return <EmergencyRequestModal key={key} {...props} />;
+            case 'emergency': return <EmergencyRequestModal key={key} {...props} mode="create" />;
             case 'user': return <UserModal key={key} {...props} />;
             // Skip hospital modal - HospitalsPage handles it
             case 'hospital': return null;
             case 'ambulance': return <AmbulanceModal key={key} {...props} />;
             case 'doctor': return <DoctorModal key={key} {...props} />;
-            case 'visit': return <VisitModal key={key} {...props} />;
             case 'supportTicket':
               return (
                 <SupportTicketModal

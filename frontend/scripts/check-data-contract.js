@@ -60,18 +60,10 @@ const WRITE_METHODS = new Set(['insert', 'update', 'upsert']);
 // Methods that take a { col: value } filter object.
 const MATCH_METHODS = new Set(['match']);
 
-// Baseline of KNOWN phantom references, grandfathered as tracked debt so this guard
-// ships green and gates NEW drift only. Key is "service|table|column". Remove an entry
-// once the service is fixed (see CONSOLE_DATA_LAYER.md section 3):
-//   - onboardingService verify/reject flow writes hospitals.verified_at / rejected_at /
-//     rejection_reason + profiles.verification_status (part of the not-yet-proved
-//     registration flow already held out of the hardgate).
-const BASELINE = new Set([
-  'onboardingService.js|hospitals|rejected_at',
-  'onboardingService.js|hospitals|rejection_reason',
-  'onboardingService.js|hospitals|verified_at',
-  'onboardingService.js|profiles|verification_status',
-]);
+// Baseline of known phantom references, grandfathered only when a tracked
+// receiver gap cannot be closed in the active pass. Onboarding now writes only
+// through canonical RPCs, so it carries no direct-table exception.
+const BASELINE = new Set([]);
 
 // ---------------------------------------------------------------------------
 // Generic balanced-span helpers (string-aware).

@@ -1,139 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import { getSupportTickets } from '../services/supportTicketsService';
 import { getUserStatistics, getProfiles } from '../services/profilesService';
 import { getEmergencyRequests, getEmergencyRequestsPageStats } from '../services/emergencyService';
 import { getDoctors } from '../services/doctorsService';
 import { getVisitsPageData } from '../services/visitsService';
-import { getHospitals } from '../services/hospitalsService';
-import { getAmbulances, subscribeToAllAmbulances } from '../services/ambulancesService';
 import { getAnalyticsData } from '../services/analyticsService';
 import { getVerificationStats } from '../services/verificationService';
-import { getRecentActivity } from '../services/activityService';
-import { getInsurancePage } from '../services/insuranceService';
-import { getOrganizations } from '../services/organizationsService';
-import { getPricing } from '../services/pricingService';
 import { getWalletContextData } from '../services/walletService';
-import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
-
-// Mock data as fallback - Based on actual mobile app service types
-const mockEmergencyData = {
-  stats: {
-    total: 4,
-    ambulance: 2,    // From mobile app serviceType: "ambulance"
-    bed: 1,          // From mobile app serviceType: "bed"
-    critical_care: 1, // From mobile app serviceType: "critical_care"
-    emergency_room: 0, // From mobile app serviceType: "emergency_room"
-    pending: 1,
-    inProgress: 1,
-    completed: 2
-  },
-  recent: [
-    {
-      id: 'mock-1',
-      service_type: 'ambulance', // Main emergency type
-      status: 'pending',
-      hospital_name: 'Downtown Hospital',
-      patient_snapshot: {
-        fullName: 'John Doe',
-        phone: '+1234567890'
-      },
-      created_at: new Date().toISOString(),
-      description: 'Ambulance dispatch emergency'
-    },
-    {
-      id: 'mock-2',
-      service_type: 'bed', // Main emergency type
-      status: 'in_progress',
-      hospital_name: 'Westside Medical Center',
-      patient_snapshot: {
-        fullName: 'Jane Smith',
-        phone: '+0987654321'
-      },
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      description: 'Bed booking emergency'
-    },
-    {
-      id: 'mock-3',
-      service_type: 'critical_care',
-      status: 'completed',
-      hospital_name: 'North General Hospital',
-      patient_snapshot: {
-        fullName: 'Robert Johnson',
-        phone: '+1122334455'
-      },
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      description: 'Critical care emergency'
-    },
-    {
-      id: 'mock-4',
-      service_type: 'ambulance',
-      status: 'completed',
-      hospital_name: 'Bay Area Medical Clinic',
-      patient_snapshot: {
-        fullName: 'Sarah Wilson',
-        phone: '+5544332211'
-      },
-      created_at: new Date(Date.now() - 10800000).toISOString(),
-      description: 'Ambulance transport completed'
-    }
-  ]
-};
-
-const mockAnalyticsData = {
-  totalRequests: null,
-  avgResponseTime: null,
-  completionRate: null,
-  activeHospitals: null,
-  availableAmbulances: null,
-  onRouteAmbulances: null,
-  sourceState: 'mock_unavailable'
-};
-
-const mockDoctorsData = {
-  stats: {
-    total: 48,
-    totalDoctors: 48,
-    onCall: 12,
-    available: 28,
-    busy: 8,
-    off_duty: 0
-  },
-  recent: []
-};
-
-const mockVisitsData = {
-  stats: {
-    total: 24,
-    today: 24,
-    pending: 8,
-    completed: 16,
-    upcoming: 32,
-    scheduled: 8,
-    inProgress: 0,
-    cancelled: 0
-  },
-  recent: []
-};
-
-const mockVerificationData = {
-  pending: 15,
-  approved: 142,
-  rejected: 8,
-  total: 165
-};
-
-const mockSupportTicketsData = {
-  total: 24,
-  open: 8,
-  inProgress: 6,
-  resolved: 10,
-  thisWeek: 12,
-  averageResolutionTime: 4.5
-};
+import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
 
 const PageDataContext = createContext();
 
@@ -153,41 +30,22 @@ export const PageDataProvider = ({ children }) => {
   const queryClient = useQueryClient();
   const { user, profile, isAdmin } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
-  const [useMockData, setUseMockData] = useState(false);
-  const {
-    canLoadProviderData,
-    canLoadOrgData,
-    canLoadAdminData,
-  } = useMemo(() => getPageDataAccessForRole(profile?.role), [profile?.role]);
   const startupDomains = useMemo(
-    () => getPageDataStartupDomainsForRole(profile?.role, location.pathname),
-    [profile?.role, location.pathname]
+    () => getPageDataStartupDomainsForRole(profile?.role, location.pathname, profile?.provider_type),
+    [profile?.role, profile?.provider_type, location.pathname]
   );
   const routeOwnsStartup = useMemo(
     () => routeOwnsStartupDomains(location.pathname),
     [location.pathname]
   );
 
-  // Debounce refs for real-time updates
-  const supportTicketsTimeoutRef = useRef(null);
-  const DEBOUNCE_DELAY = 1000; // 1 second debounce
-
   const [emergencyData, setEmergencyData] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [doctorsData, setDoctorsData] = useState(null);
   const [visitsData, setVisitsData] = useState(null);
   const [verificationData, setVerificationData] = useState(null);
-  const [supportTicketsData, setSupportTicketsData] = useState(null);
-  const [insurancePolicies, setInsurancePolicies] = useState([]);
-  const [insurancePageStats, setInsurancePageStats] = useState(null);
-  const [activityData, setActivityData] = useState([]);
   const [userData, setUserData] = useState({ users: [], statistics: null });
   const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
-  const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
-  const [ambulancesData, setAmbulancesData] = useState({ stats: null, recent: [] });
-  const [organizationsData, setOrganizationsData] = useState({ organizations: [], stats: null });
-  const [servicePricing, setServicePricing] = useState([]);
-  const [roomPricing, setRoomPricing] = useState([]);
   const [domainErrors, setDomainErrors] = useState({});
   // Per-domain in-flight map ({ [domain]: boolean }) - true while that domain's
   // fetch is running (initial load OR background refetch), false once it settles
@@ -232,11 +90,6 @@ export const PageDataProvider = ({ children }) => {
       setPageLoading(true);
       markDomainFetchStart('emergency');
 
-      if (useMockData) {
-        setEmergencyData(mockEmergencyData);
-        return;
-      }
-
       // Persona matrix 6.9: hero counts come from exact head-count queries
       // (getEmergencyRequestsPageStats, auth-scoped via applyEmergencyRequestScope)
       // instead of counting a client-side list fetch, which Supabase caps at 1000
@@ -252,8 +105,7 @@ export const PageDataProvider = ({ children }) => {
           total: stats.total,
           ambulance: stats.ambulance,
           bed: stats.bed,
-          critical_care: stats.critical,
-          emergency_room: stats.emergency,
+          booking: stats.booking,
           pending_approval: stats.pending_approval,
           pending: stats.pending_approval, // Alias for backward compatibility
           inProgress: stats.inProgress,
@@ -276,17 +128,12 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('emergency');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchVerificationData = useCallback(async () => {
     try {
       setPageLoading(true);
       markDomainFetchStart('verification');
-
-      if (useMockData) {
-        setVerificationData(mockVerificationData);
-        return;
-      }
 
       // Try fetching verified stats via service (admin only)
       try {
@@ -304,17 +151,12 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('verification');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchDoctorsData = useCallback(async () => {
     try {
       setPageLoading(true);
       markDomainFetchStart('doctors');
-
-      if (useMockData) {
-        setDoctorsData(mockDoctorsData);
-        return;
-      }
 
       const { data } = await getDoctors({ quiet: true }); // RBAC enabled
 
@@ -345,17 +187,12 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('doctors');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchVisitsData = useCallback(async () => {
     try {
       setPageLoading(true);
       markDomainFetchStart('visits');
-
-      if (useMockData) {
-        setVisitsData(mockVisitsData);
-        return;
-      }
 
       const page = await getVisitsPageData({
         quiet: true,
@@ -376,17 +213,12 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('visits');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchAnalyticsData = useCallback(async () => {
     try {
       setPageLoading(true);
       markDomainFetchStart('analytics');
-
-      if (useMockData) {
-        setAnalyticsData(mockAnalyticsData);
-        return;
-      }
 
       // PageData only needs summary metrics; page-level analytics can request raw chart data.
       const fullAnalytics = await getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true });
@@ -413,92 +245,12 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('analytics');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchHospitalsData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('hospitals');
-
-      if (useMockData) return;
-
-      const data = await getHospitals({ quiet: true }); // RBAC enabled
-
-      // Update analytics data with real hospital count (if not already handled by analytics fetch)
-      // Note: We might want to keep analytics disjoint, but this updates component state
-
-      const total = data?.length || 0;
-      const available = data?.filter(h => h.status === 'available').length || 0;
-      const full = data?.filter(h => h.status === 'full').length || 0;
-      const busy = data?.filter(h => h.status === 'busy').length || 0;
-      const verified = data?.filter(h => h.verified).length || 0;
-      const totalBeds = data?.reduce((acc, h) => acc + (h.available_beds || 0), 0) || 0;
-      const totalAmbulances = data?.reduce((acc, h) => acc + (h.ambulances_count || 0), 0) || 0;
-
-      setHospitalsData({
-        stats: { total, available, full, busy, verified, totalBeds, totalAmbulances },
-        recent: data?.slice(0, 5) || []
-      });
-      clearDomainError('hospitals');
-    } catch (error) {
-      markDomainError('hospitals', error);
-      setHospitalsData({ stats: null, recent: [] });
-    } finally {
-      markDomainFetchSettled('hospitals');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchAmbulancesData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('ambulances');
-
-      if (useMockData) return;
-
-      const data = await getAmbulances({ quiet: true }); // RBAC enabled
-
-      // Canonical ambulance statuses (see ambulancesService VALID_AMBULANCE_STATUSES).
-      // "on_route"/"busy" are NOT raw DB statuses; count the real ones instead so
-      // these KPIs stop rendering a permanent zero.
-      const ACTIVE_FLEET_STATUSES = ['dispatched', 'on_trip', 'en_route', 'on_scene'];
-      const available = data?.filter(a => a.status === 'available').length || 0;
-      const onRoute = data?.filter(a => a.status === 'en_route').length || 0;
-      const dispatched = data?.filter(a => a.status === 'dispatched').length || 0;
-      // "busy" fleet = every non-available, in-service unit (matches AmbulancesPage ACTIVE_FLEET_STATUSES).
-      const busy = data?.filter(a => ACTIVE_FLEET_STATUSES.includes(a.status)).length || 0;
-      const maintenance = data?.filter(a => a.status === 'maintenance').length || 0;
-
-      setAmbulancesData({
-        stats: {
-          total: data?.length || 0,
-          available,
-          onRoute,
-          dispatched,
-          busy,
-          maintenance
-        },
-        recent: data?.slice(0, 5) || []
-      });
-      clearDomainError('ambulances');
-    } catch (error) {
-      markDomainError('ambulances', error);
-      setAmbulancesData({ stats: null, recent: [] });
-    } finally {
-      markDomainFetchSettled('ambulances');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchUsersData = useCallback(async () => {
     try {
       setPageLoading(true);
       markDomainFetchStart('users');
-
-      if (useMockData) {
-        setUserData({ users: [], statistics: null });
-        return;
-      }
 
       // Try to fetch robust statistics (Server/Admin side)
       let serverStatistics = null;
@@ -539,85 +291,7 @@ export const PageDataProvider = ({ children }) => {
       markDomainFetchSettled('users');
       setPageLoading(false);
     }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchSupportTicketsData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('supportTickets');
-
-      if (useMockData) {
-        setSupportTicketsData(mockSupportTicketsData);
-        return;
-      }
-
-      // Use the service function to avoid response body conflicts
-      const data = await getSupportTickets({ quiet: true });
-
-      // Calculate real support ticket stats
-      const total = data?.length || 0;
-      const open = data?.filter(t => t.status === 'open').length || 0;
-      const inProgress = data?.filter(t => t.status === 'in_progress').length || 0;
-      const resolved = data?.filter(t => t.status === 'resolved').length || 0;
-
-      // Calculate this week's tickets
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const thisWeek = data?.filter(t => new Date(t.created_at) > oneWeekAgo).length || 0;
-
-      // Calculate average resolution time (in hours)
-      const resolvedTickets = data?.filter(t => t.status === 'resolved' && t.resolved_at);
-      const averageResolutionTime = resolvedTickets?.length > 0
-        ? resolvedTickets.reduce((acc, ticket) => {
-          const created = new Date(ticket.created_at);
-          const resolved = new Date(ticket.resolved_at);
-          const hours = (resolved - created) / (1000 * 60 * 60);
-          return acc + hours;
-        }, 0) / resolvedTickets.length
-        : 0;
-
-      setSupportTicketsData({
-        total,
-        open,
-        inProgress,
-        resolved,
-        thisWeek,
-        averageResolutionTime: Math.round(averageResolutionTime * 10) / 10
-      });
-      clearDomainError('supportTickets');
-    } catch (error) {
-      markDomainError('supportTickets', error);
-      setSupportTicketsData(null);
-    } finally {
-      markDomainFetchSettled('supportTickets');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchInsurancePolicies = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('insurance');
-
-      if (useMockData) {
-        setInsurancePolicies([]);
-        setInsurancePageStats(null);
-        return;
-      }
-
-      const page = await getInsurancePage({ limit: 10, quiet: true });
-      setInsurancePolicies(page.data || []);
-      setInsurancePageStats(page.stats || null);
-      clearDomainError('insurance');
-
-    } catch (error) {
-      markDomainError('insurance', error);
-      setInsurancePolicies([]);
-      setInsurancePageStats(null);
-    } finally {
-      markDomainFetchSettled('insurance');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
+  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart]);
 
   const fetchWalletData = useCallback(async () => {
     try {
@@ -642,73 +316,6 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [clearDomainError, isAdmin, markDomainError, markDomainFetchSettled, markDomainFetchStart, profile, user]);
 
-  const fetchActivityData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('activity');
-      if (useMockData) {
-        setActivityData([]);
-        return;
-      }
-      const data = await getRecentActivity();
-      setActivityData(data || []);
-    } catch (error) {
-      console.error('Error fetching activity data:', error);
-      setActivityData([]);
-    } finally {
-      markDomainFetchSettled('activity');
-      setPageLoading(false);
-    }
-  }, [markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchPricingData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('pricing');
-      if (useMockData) return;
-
-      const [services, rooms] = await Promise.all([
-        getPricing('services'),
-        getPricing('rooms')
-      ]);
-
-      setServicePricing(services || []);
-      setRoomPricing(rooms || []);
-      clearDomainError('pricing');
-    } catch (error) {
-      markDomainError('pricing', error);
-      setServicePricing([]);
-      setRoomPricing([]);
-    } finally {
-      markDomainFetchSettled('pricing');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
-  const fetchOrganizationsData = useCallback(async () => {
-    try {
-      setPageLoading(true);
-      markDomainFetchStart('organizations');
-      if (useMockData) return;
-
-      const data = await getOrganizations({ quiet: true });
-      const active = data?.filter(o => o.is_active).length || 0;
-      const totalWallet = data?.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0) || 0;
-
-      setOrganizationsData({
-        organizations: data || [],
-        stats: { total: data?.length || 0, active, totalWallet }
-      });
-      clearDomainError('organizations');
-    } catch (error) {
-      markDomainError('organizations', error);
-      setOrganizationsData({ organizations: [], stats: null });
-    } finally {
-      markDomainFetchSettled('organizations');
-      setPageLoading(false);
-    }
-  }, [clearDomainError, markDomainError, markDomainFetchSettled, markDomainFetchStart, useMockData]);
-
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
     if (!user) return;
@@ -728,17 +335,10 @@ export const PageDataProvider = ({ children }) => {
     const taskMap = {
       emergency: fetchEmergencyData,
       visits: fetchVisitsData,
-      supportTickets: fetchSupportTicketsData,
       analytics: fetchAnalyticsData,
       verification: fetchVerificationData,
       doctors: fetchDoctorsData,
-      hospitals: fetchHospitalsData,
-      ambulances: fetchAmbulancesData,
       users: fetchUsersData,
-      wallet: fetchWalletData,
-      pricing: fetchPricingData,
-      insurance: fetchInsurancePolicies,
-      organizations: fetchOrganizationsData
     };
 
     startupDomains.forEach((domain) => taskMap[domain]?.());
@@ -752,14 +352,7 @@ export const PageDataProvider = ({ children }) => {
     fetchAnalyticsData,
     fetchDoctorsData,
     fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
     fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchWalletData,
-    fetchPricingData,
-    fetchOrganizationsData
   ]);
 
   // Real-time subscription for emergency data.
@@ -773,7 +366,7 @@ export const PageDataProvider = ({ children }) => {
   // domain fetch registry; its in-place live refresh is deferred until those consumers
   // move onto useEmergencyQuery (mirrors the doctors slice handling).
   useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('emergency')) return;
+    if (!user || !startupDomains.includes('emergency')) return;
 
     const channel = supabase
       .channel('emergency_changes')
@@ -784,7 +377,7 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, queryClient]);
+  }, [user, startupDomains, queryClient]);
 
   // Real-time subscription for doctors data.
   // S3-1 (CONSOLE_LAYER_MODEL_PLAN.md:203): a postgres_changes event now feeds
@@ -798,7 +391,7 @@ export const PageDataProvider = ({ children }) => {
   // on mount; its in-place live refresh is deferred until those consumers move
   // onto useDoctorsQuery.
   useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('doctors')) return;
+    if (!user || !startupDomains.includes('doctors')) return;
 
     const channel = supabase
       .channel('doctor_changes')
@@ -809,11 +402,11 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, queryClient]);
+  }, [user, startupDomains, queryClient]);
 
   // Real-time subscription for visits data
   useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('visits')) return;
+    if (!user || !startupDomains.includes('visits')) return;
 
     const channel = supabase
       .channel('visit_changes')
@@ -824,28 +417,12 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchVisitsData]);
-
-  // Real-time subscription for insurance policies
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('insurance')) return;
-
-    const channel = supabase
-      .channel('insurance_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'insurance_policies' },
-        fetchInsurancePolicies
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchInsurancePolicies]);
+  }, [user, startupDomains, fetchVisitsData]);
 
   // Real-time subscription for verification data and user data
   useEffect(() => {
     if (
       !user ||
-      useMockData ||
       (!startupDomains.includes('verification') && !startupDomains.includes('users'))
     ) return;
 
@@ -861,122 +438,7 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchVerificationData, fetchUsersData]);
-
-  // Real-time subscription for organizations
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('organizations')) return;
-
-    const channel = supabase
-      .channel('organization_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'organizations' },
-        fetchOrganizationsData
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchOrganizationsData]);
-
-  // Real-time subscription for pricing
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('pricing')) return;
-
-    const channel = supabase
-      .channel('pricing_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'service_pricing' },
-        fetchPricingData
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'room_pricing' },
-        fetchPricingData
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchPricingData]);
-
-  // Real-time subscription for hospitals data
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('hospitals')) return;
-
-    const channel = supabase
-      .channel('hospital_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'hospitals' },
-        () => queryClient.invalidateQueries({ queryKey: ['hospitals'] })
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, queryClient]);
-
-  // Real-time subscription for ambulances data (reuses the service channel helper)
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('ambulances')) return;
-
-    const unsubscribe = subscribeToAllAmbulances(() => queryClient.invalidateQueries({ queryKey: ['ambulances'] }));
-
-    return () => unsubscribe();
-  }, [user, useMockData, startupDomains, queryClient]);
-
-  // Real-time subscription for wallet/payments data
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('wallet')) return;
-
-    const channel = supabase
-      .channel('payment_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'payments' },
-        fetchWalletData
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, fetchWalletData]);
-
-  // Real-time subscription for activity data.
-  // Activity is a cross-cutting feed with no startup domain (see contract), so it
-  // is gated on an authenticated, non-mock session rather than a startup domain.
-  useEffect(() => {
-    if (!user || useMockData) return;
-
-    const channel = supabase
-      .channel('user_activity_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_activity' },
-        fetchActivityData
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchActivityData]);
-
-  // Debounced fetch functions for real-time updates
-  const debouncedFetchSupportTickets = useCallback(() => {
-    if (supportTicketsTimeoutRef.current) {
-      clearTimeout(supportTicketsTimeoutRef.current);
-    }
-    supportTicketsTimeoutRef.current = setTimeout(() => {
-      fetchSupportTicketsData();
-    }, DEBOUNCE_DELAY);
-  }, [fetchSupportTicketsData]);
-
-  // Real-time subscription for support tickets data
-  useEffect(() => {
-    if (!user || useMockData || !startupDomains.includes('supportTickets')) return;
-
-    const channel = supabase
-      .channel('support_tickets_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'support_tickets' },
-        () => { debouncedFetchSupportTickets(); queryClient.invalidateQueries({ queryKey: ['support'] }); }
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, startupDomains, debouncedFetchSupportTickets, queryClient]);
+  }, [user, startupDomains, fetchVerificationData, fetchUsersData]);
 
   // Calculate statistics (Memoized to prevent churn)
   const emergencyStats = useMemo(() => {
@@ -990,8 +452,7 @@ export const PageDataProvider = ({ children }) => {
 
     const ambulance = safeData.filter(req => req.service_type === 'ambulance').length;
     const bed = safeData.filter(req => req.service_type === 'bed').length;
-    const critical = safeData.filter(req => req.service_type === 'critical_care').length;
-    const emergency = safeData.filter(req => req.service_type === 'emergency_room').length;
+    const booking = safeData.filter(req => req.service_type === 'booking').length;
     const pending_approval = safeData.filter(req => req.status === 'pending_approval').length;
     const inProgress = safeData.filter(req => req.status === 'in_progress').length;
     const accepted = safeData.filter(req => req.status === 'accepted').length;
@@ -1003,8 +464,7 @@ export const PageDataProvider = ({ children }) => {
       total: safeData.length,
       ambulance,
       bed,
-      critical,
-      emergency,
+      booking,
       pending_approval,
       pending: pending_approval,
       inProgress,
@@ -1015,41 +475,16 @@ export const PageDataProvider = ({ children }) => {
     };
   }, [emergencyData]);
 
-  const verificationStats = useMemo(() => {
-    const safeData = Array.isArray(verificationData) ? verificationData : [];
-
-    const high = safeData.filter(req => req.priority === 'high').length;
-    const critical = safeData.filter(req => req.priority === 'critical').length;
-    const pending = safeData.filter(req => req.status === 'pending').length;
-    const inProgress = safeData.filter(req => req.status === 'in_progress').length;
-
-    return {
-      total: safeData.length,
-      critical,
-      high,
-      pending,
-      inProgress,
-      completed: safeData.filter(req => req.status === 'completed').length
-    };
-  }, [verificationData]);
-
   // Refresh all data
   const refreshAllData = useCallback(async () => {
     try {
       const taskMap = {
         emergency: fetchEmergencyData,
         visits: fetchVisitsData,
-        supportTickets: fetchSupportTicketsData,
         analytics: fetchAnalyticsData,
         verification: fetchVerificationData,
         doctors: fetchDoctorsData,
-        hospitals: fetchHospitalsData,
-        ambulances: fetchAmbulancesData,
         users: fetchUsersData,
-        wallet: fetchWalletData,
-        pricing: fetchPricingData,
-        insurance: fetchInsurancePolicies,
-        organizations: fetchOrganizationsData
       };
 
       await Promise.all(startupDomains.map((domain) => taskMap[domain]?.()));
@@ -1063,51 +498,10 @@ export const PageDataProvider = ({ children }) => {
     fetchAnalyticsData,
     fetchDoctorsData,
     fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
     fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchWalletData,
-    fetchPricingData,
-    fetchOrganizationsData
   ]);
 
-  const insuranceStats = useMemo(() => {
-    if (insurancePageStats) {
-      return {
-        total: insurancePageStats.total || 0,
-        active: insurancePageStats.active || 0,
-        expired: insurancePageStats.expired || 0,
-        pending: insurancePageStats.pending || 0,
-        verified: insurancePageStats.verified || 0,
-        verificationRate: insurancePageStats.total > 0
-          ? Math.round(((insurancePageStats.verified || 0) / insurancePageStats.total) * 100)
-          : 0,
-      };
-    }
-
-    const policies = insurancePolicies || [];
-    const active = policies.filter(p => p.status === 'active').length;
-    const expired = policies.filter(p => p.status === 'expired').length;
-    const pending = policies.filter(p => p.status === 'pending').length;
-
-    // Calculate verified ratio
-    const verified = policies.filter(p => p.verified).length;
-    const verificationRate = policies.length > 0 ? Math.round((verified / policies.length) * 100) : 0;
-
-    return {
-      total: policies.length,
-      active,
-      expired,
-      pending,
-      verified,
-      verificationRate
-    };
-  }, [insurancePageStats, insurancePolicies]);
-
   const getEmergencyStats = useCallback(() => emergencyStats, [emergencyStats]);
-  const getInsuranceStats = useCallback(() => insuranceStats, [insuranceStats]);
 
   // Per-domain initial-load map ({ [domain]: boolean }) - true only while a
   // domain's fetch is in flight AND its slice still holds the initial no-data
@@ -1120,15 +514,8 @@ export const PageDataProvider = ({ children }) => {
     doctors: Boolean(domainFetching.doctors) && doctorsData == null,
     visits: Boolean(domainFetching.visits) && visitsData == null,
     analytics: Boolean(domainFetching.analytics) && analyticsData == null,
-    supportTickets: Boolean(domainFetching.supportTickets) && supportTicketsData == null,
-    hospitals: Boolean(domainFetching.hospitals) && hospitalsData?.stats == null && (hospitalsData?.recent?.length || 0) === 0,
-    ambulances: Boolean(domainFetching.ambulances) && ambulancesData?.stats == null && (ambulancesData?.recent?.length || 0) === 0,
     users: Boolean(domainFetching.users) && userData?.statistics == null && (userData?.users?.length || 0) === 0,
     wallet: Boolean(domainFetching.wallet) && walletData?.wallet == null && (walletData?.ledger?.length || 0) === 0,
-    pricing: Boolean(domainFetching.pricing) && (servicePricing?.length || 0) === 0 && (roomPricing?.length || 0) === 0,
-    insurance: Boolean(domainFetching.insurance) && insurancePageStats == null && (insurancePolicies?.length || 0) === 0,
-    organizations: Boolean(domainFetching.organizations) && organizationsData?.stats == null && (organizationsData?.organizations?.length || 0) === 0,
-    activity: Boolean(domainFetching.activity) && (activityData?.length || 0) === 0,
   }), [
     domainFetching,
     emergencyData,
@@ -1136,17 +523,8 @@ export const PageDataProvider = ({ children }) => {
     doctorsData,
     visitsData,
     analyticsData,
-    supportTicketsData,
-    hospitalsData,
-    ambulancesData,
     userData,
     walletData,
-    servicePricing,
-    roomPricing,
-    insurancePageStats,
-    insurancePolicies,
-    organizationsData,
-    activityData,
   ]);
 
   // PULLBACK NOTE: Optimized context value to prevent excessive re-renders
@@ -1164,18 +542,8 @@ export const PageDataProvider = ({ children }) => {
     visitsData,
     visitsStats: visitsData?.stats,
     verificationData,
-    supportTicketsData,
-    activityData,
     userData,
-    hospitalsData,
-    ambulancesData,
-    // Add insurance data directly to value so it's accessible
-    insurance: insurancePolicies,
-    insuranceStats,
     walletData,
-    organizationsData,
-    servicePricing,
-    roomPricing,
     domainErrors,
 
     // Loading states
@@ -1184,18 +552,8 @@ export const PageDataProvider = ({ children }) => {
     // incl. background refetches) maps; additive next to the legacy boolean.
     domainLoading,
     domainFetching,
-    useMockData,
-
-    // Mock data for reference
-    mockData: {
-      emergency: mockEmergencyData,
-      analytics: mockAnalyticsData,
-      doctors: mockDoctorsData,
-      visits: mockVisitsData,
-      verification: mockVerificationData,
-      supportTickets: mockSupportTicketsData,
-      insurance: [] // Mock insurance data
-    }
+    // Compatibility flag for legacy consumers. Production PageData has no mock path.
+    useMockData: false,
   }), [
     emergencyData,
     emergencyStats,
@@ -1203,23 +561,12 @@ export const PageDataProvider = ({ children }) => {
     doctorsData,
     visitsData,
     verificationData,
-    supportTicketsData,
-    activityData,
     userData,
-    hospitalsData,
-    ambulancesData,
-    insurancePolicies,
-    insurancePageStats,
-    insuranceStats,
     walletData,
-    organizationsData,
-    servicePricing,
-    roomPricing,
     domainErrors,
     domainLoading,
     domainFetching,
-    pageLoading,
-    useMockData
+    pageLoading
   ]);
 
   // Memoize methods separately (they're stable due to useCallback)
@@ -1229,15 +576,9 @@ export const PageDataProvider = ({ children }) => {
     fetchAnalyticsData,
     fetchDoctorsData,
     fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
     fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchActivityData,
     fetchWalletData,
     getEmergencyStats,
-    getInsuranceStats,
     refreshAllData
   }), [
     fetchEmergencyData,
@@ -1245,15 +586,9 @@ export const PageDataProvider = ({ children }) => {
     fetchAnalyticsData,
     fetchDoctorsData,
     fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
     fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchActivityData,
     fetchWalletData,
     getEmergencyStats,
-    getInsuranceStats,
     refreshAllData
   ]);
 

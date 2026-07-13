@@ -352,17 +352,27 @@ describe('WalletManagementPage Payments contract', () => {
 
   it('shows at most three source-backed desktop payment metrics', () => {
     const page = pageSource();
+    const service = serviceSource();
 
     expect(page).toContain("import { MetricStrip } from '../console/MetricStrip';");
     expect(page).toContain('const PaymentsMetrics = ({');
     expect(page).toContain('max={3}');
     expect(page.match(/label: '(Balance|Credits|Debits)'/g)).toHaveLength(3);
-    expect(page).toContain("readState?.wallet === 'ready'");
-    expect(page).toContain("readState?.ledger === 'ready'");
+    expect(page).toContain("['ready', 'stale'].includes(readState?.wallet)");
+    expect(page).toContain("['ready', 'stale'].includes(readState?.financeMetrics)");
     expect(page).toContain("String(value).trim() !== ''");
     expect(page).toContain('available: Boolean(balanceAvailable)');
-    expect(page).toContain('available: ledgerAvailable && creditAmountsAvailable');
-    expect(page).toContain('available: ledgerAvailable && debitAmountsAvailable');
+    expect(page).toContain('available: ledgerTotalsAvailable');
+    expect(page).toContain('financeMetrics.credits');
+    expect(page).toContain('financeMetrics.debits');
+    expect(page).toContain('Last confirmed ledger totals');
+    expect(service).toContain("basis: 'complete_wallet_ledger_scan'");
+    expect(service).toContain("scopeLabel: 'All recorded ledger entries'");
+    expect(service).toContain(".select('id', { count: 'exact', head: true })");
+    expect(service).toContain(".select('amount, transaction_type')");
+    expect(service).toContain('if (confirmedCount !== expectedCount || processedCount !== expectedCount)');
+    expect(page).not.toContain('const creditRows = ledger.filter');
+    expect(page).not.toContain('const debitRows = ledger.filter');
     expect(page).not.toContain('PaymentsMetricStrip');
     expect(page).not.toContain("label: 'Transactions loaded'");
     expect(page).not.toContain("label: 'Payments loaded'");
@@ -479,6 +489,11 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('No payment totals are shown.');
     expect(page).not.toContain('setLedger([])');
     expect(page).not.toContain('setPayments([])');
+    expect(page).not.toContain('error?.message');
+    expect(page).toContain("setLoadError('Payments could not load. Please try again.');");
+    expect(page).toContain("key === 'financeMetrics' && financeMetricsRef.current?.complete");
+    expect(page).toContain("value === 'ready'");
+    expect(page).toContain('setFinanceMetrics(financeMetricsRef.current);');
     expect(panel).toContain('Showing the most recent available records.');
   });
 
@@ -542,6 +557,20 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).not.toContain("label: 'Paid'");
   });
 
+  it('uses the shared status pill and exact ledger-total language across payment rails', () => {
+    const page = pageSource();
+    const panel = walletPanelSource();
+
+    expect(page).toContain('<StatusPill label={paymentStatusLabel} className={statusClass} />');
+    expect(page).toContain('<StatusPill label={label} className={statusTone} />');
+    expect(page).toContain('<StatusPill label={statusLabel} className={statusTone} />');
+    expect(panel).toContain("import { StatusPill } from '../console/primitives';");
+    expect(panel).toContain('<StatusPill label={freshnessLabel} className={freshnessTone} />');
+    expect(panel).toContain('financeMetrics.credits');
+    expect(panel).toContain('financeMetrics.debits');
+    expect(panel).toContain('Ledger totals unavailable for this account');
+  });
+
   it('uses payment-owned analytics and lifecycle denominators instead of generic dashboard language', () => {
     const page = pageSource();
     const analyticsModal = analyticsModalSource();
@@ -572,11 +601,14 @@ describe('WalletManagementPage Payments contract', () => {
     const panel = walletPanelSource();
     const mobile = mobileSource();
 
-    expect(page).toContain('ivisit_transactions_');
-    expect(page).toContain("toast.success('Transactions exported.');");
+    expect(page).toContain('buildLoadedLedgerCsv({ ledger, currency: wallet?.currency })');
+    expect(page).toContain('ivisit_loaded_transactions_');
+    expect(page).toContain('loaded transaction${ledger.length === 1');
     expect(page).toContain("window.addEventListener('exportLedger', handleExportEvent);");
     expect(page).toContain("window.removeEventListener('exportLedger', handleExportEvent);");
     expect(panel).toContain("new CustomEvent('exportLedger')");
+    expect(panel).toContain('Export shown');
+    expect(panel).toContain('Exporting ${transactionsCount} loaded transaction');
     expect(mobile).not.toContain('Export visible transactions');
     expect(mobile).not.toContain('<FileDown');
     expect(page).not.toContain('All transactions exported');
@@ -590,12 +622,14 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain('<MobileHeading');
     expect(mobile).toContain('<MobileKPIStrip');
     expect(mobile).toContain('interactive={false}');
-    expect(mobile).toContain("label: 'Credit'");
-    expect(mobile).toContain("label: 'Debit'");
+    expect(mobile).toContain("label: 'Credits'");
+    expect(mobile).toContain("label: 'Debits'");
     expect(mobile).not.toContain("label: 'Loaded in'");
     expect(mobile).not.toContain("label: 'Loaded out'");
-    expect(mobile).toContain("label: 'Needs review'");
-    expect(mobile).toContain("!['completed', 'refunded'].includes(normalizedValue(payment?.status))");
+    expect(mobile).not.toContain("label: 'Needs review'");
+    expect(mobile).toContain('financeMetrics.credits');
+    expect(mobile).toContain('financeMetrics.debits');
+    expect(mobile).toContain('Last confirmed ledger totals');
     expect(mobile).toContain("const normalizedValue = (value) => String(value || '').toLowerCase();");
     expect(mobile).toContain("label: 'Transactions'");
     expect(mobile).toContain("label: 'Patient payments'");

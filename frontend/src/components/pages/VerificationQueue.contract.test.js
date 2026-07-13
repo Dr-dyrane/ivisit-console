@@ -180,7 +180,9 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(page).not.toContain('hover-glow-primary');
     expect(island).toContain('hsl(var(--spark))');
     expect(island).toContain('bg-[hsl(var(--spark)/0.75)]');
-    expect(checkbox).toContain('data-[state=checked]:bg-[hsl(var(--spark)/0.88)]');
+    expect(checkbox).toContain('data-[state=checked]:bg-foreground');
+    expect(checkbox).toContain('dark:data-[state=checked]:bg-white');
+    expect(checkbox).not.toContain('data-[state=checked]:bg-[hsl(var(--spark)');
     expect(checkbox).not.toContain('border-primary');
     expect(checkbox).not.toContain('data-[state=checked]:bg-primary');
     expect(hardgate).toContain('src/components/modals/VerificationModal.jsx');

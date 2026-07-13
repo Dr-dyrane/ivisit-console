@@ -5,12 +5,12 @@ import {
   Ambulance,
   BarChart3,
   BedDouble,
-  CheckCheck,
+  Clock,
+  ClipboardCheck,
   Filter,
   Loader2,
   Plus,
   Radio,
-  ShieldCheck
 } from 'lucide-react';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 
@@ -28,9 +28,9 @@ const serviceTone = {
     icon: BedDouble,
     className: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
   },
-  critical_care: {
-    icon: ShieldCheck,
-    className: 'bg-rose-500/10 text-rose-700 dark:text-rose-200',
+  booking: {
+    icon: ClipboardCheck,
+    className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
   },
 };
 
@@ -76,7 +76,7 @@ export const EmergencyPanel = ({ requestContext }) => {
   const loading = Boolean(context.loading) || !hasContext;
   const total = toCount(context.count ?? stats.total, recent.length);
   const pending = toCount(stats.pending, 0);
-  const critical = toCount(stats.critical, 0);
+  const active = toCount(stats.active, 0);
   const canCreate = context.canCreate === true;
   const errorMessage = context.errorMessage;
   const [panelNotice, setPanelNotice] = React.useState('Requests actions ready.');
@@ -156,17 +156,17 @@ export const EmergencyPanel = ({ requestContext }) => {
             </div>
           </div>
 
-          <div className="rounded-inner bg-rose-500/10 p-3 text-rose-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-rose-200">
+          <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-[0_4px_12px_rgb(0_0_0/0.07)] dark:text-amber-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon surface-card">
-                <ShieldCheck className="h-4 w-4" />
+                <Clock className="h-4 w-4" />
               </span>
               <span className="min-w-0">
                 <span className="block text-lg font-semibold tracking-normal text-foreground">
-                  {loading ? '...' : critical}
+                  {loading ? '...' : active}
                 </span>
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Critical care
+                  Active
                 </span>
               </span>
             </div>

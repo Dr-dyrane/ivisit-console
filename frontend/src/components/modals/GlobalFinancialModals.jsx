@@ -28,8 +28,8 @@ const canUseStripeInCurrentOrigin =
     window.location.protocol === 'https:';
 const canLoadStripe = Boolean(STRIPE_PUBLISHABLE_KEY && canUseStripeInCurrentOrigin);
 
-const modalSurfaceClass = 'w-[calc(100vw-1rem)] overflow-hidden rounded-[36px] bg-card/92 p-0 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.18)] backdrop-blur-2xl sm:max-w-[425px]';
-const amountInputClass = 'h-14 w-full rounded-[24px] bg-muted/30 pl-10 pr-4 text-xl font-semibold text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]';
+const modalSurfaceClass = 'w-[calc(100vw-1rem)] overflow-hidden rounded-sheet bg-card/92 p-0 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.18)] backdrop-blur-2xl sm:max-w-[425px]';
+const amountInputClass = 'h-14 w-full rounded-inner bg-muted/30 pl-10 pr-4 text-xl font-semibold text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]';
 
 const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
     const stripe = useStripe();
@@ -72,7 +72,7 @@ const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="rounded-[24px] bg-muted/30 p-4 shadow-sm">
+                    <div className="rounded-inner bg-muted/30 p-4 shadow-sm">
                 <CardElement options={{
                     style: {
                         base: {
@@ -86,7 +86,7 @@ const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
             <Button
                 type="submit"
                 disabled={!stripe || loading}
-                className="h-12 w-full rounded-[22px] bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
+                        className="h-12 w-full rounded-button bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
             >
                 {loading ? 'Saving...' : 'Verify and add card'}
             </Button>
@@ -241,7 +241,7 @@ export const GlobalFinancialModals = () => {
             <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
                 <DialogContent className={modalSurfaceClass}>
                     <div className="p-6 md:p-8">
-                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+                    <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
                         <DialogHeader className="mb-6">
                             <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Add funds</DialogTitle>
                             <DialogDescription className="text-muted-foreground">
@@ -270,7 +270,7 @@ export const GlobalFinancialModals = () => {
                                 <Button
                                     type="submit"
                                     disabled={processing || !hasValidAmount || paymentMethods.length === 0}
-                                    className="h-12 w-full rounded-[22px] bg-emerald-500 text-sm font-semibold text-white shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
+                        className="h-12 w-full rounded-button bg-emerald-500 text-sm font-semibold text-white shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
                                 >
                                     {processing ? 'Adding...' : 'Add funds'}
                                 </Button>
@@ -294,7 +294,7 @@ export const GlobalFinancialModals = () => {
             <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
                 <DialogContent className={modalSurfaceClass}>
                     <div className="p-6 md:p-8">
-                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+                    <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
                         <DialogHeader className="mb-6">
                             <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Withdraw</DialogTitle>
                             <DialogDescription className="text-muted-foreground">
@@ -324,7 +324,7 @@ export const GlobalFinancialModals = () => {
                                 <Button
                                     type="submit"
                                     disabled={processing || !hasValidAmount || exceedsBalance}
-                                    className="h-12 w-full rounded-[22px] bg-muted text-sm font-semibold text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+                        className="h-12 w-full rounded-button bg-muted text-sm font-semibold text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
                                 >
                                     {processing ? 'Withdrawing...' : 'Withdraw'}
                                 </Button>
@@ -348,7 +348,7 @@ export const GlobalFinancialModals = () => {
             <Dialog open={isBillingOpen} onOpenChange={setIsBillingOpen}>
                 <DialogContent className={`${modalSurfaceClass} sm:max-w-[500px]`}>
                     <div className="p-6 md:p-8">
-                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+                    <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
                         <DialogHeader className="mb-6">
                             <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Payment cards</DialogTitle>
                             <DialogDescription className="text-muted-foreground">
@@ -361,9 +361,9 @@ export const GlobalFinancialModals = () => {
                                 <Label className="text-sm font-medium text-muted-foreground">Saved cards</Label>
                                 <div className="grid gap-3">
                                     {loadingPaymentMethods ? (
-                                        <div className="h-20 animate-pulse bg-muted/10 rounded-2xl" />
+                                <div className="h-20 animate-pulse rounded-inner bg-muted/10" />
                                     ) : paymentMethods.map(pm => (
-                                        <div key={pm.id} className="flex items-center justify-between gap-3 rounded-[24px] bg-muted/16 p-4 transition-all hover:bg-muted/26">
+                                <div key={pm.id} className="flex items-center justify-between gap-3 rounded-inner bg-muted/16 p-4 transition-all hover:bg-muted/26">
                                             <div className="flex items-center gap-3">
                                                 <CreditCard className="h-5 w-5 text-muted-foreground transition-colors" />
                                                 <div>
@@ -371,11 +371,11 @@ export const GlobalFinancialModals = () => {
                                                     <p className="text-xs text-muted-foreground">Expires {pm.card?.exp_month}/{pm.card?.exp_year}</p>
                                                 </div>
                                             </div>
-                                            <span className="rounded-full bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">Primary</span>
+                                            <span className="rounded-pill bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">Primary</span>
                                         </div>
                                     ))}
                                     {!loadingPaymentMethods && paymentMethods.length === 0 && (
-                                        <div className="rounded-[24px] bg-muted/16 py-6 text-center">
+                            <div className="rounded-inner bg-muted/16 py-6 text-center">
                                             <p className="text-sm font-medium text-muted-foreground">No saved cards</p>
                                         </div>
                                     )}
@@ -396,12 +396,12 @@ export const GlobalFinancialModals = () => {
                                             />
                                         </Elements>
                                     ) : (
-                                        <div className="rounded-[24px] bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+                        <div className="rounded-inner bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
                                             Card setup is loading.
                                         </div>
                                     )
                                 ) : (
-                                    <div className="rounded-[24px] bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+                        <div className="rounded-inner bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
                                         Card setup is available only over HTTPS.
                                     </div>
                                 )}

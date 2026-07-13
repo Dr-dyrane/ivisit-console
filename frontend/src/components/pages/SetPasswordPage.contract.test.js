@@ -11,7 +11,7 @@ describe('Set Password Page 20 admission contract', () => {
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 20 Admission - Set Password');
-    expect(gate).toContain('Set Password recovery correction on 2026-07-12');
+    expect(gate).toContain('Set Password receiver admission on 2026-07-12');
     expect(app).toContain('<Route path="/set-password" element={<SetPasswordPage />} />');
     expect(app).not.toContain('<Route path="/set-password" element={<ProtectedRoute');
     expect(routes).toContain("'/set-password': {");
@@ -26,13 +26,20 @@ describe('Set Password Page 20 admission contract', () => {
     const login = read('src/components/pages/LoginPage.jsx');
 
     expect(page).toContain('const RECOVERY_CHECK_TIMEOUT_MS = 5000;');
+    expect(page).toContain("const PASSWORD_LINK_MARKER = 'ivisit_verified_password_link';");
+    expect(page).toContain('const hasPasswordLinkIntent = () => {');
+    expect(page).toContain("query.has('code')");
+    expect(page).toContain("['recovery', 'invite'].includes(linkType)");
     expect(page).toContain('return await Promise.race([');
     expect(page).toContain('supabase.auth.getSession()');
     expect(page).toContain("reject(new Error('RECOVERY_CHECK_TIMEOUT'))");
     expect(page).toContain("const [recoveryStatus, setRecoveryStatus] = useState('checking');");
-    expect(page).toContain("setRecoveryStatus(data?.session ? 'ready' : 'missing')");
+    expect(page).toContain("setRecoveryStatus('ready')");
+    expect(page).toContain("setRecoveryStatus('missing')");
     expect(page).toContain("setRecoveryStatus('error')");
     expect(page).toContain("setRecoveryStatus('success')");
+    expect(page).toContain('supabase.auth.onAuthStateChange((event, session) => {');
+    expect(page).toContain("event !== 'PASSWORD_RECOVERY'");
     expect(page).toContain('Checking your link');
     expect(page).toContain('Link unavailable');
     expect(page).toContain('Could not check this link');
@@ -51,13 +58,14 @@ describe('Set Password Page 20 admission contract', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const page = read('src/components/pages/SetPasswordPage.jsx');
 
-    expect(gate).toContain('Recovery-session truth: safer, not admitted.');
-    expect(gate).toContain('Auth receiver ownership: partially proved, not admitted.');
+    expect(gate).toContain('Recovery-session truth: admitted with explicit link intent and bounded verification.');
+    expect(gate).toContain('Password update receiver: admitted.');
     expect(page).toContain("{recoveryStatus === 'ready' && (");
     expect(page).toContain("if (submitLockRef.current || recoveryStatus !== 'ready') return;");
     expect(page).toContain('supabase.auth.updateUser({ password })');
     expect(page).toContain("setFormError('Passwords do not match')");
     expect(page).toContain("setRecoveryStatus('success')");
+    expect(page).toContain("window.history.replaceState({}, '', '/set-password')");
     expect(page).toContain("navigate('/', { replace: true })");
     expect(page).toContain('aria-busy={loading}');
     expect(page).toContain("data-state={loading ? 'pending' : 'ready'}");

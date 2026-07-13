@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useRowSelection } from '../../hooks/useRowSelection';
@@ -19,6 +19,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { MobileSubscriptions } from '../mobile/MobileSubscriptions';
 import { SEOHead } from '../common/SEOHead';
 import {
+  AlertTriangle,
   BarChart3,
   Filter,
   MailX,
@@ -26,6 +27,51 @@ import {
 import { toast } from 'sonner';
 
 const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber and email changes are not available yet.';
+const TERMINAL_SUBSCRIBER_STATUSES = new Set(['unsubscribed', 'bounced', 'inactive', 'cancelled', 'expired']);
+const EMPTY_SUBSCRIPTION_STATS = Object.freeze({
+  total: 0,
+  active: 0,
+  pending: 0,
+  unsubscribed: 0,
+  paid: 0,
+  free: 0,
+  newUsers: 0,
+  welcomeSent: 0,
+  exactCounts: true,
+  available: true,
+  scope: 'admin_subscriber_projection',
+});
+
+const buildVisibleSubscriptionStats = (rows = [], reason = 'stats_query_failed') => {
+  const visibleRows = Array.isArray(rows) ? rows : [];
+  const statuses = visibleRows.map((subscriber) => String(subscriber?.status || 'pending').toLowerCase());
+
+  return {
+    total: visibleRows.length,
+    active: statuses.filter((status) => status === 'active').length,
+    pending: statuses.filter((status) => status !== 'active' && !TERMINAL_SUBSCRIBER_STATUSES.has(status)).length,
+    unsubscribed: statuses.filter((status) => TERMINAL_SUBSCRIBER_STATUSES.has(status)).length,
+    paid: visibleRows.filter((subscriber) => subscriber?.type === 'paid').length,
+    free: visibleRows.filter((subscriber) => subscriber?.type === 'free').length,
+    newUsers: visibleRows.filter((subscriber) => subscriber?.new_user === true).length,
+    welcomeSent: visibleRows.filter((subscriber) => subscriber?.welcome_email_sent === true).length,
+    exactCounts: false,
+    available: false,
+    reason,
+    scope: 'visible_rows',
+  };
+};
+
+const ProjectionStatsNotice = () => (
+  <p
+    className="mx-4 mt-3 flex items-start gap-2 rounded-inner bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-900 dark:text-amber-100 lg:mx-auto lg:max-w-3xl"
+    role="status"
+    aria-live="polite"
+  >
+    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+    <span>Subscriber statistics are unavailable. Counts use the loaded rows; the list remains current.</span>
+  </p>
+);
 
 export const SubscriptionManagementPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
@@ -55,16 +101,18 @@ export const SubscriptionManagementPage = () => {
     dateRange: 'all'
   });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [mobileSubscriberFeed, setMobileSubscriberFeed] = useState([]);
+  const mobileSubscriberPagesRef = useRef(new Map());
 
   const pagination = usePagination(20);
   const subscriptionQueryFilter = useMemo(() => ({
     ...filters,
-    limit: isMobile ? pagination.currentPage * pagination.itemsPerPage : pagination.itemsPerPage,
-    offset: isMobile ? 0 : (pagination.currentPage - 1) * pagination.itemsPerPage,
+    limit: pagination.itemsPerPage,
+    offset: (pagination.currentPage - 1) * pagination.itemsPerPage,
     sortKey: sortConfig.key,
     sortDirection: sortConfig.direction,
     quiet: true,
-  }), [filters, isMobile, pagination.currentPage, pagination.itemsPerPage, sortConfig.direction, sortConfig.key]);
+  }), [filters, pagination.currentPage, pagination.itemsPerPage, sortConfig.direction, sortConfig.key]);
   const {
     subscribers,
     count: subscriberCount,
@@ -86,29 +134,51 @@ export const SubscriptionManagementPage = () => {
     pagination.resetPagination();
   }, [filters, pagination.resetPagination, sortConfig.direction, sortConfig.key]);
 
+  const mobileQueryScope = useMemo(() => JSON.stringify({
+    filters,
+    sortKey: sortConfig.key,
+    sortDirection: sortConfig.direction,
+  }), [filters, sortConfig.direction, sortConfig.key]);
+
+  useEffect(() => {
+    mobileSubscriberPagesRef.current = new Map();
+    setMobileSubscriberFeed([]);
+  }, [isMobile, mobileQueryScope]);
+
+  useEffect(() => {
+    if (!isMobile || isPlaceholderData || loading || error || subscriptionDenied) return;
+
+    const pageRows = Array.isArray(subscribers) ? subscribers : [];
+    const pages = pagination.currentPage === 1
+      ? new Map()
+      : new Map(mobileSubscriberPagesRef.current);
+    pages.set(pagination.currentPage, pageRows);
+    mobileSubscriberPagesRef.current = pages;
+
+    const seen = new Set();
+    const appendedRows = [...pages.entries()]
+      .sort(([pageA], [pageB]) => pageA - pageB)
+      .flatMap(([, rows]) => rows)
+      .filter((subscriber) => {
+        if (!subscriber?.id || seen.has(subscriber.id)) return false;
+        seen.add(subscriber.id);
+        return true;
+      });
+    setMobileSubscriberFeed(appendedRows);
+  }, [
+    error,
+    isMobile,
+    isPlaceholderData,
+    loading,
+    pagination.currentPage,
+    subscribers,
+    subscriptionDenied,
+  ]);
+
   useEffect(() => {
     if (!isAdmin()) return undefined;
     return subscribeToSubscribers(() => invalidateSubscriptions());
   }, [invalidateSubscriptions, isAdmin]);
-
-  const subscriptionAnalytics = useMemo(() => {
-    const stats = subscriptionProjectionStats || {};
-    const total = Number(stats.total || subscriberCount || 0);
-    const paid = Number(stats.paid || 0);
-    return {
-      total,
-      active: Number(stats.active || 0),
-      paid,
-      free: Number(stats.free || 0),
-      newUsers: Number(stats.newUsers || 0),
-      welcomeEmailsSent: Number(stats.welcomeSent || 0),
-      paidConversionRate: total > 0 ? Math.round((paid / total) * 100) : 0,
-      verified: Number(stats.active || 0),
-      premium: paid,
-      pending: Number(stats.pending || 0),
-      distributionScope: 'exact_filtered_projection',
-    };
-  }, [subscriberCount, subscriptionProjectionStats]);
 
   const handleSubscriptionCommandUnavailable = useCallback(() => {
     setSubscriptionCommandNotice(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);
@@ -153,14 +223,52 @@ export const SubscriptionManagementPage = () => {
   // the desktop signal strip. This is the list the desktop + mobile both render.
   const filteredSubscribers = subscriptionBaseFiltered;
 
-  // Status-keyed, full-scope (base) counts for the mobile KPI strip + heading. Buckets match the
-  // filteredSubscribers branches exactly, so scopeCount == the rendered scope. No write is added.
-  const subscriptionMobileStats = subscriptionProjectionStats || { total: 0, active: 0, pending: 0, unsubscribed: 0 };
-
   // Pagination Logic
   const paginatedSubscribers = useMemo(() => {
     return filteredSubscribers || [];
   }, [filteredSubscribers]);
+
+  const mobileVisibleSubscribers = useMemo(() => {
+    return mobileSubscriberFeed;
+  }, [mobileSubscriberFeed]);
+  const visibleSubscriberRows = isMobile ? mobileVisibleSubscribers : paginatedSubscribers;
+  const subscriptionStatsUnavailable = Boolean(
+    !subscriptionDenied
+    && !error
+    && subscriptionProjectionStats?.available === false
+  );
+  const subscriptionDisplayStats = useMemo(() => (
+    subscriptionStatsUnavailable
+      ? buildVisibleSubscriptionStats(visibleSubscriberRows, subscriptionProjectionStats?.reason)
+      : (subscriptionProjectionStats || EMPTY_SUBSCRIPTION_STATS)
+  ), [subscriptionProjectionStats, subscriptionStatsUnavailable, visibleSubscriberRows]);
+  const subscriptionMobileStats = subscriptionDisplayStats;
+  const subscriptionAnalytics = useMemo(() => {
+    const total = Number(subscriptionDisplayStats.total ?? subscriberCount ?? 0);
+    const paid = Number(subscriptionDisplayStats.paid ?? 0);
+    const free = Number(subscriptionDisplayStats.free ?? 0);
+    const active = Number(subscriptionDisplayStats.active ?? 0);
+    const pending = Number(subscriptionDisplayStats.pending ?? 0);
+    const unsubscribed = Number(subscriptionDisplayStats.unsubscribed ?? 0);
+
+    return {
+      total,
+      active,
+      paid,
+      free,
+      newUsers: Number(subscriptionDisplayStats.newUsers ?? 0),
+      welcomeEmailsSent: Number(subscriptionDisplayStats.welcomeSent ?? 0),
+      pending,
+      unsubscribed,
+      byType: { paid, free },
+      byStatus: { active, pending, unsubscribed },
+      statsAvailable: !subscriptionStatsUnavailable,
+      distributionScope: subscriptionStatsUnavailable ? 'visible_page' : 'exact_filtered_projection',
+      distributionLabel: subscriptionStatsUnavailable
+        ? 'Loaded rows (statistics unavailable)'
+        : 'Current filtered subscriber scope',
+    };
+  }, [subscriberCount, subscriptionDisplayStats, subscriptionStatsUnavailable]);
   const {
     selectedIds,
     handleSelectClick,
@@ -169,7 +277,7 @@ export const SubscriptionManagementPage = () => {
     clearSelection,
     allSelected,
     someSelected,
-  } = useRowSelection(paginatedSubscribers);
+  } = useRowSelection(visibleSubscriberRows);
 
   useEffect(() => {
     clearSelection();
@@ -188,16 +296,12 @@ export const SubscriptionManagementPage = () => {
   const moduleRailItems = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
-  const mobileVisibleSubscribers = useMemo(() => {
-    return filteredSubscribers || [];
-  }, [filteredSubscribers]);
-
-  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('subscriptions', paginatedSubscribers);
+  const { focusedRecord, setFocused, isFocused } = useFocusedRecord('subscriptions', visibleSubscriberRows);
   const focusedSubscriber = focusedRecord;
 
   const subscriptionsRouteContext = useMemo(() => {
     const subscriberRows = Array.isArray(subscribers) ? subscribers : [];
-    const projectionStats = subscriptionProjectionStats || {};
+    const projectionStats = subscriptionDisplayStats;
 
     return {
       subscribers: subscriberRows.slice(0, 8),
@@ -209,12 +313,14 @@ export const SubscriptionManagementPage = () => {
         free: projectionStats.free || 0,
         paid: projectionStats.paid || 0,
         newUsers: projectionStats.newUsers || 0,
+        statsAvailable: !subscriptionStatsUnavailable,
+        statsScope: projectionStats.scope,
         loading,
         error: error ? String(error?.message || error) : null,
         source: 'route'
       }
     };
-  }, [subscribers, subscriberCount, subscriptionProjectionStats, focusedSubscriber, loading, error]);
+  }, [subscribers, subscriberCount, subscriptionDisplayStats, subscriptionStatsUnavailable, focusedSubscriber, loading, error]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -381,6 +487,7 @@ export const SubscriptionManagementPage = () => {
         <MobileSubscriptions
           subscribers={mobileVisibleSubscribers}
           stats={subscriptionMobileStats}
+          statsUnavailable={subscriptionStatsUnavailable}
           filters={filters}
           setFilters={setFilters}
           onView={handleView}
@@ -388,7 +495,7 @@ export const SubscriptionManagementPage = () => {
           onDelete={null}
           onRefresh={fetchSubscribers}
           canManage={canManageSubscribers}
-          loading={loading}
+          loading={loading || (subscriptionIsFetching && mobileVisibleSubscribers.length === 0)}
           isFetching={subscriptionIsFetching}
           errorMessage={error ? String(error?.message || error) : null}
           onRetry={fetchSubscribers}
@@ -446,9 +553,10 @@ export const SubscriptionManagementPage = () => {
   return (
     <>
       <SEOHead title="Email Subscribers" description="Review subscriber lifecycle and welcome evidence." />
+      {subscriptionStatsUnavailable && <ProjectionStatsNotice />}
       <SubscriptionsDesktopWorkspace
         rows={paginatedSubscribers}
-        stats={subscriptionProjectionStats}
+        stats={subscriptionDisplayStats}
         denied={subscriptionDenied}
         loading={loading && paginatedSubscribers.length === 0}
         isFetching={subscriptionIsFetching}

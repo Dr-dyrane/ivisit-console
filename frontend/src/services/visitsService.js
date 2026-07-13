@@ -6,8 +6,14 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
-import { isValidUUID, withTimeout } from '../lib/utils';
-import { withRetry, withAudit } from './supabaseHelpers';
+import { isValidUUID } from '../lib/utils';
+import { withRetry } from './supabaseHelpers';
+import {
+  applyQueryAbortSignal,
+  createQueryAbortContext,
+  retryTransientRead,
+  throwIfQueryAborted,
+} from './queryAbort';
 import {
   canonicalizeVisitStatus,
   countVisitsByResolvedStatus,
@@ -19,30 +25,10 @@ import { getVisitPatientLabel } from '../utils/visitRowProjection';
 
 const TABLE_NAME = 'visits';
 const VISIT_RESOLUTION_ROW_LIMIT = 5000;
+export const VISIT_MUTATION_UNAVAILABLE_REASON = 'Visit changes are unavailable until an authorized workflow receiver is connected.';
 // PostgREST .in() lists ride the request URL, which caps out far below the
 // 5000-row resolver limit — chunk enrichment lookups and merge the results.
 const ENRICHMENT_ID_CHUNK_SIZE = 200;
-
-const VISIT_PAGE_WRITE_COLUMNS = new Set([
-  'user_id',
-  'hospital_id',
-  'date',
-  'time',
-  'type',
-  'status',
-  'notes',
-  'cost',
-  'preparation',
-  'room_number',
-  'estimated_duration',
-  'insurance_covered'
-]);
-
-const VISIT_PAGE_STATUS_VALUES = new Set([
-  'scheduled',
-  'upcoming',
-  'in_progress'
-]);
 
 const sanitizeVisitSearchTerm = (value) => String(value || '')
   .trim()
@@ -58,37 +44,6 @@ function normalizeVisitForUI(visit) {
     visit_type: visit.visit_type ?? visit.type ?? null,
     room_number: visit.room_number ?? null
   };
-}
-
-function buildVisitWritePayload(input = {}, { includeCreateDefaults = false } = {}) {
-  const payload = {};
-
-  const aliases = {
-    visit_date: 'date',
-    visit_type: 'type',
-    doctor: 'doctor_name'
-  };
-
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    const targetKey = aliases[key] || key;
-
-    if (!VISIT_PAGE_WRITE_COLUMNS.has(targetKey)) continue;
-    if (targetKey === 'status' && !VISIT_PAGE_STATUS_VALUES.has(value)) continue;
-    payload[targetKey] = value;
-  }
-
-  if (includeCreateDefaults) {
-    if (!payload.date && input.date) payload.date = input.date;
-    if (!payload.date && input.visit_date) payload.date = input.visit_date;
-    if (!payload.type && input.type) payload.type = input.type;
-    if (!payload.type && input.visit_type) payload.type = input.visit_type;
-    if (!payload.status) payload.status = 'scheduled';
-    payload.created_at = new Date().toISOString();
-  }
-
-  payload.updated_at = new Date().toISOString();
-  return payload;
 }
 
 // Sort honesty: 'room_number' (the Location column) used to silently remap to
@@ -251,15 +206,18 @@ const chunkIdList = (ids = [], size = ENRICHMENT_ID_CHUNK_SIZE) => {
 
 // Enrichment reads tolerate partial failure exactly like the previous
 // destructured `{ data }` reads did: each chunk contributes `data || []`.
-async function fetchChunkedRows(ids, buildChunkQuery) {
+async function fetchChunkedRows(ids, buildChunkQuery, abortSignal) {
   if (!ids.length) return [];
   const results = await Promise.all(
-    chunkIdList(ids).map((chunk) => buildChunkQuery(chunk))
+    chunkIdList(ids).map((chunk) => (
+      applyQueryAbortSignal(buildChunkQuery(chunk), abortSignal)
+    ))
   );
+  throwIfQueryAborted(abortSignal);
   return results.flatMap(({ data }) => data || []);
 }
 
-async function enrichVisitsForPage(visits = []) {
+async function enrichVisitsForPage(visits = [], abortSignal) {
   if (!visits.length) return [];
 
   const userIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))];
@@ -273,12 +231,13 @@ async function enrichVisitsForPage(visits = []) {
     fetchChunkedRows(userIds, (chunk) => supabase
       .from('profiles')
       .select('id, username, email, full_name')
-      .in('id', chunk)),
+      .in('id', chunk), abortSignal),
     fetchChunkedRows(emergencyLookupIds, (chunk) => supabase
       .from('emergency_requests')
       .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
-      .in('id', chunk))
+      .in('id', chunk), abortSignal)
   ]);
+  throwIfQueryAborted(abortSignal);
 
   const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
   const emergencyByRequest = (emergencyRows || []).reduce((acc, row) => ({ ...acc, [row.id]: row }), {});
@@ -292,7 +251,7 @@ async function enrichVisitsForPage(visits = []) {
     const doctors = await fetchChunkedRows(doctorIds, (chunk) => supabase
       .from('doctors')
       .select('id, name')
-      .in('id', chunk));
+      .in('id', chunk), abortSignal);
     doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
   }
 
@@ -308,7 +267,7 @@ async function enrichVisitsForPage(visits = []) {
     const hospitalRows = await fetchChunkedRows(hospitalIds, (chunk) => supabase
       .from('hospitals')
       .select('id, name, address')
-      .in('id', chunk));
+      .in('id', chunk), abortSignal);
     hospitalsMap = (hospitalRows || []).reduce((acc, h) => ({ ...acc, [h.id]: h }), {});
   }
 
@@ -350,7 +309,7 @@ async function enrichVisitsForPage(visits = []) {
   });
 }
 
-async function getVisitResolutionRows({ filters = {}, user }) {
+async function getVisitResolutionRows({ filters = {}, user, abortSignal }) {
   let resolutionQuery = supabase
     .from(TABLE_NAME)
     .select('*', { count: 'exact' })
@@ -358,12 +317,10 @@ async function getVisitResolutionRows({ filters = {}, user }) {
 
   resolutionQuery = applyVisitPageAuth(resolutionQuery, user);
   resolutionQuery = applyVisitPageFilters(resolutionQuery, filters);
+  resolutionQuery = applyQueryAbortSignal(resolutionQuery, abortSignal);
 
-  const { data, error, count } = await withTimeout(
-    resolutionQuery,
-    8000,
-    'Failed to resolve visit source rows - timeout'
-  );
+  const { data, error, count } = await resolutionQuery;
+  throwIfQueryAborted(abortSignal);
   if (error) throw error;
 
   const rows = data || [];
@@ -371,7 +328,7 @@ async function getVisitResolutionRows({ filters = {}, user }) {
     throw new Error('Visit source projection is larger than the client resolver limit; backend visit status projection required.');
   }
 
-  return enrichVisitsForPage(rows);
+  return enrichVisitsForPage(rows, abortSignal);
 }
 
 export async function getVisitsPageData({
@@ -380,24 +337,49 @@ export async function getVisitsPageData({
   range = { start: 0, end: 19 },
   sortConfig = { key: 'status', direction: 'desc' },
   quiet = false,
+  abortSignal,
 } = {}) {
   try {
+    throwIfQueryAborted(abortSignal);
     const user = await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
 
-    const resolvedRows = await withRetry(() => getVisitResolutionRows({ filters, user }));
-    const statsRows = applyResolvedVisitFilters(resolvedRows, filters, 'all');
-    const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);
-    const sortedRows = sortVisitsForPage(filteredRows, sortConfig);
-    const start = Math.max(Number(range.start) || 0, 0);
-    const end = Math.max(Number(range.end) || start, start);
-    const visits = sortedRows.slice(start, end + 1);
-    const stats = getVisitPageStatsFromRows(statsRows);
+    const request = createQueryAbortContext({
+      abortSignal,
+      timeoutMs: 8000,
+      timeoutMessage: 'Failed to resolve visit source rows - timeout',
+    });
 
-    return {
-      visits,
-      count: filteredRows.length,
-      stats,
-    };
+    try {
+      // This service is the only automatic retry owner for the manual Visits
+      // page fetch. Transient transport failures retry within one request budget;
+      // timeout and cancellation never start another Supabase attempt.
+      const resolvedRows = await retryTransientRead(
+        () => getVisitResolutionRows({ filters, user, abortSignal: request.signal }),
+        { abortSignal: request.signal }
+      );
+      request.throwIfAborted();
+
+      const statsRows = applyResolvedVisitFilters(resolvedRows, { ...filters, status: undefined }, 'all');
+      const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);
+      const sortedRows = sortVisitsForPage(filteredRows, sortConfig);
+      const start = Math.max(Number(range.start) || 0, 0);
+      const end = Math.max(Number(range.end) || start, start);
+      const visits = sortedRows.slice(start, end + 1);
+      const stats = getVisitPageStatsFromRows(statsRows);
+
+      return {
+        visits,
+        count: filteredRows.length,
+        stats,
+      };
+    } catch (error) {
+      request.abort(error);
+      request.throwIfAborted();
+      throw error;
+    } finally {
+      request.cleanup();
+    }
   } catch (error) {
     if (!quiet) {
       console.error('Error fetching visits page data:', error);
@@ -597,161 +579,43 @@ export async function getVisitByRequestId(requestId) {
 /**
  * Create new visit
  */
-export async function createVisit(input) {
-  try {
-    const payload = buildVisitWritePayload(input, { includeCreateDefaults: true });
-
-    return await withAudit('visit.create', 'visit', async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .insert([payload])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return normalizeVisitForUI(data);
-    }, { user_id: input?.user_id ?? null });
-  } catch (error) {
-    console.error('Error creating visit:', error);
-    throw error;
-  }
+export async function createVisit() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**
  * Update visit
  */
-export async function updateVisit(visitId, input) {
-  try {
-    const payload = buildVisitWritePayload(input);
-
-    return await withAudit('visit.update', 'visit', async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .update(payload)
-        .eq('id', visitId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return normalizeVisitForUI(data);
-    }, { visit_id: visitId });
-  } catch (error) {
-    console.error(`Error updating visit ${visitId}:`, error);
-    throw error;
-  }
+export async function updateVisit() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**
  * Delete visit
  */
-export async function deleteVisit(visitId) {
-  try {
-    await withAudit('visit.delete', 'visit', async () => {
-      const { error } = await supabase
-        .from(TABLE_NAME)
-        .delete()
-        .eq('id', visitId);
-
-      if (error) throw error;
-      return { id: visitId };
-    }, { visit_id: visitId });
-  } catch (error) {
-    console.error(`Error deleting visit ${visitId}:`, error);
-    throw error;
-  }
+export async function deleteVisit() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**
  * Complete visit
  */
-export async function completeVisit(visitId, summary, prescriptions) {
-  try {
-    // PULLBACK NOTE: Write to dedicated summary/prescriptions columns (now in pillar)
-    // OLD: collapsed both fields into notes as "summaryText | prescriptionsText"
-    // NEW: summary -> TEXT column, prescriptions -> TEXT[] column, notes preserved separately
-    const summaryText = String(summary || '').trim() || null;
-    const prescriptionsArray = Array.isArray(prescriptions)
-      ? prescriptions.filter(Boolean)
-      : prescriptions
-        ? String(prescriptions).split(',').map(s => s.trim()).filter(Boolean)
-        : null;
-
-    return await withAudit('visit.complete', 'visit', async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .update({
-          status: 'completed',
-          ...(summaryText ? { summary: summaryText } : {}),
-          ...(prescriptionsArray?.length ? { prescriptions: prescriptionsArray } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', visitId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return data;
-    }, { visit_id: visitId });
-  } catch (error) {
-    console.error(`Error completing visit ${visitId}:`, error);
-    throw error;
-  }
+export async function completeVisit() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**
  * Cancel visit
  */
-export async function cancelVisit(visitId, reason) {
-  try {
-    return await withAudit('visit.cancel', 'visit', async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .update({
-          status: 'cancelled',
-          notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', visitId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return data;
-    }, { visit_id: visitId });
-  } catch (error) {
-    console.error(`Error cancelling visit ${visitId}:`, error);
-    throw error;
-  }
+export async function cancelVisit() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**
  * Mark visit as no-show
  */
-export async function markVisitAsNoShow(visitId) {
-  try {
-    return await withAudit('visit.no_show', 'visit', async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .update({
-          status: 'no-show',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', visitId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return data;
-    }, { visit_id: visitId });
-  } catch (error) {
-    console.error(`Error marking visit as no-show ${visitId}:`, error);
-    throw error;
-  }
+export async function markVisitAsNoShow() {
+  throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON);
 }
 
 /**

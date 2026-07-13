@@ -56,7 +56,7 @@ export const MobileDetailIslands = ({ items = [], className = '' }) => {
             <a
               key={key}
               href={item.href}
-              rel="noopener"
+              rel="noopener noreferrer"
               target={/^https?:/i.test(item.href) ? '_blank' : undefined}
               aria-label={islandAriaLabel(item)}
               style={{ WebkitTapHighlightColor: 'transparent' }}

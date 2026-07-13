@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Clock, TrendingUp, Loader2, ArrowRight, X } from 'lucide-react';
+import { AlertCircle, Search, Clock, TrendingUp, Loader2, ArrowRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
-import { searchService } from '../../services/searchService';
+import { getAccessibleNav } from '../../config/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  filterSearchResultsByNavigation,
+  isSearchDestinationAccessible,
+  searchService,
+} from '../../services/searchService';
 
 const categoryColors = {
   'Doctors': 'hsl(var(--primary))',
@@ -15,12 +21,23 @@ const categoryColors = {
 };
 
 export const QuickSearch = ({ isOpen, onClose }) => {
+  const { profile, can } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [trendingSearches, setTrendingSearches] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const requestSeqRef = useRef(0);
   const navigate = useNavigate();
+  const accessibleNav = useMemo(
+    () => profile ? getAccessibleNav(profile, can) : null,
+    [can, profile]
+  );
+  const visibleResults = useMemo(
+    () => filterSearchResultsByNavigation(results, accessibleNav),
+    [accessibleNav, results]
+  );
 
   const loadRecentsAndTrending = useCallback(async () => {
     const [recents, trending] = await Promise.all([
@@ -38,24 +55,47 @@ export const QuickSearch = ({ isOpen, onClose }) => {
   }, [isOpen, loadRecentsAndTrending]);
 
   const handleSearch = useCallback(async (q) => {
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
     setQuery(q);
+    setSearchError(null);
+
     if (q.trim().length < 2) {
       setResults([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    const { results: searchResults } = await searchService.searchAll(q);
-    setResults(searchResults);
-    setLoading(false);
+    try {
+      const { results: searchResults } = await searchService.searchAll(q);
+      if (requestSeq !== requestSeqRef.current) return;
+
+      setResults(searchResults);
+    } catch {
+      if (requestSeq !== requestSeqRef.current) return;
+
+      setResults([]);
+      setSearchError('Search is temporarily unavailable. Try again.');
+    } finally {
+      if (requestSeq === requestSeqRef.current) {
+        setLoading(false);
+      }
+    }
   }, []);
 
   const handleSelect = useCallback((result) => {
+    if (!isSearchDestinationAccessible(result?.path, accessibleNav)) return;
+
+    requestSeqRef.current += 1;
+    setLoading(false);
+    setSearchError(null);
+    setResults([]);
     searchService.recordSelection(query, result.type, result.id);
     navigate(result.path);
     onClose();
     setQuery('');
-  }, [query, navigate, onClose]);
+  }, [accessibleNav, query, navigate, onClose]);
 
   const handleRecentClick = useCallback((recentQuery) => {
     handleSearch(recentQuery);
@@ -67,6 +107,13 @@ export const QuickSearch = ({ isOpen, onClose }) => {
 
   const showResults = query.trim().length >= 2;
   const showPlaceholder = !showResults && recentSearches.length > 0;
+
+  useEffect(() => {
+    if (!isOpen) {
+      requestSeqRef.current += 1;
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const down = (e) => {
@@ -101,6 +148,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               aria-label="Search query"
+              aria-invalid={Boolean(searchError)}
             />
             {loading && <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />}
             {query && (
@@ -116,7 +164,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar" aria-busy={loading}>
             <AnimatePresence mode="wait">
               {loading && (
                 <motion.div
@@ -131,7 +179,31 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                 </motion.div>
               )}
 
-              {showResults && !loading && results.length === 0 && (
+              {showResults && !loading && searchError && (
+                <motion.div
+                  key="error"
+                  role="alert"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="px-6 py-12 text-center"
+                >
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-icon bg-destructive/[0.08]">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Search unavailable</p>
+                  <p className="mt-1 text-xs text-muted-foreground">We could not load results right now.</p>
+                  <button
+                    type="button"
+                    onClick={() => handleSearch(query)}
+                    className="mt-3 rounded-button bg-muted/50 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                  >
+                    Try again
+                  </button>
+                </motion.div>
+              )}
+
+              {showResults && !loading && !searchError && visibleResults.length === 0 && (
                 <motion.div
                   key="empty"
                   initial={{ opacity: 0 }}
@@ -140,11 +212,11 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                   className="py-12 text-center px-6"
                 >
                   <Search className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No results for "{query}"</p>
+                  <p className="text-sm text-muted-foreground">No results for &quot;{query}&quot;</p>
                 </motion.div>
               )}
 
-              {showResults && results.length > 0 && (
+              {showResults && !loading && !searchError && visibleResults.length > 0 && (
                 <motion.div
                   key="results"
                   initial={{ opacity: 0 }}
@@ -152,7 +224,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                   exit={{ opacity: 0 }}
                   className="px-4 py-4 space-y-6"
                 >
-                  {results.map((category) => (
+                  {visibleResults.map((category) => (
                     <div key={category.category}>
                       <div className="flex items-center gap-2 mb-3 px-2">
                         {categoryColors[category.category] && (

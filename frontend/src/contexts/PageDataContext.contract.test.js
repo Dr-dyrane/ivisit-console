@@ -22,7 +22,7 @@ describe('PageDataContext role loading contract', () => {
       canLoadOrgData: false,
       canLoadAdminData: false,
     });
-    expect(source).toContain('getPageDataStartupDomainsForRole(profile?.role, location.pathname)');
+    expect(source).toContain('getPageDataStartupDomainsForRole(profile?.role, location.pathname, profile?.provider_type)');
   });
 
   it('keeps sponsors read-only and out of provider realtime domains', () => {
@@ -75,16 +75,23 @@ describe('PageDataContext role loading contract', () => {
     expect(pageDataSource).toContain('sourceState: fullAnalytics.analyticsSourceState');
     expect(pageDataSource).toContain('onRouteAmbulances: null');
     expect(pageDataSource).toContain("onRouteAmbulancesSource: 'source_pending'");
-    expect(pageDataSource).toContain("sourceState: 'mock_unavailable'");
+    expect(pageDataSource).not.toContain("sourceState: 'mock_unavailable'");
     expect(pageDataSource).not.toContain('totalRequests: 156');
     expect(pageDataSource).not.toContain('completionRate: 94');
     expect(pageDataSource).not.toContain('onRouteAmbulances: 4');
     expect(pageDataSource).not.toContain('Math.floor(fullAnalytics.totalAmbulances * 0.3)');
 
-    // Verification counts must not be seeded from a mock (was rendering invented 15/142/8/165
-    // pre-fetch). It initializes to null like every other domain and gates on the real fetch.
+    // Operational PageData has no embedded records or switchable mock path. The constant
+    // compatibility flag keeps old render-only consumers honest while they migrate.
     expect(pageDataSource).toContain('const [verificationData, setVerificationData] = useState(null);');
-    expect(pageDataSource).not.toContain('useState(mockVerificationData)');
+    expect(pageDataSource).toContain('useMockData: false');
+    expect(pageDataSource).not.toContain('const mockEmergencyData');
+    expect(pageDataSource).not.toContain('const mockAnalyticsData');
+    expect(pageDataSource).not.toContain('const mockDoctorsData');
+    expect(pageDataSource).not.toContain('const mockVisitsData');
+    expect(pageDataSource).not.toContain('const mockVerificationData');
+    expect(pageDataSource).not.toContain('mockData: {');
+    expect(pageDataSource).not.toContain('setUseMockData');
   });
 
   it('keeps provider Today emergency failures as UI state instead of noisy console fallback', () => {
@@ -98,7 +105,7 @@ describe('PageDataContext role loading contract', () => {
     expect(emergencySource).toContain("if (!filter?.quiet) {");
   });
 
-  it('keeps startup and manually loaded domain failures as explicit domain errors', () => {
+  it('keeps Today and explicitly invoked finance failures as explicit domain errors', () => {
     const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
 
     for (const domain of [
@@ -106,14 +113,8 @@ describe('PageDataContext role loading contract', () => {
       'doctors',
       'visits',
       'analytics',
-      'supportTickets',
-      'hospitals',
-      'ambulances',
       'users',
       'wallet',
-      'pricing',
-      'insurance',
-      'organizations',
     ]) {
       expect(pageDataSource).toContain(`markDomainError('${domain}'`);
       expect(pageDataSource).toContain(`clearDomainError('${domain}'`);
@@ -123,15 +124,14 @@ describe('PageDataContext role loading contract', () => {
     expect(pageDataSource).toContain('getVisitsPageData({');
     expect(pageDataSource).toContain('range: { start: 0, end: 4 }');
     expect(pageDataSource).toContain('stats: page?.stats || null');
-    expect(pageDataSource).toContain('getSupportTickets({ quiet: true })');
-    expect(pageDataSource).toContain('getHospitals({ quiet: true })');
-    expect(pageDataSource).toContain('getAmbulances({ quiet: true })');
     expect(pageDataSource).toContain('getUserStatistics({ quiet: true })');
     expect(pageDataSource).toContain('getProfiles({ quiet: true })');
-    expect(pageDataSource).toContain('getInsurancePage({ limit: 10, quiet: true })');
-    expect(pageDataSource).toContain('setInsurancePageStats(page.stats || null)');
-    expect(pageDataSource).not.toContain("from '../services/insurancePoliciesService'");
-    expect(pageDataSource).toContain('getOrganizations({ quiet: true })');
+    expect(pageDataSource).not.toContain("from '../services/supportTicketsService'");
+    expect(pageDataSource).not.toContain("from '../services/hospitalsService'");
+    expect(pageDataSource).not.toContain("from '../services/ambulancesService'");
+    expect(pageDataSource).not.toContain("from '../services/insuranceService'");
+    expect(pageDataSource).not.toContain("from '../services/organizationsService'");
+    expect(pageDataSource).not.toContain("from '../services/pricingService'");
     expect(pageDataSource).not.toContain("console.error('Error fetching doctors data:'");
     expect(pageDataSource).not.toContain("console.error('Error fetching visits data:'");
     expect(pageDataSource).not.toContain("console.error('Error fetching analytics data:'");
@@ -147,10 +147,7 @@ describe('PageDataContext role loading contract', () => {
 
   it('keeps Today startup service fan-out quiet below PageData', () => {
     const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
-    const ambulancesSource = fs.readFileSync('src/services/ambulancesService.js', 'utf8');
     const profilesSource = fs.readFileSync('src/services/profilesService.js', 'utf8');
-    const insuranceSource = fs.readFileSync('src/services/insuranceService.js', 'utf8');
-    const organizationsSource = fs.readFileSync('src/services/organizationsService.js', 'utf8');
     const doctorsSource = fs.readFileSync('src/services/doctorsService.js', 'utf8');
 
     expect(analyticsSource).toContain('const quietOptions = { quiet };');
@@ -158,16 +155,12 @@ describe('PageDataContext role loading contract', () => {
     expect(analyticsSource).toContain('getAmbulances(quietOptions)');
     expect(analyticsSource).toContain('getSubscriptionAnalytics(quietOptions)');
     expect(analyticsSource).toContain('if (!options?.quiet) {');
-    expect(ambulancesSource).toContain('if (!filter?.quiet) {');
     expect(profilesSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
     expect(profilesSource).toContain('if (!options?.quiet) {');
-    expect(insuranceSource).toContain('export async function getInsurancePage');
-    expect(insuranceSource).toContain('if (!filter?.quiet) {');
-    expect(organizationsSource).toContain('if (!filter?.quiet) {');
     expect(doctorsSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
   });
 
-  it('keeps startup domains explicit and leaves support, insurance, and activity lazy', () => {
+  it('loads only the domains each Today role actually renders', () => {
     const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
 
     expect(routeOwnsStartupDomains('/')).toBe(false);
@@ -183,6 +176,8 @@ describe('PageDataContext role loading contract', () => {
       'emergency',
       'visits',
     ]);
+    expect(getPageDataStartupDomainsForRole('provider', '/', 'driver')).toEqual(['emergency']);
+    expect(getPageDataStartupDomainsForRole('provider', '/', 'paramedic')).toEqual(['emergency']);
     expect(getPageDataStartupDomainsForRole('provider', '/emergencies')).toEqual([]);
 
     expect(getPageDataStartupDomainsForRole('sponsor')).toEqual(['analytics']);
@@ -190,27 +185,21 @@ describe('PageDataContext role loading contract', () => {
     expect(getPageDataStartupDomainsForRole('sponsor', '/verification')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('org_admin')).toEqual([
       'emergency',
-      'visits',
-      'analytics',
       'verification',
       'doctors',
-      'hospitals',
-      'ambulances',
       'users',
-      'wallet',
-      'pricing',
     ]);
     expect(getPageDataStartupDomainsForRole('org_admin', '/')).toEqual([
       'emergency',
-      'visits',
-      'analytics',
       'verification',
       'doctors',
-      'hospitals',
-      'ambulances',
       'users',
-      'wallet',
-      'pricing',
+    ]);
+    expect(getPageDataStartupDomainsForRole('admin', '/')).toEqual([
+      'emergency',
+      'verification',
+      'doctors',
+      'users',
     ]);
     expect(getPageDataStartupDomainsForRole('org_admin', '/emergencies')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('org_admin', '/analytics')).toEqual([]);
@@ -242,10 +231,24 @@ describe('PageDataContext role loading contract', () => {
     expect(routeOwnsStartupDomains('/subscriptions')).toBe(true);
     expect(routeOwnsStartupDomains('/organizations')).toBe(true);
     expect(routeOwnsStartupDomains('/settings')).toBe(true);
+    expect(routeOwnsStartupDomains('/health-news')).toBe(true);
+    expect(routeOwnsStartupDomains('/unknown-console-route')).toBe(true);
     expect(pageDataSource).toContain('if (routeOwnsStartup) {');
 
-    expect(getPageDataStartupDomainsForRole('admin')).not.toContain('supportTickets');
-    expect(getPageDataStartupDomainsForRole('admin')).not.toContain('insurance');
+    for (const routeOwnedDomain of [
+      'supportTickets',
+      'insurance',
+      'organizations',
+      'hospitals',
+      'ambulances',
+      'wallet',
+      'pricing',
+      'visits',
+      'analytics',
+    ]) {
+      expect(getPageDataStartupDomainsForRole('admin')).not.toContain(routeOwnedDomain);
+      expect(getPageDataStartupDomainsForRole('org_admin')).not.toContain(routeOwnedDomain);
+    }
     expect(getPageDataStartupDomainsForRole('admin', '/emergencies')).not.toContain('emergency');
     expect(getPageDataStartupDomainsForRole('admin', '/analytics')).not.toContain('analytics');
     expect(getPageDataStartupDomainsForRole('admin', '/verification')).not.toContain('verification');
@@ -257,12 +260,29 @@ describe('PageDataContext role loading contract', () => {
     expect(getPageDataStartupDomainsForRole('admin', '/subscriptions')).toEqual([]);
     expect(getPageDataStartupDomainsForRole('admin', '/organizations')).not.toContain('organizations');
     expect(getPageDataStartupDomainsForRole('admin', '/settings')).toEqual([]);
-    expect(pageDataSource).toContain("!startupDomains.includes('supportTickets')");
-    expect(pageDataSource).toContain("!startupDomains.includes('insurance')");
+    expect(pageDataSource).not.toContain("startupDomains.includes('supportTickets')");
+    expect(pageDataSource).not.toContain("startupDomains.includes('insurance')");
 
     for (const role of ['provider', 'sponsor', 'org_admin', 'admin']) {
       expect(getPageDataStartupDomainsForRole(role)).not.toContain('activity');
     }
+
+    expect(pageDataSource).not.toContain("table: 'user_activity'");
+    expect(pageDataSource).not.toContain("channel('user_activity_changes')");
+    expect(pageDataSource).not.toContain("from '../services/activityService'");
+    expect(pageDataSource).not.toContain('fetchActivityData');
+    expect(pageDataSource).not.toContain('activityData');
+  });
+
+  it('does not start the legacy wallet summary before rendering canonical Today', () => {
+    const bentoSource = fs.readFileSync('src/components/pages/BentoHome.jsx', 'utf8');
+    const walletEffectStart = bentoSource.indexOf('// Fetch wallet stats');
+    const todayGuard = bentoSource.indexOf('if (roleHomeKind) return undefined;', walletEffectStart);
+    const walletRead = bentoSource.indexOf('getWalletSummary(profile', walletEffectStart);
+
+    expect(walletEffectStart).toBeGreaterThan(-1);
+    expect(todayGuard).toBeGreaterThan(walletEffectStart);
+    expect(walletRead).toBeGreaterThan(todayGuard);
   });
 
   it('keeps map data route-owned instead of loading from the app shell', () => {
@@ -277,26 +297,32 @@ describe('PageDataContext role loading contract', () => {
       .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToEmergencies'));
     expect(mapContextSource.indexOf('if (!mapRouteActive)'))
       .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToAmbulances'));
-    expect(mapContextSource.indexOf('if (!mapRouteActive)'))
-      .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToUsers'));
     expect(mapPageSource).not.toContain('<MapProvider>');
   });
 
-  it('keeps PageData realtime subscriptions behind the active route startup domains', () => {
+  it('keeps only Today-owned realtime subscriptions behind Today startup domains', () => {
     const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
 
     for (const domain of [
       'emergency',
       'doctors',
       'visits',
-      'insurance',
       'verification',
       'users',
+    ]) {
+      expect(pageDataSource).toContain(`startupDomains.includes('${domain}')`);
+    }
+
+    for (const routeDomain of [
+      'insurance',
       'organizations',
       'pricing',
       'supportTickets',
+      'hospitals',
+      'ambulances',
+      'wallet',
     ]) {
-      expect(pageDataSource).toContain(`startupDomains.includes('${domain}')`);
+      expect(pageDataSource).not.toContain(`startupDomains.includes('${routeDomain}')`);
     }
 
     expect(pageDataSource).not.toContain('!canLoadProviderData) return;');

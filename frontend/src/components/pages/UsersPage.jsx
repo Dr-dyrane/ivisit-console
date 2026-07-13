@@ -6,7 +6,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfilesQuery } from '../../hooks/useProfilesQuery';
-import { createProfile, updateProfile } from '../../services/profilesService';
+import { updateProfile } from '../../services/profilesService';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { useRowSelection } from '../../hooks/useRowSelection';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
@@ -38,24 +38,22 @@ import {
   Edit,
   Eye,
   Filter,
-  IdCard,
   Info,
   Mail,
   Phone,
   Plus,
+  RefreshCw,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Stethoscope,
   Trash2,
   Ambulance,
-  UserCheck,
   UserRound,
   Users,
 } from 'lucide-react';
 
 const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';
-const USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE = 'Invites are not ready until identity authority is verified.';
 
 // Role vocabulary -> pill tone + label. Literal palette, NEUTRAL shadows only.
 const ROLE_META = {
@@ -125,8 +123,10 @@ const USERS_EMPTY_HEADINGS = {
 };
 
 const getUsersKpiCount = (id, stats) => {
-  if (id === 'all') return stats.total || 0;
-  return stats[id] || 0;
+  if (!stats) return null;
+  const value = id === 'all' ? stats.total : stats[id];
+  const count = Number(value);
+  return Number.isFinite(count) ? count : null;
 };
 
 const formatJoinedDate = (value) => {
@@ -170,15 +170,28 @@ const hasActiveUserFilters = (filters = {}) => Boolean(
   (filters.created_at && (filters.created_at.start || filters.created_at.end))
 );
 
-const getUsersSignal = ({ stats, kpiFilter, loadError, hasAny }) => {
+const getUsersSignal = ({ stats, kpiFilter, loadError, statisticsError, hasAny }) => {
   const activeId = kpiFilter || 'all';
   const option = USERS_KPI_OPTIONS.find((item) => item.id === activeId) || USERS_KPI_OPTIONS[0];
-  const count = getUsersKpiCount(option.id, stats);
-  const verified = stats.verified || 0;
 
-  if (loadError && !hasAny) {
-    return { icon: ShieldAlert, tone: 'danger', label: 'Load failed', headline: 'Users did not load', subhead: 'Retry to load the directory.' };
+  if (loadError) {
+    return hasAny
+      ? { icon: ShieldAlert, tone: 'danger', label: 'Refresh failed', headline: 'Showing saved users', subhead: 'Retry before relying on this directory.' }
+      : { icon: ShieldAlert, tone: 'danger', label: 'Load failed', headline: 'Users did not load', subhead: 'Retry to load the directory.' };
   }
+
+  if (statisticsError) {
+    return {
+      icon: ShieldAlert,
+      tone: 'warning',
+      label: 'Totals unavailable',
+      headline: 'User totals need a retry',
+      subhead: hasAny ? 'Directory rows are available without KPI totals.' : 'Retry to load exact user totals.',
+    };
+  }
+
+  const count = getUsersKpiCount(option.id, stats);
+  const verified = getUsersKpiCount('verified', stats);
 
   if (option.id === 'all') {
     return {
@@ -188,7 +201,7 @@ const getUsersSignal = ({ stats, kpiFilter, loadError, hasAny }) => {
       headline: count > 0 ? `${count} user${count === 1 ? '' : 's'}` : 'No users yet',
       // bvn_verified as a TRUST overlay in the subhead (not a KPI chip).
       subhead: count > 0
-        ? `${verified} verified. User commands stay disabled until identity authority is verified.`
+        ? `${verified} verified. Invitations are available.`
         : 'User records for this scope will appear here.',
     };
   }
@@ -204,6 +217,33 @@ const getUsersSignal = ({ stats, kpiFilter, loadError, hasAny }) => {
   };
 };
 
+const UsersStatsUnavailable = ({ message, onRetry, retrying }) => (
+  <div
+    role="status"
+    className="mt-5 flex max-w-2xl items-center justify-between gap-4 rounded-inner bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-100"
+    data-testid="users-statistics-degraded-state"
+  >
+    <div className="flex min-w-0 items-center gap-3">
+      <ShieldAlert className="h-5 w-5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">Exact totals unavailable</p>
+        <p className="mt-0.5 text-xs opacity-75">{message}</p>
+      </div>
+    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onRetry}
+      disabled={retrying}
+      aria-busy={retrying}
+      className="h-9 shrink-0 rounded-button bg-background/55 px-3 text-xs font-semibold text-foreground hover:bg-background/80"
+    >
+      <RefreshCw className={`mr-2 h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`} />
+      {retrying ? 'Retrying' : 'Retry'}
+    </Button>
+  </div>
+);
+
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
   const { isMobile } = useNavigation();
@@ -213,7 +253,6 @@ export const UsersPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [usersCommandNotice, setUsersCommandNotice] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -225,6 +264,10 @@ export const UsersPage = () => {
   });
 
   const pagination = usePagination(20);
+  const {
+    resetPagination: resetUsersPagination,
+    setTotalCount: setUsersTotalCount,
+  } = pagination;
   const { routingPath, handleRailNavigate } = useWayfindingNav();
   const canManage = isAdmin() || isOrgAdmin();
 
@@ -256,32 +299,42 @@ export const UsersPage = () => {
       sortDirection: sortConfig.direction,
     };
   }, [
-    filters.kpiFilter,
-    filters.role,
-    filters.provider_type,
-    filters.bvn_verified,
-    filters.search,
-    filters.created_at,
+    filters,
     pagination.itemsPerPage,
     pagination.paginationRange.start,
     sortConfig.key,
     sortConfig.direction,
   ]);
 
-  const { users, count, stats, loading, isFetching, error: queryError, refetch } = useProfilesQuery(queryFilter);
+  const {
+    users,
+    count,
+    stats,
+    statsError,
+    loading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useProfilesQuery(queryFilter);
   const loadError = queryError ? 'Users could not load. Check your connection and try again.' : null;
-  useEffect(() => {
-    if (queryError) console.error('[users] load failed:', queryError);
-  }, [queryError]);
 
   const userRows = useMemo(() => (Array.isArray(users) ? users : []), [users]);
-  const derivedStats = useMemo(() => ({
-    total: Number(stats?.total) || count,
-    provider: Number(stats?.provider) || 0,
-    org_admin: Number(stats?.org_admin) || 0,
-    patient: Number(stats?.patient) || 0,
-    verified: Number(stats?.verified) || 0,
-  }), [stats, count]);
+  const derivedStats = useMemo(() => {
+    if (!stats) return null;
+    const normalized = {
+      total: Number(stats.total),
+      provider: Number(stats.provider),
+      org_admin: Number(stats.org_admin),
+      patient: Number(stats.patient),
+      verified: Number(stats.verified),
+    };
+    return Object.values(normalized).every(Number.isFinite) ? normalized : null;
+  }, [stats]);
+  const statisticsError = statsError?.message || (
+    !loading && !queryError && !derivedStats
+      ? 'User totals are unavailable. Retry to refresh them.'
+      : null
+  );
 
   const { focusedRecord: focusedUser, setFocused, isFocused } = useFocusedRecord('users', userRows);
 
@@ -301,13 +354,13 @@ export const UsersPage = () => {
   const fetchUsers = refetch;
 
   useEffect(() => {
-    pagination.setTotalCount(count);
-  }, [count, pagination.setTotalCount]);
+    if (Number.isFinite(count)) setUsersTotalCount(count);
+  }, [count, setUsersTotalCount]);
 
   useEffect(() => {
-    pagination.resetPagination();
+    resetUsersPagination();
     clearSelection();
-  }, [filters, sortConfig, pagination.resetPagination, clearSelection]);
+  }, [filters, sortConfig, resetUsersPagination, clearSelection]);
 
   // Realtime: a profiles change invalidates the list; a new signup announces itself,
   // throttled to one toast / 10s so an insert burst can't stack over the operator.
@@ -333,41 +386,28 @@ export const UsersPage = () => {
     };
   }, [fetchUsers]);
 
-  // --- Write register. EDIT is a real write (updateProfile). CREATE / INVITE / DELETE are
-  // INTENTIONALLY fail-closed ("no parallel truth" -- the console must not mint auth
-  // identities or hard-delete profiles the app cannot reconcile). Do NOT "fix" these gates.
+  // EDIT uses the profile command; identity creation is invitation-only. Direct
+  // profile creation and destructive deletion remain unavailable.
   const handleSaveUser = useCallback(async (formData) => {
-    try {
-      if (modalMode === 'edit' && selectedUser?.id) {
-        await updateProfile(selectedUser.id, formData);
-        fetchUsers();
-      } else if (modalMode === 'create') {
-        if (!formData.id) {
-          throw new Error("Cannot create user manually without 'Invite' flow. Please use 'Invite User' to create new users with secure access.");
-        }
-        await createProfile(formData);
-        fetchUsers();
-      }
-    } catch (error) {
-      console.error('Save User Error:', error);
-      throw error;
+    if (modalMode !== 'edit' || !selectedUser?.id) {
+      throw new Error('Direct user creation is unavailable. Use Invite user.');
     }
+    await updateProfile(selectedUser.id, formData);
+    fetchUsers();
   }, [modalMode, selectedUser, fetchUsers]);
 
-  const handleIdentityActionUnavailable = useCallback(() => {
-    setUsersCommandNotice(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);
-    toast.info(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);
-    return false;
-  }, []);
-
   const handleDeleteUnavailable = useCallback(() => {
-    setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);
     toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);
     return false;
   }, []);
 
-  const handleInvite = useCallback(() => handleIdentityActionUnavailable(), [handleIdentityActionUnavailable]);
-  const handleCreate = useCallback(() => handleIdentityActionUnavailable(), [handleIdentityActionUnavailable]);
+  const handleInvite = useCallback(() => {
+    if (!canManage) return false;
+    setSelectedUser(null);
+    setModalMode('invite');
+    return true;
+  }, [canManage]);
+  const handleCreate = handleInvite;
   const confirmDelete = useCallback(() => handleDeleteUnavailable(), [handleDeleteUnavailable]);
   const handleBulkDelete = useCallback(() => handleDeleteUnavailable(), [handleDeleteUnavailable]);
 
@@ -388,7 +428,14 @@ export const UsersPage = () => {
     setModalMode(null);
   }, []);
 
-  const handleViewAnalytics = useCallback(() => setAnalyticsModalOpen(true), []);
+  const handleViewAnalytics = useCallback(() => {
+    if (!derivedStats) {
+      toast.error(statisticsError || loadError || 'User totals are still loading.');
+      return false;
+    }
+    setAnalyticsModalOpen(true);
+    return true;
+  }, [derivedStats, loadError, statisticsError]);
 
   const handleSort = useCallback((key) => {
     setSortConfig((current) => ({
@@ -405,7 +452,7 @@ export const UsersPage = () => {
     setFilters((prev) => ({ ...prev, search }));
   }, []);
 
-  // Open "Add" via URL / context-panel events (fail-closed).
+  // Legacy "add" entry points resolve to the supported invitation command.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('add') === 'true') handleCreate();
@@ -480,21 +527,20 @@ export const UsersPage = () => {
     </Button>
   ), [filterSheetOpen, hasFilter]);
 
-  // Primary header action: "ADD USER" is FAIL-CLOSED (identity authority not proved).
+  // Primary identity command: the receiver creates Auth first, then assigns scope.
   const headerActions = useMemo(() => (
     canManage ? (
       <Button
         onClick={handleInvite}
-        className="h-9 rounded-pill bg-muted/40 px-4 text-[12px] font-semibold text-muted-foreground transition-all active:scale-95"
-        aria-label="Add user unavailable"
-        aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
-        data-state="unavailable"
+        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background transition-all active:scale-95"
+        aria-label="Invite user"
+        data-state="ready"
       >
         <Plus className="mr-2 h-4 w-4" />
-        Add user
+        Invite user
       </Button>
     ) : null
-  ), [canManage, handleInvite, usersCommandNotice]);
+  ), [canManage, handleInvite]);
 
   usePageHeader('Users', headerActions, null, filterButtonComponent);
   usePageFooter(null, 'status', false);
@@ -503,13 +549,14 @@ export const UsersPage = () => {
   // Route-owned right panel -- publish live context (canon shared by Requests/Staff).
   const usersRouteContext = useMemo(() => ({
     stats: derivedStats,
+    statsError: statisticsError || loadError,
     recent: userRows.slice(0, 5),
     focusedUser,
     users: userRows.slice(0, 25),
-    count,
-    loading,
+    count: Number.isFinite(count) ? count : null,
+    loading: loading || Boolean(statisticsError || loadError),
     canManage,
-  }), [canManage, count, derivedStats, focusedUser, loading, userRows]);
+  }), [canManage, count, derivedStats, focusedUser, loadError, loading, statisticsError, userRows]);
 
   const publishUsersRouteContext = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -527,15 +574,11 @@ export const UsersPage = () => {
     return (
       <div className="min-h-screen">
         <SEOHead title="Users" description="User Management Mission Control" />
-        {usersCommandNotice && (
-          <div id="users-action-feedback" role="status" aria-live="polite" className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
-            {usersCommandNotice}
-          </div>
-        )}
         <MobileUsers
           users={userRows}
           loading={loading}
           statistics={derivedStats}
+          statisticsError={statisticsError}
           filters={filters}
           setFilters={setFilters}
           onView={handleView}
@@ -579,7 +622,7 @@ export const UsersPage = () => {
           confirmLabel={confirmationModal.confirmLabel}
           isLoading={confirmationModal.isLoading}
         />
-        <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="user" />
+        <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats || {}} type="user" />
 
         {selectable && (
           <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
@@ -603,15 +646,11 @@ export const UsersPage = () => {
   return (
     <div className="min-h-screen text-foreground">
       <SEOHead title="Users" description="Manage user profiles, roles, and verifications." />
-      {usersCommandNotice && (
-        <div id="users-action-feedback" role="status" aria-live="polite" className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
-          {usersCommandNotice}
-        </div>
-      )}
 
       <UsersDesktopWorkspace
         items={userRows}
         stats={derivedStats}
+        statisticsError={statisticsError}
         loading={loading}
         isFetching={isFetching}
         loadError={loadError}
@@ -638,7 +677,6 @@ export const UsersPage = () => {
         onSelectAll={handleSelectAll}
         onView={handleView}
         onEdit={handleEdit}
-        onInvite={handleInvite}
         moduleRailItems={visibleModuleRail}
         routingPath={routingPath}
         onRailNavigate={handleRailNavigate}
@@ -671,7 +709,7 @@ export const UsersPage = () => {
       />
       <InviteUserModal isOpen={modalMode === 'invite'} onClose={handleModalClose} onInvited={fetchUsers} />
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={null} isMobile={isMobile} />
-      <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats} type="user" />
+      <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={derivedStats || {}} type="user" />
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
@@ -689,6 +727,7 @@ export const UsersPage = () => {
 const UsersDesktopWorkspace = ({
   items,
   stats,
+  statisticsError,
   loading,
   isFetching,
   loadError,
@@ -715,7 +754,6 @@ const UsersDesktopWorkspace = ({
   onSelectAll,
   onView,
   onEdit,
-  onInvite,
   moduleRailItems,
   routingPath,
   onRailNavigate,
@@ -723,7 +761,7 @@ const UsersDesktopWorkspace = ({
   const listScrollRef = useRef(null);
   const failedEmpty = Boolean(loadError) && items.length === 0;
   const hasAny = items.length > 0;
-  const signal = getUsersSignal({ stats, kpiFilter, loadError, hasAny });
+  const signal = getUsersSignal({ stats, kpiFilter, loadError, statisticsError, hasAny });
 
   useScrollResetOnPage(listScrollRef, pagination.currentPage);
   const handleListKeyDown = useListKeyboardNav({
@@ -749,23 +787,30 @@ const UsersDesktopWorkspace = ({
           canManage={canManage}
           onView={onView}
           onEdit={onEdit}
-          onInvite={onInvite}
         />
       )}
     >
       <SignalPanel signal={signal} loading={loading} toneClassMap={usersToneClass}>
-        <KpiStrip
-          options={USERS_KPI_OPTIONS}
-          getCount={(id) => getUsersKpiCount(id, stats)}
-          kpiFilter={kpiFilter}
-          setKpiFilter={setKpiFilter}
-          loading={loading}
-          isFetching={isFetching}
-          pinnedIds={PINNED_USERS_KPI_IDS}
-          importance={USERS_KPI_IMPORTANCE}
-          defaultId="all"
-          dataAttr="data-users-state"
-        />
+        {loadError ? null : statisticsError ? (
+          <UsersStatsUnavailable
+            message={statisticsError}
+            onRetry={onRetry}
+            retrying={isFetching}
+          />
+        ) : (
+          <KpiStrip
+            options={USERS_KPI_OPTIONS}
+            getCount={(id) => getUsersKpiCount(id, stats)}
+            kpiFilter={kpiFilter}
+            setKpiFilter={setKpiFilter}
+            loading={loading}
+            isFetching={isFetching}
+            pinnedIds={PINNED_USERS_KPI_IDS}
+            importance={USERS_KPI_IMPORTANCE}
+            defaultId="all"
+            dataAttr="data-users-state"
+          />
+        )}
       </SignalPanel>
 
       <ActivitySheet
@@ -791,6 +836,7 @@ const UsersDesktopWorkspace = ({
       >
         <div
           ref={listScrollRef}
+          role="list"
           tabIndex={0}
           onKeyDown={handleListKeyDown}
           aria-label="Users list"
@@ -977,7 +1023,7 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
   </Button>
 );
 
-const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit, onInvite }) => {
+const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit }) => {
   if (loading) {
     return (
       <DetailRailShell>
@@ -1086,14 +1132,14 @@ const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit, 
           </div>
         )}
 
-        {/* Delete / invite stay FAIL-CLOSED ("no parallel truth"): the console must not
-            hard-delete a profile or mint an auth identity the app cannot reconcile. */}
+        {/* Direct creation and deletion stay unavailable; invited identities use the
+            separately authorized invitation receiver. */}
         <div
           role="note"
           className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
         >
           <Shield className="h-4 w-4 shrink-0" />
-          User commands are disabled until identity authority is verified.
+          Invitations are available. Destructive profile commands remain unavailable.
         </div>
       </div>
     </DetailRailShell>

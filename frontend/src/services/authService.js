@@ -37,7 +37,7 @@ export function clearCurrentUserCache() {
 }
 
 export function primeCurrentUserCache(sessionUser, profile) {
-  if (!sessionUser?.id || !profile || profile.role === 'org_admin') return;
+  if (!sessionUser?.id || !profile) return;
 
   currentUserCache = {
     userId: sessionUser.id,
@@ -46,7 +46,9 @@ export function primeCurrentUserCache(sessionUser, profile) {
       role: profile.role || 'viewer',
       organization_id: profile.organization_id || null,
       full_name: profile.full_name || profile.username || null,
-      hospital_ids: null
+      hospital_ids: profile.role === 'org_admin'
+        ? (Array.isArray(profile.hospital_ids) ? profile.hospital_ids : [])
+        : null
     },
     expiresAt: Date.now() + CURRENT_USER_CACHE_MS
   };

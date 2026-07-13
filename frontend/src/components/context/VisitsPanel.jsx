@@ -48,15 +48,13 @@ export const VisitsPanel = ({ visitContext }) => {
   const active = toCount(stats.inProgress ?? stats.in_progress ?? stats.pending, 0);
   const completed = toCount(stats.completed, 0);
   const loading = Boolean(context.loading);
-  // Fail-CLOSED default (consistent with EmergencyPanel/WalletPanel): before the page's
-  // route-context event fires, context = {} and the create control stays DISABLED until the
-  // page proves authority (VisitsPage publishes canCreate: canCreateVisits). Never fail-open.
+  // Fail-closed until the route proves an admitted workflow receiver.
   const canCreate = context.canCreate === true;
-  const [panelNotice, setPanelNotice] = React.useState('Visit actions ready.');
+  const [panelNotice, setPanelNotice] = React.useState('Visit records ready.');
 
   const handleCreateVisit = () => {
     if (!canCreate) {
-      setPanelNotice('New visits are unavailable for this role.');
+      setPanelNotice('Visit changes need an authorized workflow receiver.');
       return;
     }
 
@@ -148,7 +146,7 @@ export const VisitsPanel = ({ visitContext }) => {
             onClick={handleCreateVisit}
             disabled={!canCreate}
             className="group flex min-h-[68px] items-center justify-center gap-3 rounded-button bg-sky-500/10 px-3 text-sky-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
-            title="New visit"
+            title={canCreate ? 'New visit' : 'Visit changes need an authorized workflow receiver'}
             aria-disabled={!canCreate}
           >
             <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />

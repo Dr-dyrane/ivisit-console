@@ -20,6 +20,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // on a column the table does not have (Postgres 42703).
 const ANALYTICS_EMPTY_SCOPE_UUID = '00000000-0000-0000-0000-000000000000';
 const ANALYTICS_REQUEST_SAMPLE_LIMIT = 1000;
+const ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT = 1000;
 
 export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {
   total: 0,
@@ -62,6 +63,12 @@ const getAnalyticsSourceIssue = (source, result) => {
   };
 };
 
+const toExactCount = (value) => (
+  value !== null && value !== undefined && Number.isFinite(Number(value))
+    ? Number(value)
+    : null
+);
+
 /**
  * Get cached data or fetch fresh data
  */
@@ -98,9 +105,12 @@ export const getAnalyticsIntakePage = async ({
     .from('emergency_requests')
     .select('*', { count: 'exact' })
     .limit(ANALYTICS_REQUEST_SAMPLE_LIMIT);
-  let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
-  let hospitalsQuery = supabase.from('hospitals').select('*', { count: 'exact' });
-  let ambulancesQuery = supabase.from('ambulances').select('*', { count: 'exact' });
+  let usersQuery = supabase.from('profiles').select('id', { count: 'exact', head: true });
+  let hospitalsQuery = supabase
+    .from('hospitals')
+    .select('id, total_beds, available_beds, icu_beds_available', { count: 'exact' })
+    .limit(ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT);
+  let ambulancesQuery = supabase.from('ambulances').select('id', { count: 'exact', head: true });
 
   const isProviderScoped = user?.role === 'provider';
   const providerHospitalIds = isProviderScoped && Array.isArray(user?.hospital_ids)
@@ -182,6 +192,33 @@ export const getAnalyticsIntakePage = async ({
     getAnalyticsSourceIssue('ambulances', ambulancesRes),
     getAnalyticsSourceIssue('subscriptions', subscriptionRes),
   ].filter(Boolean);
+  const requestTotalCount = toExactCount(requestsRes.count);
+  const hospitalTotalCount = toExactCount(hospitalsRes.count);
+  const usersCount = toExactCount(usersRes.count);
+  const ambulancesCount = toExactCount(ambulancesRes.count);
+  const hospitalReturnedCount = (hospitalsRes.data || []).length;
+  const hospitalSampleComplete = !hospitalsRes.error
+    && hospitalTotalCount !== null
+    && hospitalTotalCount <= hospitalReturnedCount;
+
+  if (!requestsRes.error && requestTotalCount === null) {
+    sourceIssues.push({ source: 'requests', kind: 'failed', reason: 'count_unavailable' });
+  }
+  if (!usersRes.error && usersCount === null) {
+    sourceIssues.push({ source: 'users', kind: 'failed', reason: 'count_unavailable' });
+  }
+  if (!ambulancesRes.error && ambulancesCount === null) {
+    sourceIssues.push({ source: 'ambulances', kind: 'failed', reason: 'count_unavailable' });
+  }
+  if (!hospitalsRes.error && !hospitalSampleComplete) {
+    sourceIssues.push({
+      source: 'hospitals',
+      kind: 'partial',
+      reason: 'capacity_sample_incomplete',
+      returnedCount: hospitalReturnedCount,
+      totalCount: hospitalTotalCount,
+    });
+  }
 
   let financeData = [];
   if (canReadFinanceAnalytics) {
@@ -200,16 +237,22 @@ export const getAnalyticsIntakePage = async ({
     requests: requestsRes.data || [],
     requestSample: {
       returnedCount: (requestsRes.data || []).length,
-      totalCount: Number.isFinite(Number(requestsRes.count)) ? Number(requestsRes.count) : null,
+      totalCount: requestTotalCount,
       limit: ANALYTICS_REQUEST_SAMPLE_LIMIT,
       complete: !requestsRes.error
-        && Number.isFinite(Number(requestsRes.count))
-        && Number(requestsRes.count) <= (requestsRes.data || []).length,
+        && requestTotalCount !== null
+        && requestTotalCount <= (requestsRes.data || []).length,
     },
-    usersCount: usersRes.count || 0,
+    usersCount: usersCount || 0,
     hospitals: hospitalsRes.data || [],
-    hospitalsCount: hospitalsRes.count || 0,
-    ambulancesCount: ambulancesRes.count || 0,
+    hospitalsCount: hospitalTotalCount || 0,
+    hospitalSample: {
+      returnedCount: hospitalReturnedCount,
+      totalCount: hospitalTotalCount,
+      limit: ANALYTICS_HOSPITAL_CAPACITY_SAMPLE_LIMIT,
+      complete: hospitalSampleComplete,
+    },
+    ambulancesCount: ambulancesCount || 0,
     subscriptionStats: canReadSubscriptionAnalytics
       ? { ...DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, ...(subscriptionRes.data || {}) }
       : DEFAULT_ANALYTICS_SUBSCRIPTION_STATS,

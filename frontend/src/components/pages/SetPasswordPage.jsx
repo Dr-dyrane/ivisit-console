@@ -3,11 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, RefreshCw, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '../../lib/supabase';
-import { handleAuthError } from '../../utils/errorHandler';
 import ThemeToggle from '../ui/theme-toggle';
 
 const passwordSchema = z.string().min(8, 'Use at least 8 characters');
 const RECOVERY_CHECK_TIMEOUT_MS = 5000;
+const PASSWORD_LINK_MARKER = 'ivisit_verified_password_link';
+
+const hasPasswordLinkIntent = () => {
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const linkType = query.get('type') || hash.get('type');
+  let stored = false;
+  try {
+    stored = sessionStorage.getItem(PASSWORD_LINK_MARKER) === 'true';
+  } catch {
+    stored = false;
+  }
+  return stored || query.has('code') || ['recovery', 'invite'].includes(linkType);
+};
 
 const getRecoverySession = async () => {
   let timeoutId;
@@ -54,10 +67,23 @@ export const SetPasswordPage = () => {
     setFormError('');
 
     try {
+      if (!hasPasswordLinkIntent()) {
+        if (mountedRef.current && sequence === checkSequenceRef.current) setRecoveryStatus('missing');
+        return;
+      }
       const { data, error } = await getRecoverySession();
       if (error) throw error;
       if (!mountedRef.current || sequence !== checkSequenceRef.current) return;
-      setRecoveryStatus(data?.session ? 'ready' : 'missing');
+      if (data?.session) {
+        try {
+          sessionStorage.setItem(PASSWORD_LINK_MARKER, 'true');
+        } catch {
+          // The verified session still authorizes this page without storage.
+        }
+        setRecoveryStatus('ready');
+      } else {
+        setRecoveryStatus('missing');
+      }
     } catch {
       if (!mountedRef.current || sequence !== checkSequenceRef.current) return;
       setRecoveryStatus('error');
@@ -74,7 +100,17 @@ export const SetPasswordPage = () => {
   }, []);
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== 'PASSWORD_RECOVERY' || !session || !mountedRef.current) return;
+      try {
+        sessionStorage.setItem(PASSWORD_LINK_MARKER, 'true');
+      } catch {
+        // The recovery event itself is sufficient for the active render.
+      }
+      setRecoveryStatus('ready');
+    });
     verifyRecoverySession();
+    return () => subscription.unsubscribe();
   }, [verifyRecoverySession]);
 
   const handleSetPassword = async (event) => {
@@ -92,6 +128,12 @@ export const SetPasswordPage = () => {
       if (error) throw error;
       if (!mountedRef.current) return;
 
+      try {
+        sessionStorage.removeItem(PASSWORD_LINK_MARKER);
+      } catch {
+        // No local marker to remove.
+      }
+      window.history.replaceState({}, '', '/set-password');
       setRecoveryStatus('success');
       redirectTimerRef.current = window.setTimeout(() => {
         if (mountedRef.current) navigate('/', { replace: true });
@@ -103,7 +145,6 @@ export const SetPasswordPage = () => {
       } else if (caught?.message === 'PASSWORD_MISMATCH') {
         setFormError('Passwords do not match');
       } else {
-        handleAuthError(caught, 'update');
         setFormError('We could not update your password. Try again.');
       }
     } finally {

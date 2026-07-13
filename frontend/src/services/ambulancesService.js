@@ -6,8 +6,13 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
-import { isValidUUID, withTimeout } from '../lib/utils';
+import { isValidUUID } from '../lib/utils';
 import { withRetry, withAudit } from './supabaseHelpers';
+import {
+  applyQueryAbortSignal,
+  createQueryAbortContext,
+  throwIfQueryAborted,
+} from './queryAbort';
 
 const TABLE_NAME = 'ambulances';
 
@@ -34,6 +39,55 @@ const AMBULANCE_PAGE_SORT_COLUMNS = new Set([
   'updated_at',
   'hospital_id',
 ]);
+
+const getActorFacilityIds = (actor = {}) => {
+  const facilityIds = [
+    ...(Array.isArray(actor.hospital_ids) ? actor.hospital_ids : []),
+    ...(Array.isArray(actor.facility_ids) ? actor.facility_ids : []),
+    ...(Array.isArray(actor.organization_scope?.facilityIds)
+      ? actor.organization_scope.facilityIds
+      : []),
+  ];
+
+  return new Set(facilityIds.filter(isValidUUID));
+};
+
+const createAmbulanceScopeError = (message) => {
+  const error = new Error(message);
+  error.code = 'AMBULANCE_SCOPE_DENIED';
+  return error;
+};
+
+export function filterAmbulanceStationOptions(stations, actor = {}) {
+  const rows = Array.isArray(stations) ? stations : [];
+  if (actor.role === 'admin') return rows;
+  if (actor.role !== 'org_admin') return [];
+
+  const allowedFacilityIds = getActorFacilityIds(actor);
+  return rows.filter((station) => allowedFacilityIds.has(station?.id));
+}
+
+export function assertAmbulanceWriteScope(input = {}, actor = {}) {
+  if (actor.role !== 'org_admin') return input;
+
+  const actorOrganizationId = actor.organization_id;
+  if (!isValidUUID(actorOrganizationId)) {
+    throw createAmbulanceScopeError('Your organization scope could not be verified.');
+  }
+
+  if (input.organization_id && input.organization_id !== actorOrganizationId) {
+    throw createAmbulanceScopeError('This ambulance belongs to another organization.');
+  }
+
+  if (input.hospital_id) {
+    const allowedFacilityIds = getActorFacilityIds(actor);
+    if (!allowedFacilityIds.has(input.hospital_id)) {
+      throw createAmbulanceScopeError('Select a station in your organization.');
+    }
+  }
+
+  return input;
+}
 
 function normalizeFilterList(value) {
   if (!value || value === 'all') return [];
@@ -154,17 +208,21 @@ async function readAmbulanceCount(query) {
   return count || 0;
 }
 
-async function enrichAmbulanceRowsForPage(rows) {
+async function enrichAmbulanceRowsForPage(rows, abortSignal) {
   if (!Array.isArray(rows) || rows.length === 0) return [];
 
   const hospitalIds = [...new Set(rows.map((row) => row.hospital_id).filter(isValidUUID))];
   let hospitalNameById = new Map();
 
   if (hospitalIds.length > 0) {
-    const { data, error } = await supabase
+    let hospitalQuery = supabase
       .from('hospitals')
       .select('id,name')
       .in('id', hospitalIds);
+    hospitalQuery = applyQueryAbortSignal(hospitalQuery, abortSignal);
+
+    const { data, error } = await hospitalQuery;
+    throwIfQueryAborted(abortSignal);
 
     if (error) throw error;
     hospitalNameById = new Map((data || []).map((hospital) => [hospital.id, hospital.name]));
@@ -185,7 +243,7 @@ async function enrichAmbulanceRowsForPage(rows) {
   });
 }
 
-async function getAmbulancePageStats(user, filters = {}) {
+async function getAmbulancePageStats(user, filters = {}, abortSignal) {
   const createCountQuery = (status) => {
     let query = supabase
       .from(TABLE_NAME)
@@ -193,7 +251,7 @@ async function getAmbulancePageStats(user, filters = {}) {
 
     query = applyAmbulancePageAuth(query, user);
     query = applyAmbulancePageFilters(query, { ...filters, status }, 'all');
-    return query;
+    return applyQueryAbortSignal(query, abortSignal);
   };
 
   const [total, available, onRoute, busy, maintenance] = await Promise.all([
@@ -222,41 +280,63 @@ export async function getAmbulancesPageData({
   sortConfig = {},
   limit = 20,
   offset = 0,
+  abortSignal,
 } = {}) {
+  throwIfQueryAborted(abortSignal);
   const user = await getCurrentUser();
-  const safeLimit = Math.max(1, Number(limit) || 20);
-  const safeOffset = Math.max(0, Number(offset) || 0);
+  throwIfQueryAborted(abortSignal);
 
-  let countQuery = supabase
-    .from(TABLE_NAME)
-    .select('*', { count: 'exact', head: true });
-  countQuery = applyAmbulancePageAuth(countQuery, user);
-  countQuery = applyAmbulancePageFilters(countQuery, filters, kpiFilter);
+  const request = createQueryAbortContext({
+    abortSignal,
+    timeoutMs: 8000,
+    timeoutMessage: 'Ambulance page data query timed out',
+  });
 
-  let dataQuery = supabase
-    .from(TABLE_NAME)
-    .select('*');
-  dataQuery = applyAmbulancePageAuth(dataQuery, user);
-  dataQuery = applyAmbulancePageFilters(dataQuery, filters, kpiFilter);
-  dataQuery = applyAmbulancePageSort(dataQuery, sortConfig)
-    .range(safeOffset, safeOffset + safeLimit - 1);
+  try {
+    const safeLimit = Math.max(1, Number(limit) || 20);
+    const safeOffset = Math.max(0, Number(offset) || 0);
 
-  const [count, pageResult, stats] = await Promise.all([
-    readAmbulanceCount(countQuery),
-    withTimeout(dataQuery, 8000, 'Ambulance page data query timed out'),
-    getAmbulancePageStats(user, statsFilters),
-  ]);
+    let countQuery = supabase
+      .from(TABLE_NAME)
+      .select('*', { count: 'exact', head: true });
+    countQuery = applyAmbulancePageAuth(countQuery, user);
+    countQuery = applyAmbulancePageFilters(countQuery, filters, kpiFilter);
+    countQuery = applyQueryAbortSignal(countQuery, request.signal);
 
-  if (pageResult.error) throw pageResult.error;
+    let dataQuery = supabase
+      .from(TABLE_NAME)
+      .select('*');
+    dataQuery = applyAmbulancePageAuth(dataQuery, user);
+    dataQuery = applyAmbulancePageFilters(dataQuery, filters, kpiFilter);
+    dataQuery = applyAmbulancePageSort(dataQuery, sortConfig)
+      .range(safeOffset, safeOffset + safeLimit - 1);
+    dataQuery = applyQueryAbortSignal(dataQuery, request.signal);
 
-  const rows = await enrichAmbulanceRowsForPage(pageResult.data || []);
+    const [count, pageResult, stats] = await Promise.all([
+      readAmbulanceCount(countQuery),
+      dataQuery,
+      getAmbulancePageStats(user, statsFilters, request.signal),
+    ]);
+    request.throwIfAborted();
 
-  return {
-    data: rows,
-    count,
-    stats,
-    recent: rows.slice(0, 5),
-  };
+    if (pageResult.error) throw pageResult.error;
+
+    const rows = await enrichAmbulanceRowsForPage(pageResult.data || [], request.signal);
+    request.throwIfAborted();
+
+    return {
+      data: rows,
+      count,
+      stats,
+      recent: rows.slice(0, 5),
+    };
+  } catch (error) {
+    request.abort(error);
+    request.throwIfAborted();
+    throw error;
+  } finally {
+    request.cleanup();
+  }
 }
 
 /**
@@ -367,29 +447,35 @@ export async function getAmbulance(ambulanceId) {
  */
 export async function createAmbulance(input) {
   try {
+    const actor = await getCurrentUser();
+    const scopedInput = actor?.role === 'org_admin' && !input.organization_id
+      ? { ...input, organization_id: actor.organization_id }
+      : input;
+    assertAmbulanceWriteScope(scopedInput, actor);
+
     // Build payload, omitting undefined/null/empty values so DB defaults apply
     const payload = {};
 
     // Only include id if explicitly provided; otherwise let DB DEFAULT generate it
-    if (input.id) payload.id = input.id;
+    if (scopedInput.id) payload.id = scopedInput.id;
 
     // Required fields
-    if (input.type) payload.type = input.type;
-    if (input.call_sign) payload.call_sign = input.call_sign;
-    payload.status = input.status || 'available';
+    if (scopedInput.type) payload.type = scopedInput.type;
+    if (scopedInput.call_sign) payload.call_sign = scopedInput.call_sign;
+    payload.status = scopedInput.status || 'available';
 
     // Optional fields - only include if truthy
-    if (input.location) payload.location = input.location;
-    if (input.eta) payload.eta = input.eta;
-    if (input.crew) payload.crew = input.crew;
-    if (input.hospital_id && input.hospital_id !== '') payload.hospital_id = input.hospital_id;
-    if (input.organization_id && input.organization_id !== '') payload.organization_id = input.organization_id;
-    if (input.vehicle_number) payload.vehicle_number = input.vehicle_number;
-    if (input.license_plate) payload.license_plate = input.license_plate;
-    if (input.base_price != null) payload.base_price = input.base_price;
-    if (input.current_call) payload.current_call = input.current_call;
-    if (input.profile_id) payload.profile_id = input.profile_id;
-    if (input.driver_id) payload.profile_id = input.driver_id;
+    if (scopedInput.location) payload.location = scopedInput.location;
+    if (scopedInput.eta) payload.eta = scopedInput.eta;
+    if (scopedInput.crew) payload.crew = scopedInput.crew;
+    if (scopedInput.hospital_id && scopedInput.hospital_id !== '') payload.hospital_id = scopedInput.hospital_id;
+    if (scopedInput.organization_id && scopedInput.organization_id !== '') payload.organization_id = scopedInput.organization_id;
+    if (scopedInput.vehicle_number) payload.vehicle_number = scopedInput.vehicle_number;
+    if (scopedInput.license_plate) payload.license_plate = scopedInput.license_plate;
+    if (scopedInput.base_price != null) payload.base_price = scopedInput.base_price;
+    if (scopedInput.current_call) payload.current_call = scopedInput.current_call;
+    if (scopedInput.profile_id) payload.profile_id = scopedInput.profile_id;
+    if (scopedInput.driver_id) payload.profile_id = scopedInput.driver_id;
 
     payload.created_at = new Date().toISOString();
     payload.updated_at = new Date().toISOString();
@@ -419,9 +505,14 @@ export async function createAmbulance(input) {
  */
 export async function updateAmbulance(ambulanceId, input) {
   try {
+    const actor = await getCurrentUser();
+    assertAmbulanceWriteScope(input, actor);
+
     // Whitelist of valid ambulance table columns to prevent PGRST204 errors
+    // Status is intentionally excluded: trip/dispatch workflows own that field.
+    // The separate updateAmbulanceStatus receiver retains its own authority burden.
     const VALID_COLUMNS = [
-      'call_sign', 'type', 'status', 'vehicle_number',
+      'call_sign', 'type', 'vehicle_number',
       'hospital_id', 'location', 'eta', 'crew',
       'current_call', 'profile_id', 'organization_id',
       'base_price', 'license_plate'

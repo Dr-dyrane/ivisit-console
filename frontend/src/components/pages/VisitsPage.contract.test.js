@@ -15,11 +15,12 @@ describe('VisitsPage admission contract', () => {
   const listSource = () => fs.readFileSync('src/components/views/VisitListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/VisitTableView.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/VisitModal.jsx', 'utf8');
+  const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
+  const modalSuppressionSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/visitsService.js', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
-  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
@@ -63,7 +64,7 @@ describe('VisitsPage admission contract', () => {
     expect(pageData).toContain('const fetchVisitsData = useCallback(async () => {');
     expect(pageData).toContain('const page = await getVisitsPageData({');
     expect(pageData).toContain('stats: page?.stats || null');
-    expect(pageData).toContain("if (!user || useMockData || !startupDomains.includes('visits')) return;");
+    expect(pageData).toContain("if (!user || !startupDomains.includes('visits')) return;");
 
     expect(page).toContain('const visitPanelContext = React.useMemo(() => ({');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('visitsRouteContextUpdated', {");
@@ -77,13 +78,13 @@ describe('VisitsPage admission contract', () => {
 
   it('keeps the route action local instead of mounting global FAB hooks on Visits', () => {
     const bottomBar = bottomBarSource();
-    const fab = fabSource();
 
     expect(routeOwnsShellAction('/visits')).toBe(true);
     expect(bottomBar).toContain("pathname.startsWith('/visits')");
     expect(bottomBar).toContain("pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)");
-    expect(bottomBar).toContain("label: 'New visit'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openVisitModal'))");
+    expect(bottomBar).toContain("label: 'View statistics'");
+    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(bottomBar).not.toContain("case 'visit': return <VisitModal");
     expect(pageSource()).toContain("window.addEventListener('openVisitModal', handleOpenModal)");
   });
 
@@ -112,8 +113,9 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
     expect(page).toContain(".channel('visits')");
     expect(page).toContain('setTotalCount(pageData.count || 0)');
-    expect(page).toContain('createVisit({');
-    expect(page).toContain('updateVisit(selectedVisit.id, formData)');
+    expect(page).not.toContain('createVisit({');
+    expect(page).not.toContain('updateVisit(selectedVisit.id, formData)');
+    expect(page).toContain('VISIT_MUTATION_UNAVAILABLE_REASON');
     expect(page).toContain('canDelete={false}');
     expect(page).toContain('selectionEnabled={isAdmin()}');
     expect(page).not.toContain('selectedIds.map((id) => deleteVisit(id))');
@@ -156,9 +158,10 @@ describe('VisitsPage admission contract', () => {
     expect(modal).not.toContain('role="dialog"');
     expect(modal).not.toContain('aria-modal="true"');
     expect(service).toContain('export async function getVisits(filter = {})');
-    expect(service).toContain('export async function createVisit(input)');
-    expect(service).toContain('export async function updateVisit(visitId, input)');
-    expect(service).toContain('export async function deleteVisit(visitId)');
+    expect(service).toContain('export async function createVisit()');
+    expect(service).toContain('export async function updateVisit()');
+    expect(service).toContain('export async function deleteVisit()');
+    expect(service).toContain('throw new Error(VISIT_MUTATION_UNAVAILABLE_REASON)');
   });
 
   it('anchors the Visits preservation ledger to old Git-backed behavior', () => {
@@ -208,14 +211,14 @@ describe('VisitsPage admission contract', () => {
     expect(gate).toContain('keep `visitStatus.js` plus `getVisitsPageData()` as the single Visits source room');
     expect(gate).toContain('`PageDataContext` must stay quiet on `/visits`');
     expect(gate).toContain('one signal field for the current visit work');
-    expect(gate).toContain('The first visible command is `New visit` for allowed roles only');
+    expect(gate).toContain('The visible route command is `View statistics`');
     expect(gate).toContain('keep `all`, `scheduled`, `in_progress`, `completed`, and `cancelled` as route-query state choices');
     expect(gate).toContain('Status filters and KPI filters run after the status source room resolves raw visit status plus linked emergency lifecycle');
     expect(gate).toContain('convert old grid/list/table scanning into one handled sheet');
     expect(gate).toContain('one focused detail rail or sheet for the selected visit');
     expect(gate).toContain('Terminal status changes, delete, bulk delete, and clinical/lifecycle outcomes remain unavailable');
-    expect(gate).toContain('Mobile should render signal, state choices, compact search/filter, handled visit sheet, row reveal, load more, and route-owned `New visit`');
-    expect(gate).toContain('it must not restore hamburger navigation, fake trend charts, `LIVE` badges, local-only search/KPI truth, or destructive selection');
+    expect(gate).toContain('Mobile should render signal, state choices, compact search/filter, handled visit sheet, row reveal, load more, and a route-owned statistics action');
+    expect(gate).toContain('it must not restore an unproved create/edit path, hamburger navigation, fake trend charts, `LIVE` badges, local-only search/KPI truth, or destructive selection');
     expect(gate).toContain('`VisitsPage.jsx`, `MobileVisits.jsx`, `VisitListView.jsx`, `VisitTableView.jsx`, and `VisitModal.jsx` are now in the active UI hardgate because visual implementation has started');
 
     expect(hardgate).toContain("'src/components/pages/VisitsPage.jsx'");
@@ -303,7 +306,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];");
     expect(page).toContain('pinnedIds={PINNED_VISIT_STATE_IDS}');
     expect(page).toContain('importance={VISIT_KPI_IMPORTANCE}');
-    expect(page).toContain('Pick one record, then view details or edit scheduling.');
+    expect(page).toContain('Pick one record, then review its details.');
     expect(page).not.toContain('Bento Overview Cards');
     expect(page).not.toContain('Total Visits Card');
     expect(page).not.toContain('FILTERED');
@@ -382,8 +385,8 @@ describe('VisitsPage admission contract', () => {
     // Donor parity: the primary command is the dark header pill (Requests idiom)
     // next to the header filter trigger; the sheet toolbar carries search/refresh/
     // Filters only. Opening/selected feedback states render inside DS components.
-    expect(page).toContain('New visit');
-    expect(page).toContain('aria-label="Schedule new visit"');
+    expect(page).toContain('Visit changes unavailable');
+    expect(page).toContain('VISIT_MUTATION_UNAVAILABLE_REASON');
     expect(page).toContain('aria-label="Filter visits"');
     // The toolbar Filters trigger is context-aware (donor getFilterTriggerState:
     // open/filtered/idle) -- locked in the DS contract; the page wires filtersActive.
@@ -412,7 +415,8 @@ describe('VisitsPage admission contract', () => {
     const contextPanel = contextPanelSource();
     const gate = gateSource();
 
-    expect(page).toContain('const canCreateVisits = isAdmin() || isOrgAdmin() || isProvider()');
+    expect(page).toContain('const canCreateVisits = false');
+    expect(page).toContain('const canEditVisits = false');
     expect(page).toContain('canCreate: canCreateVisits');
     expect(page).toContain('canEdit: canEditVisits');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('visitsRouteContextUpdated', {");
@@ -422,8 +426,8 @@ describe('VisitsPage admission contract', () => {
     expect(contextPanel).not.toContain('visitsData,');
 
     expect(panel).toContain('export const VisitsPanel = ({ visitContext }) =>');
-    expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Visit actions ready.');");
-    expect(panel).toContain("window.dispatchEvent(new CustomEvent('openVisitModal'))");
+    expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Visit records ready.');");
+    expect(panel).toContain('Visit changes need an authorized workflow receiver.');
     expect(panel).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
     expect(panel).toContain('Visits overview');
     expect(panel).toContain('Current route scope');
@@ -432,7 +436,7 @@ describe('VisitsPage admission contract', () => {
     expect(panel).toContain('No visits in the current view.');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain('title="New visit"');
+    expect(panel).toContain("title={canCreate ? 'New visit' : 'Visit changes need an authorized workflow receiver'}");
     expect(panel).toContain('title="View visit statistics"');
 
     expect(panel).not.toContain('visitsData');
@@ -454,14 +458,24 @@ describe('VisitsPage admission contract', () => {
   it('keeps Visits modals and secondary reveals on canonical chrome', () => {
     const page = pageSource();
     const modal = modalSource();
+    const emergencyDetailsModal = emergencyDetailsModalSource();
     const modalShell = modalShellSource();
+    const modalSuppression = modalSuppressionSource();
     const gate = gateSource();
+    const mobileBranchStart = page.indexOf('if (isMobile) {');
+    const desktopBranchStart = page.indexOf('\n  return (', mobileBranchStart);
+    const mobileBranch = page.slice(mobileBranchStart, desktopBranchStart);
 
     expect(page).toContain('<VisitModal');
     expect(page).toContain('<FilterSheet');
     expect(page).toContain('isMobile={isMobile}');
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
+    expect(modal).toContain("new CustomEvent('openEmergencyDetails'");
+    expect(mobileBranch).toContain('<EmergencyDetailsModal');
+    expect(mobileBranch).toContain('request={emergencyModal.request}');
+    expect(emergencyDetailsModal).toContain("const canRetryPayment = typeof onRetryPayment === 'function';");
+    expect(emergencyDetailsModal).toContain('{isPaymentDeclined && canRetryPayment && (');
 
     expect(modal).toContain('<ModalShell');
     expect(modal).toContain('managed');
@@ -473,7 +487,8 @@ describe('VisitsPage admission contract', () => {
 
     expect(modalShell).toContain('role="dialog"');
     expect(modalShell).toContain('aria-modal="true"');
-    expect(modalShell).toContain('data-modal-chrome="true"], #dynamic-bottom-bar');
+    expect(modalShell).toContain('useModalChromeSuppression(isOpen)');
+    expect(modalSuppression).toContain('data-modal-chrome="true"], #dynamic-bottom-bar');
 
     expect(gate).toContain('Modal and secondary reveal proof, 2026-06-30');
     expect(gate).toContain('view-mode `VisitModal` renders read-only evidence fields');
@@ -523,38 +538,20 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('supabase.removeChannel(channel)');
   });
 
-  it('limits generic visit create and update writes to scheduling metadata', () => {
-    const modal = modalSource();
+  it('fails closed for every visit mutation until a workflow receiver is admitted', () => {
+    const page = pageSource();
     const service = serviceSource();
 
-    expect(service).toContain('const VISIT_PAGE_WRITE_COLUMNS = new Set');
-    expect(service).toContain("'user_id'");
-    expect(service).toContain("'hospital_id'");
-    expect(service).toContain("'date'");
-    expect(service).toContain("'type'");
-    expect(service).toContain("'status'");
-    expect(service).toContain("'notes'");
-    expect(service).toContain("'cost'");
-    expect(service).toContain("'preparation'");
-    expect(service).toContain("'room_number'");
-    expect(service).toContain("'estimated_duration'");
-    expect(service).toContain("'insurance_covered'");
-    expect(service).toContain('const VISIT_PAGE_STATUS_VALUES = new Set');
-    expect(service).toContain("'scheduled'");
-    expect(service).toContain("'upcoming'");
-    expect(service).toContain("'in_progress'");
-    expect(service).toContain("if (!VISIT_PAGE_WRITE_COLUMNS.has(targetKey)) continue");
-    expect(service).toContain("if (targetKey === 'status' && !VISIT_PAGE_STATUS_VALUES.has(value)) continue");
-    expect(service).not.toContain("if (!payload.doctor_name");
-
-    expect(modal).toContain("const terminalStatusValues = new Set(['completed', 'cancelled', 'no-show'])");
-    expect(modal).toContain('const isTerminalStatus = terminalStatusValues.has');
-    expect(modal).toContain('disabled={isTerminalStatus}');
-    expect(modal).toContain('const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {');
-    expect(modal).toContain('<SelectItem value="completed" disabled>');
-    expect(modal).toContain('<SelectItem value="cancelled" disabled>');
-    expect(modal).toContain('<SelectItem value="no-show" disabled>');
-    expect(modal).toContain('Status changes here stay in scheduling.');
+    expect(service).toContain("export const VISIT_MUTATION_UNAVAILABLE_REASON = 'Visit changes are unavailable until an authorized workflow receiver is connected.'");
+    expect(service.match(/throw new Error\(VISIT_MUTATION_UNAVAILABLE_REASON\)/g)).toHaveLength(6);
+    expect(service).not.toContain('.insert([payload])');
+    expect(service).not.toContain('.update(payload)');
+    expect(service).not.toContain("status: 'completed'");
+    expect(service).not.toContain("status: 'cancelled'");
+    expect(service).not.toContain("status: 'no-show'");
+    expect(page).toContain('const canCreateVisits = false');
+    expect(page).toContain('const canEditVisits = false');
+    expect(page).not.toContain('onSave={handleSaveVisit}');
   });
 
   it('moves route list, count, stats, and enrichment reads behind visitsService before visual admission', () => {
@@ -572,11 +569,17 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('applyAuthFilter');
 
     expect(service).toContain('export async function getVisitsPageData');
-    expect(service).toContain('getVisitResolutionRows({ filters, user })');
+    expect(service).toContain('getVisitResolutionRows({ filters, user, abortSignal: request.signal })');
+    expect(service).toContain('retryTransientRead(');
+    expect(service).toContain('applyQueryAbortSignal(resolutionQuery, abortSignal)');
+    expect(service).not.toContain('withRetry(() => getVisitResolutionRows');
+    expect(page).toContain('fetchAbortControllerRef.current?.abort()');
+    expect(page).toContain('abortSignal: requestController.signal');
+    expect(page).toContain('if (isQueryAbortError(error)) return;');
     expect(service).toContain('resolveVisitStatus({');
     expect(service).toContain('source_status: visit.status || null');
     expect(service).toContain('emergency_status: emergency?.status || null');
-    expect(service).toContain('const statsRows = applyResolvedVisitFilters(resolvedRows, filters, \'all\');');
+    expect(service).toContain("const statsRows = applyResolvedVisitFilters(resolvedRows, { ...filters, status: undefined }, 'all');");
     expect(service).toContain('const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);');
     expect(service).toContain('count: filteredRows.length');
     expect(service).toContain('const stats = getVisitPageStatsFromRows(statsRows);');
@@ -657,16 +660,13 @@ describe('VisitsPage admission contract', () => {
     const page = pageSource();
     const mobile = mobileSource();
     const gate = gateSource();
-    const hospitalsService = fs.readFileSync('src/services/hospitalsService.js', 'utf8');
-
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
     expect(page).toContain('const visitData = await getVisit(viewVisitId)');
-    expect(page).toContain("import { getHospitalOptions } from '../../services/hospitalsService';");
-    expect(page).toContain('getHospitalOptions()');
-    expect(page).not.toContain('getHospitals()');
-    expect(hospitalsService).toContain('export async function getHospitalOptions()');
-    expect(hospitalsService).toContain(".select('id, name')");
+    expect(page).not.toContain('getHospitalOptions()');
+    expect(page).not.toContain("getProfiles({ role: 'patient' })");
+    expect(page).toContain('const canCreateVisits = false');
+    expect(page).toContain('const canEditVisits = false');
     // Converted 2026-07-09: the responsive scan surface is the single canonical row
     // list inside the activity sheet (grid cards retired with the density variants).
     // Donor-parity stage (Requests gold standard): atlas backdrop + shared wayfinding

@@ -1,19 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { X, Upload, User, Smartphone, Camera, Loader2 } from 'lucide-react';
+import { X, User, Smartphone, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { getAvatarUrl } from '../../lib/avatarUtils';
 
 export const ProfileEditModal = ({ isOpen, onClose }) => {
-    const { user, profile, updateProfile, uploadAvatar } = useAuth();
+    const { user, profile, updateProfile, uploadAvatar, discardAvatarUpload } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
+    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+    const avatarPreviewUrlRef = useRef(null);
 
     const [formData, setFormData] = useState({
         username: '',
@@ -21,48 +23,92 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
         image_uri: ''
     });
 
-    useEffect(() => {
-        if (profile) {
-            setFormData({
-                username: profile.username || '',
-                phone: profile.phone || '',
-                image_uri: profile.image_uri || profile.avatar_url || ''
-            });
-        }
-    }, [profile]);
+    const persistedAvatarUrl = profile?.image_uri || profile?.avatar_url || '';
 
-    const handleImageUpload = async (event) => {
+    const releaseAvatarPreview = useCallback(() => {
+        if (avatarPreviewUrlRef.current) {
+            URL.revokeObjectURL(avatarPreviewUrlRef.current);
+            avatarPreviewUrlRef.current = null;
+        }
+    }, []);
+
+    const clearAvatarDraft = useCallback(() => {
+        releaseAvatarPreview();
+        setSelectedAvatarFile(null);
+        setAvatarPreviewUrl(null);
+    }, [releaseAvatarPreview]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            clearAvatarDraft();
+            return;
+        }
+
+        clearAvatarDraft();
+        setFormData({
+            username: profile?.username || '',
+            phone: profile?.phone || '',
+            image_uri: persistedAvatarUrl,
+        });
+    }, [clearAvatarDraft, isOpen, persistedAvatarUrl, profile?.phone, profile?.username]);
+
+    useEffect(() => () => releaseAvatarPreview(), [releaseAvatarPreview]);
+
+    const handleImageSelection = (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
         try {
-            setUploading(true);
-
-            const publicUrl = await uploadAvatar(file);
-
-            setFormData(prev => ({ ...prev, image_uri: publicUrl }));
-            toast.success('Image uploaded successfully');
+            const nextPreviewUrl = URL.createObjectURL(file);
+            releaseAvatarPreview();
+            avatarPreviewUrlRef.current = nextPreviewUrl;
+            setSelectedAvatarFile(file);
+            setAvatarPreviewUrl(nextPreviewUrl);
         } catch {
-            toast.error('Error uploading image');
-        } finally {
-            setUploading(false);
+            toast.error('This photo could not be previewed.');
         }
+
+        event.target.value = '';
+    };
+
+    const handleClose = () => {
+        if (loading) return;
+        clearAvatarDraft();
+        onClose();
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        let uploadedAvatar = null;
 
         try {
+            if (selectedAvatarFile) {
+                uploadedAvatar = await uploadAvatar(selectedAvatarFile);
+            }
+
             await updateProfile({
                 username: formData.username,
                 phone: formData.phone,
-                image_uri: formData.image_uri,
+                image_uri: uploadedAvatar?.publicUrl || formData.image_uri,
                 updated_at: new Date().toISOString(),
             });
+            clearAvatarDraft();
             toast.success('Profile updated successfully');
             onClose();
         } catch (error) {
+            if (uploadedAvatar) {
+                try {
+                    await discardAvatarUpload(uploadedAvatar);
+                } catch {
+                    toast.error('The photo was not saved, and cleanup could not be confirmed.');
+                }
+            }
+
+            if (selectedAvatarFile) {
+                clearAvatarDraft();
+                setFormData(prev => ({ ...prev, image_uri: persistedAvatarUrl }));
+            }
             handleApiError(error, 'update');
         } finally {
             setLoading(false);
@@ -72,13 +118,13 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                <div className="fixed inset-0 z-[420] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 bg-black/30 backdrop-blur-md"
-                        onClick={onClose}
+                        onClick={handleClose}
                     />
 
                     <motion.div
@@ -96,7 +142,8 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                             <h2 className="text-xl font-bold tracking-tight">Edit Profile</h2>
                             <Button
                                 variant="ghost"
-                                onClick={onClose}
+                                onClick={handleClose}
+                                disabled={loading}
                                 aria-label="Close profile editor"
                                 className="h-8 w-8 rounded-pill bg-muted/50 p-0 transition-colors hover:bg-muted"
                             >
@@ -110,14 +157,14 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                 <div className="flex flex-col items-center gap-4">
                                     <div className="relative group cursor-pointer">
                                         <div className="h-28 w-28 overflow-hidden rounded-card bg-muted shadow-xl">
-                                            {(uploading) ? (
+                                            {(loading && selectedAvatarFile) ? (
                                                 <div role="status" aria-live="polite" className="flex h-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
                                                     <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-                                                    <span className="text-[10px] font-semibold">Uploading</span>
+                                                    <span className="text-[10px] font-semibold">Saving photo</span>
                                                 </div>
                                             ) : (
                                                 <img
-                                                    src={formData.image_uri || getAvatarUrl(profile)}
+                                                    src={avatarPreviewUrl || formData.image_uri || getAvatarUrl(profile)}
                                                     alt="Profile"
                                                     className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
                                                 />
@@ -125,8 +172,8 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                         </div>
                                         <label
                                             htmlFor="avatar-upload"
-                                            aria-disabled={uploading ? 'true' : undefined}
-                                            data-state={uploading ? 'pending' : 'ready'}
+                                            aria-disabled={loading ? 'true' : undefined}
+                                            data-state={selectedAvatarFile ? 'selected' : 'ready'}
                                             className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-card bg-black/40 opacity-0 transition-all group-hover:opacity-100"
                                         >
                                             <Camera className="w-8 h-8 text-white" />
@@ -135,12 +182,14 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                             type="file"
                                             id="avatar-upload"
                                             accept="image/*"
-                                            onChange={handleImageUpload}
+                                            onChange={handleImageSelection}
                                             className="hidden"
-                                            disabled={uploading}
+                                            disabled={loading}
                                         />
                                     </div>
-                                    <p className="text-xs font-medium text-muted-foreground">{uploading ? 'Uploading photo...' : 'Tap to change photo'}</p>
+                                    <p role="status" aria-live="polite" className="text-xs font-medium text-muted-foreground">
+                                        {selectedAvatarFile ? 'Photo selected. Save to apply it.' : 'Tap to change photo'}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -214,9 +263,9 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={onClose}
-                                    disabled={loading || uploading}
-                                    data-state={(loading || uploading) ? 'blocked' : 'ready'}
+                                    onClick={handleClose}
+                                    disabled={loading}
+                                    data-state={loading ? 'blocked' : 'ready'}
                                     className="h-12 flex-1 rounded-button bg-muted/50 font-semibold hover:bg-muted"
                                 >
                                     Cancel
@@ -224,10 +273,10 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                 <Button
                                     type="submit"
                                     form="profile-edit-form"
-                                    disabled={loading || uploading}
+                                    disabled={loading}
                                     aria-busy={loading ? 'true' : undefined}
-                                    data-state={loading ? 'pending' : uploading ? 'blocked' : 'ready'}
-                                    className="h-12 flex-1 rounded-button bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                                    data-state={loading ? 'pending' : 'ready'}
+                                    className="h-12 flex-1 rounded-button bg-foreground font-bold text-background transition-transform active:scale-[0.98] hover:bg-foreground/90"
                                 >
                                     {loading ? (
                                         <>

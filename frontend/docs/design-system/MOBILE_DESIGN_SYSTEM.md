@@ -129,17 +129,17 @@ a generic "Provider" (Decisions log + §5 + §10).
   it). The FAB action mirrors the proved route-level command or read surface — same authority and
   scope — and is **RBAC-gated** via `canReachRoute` (the SAME truth the route guard uses,
   `getProtectedRoutesForRole`, never a hand-kept role list that drifts). The four shapes:
-    - **REAL create** where the command is proved — New request / New visit / Add unit (live table).
-    - **GATED create** where a create RECEIVER EXISTS but is fail-closed — Users "Add user",
-      Subscriptions "Add subscriber", Health News "New article". Dispatch the PAGE'S OWN create-modal
-      event (`openUserModal` / `openSubscriptionModal` / `openHealthNewsModal`) so the tap surfaces the
-      honest "not ready" feedback. A fail-closed command is NOT a reason to drop the primary action —
+    - **REAL create** where the command is proved: New request / New visit / Add unit (live table).
+    - **GATED create** where a create RECEIVER EXISTS but is fail-closed: Users "Add user" and
+      Subscriptions "Add subscriber". Dispatch the PAGE'S OWN create-modal event (`openUserModal` /
+      `openSubscriptionModal`) so the tap surfaces honest "not ready" feedback. A fail-closed command
+      is not a reason to drop the primary action;
       it's a reason to show it honestly gated. The DECIDING test is "does a create receiver exist in the
-      service", NOT "does the desktop currently render the button": if the receiver exists, SURFACE the
-      gated button on BOTH lanes (make `canManage*` a role check, keep the click fail-closed) rather than
-      hiding it. Hiding it is the inconsistency Health News shipped (exempt) while its peer Subscriptions
-      surfaced the gated "Add subscriber" from the SAME fail-closed bucket — corrected 2026-07-10.
-    - **READ / REVIEW / NAVIGATE** where that IS the primary action — Payments "Payment stats",
+      service", NOT "does the desktop currently render the button". If the receiver exists, surface the
+      gated button on both lanes and keep the click fail-closed.
+    - **PROVED read action** where no admitted writer exists. Health News opens its page-owned
+      statistics view (`openAnalyticsModal`) instead of advertising article authoring.
+    - **READ / REVIEW / NAVIGATE** where that is the primary action: Payments "Payment stats",
       Insurance "Policy stats", Approvals "Review pending", and Hospitals "Facility approvals".
       Missing mutation authority forbids an unproved write; it does not erase a proved read action.
     - **HONEST EXEMPTION** (lone pill, `FAB_EXEMPT_ROUTES` + reason) ONLY where the route has no useful

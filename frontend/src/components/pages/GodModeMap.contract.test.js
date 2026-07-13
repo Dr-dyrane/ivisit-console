@@ -16,7 +16,6 @@ describe('GodModeMap Live Map contract', () => {
   const mapPanelSource = () => fs.readFileSync('src/components/context/MapPanel.jsx', 'utf8');
   const layoutContextSource = () => fs.readFileSync('src/contexts/LayoutContext.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
-  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const googleRendererSource = () => fs.readFileSync('src/components/map/MapRenderers/GoogleMapsRenderer.jsx', 'utf8');
   const mapServiceSource = () => fs.readFileSync('src/services/supabaseMapService.js', 'utf8');
   const responseServiceSource = () => fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
@@ -64,8 +63,10 @@ describe('GodModeMap Live Map contract', () => {
     expect(mapContext.indexOf('if (!mapRouteActive)'))
       .toBeLessThan(mapContext.indexOf('supabaseMapService.subscribeToAmbulances'));
     expect(mapContext.indexOf('if (!mapRouteActive)'))
-      .toBeLessThan(mapContext.indexOf('supabaseMapService.subscribeToUsers'));
-    expect((mapContext.match(/if \(!mounted\) return;/g) || []).length).toBeGreaterThanOrEqual(3);
+      .toBeLessThan(mapContext.indexOf('supabaseMapService.subscribeToHospitals'));
+    expect(mapContext).toContain('const scheduleScopedRefresh = () => {');
+    expect(mapContext).toContain('showLoading: false');
+    expect(mapContext).not.toContain('subscribeToUsers');
     expect(mapContext).toContain("if (typeof unsub === 'function') unsub();");
     expect(mapContext).toContain('const refreshMapData = React.useCallback(() => {');
     expect(routeOwnsStartupDomains('/map')).toBe(true);
@@ -109,12 +110,33 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain('applyAuthFilter(ambulancesQuery');
     expect(service).toContain('subscribeToEmergencies(onChange)');
     expect(service).toContain('subscribeToAmbulances(onChange)');
-    expect(service).toContain('subscribeToUsers(onChange)');
+    expect(service).toContain('subscribeToHospitals(onChange)');
+    expect(service).not.toContain("table: 'users'");
     expect(service).toContain("rpc('nearby_hospitals'");
     expect(service).toContain('async getNearbyHospitals(userLocation, radiusKm = 50, options = {})');
     expect(service).toContain('const quiet = Boolean(options?.quiet)');
     expect(service).toContain('sourceState');
-    expect(service).toContain('partial: !errEmergencies && (emergencies || []).length >= 100');
+    expect(service).toContain(".select('*', { count: 'exact' })");
+    expect(service).toContain(".select('id', { count: 'exact', head: true })");
+    expect(service).toContain('facets: emergencyFacets');
+    expect(service).toContain("const MAP_ACTIVE_ROUTE_STATUSES = ['in_progress', 'accepted', 'arrived'];");
+    expect(service).toContain('const activeRoutesQuery = applyAuthFilter(');
+    expect(service).toContain(".eq('service_type', 'ambulance')");
+    expect(service).toContain(".in('status', MAP_ACTIVE_ROUTE_STATUSES)");
+    expect(service).toContain('activeRoutes: {');
+    expect(service).toContain('exact: !activeRoutesResult.error && Number.isFinite(activeRoutesResult.count)');
+    expect(page).toContain('const hasExactActiveRouteCount = activeRouteProjection?.exact === true');
+    expect(page).toContain('hasExactActiveRouteCount ? "Active routes" : "Active routes shown"');
+    expect(page).toContain('Current shown');
+    expect(mobileSource()).toContain('requestSource?.facets?.[serviceType]?.total');
+    expect(mobileSource()).not.toContain("{ id: 'all', label: 'All', value: requests.length }");
+    expect(service).toContain("const MAP_REQUEST_TYPES = ['ambulance', 'bed'];");
+    expect(mobileSource()).not.toContain("id: 'booking'");
+    expect(`${service}\n${mobileSource()}`).not.toContain('critical_care');
+    expect(service).toContain('const MAP_REQUEST_LIMIT = 100');
+    expect(service).toContain('const MAP_ENTITY_LIMIT = 1000');
+    expect(service).not.toContain('Fallback to basic hospital query');
+    expect(service).toContain('Nearby facility search is temporarily unavailable.');
     expect(mapContextSource()).toContain('Some live map data did not load.');
   });
 
@@ -127,14 +149,24 @@ describe('GodModeMap Live Map contract', () => {
 
     expect(`${mobile}\n${marker}`).toContain('dispatchEmergency');
     expect(`${mobile}\n${marker}`).toContain('completeEmergency');
+    expect(mobile).toContain('getEmergencyActionState(selectedMarker.data)');
+    expect(marker).toContain('getEmergencyActionState(selectedMarker.data)');
+    expect(mobile).toContain('emergencyActionState?.canDispatch');
+    expect(marker).toContain('emergencyActionState?.canComplete');
     expect(page).toContain('updateResponderLocation(');
     expect(page).toContain('driverManagementService.updateTripStatus');
     expect(page).not.toContain('processedAmbulances[0]');
+    expect(page).toContain('(request) => request?.responder_id === user.id');
+    expect(page).toContain('driverActiveEmergency?.responder_id !== user?.id');
+    expect(page).not.toContain('const ambulanceMatch =');
 
     expect(responseService).toContain("supabase.rpc('console_dispatch_emergency'");
+    expect(responseService).toContain("supabase.rpc('nearby_ambulances'");
     expect(responseService).toContain("supabase.rpc('console_complete_emergency'");
     expect(responseService).toContain("supabase.rpc('console_update_responder_location'");
+    expect(responseService).toContain('ambulanceIsWithinActorScope(ambulance, actor)');
     expect(driverService).toContain('async updateTripStatus(requestId, newStatus)');
+    expect(responseService).not.toContain('Math.random');
   });
 
   it('keeps map commands progressive with visible feedback instead of native confirms', () => {
@@ -147,7 +179,10 @@ describe('GodModeMap Live Map contract', () => {
     expect(activeCommands).not.toContain('confirm(');
     expect(page).toContain('DRIVER_STATUS_COPY');
     expect(page).toContain('toast.loading("Sharing location..."');
+    expect(page).toContain('const updatedRequest = await driverManagementService.updateTripStatus');
+    expect(page).toContain('if (!updatedRequest) {');
     expect(page).toContain('toast.success(copy.success');
+    expect(page.indexOf('if (!updatedRequest) {')).toBeLessThan(page.indexOf('toast.success(copy.success'));
     expect(page).toContain('aria-busy={driverAction === "completed"}');
     expect(page).toContain('toast.info("Location not ready")');
     expect(mobile).toContain('const [mapCommand, setMapCommand] = useState(null)');

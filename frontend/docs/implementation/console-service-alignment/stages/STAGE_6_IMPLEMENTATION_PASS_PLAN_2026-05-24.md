@@ -4,6 +4,8 @@
 
 Expanded global implementation-pass plan. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
 
+Execution update, 2026-07-12: the narrowly scoped Pass 4 Auth, complete facility identity projection, tenant-bound user statistics, organization onboarding, private evidence, password recovery, and user invitation slice was implemented under explicit authorization after its end-to-end proof chain closed. The authoritative receiver, RLS/Storage, rollback harness, live and browser E2E, zero-residue cleanup, and remaining-exclusion record is `../passes/PASS_4_ORGANIZATION_ONBOARDING_VERIFICATION_FLOW_SUBPLAN_2026-05-24.md`. The original checkpoint below is retained as the planning baseline and does not reopen authority for unrelated Pass 4 commands or other passes.
+
 This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, Stage 4 L5 ownership matrix, Stage 5 full service coverage audit, and the service taxonomy in `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`. Each pass must be narrowed into its own implementation checklist before code changes begin.
 
 The pass order below is an implementation sequence, not the console feature taxonomy. A single pass can cover several feature lanes when they share source-of-truth risk. The feature taxonomy remains the coverage gate for ensuring no service or operational surface is skipped.

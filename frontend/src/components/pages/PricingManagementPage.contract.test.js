@@ -366,11 +366,14 @@ describe('Pricing Page 18 intake contract', () => {
     expect(service).toContain('export const getPricingPageData');
     expect(service).toContain('sourceLabel');
     expect(service).toContain('facilityName');
-    expect(service).toContain("hospitalsQuery.eq('organization_id', organizationId)");
-    expect(service).toContain("pricingQuery.or(`hospital_id.is.null,hospital_id.in.(${hospitalIds.join(',')})`)");
-    expect(service).toContain('const scopedRows = matchingRows.filter((row) => matchesPricingScope(row, scope));');
-    expect(service).toContain('summary: buildPricingSummary(matchingRows)');
-    expect(service).toContain("basis: 'current_filter'");
+    expect(service).toContain(".select('id, organization_id, name', { count: 'exact' })");
+    expect(service).toContain("selectOptions: { count: 'exact', head: true }");
+    expect(service).toContain('const PRICING_QUERY_CHUNK_SIZE = 500;');
+    expect(service).toContain('getScopedFamilyCount(familySummary, scope)');
+    expect(service).toContain('summary: {');
+    expect(service).toContain('averageAvailable: false');
+    expect(service).toContain("basis: 'exact_server_counts'");
+    expect(service).toContain("pagination: 'server_windowed_union'");
     expect(service).toContain('readState');
     expect(service).toContain("mode: organizationId ? 'organization_summary' : 'platform_default'");
   });
@@ -382,7 +385,6 @@ describe('Pricing Page 18 intake contract', () => {
     const pass3 = read('docs/implementation/console-service-alignment/passes/PASS_3_HOSPITAL_CAPACITY_PRICING_FLOW_SUBPLAN_2026-05-24.md');
     const page = read('src/components/pages/PricingManagementPage.jsx');
     const pageDataContext = read('src/contexts/PageDataContext.jsx');
-    const pageDataAccess = read('src/config/pageDataAccess.js');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const panel = read('src/components/context/PricingContextPanel.jsx');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
@@ -432,15 +434,13 @@ describe('Pricing Page 18 intake contract', () => {
     expect(pass3).toContain('App quote comparison for selected hospital pricing.');
     expect(pass3).toContain('Do not implement pricing writes without an explicit facility selection; never write an implicit earliest');
 
-    expect(pageDataAccess).toContain("'pricing'");
-    expect(pageDataAccess).toContain("pathname === '/pricing'");
     expect(routeOwnsStartupDomains('/pricing')).toBe(true);
     expect(getPageDataStartupDomainsForRole('org_admin', '/pricing')).not.toContain('pricing');
-    expect(pageDataContext).toContain("getPricing('services')");
-    expect(pageDataContext).toContain("getPricing('rooms')");
-    expect(pageDataContext).toContain(".channel('pricing_changes')");
-    expect(pageDataContext).toContain("table: 'service_pricing'");
-    expect(pageDataContext).toContain("table: 'room_pricing'");
+    expect(pageDataContext).not.toContain("getPricing('services')");
+    expect(pageDataContext).not.toContain("getPricing('rooms')");
+    expect(pageDataContext).not.toContain(".channel('pricing_changes')");
+    expect(pageDataContext).not.toContain("table: 'service_pricing'");
+    expect(pageDataContext).not.toContain("table: 'room_pricing'");
     expect(contextPanel).not.toContain('servicePricing');
     expect(contextPanel).not.toContain('roomPricing');
     expect(contextPanel).toContain('<PricingContextPanel pricingContext={pricingRouteContext} />');

@@ -55,6 +55,13 @@ const DEFAULT_SUBSCRIPTION_SAMPLE = {
   complete: false,
 };
 
+const DEFAULT_HOSPITAL_SAMPLE = {
+  returnedCount: 0,
+  totalCount: null,
+  limit: 1000,
+  complete: false,
+};
+
 const DEFAULT_SUBSCRIPTION_STATS = {
   total: 0,
   active: 0,
@@ -78,6 +85,11 @@ const normalizeRequestSample = (value) => ({
   ...(value || {}),
 });
 
+const normalizeHospitalSample = (value) => ({
+  ...DEFAULT_HOSPITAL_SAMPLE,
+  ...(value || {}),
+});
+
 const normalizeSubscriptionStats = (value) => ({
   ...DEFAULT_SUBSCRIPTION_STATS,
   ...(value || {}),
@@ -93,17 +105,21 @@ const getAnalyticsSourceIssueSummary = (issues = []) => {
   const deniedLabels = issues
     .filter((issue) => issue.kind === 'denied')
     .map((issue) => ANALYTICS_SOURCE_LABELS[issue.source] || issue.source);
+  const partialLabels = issues
+    .filter((issue) => issue.kind === 'partial')
+    .map((issue) => ANALYTICS_SOURCE_LABELS[issue.source] || issue.source);
   const failedLabels = issues
-    .filter((issue) => issue.kind !== 'denied')
+    .filter((issue) => issue.kind !== 'denied' && issue.kind !== 'partial')
     .map((issue) => ANALYTICS_SOURCE_LABELS[issue.source] || issue.source);
   const detailParts = [
     deniedLabels.length ? `${deniedLabels.join(', ')} need role access.` : null,
+    partialLabels.length ? `${partialLabels.join(', ')} returned incomplete data.` : null,
     failedLabels.length ? `${failedLabels.join(', ')} did not load.` : null,
   ].filter(Boolean);
 
   return {
-    kind: deniedLabels.length ? 'denied' : 'failed',
-    title: deniedLabels.length && !failedLabels.length
+    kind: deniedLabels.length ? 'denied' : partialLabels.length ? 'partial' : 'failed',
+    title: deniedLabels.length && !partialLabels.length && !failedLabels.length
       ? ANALYTICS_DENIED_SOURCE_MESSAGE
       : ANALYTICS_PARTIAL_SOURCE_MESSAGE,
     detail: detailParts.join(' ') || 'Try again when the data is ready.',
@@ -184,6 +200,7 @@ export const Analytics = () => {
   const analyticsRequestIdRef = useRef(0);
   const [stats, setStats] = useState(DEFAULT_STATS);
   const [requestSample, setRequestSample] = useState(DEFAULT_REQUEST_SAMPLE);
+  const [hospitalSample, setHospitalSample] = useState(DEFAULT_HOSPITAL_SAMPLE);
   const [analyticsLoadError, setAnalyticsLoadError] = useState(null);
   const [analyticsRefreshNotice, setAnalyticsRefreshNotice] = useState(null);
   const [analyticsSourceIssues, setAnalyticsSourceIssues] = useState([]);
@@ -207,8 +224,12 @@ export const Analytics = () => {
     [subscriptionStats],
   );
   const resolvedHospitalCapacity = useMemo(
-    () => ({ ...DEFAULT_HOSPITAL_CAPACITY, ...(hospitalCapacity || {}) }),
-    [hospitalCapacity],
+    () => ({
+      ...DEFAULT_HOSPITAL_CAPACITY,
+      ...(hospitalCapacity || {}),
+      sample: normalizeHospitalSample(hospitalSample),
+    }),
+    [hospitalCapacity, hospitalSample],
   );
   const analyticsSourceIssueSummary = useMemo(
     () => getAnalyticsSourceIssueSummary(analyticsSourceIssues),
@@ -242,14 +263,16 @@ export const Analytics = () => {
   const sourceReadiness = useMemo(() => ({
     requests: snapshotReady && !issueSources.has('requests'),
     users: snapshotReady && !issueSources.has('users'),
-    hospitals: snapshotReady && !issueSources.has('hospitals'),
+    hospitals: snapshotReady
+      && !issueSources.has('hospitals')
+      && hospitalSample.complete === true,
     ambulances: snapshotReady && !issueSources.has('ambulances'),
     subscriptions: snapshotReady
       && canReadSubscriptionAnalytics
       && !issueSources.has('subscriptions')
       && resolvedSubscriptionStats.sample.complete === true,
     finance: snapshotReady && canReadFinanceAnalytics && !issueSources.has('finance') && Boolean(financeCurrency),
-  }), [canReadFinanceAnalytics, canReadSubscriptionAnalytics, financeCurrency, issueSources, resolvedSubscriptionStats.sample.complete, snapshotReady]);
+  }), [canReadFinanceAnalytics, canReadSubscriptionAnalytics, financeCurrency, hospitalSample.complete, issueSources, resolvedSubscriptionStats.sample.complete, snapshotReady]);
 
   const financeSummary = useMemo(() => {
     if (!Array.isArray(financeData) || !financeData.length) {
@@ -419,6 +442,8 @@ export const Analytics = () => {
 
       setAnalyticsSourceIssues(sourceIssues);
       setRequestSample(normalizeRequestSample(analyticsPage.requestSample));
+      const nextHospitalSample = normalizeHospitalSample(analyticsPage.hospitalSample);
+      setHospitalSample(nextHospitalSample);
       setFinanceData(canReadFinanceAnalytics ? analyticsPage.financeData || [] : []);
       setSubscriptionStats(canReadSubscriptionAnalytics
         ? normalizeSubscriptionStats(analyticsPage.subscriptionStats)
@@ -434,15 +459,19 @@ export const Analytics = () => {
         totalAmbulances: analyticsPage.ambulancesCount || 0,
       });
 
-      const hospitals = analyticsPage.hospitals || [];
-      const totalBeds = hospitals.reduce((sum, hospital) => sum + (Number(hospital.total_beds) || 0), 0);
-      const availableBeds = hospitals.reduce((sum, hospital) => sum + (Number(hospital.available_beds) || 0), 0);
-      const icuAvailable = hospitals.reduce((sum, hospital) => sum + (Number(hospital.icu_beds_available) || 0), 0);
-      setHospitalCapacity({
-        total: totalBeds,
-        occupied: Math.max(0, totalBeds - availableBeds),
-        icu: icuAvailable,
-      });
+      if (nextHospitalSample.complete) {
+        const hospitals = analyticsPage.hospitals || [];
+        const totalBeds = hospitals.reduce((sum, hospital) => sum + (Number(hospital.total_beds) || 0), 0);
+        const availableBeds = hospitals.reduce((sum, hospital) => sum + (Number(hospital.available_beds) || 0), 0);
+        const icuAvailable = hospitals.reduce((sum, hospital) => sum + (Number(hospital.icu_beds_available) || 0), 0);
+        setHospitalCapacity({
+          total: totalBeds,
+          occupied: Math.max(0, totalBeds - availableBeds),
+          icu: icuAvailable,
+        });
+      } else {
+        setHospitalCapacity(DEFAULT_HOSPITAL_CAPACITY);
+      }
 
       generateChartData(requests, requestedRange);
       analyticsSnapshotReadyRef.current = true;
@@ -541,6 +570,7 @@ export const Analytics = () => {
   const analyticsRouteContext = useMemo(() => ({
     stats,
     requestSample,
+    hospitalSample,
     timeRange,
     snapshotTimeRange,
     loading,
@@ -551,7 +581,7 @@ export const Analytics = () => {
     roleContext,
     canExport: false,
     reportingState: 'unavailable',
-  }), [analyticsLoadError, loading, requestSample, roleContext, snapshotReady, snapshotTimeRange, sourceReadiness, stats, timeRange, visibleAnalyticsSourceIssueSummary]);
+  }), [analyticsLoadError, hospitalSample, loading, requestSample, roleContext, snapshotReady, snapshotTimeRange, sourceReadiness, stats, timeRange, visibleAnalyticsSourceIssueSummary]);
 
   useEffect(() => {
     const publishAnalyticsRouteContext = () => window.dispatchEvent(

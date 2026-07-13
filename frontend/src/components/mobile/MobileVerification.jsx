@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Shield, Eye, CheckCircle, Ban, Building2, Ambulance, Stethoscope, Mail, MapPin, Clock, Hash, Tag, X } from 'lucide-react';
+import { Shield, Eye, CheckCircle, Ban, Building2, Ambulance, Stethoscope, Mail, MapPin, Clock, Hash, Tag, X, Loader2 } from 'lucide-react';
 // LIST-type page, DUAL-QUEUE (providers + facilities). Composes the canon kit
 // (MOBILE_DESIGN_SYSTEM §5): heading -> KPI status chips -> queue switch -> search ->
 // grouped list -> tap opens MobileDetailSheet (Approve/Reject in the footer CTA group).
@@ -79,6 +79,26 @@ const itemStatusKey = (item, queueType) => (queueType === 'providers'
   ? (item?.bvn_verified ? 'verified' : 'pending')
   : String(item?.verification_status || 'pending').toLowerCase());
 
+export const approveProvidersSequentially = async (ids, onApprove, onProgress) => {
+  const queue = Array.from(new Set(ids || []));
+  const succeededIds = [];
+  const failedIds = [];
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const id = queue[index];
+    try {
+      const result = await onApprove(id, true);
+      if (result === false) failedIds.push(id);
+      else succeededIds.push(id);
+    } catch {
+      failedIds.push(id);
+    }
+    onProgress?.({ completed: index + 1, total: queue.length });
+  }
+
+  return { succeededIds, failedIds };
+};
+
 export const MobileVerification = ({
   queueType = 'providers',
   setQueueType,
@@ -104,6 +124,7 @@ export const MobileVerification = ({
   onSelectAll,
 }) => {
   const [activeItem, setActiveItem] = useState(null);
+  const [bulkProgress, setBulkProgress] = useState(null);
   // Multi-select (restored 2026-07-10). Uses the SHARED page selection — the desktop
   // page's useRowSelection passes selectedIds/onSelect/onSelectAll — so mobile and
   // desktop never hold divergent selection. Providers-only + admin-gated, mirroring the
@@ -158,10 +179,29 @@ export const MobileVerification = ({
   const selectionEnabled = canApprove && queueType === 'providers';
   const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
   const selectionMode = selectionEnabled && selectedIdSet.size > 0;
-  const bulkApprove = () => {
-    if (!onVerifyProvider) return;
-    (selectedIds || []).forEach((id) => onVerifyProvider(id, true));
-    onSelectAll?.(false);
+  const bulkApproving = bulkProgress !== null;
+  const bulkApprove = async () => {
+    if (!onVerifyProvider || bulkApproving) return;
+
+    const ids = Array.from(selectedIdSet);
+    if (ids.length === 0) return;
+
+    setBulkProgress({ completed: 0, total: ids.length });
+    try {
+      const { succeededIds, failedIds } = await approveProvidersSequentially(
+        ids,
+        onVerifyProvider,
+        setBulkProgress,
+      );
+
+      if (onSelect) {
+        succeededIds.forEach((id) => onSelect(id, false));
+      } else if (failedIds.length === 0) {
+        onSelectAll?.(false);
+      }
+    } finally {
+      setBulkProgress(null);
+    }
   };
 
   // Grouped by application recency (adaptive, data-driven): the queue is a feed of
@@ -203,8 +243,12 @@ export const MobileVerification = ({
         selectable={selectionEnabled}
         selected={selectedIdSet.has(item.id)}
         selectionMode={selectionMode}
-        onToggleSelect={(it) => onSelect?.(it.id, !selectedIdSet.has(it.id))}
-        onLongPress={(it) => onSelect?.(it.id, true)}
+        onToggleSelect={(it) => {
+          if (!bulkApproving) onSelect?.(it.id, !selectedIdSet.has(it.id));
+        }}
+        onLongPress={(it) => {
+          if (!bulkApproving) onSelect?.(it.id, true);
+        }}
       />
     );
   };
@@ -242,7 +286,7 @@ export const MobileVerification = ({
                   type="button"
                   onClick={() => { if (queueType !== tab.id) onSelectAll?.(false); setQueueType(tab.id); }}
                   aria-pressed={queueType === tab.id}
-                  className={`flex-1 rounded-[calc(theme(borderRadius.inner)-4px)] py-2 text-[13px] font-semibold transition-all active:scale-[0.97] ${queueType === tab.id ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground'}`}
+                            className={`flex-1 rounded-button py-2 text-[13px] font-semibold transition-all active:scale-[0.97] ${queueType === tab.id ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.10]' : 'text-muted-foreground'}`}
                 >
                   {tab.label}
                 </button>
@@ -270,12 +314,16 @@ export const MobileVerification = ({
               {/* Multi-select bar — appears only in selection mode (providers + admin).
                   Sticky so it stays reachable while scrolling a long pending queue. */}
               {selectionMode && (
-                <div className="sticky top-2 z-30 flex items-center gap-2 rounded-inner bg-background/85 px-3 py-2 shadow-sm backdrop-blur-xl">
+                <div
+                  className="sticky top-2 z-30 flex items-center gap-2 rounded-inner bg-background/85 px-3 py-2 shadow-sm backdrop-blur-xl"
+                  aria-busy={bulkApproving}
+                >
                   <span className="text-[13px] font-semibold text-foreground tabular-nums">{selectedIdSet.size} selected</span>
                   <button
                     type="button"
                     onClick={() => onSelectAll?.(true)}
-                    className="text-[12px] font-semibold text-muted-foreground transition-transform active:scale-95"
+                    disabled={bulkApproving}
+                    className="text-[12px] font-semibold text-muted-foreground transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-50"
                   >
                     Select all
                   </button>
@@ -283,16 +331,27 @@ export const MobileVerification = ({
                     <button
                       type="button"
                       onClick={bulkApprove}
-                      className="flex h-8 items-center gap-1.5 rounded-button bg-emerald-500/12 px-3 text-[12px] font-semibold text-emerald-700 transition-transform active:scale-95 dark:text-emerald-300"
+                      disabled={bulkApproving}
+                      aria-busy={bulkApproving}
+                      className="flex h-8 min-w-[7.75rem] items-center justify-center gap-1.5 rounded-button bg-emerald-500/12 px-3 text-[12px] font-semibold text-emerald-700 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70 dark:text-emerald-300"
                     >
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      Approve {selectedIdSet.size}
+                      {bulkApproving ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      )}
+                      <span aria-live="polite">
+                        {bulkApproving
+                          ? `Approving ${bulkProgress.completed}/${bulkProgress.total}`
+                          : `Approve ${selectedIdSet.size}`}
+                      </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => onSelectAll?.(false)}
+                      disabled={bulkApproving}
                       aria-label="Clear selection"
-                      className="flex h-8 w-8 items-center justify-center rounded-button bg-foreground/[0.05] text-muted-foreground transition-transform active:scale-95 dark:bg-white/[0.06]"
+                      className="flex h-8 w-8 items-center justify-center rounded-button bg-foreground/[0.05] text-muted-foreground transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-50 dark:bg-white/[0.06]"
                     >
                       <X className="h-4 w-4" />
                     </button>

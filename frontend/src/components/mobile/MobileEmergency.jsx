@@ -110,6 +110,7 @@ const getMobileRequestTypeIcon = (request) => {
     const type = String(request?.service_type || '').toLowerCase();
     if (type === 'ambulance') return Ambulance;
     if (type === 'bed') return BedDouble;
+    if (type === 'booking') return Calendar;
     return Hospital;
 };
 
@@ -135,9 +136,9 @@ const getKpiValue = ({ id, statistics, emergencies }) => {
         }).length;
         return countNumber(statistics?.active, rowCount);
     }
-    if (id === 'critical') {
-        const rowCount = emergencies.filter((item) => item.service_type === 'critical_care').length;
-        return countNumber(statistics?.critical, rowCount);
+    if (id === 'booking') {
+        const rowCount = emergencies.filter((item) => item.service_type === 'booking').length;
+        return countNumber(statistics?.booking, rowCount);
     }
     if (id === 'bed') {
         const rowCount = emergencies.filter((item) => item.service_type === 'bed').length;

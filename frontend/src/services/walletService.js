@@ -20,6 +20,169 @@ const normalizeWalletPayment = (payment) => {
     };
 };
 
+// PULLBACK NOTE: Payments truth projection
+// OLD: Payment KPIs summed whichever ledger rows happened to be loaded by the page.
+// NEW: Totals publish only after an exact, bounded, stable scan of the full wallet ledger.
+const LEDGER_METRIC_PAGE_SIZE = 1000;
+const LEDGER_METRIC_MAX_ROWS = 10000;
+
+const runWalletRead = async (buildQuery) => withRetry(async () => {
+    const result = await buildQuery();
+    if (result?.error) throw result.error;
+    return result;
+});
+
+const getExactLedgerCount = async (walletId) => {
+    const { count } = await runWalletRead(() => supabase
+        .from('wallet_ledger')
+        .select('id', { count: 'exact', head: true })
+        .eq('wallet_id', walletId));
+    const numericCount = Number(count);
+
+    if (count === null || count === undefined || !Number.isSafeInteger(numericCount) || numericCount < 0) {
+        throw new Error('Wallet ledger count is unavailable.');
+    }
+
+    return numericCount;
+};
+
+const getWalletLedgerPreview = async (walletId, limit = 50) => {
+    if (!isValidUUID(walletId)) {
+        return { rows: [], totalCount: null };
+    }
+
+    const safeLimit = Math.max(1, Number(limit) || 50);
+    const { data, count } = await runWalletRead(() => supabase
+        .from('wallet_ledger')
+        .select('*', { count: 'exact' })
+        .eq('wallet_id', walletId)
+        .order('created_at', { ascending: false })
+        .limit(safeLimit));
+
+    return {
+        rows: data || [],
+        totalCount: count !== null && count !== undefined && Number.isSafeInteger(Number(count))
+            ? Number(count)
+            : null,
+    };
+};
+
+export const getWalletLedgerMetrics = async ({
+    walletId,
+    pageSize = LEDGER_METRIC_PAGE_SIZE,
+    maxRows = LEDGER_METRIC_MAX_ROWS,
+} = {}) => {
+    if (!isValidUUID(walletId)) {
+        throw new Error('Wallet scope is unavailable.');
+    }
+
+    const requestedPageSize = Number(pageSize);
+    const requestedMaxRows = Number(maxRows);
+    const safePageSize = Math.min(1000, Math.max(
+        1,
+        Number.isSafeInteger(requestedPageSize) ? requestedPageSize : LEDGER_METRIC_PAGE_SIZE,
+    ));
+    const safeMaxRows = Math.max(
+        safePageSize,
+        Number.isSafeInteger(requestedMaxRows) && requestedMaxRows > 0
+            ? requestedMaxRows
+            : LEDGER_METRIC_MAX_ROWS,
+    );
+    const expectedCount = await getExactLedgerCount(walletId);
+
+    if (expectedCount > safeMaxRows) {
+        throw new Error('Wallet ledger is too large for a complete browser projection.');
+    }
+
+    let processedCount = 0;
+    let credits = 0;
+    let debits = 0;
+    let creditCount = 0;
+    let debitCount = 0;
+
+    while (processedCount < expectedCount) {
+        const pageLength = Math.min(safePageSize, expectedCount - processedCount);
+        const { data } = await runWalletRead(() => supabase
+            .from('wallet_ledger')
+            .select('amount, transaction_type')
+            .eq('wallet_id', walletId)
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true })
+            .range(processedCount, processedCount + pageLength - 1));
+        const rows = data || [];
+
+        if (rows.length !== pageLength) {
+            throw new Error('Wallet ledger changed before totals could be confirmed.');
+        }
+
+        rows.forEach((row) => {
+            const transactionType = String(row?.transaction_type || '').trim().toLowerCase();
+            if (transactionType !== 'credit' && transactionType !== 'debit') return;
+
+            const amount = Number(row?.amount);
+            if (!Number.isFinite(amount)) {
+                throw new Error('Wallet ledger contains an invalid amount.');
+            }
+
+            if (transactionType === 'credit') {
+                credits += Math.abs(amount);
+                creditCount += 1;
+                return;
+            }
+
+            debits += Math.abs(amount);
+            debitCount += 1;
+        });
+
+        processedCount += rows.length;
+    }
+
+    const confirmedCount = await getExactLedgerCount(walletId);
+    if (confirmedCount !== expectedCount || processedCount !== expectedCount) {
+        throw new Error('Wallet ledger changed before totals could be confirmed.');
+    }
+
+    return {
+        basis: 'complete_wallet_ledger_scan',
+        scope: 'all_recorded_wallet_entries',
+        scopeLabel: 'All recorded ledger entries',
+        complete: true,
+        rowCount: expectedCount,
+        credits,
+        debits,
+        creditCount,
+        debitCount,
+    };
+};
+
+const protectCsvFormula = (value) => {
+    if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+    const text = value === null || value === undefined ? '' : String(value);
+    return /^[\t\r\n ]*[=+\-@]/.test(text) ? `'${text}` : text;
+};
+
+const escapeCsvCell = (value) => `"${protectCsvFormula(value).replace(/"/g, '""')}"`;
+
+const formatLedgerCsvDate = (value) => {
+    const date = new Date(value || '');
+    return Number.isNaN(date.getTime()) ? value || '' : date.toISOString();
+};
+
+export const buildLoadedLedgerCsv = ({ ledger = [], currency = 'USD' } = {}) => {
+    const rows = [
+        ['Date', 'Type', 'Description', 'Amount', 'Currency'],
+        ...ledger.map((entry) => [
+            formatLedgerCsvDate(entry?.created_at),
+            entry?.transaction_type || '',
+            entry?.description || '',
+            entry?.amount ?? '',
+            String(currency || 'USD').toUpperCase(),
+        ]),
+    ];
+
+    return rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+};
+
 const resolveWalletForProfile = async ({ profile, isAdmin }) => {
     if (isAdmin) {
         const { data, error } = await withRetry(() => supabase
@@ -41,20 +204,11 @@ const resolveWalletForProfile = async ({ profile, isAdmin }) => {
     return data || null;
 };
 
-const getWalletLedger = async (walletId, limit = 50) => {
-    if (!isValidUUID(walletId)) return [];
+const getWalletLedger = async (walletId, limit = 50) => (
+    await getWalletLedgerPreview(walletId, limit)
+).rows;
 
-    const { data, error } = await withRetry(() => supabase
-        .from('wallet_ledger')
-        .select('*')
-        .eq('wallet_id', walletId)
-        .order('created_at', { ascending: false })
-        .limit(limit));
-    if (error) throw error;
-    return data || [];
-};
-
-export const getWalletPayments = async ({ organizationId = null, isOrgAdmin = false, limit = 50 } = {}) => {
+const getWalletPaymentsPreview = async ({ organizationId = null, isOrgAdmin = false, limit = 50 } = {}) => {
     let query = supabase
         .from('payments')
         .select(`
@@ -74,29 +228,41 @@ export const getWalletPayments = async ({ organizationId = null, isOrgAdmin = fa
                     address
                 )
             )
-        `);
+        `, { count: 'exact' });
 
     if (isOrgAdmin && organizationId) {
         query = query.eq('organization_id', organizationId);
     }
 
-    const paymentsQuery = query
+    const { data, count } = await runWalletRead(() => query
         .order('created_at', { ascending: false })
-        .limit(limit);
-    const { data, error } = await withRetry(() => paymentsQuery);
-    if (error) throw error;
+        .limit(limit));
 
-    return (data || []).map(normalizeWalletPayment);
+    return {
+        rows: (data || []).map(normalizeWalletPayment),
+        totalCount: count !== null && count !== undefined && Number.isSafeInteger(Number(count))
+            ? Number(count)
+            : null,
+    };
+};
+
+export const getWalletPayments = async ({ organizationId = null, isOrgAdmin = false, limit = 50 } = {}) => {
+    const result = await getWalletPaymentsPreview({ organizationId, isOrgAdmin, limit });
+    return result.rows;
 };
 
 export const getWalletContextData = async ({ profile, isAdmin = false, ledgerLimit = 10 } = {}) => {
     const wallet = await resolveWalletForProfile({ profile, isAdmin });
-    const ledger = await getWalletLedger(wallet?.id, ledgerLimit);
+    const ledger = isAdmin ? await getWalletLedger(wallet?.id, ledgerLimit) : [];
 
     return {
         wallet,
         ledger,
         projection: 0,
+        readState: {
+            wallet: wallet ? 'ready' : 'missing',
+            ledger: isAdmin && wallet ? 'ready' : 'unavailable',
+        },
     };
 };
 
@@ -105,19 +271,29 @@ export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin =
     const wallet = await resolveWalletForProfile({ profile, isAdmin });
     const safeLimit = Math.max(1, Number(limit) || 50);
 
-    const [paymentMethodsResult, ledgerResult, paymentsResult] = await Promise.allSettled([
+    const ledgerPromise = isAdmin && wallet?.id
+        ? getWalletLedgerPreview(wallet.id, safeLimit + 1)
+        : Promise.resolve(null);
+    const financeMetricsPromise = isAdmin && wallet?.id
+        ? getWalletLedgerMetrics({ walletId: wallet.id })
+        : Promise.resolve(null);
+    const [paymentMethodsResult, ledgerResult, paymentsResult, financeMetricsResult] = await Promise.allSettled([
         listPaymentMethods(isAdmin ? null : organizationId),
-        getWalletLedger(wallet?.id, safeLimit + 1),
-        getWalletPayments({ organizationId, isOrgAdmin, limit: safeLimit + 1 }),
+        ledgerPromise,
+        getWalletPaymentsPreview({ organizationId, isOrgAdmin, limit: safeLimit + 1 }),
+        financeMetricsPromise,
     ]);
 
-    const ledgerRows = ledgerResult.status === 'fulfilled' ? ledgerResult.value : [];
-    const paymentRows = paymentsResult.status === 'fulfilled' ? paymentsResult.value : [];
+    const ledgerProjection = ledgerResult.status === 'fulfilled' ? ledgerResult.value : null;
+    const paymentsProjection = paymentsResult.status === 'fulfilled' ? paymentsResult.value : null;
+    const ledgerRows = ledgerProjection?.rows || [];
+    const paymentRows = paymentsProjection?.rows || [];
     const readState = {
         wallet: wallet ? 'ready' : 'missing',
-        ledger: !wallet ? 'unavailable' : ledgerResult.status === 'fulfilled' ? 'ready' : 'failed',
+        ledger: !wallet || !isAdmin ? 'unavailable' : ledgerResult.status === 'fulfilled' ? 'ready' : 'failed',
         payments: paymentsResult.status === 'fulfilled' ? 'ready' : 'failed',
         paymentMethods: paymentMethodsResult.status === 'fulfilled' ? 'ready' : 'failed',
+        financeMetrics: !wallet || !isAdmin ? 'unavailable' : financeMetricsResult.status === 'fulfilled' ? 'ready' : 'failed',
     };
 
     return {
@@ -125,9 +301,18 @@ export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin =
         ledger: ledgerRows.slice(0, safeLimit),
         paymentMethods: paymentMethodsResult.status === 'fulfilled' ? paymentMethodsResult.value : [],
         payments: paymentRows.slice(0, safeLimit),
+        financeMetrics: financeMetricsResult.status === 'fulfilled' ? financeMetricsResult.value : null,
         hasMore: {
-            ledger: ledgerRows.length > safeLimit,
-            payments: paymentRows.length > safeLimit,
+            ledger: readState.ledger === 'ready' && ledgerProjection?.totalCount !== null
+                ? ledgerProjection.totalCount > safeLimit
+                : ledgerRows.length > safeLimit,
+            payments: paymentsProjection?.totalCount !== null
+                ? paymentsProjection.totalCount > safeLimit
+                : paymentRows.length > safeLimit,
+        },
+        totalCounts: {
+            ledger: readState.ledger === 'ready' ? ledgerProjection?.totalCount ?? null : null,
+            payments: readState.payments === 'ready' ? paymentsProjection?.totalCount ?? null : null,
         },
         readState,
         partialFailure: Object.values(readState).some((state) => state === 'failed'),

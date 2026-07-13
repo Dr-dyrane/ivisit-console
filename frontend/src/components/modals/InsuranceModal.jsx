@@ -36,8 +36,9 @@ const formatDate = (value) => {
 };
 
 const formatMoney = (value) => {
-  const number = Number(value || 0);
-  return number > 0 ? `$${number.toLocaleString()}` : 'Not set';
+  if (value === null || value === undefined || String(value).trim() === '') return 'Not set';
+  const number = Number(value);
+  return Number.isFinite(number) ? `$${number.toLocaleString()}` : 'Not set';
 };
 
 const formatPercentage = (value) => {

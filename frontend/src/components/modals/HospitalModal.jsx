@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
@@ -12,7 +12,8 @@ import { Badge } from '../ui/badge';
 import { CopyChip } from '../console/primitives';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { bedManagementService } from '../../services/bedManagementService';
 
 const DEFAULT_HOSPITAL_FORM = {
@@ -87,6 +88,15 @@ const buildInitialFormData = (hospital) => {
   };
 };
 
+export const buildHospitalSavePayload = (formData, canManageVerification) => {
+  const payload = { ...formData };
+  if (!canManageVerification) {
+    delete payload.verified;
+    delete payload.verification_status;
+  }
+  return payload;
+};
+
 // Donor field token (EmergencyRequestModal requestFieldClassName) minus the
 // baked h-11 -- this modal sizes per-field -- plus the disabled modifiers the
 // view mode and the read-only ER-wait field rely on.
@@ -102,12 +112,17 @@ const formId = 'hospital-modal-form';
 // keeps the recipe if a backend receiver is ever authored in ivisit-app.
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
+  const { isAdmin } = useAuth();
+  const canManageVerification = Boolean(isAdmin?.());
+  const hospitalId = hospital?.id;
 
   const [formData, setFormData] = useState(() => buildInitialFormData(hospital));
 
   const [activeReservations, setActiveReservations] = useState([]);
   const [bedUtilization, setBedUtilization] = useState(null);
   const [loadingReservations, setLoadingReservations] = useState(false);
+  const [reservationError, setReservationError] = useState(null);
+  const bedLoadSequenceRef = useRef(0);
 
   const [loading, setLoading] = useState(false);
   const [showImage, setShowImage] = useState(false);
@@ -125,43 +140,49 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     ? Math.min(Math.round(((totalBeds - availableBeds) / totalBeds) * 100), 100)
     : 0;
 
-  // Load bed reservations and utilization when modal opens
-  useEffect(() => {
-    if (isOpen && hospital && isView) {
-      loadBedData();
-      
-      // Set up real-time subscription
-      const unsubscribe = bedManagementService.subscribeToReservations(
-        hospital.id,
-        () => loadBedData() // Refresh data when changes occur
-      );
-      
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
-    }
-  }, [isOpen, hospital, isView]);
+  const loadBedData = useCallback(async () => {
+    if (!hospitalId) return;
+    const requestId = ++bedLoadSequenceRef.current;
 
-  const loadBedData = async () => {
-    if (!hospital?.id) return;
-    
     try {
       setLoadingReservations(true);
-      
-      // Load active reservations
-      const reservations = await bedManagementService.getActiveReservations(hospital.id);
+      setReservationError(null);
+      const [reservations, utilization] = await Promise.all([
+        bedManagementService.getActiveReservations(hospitalId),
+        bedManagementService.getBedUtilization(hospitalId),
+      ]);
+      if (requestId !== bedLoadSequenceRef.current) return;
+
       setActiveReservations(reservations);
-      
-      // Load bed utilization stats
-      const utilization = await bedManagementService.getBedUtilization(hospital.id);
       setBedUtilization(utilization);
-      
     } catch (error) {
+      if (requestId !== bedLoadSequenceRef.current) return;
       console.error('Error loading bed data:', error);
+      setReservationError('Reservation data is unavailable. Try again.');
     } finally {
-      setLoadingReservations(false);
+      if (requestId === bedLoadSequenceRef.current) setLoadingReservations(false);
     }
-  };
+  }, [hospitalId]);
+
+  // Reservation truth stays separate from an empty result. Reset when the record changes,
+  // preserve the last settled rows on a refresh failure, and ignore stale async responses.
+  useEffect(() => {
+    if (!isOpen || !hospitalId || !isView) {
+      bedLoadSequenceRef.current += 1;
+      return undefined;
+    }
+
+    setActiveReservations([]);
+    setBedUtilization(null);
+    setReservationError(null);
+    loadBedData();
+
+    const unsubscribe = bedManagementService.subscribeToReservations(hospitalId, loadBedData);
+    return () => {
+      bedLoadSequenceRef.current += 1;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [hospitalId, isOpen, isView, loadBedData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -196,7 +217,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     setLoading(true);
 
     try {
-      await onSave(formData);
+      await onSave(buildHospitalSavePayload(formData, canManageVerification));
       // Single toast owner is the page (HospitalsPage.handleSave toasts
       // success and error itself, then re-throws) -- toasting here duplicated
       // every notification (VisitModal V-16 rule). The modal only closes on
@@ -377,6 +398,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         ) : (
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             id="total_beds"
                             name="total_beds"
                             value={formData.total_beds || 0}
@@ -395,6 +418,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         ) : (
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             id="available_beds"
                             name="available_beds"
                             value={formData.available_beds}
@@ -413,6 +438,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         ) : (
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             id="icu_beds_available"
                             name="icu_beds_available"
                             value={formData.icu_beds_available || 0}
@@ -447,6 +474,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         ) : (
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             id="ambulances_count"
                             name="ambulances_count"
                             value={formData.ambulances_count}
@@ -518,21 +547,44 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           <span className="text-xs font-semibold text-muted-foreground uppercase">Active Reservations</span>
                         </div>
                         <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200 text-xs">
-                          {activeReservations.length} active
+                          {reservationError && activeReservations.length === 0
+                            ? 'Unavailable'
+                            : `${activeReservations.length} active`}
                         </Badge>
                       </div>
-                      
+
+                      {reservationError && (
+                        <div className="mb-3 flex items-center justify-between gap-3 rounded-inner bg-destructive/10 p-3 text-destructive" role="alert">
+                          <span className="text-xs font-medium">
+                            {activeReservations.length > 0
+                              ? 'Reservations did not refresh. Showing the last loaded records.'
+                              : reservationError}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={loadBedData}
+                            disabled={loadingReservations}
+                            className="h-8 shrink-0 rounded-button px-3 text-xs"
+                          >
+                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loadingReservations ? 'animate-spin' : ''}`} />
+                            Retry
+                          </Button>
+                        </div>
+                      )}
+
                       {loadingReservations ? (
                         <div className="space-y-2">
                           {[1, 2].map((i) => (
                         <div key={i} className="h-16 bg-white/5 rounded-inner animate-pulse" />
                           ))}
                         </div>
-                      ) : activeReservations.length === 0 ? (
+                      ) : activeReservations.length === 0 && !reservationError ? (
                         <div className="text-center py-4 text-xs text-muted-foreground">
                           No active bed reservations
                         </div>
-                      ) : (
+                      ) : activeReservations.length > 0 ? (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {activeReservations.map((reservation) => (
                         <div key={reservation.id} className="p-3 bg-white/5 rounded-inner ">
@@ -572,7 +624,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             </div>
                           ))}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </GlassCard>
@@ -640,10 +692,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 {/* Additional Settings */}
                 <GlassCard icon={<Activity />} title="System & Verification">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {isView ? (
+                    {isView || !canManageVerification ? (
                       <ReadOnlyField
                         value={formData.verified ? 'Verified partner' : 'Not verified'}
-                        subtext="Trusted medical facility flag"
+                        subtext={canManageVerification
+                          ? 'Trusted medical facility flag'
+                          : 'Verification is managed by platform administrators'}
                       />
                     ) : (
                       <div className="flex items-center gap-3 p-4 bg-white/5 rounded-inner shadow-[0_12px_28px_rgb(0_0_0/0.05)]">

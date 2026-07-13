@@ -238,6 +238,12 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop).toContain('policy.coverage_percentage');
   });
 
+  it('distinguishes a recorded zero billing amount from a missing amount', () => {
+    expect(modal).toContain("if (value === null || value === undefined || String(value).trim() === '') return 'Not set';");
+    expect(modal).toContain('return Number.isFinite(number) ? `$${number.toLocaleString()}` : \'Not set\';');
+    expect(modal).not.toContain('return number > 0');
+  });
+
   it('keeps analytics explicitly scoped to visible rows', () => {
     expect(page).toContain("distributionScope: 'visible_page'");
     expect(page).toContain("distributionLabel: 'Visible page only'");

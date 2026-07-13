@@ -107,6 +107,9 @@ ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hospitals ENABLE ROW LEVEL SECURITY;
+-- BEGIN CONSOLE_ONBOARDING_EVIDENCE_RLS
+ALTER TABLE public.organization_verification_documents ENABLE ROW LEVEL SECURITY;
+-- END CONSOLE_ONBOARDING_EVIDENCE_RLS
 ALTER TABLE public.hospital_import_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ambulances ENABLE ROW LEVEL SECURITY;
@@ -156,6 +159,27 @@ ON public.profiles FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
+-- RLS limits rows, not columns. Keep ordinary self-service profile edits while
+-- preventing a signed-in user from promoting their role, organization scope,
+-- verification state, financial identity, or responder assignment.
+-- BEGIN CONSOLE_PROFILE_COLUMN_SECURITY
+REVOKE INSERT, DELETE ON TABLE public.profiles FROM anon, authenticated;
+REVOKE UPDATE ON TABLE public.profiles FROM anon, authenticated;
+GRANT UPDATE (
+    phone,
+    username,
+    first_name,
+    last_name,
+    full_name,
+    image_uri,
+    avatar_url,
+    address,
+    gender,
+    date_of_birth,
+    updated_at
+) ON TABLE public.profiles TO authenticated;
+-- END CONSOLE_PROFILE_COLUMN_SECURITY
+
 -- 2. EMERGENCY REQUESTS
 CREATE POLICY "Users see own emergency requests"
 ON public.emergency_requests FOR SELECT
@@ -183,10 +207,18 @@ USING (
 );
 
 -- 3. ORGANIZATIONS & HOSPITALS
+-- BEGIN CONSOLE_ONBOARDING_READ_POLICIES
+DROP POLICY IF EXISTS "Public read for active organizations" ON public.organizations;
 CREATE POLICY "Public read for active organizations"
 ON public.organizations FOR SELECT
-USING (is_active = true);
+USING (
+    (is_active = true AND verification_status = 'verified')
+    OR id = public.p_get_current_org_id()
+    OR created_by = auth.uid()
+    OR public.p_is_admin()
+);
 
+DROP POLICY IF EXISTS "Public read for verified hospitals" ON public.hospitals;
 CREATE POLICY "Public read for verified hospitals"
 ON public.hospitals FOR SELECT
 USING (
@@ -194,6 +226,19 @@ USING (
     OR organization_id = public.p_get_current_org_id()
     OR public.p_is_admin()
 );
+
+DROP POLICY IF EXISTS "Onboarding evidence is readable in scope" ON public.organization_verification_documents;
+CREATE POLICY "Onboarding evidence is readable in scope"
+ON public.organization_verification_documents FOR SELECT
+TO authenticated
+USING (
+    uploaded_by = auth.uid()
+    OR organization_id = public.p_get_current_org_id()
+    OR public.p_is_admin()
+);
+
+GRANT SELECT ON public.organization_verification_documents TO authenticated;
+-- END CONSOLE_ONBOARDING_READ_POLICIES
 
 DROP POLICY IF EXISTS "Users see emergency status transitions in scope" ON public.emergency_status_transitions;
 CREATE POLICY "Users see emergency status transitions in scope"
@@ -286,22 +331,6 @@ CREATE POLICY "Users manage own medical profiles"
 ON public.medical_profiles FOR ALL
 USING (auth.uid() = user_id);
 
--- Console operators: admins + org operators for patients with a visit at their org
--- (org-scoped via the visits join; medical_profiles has no direct org column).
-DROP POLICY IF EXISTS "Org operators read medical profiles via visits" ON public.medical_profiles;
-CREATE POLICY "Org operators read medical profiles via visits"
-ON public.medical_profiles FOR SELECT TO authenticated
-USING (
-    public.p_is_admin()
-    OR user_id IN (
-        SELECT v.user_id FROM public.visits v
-        WHERE v.hospital_id IN (
-            SELECT id FROM public.hospitals
-            WHERE organization_id = public.p_get_current_org_id()
-        )
-    )
-);
-
 DROP POLICY IF EXISTS "Users manage own emergency contacts" ON public.emergency_contacts;
 CREATE POLICY "Users manage own emergency contacts"
 ON public.emergency_contacts FOR ALL
@@ -339,18 +368,6 @@ CREATE POLICY "Users insert/update own visits"
 ON public.visits FOR ALL
 TO authenticated
 USING (auth.uid() = user_id);
-
--- Console operators: admins + any org member (mirror emergency_requests via hospital_id).
-DROP POLICY IF EXISTS "Console operators see org visits" ON public.visits;
-CREATE POLICY "Console operators see org visits"
-ON public.visits FOR SELECT TO authenticated
-USING (
-    public.p_is_admin()
-    OR hospital_id IN (
-        SELECT id FROM public.hospitals
-        WHERE organization_id = public.p_get_current_org_id()
-    )
-);
 
 -- 8. OPS CONTENT
 CREATE POLICY "Public read for health news" ON public.health_news FOR SELECT USING (published = true);
@@ -437,6 +454,52 @@ USING (auth.uid() = user_id OR public.p_is_admin());
 -- Documents: public reads public tier, admins read all
 CREATE POLICY "Public read public documents" ON public.documents FOR SELECT
 USING (tier = 'public' OR public.p_is_admin());
+
+-- Private onboarding evidence uses documents/onboarding/{auth.uid()}/*.
+-- Objects become immutable to the submitter once the provisioning RPC links
+-- their path to organization_verification_documents.
+-- BEGIN CONSOLE_ONBOARDING_STORAGE_POLICIES
+DROP POLICY IF EXISTS "Users upload own onboarding evidence" ON storage.objects;
+CREATE POLICY "Users upload own onboarding evidence"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'documents'
+    AND (storage.foldername(name))[1] = 'onboarding'
+    AND (storage.foldername(name))[2] = auth.uid()::TEXT
+    AND LOWER(storage.extension(name)) IN ('pdf', 'jpg', 'jpeg', 'png')
+);
+
+DROP POLICY IF EXISTS "Users read own onboarding evidence" ON storage.objects;
+CREATE POLICY "Users read own onboarding evidence"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+    bucket_id = 'documents'
+    AND (
+        (
+            (storage.foldername(name))[1] = 'onboarding'
+            AND (storage.foldername(name))[2] = auth.uid()::TEXT
+        )
+        OR public.p_is_admin()
+    )
+);
+-- END CONSOLE_ONBOARDING_STORAGE_POLICIES
+
+DROP POLICY IF EXISTS "Users remove unsubmitted onboarding evidence" ON storage.objects;
+CREATE POLICY "Users remove unsubmitted onboarding evidence"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'documents'
+    AND (storage.foldername(name))[1] = 'onboarding'
+    AND (storage.foldername(name))[2] = auth.uid()::TEXT
+    AND NOT EXISTS (
+        SELECT 1
+        FROM public.organization_verification_documents evidence
+        WHERE evidence.storage_path = storage.objects.name
+    )
+);
 
 -- Admin Audit Log: admins only
 CREATE POLICY "Admins read audit log" ON public.admin_audit_log FOR SELECT USING (public.p_is_admin());

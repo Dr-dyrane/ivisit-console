@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../contexts/FocusedRecordContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,12 +12,8 @@ import { useHealthNewsQuery } from '../../hooks/useHealthNewsQuery';
 // grid-card/rail look-alikes it used to inline. WorkspaceStage -> SignalPanel/KpiStrip
 // -> one ActivitySheet + ListRowShell (one Time header) -> DetailRailShell rail.
 //
-// AUTHORITY (no parallel truth): this page's feed is READ-ONLY -- a projection the console reads,
-// never writes. "New article" is a VISIBLE authoring AFFORDANCE (canManageContent gates its
-// visibility to management roles): New article, the mobile FAB (openHealthNewsModal), and
-// ?create=true all OPEN the compose modal, but handleSave stays FAIL-CLOSED (throws) -- the console
-// INSERT is RLS-denied (public-read-only feed) until the backend admits an admin/org_admin write
-// policy. The create/update/delete/toggle/bulk service fns stay UN-IMPORTED -- no write is reachable.
+// AUTHORITY (no parallel truth): this page is a read-only published-feed projection. Authoring
+// controls are not rendered or mounted because no approved writer receiver exists.
 import { WorkspaceStage, DetailRailShell, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';
 import { SignalPanel } from '../console/SignalPanel';
 import { KpiStrip } from '../console/KpiStrip';
@@ -40,7 +35,6 @@ import {
   Globe,
   Info,
   Newspaper,
-  Plus,
   Tag,
 } from 'lucide-react';
 import { MobileHealthNews } from '../mobile/MobileHealthNews';
@@ -66,6 +60,7 @@ const HEALTH_NEWS_EMPTY_STATS = {
   recent: 0,
   categories: 0,
   exactCounts: true,
+  available: true,
   scope: 'published_feed',
   draftUnavailable: true,
 };
@@ -114,6 +109,39 @@ const normalizeCount = (value, fallback = 0) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 };
+
+const buildVisibleHealthNewsStats = (rows = [], reason = 'stats_query_failed') => {
+  const visibleRows = Array.isArray(rows) ? rows : [];
+  const recentThreshold = Date.now() - RECENT_NEWS_WINDOW_MS;
+
+  return {
+    total: visibleRows.length,
+    published: visibleRows.filter((item) => item?.published !== false).length,
+    draft: visibleRows.filter((item) => item?.published === false).length,
+    medical: visibleRows.filter((item) => String(item?.category || '').toLowerCase() === 'medical').length,
+    recent: visibleRows.filter((item) => {
+      const createdAt = new Date(item?.created_at || 0).getTime();
+      return Number.isFinite(createdAt) && createdAt >= recentThreshold;
+    }).length,
+    categories: new Set(visibleRows.map((item) => item?.category).filter(Boolean)).size,
+    exactCounts: false,
+    available: false,
+    reason,
+    scope: 'visible_rows',
+    draftUnavailable: true,
+  };
+};
+
+const ProjectionStatsNotice = ({ className = '' }) => (
+  <p
+    className={`flex items-start gap-2 rounded-inner bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-900 dark:text-amber-100 ${className}`}
+    role="status"
+    aria-live="polite"
+  >
+    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+    <span>Health News statistics are unavailable. Counts use the loaded rows; the list remains current.</span>
+  </p>
+);
 
 const hasAppliedFilters = (filters = {}, kpiFilter = 'all') => Boolean(
   filters.search ||
@@ -212,8 +240,6 @@ const formatDate = (value) => {
 };
 
 export const HealthNewsManagementPage = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { isMobile } = useNavigation();
   const { isAdmin, isOrgAdmin } = useAuth();
 
@@ -227,17 +253,9 @@ export const HealthNewsManagementPage = () => {
   const [modalMode, setModalMode] = useState(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const actionFeedbackTimerRef = useRef(null);
-  const deepLinkHandledRef = useRef(null);
 
   const pagination = usePagination(20);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
-
-  // Authoring is VISIBLE but stays FAIL-CLOSED at the write layer: handleCreate OPENS the compose
-  // modal, but handleSave throws "unavailable until the published feed writer is approved" -- no
-  // write is reachable (RLS-denied). canManageContent controls ONLY whether the "New article"
-  // affordance is VISIBLE, surfaced to management roles so the primary action is discoverable +
-  // honestly gated (same governance bucket as Subscriptions' "Add subscriber"). No write authority.
-  const canManageContent = isAdmin() || isOrgAdmin();
 
   const roleKind = isAdmin() ? 'admin' : (isOrgAdmin() ? 'org_admin' : 'viewer');
   const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
@@ -275,7 +293,7 @@ export const HealthNewsManagementPage = () => {
     refetch,
   } = useHealthNewsQuery(queryFilter);
 
-  const stats = pageStats || HEALTH_NEWS_EMPTY_STATS;
+  const projectionStats = pageStats || HEALTH_NEWS_EMPTY_STATS;
   // RQ error object -> the page's degraded-state copy. loadError is the honest-failed-hero
   // source threaded into the workspace signal.
   const healthNewsError = queryError ? 'Health news could not load. Try again.' : null;
@@ -284,6 +302,33 @@ export const HealthNewsManagementPage = () => {
   const fetchHealthNews = refetch;
 
   const newsRows = useMemo(() => (Array.isArray(healthNews) ? healthNews : []), [healthNews]);
+  const visibleStatsRows = isMobile && mobileNewsFeed.length > 0 ? mobileNewsFeed : newsRows;
+  const statsUnavailable = projectionStats.available === false;
+  const stats = useMemo(() => (
+    statsUnavailable
+      ? buildVisibleHealthNewsStats(visibleStatsRows, projectionStats.reason)
+      : projectionStats
+  ), [projectionStats, statsUnavailable, visibleStatsRows]);
+  const newsAnalytics = useMemo(() => {
+    const bySource = {};
+    const byCategory = {};
+
+    newsRows.forEach((item) => {
+      const source = String(item?.source || 'Unknown source').trim() || 'Unknown source';
+      const category = String(item?.category || 'uncategorized').trim().toLowerCase() || 'uncategorized';
+      bySource[source] = (bySource[source] || 0) + 1;
+      byCategory[category] = (byCategory[category] || 0) + 1;
+    });
+
+    return {
+      ...stats,
+      bySource,
+      byCategory,
+      distributionScope: 'visible_page',
+      distributionLabel: statsUnavailable ? 'Loaded rows (statistics unavailable)' : 'Current page',
+      visibleCount: newsRows.length,
+    };
+  }, [newsRows, stats, statsUnavailable]);
 
   // Auto-select the focused record via the console-wide shared store (never empty when data).
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', newsRows);
@@ -293,6 +338,8 @@ export const HealthNewsManagementPage = () => {
 
   // selection excluded by decision: PAGE_REVAMP_GATE Page 11 Admission - Health News --
   // read-only published feed, no bulk write target (no useRowSelection / delete surface).
+  // deep-link excluded by decision: the retired create deep link has no approved write target.
+  // submit-spinner excluded by decision: there is no mounted Health News write surface.
   // arrival-toast excluded by decision: PAGE_REVAMP_GATE Page 11 Admission - Health News --
   // published feed with near-zero inserts and no page-level realtime channel; there is no
   // INSERT refetch to throttle a toast against (mirrors the Support exclusion, 2026-07-03).
@@ -375,31 +422,12 @@ export const HealthNewsManagementPage = () => {
     handleApplyFilters((current) => ({ ...current, search }));
   }, [handleApplyFilters]);
 
-  // Authoring is fail-closed AT THE WRITE LAYER, but the create AFFORDANCE is VISIBLE: New article,
-  // the mobile dock FAB (openHealthNewsModal), and the ?create=true deep-link all OPEN the compose
-  // modal so the operator sees the form. handleSave stays fail-closed -- the console's authenticated
-  // INSERT is RLS-denied (health_news is a public-read-only feed) + the schema lacks the modal's
-  // extra fields, so no write is ever reachable until the backend admits an admin/org_admin policy.
-  const handleCreate = useCallback(() => {
-    markActionFeedback('create');
-    setSelectedNews(null);
-    setModalMode('create');
-  }, [markActionFeedback]);
-
   const handleView = useCallback((news) => {
     markActionFeedback(`view-${news?.id || 'unknown'}`);
     if (news?.id && !isFocused(news.id)) setFocused(news.id);
     setSelectedNews(news);
     setModalMode('view');
   }, [markActionFeedback, setFocused, isFocused]);
-
-  // handleSave stays FAIL-CLOSED: the create modal OPENS, but submit always fails closed -- there is
-  // no reachable write (never wired to the create/update service writers). The console INSERT is
-  // RLS-denied and the schema lacks the modal's extra fields, so authoring is blocked until the
-  // backend adds a write policy. The modal's error handler surfaces this message on submit.
-  const handleSave = useCallback(async () => {
-    throw new Error('Content authoring is unavailable until the published feed writer is approved.');
-  }, []);
 
   const handleModalClose = useCallback(() => {
     setModalMode(null);
@@ -435,10 +463,10 @@ export const HealthNewsManagementPage = () => {
     hasFilters: hasAppliedFilters(filters, kpiFilter),
     loading,
     errorMessage: healthNewsError,
-    canManageContent,
+    authoringAvailable: false,
+    statsAvailable: !statsUnavailable,
     scope: stats?.scope || 'published_feed',
   }), [
-    canManageContent,
     filters,
     focusedNews,
     healthNewsError,
@@ -449,6 +477,7 @@ export const HealthNewsManagementPage = () => {
     pagination.totalCount,
     pagination.totalPages,
     stats,
+    statsUnavailable,
   ]);
 
   const publishHealthNewsRouteContext = useCallback(() => {
@@ -470,29 +499,15 @@ export const HealthNewsManagementPage = () => {
     };
   }, [publishHealthNewsRouteContext]);
 
-  // Deep link (?create=true) + the mobile dock FAB (openHealthNewsModal) both OPEN the compose
-  // modal (handleCreate) -- the reintegrated authoring entry points; the write stays fail-closed.
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const deepLinkKey = `${location.pathname}${location.search}`;
-    if (params.get('create') === 'true' && deepLinkHandledRef.current !== deepLinkKey) {
-      deepLinkHandledRef.current = deepLinkKey;
-      handleCreate();
-      navigate('/health-news', { replace: true });
-    }
-
-    const handleOpenModal = () => handleCreate();
-
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openHealthNewsModal', handleOpenModal);
     window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openHealthNewsModal', handleOpenModal);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [handleCreate, handleOpenAnalytics, handleOpenFilters, location.pathname, location.search, navigate]);
+  }, [handleOpenAnalytics, handleOpenFilters]);
 
   const filterSchema = useMemo(() => [
     {
@@ -536,21 +551,6 @@ export const HealthNewsManagementPage = () => {
     },
   ], []);
 
-  const headerActions = useMemo(() => (
-    canManageContent ? (
-      <Button
-        type="button"
-        onClick={handleCreate}
-        aria-busy={activeActionFeedback === 'create'}
-        data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
-        className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        New article
-      </Button>
-    ) : null
-  ), [activeActionFeedback, canManageContent, handleCreate]);
-
   const filterButtonComponent = useMemo(() => (
     <Button
       type="button"
@@ -567,7 +567,7 @@ export const HealthNewsManagementPage = () => {
     </Button>
   ), [handleOpenFilters, filterSheetOpen, hasFilter]);
 
-  usePageHeader('Health News', headerActions, null, filterButtonComponent);
+  usePageHeader('Health News', null, null, filterButtonComponent);
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
@@ -575,6 +575,7 @@ export const HealthNewsManagementPage = () => {
     return (
       <div className="min-h-screen">
         <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
+        {statsUnavailable && <ProjectionStatsNotice className="relative z-20 mx-4 mt-3" />}
         <MobileHealthNews
           articles={mobileNewsFeed}
           stats={stats}
@@ -599,8 +600,6 @@ export const HealthNewsManagementPage = () => {
             isOpen={!!modalMode}
             onClose={handleModalClose}
             news={selectedNews}
-            mode={modalMode}
-            onSave={handleSave}
           />
         )}
 
@@ -617,7 +616,7 @@ export const HealthNewsManagementPage = () => {
           open={analyticsModalOpen}
           onClose={() => setAnalyticsModalOpen(false)}
           type="news"
-          analytics={stats}
+          analytics={newsAnalytics}
         />
       </div>
     );
@@ -630,6 +629,7 @@ export const HealthNewsManagementPage = () => {
       <HealthNewsDesktopWorkspace
         items={newsRows}
         stats={stats}
+        statsUnavailable={statsUnavailable}
         loading={loading}
         isFetching={isFetching}
         loadError={loadError}
@@ -659,8 +659,6 @@ export const HealthNewsManagementPage = () => {
           isOpen={!!modalMode}
           onClose={handleModalClose}
           news={selectedNews}
-          mode={modalMode}
-          onSave={handleSave}
         />
       )}
 
@@ -677,7 +675,7 @@ export const HealthNewsManagementPage = () => {
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
         type="news"
-        analytics={stats}
+        analytics={newsAnalytics}
       />
     </div>
   );
@@ -686,6 +684,7 @@ export const HealthNewsManagementPage = () => {
 const HealthNewsDesktopWorkspace = ({
   items,
   stats,
+  statsUnavailable,
   loading,
   isFetching,
   loadError,
@@ -753,6 +752,7 @@ const HealthNewsDesktopWorkspace = ({
           defaultId="all"
           dataAttr="data-health-news-state"
         />
+        {statsUnavailable && <ProjectionStatsNotice className="mt-3" />}
       </SignalPanel>
 
       <ActivitySheet

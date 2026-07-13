@@ -1,4 +1,24 @@
 import fs from 'fs';
+import { getAccessibleNav } from '../../config/navigation';
+import {
+  filterSearchResultsByNavigation,
+  isSearchDestinationAccessible,
+  normalizeSearchDestinationPath,
+} from '../../services/searchService';
+
+const searchResults = [
+  { category: 'Doctors', items: [{ id: 'doctor', path: '/doctors?id=doctor' }] },
+  { category: 'Hospitals', items: [{ id: 'hospital', path: '/hospitals?id=hospital' }] },
+  { category: 'Ambulances', items: [{ id: 'ambulance', path: '/ambulances?id=ambulance' }] },
+  { category: 'Visits', items: [{ id: 'visit', path: '/visits?id=visit' }] },
+  { category: 'Requests', items: [{ id: 'request', path: '/emergencies?id=request' }] },
+  { category: 'Users', items: [{ id: 'user', path: '/users?id=user' }] },
+];
+
+const visibleIdsFor = (profile) => filterSearchResultsByNavigation(
+  searchResults,
+  getAccessibleNav(profile, () => true)
+).flatMap(category => category.items.map(item => item.id));
 
 describe('QuickSearch shell dialog contract', () => {
   const source = () => fs.readFileSync('src/components/navigation/QuickSearch.jsx', 'utf8');
@@ -36,5 +56,57 @@ describe('QuickSearch shell dialog contract', () => {
     expect(quickSearch).not.toContain('visits, emergencies');
     expect(searchService).not.toContain("category: 'Emergency Requests'");
     expect(searchService).not.toContain("'Unknown Emergency'");
+  });
+
+  it('renders search failures and ignores stale out-of-order responses', () => {
+    const quickSearch = source();
+    const searchService = searchServiceSource();
+    const projectionMethods = searchService.slice(
+      searchService.indexOf('async searchDoctors'),
+      searchService.indexOf('async trackSearch')
+    );
+
+    expect(quickSearch).toContain('const [searchError, setSearchError] = useState(null)');
+    expect(quickSearch).toContain('const requestSeqRef = useRef(0)');
+    expect(quickSearch).toContain('const requestSeq = requestSeqRef.current + 1;');
+    expect(quickSearch).toContain('if (requestSeq !== requestSeqRef.current) return;');
+    expect(quickSearch).toContain('if (requestSeq === requestSeqRef.current)');
+    expect(quickSearch).toContain("setSearchError('Search is temporarily unavailable. Try again.')");
+    expect(quickSearch).toContain('role="alert"');
+    expect(quickSearch).toContain('Search unavailable');
+    expect(quickSearch).toContain('onClick={() => handleSearch(query)}');
+    expect(quickSearch).toContain('!loading && !searchError && visibleResults.length === 0');
+    expect(quickSearch).toContain('!loading && !searchError && visibleResults.length > 0');
+    expect(searchService).not.toContain('return { results: [], total: 0, error };');
+    expect((projectionMethods.match(/if \(error\) throw error;/g) || [])).toHaveLength(6);
+  });
+
+  it('filters query-string destinations through the active navigation authority', () => {
+    const quickSearch = source();
+
+    expect(normalizeSearchDestinationPath('/users/?id=user#details')).toBe('/users');
+    expect(normalizeSearchDestinationPath('emergencies?id=request')).toBe('/emergencies');
+    expect(normalizeSearchDestinationPath(null)).toBeNull();
+
+    expect(visibleIdsFor({ role: 'viewer' })).toEqual([]);
+    expect(visibleIdsFor({ role: 'provider' })).toEqual(['visit', 'request']);
+    expect(visibleIdsFor({ role: 'provider', provider_type: 'driver' })).toEqual(['request']);
+    expect(visibleIdsFor({ role: 'admin' })).toEqual([
+      'doctor',
+      'hospital',
+      'ambulance',
+      'visit',
+      'request',
+      'user',
+    ]);
+
+    const providerNav = getAccessibleNav({ role: 'provider' }, () => true);
+    expect(isSearchDestinationAccessible('/users?id=user', providerNav)).toBe(false);
+    expect(isSearchDestinationAccessible('/emergencies?id=request', providerNav)).toBe(true);
+
+    expect(quickSearch).toContain("import { getAccessibleNav } from '../../config/navigation';");
+    expect(quickSearch).not.toContain("from '../../config/routes'");
+    expect(quickSearch).toContain('if (!isSearchDestinationAccessible(result?.path, accessibleNav)) return;');
+    expect(quickSearch).toContain('{visibleResults.map((category) => (');
   });
 });

@@ -96,15 +96,18 @@ const ActionRow = ({
   onClick,
   toneClass = 'bg-muted/40 text-muted-foreground',
   pending = false,
+  disabled = false,
   destructive = false
 }) => (
   <TapCard
-    onClick={pending ? undefined : onClick}
-    disabled={pending}
+    onClick={pending || disabled ? undefined : onClick}
+    disabled={pending || disabled}
     feedbackVariant={destructive ? FEEDBACK_TYPES.DESTRUCTIVE : FEEDBACK_TYPES.CLICK}
     feedbackColor={destructive ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))'}
     data-state={pending ? 'pending' : 'idle'}
+    data-availability={disabled ? 'unavailable' : 'available'}
     aria-busy={pending}
+    aria-disabled={disabled || undefined}
     className="flex min-h-[56px] w-full items-center gap-3 rounded-inner px-2 py-3 text-left transition-colors active:bg-foreground/[0.06] disabled:opacity-70 dark:active:bg-white/[0.08]"
   >
     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${toneClass}`}>
@@ -118,7 +121,7 @@ const ActionRow = ({
         {detail}
       </span>
     </span>
-    {!pending && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
+    {!pending && !disabled && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
   </TapCard>
 );
 
@@ -149,6 +152,8 @@ export const MobileSettings = ({
   onSignOut,
   isSigningOut = false,
   isProvider,
+  hasDoctorProfile = false,
+  doctorProfileLoading = false,
   onOpenDoctor
 }) => {
   // grammar:hero=account-identity-card-is-the-settings-signal-hero
@@ -271,8 +276,14 @@ export const MobileSettings = ({
                 <ActionRow
                   icon={Shield}
                   title="Professional profile"
-                  detail="View your provider details"
-                  onClick={onOpenDoctor}
+                  detail={doctorProfileLoading && !hasDoctorProfile
+                    ? 'Checking provider details'
+                    : hasDoctorProfile
+                      ? 'View your provider details'
+                      : 'No professional profile is available'}
+                  onClick={hasDoctorProfile ? onOpenDoctor : undefined}
+                  pending={doctorProfileLoading && !hasDoctorProfile}
+                  disabled={!doctorProfileLoading && !hasDoctorProfile}
                   toneClass="bg-violet-500/10 text-violet-700 dark:text-violet-200"
                 />
               </>

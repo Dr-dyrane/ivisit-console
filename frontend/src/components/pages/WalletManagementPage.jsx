@@ -17,7 +17,7 @@ import {
     Info,
     LockKeyhole,
 } from 'lucide-react';
-import { getWalletPageData } from '../../services/walletService';
+import { buildLoadedLedgerCsv, getWalletPageData } from '../../services/walletService';
 import { useRowSelection } from '../../hooks/useRowSelection';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
@@ -73,8 +73,12 @@ export const WalletManagementPage = () => {
         ledger: 'unavailable',
         payments: 'unavailable',
         paymentMethods: 'unavailable',
+        financeMetrics: 'unavailable',
     });
+    const [financeMetrics, setFinanceMetrics] = useState(null);
+    const [financeMetricsStale, setFinanceMetricsStale] = useState(false);
     const hasLoadedRef = useRef(false);
+    const financeMetricsRef = useRef(null);
     const isMountedRef = useRef(false);
     const fetchRequestRef = useRef(0);
 
@@ -115,14 +119,38 @@ export const WalletManagementPage = () => {
                 ledger: data.readState.ledger === 'failed' ? current.ledger : Boolean(data.hasMore?.ledger),
                 payments: data.readState.payments === 'failed' ? current.payments : Boolean(data.hasMore?.payments),
             }));
-            setReadState(data.readState);
+            let metricsReadState = data.readState.financeMetrics;
+            if (data.readState.financeMetrics === 'ready' && data.financeMetrics?.complete) {
+                financeMetricsRef.current = data.financeMetrics;
+                setFinanceMetrics(data.financeMetrics);
+                setFinanceMetricsStale(false);
+            } else if (data.readState.financeMetrics === 'failed' && financeMetricsRef.current?.complete) {
+                metricsReadState = 'stale';
+                setFinanceMetrics(financeMetricsRef.current);
+                setFinanceMetricsStale(true);
+            } else {
+                financeMetricsRef.current = null;
+                setFinanceMetrics(null);
+                setFinanceMetricsStale(false);
+            }
+            setReadState({ ...data.readState, financeMetrics: metricsReadState });
             setLoadError(data.partialFailure ? 'Some payment information could not refresh.' : '');
             hasLoadedRef.current = true;
             setHasLoaded(true);
         } catch (error) {
             if (!canUpdateRouteState()) return;
-            const message = error?.message || 'Payments could not load. Please try again.';
-            setLoadError(message);
+            void error;
+            if (financeMetricsRef.current?.complete) {
+                setFinanceMetrics(financeMetricsRef.current);
+                setFinanceMetricsStale(true);
+            }
+            setReadState((current) => Object.fromEntries(Object.entries(current).map(([key, value]) => [
+                key,
+                value === 'ready' || (key === 'financeMetrics' && financeMetricsRef.current?.complete)
+                    ? 'stale'
+                    : value,
+            ])));
+            setLoadError('Payments could not load. Please try again.');
             toast.error('Payments could not load. Please try again.');
         } finally {
             if (canUpdateRouteState()) {
@@ -138,18 +166,21 @@ export const WalletManagementPage = () => {
     }, [fetchData]);
 
     const handleExport = useCallback(() => {
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + "Date,Type,Description,Amount,Currency\n"
-            + ledger.map(e => `${new Date(e.created_at).toLocaleString()},${e.transaction_type},${e.description},${e.amount},${wallet?.currency}`).join("\n");
+        if (!ledger.length) {
+            toast.info('No loaded transactions to export.');
+            return;
+        }
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `ivisit_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+        const csvContent = buildLoadedLedgerCsv({ ledger, currency: wallet?.currency });
+        const objectUrl = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.setAttribute('href', objectUrl);
+        link.setAttribute('download', `ivisit_loaded_transactions_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success('Transactions exported.');
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+        toast.success(`${ledger.length} loaded transaction${ledger.length === 1 ? '' : 's'} exported.`);
     }, [ledger, wallet?.currency]);
 
     const headerActions = useMemo(() => (
@@ -208,6 +239,8 @@ export const WalletManagementPage = () => {
         paymentMethods,
         readState,
         hasMore,
+        financeMetrics,
+        financeMetricsStale,
         counts: {
             ledger: ledger.length,
             payments: payments.length,
@@ -233,6 +266,8 @@ export const WalletManagementPage = () => {
         payments,
         readState,
         hasMore,
+        financeMetrics,
+        financeMetricsStale,
         wallet,
     ]);
 
@@ -369,6 +404,8 @@ export const WalletManagementPage = () => {
                     hasLoaded={hasLoaded}
                     wallet={wallet}
                     readState={readState}
+                    financeMetrics={financeMetrics}
+                    financeMetricsStale={financeMetricsStale}
                     ledger={ledger}
                     payments={payments}
                     activeTab={activeTab}
@@ -430,6 +467,8 @@ export const WalletManagementPage = () => {
                 payments={payments}
                 paymentMethods={paymentMethods}
                 readState={readState}
+                financeMetrics={financeMetrics}
+                financeMetricsStale={financeMetricsStale}
                 loadError={loadError}
                 hasLoaded={hasLoaded}
                 isFetching={isFetching}
@@ -519,9 +558,7 @@ const PaymentReceiptDialog = ({
             subtitle={`Receipt ${receiptLabel}`}
             icon={<CreditCard className="h-5 w-5 text-muted-foreground" />}
             badge={payment ? (
-                <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${statusClass}`}>
-                    {paymentStatusLabel}
-                </span>
+                <StatusPill label={paymentStatusLabel} className={statusClass} />
             ) : null}
             size="md"
             managed
@@ -766,6 +803,8 @@ const PaymentsDesktopWorkspace = ({
     payments,
     paymentMethods,
     readState,
+    financeMetrics,
+    financeMetricsStale,
     loadError,
     hasLoaded,
     isFetching,
@@ -899,6 +938,8 @@ const PaymentsDesktopWorkspace = ({
                         wallet={wallet}
                         paymentMethods={paymentMethods}
                         readState={readState}
+                        financeMetrics={financeMetrics}
+                        financeMetricsStale={financeMetricsStale}
                         ledgerCount={ledger.length}
                         paymentsCount={payments.length}
                         onOpenReceipt={onPaymentOpen}
@@ -912,8 +953,9 @@ const PaymentsDesktopWorkspace = ({
                 <PaymentsMetrics
                     loading={loading}
                     wallet={wallet}
-                    ledger={ledger}
                     readState={readState}
+                    financeMetrics={financeMetrics}
+                    financeMetricsStale={financeMetricsStale}
                 />
             </SignalPanel>
 
@@ -1019,20 +1061,19 @@ const PaymentsDesktopWorkspace = ({
 const PaymentsMetrics = ({
     loading,
     wallet,
-    ledger,
     readState,
+    financeMetrics,
+    financeMetricsStale,
 }) => {
     const currency = getAvailableCurrency(wallet);
-    const creditRows = ledger.filter((item) => String(item.transaction_type || '').toLowerCase() === 'credit');
-    const debitRows = ledger.filter((item) => String(item.transaction_type || '').toLowerCase() === 'debit');
-    const creditAmountsAvailable = creditRows.every((item) => hasNumericValue(item.amount));
-    const debitAmountsAvailable = debitRows.every((item) => hasNumericValue(item.amount));
-    const credits = creditRows.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0);
-    const debits = debitRows.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0);
-    const balanceAvailable = readState?.wallet === 'ready'
+    const balanceAvailable = ['ready', 'stale'].includes(readState?.wallet)
         && currency
         && hasNumericValue(wallet?.balance);
-    const ledgerAvailable = readState?.ledger === 'ready' && Boolean(currency);
+    const ledgerTotalsAvailable = ['ready', 'stale'].includes(readState?.financeMetrics)
+        && financeMetrics?.complete === true
+        && Boolean(currency)
+        && hasNumericValue(financeMetrics?.credits)
+        && hasNumericValue(financeMetrics?.debits);
     const metrics = [
         {
             id: 'balance',
@@ -1046,30 +1087,37 @@ const PaymentsMetrics = ({
         {
             id: 'credits',
             label: 'Credits',
-            value: ledgerAvailable && creditAmountsAvailable ? formatCompactCurrency(credits, currency) : '',
+            value: ledgerTotalsAvailable ? formatCompactCurrency(financeMetrics.credits, currency) : '',
             icon: ArrowDownLeft,
             toneClass: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
             priority: 1,
-            available: ledgerAvailable && creditAmountsAvailable,
+            available: ledgerTotalsAvailable,
         },
         {
             id: 'debits',
             label: 'Debits',
-            value: ledgerAvailable && debitAmountsAvailable ? formatCompactCurrency(debits, currency) : '',
+            value: ledgerTotalsAvailable ? formatCompactCurrency(financeMetrics.debits, currency) : '',
             icon: ArrowUpRight,
             toneClass: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
             priority: 2,
-            available: ledgerAvailable && debitAmountsAvailable,
+            available: ledgerTotalsAvailable,
         },
     ];
 
+    const scopeLabel = ledgerTotalsAvailable
+        ? financeMetricsStale ? 'Last confirmed ledger totals' : financeMetrics.scopeLabel
+        : 'Ledger totals unavailable for this account';
+
     return (
-        <MetricStrip
-            items={metrics}
-            loading={loading}
-            max={3}
-            dataAttr="data-payment-metric"
-        />
+        <div>
+            <MetricStrip
+                items={metrics}
+                loading={loading}
+                max={3}
+                dataAttr="data-payment-metric"
+            />
+            {!loading && <p className="mt-2 text-[11px] font-medium text-muted-foreground">{scopeLabel}</p>}
+        </div>
     );
 };
 
@@ -1220,9 +1268,7 @@ const PaymentRow = ({
             </div>
 
             <div className="min-w-0">
-                <span className={`inline-flex max-w-full rounded-pill px-3 py-1 text-xs font-semibold ${statusTone}`}>
-                    <span className="truncate">{label}</span>
-                </span>
+                <StatusPill label={label} className={statusTone} />
             </div>
 
             <div className="truncate text-sm font-medium text-muted-foreground">
@@ -1253,6 +1299,8 @@ const PaymentDetailRail = ({
     wallet,
     paymentMethods,
     readState,
+    financeMetrics,
+    financeMetricsStale,
     ledgerCount,
     paymentsCount,
     onOpenReceipt,
@@ -1300,6 +1348,13 @@ const PaymentDetailRail = ({
     const facilityLabel = isPayment
         ? entry?.emergency_requests?.hospitals?.name || 'Facility unavailable'
         : 'Account wallet';
+    const currency = getAvailableCurrency(wallet);
+    const ledgerTotalsAvailable = ['ready', 'stale'].includes(readState?.financeMetrics)
+        && financeMetrics?.complete === true
+        && Boolean(currency);
+    const ledgerScopeLabel = ledgerTotalsAvailable
+        ? financeMetricsStale ? 'Last confirmed ledger totals' : financeMetrics.scopeLabel
+        : 'Ledger totals unavailable';
 
     return (
         <DetailRailShell>
@@ -1358,6 +1413,19 @@ const PaymentDetailRail = ({
                     <p className="text-xs font-medium text-muted-foreground">Recorded balance</p>
                     <p className="mt-1 text-2xl font-semibold">{wallet ? formatCurrency(wallet.balance) : 'Not available'}</p>
                     <p className="mt-2 text-xs text-muted-foreground">Showing {ledgerCount} transactions and {paymentsCount} patient payments, up to 50 in each tab.</p>
+                </div>
+                <div className="rounded-card bg-background/35 p-4 dark:bg-black/[0.08]">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-inner bg-foreground/[0.045] p-3 dark:bg-white/[0.055]">
+                            <p className="text-[11px] font-semibold text-muted-foreground">Credits</p>
+                            <p className="mt-1 text-sm font-semibold">{ledgerTotalsAvailable ? formatCurrency(financeMetrics.credits) : 'Unavailable'}</p>
+                        </div>
+                        <div className="rounded-inner bg-foreground/[0.045] p-3 dark:bg-white/[0.055]">
+                            <p className="text-[11px] font-semibold text-muted-foreground">Debits</p>
+                            <p className="mt-1 text-sm font-semibold">{ledgerTotalsAvailable ? formatCurrency(financeMetrics.debits) : 'Unavailable'}</p>
+                        </div>
+                    </div>
+                    <p className="mt-2 text-[11px] font-medium text-muted-foreground">{ledgerScopeLabel}</p>
                 </div>
                 <div className="rounded-inner bg-muted/22 p-3">
                     <p className="text-[11px] font-semibold text-muted-foreground">Saved cards</p>

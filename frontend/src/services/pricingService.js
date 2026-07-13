@@ -1,7 +1,22 @@
 import { supabase } from '../lib/supabase';
 
 const PRICING_MUTATION_UNAVAILABLE_REASON = 'Price changes need a selected facility before they can run.';
+const PRICING_PROJECTION_UNAVAILABLE_MESSAGE = 'Pricing rules could not be verified for this scope.';
 const USD_CURRENCY = 'USD';
+const PRICING_QUERY_CHUNK_SIZE = 500;
+const PRICING_HOSPITAL_FILTER_LIMIT = 150;
+const PRICING_RECENT_DAYS = 30;
+
+const PRICING_FAMILY_CONFIG = Object.freeze({
+    service: {
+        table: 'service_pricing',
+        searchColumns: ['service_name', 'service_type', 'description'],
+    },
+    room: {
+        table: 'room_pricing',
+        searchColumns: ['room_name', 'room_type', 'description'],
+    },
+});
 
 const normalizePricingFamily = (family = 'all') => {
     if (family === 'services' || family === 'service') return 'services';
@@ -16,16 +31,28 @@ const getFamiliesForPage = (family = 'all') => {
     return ['service', 'room'];
 };
 
-const getPricingTableForFamily = (family) => (family === 'service' ? 'service_pricing' : 'room_pricing');
+const getPricingTableForFamily = (family) => PRICING_FAMILY_CONFIG[family]?.table;
 
-const normalizeSearch = (value = '') => String(value || '').trim().toLowerCase();
+const normalizeSearch = (value = '') => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const getPricingRowUpdatedAt = (row) => row.updated_at || row.created_at || null;
 
 const sortPricingRows = (a, b, direction = 'desc') => {
-    const dateA = new Date(getPricingRowUpdatedAt(a) || 0).getTime();
-    const dateB = new Date(getPricingRowUpdatedAt(b) || 0).getTime();
-    return direction === 'asc' ? dateA - dateB : dateB - dateA;
+    const dateA = a?.updated_at ? new Date(a.updated_at).getTime() : null;
+    const dateB = b?.updated_at ? new Date(b.updated_at).getTime() : null;
+    const validA = Number.isFinite(dateA);
+    const validB = Number.isFinite(dateB);
+
+    if (validA && validB && dateA !== dateB) {
+        return direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    if (validA !== validB) return validA ? -1 : 1;
+    return String(a?.id || '').localeCompare(String(b?.id || ''));
 };
 
 const normalizePricingRow = (row, family, hospitalMap) => {
@@ -59,38 +86,217 @@ const normalizePricingRow = (row, family, hospitalMap) => {
     };
 };
 
-const matchesPricingSearch = (row, searchTerm) => {
-    if (!searchTerm) return true;
-    return [
-        row.name,
-        row.type,
-        row.facilityName,
-        row.sourceLabel,
-    ].some((value) => normalizeSearch(value).includes(searchTerm));
+const createPricingProjectionError = (code) => {
+    const error = new Error(PRICING_PROJECTION_UNAVAILABLE_MESSAGE);
+    error.code = code;
+    return error;
 };
 
-const matchesPricingScope = (row, scope = 'all') => {
-    if (scope === 'global') return !row.hospitalId;
-    if (scope === 'override') return Boolean(row.hospitalId);
-    return true;
+const assertExactCollection = ({ data, count, code }) => {
+    const exactCount = Number(count);
+    const rows = Array.isArray(data) ? data : [];
+    if (count === null || count === undefined || !Number.isFinite(exactCount) || rows.length < exactCount) {
+        throw createPricingProjectionError(code);
+    }
+    return rows;
 };
 
-const buildPricingSummary = (rows) => {
-    const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0);
-    const recentCutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+const loadOrganizationHospitals = async (organizationId) => {
+    if (!organizationId) return [];
 
-    return {
-        totalCount: rows.length,
-        globalFallbackCount: rows.filter((row) => !row.hospitalId).length,
-        facilityPriceCount: rows.filter((row) => Boolean(row.hospitalId)).length,
-        averageAmount: rows.length > 0 ? totalAmount / rows.length : null,
-        recentCount: rows.filter((row) => {
-            const updatedAt = new Date(row.updatedAt || 0).getTime();
-            return Number.isFinite(updatedAt) && updatedAt >= recentCutoff;
-        }).length,
-        basis: 'current_filter'
-    };
+    const { data, count, error } = await supabase
+        .from('hospitals')
+        .select('id, organization_id, name', { count: 'exact' })
+        .eq('organization_id', organizationId);
+
+    if (error) throw error;
+    const hospitals = assertExactCollection({
+        data,
+        count,
+        code: 'pricing_organization_scope_incomplete',
+    });
+    if (hospitals.length > PRICING_HOSPITAL_FILTER_LIMIT) {
+        throw createPricingProjectionError('pricing_organization_scope_too_large');
+    }
+    return hospitals;
 };
+
+const loadFacilitySearchHospitals = async (searchTerm, organizationHospitals = null) => {
+    if (!searchTerm) return [];
+    if (Array.isArray(organizationHospitals)) {
+        return organizationHospitals.filter((hospital) => (
+            normalizeSearch(hospital?.name).includes(searchTerm)
+        ));
+    }
+
+    const { data, count, error } = await supabase
+        .from('hospitals')
+        .select('id, organization_id, name', { count: 'exact' })
+        .ilike('name', `%${searchTerm}%`);
+
+    if (error) throw error;
+    const hospitals = assertExactCollection({
+        data,
+        count,
+        code: 'pricing_facility_search_incomplete',
+    });
+    if (hospitals.length > PRICING_HOSPITAL_FILTER_LIMIT) {
+        throw createPricingProjectionError('pricing_facility_search_too_large');
+    }
+    return hospitals;
+};
+
+const applyPricingHospitalScope = (query, organizationId, hospitalIds) => {
+    if (!organizationId) return query;
+    return hospitalIds.length > 0
+        ? query.or(`hospital_id.is.null,hospital_id.in.(${hospitalIds.join(',')})`)
+        : query.is('hospital_id', null);
+};
+
+const applyPricingScope = (query, scope = 'all') => {
+    if (scope === 'global') return query.is('hospital_id', null);
+    if (scope === 'override') return query.not('hospital_id', 'is', null);
+    return query;
+};
+
+const applyPricingSearch = (query, family, searchTerm, facilitySearchIds) => {
+    if (!searchTerm) return query;
+    const filters = PRICING_FAMILY_CONFIG[family].searchColumns
+        .map((column) => `${column}.ilike.%${searchTerm}%`);
+    if (facilitySearchIds.length > 0) {
+        filters.push(`hospital_id.in.(${facilitySearchIds.join(',')})`);
+    }
+    return query.or(filters.join(','));
+};
+
+const buildPricingFamilyQuery = ({
+    family,
+    organizationId,
+    hospitalIds,
+    searchTerm,
+    facilitySearchIds,
+    scope = 'all',
+    select = 'id',
+    selectOptions,
+}) => {
+    let query = supabase.from(getPricingTableForFamily(family)).select(select, selectOptions);
+    query = applyPricingHospitalScope(query, organizationId, hospitalIds);
+    query = applyPricingScope(query, scope);
+    query = applyPricingSearch(query, family, searchTerm, facilitySearchIds);
+    return query;
+};
+
+const getPricingFamilyExactCount = async (context, family, {
+    scope = 'all',
+    updatedAfter = null,
+} = {}) => {
+    let query = buildPricingFamilyQuery({
+        ...context,
+        family,
+        scope,
+        select: 'id',
+        selectOptions: { count: 'exact', head: true },
+    });
+    if (updatedAfter) query = query.gte('updated_at', updatedAfter);
+
+    const { count, error } = await query;
+    if (error) throw error;
+    const exactCount = Number(count);
+    if (count === null || count === undefined || !Number.isFinite(exactCount)) {
+        throw createPricingProjectionError('pricing_count_unavailable');
+    }
+    return exactCount;
+};
+
+const getPricingFamilySummary = async (context, family, recentCutoff) => {
+    const [totalCount, globalFallbackCount, facilityPriceCount, recentCount] = await Promise.all([
+        getPricingFamilyExactCount(context, family),
+        getPricingFamilyExactCount(context, family, { scope: 'global' }),
+        getPricingFamilyExactCount(context, family, { scope: 'override' }),
+        getPricingFamilyExactCount(context, family, { updatedAfter: recentCutoff }),
+    ]);
+
+    return { family, totalCount, globalFallbackCount, facilityPriceCount, recentCount };
+};
+
+const getScopedFamilyCount = (summary, scope) => {
+    if (scope === 'global') return summary.globalFallbackCount;
+    if (scope === 'override') return summary.facilityPriceCount;
+    return summary.totalCount;
+};
+
+const loadPricingFamilyPrefix = async ({
+    context,
+    family,
+    scope,
+    sortDirection,
+    prefixSize,
+    exactScopedCount,
+}) => {
+    const expectedCount = Math.min(exactScopedCount, prefixSize);
+    if (expectedCount === 0) return [];
+
+    const rows = [];
+    for (let offset = 0; offset < expectedCount; offset += PRICING_QUERY_CHUNK_SIZE) {
+        const end = Math.min(offset + PRICING_QUERY_CHUNK_SIZE, expectedCount) - 1;
+        let query = buildPricingFamilyQuery({
+            ...context,
+            family,
+            scope,
+            select: '*',
+        });
+        query = query
+            .order('updated_at', { ascending: sortDirection === 'asc', nullsFirst: false })
+            .order('id', { ascending: true })
+            .range(offset, end);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const chunk = Array.isArray(data) ? data : [];
+        if (chunk.length !== end - offset + 1) {
+            throw createPricingProjectionError('pricing_page_window_incomplete');
+        }
+        rows.push(...chunk);
+    }
+
+    return rows.map((row) => ({ family, row }));
+};
+
+const hydratePricingHospitals = async (entries, seedHospitals = []) => {
+    const hospitalMap = new Map(seedHospitals.map((hospital) => [hospital.id, hospital]));
+    const missingIds = Array.from(new Set(
+        entries.map((entry) => entry.row?.hospital_id).filter((id) => id && !hospitalMap.has(id)),
+    ));
+
+    if (missingIds.length === 0) {
+        return { hospitalMap, complete: true, unresolvedCount: 0 };
+    }
+
+    const { data, error } = await supabase
+        .from('hospitals')
+        .select('id, organization_id, name')
+        .in('id', missingIds);
+    if (error) throw error;
+
+    (data || []).forEach((hospital) => hospitalMap.set(hospital.id, hospital));
+    const unresolvedCount = missingIds.filter((id) => !hospitalMap.has(id)).length;
+    if (unresolvedCount > 0) {
+        throw createPricingProjectionError('pricing_facility_hydration_incomplete');
+    }
+    return { hospitalMap, complete: unresolvedCount === 0, unresolvedCount };
+};
+
+const combinePricingSummaries = (familySummaries) => familySummaries.reduce((summary, family) => ({
+    totalCount: summary.totalCount + family.totalCount,
+    globalFallbackCount: summary.globalFallbackCount + family.globalFallbackCount,
+    facilityPriceCount: summary.facilityPriceCount + family.facilityPriceCount,
+    recentCount: summary.recentCount + family.recentCount,
+}), {
+    totalCount: 0,
+    globalFallbackCount: 0,
+    facilityPriceCount: 0,
+    recentCount: 0,
+});
 
 export const getPricingPageData = async ({
     family = 'all',
@@ -105,45 +311,51 @@ export const getPricingPageData = async ({
     const searchTerm = normalizeSearch(search);
     const safePage = Math.max(1, Number(page) || 1);
     const safePageSize = Math.max(1, Number(pageSize) || 12);
-
-    let hospitalsQuery = supabase
-        .from('hospitals')
-        .select('id, organization_id, name');
-    if (organizationId) hospitalsQuery = hospitalsQuery.eq('organization_id', organizationId);
-
-    const { data: hospitals, error: hospitalsError } = await hospitalsQuery;
-
-    if (hospitalsError) throw hospitalsError;
-
-    const hospitalMap = new Map((hospitals || []).map((hospital) => [hospital.id, hospital]));
-    const hospitalIds = Array.from(hospitalMap.keys());
-
-    const rowGroups = await Promise.all(requestedFamilies.map(async (requestedFamily) => {
-        const table = getPricingTableForFamily(requestedFamily);
-        let pricingQuery = supabase
-            .from(table)
-            .select('*');
-        if (organizationId) {
-            pricingQuery = hospitalIds.length > 0
-                ? pricingQuery.or(`hospital_id.is.null,hospital_id.in.(${hospitalIds.join(',')})`)
-                : pricingQuery.is('hospital_id', null);
-        }
-        const { data, error } = await pricingQuery.order('updated_at', { ascending: false });
-
-        if (error) throw error;
-
-        return (data || []).map((row) => normalizePricingRow(row, requestedFamily, hospitalMap));
-    }));
-
-    const allRows = rowGroups.flat();
-    const matchingRows = allRows
-        .filter((row) => !organizationId || !row.hospitalId || row.organizationId === organizationId)
-        .filter((row) => matchesPricingSearch(row, searchTerm))
-        .sort((a, b) => sortPricingRows(a, b, sortDirection));
-    const scopedRows = matchingRows.filter((row) => matchesPricingScope(row, scope));
-
     const start = (safePage - 1) * safePageSize;
-    const rows = scopedRows.slice(start, start + safePageSize);
+    const prefixSize = start + safePageSize;
+    const organizationHospitals = await loadOrganizationHospitals(organizationId);
+    const facilitySearchHospitals = await loadFacilitySearchHospitals(
+        searchTerm,
+        organizationId ? organizationHospitals : null,
+    );
+    const hospitalIds = organizationHospitals.map((hospital) => hospital.id);
+    const facilitySearchIds = facilitySearchHospitals.map((hospital) => hospital.id);
+    const context = {
+        organizationId,
+        hospitalIds,
+        searchTerm,
+        facilitySearchIds,
+    };
+    const recentCutoff = new Date(Date.now() - (PRICING_RECENT_DAYS * 86400000)).toISOString();
+    const familySummaries = await Promise.all(
+        requestedFamilies.map((requestedFamily) => (
+            getPricingFamilySummary(context, requestedFamily, recentCutoff)
+        )),
+    );
+    const combinedSummary = combinePricingSummaries(familySummaries);
+    const totalCount = familySummaries.reduce(
+        (total, familySummary) => total + getScopedFamilyCount(familySummary, scope),
+        0,
+    );
+    const rowGroups = await Promise.all(familySummaries.map((familySummary) => (
+        loadPricingFamilyPrefix({
+            context,
+            family: familySummary.family,
+            scope,
+            sortDirection,
+            prefixSize,
+            exactScopedCount: getScopedFamilyCount(familySummary, scope),
+        })
+    )));
+    const pageEntries = rowGroups
+        .flat()
+        .sort((a, b) => sortPricingRows(a.row, b.row, sortDirection))
+        .slice(start, start + safePageSize);
+    const seedHospitals = [...organizationHospitals, ...facilitySearchHospitals];
+    const hospitalHydration = await hydratePricingHospitals(pageEntries, seedHospitals);
+    const rows = pageEntries.map(({ row, family: rowFamily }) => (
+        normalizePricingRow(row, rowFamily, hospitalHydration.hospitalMap)
+    ));
 
     return {
         actor: {
@@ -157,11 +369,23 @@ export const getPricingPageData = async ({
             reason: PRICING_MUTATION_UNAVAILABLE_REASON,
         },
         rows,
-        totalCount: scopedRows.length,
-        summary: buildPricingSummary(matchingRows),
+        totalCount,
+        summary: {
+            ...combinedSummary,
+            averageAmount: null,
+            averageAvailable: false,
+            exactCounts: true,
+            basis: 'exact_server_counts',
+            recentBasis: 'updated_at',
+        },
         readState: {
-            basis: 'current_filter',
+            basis: 'exact_server_counts',
             source: 'service_pricing_room_pricing_projection',
+            complete: true,
+            pagination: 'server_windowed_union',
+            average: 'unavailable_without_aggregate_receiver',
+            facilityHydration: hospitalHydration.complete ? 'complete' : 'partial',
+            unresolvedFacilityCount: hospitalHydration.unresolvedCount,
             boundedBy: {
                 family: normalizePricingFamily(family),
                 scope,

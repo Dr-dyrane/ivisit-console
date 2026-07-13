@@ -11,7 +11,7 @@ describe('Login Page 19 admission contract', () => {
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 19 Admission - Login');
-    expect(gate).toContain('Login usability and side-effect correction on 2026-07-12');
+    expect(gate).toContain('Login receiver admission on 2026-07-12');
     expect(app).toContain('<Route path="/login" element={<LoginPage />} />');
     expect(app).toContain('const PUBLIC_SHELL_ROUTES = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"];');
     expect(app).not.toContain('<Route path="/login" element={<ProtectedRoute');
@@ -21,46 +21,70 @@ describe('Login Page 19 admission contract', () => {
     expect(hardgate).toContain('src/components/pages/LoginPage.jsx');
   });
 
-  it('keeps the progressive auth paths while making password setup explicit', () => {
+  it('does not disclose account existence and keeps password setup explicit', () => {
     const page = read('src/components/pages/LoginPage.jsx');
     const auth = read('src/contexts/AuthContext.jsx');
 
     expect(page).toContain('const [step, setStep] = useState("email");');
     expect(page).toContain('const normalizedEmail = emailSchema.parse(email.trim().toLowerCase());');
-    expect(page).toContain('supabase.functions.invoke("check-user"');
-    expect(page).toContain('moveTo(!checkError && data?.hasPassword === false ? "setup" : "password");');
+    expect(page).not.toContain('check-user');
+    expect(page).toContain('moveTo("password");');
     expect(page).toContain('const handleSetupLink = async (event) => {');
-    expect(page).toContain('Send setup link');
-    expect(page).toContain('We will only send a setup link after you confirm.');
+    expect(page).toContain('Set up password');
+    expect(page).toContain('Forgot password?');
     expect(page.match(/resetPasswordForEmail/g)).toHaveLength(2);
-    expect(page).not.toContain('just in case');
-    expect(page).not.toContain('new Promise(resolve => setTimeout');
+    expect(page).toContain('The email or password is incorrect.');
+    expect(page).not.toContain('Account not found');
 
-    expect(page).toContain('const { error: signInError } = await signIn(email, password);');
-    expect(page).toContain('supabase.auth.mfa.listFactors()');
-    expect(page).toContain('supabase.auth.mfa.challenge({');
-    expect(page).toContain('setMfaFactorId(enrolledFactor.id);');
-    expect(page).toContain('setMfaChallengeId(challenge.id);');
-    expect(page).toContain('factorId: mfaFactorId');
-    expect(page).toContain('challengeId: mfaChallengeId');
-    expect(page).not.toContain('factorId: mfaChallengeId');
+    expect(page).toContain('const { assurance } = await signIn(email, password);');
+    expect(page).toContain('assurance?.status === ASSURANCE_STATUS.MFA_REQUIRED');
+    expect(page).toContain('const result = await verifyMfa(code);');
+    expect(page).toContain('void beginMfaChallenge();');
+    expect(page).not.toContain('supabase.auth.mfa.');
+    expect(page).not.toContain('mfaFactorId');
+    expect(page).not.toContain('mfaChallengeId');
+    expect(auth).toContain('supabase.auth.mfa.getAuthenticatorAssuranceLevel()');
+    expect(auth).toContain('supabase.auth.mfa.listFactors()');
+    expect(auth).toContain('supabase.auth.mfa.challenge({ factorId: verifiedFactor.id })');
+    expect(auth).toContain('supabase.auth.mfa.verify({');
+    expect(auth).toContain('factorId: challenge.factorId');
+    expect(auth).toContain('challengeId: challenge.challengeId');
     expect(page).toContain('supabase.auth.signInWithOAuth({');
     expect(page).toContain('provider: "google"');
     expect(page).toContain('<Link to="/onboarding"');
     expect(page).toContain('https://www.ivisit.ng/support');
     expect(page).toContain('<ThemeToggle size="xs" />');
 
-    expect(auth).toContain('const signIn = async (email, password) => {');
+    expect(auth).toContain('const signIn = useCallback(async (email, password) => {');
     expect(auth).toContain('supabase.auth.signInWithPassword({');
   });
 
-  it('guards submits and keeps unproved receivers outside the console shell', () => {
+  it('keeps AAL1 sessions in the security flow until canonical assurance is satisfied', () => {
+    const page = read('src/components/pages/LoginPage.jsx');
+    const auth = read('src/contexts/AuthContext.jsx');
+    const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
+
+    expect(auth).toContain("MFA_REQUIRED: 'mfa_required'");
+    expect(auth).toContain("currentLevel === 'aal1' && nextLevel === 'aal2'");
+    expect(auth).toContain('const inFlight = assuranceRequestRef.current;');
+    expect(auth).toContain('const inFlight = challengeRequestRef.current;');
+    expect(auth).toContain('requireAal2: true');
+    expect(page).toContain('assuranceStatus === ASSURANCE_STATUS.SATISFIED');
+    expect(page).toContain('if (!hasSatisfiedSession || redirectLockRef.current) return;');
+    expect(page).toContain("const activeStep = sessionGateActive ? '2fa' : step;");
+    expect(page).toContain('Retry security check');
+    expect(page).toContain('Use another account');
+    expect(protectedRoute).toContain('assuranceState?.status === ASSURANCE_STATUS.MFA_REQUIRED');
+    expect(protectedRoute).toContain('assuranceState?.status !== ASSURANCE_STATUS.SATISFIED');
+  });
+
+  it('guards submits and records the admitted auth boundary', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const page = read('src/components/pages/LoginPage.jsx');
 
-    expect(gate).toContain('Auth receiver ownership: partially proved, not admitted.');
-    expect(gate).toContain('Edge Function truth: not admitted.');
-    expect(gate).toContain('OAuth and reset links: not admitted.');
+    expect(gate).toContain('Account discovery: retired.');
+    expect(gate).toContain('Password and MFA sign-in: admitted.');
+    expect(gate).toContain('Reset and setup delivery: admitted with generic feedback.');
     expect(page).not.toContain('usePageHeader');
     expect(page).not.toContain('usePageShell');
     expect(page).not.toContain('ContextPanel');

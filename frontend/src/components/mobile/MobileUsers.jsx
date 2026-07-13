@@ -13,7 +13,8 @@ import {
     Mail,
     Phone,
     Building,
-    Hash
+    Hash,
+    RefreshCw
 } from 'lucide-react';
 // LIST-type page, DIRECTORY expression (MOBILE_DESIGN_SYSTEM §5) — rebuilt to canon
 // 2026-07-10 following the desktop admission (Users Phase B/C). Off the billboard +
@@ -118,6 +119,7 @@ export const MobileUsers = ({
     users,
     loading,
     statistics,
+    statisticsError = null,
     filters,
     setFilters,
     onView,
@@ -204,7 +206,8 @@ export const MobileUsers = ({
     // MEASURED, server-scoped counts (Phase A getUserPageStats) — a role partition, exactly
     // the desktop KPI axis. No loaded-row "visible/source-pending" hedge: the projection is
     // proved, so the strip shows real totals while the active chip narrows the list.
-    const userKPIs = [
+    const statisticsUnavailable = Boolean(statisticsError || errorMessage);
+    const userKPIs = statisticsUnavailable ? [] : [
         { id: 'all', label: 'All', value: metricValue(statistics?.total, sourceUsers.length), color: 'hsl(var(--muted-foreground))' },
         { id: 'provider', label: 'Providers', value: metricValue(statistics?.provider, 0), color: 'hsl(38 92% 50%)' },
         { id: 'org_admin', label: 'Org admins', value: metricValue(statistics?.org_admin, 0), color: 'hsl(199 89% 48%)' },
@@ -214,7 +217,9 @@ export const MobileUsers = ({
     // Count integrity (§5): the heading tracks the ACTIVE KPI scope, never the raw total.
     const kpiToKey = { all: 'total', provider: 'provider', org_admin: 'org_admin', patient: 'patient' };
     const activeKpi = filters?.kpiFilter || 'all';
-    const scopeCount = activeKpi === 'all'
+    const scopeCount = statisticsUnavailable
+        ? null
+        : activeKpi === 'all'
         ? metricValue(statistics?.total, sourceUsers.length)
         : metricValue(statistics?.[kpiToKey[activeKpi]], 0);
 
@@ -275,14 +280,43 @@ export const MobileUsers = ({
                         count={scopeCount}
                         showSkeleton={showTopSectionLoading}
                         failedEmpty={Boolean(errorMessage) && displayUsers.length === 0}
+                        summary={statisticsError
+                            ? 'User totals unavailable'
+                            : errorMessage && displayUsers.length > 0
+                                ? 'Showing saved users'
+                                : null}
                     />
 
-                    <MobileKPIStrip
-                        loading={showTopSectionLoading}
-                        kpis={userKPIs}
-                        activeKpi={activeKpi}
-                        onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-                    />
+                    {statisticsError ? (
+                        <section className="px-4" data-testid="mobile-users-statistics-degraded-state">
+                            <div role="status" className="flex items-center justify-between gap-3 rounded-inner bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-100">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <Shield className="h-5 w-5 shrink-0" />
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold">Exact totals unavailable</p>
+                                        <p className="mt-0.5 text-xs opacity-75">{statisticsError}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => onRetry?.()}
+                                    disabled={isFetching}
+                                    aria-busy={isFetching}
+                                    className="flex h-9 shrink-0 items-center rounded-button bg-background/60 px-3 text-xs font-semibold text-foreground disabled:opacity-55"
+                                >
+                                    <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                                    Retry
+                                </button>
+                            </div>
+                        </section>
+                    ) : !errorMessage ? (
+                        <MobileKPIStrip
+                            loading={showTopSectionLoading}
+                            kpis={userKPIs}
+                            activeKpi={activeKpi}
+                            onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+                        />
+                    ) : null}
 
                     <section className="px-4">
                         <SearchRow

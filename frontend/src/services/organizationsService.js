@@ -117,6 +117,32 @@ export async function getOrganizations(filter = {}) {
     }
 }
 
+/**
+ * Complete, bounded organization options for authority-bearing forms.
+ * The caller fails closed if the registry outgrows the bounded selector so a
+ * partial list is never presented as the full organization registry.
+ */
+export async function getOrganizationOptions(options = {}) {
+    const limit = Math.min(Math.max(Number(options.limit) || 200, 1), 500);
+    const { data, count, error } = await withRetry(async () => {
+        const result = await supabase
+            .from(TABLE_NAME)
+            .select('id, name, verification_status, is_active', { count: 'exact' })
+            .eq('is_active', true)
+            .order('name', { ascending: true })
+            .range(0, limit - 1);
+        if (result.error) throw result.error;
+        return result;
+    });
+
+    if (error) throw error;
+    if ((count || 0) > limit) {
+        throw new Error('The organization registry is too large for this selector. Open an organization record to continue.');
+    }
+
+    return data || [];
+}
+
 // --- Bounded page projection for the Organizations route (React Query, 2026-07-11) --------
 // Unlike getOrganizations (a bare array that callers slice locally), getOrganizationsPage
 // returns { data, count, stats } with server-side search/sort/pagination and exact counts.

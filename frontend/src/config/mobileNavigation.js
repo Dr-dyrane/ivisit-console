@@ -8,8 +8,8 @@ export const MOBILE_NAV_CHROME = {
 
 // Dock slots rank by operational importance for the role. Settings does not claim
 // a slot by right (the avatar sheet owns overflow, see MOBILE_NAV_CHROME above).
-// Admin's main slate keeps Today, Requests, Map, and Statistics visible. Approvals
-// still takes the morph slot while its route is active.
+// Admin and organization-admin main slates keep Today, Requests, Map, and
+// Statistics visible. Approvals still takes the morph slot while its route is active.
 const roleSlots = {
   // Admin order: the golden three (Today / Requests / Map) hold fixed slots; the
   // last slot is Statistics at rest, then the current page when the
@@ -22,9 +22,9 @@ const roleSlots = {
   ],
   org_admin: [
     { id: 'today', path: '/', label: 'Today' },
-    { id: 'approvals', path: '/verification', label: 'Approvals' },
-    { id: 'staff', path: '/doctors', label: 'Staff' },
-    { id: 'settings', path: '/settings', label: 'Settings' },
+    { id: 'emergencies', path: '/emergencies', label: 'Requests' },
+    { id: 'map', path: '/map', label: 'Map' },
+    { id: 'statistics', path: '/analytics', label: 'Statistics' },
   ],
   // No Map slot: routes.jsx excludes sponsor from /map (excludedRoles), so a
   // sponsor tap on Map would dead-end at /unauthorized.

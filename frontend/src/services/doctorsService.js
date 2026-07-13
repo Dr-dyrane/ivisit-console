@@ -20,6 +20,47 @@ const DOCTOR_SORT_FIELDS = new Set([
   'experience'
 ]);
 
+const getActorFacilityIds = (actor = {}) => {
+  const facilityIds = [
+    ...(Array.isArray(actor.hospital_ids) ? actor.hospital_ids : []),
+    ...(Array.isArray(actor.facility_ids) ? actor.facility_ids : []),
+    ...(Array.isArray(actor.organization_scope?.facilityIds)
+      ? actor.organization_scope.facilityIds
+      : []),
+  ];
+
+  return new Set(facilityIds.filter(Boolean));
+};
+
+const createDoctorScopeError = (message) => {
+  const error = new Error(message);
+  error.code = 'DOCTOR_SCOPE_DENIED';
+  return error;
+};
+
+export function filterDoctorFacilityOptions(facilities, actor = {}) {
+  const rows = Array.isArray(facilities) ? facilities : [];
+  if (actor.role === 'admin') return rows;
+  if (actor.role !== 'org_admin') return [];
+
+  const allowedFacilityIds = getActorFacilityIds(actor);
+  return rows.filter((facility) => allowedFacilityIds.has(facility?.id));
+}
+
+export function assertDoctorWriteScope(input = {}, actor = {}, { requireFacility = false } = {}) {
+  if (actor.role !== 'org_admin') return input;
+
+  const submittedFacility = Object.prototype.hasOwnProperty.call(input, 'hospital_id');
+  if (!submittedFacility && !requireFacility) return input;
+
+  const hospitalId = input.hospital_id;
+  if (!hospitalId || !getActorFacilityIds(actor).has(hospitalId)) {
+    throw createDoctorScopeError('Select a facility in your organization.');
+  }
+
+  return input;
+}
+
 const normalizeFilterList = (value) => {
   if (Array.isArray(value)) {
     return value.map((entry) => String(entry || '').trim()).filter(Boolean);
@@ -225,6 +266,9 @@ export async function getDoctor(doctorId) {
  */
 export async function createDoctor(input) {
   try {
+    const actor = await getCurrentUser();
+    assertDoctorWriteScope(input, actor, { requireFacility: actor?.role === 'org_admin' });
+
     const payload = sanitizeInput({
       profile_id: input.profile_id, // Added
       name: input.name,
@@ -264,9 +308,12 @@ export async function createDoctor(input) {
  */
 export async function updateDoctor(doctorId, input) {
   try {
+    const actor = await getCurrentUser();
+    assertDoctorWriteScope(input, actor);
+
     // Whitelist of writable doctor columns (mirrors ambulancesService.updateAmbulance
     // VALID_COLUMNS) so arbitrary/forged fields (including the `hospitals` join)
-    // can't be written. Write target is unchanged — doctors write RLS is fine.
+    // cannot be written. These service checks complement, but do not replace, RLS.
     const VALID_COLUMNS = [
       'profile_id', 'name', 'specialization', 'hospital_id',
       'image', 'rating', 'reviews_count', 'experience',
