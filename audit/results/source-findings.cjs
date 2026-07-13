@@ -1,4 +1,4 @@
-const capturedAt = "2026-07-13T14:35:44Z";
+const capturedAt = "2026-07-13T16:02:42Z";
 
 function finding({
   id, actionId, route, role, locator, sourceComponent, crudOperation, payloadCase,
@@ -950,12 +950,12 @@ const baseBlockedCandidates = [
 
 const sourceSnapshots = [
   { lane: "B", capturedAt, mode: "read_only", note: "Facilities, organizations, verification, onboarding, fleet, and staff receivers revalidated against the current worktree and maintained SQL." },
-  { lane: "C", capturedAt, mode: "read_only", head: "b827458b", note: "Clinical and dispatch mounted paths plus canonical receiver source revalidated; linked-project application remains separately blocked." },
+  { lane: "C", capturedAt, mode: "live_contract_verified", head: "0ef88f51", note: "Clinical and dispatch source plus linked-project receivers revalidated; payment retry owner denial, canonical transition, and two-session convergence passed with zero residue." },
   { lane: "D", capturedAt, mode: "read_only", visibleCandidates: 67, note: "Identity, profiles, Settings, MFA assurance, account cache, avatar persistence, and role guards revalidated with focused tests." },
-  { lane: "E", capturedAt, mode: "read_only", mountedSourceActions: 75, note: "Financial routes plus emergency payment actions; trigger-sensitive writes were not invoked." },
-  { lane: "F", capturedAt, mode: "read_only", semanticCandidates: 84, note: "Health News, Support, and subscriber mounted paths revalidated; schema-wide Support enum authority remains blocked." },
-  { lane: "G", capturedAt, mode: "read_only", semanticFailureInjectionCases: 50, note: "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated with focused tests; unsafe live mutation was not performed." },
-  { lane: "PR", capturedAt, mode: "read_only_current_worktree", note: "All findings were revalidated against the dirty PR worktree and App-owned canonical pillars; source resolution and linked-project deployment proof remain disjoint." }
+  { lane: "E", capturedAt, mode: "live_contract_verified", mountedSourceActions: 75, note: "Financial routes and emergency payment actions revalidated; linked payment retry authority, transition, concurrency, reflection, and cleanup passed." },
+  { lane: "F", capturedAt, mode: "source_and_live_verified", semanticCandidates: 84, note: "Health News, Support, and subscriber mounted paths revalidated; Support enum constraints are canonical and live." },
+  { lane: "G", capturedAt, mode: "bounded_live_and_focused", semanticFailureInjectionCases: 50, note: "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated; the isolated payment race and onboarding flow completed with exhaustive cleanup." },
+  { lane: "PR", capturedAt, mode: "source_and_linked_project_verified", note: "App-owned source is committed on main, exact-source SQL is live, temporary migration history is removed, and the Console mirror plus runtime admission artifacts are being refreshed." }
 ];
 
 const resolvedFindingReasons = Object.freeze({
@@ -1052,7 +1052,8 @@ const resolvedBlockedCandidateReasons = Object.freeze({
   "PR-DOCTOR-GENERIC-UPDATE-RECEIVER": "The generic doctor service rejects profile, lifecycle, availability, rating, and derived fields; linked provider editing is fail-closed until a dedicated workflow exists.",
   "PR-DOCTOR-GENERIC-DELETE-RECEIVER": "The generic doctor delete export now fails closed with DOCTOR_RETIREMENT_UNAVAILABLE and performs no database call.",
   "PR-DOCTOR-RLS-ROLE-AUTHORITY": "Doctor RLS now requires platform admin or an explicit org_admin in the facility organization, and authenticated grants are limited to proved directory columns with no DELETE grant.",
-  "PR-SUPPORT-ENUM-CONSTRAINT": "The canonical support_tickets table now enforces the mounted category, status, and priority vocabularies with database CHECK constraints."
+  "PR-SUPPORT-ENUM-CONSTRAINT": "The canonical support_tickets table now enforces the mounted category, status, and priority vocabularies with database CHECK constraints.",
+  "PR-DB-SHARED-CONTRACT-LIVE-APPLY": "App main commit 0ef88f51 owns the canonical source. Exact-source SQL was applied to dlwtcmhdzoklveihuhjf, the temporary migration entry was reverted and removed, migration history contains only the eleven owner pillars, the live guard passes 16/16, payment retry passed cross-user denial and two-session convergence, onboarding rollback/live E2E passed, and cleanup reports zero residue."
 });
 
 const uncertainFindingReasons = Object.freeze({});
