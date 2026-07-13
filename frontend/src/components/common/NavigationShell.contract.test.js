@@ -4,7 +4,10 @@ import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
 
 describe('Navigation shell contract', () => {
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
+  const appSource = () => [
+    fs.readFileSync('src/App.js', 'utf8'),
+    fs.readFileSync('src/app/AppShell.jsx', 'utf8'),
+  ].join('\n');
   const islandSource = () => fs.readFileSync('src/components/common/IslandNavigation.jsx', 'utf8');
   const railSource = () => fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
   const mobileMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');

@@ -1,0 +1,28 @@
+const freezeRoute = (route) => Object.freeze(route);
+
+export const APP_ROUTE_METADATA = Object.freeze([
+  { id: 'login', path: '/login', public: true },
+  { id: 'setPassword', path: '/set-password', public: true },
+  { id: 'onboarding', path: '/onboarding', public: true },
+  { id: 'onboardingSuccess', path: '/onboarding-success', public: true },
+  { id: 'unauthorized', path: '/unauthorized', public: true },
+  { id: 'home', path: '/' },
+  { id: 'map', path: '/map', minRole: 'provider' },
+  { id: 'analytics', path: '/analytics', minRole: 'provider' },
+  { id: 'hospitals', path: '/hospitals', minRole: 'org_admin' },
+  { id: 'ambulances', path: '/ambulances', minRole: 'org_admin' },
+  { id: 'doctors', path: '/doctors', minRole: 'org_admin' },
+  { id: 'visits', path: '/visits', minRole: 'provider' },
+  { id: 'emergencies', path: '/emergencies', minRole: 'provider' },
+  { id: 'verification', path: '/verification', minRole: 'org_admin' },
+  { id: 'users', path: '/users', minRole: 'org_admin' },
+  { id: 'organizations', path: '/organizations', minRole: 'admin' },
+  { id: 'settings', path: '/settings' },
+  { id: 'healthNews', path: '/health-news', minRole: 'org_admin' },
+  { id: 'supportTickets', path: '/support-tickets', minRole: 'provider' },
+  { id: 'insurance', path: '/insurance', minRole: 'admin' },
+  { id: 'subscriptions', path: '/subscriptions', minRole: 'admin' },
+  { id: 'wallet', path: '/wallet', minRole: 'org_admin' },
+  { id: 'pricing', path: '/pricing', minRole: 'org_admin' },
+  { id: 'notFound', path: '*', public: true },
+].map(freezeRoute));
