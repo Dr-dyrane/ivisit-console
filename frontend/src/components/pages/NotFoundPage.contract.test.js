@@ -1,5 +1,8 @@
 import fs from 'fs';
 import { execFileSync } from 'child_process';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { AUTHENTICATED_SHELL_ROUTES, PUBLIC_SHELL_ROUTES, shouldHideShellChrome } from '../../app/shellVisibility';
+import { readAppImplementation } from '../../test/sourceEstates';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
@@ -9,7 +12,6 @@ const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESER
 describe('Catch-All Not Found Page 24 admission contract', () => {
   it('admits the catch-all route as a public route-recovery surface in the default hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 24 Admission - Catch-All Not Found');
@@ -17,15 +19,11 @@ describe('Catch-All Not Found Page 24 admission contract', () => {
     expect(gate).toContain('First Catch-All visual pass on 2026-07-07 admitted `NotFoundPage.jsx` as a public route-recovery surface.');
     expect(gate).toContain('Promotion note: the first Catch-All visual pass is complete.');
 
-    expect(app).toContain('const NotFoundPage = React.lazy(() => import("./components/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })));');
-    expect(app).toContain('<Route path="*" element={<NotFoundPage />} />');
-    expect(app).not.toContain('<Route path="*" element={<ProtectedRoute');
-    expect(app).toContain('const PUBLIC_SHELL_ROUTES = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"];');
-    expect(app).toContain('const AUTHENTICATED_SHELL_ROUTES = [');
-    expect(app).toContain('const shouldHideShellChrome = (pathname) => {');
-    expect(app).toContain('return PUBLIC_SHELL_ROUTES.includes(currentPath) || !AUTHENTICATED_SHELL_ROUTES.includes(currentPath);');
-    expect(app).toContain('const hideNav = shouldHideShellChrome(location.pathname);');
-    expect(app).not.toContain('"/not-found"');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '*')).toEqual({ id: 'notFound', path: '*', public: true });
+    expect(PUBLIC_SHELL_ROUTES).not.toContain('*');
+    expect(AUTHENTICATED_SHELL_ROUTES).not.toContain('*');
+    expect(shouldHideShellChrome('/missing-route')).toBe(true);
+    expect(APP_ROUTE_METADATA.some((route) => route.path === '/not-found')).toBe(false);
 
     // The catch-all page is now in the default UI hardgate.
     expect(hardgate).toContain("'src/components/pages/NotFoundPage.jsx'");
@@ -36,7 +34,7 @@ describe('Catch-All Not Found Page 24 admission contract', () => {
     const oldPage = gitShowHead('frontend/src/components/pages/NotFoundPage.jsx');
     const page = read('src/components/pages/NotFoundPage.jsx');
     const oldApp = gitShowHead('frontend/src/App.js');
-    const app = read('src/App.js');
+    const app = readAppImplementation();
 
     expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/App.js`, `git show HEAD:frontend/src/components/pages/NotFoundPage.jsx`');
     expect(gate).toContain('lazy `NotFoundPage` import, catch-all route outside `ProtectedRoute`, `usePageHeader("Lost Signal", null)`');
@@ -44,10 +42,10 @@ describe('Catch-All Not Found Page 24 admission contract', () => {
     expect(gate).toContain('First catch-all shell/action cleanup on 2026-07-06 removed `usePageHeader("Lost Signal", null)` from the active catch-all page');
     expect(gate).toContain('Catch-All preservation ledger: the old `usePageHeader("Lost Signal")` shared-header write is converted');
 
-    for (const source of [oldApp, app]) {
-      expect(source).toContain('NotFoundPage');
-      expect(source).toContain('<Route path="*" element={<NotFoundPage />} />');
-    }
+    expect(oldApp).toContain('NotFoundPage');
+    expect(oldApp).toContain('<Route path="*" element={<NotFoundPage />} />');
+    expect(app).toContain("notFound: lazyNamedPage(() => import('../components/pages/NotFoundPage'), 'NotFoundPage')");
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '*')?.public).toBe(true);
 
     // Preservation baseline (f31f29f) still holds the OLD Not Found behavior inventory.
     expect(oldPage).toContain('usePageHeader("Lost Signal", null);');
@@ -108,7 +106,6 @@ describe('Catch-All Not Found Page 24 admission contract', () => {
 
   it('keeps the catch-all a route-recovery exception with rendered proof and cross-route flow work named', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const page = read('src/components/pages/NotFoundPage.jsx');
 
     expect(gate).toContain('Catch-All admission decisions:');
@@ -124,7 +121,7 @@ describe('Catch-All Not Found Page 24 admission contract', () => {
     expect(gate).toContain('Prove `/login`, `/set-password`, `/onboarding`, `/onboarding-success`, `/unauthorized`, and `*` redirect/deep-link behavior together before changing coordinated public auth/route-recovery flow order.');
     expect(gate).toContain('Data quieting | AuthProvider and app providers wrap the route; `AppShell` now hides chrome for unknown paths through `shouldHideShellChrome()`.');
 
-    expect(app).not.toContain('<Route path="*" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '*')?.public).toBe(true);
     expect(page).not.toContain('usePageHeader');
     expect(page).not.toContain('usePageShell');
     expect(page).not.toContain('ContextPanel');

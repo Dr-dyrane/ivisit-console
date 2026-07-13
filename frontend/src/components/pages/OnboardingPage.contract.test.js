@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { shouldHideShellChrome } from '../../app/shellVisibility';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -14,16 +16,15 @@ const ONBOARDING_SURFACE_FILES = [
 describe('Onboarding Page 21 receiver contract', () => {
   it('keeps the four-step registration flow in the public shell and visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
     expect(gate).toContain('### Page 21 Admission - Onboarding');
     expect(gate).toContain('Onboarding receiver admission on 2026-07-12');
-    expect(app).toContain('<Route path="/onboarding" element={<OnboardingPage />} />');
-    expect(app).toContain('<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />');
-    expect(app).not.toContain('<Route path="/onboarding" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/onboarding')).toEqual({ id: 'onboarding', path: '/onboarding', public: true });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/onboarding-success')).toEqual({ id: 'onboardingSuccess', path: '/onboarding-success', public: true });
+    expect(shouldHideShellChrome('/onboarding')).toBe(true);
     expect(routes).toContain("'/onboarding': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain('return <Navigate to="/onboarding" replace />;');

@@ -1,6 +1,8 @@
 import fs from 'fs';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { execFileSync } from 'child_process';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { readAppImplementation, readSourceEstate } from '../../test/sourceEstates';
 
 describe('Today/Requests revamp gate contract', () => {
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
@@ -10,7 +12,7 @@ describe('Today/Requests revamp gate contract', () => {
   const packageSource = () => fs.readFileSync('package.json', 'utf8');
   const uxSource = () => fs.readFileSync('docs/ux/CONSOLE_UX_REVAMP_PLAN.md', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
+  const appSource = readAppImplementation;
   const navigationSource = () => fs.readFileSync('src/config/navigation.js', 'utf8');
   const mobileNavigationSource = () => fs.readFileSync('src/config/mobileNavigation.js', 'utf8');
   const moduleRailSource = () => fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
@@ -29,7 +31,10 @@ describe('Today/Requests revamp gate contract', () => {
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const dashboardPanelSource = () => fs.readFileSync('src/components/context/DashboardPanel.jsx', 'utf8');
   const emergencyPanelSource = () => fs.readFileSync('src/components/context/EmergencyPanel.jsx', 'utf8');
-  const emergencyRequestsSource = () => fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+  const emergencyRequestsSource = () => readSourceEstate({
+    files: ['src/components/pages/EmergencyRequestsPage.jsx'],
+    directories: ['src/components/pages/requests'],
+  });
   const todayHomeSource = () => fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
   const mobileEmergencySource = () => fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
   const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
@@ -39,7 +44,7 @@ describe('Today/Requests revamp gate contract', () => {
   const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
   const nonCanonicalRadiusPattern = /rounded-(?:\[[^\]]+\]|full|sm|md|lg|xl|2xl|3xl)(?=[\s"'`])/;
 
-  it('locks the desktop data-render canon — one row/table render, no ViewToggle (MANAGEMENT_PAGE_STANDARDS §1.5)', () => {
+  it('locks the desktop data-render canon - one row/table render, no ViewToggle (MANAGEMENT_PAGE_STANDARDS section 1.5)', () => {
     const gate = gateSource();
     // The decision is contract-locked in the gate as an explicit user canon.
     expect(gate).toContain('## Desktop Data-Render Canon - 2026-07-08');
@@ -639,7 +644,6 @@ describe('Today/Requests revamp gate contract', () => {
 
   it('keeps the reachable route queue and admitted exceptions explicit', () => {
     const gate = gateSource();
-    const app = appSource();
     const navigation = navigationSource();
     const mobileNavigation = mobileNavigationSource();
     const moduleRail = moduleRailSource();
@@ -655,12 +659,12 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('| `/pricing` | Payments nav `Pricing`; route min role `org_admin`. | Not admitted.');
     expect(gate).toContain('Public/auth shell routes are separate from the authenticated console route queue. `/login`, `/set-password`, `/onboarding`, and `/onboarding-success` are admitted public-shell exceptions with the receiver boundaries recorded in Pages 19-22 and Pass 4. `/unauthorized` has opened Page 23 intake only, and the `*` catch-all has opened Page 24 intake only.');
 
-    expect(app).toContain('<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />');
-    expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
-    expect(app).toContain('<Route path="/organizations" element={<ProtectedRoute minRole="admin"><OrganizationsPage /></ProtectedRoute>} />');
-    expect(app).toContain('<Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />');
-    expect(app).toContain('<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />');
-    expect(app).toContain('<Route path="/pricing" element={<ProtectedRoute minRole="org_admin"><PricingManagementPage /></ProtectedRoute>} />');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/analytics')).toEqual({ id: 'analytics', path: '/analytics', minRole: 'provider' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/users')).toEqual({ id: 'users', path: '/users', minRole: 'org_admin' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/organizations')).toEqual({ id: 'organizations', path: '/organizations', minRole: 'admin' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/settings')).toEqual({ id: 'settings', path: '/settings' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/subscriptions')).toEqual({ id: 'subscriptions', path: '/subscriptions', minRole: 'admin' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/pricing')).toEqual({ id: 'pricing', path: '/pricing', minRole: 'org_admin' });
 
     expect(navigation).toContain("{ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' }");
     expect(navigation).toContain("{ id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' }");
@@ -898,7 +902,8 @@ describe('Today/Requests revamp gate contract', () => {
     // service filter. Ownership of the read is unchanged; only the caller moved.
     expect(requests).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
     expect(requests).toContain('...buildRequestsServiceFilter(filters)');
-    expect(requests).toContain('pagination.setTotalCount(count || 0);');
+    expect(requests).toContain('const setRequestTotalCount = pagination.setTotalCount;');
+    expect(requests).toContain('setRequestTotalCount(count || 0);');
     expect(requests).toContain('const requestPanelContext = useMemo(() => ({');
     expect(requests).toContain("window.addEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);");
     expect(requests).toContain('<RequestsDesktopWorkspace');
@@ -1061,7 +1066,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(errorBoundary).toContain("url.searchParams.set('__asset_refresh', String(Date.now()))");
     expect(errorBoundary).toContain('clearChunkRuntimeCaches().finally');
     expect(errorBoundary).toContain('window.location.replace(getChunkReloadUrl())');
-    expect(appSource()).toContain('const RouteLoadingState = () => (');
+    expect(appSource()).toContain('export const RouteLoadingState = () => (');
     expect(appSource()).toContain('data-testid="route-loading-state"');
     expect(appSource()).toContain('Loading page');
     expect(appSource()).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden');

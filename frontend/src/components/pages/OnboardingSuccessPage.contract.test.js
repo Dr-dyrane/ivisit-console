@@ -1,11 +1,12 @@
 import fs from 'fs';
+import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
+import { shouldHideShellChrome } from '../../app/shellVisibility';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 describe('Onboarding Success Page 22 receiver contract', () => {
   it('keeps the reflected confirmation in the public shell and hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
@@ -14,8 +15,8 @@ describe('Onboarding Success Page 22 receiver contract', () => {
     expect(gate).toContain('Onboarding Success receiver admission on 2026-07-12');
     expect(gate).toContain('Final receiver/rendered proof, 2026-07-12');
     expect(gate).toContain('staff KPI remained organization-scoped and empty');
-    expect(app).toContain('<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />');
-    expect(app).not.toContain('<Route path="/onboarding-success" element={<ProtectedRoute');
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/onboarding-success')).toEqual({ id: 'onboardingSuccess', path: '/onboarding-success', public: true });
+    expect(shouldHideShellChrome('/onboarding-success')).toBe(true);
     expect(routes).toContain("'/onboarding-success': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain("const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];");

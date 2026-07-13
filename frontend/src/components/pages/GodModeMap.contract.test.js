@@ -4,9 +4,10 @@ import { getAccessibleNav } from '../../config/navigation';
 import { getMobileNavigationItems } from '../../config/mobileNavigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readAppImplementation } from '../../test/sourceEstates';
 
 describe('GodModeMap Live Map contract', () => {
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
+  const appSource = readAppImplementation;
   const pageSource = () => fs.readFileSync('src/components/pages/GodModeMap.jsx', 'utf8');
   const mobileSource = () => fs.readFileSync('src/components/mobile/MobileMap.jsx', 'utf8');
   const markerSource = () => fs.readFileSync('src/components/map/MarkerDetailPanel.jsx', 'utf8');

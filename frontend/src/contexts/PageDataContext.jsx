@@ -57,19 +57,3 @@ export const PageDataProvider = ({ children }) => {
     </PageDataContext.Provider>
   );
 };
-
-/*
- * Legacy page contracts still inspect this facade as source. Runtime ownership
- * lives under contexts/page-data; keep these inert markers until those contracts
- * adopt the PageData implementation bundle.
- *
- * import { getWalletContextData } from '../services/walletService';
- * const data = await getWalletContextData({
- * getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })
- * const fetchEmergencyData = useCallback(
- * queryClient.invalidateQueries({ queryKey: ['emergency'] })
- * const fetchVisitsData = useCallback(async () => {
- * const page = await getVisitsPageData({
- * stats: page?.stats || null
- * if (!user || !startupDomains.includes('visits')) return;
- */

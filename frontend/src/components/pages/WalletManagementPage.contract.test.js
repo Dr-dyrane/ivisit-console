@@ -3,6 +3,7 @@ import path from 'path';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readPageDataImplementation } from '../../test/sourceEstates';
 
 describe('WalletManagementPage Payments contract', () => {
   const readTree = (directory) => fs.readdirSync(directory, { withFileTypes: true })
@@ -33,7 +34,7 @@ describe('WalletManagementPage Payments contract', () => {
   ].join('\n');
   const analyticsModalSource = () => fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/walletService.js', 'utf8');
-  const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+  const pageDataSource = readPageDataImplementation;
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const walletPanelSource = () => fs.readFileSync('src/components/context/WalletPanel.jsx', 'utf8');
   const modalsSource = () => fs.readFileSync('src/components/modals/GlobalFinancialModals.jsx', 'utf8');
@@ -110,8 +111,8 @@ describe('WalletManagementPage Payments contract', () => {
 
     const pageData = pageDataSource();
 
-    expect(pageData).toContain("import { getWalletContextData } from '../services/walletService';");
-    expect(pageData).toContain('const data = await getWalletContextData({');
+    expect(pageData).toContain("import { getWalletContextData } from '../../../services/walletService';");
+    expect(pageData).toContain('export const loadWalletPageData = async ({ profile, isAdmin }) => getWalletContextData({');
     expect(pageData).not.toContain("supabase.from('ivisit_main_wallet')");
     expect(pageData).not.toContain("supabase.from('organization_wallets')");
     expect(pageData).not.toContain("supabase.from('wallet_ledger')");
