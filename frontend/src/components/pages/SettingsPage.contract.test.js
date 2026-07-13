@@ -4,18 +4,48 @@ import { execFileSync } from 'child_process';
 import { routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readAll = (paths) => paths.map(read).join('\n');
+const SETTINGS_PAGE_MODULES = [
+  'src/components/pages/SettingsPage.jsx',
+  'src/components/pages/settings/SettingsPageView.jsx',
+  'src/components/pages/settings/SettingsHeaderAction.jsx',
+  'src/components/pages/settings/SettingsModalStack.jsx',
+  'src/components/pages/settings/useSettingsPageController.js',
+  'src/components/pages/settings/useSettingsPageChrome.jsx',
+  'src/components/pages/settings/useSettingsRouteBridge.js',
+  'src/components/pages/settings/settingsPageModel.js',
+];
+const SETTINGS_DESKTOP_MODULES = [
+  'src/components/pages/settings/SettingsDesktopWorkspace.jsx',
+  'src/components/pages/settings/SettingsAccountSheet.jsx',
+  'src/components/pages/settings/SettingsDetailRail.jsx',
+  'src/components/pages/settings/settingsDesktopModel.js',
+  'src/components/pages/settings/settingsPageModel.js',
+];
+const SETTINGS_MOBILE_MODULES = [
+  'src/components/mobile/MobileSettings.jsx',
+  'src/components/mobile/settings/MobileSettingsView.jsx',
+  'src/components/mobile/settings/MobileSettingsContent.jsx',
+  'src/components/mobile/settings/MobileSettingsPrimitives.jsx',
+  'src/components/mobile/settings/MobileSettingsSkeleton.jsx',
+  'src/components/mobile/settings/mobileSettingsModel.js',
+  'src/components/pages/settings/settingsPageModel.js',
+];
+const readSettingsPage = () => readAll(SETTINGS_PAGE_MODULES);
+const readSettingsDesktop = () => readAll(SETTINGS_DESKTOP_MODULES);
+const readSettingsMobile = () => readAll(SETTINGS_MOBILE_MODULES);
 // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Settings Page 16 intake contract', () => {
   it('keeps mobile Settings dialogs above and clear of the bottom navigation pill', () => {
-    const page = read('src/components/pages/SettingsPage.jsx');
+    const page = readSettingsPage();
     const profileModal = read('src/components/modals/ProfileEditModal.jsx');
     const securityModal = read('src/components/modals/SecurityModal.jsx');
     const chromeSuppression = read('src/hooks/useModalChromeSuppression.js');
 
-    expect(page).toContain("import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression';");
+    expect(page).toContain("import { useModalChromeSuppression } from '../../../hooks/useModalChromeSuppression';");
     expect(page).toContain('useModalChromeSuppression(isProfileModalOpen || isSecurityModalOpen);');
     expect(profileModal).toContain('fixed inset-0 z-[420]');
     expect(securityModal).toContain('fixed inset-0 z-[420]');
@@ -26,7 +56,8 @@ describe('Settings Page 16 intake contract', () => {
 
   it('preserves Settings intake archaeology and admits the guarded active surfaces', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
+    const appRoutes = read('src/app/AppRoutes.jsx');
+    const routeMetadata = read('src/app/appRouteMetadata.js');
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
@@ -38,7 +69,9 @@ describe('Settings Page 16 intake contract', () => {
     expect(gate).toContain('Promotion rule: the first Settings visual pass must close this blocker map before adding Page 16 to the default hardgate.');
     expect(gate).toContain('`SettingsPage.jsx`, `MobileSettings.jsx`, and `SettingsPanel.jsx` have focused strict-radius proof for desktop shell/mobile shell/right-panel chrome');
 
-    expect(app).toContain('<Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />');
+    expect(appRoutes).toContain("settings: lazyNamedPage(() => import('../components/pages/SettingsPage'), 'SettingsPage')");
+    expect(appRoutes).toContain('return <ProtectedRoute>{page}</ProtectedRoute>;');
+    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings' }");
     expect(routes).toContain("'/settings': {");
     expect(routes).toContain("minRole: 'viewer'");
     expect(routes).toContain("resource: 'settings'");
@@ -78,10 +111,10 @@ describe('Settings Page 16 intake contract', () => {
     const oldDoctorCard = gitShowHead('frontend/src/components/views/DoctorProfileCard.jsx');
     const oldDoctorHook = gitShowHead('frontend/src/hooks/useDoctorProfile.js');
 
-    const page = read('src/components/pages/SettingsPage.jsx');
-    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const page = readSettingsPage();
+    const workspace = readSettingsDesktop();
     const desktop = `${page}\n${workspace}`;
-    const mobile = read('src/components/mobile/MobileSettings.jsx');
+    const mobile = readSettingsMobile();
     const panel = read('src/components/context/SettingsPanel.jsx');
     const securityModal = read('src/components/modals/SecurityModal.jsx');
     const profileModal = read('src/components/modals/ProfileEditModal.jsx');
@@ -107,19 +140,27 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('const handleOpenSupport = useCallback(() => {');
     expect(page).toContain("toast.info('Support is unavailable for this role')");
     expect(page).toContain("navigate('/support-tickets?add=true&from=settings')");
-    expect(page).toContain('onOpenSupport={handleOpenSupport}');
+    expect(page).toContain('onOpenSupport: handleOpenSupport');
     expect(workspace).toContain('onClick={onOpenSupport}');
 
     expect(oldPage).toContain('usePageHeader("Account Settings")');
     expect(page).toContain("usePageHeader('Settings', headerActions)");
-    for (const source of [oldPage, page]) {
+    for (const source of [oldPage]) {
       expect(source).toContain("window.addEventListener('openProfileModal', handleOpenProfile)");
       expect(source).toContain("window.addEventListener('openSecurityModal', handleOpenSecurity)");
       expect(source).toContain("window.addEventListener('openSupportModal', handleOpenSupport)");
       expect(source).toContain("window.addEventListener('openDoctorModal', handleOpenDoctor)");
+      expect(source).toContain('getDisplayId(profile.id)');
+    }
+    expect(page).toContain("window.addEventListener('openProfileModal', onOpenProfile)");
+    expect(page).toContain("window.addEventListener('openSecurityModal', onOpenSecurity)");
+    expect(page).toContain("window.addEventListener('openSupportModal', onOpenSupport)");
+    expect(page).toContain("window.addEventListener('openDoctorModal', onOpenDoctor)");
+    expect(page).toContain('const displayId = useSettingsDisplayId(profile?.id);');
+    expect(page).toContain('getDisplayId(profileId)');
+    for (const source of [oldPage, page]) {
       expect(source).toContain("params.get('quick') === 'true'");
       expect(source).toContain("window.history.replaceState({}, '', '/settings')");
-      expect(source).toContain('getDisplayId(profile.id)');
       expect(source).toContain("toast.success('Signed out successfully')");
       expect(source).toContain('<MobileSettings');
       expect(source).toContain('<ProfileEditModal');
@@ -133,7 +174,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('mode="view"');
     expect(oldPage).toContain("document.documentElement.classList.toggle('dark', newMode)");
     expect(page).not.toContain("document.documentElement.classList.toggle('dark', newMode)");
-    expect(page).toContain("import { useTheme } from '../../contexts/ThemeContext';");
+    expect(page).toContain("import { useTheme } from '../../../contexts/ThemeContext';");
     expect(page).toContain('const { theme, toggleTheme } = useTheme();');
     expect(page).toContain("const darkMode = theme === 'dark';");
     expect(page).toContain('toggleTheme();');
@@ -147,7 +188,8 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('if (isSigningOut) return;');
     expect(page).toContain('setIsSigningOut(true);');
     expect(page).toContain('setIsSigningOut(false);');
-    expect(page).toContain('isSigningOut={isSigningOut}');
+    expect(page).toContain('onSignOut: handleSignOut');
+    expect(page).toContain('isSigningOut,');
     expect(workspace).toContain('disabled={isSigningOut}');
     expect(workspace).toContain("aria-busy={isSigningOut ? 'true' : undefined}");
     expect(workspace).toContain("data-state={isSigningOut ? 'pending' : 'ready'}");
@@ -192,13 +234,13 @@ describe('Settings Page 16 intake contract', () => {
     expect(oldMobile).toContain("badge: 'BOUND'");
     expect(oldMobile).toContain("badge: profile?.phone ? 'VERIFIED' : 'MISSING'");
     expect(oldMobile).toContain("badge: 'EXIT'");
-    expect(mobile).toContain('const SettingsSkeleton = () =>');
-    expect(mobile).toContain('const ActionRow = ({');
-    expect(mobile).toContain('const InfoRow = ({ icon: Icon, title, value, toneClass }) =>');
-    expect(mobile).toContain('<Section label="Account">');
-    expect(mobile).toContain('<Section label="Preferences">');
-    expect(mobile).toContain('<Section label="Security and help">');
-    expect(mobile).toContain('<Section label="Session">');
+    expect(mobile).toContain('export const MobileSettingsSkeleton = () =>');
+    expect(mobile).toContain('export const SettingsActionRow = ({');
+    expect(mobile).toContain('export const SettingsInfoRow = ({ icon: Icon, title, value, toneClass }) =>');
+    expect(mobile).toContain('<SettingsSection label="Account">');
+    expect(mobile).toContain('<SettingsSection label="Preferences">');
+    expect(mobile).toContain('<SettingsSection label="Security and help">');
+    expect(mobile).toContain('<SettingsSection label="Session">');
     expect(mobile).toContain('title="Edit profile"');
     expect(mobile).toContain('Dark mode');
     expect(mobile).toContain('title="Password and authentication"');
@@ -427,8 +469,10 @@ describe('Settings Page 16 intake contract', () => {
     const pass8 = read('docs/implementation/console-service-alignment/passes/PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md');
     const stage5 = read('docs/implementation/console-service-alignment/services/STAGE_5_FULL_SERVICE_COVERAGE_AUDIT_2026-05-24.md');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
-    const page = read('src/components/pages/SettingsPage.jsx');
-    const app = read('src/App.js');
+    const contextPanelAccess = read('src/components/navigation/context-panel/contextPanelAccess.js');
+    const page = readSettingsPage();
+    const appRoutes = read('src/app/AppRoutes.jsx');
+    const routeMetadata = read('src/app/appRouteMetadata.js');
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
@@ -487,11 +531,13 @@ describe('Settings Page 16 intake contract', () => {
     expect(pass8).toContain('| View or upgrade own plan from settings | Unavailable until lifecycle owner exists | Pass 7 subscriber/billing authority plus Pass 2 finance destination if applicable |');
 
     expect(routeOwnsStartupDomains('/settings')).toBe(true);
-    expect(app).toContain('<Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />');
+    expect(appRoutes).toContain("settings: lazyNamedPage(() => import('../components/pages/SettingsPage'), 'SettingsPage')");
+    expect(appRoutes).toContain('return <ProtectedRoute>{page}</ProtectedRoute>;');
+    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings' }");
     expect(routes).toContain("'/settings': {");
     expect(routes).toContain("minRole: 'viewer'");
     expect(navigation).toContain("minRole: 'viewer'");
-    expect(contextPanel).toContain("'/settings': true, // Own-user settings");
+    expect(contextPanelAccess).toContain("['/settings', true]");
     expect(contextPanel).not.toContain('getPageContextHeader'); // header slimmed -- each panel owns its heading (see ContextPanelShell contract)
     expect(contextPanel).toContain('<SettingsPanel settingsContext={settingsRouteContext} />');
     expect(contextPanel).toContain("new CustomEvent('requestSettingsRouteContext')");
@@ -505,18 +551,18 @@ describe('Settings Page 16 intake contract', () => {
   });
 
   it('uses the desktop workspace grammar with a complete role rail and structural loading state', () => {
-    const page = read('src/components/pages/SettingsPage.jsx');
-    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const page = readSettingsPage();
+    const workspace = readSettingsDesktop();
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
-    expect(page).toContain("import { SettingsDesktopWorkspace } from './settings/SettingsDesktopWorkspace';");
+    expect(page).toContain("import { SettingsDesktopWorkspace } from './SettingsDesktopWorkspace';");
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
-    expect(page).toContain("if (isAdmin()) return 'admin';");
-    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
-    expect(page).toContain("if (isSponsor()) return 'sponsor';");
-    expect(page).toContain("if (providerAccount) return isDriver() ? 'driver' : 'provider';");
-    expect(page).toContain('<SettingsDesktopWorkspace');
-    expect(page).toContain('moduleRailItems={moduleRailItems}');
+    expect(page).toContain("if (admin) return 'admin';");
+    expect(page).toContain("if (orgAdmin) return 'org_admin';");
+    expect(page).toContain("if (sponsor) return 'sponsor';");
+    expect(page).toContain("if (provider) return driver ? 'driver' : 'provider';");
+    expect(page).toContain('<SettingsDesktopWorkspace {...desktopProps} />');
+    expect(page).toContain('moduleRailItems,');
     expect(page).toContain("usePageHeader('Settings', headerActions)");
     expect(page).toContain('aria-haspopup="dialog"');
     expect(page).toContain('aria-expanded={isProfileModalOpen}');
@@ -548,8 +594,8 @@ describe('Settings Page 16 intake contract', () => {
   });
 
   it('keeps the desktop account dashboard calm and avoids inferred status claims', () => {
-    const page = read('src/components/pages/SettingsPage.jsx');
-    const workspace = read('src/components/pages/settings/SettingsDesktopWorkspace.jsx');
+    const page = readSettingsPage();
+    const workspace = readSettingsDesktop();
     const desktop = `${page}\n${workspace}`;
 
     expect(desktop).not.toContain("from 'framer-motion'");
