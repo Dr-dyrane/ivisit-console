@@ -5,6 +5,7 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const defaultFiles = [
   'src/App.js',
+  'src/app/RouteLoadingState.jsx',
   'src/index.css',
   'tailwind.config.js',
   'src/components/pages/TodayHome.jsx',
@@ -219,14 +220,16 @@ const bannedCssPatterns = [
 
 const requiredSnippets = {
   'src/App.js': [
+    'className="fixed bottom-1 left-1/2',
+    'rounded-pill shadow-2xl',
+  ],
+  'src/app/RouteLoadingState.jsx': [
     'className="relative min-h-[calc(100dvh-3rem)] overflow-hidden"',
     'lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28',
     'rounded-t-sheet bg-card/68 p-3 shadow-[0_12px_32px_rgb(0_0_0/0.10)]',
     'rounded-t-sheet bg-card/78 p-4 shadow-[0_12px_32px_rgb(0_0_0/0.10)]',
     '<Pulse className="h-7 w-7 rounded-icon" />',
     'animate-pulse bg-muted/38 dark:bg-white/[0.055]',
-    'className="fixed bottom-1 left-1/2',
-    'rounded-pill shadow-2xl',
   ],
   'src/components/pages/TodayHome.jsx': [
     'getTodayModuleRailItems(roleKind)',
@@ -423,7 +426,7 @@ const scanSource = (relativeFile, source, options = {}) => {
           file: relativeFile,
           line: 0,
           token: `missing contract: ${snippet}`,
-          text: 'Required Today shell contract was not found.',
+          text: 'Required shell contract was not found in its current owner.',
         });
       }
     }
