@@ -6,6 +6,12 @@ import {
 } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readSubscriptionServiceEstate = () => [
+  'src/services/subscriptionService.js',
+  ...fs.readdirSync('src/services/subscriptions')
+    .filter((name) => name.endsWith('.js') && !name.endsWith('.test.js'))
+    .map((name) => `src/services/subscriptions/${name}`),
+].map(read).join('\n');
 const readSubscriptionPageEstate = () => [
   'src/components/pages/SubscriptionManagementPage.jsx',
   'src/components/pages/subscriptions/SubscriptionManagementPageView.jsx',
@@ -36,7 +42,7 @@ const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESER
 
 describe('Subscriptions Page 17 intake contract', () => {
   it('provides an explicit route projection and query boundary for the active revamp', () => {
-    const service = read('src/services/subscriptionService.js');
+    const service = readSubscriptionServiceEstate();
     const queryHook = read('src/hooks/useSubscriptionsQuery.js');
 
     expect(service).toContain('export async function getSubscriptionsPage(filter = {})');
@@ -129,7 +135,7 @@ describe('Subscriptions Page 17 intake contract', () => {
   });
 
   it('keeps subscriber rows visible with explicit loaded-row stats when auxiliary counts fail', () => {
-    const service = read('src/services/subscriptionService.js');
+    const service = readSubscriptionServiceEstate();
     const page = readSubscriptionPageEstate();
     const mobile = readMobileSubscriptionEstate();
 
@@ -273,7 +279,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     const list = read('src/components/views/SubscriptionListView.jsx');
     const table = read('src/components/views/SubscriptionTableView.jsx');
     const hook = read('src/hooks/useSubscription.js');
-    const service = read('src/services/subscriptionService.js');
+    const service = readSubscriptionServiceEstate();
     // subscribersService.js was deleted 2026-07-07 after removal proof (zero source imports);
     // its old shape is preserved as baseline evidence via oldDuplicateService, and the working
     // tree must no longer carry the duplicate owner.

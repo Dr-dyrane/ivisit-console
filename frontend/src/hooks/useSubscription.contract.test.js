@@ -3,7 +3,10 @@ import fs from 'fs';
 describe('useSubscription startup disclosure contract', () => {
   it('keeps automatic subscriber fetches quiet while preserving manual feedback', () => {
     const hookSource = fs.readFileSync('src/hooks/useSubscription.js', 'utf8');
-    const serviceSource = fs.readFileSync('src/services/subscriptionService.js', 'utf8');
+    const serviceSource = [
+      'src/services/subscriptions/reads.js',
+      'src/services/subscriptions/analytics.js',
+    ].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 
     expect(hookSource).toContain('fetchSubscribers({ quiet: true })');
     expect(hookSource).toContain('export const useSubscription = (options = {}) => {');
