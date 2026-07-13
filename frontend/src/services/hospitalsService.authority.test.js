@@ -1,4 +1,10 @@
-import { buildHospitalPayload, updateHospital } from './hospitalsService';
+import {
+  buildHospitalPayload,
+  deleteHospital,
+  updateHospital,
+  updateHospitalBedCount,
+  updateHospitalStatus,
+} from './hospitalsService';
 import { supabase } from '../lib/supabase';
 
 jest.mock('../lib/supabase', () => ({
@@ -50,6 +56,22 @@ describe('hospital update authority boundary', () => {
     });
   });
 
+  it('keeps facility, organization, and display identities out of metadata payload inference', () => {
+    const payload = buildHospitalPayload({
+      id: HOSPITAL_ID,
+      hospital_id: HOSPITAL_ID,
+      organization_id: '22222222-2222-4222-8222-222222222222',
+      display_id: 'HSP-ABC123',
+      name: 'Audit Facility',
+    });
+
+    expect(payload).not.toHaveProperty('id');
+    expect(payload).not.toHaveProperty('hospital_id');
+    expect(payload).not.toHaveProperty('organization_id');
+    expect(payload).not.toHaveProperty('display_id');
+    expect(payload.name).toBe('Audit Facility');
+  });
+
   it.each([
     [{ available_beds: -1 }, 'Available beds'],
     [{ total_beds: 2.5 }, 'Total beds'],
@@ -89,5 +111,51 @@ describe('hospital update authority boundary', () => {
       available_beds: 2,
       icu_beds_available: 1,
     })).resolves.toEqual(settled);
+
+    expect(supabase.rpc).toHaveBeenCalledWith('update_hospital_by_admin', {
+      target_hospital_id: HOSPITAL_ID,
+      payload: expect.objectContaining({
+        name: 'Audit Facility',
+        address: 'Audit Address',
+        status: 'busy',
+        total_beds: 4,
+        available_beds: 2,
+        icu_beds_available: 1,
+      }),
+    });
+  });
+
+  it('keeps the narrow bed-count command on the proved update RPC and returns its readback', async () => {
+    const settled = { id: HOSPITAL_ID, available_beds: 3 };
+    supabase.rpc.mockResolvedValue({ data: { success: true, id: HOSPITAL_ID }, error: null });
+    mockHospitalRead({ data: settled, error: null });
+
+    await expect(updateHospitalBedCount(HOSPITAL_ID, 3)).resolves.toEqual(settled);
+    expect(supabase.rpc).toHaveBeenCalledWith('update_hospital_by_admin', {
+      target_hospital_id: HOSPITAL_ID,
+      payload: { available_beds: 3 },
+    });
+  });
+
+  it('keeps the narrow status command on the proved update RPC and returns its readback', async () => {
+    const settled = { id: HOSPITAL_ID, status: 'closed' };
+    supabase.rpc.mockResolvedValue({ data: { success: true, id: HOSPITAL_ID }, error: null });
+    mockHospitalRead({ data: settled, error: null });
+
+    await expect(updateHospitalStatus(HOSPITAL_ID, 'closed')).resolves.toEqual(settled);
+    expect(supabase.rpc).toHaveBeenCalledWith('update_hospital_by_admin', {
+      target_hospital_id: HOSPITAL_ID,
+      payload: { status: 'closed' },
+    });
+  });
+
+  it('keeps deletion on the proved admin RPC and preserves its result shape', async () => {
+    const result = { success: true, id: HOSPITAL_ID, deleted: 1 };
+    supabase.rpc.mockResolvedValue({ data: result, error: null });
+
+    await expect(deleteHospital(HOSPITAL_ID)).resolves.toEqual(result);
+    expect(supabase.rpc).toHaveBeenCalledWith('delete_hospital_by_admin', {
+      target_hospital_id: HOSPITAL_ID,
+    });
   });
 });

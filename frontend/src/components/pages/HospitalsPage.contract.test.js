@@ -35,7 +35,17 @@ describe('HospitalsPage admission audit contract', () => {
   const listSource = () => fs.readFileSync('src/components/views/HospitalListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/HospitalTableView.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/HospitalModal.jsx', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/hospitalsService.js', 'utf8');
+  const serviceSource = () => [
+    'src/services/hospitalsService.js',
+    'src/services/hospitals/constants.js',
+    'src/services/hospitals/filters.js',
+    'src/services/hospitals/payload.js',
+    'src/services/hospitals/stats.js',
+    'src/services/hospitals/queries.js',
+    'src/services/hospitals/pageQueries.js',
+    'src/services/hospitals/commands.js',
+    'src/services/hospitals/realtime.js',
+  ].map(readSource).join('\n');
   const bedServiceSource = () => fs.readFileSync('src/services/bedManagementService.js', 'utf8');
   const viewModeSource = () => fs.readFileSync('src/hooks/useViewMode.js', 'utf8');
   // S3 React Query migration (mirrors DoctorsPage): the page reads via

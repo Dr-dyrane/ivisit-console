@@ -1,12 +1,13 @@
 import fs from 'fs';
+import { readSourceEstate } from '../test/sourceEstates';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 
 describe('route-owned query convergence contract', () => {
   const queryPairs = [
-    ['src/hooks/useHospitalsQuery.js', 'src/services/hospitalsService.js'],
+    ['src/hooks/useHospitalsQuery.js', 'src/services/hospitals/pageQueries.js'],
     ['src/hooks/useDoctorsQuery.js', 'src/services/doctorsService.js'],
-    ['src/hooks/useEmergencyQuery.js', 'src/services/emergencyService.js'],
+    ['src/hooks/useEmergencyQuery.js', 'src/services/emergency/listQueries.js'],
     ['src/hooks/useSupportTicketsQuery.js', 'src/services/supportTicketsService.js'],
     ['src/hooks/useAmbulancesQuery.js', 'src/services/ambulancesService.js'],
   ];
@@ -22,7 +23,10 @@ describe('route-owned query convergence contract', () => {
   });
 
   it('cancels a stale facility deep-link projection when the route changes', () => {
-    const page = read('src/components/pages/HospitalsPage.jsx');
+    const page = readSourceEstate({
+      files: ['src/components/pages/HospitalsPage.jsx'],
+      directories: ['src/components/pages/hospitals'],
+    });
 
     expect(page).toContain('const controller = new AbortController();');
     expect(page).toContain('getHospital(hospitalId, { abortSignal: controller.signal })');

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readPageDataImplementation, readSourceEstate } from '../../test/sourceEstates';
 
 const readSourceFiles = (paths) => paths
   .map((filePath) => fs.readFileSync(filePath, 'utf8'))
@@ -33,6 +34,10 @@ const readRequestsRouteSource = () => readSourceFiles([
   'src/app/AppRoutes.jsx',
   'src/app/appRouteMetadata.js',
 ]);
+const readEmergencyServiceSource = () => readSourceEstate({
+  files: ['src/services/emergencyService.js'],
+  directories: ['src/services/emergency'],
+});
 
 describe('EmergencyRequestsPage service ownership contract', () => {
   it('keeps Requests production modules small and split at explicit ownership boundaries', () => {
@@ -57,7 +62,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
   it('keeps Requests list/count/payment reads owned by emergencyService', () => {
     const pageSource = readRequestsPageSource();
-    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const serviceSource = readEmergencyServiceSource();
     const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
 
     // S3 migration: the route-owned page read now flows through useEmergencyQuery,
@@ -89,7 +94,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
   it('keeps Requests filters, exact counts, sort, and pagination service-owned', () => {
     const pageSource = readRequestsPageSource();
-    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const serviceSource = readEmergencyServiceSource();
 
     expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
     expect(pageSource).toContain('status: filters.status');
@@ -158,7 +163,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
   it('refreshes request details from canonical row truth instead of the opening prop', () => {
     const modalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
-    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const serviceSource = readEmergencyServiceSource();
 
     expect(modalSource).toContain('const projection = await getEmergencyDetailProjection(targetRequestId);');
     expect(modalSource).toContain('setDetailRequest(projection.request);');
@@ -714,7 +719,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const requestModalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
     const actionSource = fs.readFileSync('src/utils/emergencyActions.js', 'utf8');
     const responseServiceSource = fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
-    const emergencyServiceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const emergencyServiceSource = readEmergencyServiceSource();
     const profilesServiceSource = fs.readFileSync('src/services/profilesService.js', 'utf8');
 
     // Dispatch/complete/cancel now route through useEmergencyMutations.mutateAsync,
@@ -877,7 +882,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const pageSource = readRequestsPageSource();
     const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
     const mutationsHookSource = fs.readFileSync('src/hooks/useEmergencyMutations.js', 'utf8');
-    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const pageDataSource = readPageDataImplementation();
 
     // Read path: a single ['emergency', filter] React Query store, no parallel list state.
     expect(pageSource).toContain("import { useEmergencyQuery } from '../../../hooks/useEmergencyQuery';");
