@@ -290,6 +290,26 @@ const webpackConfig = {
   eslint: {
     enable: false,
   },
+  jest: {
+    configure: (jestConfig) => ({
+      ...jestConfig,
+      setupFiles: [
+        ...(jestConfig.setupFiles || []),
+        path.resolve(__dirname, 'src/test/route-contract/jestSetup.js'),
+      ],
+      moduleNameMapper: {
+        ...jestConfig.moduleNameMapper,
+        '^react-router-dom$': path.resolve(
+          __dirname,
+          'node_modules/react-router-dom/dist/index.js'
+        ),
+        '^react-router/dom$': path.resolve(
+          __dirname,
+          'node_modules/react-router/dist/development/dom-export.js'
+        ),
+      },
+    }),
+  },
   webpack: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
