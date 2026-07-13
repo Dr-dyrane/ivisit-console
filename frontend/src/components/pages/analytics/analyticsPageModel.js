@@ -87,6 +87,34 @@ export const normalizeSubscriptionStats = (value) => ({
   },
 });
 
+const toNonNegativeCapacity = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+export const getHospitalCapacitySummary = (hospitals = [], hospitalSample = {}) => {
+  if (hospitalSample?.complete !== true) return DEFAULT_HOSPITAL_CAPACITY;
+
+  const normalized = (Array.isArray(hospitals) ? hospitals : []).reduce((summary, hospital) => {
+    const available = toNonNegativeCapacity(hospital?.available_beds);
+    const declaredTotal = toNonNegativeCapacity(hospital?.total_beds);
+    const total = Math.max(declaredTotal, available);
+    const icu = Math.min(toNonNegativeCapacity(hospital?.icu_beds_available), available);
+
+    return {
+      total: summary.total + total,
+      available: summary.available + Math.min(available, total),
+      icu: summary.icu + icu,
+    };
+  }, { total: 0, available: 0, icu: 0 });
+
+  return {
+    total: normalized.total,
+    occupied: Math.max(0, normalized.total - normalized.available),
+    icu: normalized.icu,
+  };
+};
+
 export const getAnalyticsSourceIssueSummary = (issues = []) => {
   if (!issues.length) return null;
 
@@ -261,15 +289,6 @@ export const buildAnalyticsSnapshot = ({
     : 0;
   const hospitalSample = normalizeHospitalSample(analyticsPage?.hospitalSample);
   const hospitals = analyticsPage?.hospitals || [];
-  const totalBeds = hospitalSample.complete
-    ? hospitals.reduce((sum, hospital) => sum + (Number(hospital.total_beds) || 0), 0)
-    : 0;
-  const availableBeds = hospitalSample.complete
-    ? hospitals.reduce((sum, hospital) => sum + (Number(hospital.available_beds) || 0), 0)
-    : 0;
-  const icuAvailable = hospitalSample.complete
-    ? hospitals.reduce((sum, hospital) => sum + (Number(hospital.icu_beds_available) || 0), 0)
-    : 0;
 
   return {
     sourceIssues: analyticsPage?.sourceIssues || [],
@@ -289,9 +308,7 @@ export const buildAnalyticsSnapshot = ({
       totalHospitals: analyticsPage?.hospitalsCount || 0,
       totalAmbulances: analyticsPage?.ambulancesCount || 0,
     },
-    hospitalCapacity: hospitalSample.complete
-      ? { total: totalBeds, occupied: Math.max(0, totalBeds - availableBeds), icu: icuAvailable }
-      : DEFAULT_HOSPITAL_CAPACITY,
+    hospitalCapacity: getHospitalCapacitySummary(hospitals, hospitalSample),
     ...buildAnalyticsChartData(requests, requestedRange, nowValue),
   };
 };
@@ -328,10 +345,17 @@ export const getAnalyticsSourceReadiness = ({
   financeCurrency,
 }) => {
   const issueSources = new Set((sourceIssues || []).map((issue) => issue.source));
+  const hospitalReadFailed = (sourceIssues || []).some(
+    (issue) => issue.source === 'hospitals' && issue.kind !== 'partial'
+  );
+  const hospitalCountReady = snapshotReady
+    && !hospitalReadFailed
+    && Number.isFinite(Number(hospitalSample?.totalCount));
   return {
     requests: snapshotReady && !issueSources.has('requests'),
     users: snapshotReady && !issueSources.has('users'),
-    hospitals: snapshotReady && !issueSources.has('hospitals') && hospitalSample?.complete === true,
+    hospitals: hospitalCountReady,
+    hospitalCapacity: hospitalCountReady && hospitalSample?.complete === true,
     ambulances: snapshotReady && !issueSources.has('ambulances'),
     subscriptions: snapshotReady
       && canReadSubscriptionAnalytics

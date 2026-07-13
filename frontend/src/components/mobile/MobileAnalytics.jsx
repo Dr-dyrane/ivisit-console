@@ -377,9 +377,9 @@ export const MobileAnalytics = ({
                 <CompactStatTile
                   icon={Activity}
                   label="Occupied beds"
-                  value={sourceReadiness.hospitals && Number(hospitalCapacity?.total) > 0
+                  value={sourceReadiness.hospitalCapacity && Number(hospitalCapacity?.total) > 0
                     ? `${Math.round((Number(hospitalCapacity.occupied) / Number(hospitalCapacity.total)) * 100)}%`
-                    : sourceReadiness.hospitals ? 'No capacity data' : SOURCE_UNAVAILABLE}
+                    : sourceReadiness.hospitalCapacity ? 'No capacity data' : SOURCE_UNAVAILABLE}
                   tone="amber"
                 />
               </div>

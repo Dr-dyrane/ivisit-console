@@ -3,6 +3,7 @@ import {
   buildAnalyticsChartData,
   buildAnalyticsSnapshot,
   DEFAULT_HOSPITAL_CAPACITY,
+  getHospitalCapacitySummary,
   extractResponseMinutes,
   getAnalyticsRoleKind,
   getAnalyticsSourceIssueSummary,
@@ -157,6 +158,20 @@ describe('analytics page projection model', () => {
     expect(completeCapacity.subscriptionStats.total).toBe(3);
   });
 
+  it('normalizes demo capacity with the same lower-bound rule as the database', () => {
+    expect(getHospitalCapacitySummary([
+      { total_beds: null, available_beds: 12, icu_beds_available: 3 },
+      { total_beds: 20, available_beds: 5, icu_beds_available: 9 },
+    ], { complete: true })).toEqual({
+      total: 32,
+      occupied: 15,
+      icu: 8,
+    });
+    expect(getHospitalCapacitySummary([
+      { total_beds: 10, available_beds: 4, icu_beds_available: 2 },
+    ], { complete: false })).toEqual(DEFAULT_HOSPITAL_CAPACITY);
+  });
+
   it('marks each source ready only when its own proof is complete', () => {
     const readiness = getAnalyticsSourceReadiness({
       snapshotReady: true,
@@ -171,10 +186,26 @@ describe('analytics page projection model', () => {
       requests: true,
       users: false,
       hospitals: false,
+      hospitalCapacity: false,
       ambulances: true,
       subscriptions: true,
       finance: true,
     });
+  });
+
+  it('keeps an exact facility count ready when only the capacity sample is partial', () => {
+    expect(getAnalyticsSourceReadiness({
+      snapshotReady: true,
+      sourceIssues: [{ source: 'hospitals', kind: 'partial' }],
+      hospitalSample: { totalCount: 1577, complete: false },
+      subscriptionStats: { sample: { complete: false } },
+      canReadSubscriptionAnalytics: false,
+      canReadFinanceAnalytics: false,
+      financeCurrency: null,
+    })).toEqual(expect.objectContaining({
+      hospitals: true,
+      hospitalCapacity: false,
+    }));
   });
 
   it('summarizes finance only when a canonical currency is present', () => {

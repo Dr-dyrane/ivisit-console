@@ -113,4 +113,30 @@ describe('analytics intake projection integrity', () => {
       reason: 'capacity_sample_incomplete',
     }));
   });
+
+  it('uses a provider organization link when hospital ids are not populated', async () => {
+    getCurrentUser.mockResolvedValue({
+      id: 'provider-1',
+      role: 'provider',
+      organization_id: 'organization-1',
+      hospital_ids: null,
+    });
+
+    await getAnalyticsIntakePage({ timeRange: '7d' });
+
+    const hospitalsQuery = queryStates.find((state) => state.table === 'hospitals');
+    const ambulancesQuery = queryStates.find((state) => state.table === 'ambulances');
+    expect(hospitalsQuery.filters).toContainEqual({
+      method: 'eq',
+      args: ['organization_id', 'organization-1'],
+    });
+    expect(ambulancesQuery.filters).toContainEqual({
+      method: 'eq',
+      args: ['organization_id', 'organization-1'],
+    });
+    expect(hospitalsQuery.filters).not.toContainEqual({
+      method: 'eq',
+      args: ['id', '00000000-0000-0000-0000-000000000000'],
+    });
+  });
 });

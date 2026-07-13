@@ -155,6 +155,13 @@ export const getAnalyticsIntakePage = async ({
       ambulancesQuery = providerHospitalIds.length > 1
         ? ambulancesQuery.in('hospital_id', providerHospitalIds)
         : ambulancesQuery.eq('hospital_id', providerHospitalIds[0]);
+    } else if (user?.organization_id) {
+      // Demo and current provider profiles carry the parent organization but do
+      // not populate authService.hospital_ids. Use that canonical link before
+      // falling back to an empty scope so Statistics sees the same organization
+      // facilities/fleet that the operational projections can resolve.
+      hospitalsQuery = hospitalsQuery.eq('organization_id', user.organization_id);
+      ambulancesQuery = ambulancesQuery.eq('organization_id', user.organization_id);
     } else {
       hospitalsQuery = hospitalsQuery.eq('id', ANALYTICS_EMPTY_SCOPE_UUID);
       ambulancesQuery = user?.id
@@ -282,7 +289,7 @@ export const getAnalyticsData = async (options = {}) => {
     const {
       timeRange = 'all',
       includeRawData = true,
-      includeDerivedMetrics = true,
+      includeDerivedMetrics: _includeDerivedMetrics = true,
       quiet = false
     } = options;
     const quietOptions = { quiet };
@@ -442,11 +449,12 @@ export const getTimeSeriesData = async (metric = 'emergencies', period = 'day') 
           case 'day':
             key = date.toISOString().slice(0, 10);
             break;
-          case 'week':
+          case 'week': {
             const weekStart = new Date(date);
             weekStart.setDate(date.getDate() - date.getDay());
             key = weekStart.toISOString().slice(0, 10);
             break;
+          }
           case 'month':
             key = date.toISOString().slice(0, 7);
             break;

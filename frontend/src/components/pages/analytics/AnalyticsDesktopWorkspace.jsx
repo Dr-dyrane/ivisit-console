@@ -143,7 +143,7 @@ export const AnalyticsDesktopWorkspace = ({
       ? TrendingDown
       : Minus;
   const bedUse = getAnalyticsBedUse({
-    sourceReady: sourceReadiness?.hospitals,
+    sourceReady: sourceReadiness?.hospitalCapacity,
     capacity: hospitalCapacity,
   });
 
