@@ -8,7 +8,13 @@ import { readAppImplementation } from '../../test/sourceEstates';
 
 describe('GodModeMap Live Map contract', () => {
   const appSource = readAppImplementation;
-  const pageSource = () => fs.readFileSync('src/components/pages/GodModeMap.jsx', 'utf8');
+  const pageSource = () => [
+    fs.readFileSync('src/components/pages/GodModeMap.jsx', 'utf8'),
+    ...fs.readdirSync('src/components/map/god-mode')
+      .filter((name) => /\.(js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`src/components/map/god-mode/${name}`, 'utf8')),
+  ].join('\n');
   const mobileSource = () => fs.readFileSync('src/components/mobile/MobileMap.jsx', 'utf8');
   const markerSource = () => fs.readFileSync('src/components/map/MarkerDetailPanel.jsx', 'utf8');
   const layerControlsSource = () => fs.readFileSync('src/components/map/MapLayerControls.jsx', 'utf8');
@@ -90,8 +96,8 @@ describe('GodModeMap Live Map contract', () => {
     const page = pageSource();
     const mobile = mobileSource();
 
-    expect(page).toContain('usePageHeader("Live Map", headerActions)');
-    expect(page).toContain('usePageFooter(null, "status", false)');
+    expect(page).toContain("usePageHeader('Live Map', headerActions)");
+    expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).not.toContain("import { Card } from");
     expect(page).not.toContain('<Card');
@@ -253,12 +259,12 @@ describe('GodModeMap Live Map contract', () => {
 
     expect(activeCommands).not.toContain('confirm(');
     expect(page).toContain('DRIVER_STATUS_COPY');
-    expect(page).toContain('toast.loading("Sharing location..."');
+    expect(page).toContain("toast.loading('Sharing location...'");
     expect(page).toContain('const updatedRequest = await driverManagementService.updateTripStatus');
     expect(page).toContain('if (!updatedRequest) {');
     expect(page).toContain('toast.success(copy.success');
     expect(page.indexOf('if (!updatedRequest) {')).toBeLessThan(page.indexOf('toast.success(copy.success'));
-    expect(page).toContain('aria-busy={driverAction === "completed"}');
+    expect(page).toContain("aria-busy={driverAction === 'completed'}");
     expect(page).toContain("toast.loading('Requesting location...'");
     expect(page).toContain("toast.info('Using the operational area'");
     expect(locationHookSource()).toContain("status: 'locating'");
