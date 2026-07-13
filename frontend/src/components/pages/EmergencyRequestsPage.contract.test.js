@@ -2,9 +2,61 @@ import fs from 'fs';
 import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
+const readSourceFiles = (paths) => paths
+  .map((filePath) => fs.readFileSync(filePath, 'utf8'))
+  .join('\n');
+
+const REQUESTS_PAGE_FILES = [
+  'src/components/pages/EmergencyRequestsPage.jsx',
+  'src/components/pages/requests/requestPageModel.js',
+  'src/components/pages/requests/useEmergencyRequestsController.js',
+  'src/components/pages/requests/useEmergencyRequestsQueryState.js',
+  'src/components/pages/requests/useEmergencyRequestsRealtime.js',
+  'src/components/pages/requests/useEmergencyRequestsChrome.js',
+  'src/components/pages/requests/useEmergencyRequestCommands.js',
+  'src/components/pages/requests/RequestsDesktopWorkspace.jsx',
+  'src/components/pages/requests/RequestsDesktopList.jsx',
+  'src/components/pages/requests/RequestDetailRail.jsx',
+];
+
+const REQUESTS_MOBILE_FILES = [
+  'src/components/mobile/MobileEmergency.jsx',
+  'src/components/mobile/requests/mobileEmergencyModel.js',
+  'src/components/mobile/requests/useMobileEmergencyController.js',
+  'src/components/mobile/requests/MobileEmergencyList.jsx',
+  'src/components/mobile/requests/MobileEmergencyDetailSheet.jsx',
+];
+
+const readRequestsPageSource = () => readSourceFiles(REQUESTS_PAGE_FILES);
+const readRequestsMobileSource = () => readSourceFiles(REQUESTS_MOBILE_FILES);
+const readRequestsRouteSource = () => readSourceFiles([
+  'src/app/AppRoutes.jsx',
+  'src/app/appRouteMetadata.js',
+]);
+
 describe('EmergencyRequestsPage service ownership contract', () => {
+  it('keeps Requests production modules small and split at explicit ownership boundaries', () => {
+    const facadeSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const workspaceSource = fs.readFileSync('src/components/pages/requests/RequestsDesktopWorkspace.jsx', 'utf8');
+    const controllerSource = fs.readFileSync('src/components/pages/requests/useEmergencyRequestsController.js', 'utf8');
+
+    expect(facadeSource).toContain("from './requests/useEmergencyRequestsController'");
+    expect(facadeSource).toContain("from './requests/RequestsDesktopWorkspace'");
+    expect(workspaceSource).toContain("from './RequestsDesktopList'");
+    expect(workspaceSource).toContain("from './RequestDetailRail'");
+    expect(controllerSource).toContain("from './useEmergencyRequestsQueryState'");
+    expect(controllerSource).toContain("from './useEmergencyRequestsRealtime'");
+    expect(controllerSource).toContain("from './useEmergencyRequestsChrome'");
+    expect(controllerSource).toContain("from './useEmergencyRequestCommands'");
+
+    [...REQUESTS_PAGE_FILES, ...REQUESTS_MOBILE_FILES].forEach((filePath) => {
+      const lineCount = fs.readFileSync(filePath, 'utf8').split(/\r?\n/).length;
+      expect(lineCount).toBeLessThanOrEqual(500);
+    });
+  });
+
   it('keeps Requests list/count/payment reads owned by emergencyService', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
     const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
     const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
 
@@ -36,7 +88,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests filters, exact counts, sort, and pagination service-owned', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
     const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
 
     expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
@@ -58,10 +110,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // TIME-only sort key + the shared pagination store.
     expect(pageSource).toContain('const handleSort = useCallback((key) =>');
     expect(pageSource).toContain('setSortConfig((current) => ({');
-    expect(pageSource).toContain("SortableColumnHeader, getFilterTriggerState } from '../console/ActivitySheet'");
+    expect(pageSource).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader } from '../../console/ActivitySheet';");
+    expect(pageSource).toContain("import { getFilterTriggerState } from '../../console/ActivitySheet';");
     expect(pageSource).toContain('<SortableColumnHeader label="Time" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />');
     expect(pageSource).toContain('onSort={handleSort}');
-    expect(pageSource).toContain('pagination.setTotalCount(count || 0);');
+    expect(pageSource).toContain('setRequestTotalCount(count || 0);');
     expect(pageSource).toContain('<ActivitySheet');
     expect(pageSource).toContain('itemNoun="requests"');
     expect(pageSource).toContain('pagination={pagination}');
@@ -92,7 +145,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('opens Quick Search request deep links through the scoped single-record owner', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
     const searchSource = fs.readFileSync('src/services/searchService.js', 'utf8');
 
     expect(searchSource).toContain('path: `/emergencies?id=${e.id}`');
@@ -127,14 +180,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps legacy Requests density views out of the active route renderer', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
-    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const mobileSource = readRequestsMobileSource();
     const activeRequestsSource = `${pageSource}\n${mobileSource}`;
 
-    expect(pageSource).toContain('const RequestsDesktopWorkspace = (');
+    expect(pageSource).toContain('export const RequestsDesktopWorkspace = (');
     // Signal panel + KPI strip compose from the console DS (this page is the donor);
     // the page keeps its domain maps (signal copy, tone classes, options, counts).
-    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={requestToneClass}>');
+    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={REQUEST_TONE_CLASS}>');
     expect(pageSource).toContain('<KpiStrip');
     expect(pageSource).toContain('<RequestRow');
     expect(pageSource).toContain('<RequestDetailRail');
@@ -153,8 +206,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests out of private shell chrome', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
-    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const mobileSource = readRequestsMobileSource();
     const activeRequestsSource = `${pageSource}\n${mobileSource}`;
     const forbiddenShellOwners = [
       'SmartHeader',
@@ -172,13 +225,15 @@ describe('EmergencyRequestsPage service ownership contract', () => {
       expect(activeRequestsSource).not.toContain(owner);
     });
 
-    expect(pageSource).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';");
+    expect(pageSource).toContain("import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';");
     // The stage owns the atlas + wayfinding dock now (console DS WorkspaceStage
     // renders ConsoleModuleRail); the page stopped importing the rail directly.
-    expect(pageSource).toContain("import { WorkspaceStage, RailInsetHero, useWayfindingNav } from '../console/WorkspaceStage';");
+    expect(pageSource).toContain("import { WorkspaceStage } from '../../console/WorkspaceStage';");
+    expect(pageSource).toContain("import { RailInsetHero } from '../../console/WorkspaceStage';");
+    expect(pageSource).toContain("import { useWayfindingNav } from '../../console/WorkspaceStage';");
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
     expect(pageSource).not.toContain("import { ModalShell } from '../ui/ModalShell';");
-    expect(pageSource).toContain('const RequestDetailRail = ({');
+    expect(pageSource).toContain('export const RequestDetailRail = ({');
     expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
     expect(pageSource).toContain('usePageHeader(');
     expect(pageSource).toContain("'Requests',");
@@ -187,7 +242,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests realtime and route event side effects scoped and cleaned up', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
     const addListeners = pageSource.match(/window\.addEventListener\('/g) || [];
     const removeListeners = pageSource.match(/window\.removeEventListener\('/g) || [];
 
@@ -224,8 +279,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests loading, error, empty, selected, and mobile states distinct', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
-    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const mobileSource = readRequestsMobileSource();
 
     // Count-row copy ('Loading requests' / 'One moment') renders through the DS
     // ActivitySheet from itemNoun="requests"; the skeleton rows are the shared
@@ -238,7 +293,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('Number(pagination.totalCount) === 0');
     expect(pageSource).toContain('No matching requests');
     expect(pageSource).toContain('Change filters');
-    expect(pageSource).toContain("SkeletonRows, CopyChip, DetailLine, StageStrip, EmptyState } from '../console/primitives'");
+    expect(pageSource).toContain('CopyChip, DetailLine, Shimmer, StageStrip');
+    expect(pageSource).toContain('EmptyState, SkeletonRows');
+    expect(pageSource).toContain("from '../../console/primitives';");
     expect(pageSource).toContain('const RequestLoadErrorState = ({ message, onRetry }) => (');
     expect(pageSource).toContain('const RequestLoadNotice = ({ message, onRetry }) => (');
     // KPI chip selected/idle + aria-pressed anatomy is locked once in the DS
@@ -260,12 +317,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('const warmingUp = useSkeletonWarmup();');
     expect(mobileSource).toContain('const showSkeleton = warmingUp || (loading && displayItems.length === 0);');
     expect(mobileSource).toContain('const MobileRequestsListSkeleton = (');
-    expect(mobileSource).toContain('{showSkeleton ? (');
-    expect(mobileSource).toContain('<MobileRequestsListSkeleton />');
+    expect(mobileSource).toContain('{showSkeleton ? <MobileRequestsListSkeleton /> : groupedList}');
     expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
     expect(mobileSource).toContain('label="Requests did not load"');
     expect(mobileSource).toContain('label="No requests found"');
-    expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
+    expect(mobileSource).toContain('const filterTriggerState = filterSheetOpen');
+    expect(mobileSource).toContain(": hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
     expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain('<MobileDetailSheet');
@@ -273,8 +330,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests UI language simple and interaction-safe', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
-    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const mobileSource = readRequestsMobileSource();
     const listSource = fs.readFileSync('src/components/views/EmergencyRequestListView.jsx', 'utf8');
     const tableSource = fs.readFileSync('src/components/views/EmergencyRequestTableView.jsx', 'utf8');
     const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
@@ -311,13 +368,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // 'Loading requests' / 'One moment' come from the DS ActivitySheet count row
     // via itemNoun="requests" (locked in ConsoleDesignSystem.contract.test.js).
     expect(pageSource).toContain('itemNoun="requests"');
-    expect(pageSource).toContain('const EMPTY_REQUEST_FILTERS = Object.freeze({');
-    expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
+    expect(pageSource).toContain('export const EMPTY_REQUEST_FILTERS = Object.freeze({');
+    expect(pageSource).toContain('export const buildRequestsServiceFilter = (filters = {}) =>');
     expect(pageSource).toContain('date_from: dateRange.start');
     expect(pageSource).toContain('date_to: dateRange.end');
     // getFilterTriggerState is DS-owned now (ActivitySheet); the page imports it
     // for the header trigger and the DS toolbar computes its own state from props.
-    expect(pageSource).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader, getFilterTriggerState } from '../console/ActivitySheet';");
+    expect(pageSource).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader } from '../../console/ActivitySheet';");
+    expect(pageSource).toContain("import { getFilterTriggerState } from '../../console/ActivitySheet';");
     expect(pageSource).toContain('const filterTriggerState = getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter });');
     expect(pageSource).toContain("data-state={isEmergencyModalOpen ? 'open' : 'idle'}");
     expect(pageSource).toContain('aria-expanded={isEmergencyModalOpen}');
@@ -334,10 +392,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('loadError,');
     expect(mobileSource).toContain('Requests did not load');
     expect(mobileSource).toContain('onRecover={onRetry}');
-    expect(mobileSource).toContain('const hasMobileRequestFilters = (filters = {}) => Boolean(');
+    expect(mobileSource).toContain('export const hasMobileRequestFilters = (filters = {}) => Boolean(');
     expect(mobileSource).toContain('filterSheetOpen = false,');
     expect(mobileSource).toContain('analyticsOpen = false,');
-    expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
+    expect(mobileSource).toContain('const filterTriggerState = filterSheetOpen');
+    expect(mobileSource).toContain(": hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
     expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
     expect(mobileSource).toContain('data-state={filterTriggerState}');
     expect(mobileSource).toContain('data-state={analyticsTriggerState}');
@@ -420,13 +479,13 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('routingPath={routingPath}');
     expect(railSource).toContain("admin: ['today', 'requests', 'staff', 'payments', 'help']");
     expect(railComponentSource).toContain('aria-current={isActive ? \'page\' : undefined}');
-    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={requestToneClass}>');
+    expect(pageSource).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={REQUEST_TONE_CLASS}>');
     expect(pageSource).toContain('getRequestSignal({ stats, requests, kpiFilter, loadError })');
-    expect(pageSource).toContain('return normalizeCount(stats?.pending, rowCount);');
+    expect(pageSource).toContain('return normalizeRequestCount(stats?.pending, rowCount);');
     expect(pageSource).toContain("id: 'active'");
     expect(pageSource).toContain("label: 'Active'");
     expect(pageSource).toContain('isActiveEmergencyStatus(request.status)');
-    expect(pageSource).toContain('return normalizeCount(stats?.active, rowCount);');
+    expect(pageSource).toContain('return normalizeRequestCount(stats?.active, rowCount);');
     expect(pageSource).toContain("headline: count > 0 ? `${count} active request");
     expect(pageSource).toContain('getDefaultRequestKpi');
     expect(pageSource).toContain("if (pending > 0) return 'pending';");
@@ -442,8 +501,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // once in the DS KpiStrip; the page pins its domain wiring: pool pins,
     // importance, the 'pending' default, and the zero-pending emerald override.
     expect(pageSource).toContain('dataAttr="data-request-kpi"');
-    expect(pageSource).toContain('pinnedIds={PINNED_KPI_IDS}');
-    expect(pageSource).toContain('importance={KPI_IMPORTANCE}');
+    expect(pageSource).toContain('pinnedIds={REQUEST_PINNED_KPI_IDS}');
+    expect(pageSource).toContain('importance={REQUEST_KPI_IMPORTANCE}');
     expect(pageSource).toContain('defaultId="pending"');
     expect(pageSource).toContain('resolveActive={resolveRequestKpiActive}');
     expect(pageSource).toContain('data-request-row={request.id}');
@@ -451,7 +510,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('aria-pressed={selected}');
     expect(pageSource).toContain("tone: hasPending ? 'danger' : 'clear'");
     expect(pageSource).toContain("label: hasPending ? 'Needs attention' : 'Clear'");
-    expect(pageSource).toContain('const getRequestAvatarClass = (request) =>');
+    expect(pageSource).toContain('export const getRequestAvatarClass = (request) =>');
     expect(pageSource).toContain('const rowAvatarClass = getRequestAvatarClass(request);');
     expect(pageSource).toContain('const avatarClass = getRequestAvatarClass(request);');
     expect(pageSource).toContain('bg-emerald-500/10 text-emerald-700');
@@ -487,12 +546,13 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('overflow-y-auto rounded-[30px]');
     expect(pageSource).toContain('lg:h-[calc(100dvh-5.5rem)]');
     expect(pageSource).toContain('mx-auto mb-4 h-1.5 w-[42px]');
-    expect(pageSource).toContain('const railPrimaryActionClass = {');
+    expect(pageSource).toContain('export const REQUEST_RAIL_PRIMARY_ACTION_CLASS = {');
     expect(activeRequestsSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(activeRequestsSource).not.toContain('group-hover:opacity-100');
     expect(activeRequestsSource).not.toContain('hover:opacity');
     expect(pageSource).toContain('const primaryAction = getPrimaryRailAction({');
-    expect(pageSource).toContain('const primaryClass = railPrimaryActionClass[primaryAction.kind] || railPrimaryActionClass.details;');
+    expect(pageSource).toContain('const primaryClass = REQUEST_RAIL_PRIMARY_ACTION_CLASS[primaryAction.kind]');
+    expect(pageSource).toContain('|| REQUEST_RAIL_PRIMARY_ACTION_CLASS.details;');
     expect(pageSource).toContain('onClick={() => primaryAction.onClick(request)}');
     expect(pageSource).toContain('{primaryAction.label}');
     expect(pageSource).toContain("primaryAction.kind !== 'dispatch'");
@@ -504,14 +564,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('aria-label={`Select ${patientName}`}');
     expect(pageSource).not.toContain('container mx-auto');
     expect(pageSource).not.toContain('inset_0_1px');
-    expect(mobileSource).toContain('return countNumber(statistics?.pending, rowCount);');
+    expect(mobileSource).toContain('return countMobileRequestValue(statistics?.pending, rowCount);');
     expect(mobileSource).toContain("id: 'active'");
     expect(mobileSource).toContain("label: 'Active'");
-    expect(mobileSource).toContain('return countNumber(statistics?.active, rowCount);');
-    expect(mobileSource).toContain("return countNumber(statistics?.booking, rowCount);");
+    expect(mobileSource).toContain('return countMobileRequestValue(statistics?.active, rowCount);');
+    expect(mobileSource).toContain('return countMobileRequestValue(statistics?.booking, rowCount);');
     expect(mobileSource).not.toContain("label: 'Critical care'");
     expect(mobileSource).not.toContain('emergencies.length > 0 ? rowCount : countNumber(statistics?.pending, rowCount)');
-    expect(mobileSource).toContain('const getMobileRequestAvatarClass = (request) =>');
+    expect(mobileSource).toContain('export const getMobileRequestAvatarClass = (request) =>');
     expect(mobileSource).toContain('const avatarClass = getMobileRequestAvatarClass(request);');
     expect(mobileSource).toContain('bg-emerald-500/10 text-emerald-700');
     expect(mobileSource).toContain('bg-amber-500/10 text-amber-700');
@@ -547,9 +607,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain('noun="request"');
     expect(mobileSource).not.toContain('rounded-t-sheet bg-card/78');
     expect(mobileSource).toContain("from './canon/MobileHero'");
-    // Detail tiles now render through the shared MobileDetailIslands (canon rounded-button
-    // tiles), replacing the old inline `rounded-inner bg-background/30 p-3` tiles.
-    expect(mobileSource).toContain('MobileDetailIslands');
+    // The page-owned receiver supplies normalized islands to the shared detail sheet,
+    // which owns the canonical rounded-button tile presentation.
+    expect(mobileSource).toContain('<MobileDetailSheet');
+    expect(mobileSource).toContain('islands={[');
     expect(mobileSource).not.toContain('rounded-t-[44px] bg-card/78');
     expect(mobileSource).not.toContain('rounded-[28px]');
     expect(mobileSource).not.toContain('mx-auto mb-3 h-1.5 w-[42px]');
@@ -623,6 +684,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests provider-owned and sponsor-excluded across route and nav contracts', () => {
+    const routeSource = readRequestsRouteSource();
+
+    expect(routeSource).toContain("emergencies: lazyNamedPage(() => import('../components/pages/EmergencyRequestsPage'), 'EmergencyRequestsPage')");
+    expect(routeSource).toContain("{ id: 'emergencies', path: '/emergencies', minRole: 'provider' }");
+    expect(routeSource).toContain('if (minRole) return <ProtectedRoute minRole={minRole}>{page}</ProtectedRoute>;');
+
     expect(getRouteProtection('/emergencies')).toEqual({
       minRole: 'provider',
       resource: 'emergency_requests',
@@ -641,8 +708,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps Requests actions tied to explicit receivers and removes mobile destructive shortcuts', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
-    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const mobileSource = readRequestsMobileSource();
     const detailsModalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
     const requestModalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
     const actionSource = fs.readFileSync('src/utils/emergencyActions.js', 'utf8');
@@ -653,11 +720,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // Dispatch/complete/cancel now route through useEmergencyMutations.mutateAsync,
     // whose mutationFn is the SAME reused RPC service fn (never bypassed).
     expect(pageSource).toContain('dispatchEmergency(id, request)');
-    expect(pageSource).toContain('dispatchMutation.mutateAsync({ id: request.id, request })');
+    expect(pageSource).toContain('dispatchMutateAsync({ id: request.id, request })');
     expect(pageSource).toContain('completeEmergency(id, request)');
-    expect(pageSource).toContain('completeMutation.mutateAsync({ id: request.id, request })');
+    expect(pageSource).toContain('completeMutateAsync({ id: request.id, request })');
     expect(pageSource).not.toContain('retryPaymentWithDifferentMethod(');
-    expect(pageSource).toContain("if (currentUser.isAdmin() || currentUser.isOrgAdmin())");
+    expect(pageSource).toContain('canCreate: currentUser.isAdmin() || currentUser.isOrgAdmin(),');
     expect(pageSource).toContain('const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();');
     expect(pageSource).toContain('request?.responder_id === currentUser.user.id');
     expect(pageSource).toContain('if (!actionState.canDispatch)');
@@ -666,7 +733,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
     expect(pageSource).toContain("toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });");
     expect(pageSource).toContain('setCompleteModal({ open: true, request });');
-    expect(pageSource).toContain('await completeMutation.mutateAsync({ id: request.id, request });');
+    expect(pageSource).toContain('await completeMutateAsync({ id: request.id, request });');
     expect(pageSource).toContain("toast.success('Request completed');");
     expect(pageSource).toContain("toast.error(error?.message || 'Failed to complete request');");
     expect(pageSource).not.toContain('walletService.checkCashEligibility');
@@ -679,14 +746,15 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('executeRetryPayment');
     expect(pageSource).not.toContain('onRetryPayment={handleRetryPayment}');
     expect(pageSource).toContain('cancelEmergencyRequest(id, reason)');
-    expect(pageSource).toContain("cancelMutation.mutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
+    expect(pageSource).toContain("cancelMutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
     expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
     expect(pageSource).toContain('currentUser.isAdmin() && actionState.canCancel');
     // Desktop bulk cancel: admin-gated multi-select routed through the SAME reused cancel
-    // path (cancelMutation.mutateAsync in a loop), confirmed via the shared ConfirmationModal.
+    // path (cancelMutateAsync in a loop), confirmed via the shared ConfirmationModal.
     // No parallel cancel service call is introduced.
     expect(pageSource).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
-    expect(pageSource).toContain('const [selectedIds, setSelectedIds] = useState([]);');
+    expect(pageSource).toContain("import { useRowSelection } from '../../../hooks/useRowSelection';");
+    expect(pageSource).toContain('} = useRowSelection(requests);');
     expect(pageSource).toContain('const executeBulkCancel = useCallback');
     expect(pageSource).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
     expect(pageSource).toContain('selectable={currentUser.isAdmin()}');
@@ -806,13 +874,13 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('reads Requests via useEmergencyQuery and writes via reused-RPC optimistic mutations', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
     const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
     const mutationsHookSource = fs.readFileSync('src/hooks/useEmergencyMutations.js', 'utf8');
     const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
 
     // Read path: a single ['emergency', filter] React Query store, no parallel list state.
-    expect(pageSource).toContain("import { useEmergencyQuery } from '../../hooks/useEmergencyQuery';");
+    expect(pageSource).toContain("import { useEmergencyQuery } from '../../../hooks/useEmergencyQuery';");
     expect(pageSource).toContain('useEmergencyQuery(queryFilter, { enabled: authReady })');
     expect(pageSource).not.toContain('const [requests, setRequests]');
     expect(pageSource).not.toContain('getEmergencyRequestsPage({');
@@ -822,10 +890,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
     // Write path: mutations wrap the EXISTING reused RPC service fns; onMutate
     // snapshot -> optimistic status -> onError rollback -> onSettled invalidate(['emergency']).
-    expect(pageSource).toContain("import { useEmergencyMutations, applyOptimisticStatus } from '../../hooks/useEmergencyMutations';");
-    expect(pageSource).toContain('dispatchMutation.mutateAsync(');
-    expect(pageSource).toContain('completeMutation.mutateAsync(');
-    expect(pageSource).toContain('cancelMutation.mutateAsync(');
+    expect(pageSource).toContain("import { applyOptimisticStatus, useEmergencyMutations } from '../../../hooks/useEmergencyMutations';");
+    expect(pageSource).toContain('dispatchMutateAsync(');
+    expect(pageSource).toContain('completeMutateAsync(');
+    expect(pageSource).toContain('cancelMutateAsync(');
     expect(mutationsHookSource).toContain("export const EMERGENCY_KEY_ROOT = ['emergency'];");
     expect(mutationsHookSource).toContain('export function applyOptimisticStatus(');
     expect(mutationsHookSource).toContain('queryClient.cancelQueries({ queryKey: EMERGENCY_KEY_ROOT })');
@@ -845,13 +913,14 @@ describe('EmergencyRequestsPage service ownership contract', () => {
   });
 
   it('keeps request statistics and cancel feedback honest under partial or pending state', () => {
-    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
 
     expect(pageSource).toContain("toast.info('Statistics unavailable'");
     expect(pageSource).toContain('are a preview, not complete statistics.');
     expect(pageSource).toContain('onViewAnalytics={handleOpenAnalytics}');
     expect(pageSource).toContain('analytics={requestStats}');
     expect(pageSource).not.toContain('analytics={requestStats || {');
-    expect(pageSource).toContain('isLoading={cancelMutation.isPending}');
+    expect(pageSource).toContain('cancelPending: cancelMutation.isPending');
+    expect(pageSource).toContain('isLoading={cancelPending}');
   });
 });
