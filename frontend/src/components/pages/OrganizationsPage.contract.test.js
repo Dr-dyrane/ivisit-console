@@ -6,6 +6,7 @@ import {
 } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readBundle = (paths) => paths.map(read).join('\n');
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowBaseline = (path) => execFileSync(
   'git',
@@ -13,13 +14,33 @@ const gitShowBaseline = (path) => execFileSync(
   { encoding: 'utf8' }
 );
 
+const ORGANIZATIONS_PAGE_MODULES = [
+  'src/components/pages/OrganizationsPage.jsx',
+  'src/components/pages/organizations/OrganizationDetailRail.jsx',
+  'src/components/pages/organizations/OrganizationsDesktopWorkspace.jsx',
+  'src/components/pages/organizations/OrganizationsPageView.jsx',
+  'src/components/pages/organizations/organizationPageModel.js',
+  'src/components/pages/organizations/organizationPresentation.js',
+  'src/components/pages/organizations/useOrganizationsPageChrome.js',
+  'src/components/pages/organizations/useOrganizationsPageController.js',
+];
+
+const MOBILE_ORGANIZATIONS_MODULES = [
+  'src/components/mobile/MobileOrganizations.jsx',
+  'src/components/mobile/organizations/MobileOrganizationDetailSheet.jsx',
+  'src/components/mobile/organizations/MobileOrganizationRow.jsx',
+  'src/components/mobile/organizations/MobileOrganizationsAtlasLayer.jsx',
+  'src/components/mobile/organizations/mobileOrganizationsModel.js',
+  'src/components/mobile/organizations/useMobileOrganizationsController.js',
+];
+
 describe('Organizations Page 15 revamp contract', () => {
   it('preserves the baseline perk inventory while retiring old active renderers and commands', () => {
     const oldPage = gitShowBaseline('frontend/src/components/pages/OrganizationsPage.jsx');
     const oldMobile = gitShowBaseline('frontend/src/components/mobile/MobileOrganizations.jsx');
     const oldPanel = gitShowBaseline('frontend/src/components/context/OrganizationsPanel.jsx');
-    const page = read('src/components/pages/OrganizationsPage.jsx');
-    const mobile = read('src/components/mobile/MobileOrganizations.jsx');
+    const page = readBundle(ORGANIZATIONS_PAGE_MODULES);
+    const mobile = readBundle(MOBILE_ORGANIZATIONS_MODULES);
     const constitution = read('docs/audit/ORGANIZATIONS_REVAMP_CONSTITUTION_2026-07-11.md');
 
     expect(oldPage).toContain("useViewMode('organizations', 'table')");
@@ -65,14 +86,17 @@ describe('Organizations Page 15 revamp contract', () => {
   });
 
   it('uses one bounded, exact read projection and keeps every organization write fail-closed', () => {
-    const app = read('src/App.js');
+    const appRoutes = read('src/app/AppRoutes.jsx');
+    const routeMetadata = read('src/app/appRouteMetadata.js');
     const routes = read('src/config/routes.jsx');
-    const page = read('src/components/pages/OrganizationsPage.jsx');
+    const page = readBundle(ORGANIZATIONS_PAGE_MODULES);
     const service = read('src/services/organizationsService.js');
     const hook = read('src/hooks/useOrganizationsQuery.js');
     const pageDataAccess = read('src/config/pageDataAccess.js');
 
-    expect(app).toContain('<Route path="/organizations" element={<ProtectedRoute minRole="admin"><OrganizationsPage /></ProtectedRoute>} />');
+    expect(appRoutes).toContain("organizations: lazyNamedPage(() => import('../components/pages/OrganizationsPage'), 'OrganizationsPage')");
+    expect(appRoutes).toContain('APP_ROUTE_METADATA.map((route) => (');
+    expect(routeMetadata).toContain("{ id: 'organizations', path: '/organizations', minRole: 'admin' }");
     expect(routes).toContain("'/organizations': {");
     expect(routes).toContain("resource: 'organizations'");
     expect(routes).toContain("title: 'Organizations'");
@@ -81,7 +105,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(pageDataAccess).toContain("const isTodayPath = (pathname = '') => pathname === '' || pathname === '/';");
     expect(pageDataAccess).toContain('return !isTodayPath(pathname);');
 
-    expect(page).toContain("import { useOrganizationsQuery } from '../../hooks/useOrganizationsQuery';");
+    expect(page).toContain('useOrganizationsQuery');
     expect(page).toContain('kpiFilter,');
     expect(page).toContain('isPlaceholderData,');
     expect(page).toContain('const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE');
@@ -89,7 +113,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain("const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';");
     expect(page).toContain('role="status"');
     expect(page).not.toContain('aria-label="Add organization unavailable"');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>');
     expect(page).toContain('title="Bulk organization changes are not available"');
     expect(page).toContain('data-state="unavailable"');
     expect(page).not.toContain('handleBulkDelete');
@@ -111,8 +135,8 @@ describe('Organizations Page 15 revamp contract', () => {
   });
 
   it('locks desktop, mobile, context, modal, navbar, and FAB parity to the canon', () => {
-    const page = read('src/components/pages/OrganizationsPage.jsx');
-    const mobile = read('src/components/mobile/MobileOrganizations.jsx');
+    const page = readBundle(ORGANIZATIONS_PAGE_MODULES);
+    const mobile = readBundle(MOBILE_ORGANIZATIONS_MODULES);
     const panel = read('src/components/context/OrganizationsPanel.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const dock = [
@@ -129,7 +153,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain('<ActivitySheet');
     expect(page).toContain('<DetailRailShell');
     expect(page).toContain('useRowSelection(orgRows)');
-    expect(page).toContain('const ORG_GRID_COLS_SELECT');
+    expect(page).toContain('const ORGANIZATION_GRID_COLS_SELECT');
     expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
     expect(page).toContain('onSelectClick?.(event)');
     expect(page).toContain('useListKeyboardNav');
@@ -140,6 +164,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(page).toContain('selectionEnabled={selectable}');
     expect(page).toContain('selectable={selectable}');
     expect((page.match(/<SortableColumnHeader/g) || [])).toHaveLength(1);
+    expect(page).not.toContain('Legacy page contracts still inspect');
 
     expect(mobile).toContain('<MobileHeading');
     expect(mobile).toContain('<MobileKPIStrip');

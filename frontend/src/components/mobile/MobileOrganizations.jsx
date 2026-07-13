@@ -1,26 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Building2,
-  Clock,
-  CreditCard,
-  Eye,
-  Hash,
-  Mail,
-  Trash2,
-  Wallet,
-} from 'lucide-react';
+import React from 'react';
+import { Building2, Trash2 } from 'lucide-react';
 import {
   GroupPanel,
   Hairline,
   MobileHeading,
-  MobileListRow,
   SearchRow,
   SkeletonGroupPanel,
   UpdatingPillRow,
   useSkeletonWarmup,
 } from './canon';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileSelectionBar } from './MobileSelectionBar';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
@@ -30,73 +19,12 @@ import {
   MobileListLoadingMore,
   MobileListLoadMore,
 } from './MobileListStates';
-import { useStableList } from './useStableList';
-import { useLoadMoreControl } from './useLoadMoreControl';
-import { useRowSelection } from '../../hooks/useRowSelection';
-import { useFeedback } from '../../hooks/useFeedback';
-import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
-import { formatRelativeTime } from '../../utils/activityUtils';
-import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';
+import { MobileOrganizationDetailSheet } from './organizations/MobileOrganizationDetailSheet';
+import { MobileOrganizationRow } from './organizations/MobileOrganizationRow';
+import { MobileOrganizationsAtlasLayer } from './organizations/MobileOrganizationsAtlasLayer';
+import { useMobileOrganizationsController } from './organizations/useMobileOrganizationsController';
 
-const metricValue = (value, fallback = 0) => {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-};
-
-const isFunded = (organization) => Number(organization?.wallet_balance || 0) > 0;
-
-const formatWallet = (value) => {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 'Not available';
-  return `$${numeric.toLocaleString()}`;
-};
-
-const formatDate = (value) => {
-  if (!value) return 'Not available';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Not available';
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-const organizationPill = (organization) => (organization?.is_active
-  ? {
-      label: 'Active',
-      className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-      dataStatus: 'active',
-    }
-  : {
-      label: 'Inactive',
-      className: 'bg-muted/40 text-muted-foreground',
-      dataStatus: 'inactive',
-    });
-
-const readinessLabel = (key) => (key === 'funded' ? 'Funded' : 'Payout gap');
-
-const MobileOrganizationsAtlasLayer = () => (
-  <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
-    <div
-      className="absolute inset-0 opacity-[0.28] dark:opacity-[0.22]"
-      style={{
-        backgroundImage:
-          'linear-gradient(118deg, transparent 0 45%, hsl(var(--foreground) / 0.05) 45% 48%, transparent 48%), linear-gradient(32deg, transparent 0 41%, hsl(var(--foreground) / 0.04) 41% 44%, transparent 44%), linear-gradient(154deg, transparent 0 64%, hsl(var(--primary) / 0.06) 64% 67%, transparent 67%)',
-        backgroundSize: '250px 178px, 330px 236px, 410px 276px',
-        backgroundPosition: '18px 10px, -72px 48px, 16% 38%',
-      }}
-    />
-    <div
-      className="absolute inset-0"
-      style={{
-        background:
-          'linear-gradient(145deg, hsl(var(--background) / 0.12), transparent 42%), linear-gradient(180deg, hsl(var(--background) / 0.2), hsl(var(--background)) 92%)',
-      }}
-    />
-  </div>
-);
-
-const hasActiveOrganizationFilters = (filters = {}) => Boolean(
-  filters.search || (filters.kpiFilter && filters.kpiFilter !== 'all')
-);
-
+// grammar:loadmore-append=useMobileOrganizationsController-owns-the-id-keyed-accumulator
 export const MobileOrganizations = ({
   organizations = [],
   statistics = null,
@@ -118,166 +46,43 @@ export const MobileOrganizations = ({
   onLoadMore,
   page = 1,
 }) => {
-  const observerTarget = useRef(null);
-  const [activeOrganization, setActiveOrganization] = useState(null);
-  const { triggerFromEvent } = useFeedback();
-  const sourceOrganizations = useMemo(
-    () => (Array.isArray(organizations) ? organizations : []),
-    [organizations]
-  );
-  const busy = loading || isFetching;
-  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({
-    hasMore,
-    loading: busy,
-    onLoadMore,
-  });
-
-  useEffect(() => {
-    if (!hasMore || busy) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) triggerLoad();
-      },
-      { threshold: 0.1, rootMargin: '120px' }
-    );
-    if (observerTarget.current) observer.observe(observerTarget.current);
-    return () => observer.disconnect();
-  }, [busy, hasMore, triggerLoad]);
-
-  // The query is windowed. This id-keyed accumulator replaces page 1 and appends later pages.
-  // Placeholder rows are never absorbed, so changing search/KPI cannot poison the new scope with
-  // the previous query's rows. A settled empty page 1 clears; an empty later page keeps page 1.
-  const filterSignature = JSON.stringify({
-    search: filters.search || '',
-    kpi: filters.kpiFilter || 'all',
-  });
-  const accumulatorRef = useRef({
-    signature: null,
-    order: [],
-    byId: new Map(),
-    lastSource: null,
-    lastPlaceholder: null,
-  });
-  const organizationRows = useMemo(() => {
-    const store = accumulatorRef.current;
-    const reset = () => {
-      store.order = [];
-      store.byId = new Map();
-    };
-    const absorb = (row) => {
-      const id = row?.id;
-      if (id === null || id === undefined) return;
-      if (!store.byId.has(id)) store.order.push(id);
-      store.byId.set(id, row);
-    };
-
-    if (store.signature !== filterSignature) {
-      store.signature = filterSignature;
-      reset();
-      store.lastSource = null;
-      store.lastPlaceholder = null;
-    }
-
-    if (store.lastSource !== sourceOrganizations || store.lastPlaceholder !== isPlaceholderData) {
-      store.lastSource = sourceOrganizations;
-      store.lastPlaceholder = isPlaceholderData;
-      if (!isPlaceholderData) {
-        if (page === 1) reset();
-        sourceOrganizations.forEach(absorb);
-      }
-    }
-
-    return store.order.map((id) => store.byId.get(id));
-  }, [filterSignature, isPlaceholderData, page, sourceOrganizations]);
-
-  const { displayItems: displayOrganizations, isBuffering } = useStableList(organizationRows, loading);
   const warmingUp = useSkeletonWarmup();
-  const showTopSectionLoading = warmingUp
-    || ((loading || isPlaceholderData) && displayOrganizations.length === 0);
-
-  const organizationKPIs = [
-    {
-      id: 'all',
-      label: 'Registry',
-      value: metricValue(statistics?.total, sourceOrganizations.length),
-      color: 'hsl(var(--muted-foreground))',
-    },
-    {
-      id: 'funded',
-      label: 'Funded',
-      value: metricValue(statistics?.funded, 0),
-      color: 'hsl(162 94% 24%)',
-    },
-    {
-      id: 'payout_gap',
-      label: 'Payout gap',
-      value: metricValue(statistics?.payoutGap, 0),
-      color: 'hsl(38 92% 50%)',
-    },
-  ];
-  const activeKpi = filters.kpiFilter || 'all';
-  const scopeCount = activeKpi === 'funded'
-    ? metricValue(statistics?.funded, 0)
-    : activeKpi === 'payout_gap'
-      ? metricValue(statistics?.payoutGap, 0)
-      : metricValue(statistics?.total, sourceOrganizations.length);
-  const hasFilter = hasActiveOrganizationFilters(filters);
-
+  const controller = useMobileOrganizationsController({
+    organizations,
+    statistics,
+    filters,
+    selectionEnabled,
+    hasMore,
+    onLoadMore,
+    page,
+    loading,
+    isFetching,
+    isPlaceholderData,
+    warmingUp,
+  });
   const {
+    observerTarget,
+    activeOrganization,
+    setActiveOrganization,
+    busy,
+    armed,
+    requestLoad,
+    displayOrganizations,
+    isBuffering,
+    showTopSectionLoading,
+    organizationKPIs,
+    activeKpi,
+    scopeCount,
+    hasFilter,
     selectedIds,
+    selectedIdSet,
+    selectionMode,
     handleToggleSelect,
     handleSelectAll,
     clearSelection,
-  } = useRowSelection(displayOrganizations);
-  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const selectionMode = selectionEnabled && selectedIdSet.size > 0;
-
-  useEffect(() => {
-    if (!selectionEnabled) clearSelection();
-  }, [clearSelection, selectionEnabled]);
-
-  const { groups: organizationGroups } = useMemo(() => resolveAdaptiveGroups(
-    displayOrganizations,
-    [
-      {
-        key: 'payout-readiness',
-        assign: (organization) => (isFunded(organization) ? 'funded' : 'payout_gap'),
-        labelFor: readinessLabel,
-        order: (keys) => keys.slice().sort((a, b) => (a === 'funded' ? -1 : b === 'funded' ? 1 : 0)),
-      },
-      {
-        type: 'coarse-recency',
-        key: 'added',
-        getDate: (organization) => organization.created_at || organization.updated_at,
-      },
-    ]
-  ), [displayOrganizations]);
-
-  const renderOrganizationRow = (organization) => {
-    const funded = isFunded(organization);
-    return (
-      <MobileListRow
-        item={organization}
-        dataAttr="data-mobile-organization-row"
-        onOpen={setActiveOrganization}
-        ariaLabel={`${organization.name || 'Unnamed organization'}, ${funded ? 'funded' : 'payout gap'}`}
-        orbClass={funded
-          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
-          : 'bg-amber-500/10 text-amber-700 dark:text-amber-200'}
-        icon={Building2}
-        title={organization.name || 'Unnamed organization'}
-        meta={organization.contact_email || 'No contact email'}
-        time={formatRelativeTime(organization.created_at || organization.updated_at)}
-        markerChip={funded ? 'Funded' : null}
-        pill={organizationPill(organization)}
-        selectable={selectionEnabled}
-        selected={selectedIdSet.has(organization.id)}
-        selectionMode={selectionMode}
-        onToggleSelect={(item) => handleToggleSelect(item.id, !selectedIdSet.has(item.id))}
-        onLongPress={(item) => handleToggleSelect(item.id, true)}
-      />
-    );
-  };
+    organizationGroups,
+    handleCopyOrganizationId,
+  } = controller;
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -368,7 +173,17 @@ export const MobileOrganizations = ({
                     <GroupPanel key={group.key} label={group.label} count={group.items.length}>
                       {group.items.map((organization, index) => (
                         <React.Fragment key={organization.id}>
-                          {renderOrganizationRow(organization)}
+                          <MobileOrganizationRow
+                            organization={organization}
+                            selectionEnabled={selectionEnabled}
+                            selectedIdSet={selectedIdSet}
+                            selectionMode={selectionMode}
+                            onToggleSelect={(item) => (
+                              handleToggleSelect(item.id, !selectedIdSet.has(item.id))
+                            )}
+                            onLongPress={(item) => handleToggleSelect(item.id, true)}
+                            onOpen={setActiveOrganization}
+                          />
                           {index < group.items.length - 1 && <Hairline />}
                         </React.Fragment>
                       ))}
@@ -417,66 +232,12 @@ export const MobileOrganizations = ({
           </section>
         </div>
 
-        {activeOrganization && (() => {
-          const organization = activeOrganization;
-          const organizationId = organization.display_id || organization.id || 'Not available';
-          return (
-            <MobileDetailSheet
-              isOpen
-              onClose={() => setActiveOrganization(null)}
-              icon={Building2}
-              iconTone={isFunded(organization) ? 'hsl(162 94% 24%)' : 'hsl(38 92% 50%)'}
-              eyebrow={isFunded(organization) ? 'Funded organization' : 'Payout gap'}
-              title={organization.name || 'Unnamed organization'}
-              statusPill={organizationPill(organization)}
-              islands={[
-                {
-                  icon: Mail,
-                  label: 'Contact',
-                  value: organization.contact_email || 'Not available',
-                  href: organization.contact_email ? `mailto:${organization.contact_email}` : undefined,
-                },
-                {
-                  icon: Wallet,
-                  label: 'Wallet',
-                  value: formatWallet(organization.wallet_balance),
-                },
-                {
-                  icon: CreditCard,
-                  label: 'Stripe',
-                  value: organization.stripe_account_id ? 'Connected' : 'Not connected',
-                },
-                {
-                  icon: Clock,
-                  label: 'Added',
-                  value: formatDate(organization.created_at),
-                },
-                {
-                  icon: Hash,
-                  label: 'Organization ID',
-                  value: organizationId,
-                  onPress: (event) => {
-                    navigator.clipboard?.writeText(String(organizationId))?.catch(() => {});
-                    triggerFromEvent(event, {
-                      variant: FEEDBACK_TYPES.SUCCESS,
-                      color: 'hsl(var(--spark))',
-                      haptic: true,
-                      sound: true,
-                    });
-                  },
-                },
-              ]}
-              primary={{
-                label: 'Details',
-                icon: Eye,
-                onClick: () => {
-                  setActiveOrganization(null);
-                  onView?.(organization);
-                },
-              }}
-            />
-          );
-        })()}
+        <MobileOrganizationDetailSheet
+          organization={activeOrganization}
+          onClose={() => setActiveOrganization(null)}
+          onView={onView}
+          onCopyId={handleCopyOrganizationId}
+        />
       </MobilePageShell>
     </PullToRefresh>
   );
