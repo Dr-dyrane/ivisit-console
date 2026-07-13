@@ -6,7 +6,7 @@ import { getMobileNavigationItems } from '../../config/mobileNavigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
-import { readPageDataImplementation } from '../../test/sourceEstates';
+import { readPageDataImplementation, readSourceEstate } from '../../test/sourceEstates';
 
 describe('VisitsPage admission contract', () => {
   const pageSource = () => [
@@ -32,7 +32,10 @@ describe('VisitsPage admission contract', () => {
   const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
   const modalSuppressionSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/visitsService.js', 'utf8');
+  const serviceSource = () => readSourceEstate({
+    files: ['src/services/visitsService.js'],
+    directories: ['src/services/visits'],
+  });
   const pageDataSource = readPageDataImplementation;
   const bottomBarSource = () => [
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
