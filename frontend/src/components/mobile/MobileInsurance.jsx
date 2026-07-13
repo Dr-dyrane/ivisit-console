@@ -66,6 +66,11 @@ const metricValue = (value, fallback = 0) => {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
 
+const normalizedStatus = (value) => String(value || '').trim().toLowerCase() || 'unknown';
+const formatStatusLabel = (value) => String(value || 'unknown')
+  .replace(/[_-]+/g, ' ')
+  .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const formatPlanType = (policy) => {
   const raw = policy?.policy_type || policy?.coverage_type || policy?.plan_type;
   if (!raw) return '';
@@ -95,7 +100,7 @@ const orbClassFor = (status) => {
     case 'pending': return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300';
     case 'expired': return 'bg-amber-500/12 text-amber-700 dark:text-amber-300';
     case 'inactive': return 'bg-muted/40 text-muted-foreground';
-    default: return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-300';
+    default: return 'bg-muted/40 text-muted-foreground';
   }
 };
 
@@ -111,6 +116,15 @@ const statusIcon = (status) => {
 // Lifecycle spine order for the status grouping: pending -> active -> expired -> inactive
 // (INSURANCE_LIFECYCLE spine order, NOT alpha).
 const STATUS_ORDER = ['pending', 'active', 'expired', 'inactive'];
+const insuranceVital = (status) => (
+  STATUS_ORDER.includes(normalizedStatus(status))
+    ? resolveVital('insurance', normalizedStatus(status))
+    : null
+);
+const insurancePill = (status) => insuranceVital(status)?.pill || {
+  label: formatStatusLabel(status),
+  className: 'bg-muted/40 text-muted-foreground',
+};
 const statusRank = (status) => {
   const index = STATUS_ORDER.indexOf(status);
   return index === -1 ? STATUS_ORDER.length : index;
@@ -145,7 +159,9 @@ const MobileInsuranceAtlasLayer = () => (
 const hasActiveInsuranceFilters = (filters = {}) => Boolean(
   filters?.search ||
   (Array.isArray(filters?.status) && filters.status.length > 0) ||
-  (Array.isArray(filters?.type) && filters.type.length > 0) ||
+  (Array.isArray(filters?.type)
+    ? filters.type.length > 0
+    : Boolean(String(filters?.type || '').trim())) ||
   (filters?.verified && filters.verified !== 'all') ||
   filters?.created_at?.start ||
   filters?.created_at?.end
@@ -254,8 +270,8 @@ export const MobileInsurance = ({
   const { groups: policyGroups } = useMemo(() => resolveAdaptiveGroups(displayPolicies, [
     {
       key: 'status',
-      assign: (p) => p.status || 'pending',
-      labelFor: (k) => resolveVital('insurance', k)?.pill?.label ?? k,
+      assign: (p) => normalizedStatus(p.status),
+      labelFor: (k) => insurancePill(k).label,
       order: (keys) => keys.slice().sort((a, b) => statusRank(a) - statusRank(b)),
       orphanLabel: 'Other',
     },
@@ -263,8 +279,8 @@ export const MobileInsurance = ({
   ]), [displayPolicies]);
 
   const renderPolicyRow = (policy) => {
-    const status = policy.status || 'pending';
-    const vital = resolveVital('insurance', status);
+    const status = normalizedStatus(policy.status);
+    const vital = insuranceVital(status);
     const planType = formatPlanType(policy);
     const providerLabel = policy.provider_name || 'Unknown provider';
     return (
@@ -279,7 +295,7 @@ export const MobileInsurance = ({
         meta={planType ? `${providerLabel} / ${planType}` : providerLabel}
         time={formatRelativeTime(policy.created_at)}
         markerChip={policy.verified ? 'Verified' : null}
-        pill={vital?.pill}
+        pill={vital?.pill || insurancePill(status)}
       />
     );
   };
@@ -308,7 +324,7 @@ export const MobileInsurance = ({
 
           <section className="px-4">
             <SearchRow
-              placeholder="Search policies..."
+              placeholder="Search policy, provider, or plan..."
               search={filters?.search || ''}
               onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
               entityLabel="policies"
@@ -390,9 +406,13 @@ export const MobileInsurance = ({
                       : kpiEmptyCause
                         ? `No policies in the ${activeKpiLabel} scope.`
                       : 'Policy records for this scope will appear here.'}
-                  onRecover={(filters?.search || hasFilter || kpiEmptyCause)
-                    ? () => setFilters(prev => ({ ...prev, search: '', kpiFilter: 'all', status: [], type: [], verified: '', created_at: { start: '', end: '' } }))
-                    : undefined}
+                  onRecover={filters?.search
+                    ? () => setFilters(prev => ({ ...prev, search: '' }))
+                    : hasFilter
+                      ? () => setFilters(prev => ({ ...prev, status: [], type: '', verified: '', created_at: { start: '', end: '' } }))
+                      : kpiEmptyCause
+                        ? () => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))
+                        : undefined}
                   recoverLabel={filters?.search ? 'Clear Search' : hasFilter ? 'Reset Filters' : kpiEmptyCause ? 'Show all policies' : undefined}
                   labelTone="plain"
                 />
@@ -406,17 +426,18 @@ export const MobileInsurance = ({
             -> read-only InsuranceModal). NO secondary edit action, NO delete, NO verify command
             -- verification is display-only (the island / row markerChip), never a write. */}
         {activePolicy && (() => {
-          const v = resolveVital('insurance', activePolicy.status);
+          const policyStatus = normalizedStatus(activePolicy.status);
+          const v = insuranceVital(policyStatus);
           const planType = formatPlanType(activePolicy);
           return (
             <MobileDetailSheet
               isOpen={!!activePolicy}
               onClose={() => setActivePolicy(null)}
-              icon={statusIcon(activePolicy.status || 'pending')}
-              iconTone={v?.tone}
+              icon={statusIcon(policyStatus)}
+              iconTone={v?.tone || 'hsl(215 16% 47%)'}
               eyebrow="Insurance policy"
               title={activePolicy.policy_holder_name || activePolicy.policy_number || 'Unnamed policy'}
-              statusPill={v?.pill}
+              statusPill={v?.pill || insurancePill(policyStatus)}
               vital={v ? { ...v, label: 'Policy status' } : null}
               islands={[
                 { icon: User, label: 'Holder', value: activePolicy.policy_holder_name },

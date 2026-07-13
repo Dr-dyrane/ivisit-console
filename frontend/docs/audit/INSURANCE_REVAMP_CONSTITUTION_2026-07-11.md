@@ -1,6 +1,6 @@
 # Insurance Revamp Constitution - 2026-07-11
 
-Status: implementation candidate; rendered proof pending
+Status: source-level closure complete 2026-07-12; rendered proof pending
 
 ## Baseline and authority
 
@@ -14,7 +14,7 @@ Status: implementation candidate; rendered proof pending
 
 - Policy status and verification are separate evidence axes.
 - Provider, holder, policy number, plan type, coverage, expiration, and intake date remain visible.
-- Billing outcomes remain available in analytics and route context without becoming policy commands.
+- Billing outcomes remain available in route context and the policy-linked detail modal without becoming policy commands.
 - Server-side search, status/type/verification/date filters, KPI scopes, sort, exact count, pagination, and visible-page analytics remain explicit.
 - Deep record focus opens the read-only policy modal and publishes the whole route context to the right pane.
 
@@ -22,7 +22,7 @@ Status: implementation candidate; rendered proof pending
 
 - Compose `WorkspaceStage`, `SignalPanel`, `KpiStrip`, one `ActivitySheet`, `SheetToolbar`, `ListRowShell`, and `DetailRailShell`.
 - Keep one sortable time header, backed by `created_at` server sort.
-- Preserve row selection as an operator workspace mechanism; bulk mutation remains visibly unavailable until authority is proved.
+- Exclude row selection while policy mutation and bulk command authority are absent; focused-row inspection remains available.
 - Filter state must be visible in the toolbar and reset pagination when changed.
 - Loading, background refresh, failed-empty, degraded, filtered-empty, and terminal pagination states must remain distinct.
 - Remove private card/rail look-alikes, entrance choreography, colored glow shadows, invalid opacity tokens, and view-mode branching.
@@ -37,7 +37,29 @@ Status: implementation candidate; rendered proof pending
 
 - Consume the whole route context and focused policy.
 - Use canonical panel surfaces and radii; no private `Card` estate or entrance motion.
-- Analytics and filter actions remain available. Add/export remain fail-closed with explanatory feedback.
+- Analytics and filter actions remain available through namespaced route events. Add/export remain visibly disabled with explanatory copy.
+
+## Step-back closure - 2026-07-12
+
+- Removed the clickable read-only navbar command and duplicate navbar filter. The desktop toolbar,
+  mobile SearchRow, and context panel retain the one shared FilterSheet; the route records the
+  navbar filter exclusion explicitly for the list-estate gate.
+- Replaced the invented Health/Life/Vehicle/Property menu with a canonical free-form `plan_type`
+  filter. It is case-insensitive, wildcard-sanitized, and includes the missing Inactive lifecycle
+  option in the separate status filter.
+- Policy status now normalizes at the service boundary and missing status renders Unknown/neutral
+  instead of being invented as Pending. Mobile, desktop, panel, and modal policy status labels and
+  tones resolve through `vitalTracks`; expired is amber, pending is cyan, and red remains reserved
+  for real failures or rejected billing outcomes.
+- Context policy and billing reads now render independently. Billing loading no longer appears as
+  a truthful empty result, billing failure preserves and labels loaded outcomes, and unavailable
+  policy/billing totals no longer collapse to zero. Loaded page rows are no longer called recent
+  when the user has changed sort direction.
+- Mobile empty recovery is axis-specific: Clear Search clears only search, Reset Filters clears only
+  sheet facets, and Show all policies clears only the KPI scope.
+- Shared `ModalShell` and `FilterSheet` now emit the shell's existing `modal-opened` signal when they
+  become visible, so opening Insurance Analytics, Filter, or Details closes the right context pane
+  through `LayoutContext` instead of leaving overlapping shell surfaces.
 
 ## Admission proof
 

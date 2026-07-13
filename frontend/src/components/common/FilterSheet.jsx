@@ -56,6 +56,11 @@ export const FilterSheet = ({
   }, [isOpen, isMobile]);
 
   useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+    window.dispatchEvent(new Event('modal-opened'));
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return undefined;
 
     const handleKeyDown = (event) => {

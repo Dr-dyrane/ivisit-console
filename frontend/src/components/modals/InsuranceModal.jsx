@@ -15,6 +15,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { getInsuranceBillingOutcomes } from '../../services/insuranceService';
+import { resolveVital } from '../../constants/vitalTracks';
 
 const formatText = (value, fallback = 'Not set') => {
   const text = String(value || '').trim();
@@ -45,19 +46,6 @@ const formatPercentage = (value) => {
   return Number.isFinite(numericValue) ? `${numericValue.toLocaleString()}%` : 'Not recorded';
 };
 
-const getStatusClass = (status) => {
-  switch (String(status || '').toLowerCase()) {
-    case 'active':
-      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
-    case 'expired':
-      return 'bg-destructive/10 text-destructive';
-    case 'pending':
-      return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
-    default:
-      return 'bg-muted/30 text-muted-foreground';
-  }
-};
-
 export const InsuranceModal = ({
   isOpen,
   policy,
@@ -72,9 +60,10 @@ export const InsuranceModal = ({
   const subtitle = isBlockedCommand
     ? 'Admin policy changes need receiver proof.'
     : formatRaw(policy?.provider_name, 'Review policy record.');
-  const status = formatText(policy?.status || 'unknown', 'Unknown');
+  const policyVital = resolveVital('insurance', policy?.status || 'unknown');
+  const status = policyVital?.pill?.label || formatText(policy?.status || 'unknown', 'Unknown');
   const statusBadge = policy ? (
-    <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${getStatusClass(policy.status)}`}>
+    <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${policyVital?.pill?.className || 'bg-muted/30 text-muted-foreground'}`}>
       {status}
     </span>
   ) : null;

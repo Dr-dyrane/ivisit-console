@@ -169,6 +169,11 @@ export const ModalShell = ({
     // Keyboard accessibility: Escape-to-close, focus trap, autofocus, focus restore.
     useFocusTrap(containerRef, isOpen, onClose);
 
+    useEffect(() => {
+        if (!isOpen || typeof window === 'undefined') return;
+        window.dispatchEvent(new Event('modal-opened'));
+    }, [isOpen]);
+
     // Keep app chrome out of the visual stack while a dialog owns focus.
     useEffect(() => {
         if (!isOpen || typeof document === 'undefined') return undefined;

@@ -13,18 +13,11 @@ import {
   subscribeToInsuranceBillingOutcomes,
   subscribeToInsurancePolicies,
 } from '../../services/insuranceService';
-import { Button } from '../ui/button';
 import { InsuranceModal } from '../modals/InsuranceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { MobileInsurance } from '../mobile/MobileInsurance';
 import { SEOHead } from '../common/SEOHead';
-import {
-  Shield,
-  Filter as FilterIcon,
-  X
-} from 'lucide-react';
-import { toast } from "sonner";
 
 const EMPTY_INSURANCE_PAGE = {
   data: [],
@@ -69,7 +62,7 @@ const EMPTY_INSURANCE_BILLING_CONTEXT = {
 const EMPTY_INSURANCE_FILTERS = Object.freeze({
   search: '',
   status: [],
-  type: [],
+  type: '',
   verified: '',
   created_at: { start: '', end: '' },
   kpiFilter: 'all',
@@ -96,9 +89,8 @@ export const InsuranceManagementPage = () => {
   const [error, setError] = useState(null);
 
   const [selectedPolicy, setSelectedPolicy] = useState(null);
-  const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
+  const [modalMode, setModalMode] = useState(null); // read-only 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [commandNotice, setCommandNotice] = useState(null);
   const [mobileLoadingMore, setMobileLoadingMore] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
@@ -116,12 +108,6 @@ export const InsuranceManagementPage = () => {
   const insuranceStats = insurancePage.stats || EMPTY_INSURANCE_PAGE.stats;
   const moduleRailItems = useMemo(() => getConsoleModuleRailItems({ isAdmin: isAdmin() }), [isAdmin]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
-
-  const showPolicyCommandUnavailable = useCallback((action = 'Policy changes') => {
-    const message = `${action} unavailable until admin authority is verified.`;
-    setCommandNotice(message);
-    toast.info(message);
-  }, []);
 
   const fetchInsurancePage = useCallback(async () => {
     const requestId = fetchRequestRef.current + 1;
@@ -274,12 +260,7 @@ export const InsuranceManagementPage = () => {
     };
   }, []);
 
-  // Listen for 'openInsuranceModal' event from ContextPanel
   useEffect(() => {
-    const handleOpenModal = () => {
-      showPolicyCommandUnavailable('Add policy');
-    };
-
     const handleOpenFilters = () => {
       setFilterSheetOpen(true);
     };
@@ -292,18 +273,16 @@ export const InsuranceManagementPage = () => {
       setModalMode('view');
     };
 
-    window.addEventListener('openInsuranceModal', handleOpenModal);
-    window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
+    window.addEventListener('openInsuranceFilters', handleOpenFilters);
+    window.addEventListener('openInsuranceAnalytics', handleOpenAnalytics);
     window.addEventListener('openFocusedInsuranceRecord', handleOpenFocusedRecord);
 
     return () => {
-      window.removeEventListener('openInsuranceModal', handleOpenModal);
-      window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
+      window.removeEventListener('openInsuranceFilters', handleOpenFilters);
+      window.removeEventListener('openInsuranceAnalytics', handleOpenAnalytics);
       window.removeEventListener('openFocusedInsuranceRecord', handleOpenFocusedRecord);
     };
-  }, [showPolicyCommandUnavailable]);
+  }, []);
 
   useEffect(() => {
     pagination.resetPagination();
@@ -443,6 +422,7 @@ export const InsuranceManagementPage = () => {
     return {
       total: insuranceStats.total,
       active: insuranceStats.active,
+      pending: insuranceStats.pending,
       verified: insuranceStats.verified,
       expired: insuranceStats.expired,
       expiringSoon: insuranceStats.expiringSoon,
@@ -456,21 +436,13 @@ export const InsuranceManagementPage = () => {
     insuranceStats.active,
     insuranceStats.expired,
     insuranceStats.expiringSoon,
+    insuranceStats.pending,
     insuranceStats.total,
     insuranceStats.verified,
     visibleAnalyticsPolicies,
   ]);
 
   // Handlers
-  const handlePolicyToolsUnavailable = useCallback(() => {
-    showPolicyCommandUnavailable('Policy changes');
-  }, [showPolicyCommandUnavailable]);
-
-  const handlePolicyToolsPress = useCallback((event) => {
-    event.preventDefault();
-    handlePolicyToolsUnavailable();
-  }, [handlePolicyToolsUnavailable]);
-
   const handleView = useCallback((policy) => {
     if (policy?.id != null && !isFocused(policy.id)) setFocused(policy.id);
     setSelectedPolicy(policy);
@@ -483,51 +455,13 @@ export const InsuranceManagementPage = () => {
     pagination.nextPage();
   }, [loading, pagination.hasNextPage, pagination.nextPage]);
 
-  const handleFocusPolicy = useCallback((policy) => setFocused(policy?.id ?? null), [setFocused]);
-
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
 
-  // Header Configuration
-  const filterButtonComponent = React.useMemo(() => (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-muted hover:text-muted-foreground relative"
-      aria-label="Filter policies"
-    >
-      <FilterIcon className="h-4 w-4" />
-      {hasActiveFilters && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-muted" />
-      )}
-    </Button>
-  ), [hasActiveFilters]);
-
-  // Command authority is not proved yet, so the header advertises read-only state.
-  const headerActions = React.useMemo(() => (
-    isAdmin() && (
-      <Button
-        onPointerDown={handlePolicyToolsPress}
-        onClick={handlePolicyToolsUnavailable}
-        variant="ghost"
-        className="bg-card h-9 px-4 text-xs font-semibold"
-        aria-label="Insurance is read-only until policy authority is verified"
-      >
-        <Shield className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">Read-only</span>
-        <span className="md:hidden">Read</span>
-      </Button>
-    )
-  ), [isAdmin, handlePolicyToolsUnavailable]);
-
-  usePageHeader(
-    'Insurance',
-    headerActions,
-    null,
-    filterButtonComponent
-  );
+  // filter-icon excluded by decision: desktop SheetToolbar, mobile SearchRow, and the
+  // route context panel already own the same FilterSheet; navbar duplication adds no scope.
+  usePageHeader('Insurance');
 
   // Footer Configuration
   const footerContent = React.useMemo(() => (
@@ -557,19 +491,15 @@ export const InsuranceManagementPage = () => {
       options: [
         { value: 'active', label: 'Active' },
         { value: 'expired', label: 'Expired' },
-        { value: 'pending', label: 'Pending' }
+        { value: 'pending', label: 'Pending' },
+        { value: 'inactive', label: 'Inactive' }
       ]
     },
     {
       key: 'type',
-      type: 'multiselect',
-      label: 'Policy type',
-      options: [
-        { value: 'Health', label: 'Health' },
-        { value: 'Life', label: 'Life' },
-        { value: 'Vehicle', label: 'Vehicle' },
-        { value: 'Property', label: 'Property' }
-      ]
+      type: 'text',
+      label: 'Plan type',
+      placeholder: 'Basic, Gold, PPO...'
     },
     {
       key: 'verified',

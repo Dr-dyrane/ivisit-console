@@ -1004,3 +1004,27 @@ Notes:
   34-file strict mobile grammar, data contract, database-type encoding, and production build pass.
 - Rendered admission remains manual: retest populated/empty/degraded Payments, both source tabs,
   search/filter/stats FAB, context actions, detail sheet/receipt, dock clearance, and safe areas.
+
+### 2026-07-12 - insurance step-back audit - LANDED AT SOURCE LEVEL
+- Re-read the admin policy route against Requests/Visits, the generated schema, the patient-app
+  writer, SCC-034, and the verified command-authority decision. `plan_type` remains canonical;
+  patient-owned policy writes, billing mutation, card upload, and export remain fail-closed.
+- Removed dead/no-op chrome: no clickable Read-only navbar action, no duplicate navbar filter, and
+  no generic `openFilters` / `openAnalyticsModal` event bridge. Toolbar/SearchRow and namespaced
+  context actions own the shared FilterSheet and AnalyticsModal.
+- Replaced hardcoded Health/Life/Vehicle/Property options, which do not match the app writer, with a
+  sanitized case-insensitive plan-type text filter; added Inactive to the lifecycle filter.
+- Null/unexpected policy status no longer renders as Pending. The service emits a neutral `unknown`
+  projection, and mobile/desktop/panel/modal consume shared `vitalTracks` labels and tones. Expired
+  stays amber; rejected billing is destructive; ordinary pending is cyan.
+- The right panel now distinguishes policy loading/failure from billing loading/failure, preserves
+  stale billing rows with honest degraded copy, reports unavailable instead of false zero, and calls
+  sort-dependent rows Loaded policies instead of Recent policies. Add/Export are truly disabled.
+- Mobile recovery now clears only the stated axis: search, sheet facets, or KPI. The previous Clear
+  Search handler silently reset every filter and the KPI.
+- Shared-surface relationship closure: `ModalShell` and `FilterSheet` now emit `modal-opened` on
+  visibility, activating the existing `LayoutContext` right-pane close contract for Insurance and
+  every other route using these hand-built shared primitives.
+- Contract proof: Insurance 14/14. Estate proof: 53 suites / 416 tests, six-surface strict-radius
+  hardgate, 115-file UI hardgate, 34-file strict mobile grammar, data contract, encoding checks, and
+  production build pass. Authenticated rendered admission remains manual.

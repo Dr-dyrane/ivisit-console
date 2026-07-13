@@ -94,6 +94,19 @@ User-directed priority now closes mobile before the remaining rendered desktop p
   7-day-to-30-day estimate was also removed from the route fetch and both right-panel echoes, not just
   hidden from the mobile header. Static proof after this closure: 53 suites / 413 tests, 115-file UI
   hardgate, 34-file strict mobile grammar, data contract, database-type encoding, and production build.
+- Insurance step-back audit on 2026-07-12: the admin-only policy mirror now removes its clickable
+  read-only navbar command and duplicate navbar filter while retaining the desktop toolbar, mobile
+  SearchRow, and namespaced context Filter/Analytics actions. Unsupported Add/Export panel controls
+  are genuinely disabled. The false Health/Life/Vehicle/Property taxonomy is replaced by a sanitized
+  free-form canonical `plan_type` filter, Inactive joins the status filter, and null/unexpected policy
+  status renders neutral instead of being invented as Pending. Policy lifecycle tones are shared
+  through `vitalTracks`; billing loading/error/preserved rows are independent from policy state;
+  mobile empty recovery clears only the axis named by its button. Shared `ModalShell` and
+  `FilterSheet` now emit the shell's existing `modal-opened` signal, restoring automatic right-pane
+  closure for these hand-built shared surfaces. Source proof: Insurance 14/14,
+  53 suites / 416 tests, six-surface strict-radius hardgate, 115-file UI hardgate, 34-file strict
+  mobile grammar, data contract, encoding checks, and production build. Rendered admission remains
+  pending the user's populated/empty/degraded mobile and desktop comparison.
 - Navbar/FAB ownership recurrence closed on 2026-07-12: `routeOwnsShellAction()` is now the single
   route registry consumed by `DynamicBottomBar`, `ContextAwareFAB`, and `MobileNavMenu`. Pricing,
   Subscriptions, Organizations, Users, and other route-owned surfaces no longer rehost duplicate

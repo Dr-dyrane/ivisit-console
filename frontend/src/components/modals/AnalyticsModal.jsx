@@ -103,6 +103,10 @@ const SHARE_LABELS = {
   payments: 'Completed',
 };
 
+const SECONDARY_LABELS = {
+  insurance: 'Pending',
+};
+
 // Modal section-card canon (adapted to opaque-DOM tokens): translucent panel, borderless,
 // no inner shadow. Section label + tiles/rows grouped inside.
 const SECTION_CARD = 'rounded-card bg-foreground/[0.05] dark:bg-white/[0.07] p-4';
@@ -217,7 +221,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         { label: 'Policies', value: genericTotal, icon: Shield, color: 'hsl(199 89% 48%)' },
         { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: CheckCircle, color: 'hsl(160 84% 39%)' },
         { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(199 89% 48%)' },
-        { label: 'Expired', value: getCount(analytics.expired), icon: AlertTriangle, color: getCount(analytics.expired) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
+        { label: 'Expired', value: getCount(analytics.expired), icon: AlertTriangle, color: getCount(analytics.expired) > 0 ? 'hsl(38 92% 50%)' : 'hsl(var(--muted-foreground))' }
       ],
       verification: [
         { label: 'Applications', value: genericTotal, icon: FileText, color: 'hsl(199 89% 48%)' },
@@ -271,7 +275,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">
             <span className="font-dashboard-numbers text-[14px] font-normal tracking-normal tabular-nums">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
-            <span className="eyebrow mt-1 text-muted-foreground/55">Recent</span>
+            <span className="eyebrow mt-1 text-muted-foreground/55">{SECONDARY_LABELS[type] || 'Recent'}</span>
           </div>
           <div className="h-1.5 w-1.5 rounded-pill bg-foreground/10" />
           <div className="flex flex-col items-center">

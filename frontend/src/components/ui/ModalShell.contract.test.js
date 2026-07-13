@@ -2,10 +2,12 @@ import fs from 'fs';
 
 describe('ModalShell chrome contract', () => {
   const source = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
+  const filterSheetSource = () => fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
 
   it('keeps shared modal chrome accessible, app-owned, and hardgated', () => {
     const modalShell = source();
+    const filterSheet = filterSheetSource();
     const hardgate = hardgateSource();
 
     expect(modalShell).toContain('role="dialog"');
@@ -22,6 +24,8 @@ describe('ModalShell chrome contract', () => {
     expect(modalShell).toContain('transition={modalBackdropTransition}');
     expect(modalShell).toContain('transition={modalShellTransition}');
     expect(modalShell).toContain('data-modal-chrome="true"], #dynamic-bottom-bar');
+    expect(modalShell).toContain("window.dispatchEvent(new Event('modal-opened'))");
+    expect(filterSheet).toContain("window.dispatchEvent(new Event('modal-opened'))");
     expect(modalShell).toContain("node.setAttribute('aria-hidden', 'true')");
     expect(modalShell).toContain('onClick={() => onClose()}');
     expect(modalShell).toContain('aria-label="Close"');

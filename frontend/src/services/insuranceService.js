@@ -139,6 +139,10 @@ function parseLinkedPaymentSnapshot(value) {
   return null;
 }
 
+const normalizeInsurancePolicyStatus = (value) => (
+  String(value || '').trim().toLowerCase() || 'unknown'
+);
+
 export function normalizeInsurancePolicy(record) {
   if (!record) return record;
   const details = parseCoverageDetails(record.coverage_details);
@@ -148,6 +152,7 @@ export function normalizeInsurancePolicy(record) {
 
   return {
     ...record,
+    status: normalizeInsurancePolicyStatus(record.status),
     coverage_type: record.plan_type || details.coverage_type || '',
     policy_type: record.plan_type || details.coverage_type || '',
     start_date: record.starts_at || '',
@@ -215,7 +220,8 @@ function applyInsurancePageFilters(query, filter = {}) {
 
   const typeValues = normalizeFilterList(filter.type || filter.policy_type || filter.plan_type);
   if (typeValues.length === 1) {
-    query = query.eq('plan_type', typeValues[0]);
+    const planType = sanitizeSearchTerm(typeValues[0]);
+    if (planType) query = query.ilike('plan_type', planType);
   } else if (typeValues.length > 1) {
     query = query.in('plan_type', typeValues);
   }
@@ -334,6 +340,7 @@ async function getInsuranceExactCount(filter = {}, user, quiet = false) {
 }
 
 async function getInsuranceExpiringSoonCount(filter = {}, user, quiet = false) {
+  const now = new Date();
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
@@ -341,6 +348,7 @@ async function getInsuranceExpiringSoonCount(filter = {}, user, quiet = false) {
     {
       ...filter,
       status: 'active',
+      expiresAfter: now.toISOString(),
       expiresBefore: thirtyDaysFromNow.toISOString(),
     },
     user,
