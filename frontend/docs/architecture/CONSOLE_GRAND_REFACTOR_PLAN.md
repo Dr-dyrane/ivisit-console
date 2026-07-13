@@ -1,8 +1,8 @@
 # iVisit Console — Grand Refactor Plan
 
-> **Status**: ACTIVE - implementation complete; admission verification in progress
+> **Status**: ADMISSION CANDIDATE - source and rendered gates green; audit artifacts are the final gate
 > **Current main baseline**: `4d1de70a` (`main`, 2026-07-13)
-> **Current wave checkpoint**: `06f639d2` (before this ledger refresh)
+> **Current source checkpoint**: `482afadd`
 > **Active implementation branch**: `codex/console-modularization-wave-2`
 > **Original audit date**: 2026-05-04
 > **Standard**: iVisit-app Gold Standard (5-Layer State Architecture)  
@@ -141,6 +141,38 @@ not tracked in a conflicting refactor document.
   a clean reload.
 - No schema, migration, Edge Function, command payload, workflow receiver, desktop action owner, or
   generated database type was changed by this slice.
+
+### Wave 2 admission proof
+
+- Full Jest: 197 suites / 1,311 tests passed against source checkpoint `482afadd`.
+- Full ESLint: zero errors. The existing repository backlog remains visible at 198 warnings; this wave
+  does not claim that backlog as closed.
+- Production build: database-type encoding, mojibake, data contract (141 service files, 493 verified
+  references, 283 resolved `.from()` calls, zero new phantom columns), 138-root/667-reachable UI
+  hardgate, 34-file mobile grammar with zero warnings, and optimized CRA compilation passed.
+- Strict admission gates also passed: strict-radius UI hardgate for all 138 route roots and strict mobile
+  grammar for all 34 declared pages.
+- The production line scan covered 786 hand-maintained implementation files and found zero files at or
+  above 500 lines. Generated database types and test files remain excluded from that mechanical ceiling.
+- Rendered mobile proof at 390 x 844 confirmed that Requests long-press enters multi-select, exposes
+  select-all/clear and the role-safe bulk action, does not open the detail dialog, and restores the row
+  after selection is cleared. The route had no horizontal overflow.
+- Rendered Analytics proof confirmed `Reported bed availability` at 26%, with the provenance copy
+  `13 of 50 beds reported available; 1 of 521 hospitals reporting.` The old `Bed use` label and false
+  `Hospitals returned incomplete data` state were absent. Requests are not counted as physical occupancy;
+  the projection derives only from complete, valid `hospitals.total_beds` and `available_beds` reports.
+- Read-only database and migration evidence confirms that accepted/arrived/in-progress bed requests
+  already decrement `hospitals.available_beds`, while completed/cancelled requests restore it. Analytics
+  consumes that canonical counter and does not create a second occupancy calculation or alter the schema.
+- Rendered Request/Visit proof confirmed that patient identity remains the primary person lane after
+  request-derived visit hydration, while doctor/driver identity remains a separate practitioner lane.
+  A null identity response no longer crashes `EmergencyDetailsModal`.
+- Rendered Map proof at 390 x 844 and 1280 x 720 confirmed nonblank Google tiles, the 5 km operational
+  lens, 9 shown requests / 4 shown hospitals, bottom-island clearance for the request sheet, normalized
+  trailing-slash navigation state, no session-id chrome, and no horizontal overflow.
+- No schema, migration, Edge Function, generated database type, command payload, or workflow receiver was
+  changed. The remaining admission gate is a clean-tree read-only audit run plus validation of its six
+  committed result artifacts.
 
 ---
 
