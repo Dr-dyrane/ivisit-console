@@ -31,7 +31,18 @@ describe('AmbulancesPage visual-start repair contract', () => {
   const modalSource = () => fs.readFileSync('src/components/modals/AmbulanceModal.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/AmbulanceListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/AmbulanceTableView.jsx', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/ambulancesService.js', 'utf8');
+  const serviceSource = () => readSourceBundle([
+    'src/services/ambulancesService.js',
+    'src/services/ambulances/commands.js',
+    'src/services/ambulances/constants.js',
+    'src/services/ambulances/driverReads.js',
+    'src/services/ambulances/filters.js',
+    'src/services/ambulances/operationalCommands.js',
+    'src/services/ambulances/pageQueries.js',
+    'src/services/ambulances/reads.js',
+    'src/services/ambulances/realtime.js',
+    'src/services/ambulances/scope.js',
+  ]);
   const queryHookSource = () => fs.readFileSync('src/hooks/useAmbulancesQuery.js', 'utf8');
   const panelSource = () => fs.readFileSync('src/components/context/AmbulancesPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');

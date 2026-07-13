@@ -17,8 +17,8 @@
  *     FILTER_METHODS) directly chained -> 'col' is a column of <table>
  *   - .from('<table>').insert({ ... }) / .update({ ... }) / .upsert({ ... })
  *     -> the object's literal keys are columns of <table>
- *   - .from(TABLE_NAME) where TABLE_NAME is a module-level string const is
- *     resolved to its literal value.
+ *   - .from(TABLE_NAME) where TABLE_NAME is a module-level string const, local
+ *     or imported from a relative service module, is resolved to its literal.
  *
  * What is SKIPPED and reported as 'unverified' (never fails):
  *   - dynamic selects ('*', template strings, aliased / relation / computed
@@ -64,6 +64,19 @@ const MATCH_METHODS = new Set(['match']);
 // receiver gap cannot be closed in the active pass. Onboarding now writes only
 // through canonical RPCs, so it carries no direct-table exception.
 const BASELINE = new Set([]);
+
+function listProductionServiceFiles(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) return listProductionServiceFiles(entryPath);
+      if (entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
+        return [entryPath];
+      }
+      return [];
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Generic balanced-span helpers (string-aware).
@@ -275,13 +288,46 @@ function lineIndexer(text) {
   };
 }
 
-function buildConstMap(src) {
+function resolveRelativeJsModule(filePath, importPath) {
+  const resolvedPath = path.resolve(path.dirname(filePath), importPath);
+  const candidates = path.extname(resolvedPath)
+    ? [resolvedPath]
+    : [`${resolvedPath}.js`, path.join(resolvedPath, 'index.js')];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function buildConstMap(src, filePath, cache) {
+  if (cache?.has(filePath)) return cache.get(filePath);
+
   const map = new Map();
   const re = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\2/g;
   let m;
   while ((m = re.exec(src)) !== null) {
     if (!map.has(m[1])) map.set(m[1], m[3]);
   }
+
+  if (!filePath || !cache) return map;
+  cache.set(filePath, map);
+
+  const importRe = /\bimport\s*\{([\s\S]*?)\}\s*from\s*(['"])(\.{1,2}\/[^'"]+)\2/g;
+  while ((m = importRe.exec(src)) !== null) {
+    const importedFile = resolveRelativeJsModule(filePath, m[3]);
+    if (!importedFile) continue;
+
+    const importedSource = neutralizeComments(fs.readFileSync(importedFile, 'utf8'));
+    const importedConstants = buildConstMap(importedSource, importedFile, cache);
+    for (const rawSpecifier of m[1].split(',')) {
+      const specifier = rawSpecifier.trim();
+      if (!specifier) continue;
+      const parts = specifier.split(/\s+as\s+/);
+      const importedName = parts[0]?.trim();
+      const localName = (parts[1] || parts[0])?.trim();
+      if (importedConstants.has(importedName) && !map.has(localName)) {
+        map.set(localName, importedConstants.get(importedName));
+      }
+    }
+  }
+
   return map;
 }
 
@@ -455,12 +501,12 @@ function walkChain(src, startIndex, table, lineOf, stats, findings, serviceName,
   }
 }
 
-function scanService(filePath, schema, stats, findings) {
+function scanService(filePath, schema, stats, findings, constMapCache) {
   const serviceName = path.basename(filePath);
   const rawSource = fs.readFileSync(filePath, 'utf8');
   const src = neutralizeComments(rawSource);
   const lineOf = lineIndexer(src);
-  const constMap = buildConstMap(src);
+  const constMap = buildConstMap(src, filePath, constMapCache);
 
   const fromRe = /\.from\s*\(/g;
   let fm;
@@ -501,10 +547,7 @@ function main() {
 
   let serviceFiles;
   try {
-    serviceFiles = fs.readdirSync(SERVICES_DIR)
-      .filter((name) => name.endsWith('.js') && !name.endsWith('.test.js'))
-      .sort()
-      .map((name) => path.join(SERVICES_DIR, name));
+    serviceFiles = listProductionServiceFiles(SERVICES_DIR);
   } catch (error) {
     console.error(`${TAG} FAILED to read services directory: ${error.message}`);
     process.exit(1);
@@ -522,9 +565,10 @@ function main() {
     unknownTables: new Set(),
   };
   const findings = [];
+  const constMapCache = new Map();
 
   for (const filePath of serviceFiles) {
-    scanService(filePath, schema, stats, findings);
+    scanService(filePath, schema, stats, findings, constMapCache);
   }
 
   // Report.
