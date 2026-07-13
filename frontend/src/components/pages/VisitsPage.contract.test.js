@@ -8,8 +8,18 @@ import { getProtectedRoutesForRole, getRouteProtection } from '../../config/rout
 
 describe('VisitsPage admission contract', () => {
   const appSource = () => fs.readFileSync('src/App.js', 'utf8');
-  const pageSource = () => fs.readFileSync('src/components/pages/VisitsPage.jsx', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileVisits.jsx', 'utf8');
+  const pageSource = () => [
+    fs.readFileSync('src/components/pages/VisitsPage.jsx', 'utf8'),
+    fs.readFileSync('src/components/pages/visits/visitPageModel.js', 'utf8'),
+    fs.readFileSync('src/components/pages/visits/VisitsDesktopWorkspace.jsx', 'utf8'),
+    fs.readFileSync('src/components/pages/visits/useVisitsDataSource.js', 'utf8'),
+    fs.readFileSync('src/components/pages/visits/useVisitsRouteBridge.js', 'utf8'),
+  ].join('\n');
+  const mobileSource = () => [
+    fs.readFileSync('src/components/mobile/MobileVisits.jsx', 'utf8'),
+    fs.readFileSync('src/components/mobile/visits/mobileVisitsModel.js', 'utf8'),
+    fs.readFileSync('src/components/mobile/visits/MobileVisitRows.jsx', 'utf8'),
+  ].join('\n');
   const panelSource = () => fs.readFileSync('src/components/context/VisitsPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/VisitListView.jsx', 'utf8');
@@ -242,7 +252,7 @@ describe('VisitsPage admission contract', () => {
     // One canonical render (converted 2026-07-09): sortable header + rows from the
     // console design system, no view modes. aria-sort/columnheader semantics are
     // locked in ConsoleDesignSystem.contract.test.js.
-    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain("from '../../console/ActivitySheet'");
     // Donor sort truth (Requests): TIME is the only sortable column; the other
     // headers are plain labels -- alphabetical sorts are not operational, and
     // status/type filtering belongs to the state chips + FilterSheet (user
@@ -302,8 +312,8 @@ describe('VisitsPage admission contract', () => {
     // context, toggle-to-All, widths and tile spec locked in the DS contract).
     // The page owns only the DOMAIN: signal copy, state options, pins, importance.
     expect(page).toContain('const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {');
-    expect(page).toContain("from '../console/SignalPanel'");
-    expect(page).toContain("from '../console/KpiStrip'");
+    expect(page).toContain("from '../../console/SignalPanel'");
+    expect(page).toContain("from '../../console/KpiStrip'");
     expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={visitToneClass}>');
     expect(page).toContain('<KpiStrip');
     expect(page).toContain("const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];");

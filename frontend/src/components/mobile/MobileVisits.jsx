@@ -26,35 +26,24 @@ import { useLoadMoreControl } from './useLoadMoreControl';
 // heading live in shared components (extraction source: CANON_COMPONENT_SPECS.md);
 // this page keeps only its DOMAIN - visit projection, states, sheet, empty logic.
 import { useSkeletonWarmup, UpdatingPillRow, SkeletonGroupList } from './canon/Loading';
-import { GroupedList, MobileListRow } from './canon/GroupedList';
+import { GroupedList } from './canon/GroupedList';
 import { SearchRow } from './canon/SearchRow';
 import { MobileHeading } from './canon/MobileHero';
 import { LOAD_MORE_ROOT_MARGIN } from './canon/constants';
 import { visitRowProjection, getVisitStatusKey } from '../../utils/visitRowProjection';
 import { formatRequestDayTime } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
+import {
+    countNumber,
+    getMobileVisitStateCount,
+    hasMobileVisitFilters,
+    mobileVisitStates,
+    visitWhen,
+} from './visits/mobileVisitsModel';
+import { MobileVisitErrorBanner, MobileVisitRow } from './visits/MobileVisitRows';
 
-const countNumber = (value, fallback = 0) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-// Chip-dot hues come straight from vitalTracks (the single mobile status-tone truth):
-// resolveVital('visit', ...).accent is a space-separated hsl() string, the same hue the
-// row orbs and pills render. No local hex duplicates — a tone change lands in
-// vitalTracks once and every visit surface follows.
-const visitStateAccent = (statusKey) => resolveVital('visit', statusKey)?.accent || 'hsl(var(--muted-foreground))';
-
-// State filter chips for MobileKPIStrip (active chip is brand-filled by the strip
-// itself). countKey maps into the service-owned `statistics` payload.
-const mobileVisitStates = [
-    { id: 'all', label: 'All', countKey: 'total', color: 'hsl(var(--muted-foreground))' },
-    { id: 'scheduled', label: 'Scheduled', countKey: 'scheduled', color: visitStateAccent('scheduled') },
-    { id: 'in_progress', label: 'Active', countKey: 'inProgress', color: visitStateAccent('in_progress') },
-    { id: 'completed', label: 'Done', countKey: 'completed', color: visitStateAccent('completed') },
-    { id: 'cancelled', label: 'Cancelled', countKey: 'cancelled', color: visitStateAccent('cancelled') },
-];
-
+// The map-like backdrop stays local to this presentation; visit state projection
+// and row anatomy live in the adjacent mobile Visits modules.
 const MobileVisitsAtlasLayer = () => (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
         <div
@@ -75,25 +64,6 @@ const MobileVisitsAtlasLayer = () => (
         />
     </div>
 );
-
-const getMobileVisitStateCount = ({ item, statistics, visits }) => {
-    const fallback = item.id === 'all'
-        ? visits.length
-        : visits.filter((visit) => getVisitStatusKey(visit?.status) === item.id).length;
-
-    return countNumber(statistics?.[item.countKey], fallback);
-};
-
-const hasMobileVisitFilters = (filters = {}) => Boolean(
-    filters?.search ||
-    (filters?.status && filters.status.length > 0) ||
-    (filters?.visit_type && filters.visit_type.length > 0) ||
-    filters?.date
-);
-
-// The resolved date a visit sorts, groups, and stamps by: the scheduled `date` first,
-// then the older scheduled_at spelling, then created_at as the honest last resort.
-const visitWhen = (visit) => visit?.date || visit?.scheduled_at || visit?.created_at;
 
 /**
  * MobileVisits — the Visits mobile surface on the MobileEmergency list grammar:
@@ -448,23 +418,6 @@ export const MobileVisits = ({
     );
 };
 
-const MobileVisitErrorBanner = ({ message, onRetry }) => (
-    <div
-        className="rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)]"
-        data-testid="mobile-visits-error-state"
-    >
-        <p className="font-semibold">Visits could not load</p>
-        <p className="mt-1 text-xs leading-5 text-destructive/75">{message}</p>
-        <button
-            type="button"
-            onClick={onRetry}
-            className="mt-3 h-9 rounded-pill bg-destructive/10 px-4 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-[0.96]"
-        >
-            Retry
-        </button>
-    </div>
-);
-
 const getDoctorName = (visit) => (
     visit?.doctor?.name ||
     visit?.doctor ||
@@ -478,36 +431,3 @@ const getFacilityName = (visit) => (
     visit?.hospital ||
     (visit?.hospital_id ? 'Linked facility' : 'No facility')
 );
-
-// Donor row anatomy with the visit identity (canon MobileListRow): status-tinted
-// orb (vitalTracks tones), patient name 15/500, "{type} · {facility}" meta, trailing
-// day-aware time + status pill + chevron. Tap opens the MobileDetailSheet (approved
-// design + desktop rail behaviour), never an inline dropdown.
-const MobileVisitRow = ({ visit, onOpen, selectable, selected, selectionMode, onToggleSelect, onLongPress }) => {
-    const row = visitRowProjection(visit);
-    const vital = resolveVital('visit', row.statusKey);
-    const pill = vital?.pill;
-    const orbClass = pill?.className || 'bg-muted/34 text-muted-foreground';
-    const isEmergency = String(visit?.visit_type || visit?.type || '').includes('emergency');
-    const TypeIcon = isEmergency ? Siren : Stethoscope;
-
-    return (
-        <MobileListRow
-            item={visit}
-            dataAttr="data-mobile-visit-row"
-            onOpen={() => onOpen(visit)}
-            ariaLabel={`Open ${row.patientName}`}
-            orbClass={orbClass}
-            icon={TypeIcon}
-            title={row.patientName}
-            meta={`${row.serviceType} · ${row.primary}`}
-            time={formatRequestDayTime(visitWhen(visit))}
-            pill={{ className: orbClass, label: pill?.label || row.statusLabel, dataStatus: row.statusKey }}
-            selectable={selectable}
-            selected={selected}
-            selectionMode={selectionMode}
-            onToggleSelect={onToggleSelect}
-            onLongPress={onLongPress}
-        />
-    );
-};
