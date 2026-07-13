@@ -29,6 +29,7 @@ import {
   getAnalyticsScopeLabel,
   getVolumeComparison,
 } from '../analytics/AnalyticsSummaryPrimitives';
+import { getAnalyticsCapacityPresentation } from '../pages/analytics/analyticsCapacityModel';
 
 const SOURCE_UNAVAILABLE = 'Unavailable';
 
@@ -148,6 +149,10 @@ export const MobileAnalytics = ({
   const responseSampleSize = Number(stats?.responseSampleSize) || 0;
   const requestSourceReady = Boolean(sourceReadiness.requests);
   const windowLabel = formatAnalyticsWindow(snapshotTimeRange || timeRange);
+  const capacityPresentation = useMemo(() => getAnalyticsCapacityPresentation({
+    sourceReady: sourceReadiness.hospitalCapacity,
+    capacity: hospitalCapacity,
+  }), [hospitalCapacity, sourceReadiness.hospitalCapacity]);
   const scopeLabel = getAnalyticsScopeLabel(roleContext);
   const volumeComparison = useMemo(() => getVolumeComparison(requestsByDay), [requestsByDay]);
   const chartBars = requestsByDay.slice(-14);
@@ -376,13 +381,14 @@ export const MobileAnalytics = ({
                 <CompactStatTile icon={Ambulance} label="Fleet" value={sourceReadiness.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE} tone="sky" />
                 <CompactStatTile
                   icon={Activity}
-                  label="Occupied beds"
-                  value={sourceReadiness.hospitalCapacity && Number(hospitalCapacity?.total) > 0
-                    ? `${Math.round((Number(hospitalCapacity.occupied) / Number(hospitalCapacity.total)) * 100)}%`
-                    : sourceReadiness.hospitalCapacity ? 'No capacity data' : SOURCE_UNAVAILABLE}
+                  label={capacityPresentation.label}
+                  value={capacityPresentation.value}
                   tone="amber"
                 />
               </div>
+              <p className="mt-3 px-1 text-[11px] leading-4 text-muted-foreground">
+                {capacityPresentation.detail}
+              </p>
             </section>
 
             {canReadSubscriptionAnalytics && (

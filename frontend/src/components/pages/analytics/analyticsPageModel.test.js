@@ -117,7 +117,13 @@ describe('analytics page projection model', () => {
       ],
       requestSample: { returnedCount: 2, totalCount: 2, complete: true },
       hospitalSample: { returnedCount: 1, totalCount: 2, complete: false },
-      hospitals: [{ total_beds: 10, available_beds: 4, icu_beds_available: 2 }],
+      hospitals: [{
+        provider_type: 'hospital',
+        provider_source: 'verified_provider',
+        total_beds: 10,
+        available_beds: 4,
+        icu_beds_available: 2,
+      }],
       financeData: [{ income: 20, outflow: 5, currency: 'usd' }],
       subscriptionStats: { total: 3, sample: { returnedCount: 3, complete: true } },
       usersCount: 8,
@@ -153,23 +159,48 @@ describe('analytics page projection model', () => {
       canReadFinanceAnalytics: true,
       nowValue: new Date('2026-07-13T12:00:00.000Z'),
     });
-    expect(completeCapacity.hospitalCapacity).toEqual({ total: 10, occupied: 6, icu: 2 });
+    expect(completeCapacity.hospitalCapacity).toEqual({
+      total: 10,
+      available: 4,
+      icu: 2,
+      reportingFacilities: 1,
+      facilityCount: 1,
+      coverageComplete: true,
+      population: 'live',
+      sourceComplete: true,
+    });
     expect(completeCapacity.financeData).toHaveLength(1);
     expect(completeCapacity.subscriptionStats.total).toBe(3);
   });
 
-  it('normalizes demo capacity with the same lower-bound rule as the database', () => {
+  it('uses only valid reports from one live or demo population', () => {
     expect(getHospitalCapacitySummary([
-      { total_beds: null, available_beds: 12, icu_beds_available: 3 },
-      { total_beds: 20, available_beds: 5, icu_beds_available: 9 },
+      { provider_type: 'hospital', provider_source: 'manual_seed', total_beds: null, available_beds: 12, icu_beds_available: 3 },
+      { provider_type: 'hospital', provider_source: 'verified_provider', total_beds: 20, available_beds: 5, icu_beds_available: 9 },
+      { provider_type: 'hospital', provider_source: 'demo_bootstrap', total_beds: 10, available_beds: 10, icu_beds_available: 2 },
+      { provider_type: 'clinic', provider_source: 'verified_provider', total_beds: 8, available_beds: 4, icu_beds_available: 1 },
     ], { complete: true })).toEqual({
-      total: 32,
-      occupied: 15,
-      icu: 8,
+      total: 20,
+      available: 5,
+      icu: 9,
+      reportingFacilities: 1,
+      facilityCount: 2,
+      coverageComplete: false,
+      population: 'live',
+      sourceComplete: true,
     });
     expect(getHospitalCapacitySummary([
-      { total_beds: 10, available_beds: 4, icu_beds_available: 2 },
+      { provider_type: 'hospital', provider_source: 'demo_bootstrap', total_beds: 10, available_beds: 4, icu_beds_available: 2 },
     ], { complete: false })).toEqual(DEFAULT_HOSPITAL_CAPACITY);
+    expect(getHospitalCapacitySummary([
+      { provider_type: 'hospital', place_id: 'demo:hospital-1', total_beds: 10, available_beds: 4, icu_beds_available: 2 },
+    ], { complete: true })).toEqual(expect.objectContaining({
+      total: 10,
+      available: 4,
+      reportingFacilities: 1,
+      facilityCount: 1,
+      population: 'demo',
+    }));
   });
 
   it('marks each source ready only when its own proof is complete', () => {

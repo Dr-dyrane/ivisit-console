@@ -19,9 +19,14 @@ describe('Analytics completeness contract', () => {
     ].join('\n');
     expect(source).toContain('export const HOSPITAL_CAPACITY_PAGE_SIZE = 1000;');
     expect(source).toContain("select('id', { count: 'exact', head: true })");
-    expect(source).toContain("HOSPITAL_CAPACITY_COLUMNS = 'id, total_beds, available_beds, icu_beds_available'");
+    expect(source).toContain("'provider_type'");
+    expect(source).toContain("'provider_source'");
+    expect(source).toContain("'place_id'");
     expect(source).toContain(".order('id', { ascending: true })");
     expect(source).toContain('.range(offset, offset + HOSPITAL_CAPACITY_PAGE_SIZE - 1)');
+    expect(source).toContain("select('id', { count: 'exact', head: true })");
+    expect(source).toContain('hasDuplicateRows');
+    expect(source).toContain('countStable');
     expect(source).toContain('hospitalSample: {');
     expect(source).toContain("kind: 'partial'");
     expect(source).toContain("reason: 'capacity_sample_incomplete'");

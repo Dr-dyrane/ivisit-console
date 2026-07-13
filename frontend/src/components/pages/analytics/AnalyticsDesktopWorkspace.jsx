@@ -30,10 +30,10 @@ import {
 } from './AnalyticsDesktopSections';
 import {
   getAnalyticsAudienceLabel,
-  getAnalyticsBedUse,
   getAnalyticsPagination,
   getAnalyticsSignal,
 } from './analyticsDesktopModel';
+import { getAnalyticsCapacityPresentation } from './analyticsCapacityModel';
 
 const signalToneClass = {
   primary: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
@@ -142,7 +142,7 @@ export const AnalyticsDesktopWorkspace = ({
     : volumeComparison?.direction === 'down'
       ? TrendingDown
       : Minus;
-  const bedUse = getAnalyticsBedUse({
+  const capacityPresentation = getAnalyticsCapacityPresentation({
     sourceReady: sourceReadiness?.hospitalCapacity,
     capacity: hospitalCapacity,
   });
@@ -245,7 +245,7 @@ export const AnalyticsDesktopWorkspace = ({
                 <AnalyticsEvidenceSections
                   stats={stats}
                   sourceReadiness={sourceReadiness}
-                  bedUse={bedUse}
+                  capacityPresentation={capacityPresentation}
                   canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}
                   subscriptionStats={subscriptionStats}
                   canReadFinanceAnalytics={canReadFinanceAnalytics}

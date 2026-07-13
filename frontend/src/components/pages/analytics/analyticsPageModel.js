@@ -66,7 +66,16 @@ export const DEFAULT_SUBSCRIPTION_STATS = {
   sample: DEFAULT_SUBSCRIPTION_SAMPLE,
 };
 
-export const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
+export const DEFAULT_HOSPITAL_CAPACITY = {
+  total: 0,
+  available: 0,
+  icu: 0,
+  reportingFacilities: 0,
+  facilityCount: 0,
+  coverageComplete: false,
+  population: null,
+  sourceComplete: false,
+};
 
 export const normalizeRequestSample = (value) => ({
   ...DEFAULT_REQUEST_SAMPLE,
@@ -87,31 +96,58 @@ export const normalizeSubscriptionStats = (value) => ({
   },
 });
 
-const toNonNegativeCapacity = (value) => {
+const toCapacityInteger = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 };
+
+const isHospitalCapacityRow = (hospital) => (
+  String(hospital?.provider_type || '').trim().toLowerCase() === 'hospital'
+);
+
+export const isDemoHospitalCapacityRow = (hospital) => (
+  String(hospital?.place_id || '').startsWith('demo:')
+  || hospital?.provider_source === 'demo_bootstrap'
+);
 
 export const getHospitalCapacitySummary = (hospitals = [], hospitalSample = {}) => {
   if (hospitalSample?.complete !== true) return DEFAULT_HOSPITAL_CAPACITY;
 
-  const normalized = (Array.isArray(hospitals) ? hospitals : []).reduce((summary, hospital) => {
-    const available = toNonNegativeCapacity(hospital?.available_beds);
-    const declaredTotal = toNonNegativeCapacity(hospital?.total_beds);
-    const total = Math.max(declaredTotal, available);
-    const icu = Math.min(toNonNegativeCapacity(hospital?.icu_beds_available), available);
+  const hospitalRows = (Array.isArray(hospitals) ? hospitals : [])
+    .filter(isHospitalCapacityRow);
+  const liveRows = hospitalRows.filter((hospital) => !isDemoHospitalCapacityRow(hospital));
+  const demoRows = hospitalRows.filter(isDemoHospitalCapacityRow);
+  const populationRows = liveRows.length ? liveRows : demoRows;
+  const population = liveRows.length ? 'live' : demoRows.length ? 'demo' : null;
 
-    return {
-      total: summary.total + total,
-      available: summary.available + Math.min(available, total),
-      icu: summary.icu + icu,
-    };
-  }, { total: 0, available: 0, icu: 0 });
+  const validReports = populationRows.reduce((reports, hospital) => {
+    const total = toCapacityInteger(hospital?.total_beds);
+    const available = toCapacityInteger(hospital?.available_beds);
+    if (!(total > 0) || available === null || available > total) return reports;
+
+    const icu = toCapacityInteger(hospital?.icu_beds_available);
+    reports.push({
+      total,
+      available,
+      icu: icu !== null && icu <= total ? icu : 0,
+    });
+    return reports;
+  }, []);
+
+  const reported = validReports.reduce((summary, report) => ({
+    total: summary.total + report.total,
+    available: summary.available + report.available,
+    icu: summary.icu + report.icu,
+  }), { total: 0, available: 0, icu: 0 });
 
   return {
-    total: normalized.total,
-    occupied: Math.max(0, normalized.total - normalized.available),
-    icu: normalized.icu,
+    ...reported,
+    reportingFacilities: validReports.length,
+    facilityCount: populationRows.length,
+    coverageComplete: populationRows.length > 0 && validReports.length === populationRows.length,
+    population,
+    sourceComplete: true,
   };
 };
 

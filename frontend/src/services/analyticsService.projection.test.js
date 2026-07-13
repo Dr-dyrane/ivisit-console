@@ -29,6 +29,9 @@ jest.mock('./subscriptionService', () => ({
 const queryStates = [];
 const hospitalRows = Array.from({ length: 1598 }, (_, index) => ({
   id: `hospital-${index + 1}`,
+  provider_type: 'hospital',
+  provider_source: 'verified_provider',
+  place_id: null,
   total_beds: 20,
   available_beds: 5,
   icu_beds_available: 2,
@@ -42,6 +45,9 @@ function responseFor(state) {
     return { data: null, count: 12, error: null };
   }
   if (state.table === 'hospitals') {
+    if (state.options?.head) {
+      return { data: null, count: hospitalRows.length, error: null };
+    }
     const [from, to] = state.range || [0, 999];
     return {
       data: hospitalRows.slice(from, to + 1),
@@ -106,14 +112,18 @@ describe('analytics intake projection integrity', () => {
     expect(profilesQuery).toMatchObject({ select: 'id', options: { count: 'exact', head: true } });
     expect(ambulancesQuery).toMatchObject({ select: 'id', options: { count: 'exact', head: true } });
     expect(hospitalsQueries[0]).toMatchObject({
-      select: 'id, total_beds, available_beds, icu_beds_available',
+      select: 'id, provider_type, provider_source, place_id, total_beds, available_beds, icu_beds_available',
       options: { count: 'exact' },
       order: ['id', { ascending: true }],
       range: [0, 999],
     });
     expect(hospitalsQueries[1]).toMatchObject({
-      select: 'id, total_beds, available_beds, icu_beds_available',
+      select: 'id, provider_type, provider_source, place_id, total_beds, available_beds, icu_beds_available',
       range: [1000, 1999],
+    });
+    expect(hospitalsQueries[2]).toMatchObject({
+      select: 'id',
+      options: { count: 'exact', head: true },
     });
     expect(projection.usersCount).toBe(12);
     expect(projection.ambulancesCount).toBe(7);

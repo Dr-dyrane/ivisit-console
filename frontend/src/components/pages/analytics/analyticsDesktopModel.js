@@ -107,9 +107,3 @@ export const getAnalyticsSignal = ({
     subhead: 'Choose another time window or check again after new request activity is recorded.',
   };
 };
-
-export const getAnalyticsBedUse = ({ sourceReady, capacity }) => {
-  if (!sourceReady) return SOURCE_UNAVAILABLE;
-  if (!(Number(capacity?.total) > 0)) return 'No capacity data';
-  return `${Math.round((Number(capacity.occupied) / Number(capacity.total)) * 100)}%`;
-};

@@ -4,7 +4,15 @@ import { applyAuthFilter } from '../authService';
 const EMPTY_SCOPE_UUID = '00000000-0000-0000-0000-000000000000';
 
 export const HOSPITAL_CAPACITY_PAGE_SIZE = 1000;
-export const HOSPITAL_CAPACITY_COLUMNS = 'id, total_beds, available_beds, icu_beds_available';
+export const HOSPITAL_CAPACITY_COLUMNS = [
+  'id',
+  'provider_type',
+  'provider_source',
+  'place_id',
+  'total_beds',
+  'available_beds',
+  'icu_beds_available',
+].join(', ');
 
 const toExactCount = (value) => (
   value !== null && value !== undefined && Number.isFinite(Number(value))
@@ -32,6 +40,8 @@ export function applyAnalyticsHospitalScope(query, user) {
 
 export async function getAnalyticsHospitalCapacitySource(user) {
   const rows = [];
+  const rowIds = new Set();
+  let hasDuplicateRows = false;
   let totalCount = null;
   let offset = 0;
 
@@ -60,18 +70,44 @@ export async function getAnalyticsHospitalCapacitySource(user) {
 
     const pageRows = Array.isArray(result.data) ? result.data : [];
     if (offset === 0) totalCount = toExactCount(result.count);
-    rows.push(...pageRows);
+    pageRows.forEach((row) => {
+      if (!row?.id || rowIds.has(row.id)) hasDuplicateRows = true;
+      if (row?.id) rowIds.add(row.id);
+      rows.push(row);
+    });
 
     if (totalCount !== null && rows.length >= totalCount) break;
     if (pageRows.length < HOSPITAL_CAPACITY_PAGE_SIZE) break;
     offset += HOSPITAL_CAPACITY_PAGE_SIZE;
   }
 
+  let finalCountQuery = supabase
+    .from('hospitals')
+    .select('id', { count: 'exact', head: true });
+  finalCountQuery = applyAnalyticsHospitalScope(finalCountQuery, user);
+  const finalCountResult = await finalCountQuery;
+  const finalCount = toExactCount(finalCountResult.count);
+
+  if (finalCountResult.error) {
+    return {
+      data: rows,
+      count: totalCount,
+      error: finalCountResult.error,
+      complete: false,
+      pageSize: HOSPITAL_CAPACITY_PAGE_SIZE,
+    };
+  }
+
+  const countStable = totalCount !== null && finalCount === totalCount;
+  const rowsComplete = totalCount !== null
+    && rows.length === totalCount
+    && rowIds.size === rows.length;
+
   return {
     data: rows,
-    count: totalCount,
+    count: finalCount ?? totalCount,
     error: null,
-    complete: totalCount !== null && rows.length >= totalCount,
+    complete: countStable && rowsComplete && !hasDuplicateRows,
     pageSize: HOSPITAL_CAPACITY_PAGE_SIZE,
   };
 }

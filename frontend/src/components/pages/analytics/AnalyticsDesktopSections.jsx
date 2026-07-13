@@ -162,7 +162,7 @@ export const AnalyticsBreakdownsSection = ({
 export const AnalyticsEvidenceSections = ({
   stats,
   sourceReadiness,
-  bedUse,
+  capacityPresentation,
   canReadSubscriptionAnalytics,
   subscriptionStats,
   canReadFinanceAnalytics,
@@ -170,11 +170,11 @@ export const AnalyticsEvidenceSections = ({
   windowLabel,
 }) => (
   <>
-    <EvidenceSection title="Network" detail="Current availability, separate from the selected request window." testId="analytics-network-section">
+    <EvidenceSection title="Network" detail={capacityPresentation?.detail} testId="analytics-network-section">
       <EvidenceItem label="Profiles" value={sourceReadiness?.users ? formatMetricNumber(stats?.totalUsers) : SOURCE_UNAVAILABLE} />
       <EvidenceItem label="Facilities" value={sourceReadiness?.hospitals ? formatMetricNumber(stats?.totalHospitals) : SOURCE_UNAVAILABLE} />
       <EvidenceItem label="Fleet" value={sourceReadiness?.ambulances ? formatMetricNumber(stats?.totalAmbulances) : SOURCE_UNAVAILABLE} />
-      <EvidenceItem label="Occupied beds" value={bedUse} />
+      <EvidenceItem label={capacityPresentation?.label || 'Bed capacity'} value={capacityPresentation?.value || SOURCE_UNAVAILABLE} />
     </EvidenceSection>
 
     {canReadSubscriptionAnalytics && (

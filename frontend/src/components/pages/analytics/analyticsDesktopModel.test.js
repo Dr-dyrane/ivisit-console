@@ -1,7 +1,6 @@
 import {
   formatAnalyticsCurrency,
   getAnalyticsAudienceLabel,
-  getAnalyticsBedUse,
   getAnalyticsPagination,
   getAnalyticsSignal,
   getBreakdownTone,
@@ -88,15 +87,6 @@ describe('analytics desktop presentation model', () => {
       windowLabel: '7 days',
       icons,
     })).toEqual(expect.objectContaining({ tone: 'muted', headline: 'No requests in 7 days' }));
-  });
-
-  it('withholds bed utilization until the hospital slice is ready', () => {
-    expect(getAnalyticsBedUse({ sourceReady: false, capacity: { total: 10, occupied: 5 } }))
-      .toBe(SOURCE_UNAVAILABLE);
-    expect(getAnalyticsBedUse({ sourceReady: true, capacity: { total: 0, occupied: 0 } }))
-      .toBe('No capacity data');
-    expect(getAnalyticsBedUse({ sourceReady: true, capacity: { total: 10, occupied: 6 } }))
-      .toBe('60%');
   });
 
   it('reserves destructive tone for failed or cancelled lifecycle evidence', () => {
