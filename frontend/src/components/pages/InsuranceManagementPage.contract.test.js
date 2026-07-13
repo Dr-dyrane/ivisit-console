@@ -32,7 +32,10 @@ const app = [
 ].join('\n');
 const modal = read('../modals/InsuranceModal.jsx');
 const analyticsModal = read('../modals/AnalyticsModal.jsx');
-const service = read('../../services/insuranceService.js');
+const service = [
+  read('../../services/insuranceService.js'),
+  readTree('../../services/insurance'),
+].join('\n');
 const panel = read('../context/InsurancePanel.jsx');
 const bottomBar = [
   read('../navigation/DynamicBottomBar.jsx'),
