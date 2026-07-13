@@ -432,7 +432,10 @@ describe('Settings Page 16 intake contract', () => {
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
-    const bottomBar = read('src/components/navigation/DynamicBottomBar.jsx');
+    const bottomBar = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
 
     expect(gate).toContain('Settings Requests-canon blocker map:');
     expect(gate).toContain('This is a blocker map, not a design target.');
@@ -495,9 +498,9 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain("new CustomEvent('settingsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestSettingsRouteContext'");
     expect(routeOwnsShellAction('/settings')).toBe(true);
-    expect(bottomBar).toContain("pathname.startsWith('/settings') && canReachRoute(userRole, '/settings')");
+    expect(bottomBar).toContain("pathname.startsWith('/settings') && canReach('/settings')");
     expect(bottomBar).toContain("label: 'Security'");
-    expect(bottomBar).toContain("new CustomEvent('openSecurityModal')");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openSecurityModal')");
     expect(contextFab).toContain('routeOwnsShellAction(location.pathname)');
   });
 

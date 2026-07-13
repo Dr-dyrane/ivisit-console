@@ -17,6 +17,7 @@ export const useMapContext = () => {
 export const MapProvider = ({ children }) => {
   const location = useLocation();
   const mapRouteActive = isMapPath(location.pathname);
+  const [hasAttemptedRouteLoad, setHasAttemptedRouteLoad] = useState(false);
   const [mapData, setMapData] = useState({
     emergencyRequests: [],
     ambulances: [],
@@ -45,6 +46,7 @@ export const MapProvider = ({ children }) => {
         .map(([source]) => source);
 
       if (shouldCommit()) {
+        setHasAttemptedRouteLoad(true);
         setMapData(prev => ({
           ...prev,
           emergencyRequests: emergencies,
@@ -59,7 +61,10 @@ export const MapProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Failed to initialize map data:", error);
-      if (shouldCommit()) setMapData(prev => ({ ...prev, loading: false, error }));
+      if (shouldCommit()) {
+        setHasAttemptedRouteLoad(true);
+        setMapData(prev => ({ ...prev, loading: false, error }));
+      }
     }
   }, []);
 
@@ -70,6 +75,7 @@ export const MapProvider = ({ children }) => {
     let refreshTimer = null;
 
     if (!mapRouteActive) {
+      setHasAttemptedRouteLoad(false);
       setMapData(prev => (
         prev.loading || prev.error
           ? { ...prev, loading: false, error: null }
@@ -117,7 +123,9 @@ export const MapProvider = ({ children }) => {
   }, [initializeMapData, mapRouteActive]);
 
   const value = {
-    mapData,
+    mapData: mapRouteActive && !hasAttemptedRouteLoad
+      ? { ...mapData, loading: true }
+      : mapData,
     setMapData, // Expose setter if needed for manual overrides
     toggleLayer: (layer) => setMapData(prev => ({
       ...prev,

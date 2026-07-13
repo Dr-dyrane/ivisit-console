@@ -279,7 +279,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const tableSource = fs.readFileSync('src/components/views/EmergencyRequestTableView.jsx', 'utf8');
     const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
     const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-    const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const bottomBarSource = [
+      fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+      fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+    ].join('\n');
     const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
     const railComponentSource = fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
     const mobileMenuSource = fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
@@ -565,10 +568,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(bottomBarSource).toContain("pathname.startsWith('/emergencies')");
     expect(bottomBarSource).toContain("pathname.startsWith('/verification')");
     expect(bottomBarSource).toContain('!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />');
-    expect(bottomBarSource).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
-    expect(bottomBarSource).toContain("pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')");
+    expect(bottomBarSource).toContain('getRouteOwnedMobileAction(location.pathname, profile, pageAction, can)');
+    expect(bottomBarSource).toContain("pathname.startsWith('/emergencies') && canReach('/emergencies')");
     expect(bottomBarSource).toContain("label: 'New request'");
-    expect(bottomBarSource).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
+    expect(bottomBarSource).toContain("action: dispatchWindowEvent('openEmergencyModal')");
     expect(mobileMenuSource).toContain('const routeOwnsMobileAction = routeOwnsShellAction(location.pathname)');
     expect(mobileMenuSource).toContain('!routeOwnsMobileAction');
     expect(mobileMenuSource).not.toContain('Page Actions');

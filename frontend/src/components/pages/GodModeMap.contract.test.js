@@ -15,8 +15,19 @@ describe('GodModeMap Live Map contract', () => {
   const mapContextSource = () => fs.readFileSync('src/contexts/MapContext.jsx', 'utf8');
   const mapPanelSource = () => fs.readFileSync('src/components/context/MapPanel.jsx', 'utf8');
   const layoutContextSource = () => fs.readFileSync('src/contexts/LayoutContext.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   const googleRendererSource = () => fs.readFileSync('src/components/map/MapRenderers/GoogleMapsRenderer.jsx', 'utf8');
+  const leafletRendererSource = () => fs.readFileSync('src/components/map/MapRenderers/LeafletMapRenderer.jsx', 'utf8');
+  const googleRefinerSource = () => fs.readFileSync('src/components/map/MapRefiner/GoogleMapsRefiner.jsx', 'utf8');
+  const leafletRefinerSource = () => fs.readFileSync('src/components/map/MapRefiner/LeafletMapRefiner.jsx', 'utf8');
+  const viewModelSource = () => fs.readFileSync('src/components/map/mapViewModel.js', 'utf8');
+  const locationHookSource = () => fs.readFileSync('src/components/map/useOperatorLocation.js', 'utf8');
+  const loadingSource = () => fs.readFileSync('src/components/map/MapLoadingState.jsx', 'utf8');
+  const viewportSummarySource = () => fs.readFileSync('src/components/map/MapViewportSummary.jsx', 'utf8');
+  const mapGuideSource = () => fs.readFileSync('docs/ui-ux/MAP_SYSTEM_GUIDE.md', 'utf8');
   const mapServiceSource = () => fs.readFileSync('src/services/supabaseMapService.js', 'utf8');
   const responseServiceSource = () => fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
   const driverServiceSource = () => fs.readFileSync('src/services/driverManagementService.js', 'utf8');
@@ -90,16 +101,30 @@ describe('GodModeMap Live Map contract', () => {
     expect(routeOwnsShellAction('/map')).toBe(true);
   });
 
+  it('shows structural map loading on desktop and mobile without a blank canvas', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const loading = loadingSource();
+
+    expect(page).toContain('loading && !hasMapPoints && !isSwitchingMap && <MapLoadingState />');
+    expect(mobile).toContain('showInitialLoading && <MapLoadingState mobile />');
+    expect(loading).toContain('aria-label="Loading live map"');
+    expect(loading).toContain("mobile ? 'left-3 right-3 top-[calc(env(safe-area-inset-top)+3.5rem)]' : 'left-6 top-6 w-[18rem]'");
+    expect(loading).toContain('bottom-[calc(env(safe-area-inset-bottom)+5rem)]');
+  });
+
   it('keeps map reads and subscriptions behind the map service boundary', () => {
     const page = pageSource();
     const service = mapServiceSource();
+    const viewModel = viewModelSource();
 
     expect(page).toContain('useMapContext()');
-    expect(page).toContain('supabaseMapService.getNearbyHospitals(userLocation, 100, { quiet: true })');
-    expect(page).toContain('decodePostGISGeometry');
+    expect(page).toContain('emergencyRequests.map(resolveMapEntityLocation).filter(Boolean)');
+    expect(page).not.toContain('getNearbyHospitals');
     expect(page).not.toContain("from('emergency_requests')");
     expect(page).not.toContain("from('ambulances')");
     expect(page).not.toContain("from('hospitals')");
+    expect(viewModel).toContain("import { decodePostGISGeometry } from '../../utils/locationUtils'");
 
     expect(service).toContain('async fetchInitialMapData(options = {})');
     expect(mapContextSource()).toContain('supabaseMapService.fetchInitialMapData({ quiet: true })');
@@ -112,8 +137,8 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain('subscribeToAmbulances(onChange)');
     expect(service).toContain('subscribeToHospitals(onChange)');
     expect(service).not.toContain("table: 'users'");
-    expect(service).toContain("rpc('nearby_hospitals'");
-    expect(service).toContain('async getNearbyHospitals(userLocation, radiusKm = 50, options = {})');
+    expect(service).not.toContain("rpc('nearby_hospitals'");
+    expect(service).not.toContain('getNearbyHospitals');
     expect(service).toContain('const quiet = Boolean(options?.quiet)');
     expect(service).toContain('sourceState');
     expect(service).toContain(".select('*', { count: 'exact' })");
@@ -125,9 +150,6 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain(".in('status', MAP_ACTIVE_ROUTE_STATUSES)");
     expect(service).toContain('activeRoutes: {');
     expect(service).toContain('exact: !activeRoutesResult.error && Number.isFinite(activeRoutesResult.count)');
-    expect(page).toContain('const hasExactActiveRouteCount = activeRouteProjection?.exact === true');
-    expect(page).toContain('hasExactActiveRouteCount ? "Active routes" : "Active routes shown"');
-    expect(page).toContain('Current shown');
     expect(mobileSource()).toContain('requestSource?.facets?.[serviceType]?.total');
     expect(mobileSource()).not.toContain("{ id: 'all', label: 'All', value: requests.length }");
     expect(service).toContain("const MAP_REQUEST_TYPES = ['ambulance', 'bed'];");
@@ -136,8 +158,60 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain('const MAP_REQUEST_LIMIT = 100');
     expect(service).toContain('const MAP_ENTITY_LIMIT = 1000');
     expect(service).not.toContain('Fallback to basic hospital query');
-    expect(service).toContain('Nearby facility search is temporarily unavailable.');
     expect(mapContextSource()).toContain('Some live map data did not load.');
+    expect(mapContextSource()).toContain('mapRouteActive && !hasAttemptedRouteLoad');
+  });
+
+  it('treats five kilometres as a scoped view lens, not an authorization expansion', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const viewModel = viewModelSource();
+    const summary = viewportSummarySource();
+    const googleRenderer = googleRendererSource();
+    const leafletRenderer = leafletRendererSource();
+    const refiners = `${googleRefinerSource()}\n${leafletRefinerSource()}`;
+
+    expect(viewModel).toContain('export const MAP_VIEW_RADIUS_KM = 5');
+    expect(viewModel).toContain("{ source: 'user', value: userLocation }");
+    expect(viewModel).toContain("{ source: 'assignment', value: assignedEmergency }");
+    expect(viewModel).toContain("{ source: 'selection', value: selectedMarker?.data }");
+    expect(viewModel).toContain('getMapLensSummary');
+    expect(viewModel).toContain('isWithinMapRadius');
+    expect(page).toContain('radiusKm: MAP_VIEW_RADIUS_KM');
+    expect(page).toContain('focusLocation={focusLocation}');
+    expect(page).toContain('viewRadiusKm={MAP_VIEW_RADIUS_KM}');
+    expect(mobile).toContain('<MapViewportSummary');
+    expect(summary).toContain('Requests shown');
+    expect(summary).toContain('Hospitals shown');
+    expect(summary).toContain('Units shown');
+    expect(googleRenderer).toContain('radiusKm={viewRadiusKm}');
+    expect(leafletRenderer).toContain('radiusKm={viewRadiusKm}');
+    expect(refiners).toContain('getRadiusBounds(center, radiusKm)');
+    expect(googleRefinerSource()).toContain('getViewportZoom(map, bounds, padding)');
+    expect(googleRefinerSource()).toContain('map.setZoom(targetZoom)');
+    expect(mapGuideSource()).toContain('The 5 km value is a view lens, not a new data query or authorization rule.');
+  });
+
+  it('renders only the selected or assigned request route preview', () => {
+    const page = pageSource();
+    const viewModel = viewModelSource();
+    const fallback = fallbackSource();
+    const googleRenderer = googleRendererSource();
+    const leafletRenderer = leafletRendererSource();
+
+    expect(page).toContain("const routeEmergency = selectedMarker?.type === 'emergency'");
+    expect(page).toContain(': driverActiveEmergency');
+    expect(page).toContain('buildRoutePreview({');
+    expect(viewModel).toContain("const TERMINAL_REQUEST_STATUSES = new Set(['completed', 'cancelled', 'canceled'])");
+    expect(viewModel).toContain("kind: 'pickup'");
+    expect(viewModel).toContain('dashed: true');
+    expect(viewModel).toContain("kind: 'destination'");
+    expect(viewModel).toContain('dashed: false');
+    expect(googleRenderer).toContain('getRouteStrokeOptions');
+    expect(googleRenderer).toContain("path: 'M 0,-1 0,1'");
+    expect(leafletRenderer).toContain('dashArray: route.dashed ? "12, 12" : undefined');
+    expect(fallback).toContain('route previews');
+    expect(mapGuideSource()).toContain('Draw route context only for the selected active emergency');
   });
 
   it('keeps current map commands tied to named backend receivers', () => {
@@ -184,7 +258,11 @@ describe('GodModeMap Live Map contract', () => {
     expect(page).toContain('toast.success(copy.success');
     expect(page.indexOf('if (!updatedRequest) {')).toBeLessThan(page.indexOf('toast.success(copy.success'));
     expect(page).toContain('aria-busy={driverAction === "completed"}');
-    expect(page).toContain('toast.info("Location not ready")');
+    expect(page).toContain("toast.loading('Requesting location...'");
+    expect(page).toContain("toast.info('Using the operational area'");
+    expect(locationHookSource()).toContain("status: 'locating'");
+    expect(locationHookSource()).toContain("status: 'available'");
+    expect(locationHookSource()).toContain("status: 'unavailable'");
     expect(mobile).toContain('const [mapCommand, setMapCommand] = useState(null)');
     expect(mobile).toContain('Confirm close');
     expect(mobile).toContain('aria-busy={mapCommand === "close"}');
@@ -197,10 +275,9 @@ describe('GodModeMap Live Map contract', () => {
     expect(page).toContain('<ConsoleModuleRail');
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
     expect(page).toContain('Recenter');
-    expect(page).toContain("toast.info('Location not ready')");
-    expect(bottomBarSource()).toContain("pathname.startsWith('/map') && canReachRoute(userRole, '/map')");
+    expect(bottomBarSource()).toContain("pathname.startsWith('/map') && canReach('/map')");
     expect(bottomBarSource()).toContain("label: 'Center map'");
-    expect(bottomBarSource()).toContain("new CustomEvent('mapRecenterRequested')");
+    expect(bottomBarSource()).toContain("action: dispatchWindowEvent('mapRecenterRequested')");
     expect(mobile).not.toContain('aria-label="Center map"');
   });
 
@@ -224,12 +301,27 @@ describe('GodModeMap Live Map contract', () => {
     expect(fallback).toContain('ambulances = []');
     expect(fallback).toContain('hospitals = []');
     expect(fallback).toContain('activeRoutes = []');
+    expect(fallback).toContain('focusLocation = null');
+    expect(fallback).toContain('viewRadiusKm = MAP_VIEW_RADIUS_KM');
+    expect(fallback).toContain('isWithinMapRadius(marker, focusLocation, viewRadiusKm)');
     expect(fallback).toContain("setSelectedMarker?.({ type: marker.type, data: marker.data })");
     expect(fallback).toContain("const MarkerElement = isInteractive ? 'button' : 'div'");
     expect(fallback).toContain("'aria-pressed': isSelected");
     expect(fallback).toContain(": { role: 'img' }");
     expect(fallback).toContain('Select a point');
     expect(fallback).not.toMatch(/Map Preview Mode|simulated view|Simulated markers|Google Maps API requires domain authorization/i);
+  });
+
+  it('keeps interactive Google markers named and keyboard reachable', () => {
+    const renderer = googleRendererSource();
+
+    expect(renderer).toContain("container.setAttribute('role', 'button')");
+    expect(renderer).toContain('container.tabIndex = 0');
+    expect(renderer).toContain("container.addEventListener('keydown', handleKeyDown)");
+    expect(renderer).toContain("if (!['Enter', ' '].includes(event.key)");
+    expect(renderer).toContain("ariaLabel={markerLabel('emergency', request)}");
+    expect(renderer).toContain("ariaLabel={markerLabel('hospital', hospital)}");
+    expect(renderer).toContain("title={markerLabel('ambulance', ambulance)}");
   });
 
   it('keeps visible map copy simple while preserving command receivers', () => {
@@ -239,10 +331,12 @@ describe('GodModeMap Live Map contract', () => {
     const activeCopy = `${page}\n${mobile}\n${marker}`;
 
     expect(activeCopy).toContain('Current request');
-    expect(activeCopy).toContain('Live status');
+    expect(activeCopy).toContain('Assigned');
+    expect(activeCopy).toContain('Not recorded');
     expect(activeCopy).toContain('Send unit');
     expect(activeCopy).toContain('Close request');
     expect(activeCopy).toContain('canManageRequests');
+    expect(activeCopy).not.toMatch(/Current signal|Delayed signal|Offline signal/i);
     expect(activeCopy).not.toMatch(/Driver Mission|Ops Telemetry|Telemetry:|Mission Complete|Dispatch Unit|Dispatching|Emergency dispatched|dispatch failed/i);
   });
 
@@ -254,7 +348,12 @@ describe('GodModeMap Live Map contract', () => {
     expect(hardgate).toContain('src/components/map/MarkerDetailPanel.jsx');
     expect(hardgate).toContain('src/components/map/MapLayerControls.jsx');
     expect(hardgate).toContain('src/components/map/MapFallback.jsx');
+    expect(hardgate).toContain('src/components/map/MapLoadingState.jsx');
+    expect(hardgate).toContain('src/components/map/MapViewportSummary.jsx');
+    expect(hardgate).toContain('src/components/map/MapRefiner/GoogleMapsRefiner.jsx');
+    expect(hardgate).toContain('src/components/map/MapRefiner/LeafletMapRefiner.jsx');
     expect(hardgate).toContain('src/components/map/MapRenderers/GoogleMapsRenderer.jsx');
+    expect(hardgate).toContain('src/components/map/MapRenderers/LeafletMapRenderer.jsx');
     expect(hardgate).toContain('src/components/context/MapPanel.jsx');
   });
 
@@ -266,7 +365,20 @@ describe('GodModeMap Live Map contract', () => {
     const panel = mapPanelSource();
     const page = pageSource();
     const googleRenderer = googleRendererSource();
-    const mountedMapSurfaces = [page, mobile, marker, layers, fallback, panel, googleRenderer].join('\n');
+    const mountedMapSurfaces = [
+      page,
+      mobile,
+      marker,
+      layers,
+      fallback,
+      panel,
+      googleRenderer,
+      leafletRendererSource(),
+      googleRefinerSource(),
+      leafletRefinerSource(),
+      loadingSource(),
+      viewportSummarySource(),
+    ].join('\n');
 
     expect(mountedMapSurfaces).not.toMatch(/\brounded-(?:full|xl|2xl|3xl|\[[^\]]+\])\b/);
     expect(mountedMapSurfaces).not.toMatch(/\bsquircle(?:-[a-z]+)?\b|\bgeo-round\b/);
@@ -297,7 +409,7 @@ describe('GodModeMap Live Map contract', () => {
     expect(mobile).toContain("import {");
     expect(mobile).toContain('X');
     expect(mobile).toContain('aria-label="Close details"');
-    expect(mobile).toContain("{selectedMarker.type} - {selectedMarker.data.status || 'Active'}");
+    expect(mobile).toContain("{selectedMarker.type} - {statusLabel(selectedMarker.data.status, 'Status not recorded')}");
     expect(mobile).not.toContain('\u00d7');
     expect(mobile).not.toContain('\u2022');
     expect(marker).toContain('CheckCheck, X');
@@ -313,6 +425,12 @@ describe('GodModeMap Live Map contract', () => {
       layerControlsSource(),
       fallbackSource(),
       mapPanelSource(),
+      loadingSource(),
+      viewportSummarySource(),
+      googleRefinerSource(),
+      leafletRefinerSource(),
+      googleRendererSource(),
+      leafletRendererSource(),
     ].join('\n');
 
     expect(activeSurface).not.toMatch(/\sborder(?:-[^\s"'`]+)?(?=\s|$)/);

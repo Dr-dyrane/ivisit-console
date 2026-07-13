@@ -57,7 +57,10 @@ describe('MobileVerification Approvals mobile contract', () => {
 
   it('keeps the mobile FAB + bottom bar owning the /verification approval action', () => {
     const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-    const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const bottomBarSource = [
+      fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+      fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+    ].join('\n');
 
     expect(routeOwnsShellAction('/verification')).toBe(true);
     expect(fabSource.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))

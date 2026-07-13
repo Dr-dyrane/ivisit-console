@@ -15,7 +15,10 @@ describe('DoctorsPage Staff contract', () => {
   const serviceSource = () => fs.readFileSync('src/services/doctorsService.js', 'utf8');
   const hookSource = () => fs.readFileSync('src/hooks/useDoctorsQuery.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
   const modalChromeHookSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
@@ -53,12 +56,12 @@ describe('DoctorsPage Staff contract', () => {
     expect(fab.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
       .toBeLessThan(fab.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
 
-    expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
+    expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, profile, pageAction, can)');
     expect(bottomBar).toContain("pathname.startsWith('/doctors')");
     expect(bottomBar).toContain("label: 'Add staff'");
     expect(bottomBar).toContain("color: 'staff'");
     expect(bottomBar).toContain("actionConfig.color === 'staff'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openDoctorModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openDoctorModal')");
     expect(bottomBar.indexOf('RouteOwnedBottomAction'))
       .toBeLessThan(bottomBar.indexOf('const DynamicBottomAction'));
     expect(gateSource()).toContain('Staff right-panel route-context cleanup on 2026-07-06 moved `DoctorsPanel.jsx` off `PageDataContext` staff truth');

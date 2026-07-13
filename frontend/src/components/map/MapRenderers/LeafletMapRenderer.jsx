@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
 	MapContainer,
 	TileLayer,
@@ -16,15 +16,14 @@ export const LeafletMapRenderer = ({
 	hospitals,
 	routes, // Array of { positions: [[lat, lng], [lat, lng]], color: string }
 	userLocation,
-	markers, // For auto-zoom
+	focusLocation,
+	viewRadiusKm,
 	showLayers,
 	onMarkerClick,
 	getStatusColor,
 	getPriorityColor,
 	theme,
 }) => {
-	const [hasInitiallyZoomed, setHasInitiallyZoomed] = useState(false);
-
 	return (
 		<MapContainer
 			key={theme} // Force remount for reliability
@@ -46,9 +45,8 @@ export const LeafletMapRenderer = ({
 			/>
 
 			<LeafletMapRefiner
-				userLocation={userLocation}
-				markers={!hasInitiallyZoomed ? markers : []}
-				onZoomComplete={() => setHasInitiallyZoomed(true)}
+				focusLocation={focusLocation || center}
+				radiusKm={viewRadiusKm}
 			/>
 
 			{/* Routes/Polylines */}
@@ -59,9 +57,9 @@ export const LeafletMapRenderer = ({
 						positions={route.positions}
 						pathOptions={{
 							color: route.color || "hsl(var(--primary))",
-							weight: 10,
+							weight: route.dashed ? 4 : 5,
 							opacity: 0.8,
-							dashArray: "12, 12", // Dashed line for effect
+							dashArray: route.dashed ? "12, 12" : undefined,
 						}}
 					/>
 				))}

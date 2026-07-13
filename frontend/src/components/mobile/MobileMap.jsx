@@ -17,7 +17,9 @@ import {
     LeafletMapRenderer,
     MapErrorBoundary,
     MapFallback,
-    MapLayerControls
+    MapLayerControls,
+    MapLoadingState,
+    MapViewportSummary,
 } from '../map';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { LocationCell } from '../ui/LocationCell';
@@ -62,6 +64,11 @@ export const MobileMap = ({
     setSelectedMarker,
     refresh,
     userLocation,
+    focusLocation,
+    focusSource,
+    locationStatus,
+    mapLens,
+    viewRadiusKm,
     mapProvider,
     mapStyles,
     allMarkers,
@@ -173,6 +180,8 @@ export const MobileMap = ({
                                 activeRoutes={activeRoutes}
                                 showLayers={showLayers}
                                 userLocation={userLocation}
+                                focusLocation={focusLocation}
+                                viewRadiusKm={viewRadiusKm}
                                 selectedMarker={selectedMarker}
                                 setSelectedMarker={setSelectedMarker}
                             />
@@ -190,6 +199,8 @@ export const MobileMap = ({
                                 theme={theme}
                                 mapStyles={mapStyles}
                                 userLocation={userLocation}
+                                focusLocation={focusLocation}
+                                viewRadiusKm={viewRadiusKm}
                                 allMarkers={allMarkers}
                                 activeRoutes={activeRoutes}
                                 showLayers={showLayers}
@@ -209,6 +220,8 @@ export const MobileMap = ({
                                         activeRoutes={activeRoutes}
                                         showLayers={showLayers}
                                         userLocation={userLocation}
+                                        focusLocation={focusLocation}
+                                        viewRadiusKm={viewRadiusKm}
                                         selectedMarker={selectedMarker}
                                         setSelectedMarker={setSelectedMarker}
                                     />
@@ -216,13 +229,15 @@ export const MobileMap = ({
                             />
                         ) : (
                             <LeafletMapRenderer
-                                center={userLocation || { lat: 6.5244, lng: 3.3792 }}
+                                center={focusLocation}
                                 zoom={12}
                                 emergencies={filteredRequests}
                                 ambulances={processedAmbulances}
                                 hospitals={processedHospitals}
                                 routes={activeRoutes}
                                 userLocation={userLocation}
+                                focusLocation={focusLocation}
+                                viewRadiusKm={viewRadiusKm}
                                 markers={allMarkers}
                                 showLayers={showLayers}
                                 onMarkerClick={(type, data) => setSelectedMarker({ type, data })}
@@ -235,6 +250,8 @@ export const MobileMap = ({
                 </div>
 
             </div>
+
+            {showInitialLoading && <MapLoadingState mobile />}
 
             <div className="absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+3.5rem)] z-[80] pointer-events-auto">
                 <div className="chrome-glass rounded-card p-2">
@@ -261,28 +278,33 @@ export const MobileMap = ({
                             );
                         })}
                     </div>
+                    <MapViewportSummary
+                        compact
+                        lens={mapLens}
+                        locationStatus={locationStatus}
+                        focusSource={focusSource}
+                        routeCount={activeRoutes.length}
+                    />
                 </div>
             </div>
 
             <AnimatePresence mode="wait">
-                {(showInitialLoading || showRefreshState || error || (!loading && !hasMapPoints)) && (
+                {(showRefreshState || error || (!loading && !hasMapPoints)) && (
                     <motion.div
-                        key={error ? 'error' : showInitialLoading ? 'loading' : showRefreshState ? 'refreshing' : 'empty'}
+                        key={error ? 'error' : showRefreshState ? 'refreshing' : 'empty'}
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.16 }}
-                        className="pointer-events-auto absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+8.5rem)] z-[75]"
+                        className="pointer-events-auto absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+10.75rem)] z-[75]"
                     >
                         <div className="chrome-glass flex min-h-12 items-center gap-3 rounded-card px-4 py-3 shadow-e3">
-                            {!error && (showInitialLoading || showRefreshState) && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-foreground/70" />}
+                            {!error && showRefreshState && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-foreground/70" />}
                             {error && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />}
                             <p className="min-w-0 flex-1 text-xs font-medium text-foreground/80" role={error ? 'alert' : 'status'} aria-live="polite">
                                 {error
                                     ? 'Map data could not be refreshed.'
-                                    : showInitialLoading
-                                        ? 'Loading map data'
-                                        : showRefreshState
+                                    : showRefreshState
                                             ? 'Updating map data'
                                             : 'No map points are available in this scope.'}
                             </p>
@@ -364,7 +386,7 @@ export const MobileMap = ({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[11px] font-medium text-muted-foreground">
-                                            {selectedMarker.type} - {selectedMarker.data.status || 'Active'}
+                                            {selectedMarker.type} - {statusLabel(selectedMarker.data.status, 'Status not recorded')}
                                         </p>
                                         <h3 className="truncate text-lg font-semibold">
                                             {patientData?.name || selectedMarker.data.name || selectedMarker.data.call_sign || (selectedMarker.data.id ? `#${selectedMarker.data.id.slice(-6)}` : 'Map point')}

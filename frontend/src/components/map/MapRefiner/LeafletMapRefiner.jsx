@@ -1,56 +1,33 @@
 import React, { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
+import { getRadiusBounds, MAP_VIEW_RADIUS_KM } from '../mapViewModel';
 
-export const LeafletMapRefiner = ({ userLocation, markers, onZoomComplete }) => {
+export const LeafletMapRefiner = ({
+	focusLocation,
+	radiusKm = MAP_VIEW_RADIUS_KM,
+}) => {
 	const map = useMap();
-	const zoomedStatus = React.useRef('none');
+	const applyViewport = React.useCallback((center = focusLocation, animate = false) => {
+		if (!map || !center) return;
+		const bounds = getRadiusBounds(center, radiusKm);
+		map.fitBounds(
+			[[bounds.south, bounds.west], [bounds.north, bounds.east]],
+			{ padding: [72, 72], animate, duration: animate ? 0.6 : undefined },
+		);
+	}, [focusLocation, map, radiusKm]);
 
 	useEffect(() => {
-		const handleRecenter = () => {
-			if (userLocation) {
-				map.setView([userLocation.lat, userLocation.lng], 15, {
-					animate: true,
-					duration: 1.5
-				});
-				zoomedStatus.current = 'user';
-			}
+		const handleRecenter = (event) => {
+			applyViewport(event?.detail?.center || focusLocation, true);
 		};
 
 		window.addEventListener('recenter-map', handleRecenter);
 		return () => window.removeEventListener('recenter-map', handleRecenter);
-	}, [map, userLocation]);
+	}, [applyViewport, focusLocation]);
 
-	// Original effect
 	useEffect(() => {
-		if (!map || !userLocation) return;
-
-		const top5 = markers && markers.length > 0 ? [...markers]
-			.filter(m => m.lat && m.lng)
-			.map(m => {
-				const mLat = parseFloat(m.lat);
-				const mLng = parseFloat(m.lng);
-				return {
-					pos: [mLat, mLng],
-					dist: Math.pow(mLat - userLocation.lat, 2) + Math.pow(mLng - userLocation.lng, 2)
-				};
-			})
-			.sort((a, b) => a.dist - b.dist)
-			.slice(0, 5)
-			.map(x => x.pos) : [];
-
-		if (zoomedStatus.current === 'none') {
-			map.setView([userLocation.lat, userLocation.lng], 15);
-			zoomedStatus.current = 'user';
-		}
-
-		if (zoomedStatus.current === 'user' && top5.length > 0) {
-			map.fitBounds([[userLocation.lat, userLocation.lng], ...top5], { padding: [100, 100], maxZoom: 15 });
-			zoomedStatus.current = 'full';
-		}
-
-		if (onZoomComplete) onZoomComplete();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [map, userLocation?.lat, userLocation?.lng, markers]);
+		applyViewport();
+	}, [applyViewport]);
 
 	return null;
 };

@@ -15,7 +15,10 @@ describe('Today/Requests revamp gate contract', () => {
   const mobileNavigationSource = () => fs.readFileSync('src/config/mobileNavigation.js', 'utf8');
   const moduleRailSource = () => fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const htmlShellSource = () => fs.readFileSync('public/index.html', 'utf8');
   const appBootstrapSource = () => fs.readFileSync('src/index.js', 'utf8');
@@ -828,7 +831,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(fab).not.toContain("case 'healthNews'");
     expect(bottomBar).toContain("pathname.startsWith('/health-news')");
     expect(bottomBar).toContain("label: 'News stats'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openAnalyticsModal')");
     expect(bottomBar).not.toContain("case 'healthNews'");
     // Stale-pin reconciliation (2026-07-09): the generic hospitals context action
     // was REMOVED by the shell-parity pass (HospitalsPage.contract pins the ban);
@@ -925,9 +928,9 @@ describe('Today/Requests revamp gate contract', () => {
     expect(routeOwnsShellAction('/emergencies')).toBe(true);
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
     // Config resolved first, wrapped when it declares a locally hosted `modal` (Today FAB parity).
-    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);');
+    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, profile, pageAction, can);');
     expect(bottomBar).toContain("label: 'New request'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openEmergencyModal')");
   });
 
   it('keeps stale chunk recovery as a rendered-proof stability gate', () => {

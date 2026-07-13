@@ -16,7 +16,10 @@ describe('WalletManagementPage Payments contract', () => {
   const contextActionSource = () => fs.readFileSync('src/hooks/useContextAction.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
   const mobileNavMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
 
   it('keeps the Payments route at org-admin scope while preserving the /wallet route', () => {
     expect(getRouteProtection('/wallet')).toEqual({
@@ -678,7 +681,7 @@ describe('WalletManagementPage Payments contract', () => {
 
     expect(dock).toContain("pathname.startsWith('/wallet')");
     expect(dock).toContain("label: 'Payment stats'");
-    expect(dock).toContain("new CustomEvent('openWalletAnalytics')");
+    expect(dock).toContain("action: dispatchWindowEvent('openWalletAnalytics')");
     expect(page).toContain("window.addEventListener('openWalletAnalytics', handleOpenAnalytics)");
     expect(menu).toContain("'openWalletAnalytics'");
     expect(dock).not.toContain("label: 'Add funds'");

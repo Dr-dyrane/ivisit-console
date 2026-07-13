@@ -388,7 +388,10 @@ describe('Pricing Page 18 intake contract', () => {
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const panel = read('src/components/context/PricingContextPanel.jsx');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
-    const bottomBar = read('src/components/navigation/DynamicBottomBar.jsx');
+    const bottomBar = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
     const contextAction = read('src/hooks/useContextAction.js');
     const routeActionOwnership = read('src/config/routeActionOwnership.js');
     const service = read('src/services/pricingService.js');
@@ -456,7 +459,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(contextFab).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(routeActionOwnership).toContain("'/pricing'");
     expect(bottomBar).toContain("pathname.startsWith('/pricing')");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openPricingModal'))");
+    expect(bottomBar).toContain("label: 'Pricing stats'");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openPricingAnalytics')");
     expect(contextAction).toContain("currentPath.includes('/pricing')");
     expect(contextAction).toContain("label: 'Add price'");
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openPricingModal'))");

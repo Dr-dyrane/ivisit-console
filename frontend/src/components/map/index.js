@@ -3,6 +3,8 @@
 // Error handling and fallback
 export { MapErrorBoundary } from './ErrorBoundary';
 export { MapFallback } from './MapFallback';
+export { MapLoadingState } from './MapLoadingState';
+export { MapViewportSummary } from './MapViewportSummary';
 
 // Map refiners for auto-zoom and smart positioning
 export { GoogleMapsPolyline, GoogleMapsMapRefiner } from './MapRefiner/GoogleMapsRefiner';

@@ -20,7 +20,10 @@ describe('SupportTicketsPage canonical source contract', () => {
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
   const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
@@ -190,7 +193,7 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(routeOwnsShellAction('/support-tickets')).toBe(true);
     expect(bottomBar).toContain("pathname.startsWith('/support-tickets')");
     expect(bottomBar).toContain("label: 'New ticket'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openSupportTicketModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openSupportTicketModal')");
   });
 
   it('blocks unsafe Support actions from the active UI while keeping service inventory explicit', () => {

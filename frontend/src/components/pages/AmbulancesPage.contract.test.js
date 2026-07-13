@@ -260,17 +260,20 @@ describe('AmbulancesPage visual-start repair contract', () => {
     // primary CTA — the LIVE "Add unit" create (ambulances is write-capable: CREATE + EDIT are
     // legitimate for admin/org_admin, AmbulancesPage.jsx:318). The earlier "Driver approvals" FAB
     // was built on a FALSE "unit create is fail-closed" premise and is retired.
-    const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const bottomBar = [
+      fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+      fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+    ].join('\n');
     // RBAC: the gate is DERIVED from the route (canReachRoute('/ambulances') = canManageFleet,
     // the create authority), not a hand-kept role list. Dispatches the page's own create listener.
-    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && canReachRoute(userRole, '/ambulances')");
+    expect(bottomBar).toContain("pathname.startsWith('/ambulances') && canReach('/ambulances')");
     expect(bottomBar).toContain("label: 'Add unit'");
-    expect(bottomBar).toContain("action: () => window.dispatchEvent(new CustomEvent('openAmbulanceModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openAmbulanceModal')");
     expect(bottomBar).toContain('const canReachRoute =');
     // The retired FALSE-premise FAB must not resurface.
     expect(bottomBar).not.toContain("label: 'Driver approvals'");
     // The /doctors FAB RBAC gap is closed (was ungated).
-    expect(bottomBar).toContain("pathname.startsWith('/doctors') && ['org_admin', 'admin'].includes(userRole)");
+    expect(bottomBar).toContain("pathname.startsWith('/doctors') && canReach('/doctors')");
     expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");
     expect(mobile).toContain("return 'Ready';");

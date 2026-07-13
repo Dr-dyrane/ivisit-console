@@ -23,11 +23,8 @@ import { useMapContext } from "../../contexts/MapContext";
 import { getConsoleModuleRailItems } from "../../config/consoleModuleRail";
 import { ConsoleModuleRail } from "../common/ConsoleModuleRail";
 import { useWayfindingNav } from "../console/WorkspaceStage";
-import { supabaseMapService } from "../../services/supabaseMapService";
 import { updateResponderLocation } from "../../services/emergencyResponseService";
 import { driverManagementService } from "../../services/driverManagementService";
-// PULLBACK NOTE: Added imports for PostGIS geometry support
-// NEW: import { decodePostGISGeometry } from "../../utils/locationUtils";
 import { decodePostGISGeometry } from "../../utils/locationUtils";
 
 // Import extracted map components
@@ -37,13 +34,21 @@ import {
 	GoogleMapsRenderer,
 	LeafletMapRenderer,
 	MarkerDetailPanel,
-	MapLayerControls
+	MapLayerControls,
+	MapLoadingState,
+	MapViewportSummary,
 } from "../map";
+import {
+	DEFAULT_MAP_CENTER,
+	MAP_VIEW_RADIUS_KM,
+	buildRoutePreview,
+	getMapFocus,
+	getMapLensSummary,
+	resolveMapEntityLocation,
+} from "../map/mapViewModel";
+import { useOperatorLocation } from "../map/useOperatorLocation";
 
-const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
 const ACTIVE_AMBULANCE_STATUSES = new Set(["in_progress", "accepted", "arrived"]);
-const TELEMETRY_STALE_MS = 30000;
-const TELEMETRY_LOST_MS = 120000;
 const ROUTE_PRIMARY_LIGHT = "#86100E";
 const ROUTE_PRIMARY_DARK = "#B83432";
 const DRIVER_STATUS_COPY = {
@@ -62,41 +67,6 @@ const DRIVER_STATUS_COPY = {
 		success: "Request closed",
 		error: "Could not close request",
 	},
-};
-
-const parseTimestampMs = (value) => {
-	if (!value) return null;
-	if (typeof value === "number" && Number.isFinite(value)) return value;
-	if (typeof value === "string") {
-		const parsed = Date.parse(value);
-		return Number.isFinite(parsed) ? parsed : null;
-	}
-	return null;
-};
-
-const deriveTelemetryState = (updatedAt, hasResponderLocation) => {
-	if (!updatedAt || !hasResponderLocation) {
-		return { state: "inactive", ageMs: null, ageLabel: null };
-	}
-
-	const ts = parseTimestampMs(updatedAt);
-	if (!ts) {
-		return { state: "inactive", ageMs: null, ageLabel: null };
-	}
-
-	const ageMs = Math.max(0, Date.now() - ts);
-	const ageSec = Math.floor(ageMs / 1000);
-	const ageLabel = ageSec < 60
-		? `${ageSec}s`
-		: `${Math.floor(ageSec / 60)}m ${ageSec % 60}s`;
-
-	if (ageMs > TELEMETRY_LOST_MS) {
-		return { state: "lost", ageMs, ageLabel };
-	}
-	if (ageMs > TELEMETRY_STALE_MS) {
-		return { state: "stale", ageMs, ageLabel };
-	}
-	return { state: "live", ageMs, ageLabel };
 };
 
 const statusLabel = (value, fallback = '') => {
@@ -119,13 +89,14 @@ const GodModeMapContent = () => {
 		selectedMarker,
 		loading,
 		error,
-		sourceState
 	} = mapData;
 
-	const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
-	const [userLocation, setUserLocation] = useState(null);
-	const [nearbyHospitals, setNearbyHospitals] = useState([]);
 	const [driverAction, setDriverAction] = useState(null);
+	const {
+		coordinates: userLocation,
+		status: locationStatus,
+		requestLocation,
+	} = useOperatorLocation();
 	const roleKind = useMemo(() => {
 		if (profile?.role === 'admin') return 'admin';
 		if (profile?.role === 'org_admin') return 'org_admin';
@@ -168,137 +139,25 @@ const GodModeMapContent = () => {
 		switch (status) {
 			case "available": return "hsl(160 84% 39%)"; // emerald-500
 			case "busy": return "hsl(38 92% 50%)"; // amber-500
+			case "en_route":
 			case "on_route": return "hsl(199 89% 48%)"; // sky-500
 			case "maintenance": return "hsl(var(--destructive))";
 			default: return "hsl(var(--muted-foreground))";
 		}
 	};
 
-	// Get user location
-	useEffect(() => {
-		if ("geolocation" in navigator) {
-			navigator.geolocation.getCurrentPosition(
-				(position) => {
-					setUserLocation({
-						lat: position.coords.latitude,
-						lng: position.coords.longitude,
-					});
-				},
-				() => {
-					console.info("[GodModeMap] Geolocation unavailable; using default map center");
-					setUserLocation(LAGOS_CENTER);
-				},
-				{
-					enableHighAccuracy: true,
-					timeout: 10000,
-					maximumAge: 300000,
-				}
-			);
-		} else {
-			setUserLocation(LAGOS_CENTER);
-		}
-	}, []);
-
-	// Fetch nearby hospitals when user location is available
-	useEffect(() => {
-		if (!userLocation) return;
-
-		const fetchNearbyHospitals = async () => {
-			try {
-				const nearby = await supabaseMapService.getNearbyHospitals(userLocation, 100, { quiet: true }); // 100km radius
-				setNearbyHospitals(nearby);
-			} catch {
-				setNearbyHospitals([]);
-				console.info('[GodModeMap] Nearby hospitals unavailable');
-			}
-		};
-
-		fetchNearbyHospitals();
-	}, [userLocation]);
-
-
-
-	// Helper to resolve location (PRODUCTION READY - Handles PostGIS geometry)
-	// PULLBACK NOTE: Enhanced to support new PostGIS geometry fields from emergency schema
-	// OLD: Only handled legacy lat/lng fields
-	// NEW: Handles patient_location, pickup_location, responder_location (PostGIS) + legacy lat/lng
-	const resolveLocation = useMemo(() => {
-		return (item) => {
-			if (!item) return null;
-
-			// PULLBACK NOTE: NEW - Handle emergency requests with PostGIS geometry
-			if (item.patient_location) {
-				const decoded = decodePostGISGeometry(item.patient_location);
-				if (decoded && decoded.lat && decoded.lng) {
-					return {
-						...item,
-						lat: decoded.lat,
-						lng: decoded.lng,
-						isSimulated: false
-					};
-				}
-			}
-
-			// PULLBACK NOTE: NEW - Handle pickup_location for ambulances
-			if (item.pickup_location) {
-				const decoded = decodePostGISGeometry(item.pickup_location);
-				if (decoded && decoded.lat && decoded.lng) {
-					return {
-						...item,
-						lat: decoded.lat,
-						lng: decoded.lng,
-						isSimulated: false
-					};
-				}
-			}
-
-			// PULLBACK NOTE: NEW - Handle responder_location for ambulances
-			if (item.responder_location) {
-				const decoded = decodePostGISGeometry(item.responder_location);
-				if (decoded && decoded.lat && decoded.lng) {
-					return {
-						...item,
-						lat: decoded.lat,
-						lng: decoded.lng,
-						isSimulated: false
-					};
-				}
-			}
-
-			// PULLBACK NOTE: UNCHANGED - Handle legacy lat/lng fields (backward compatibility)
-			const valLat = parseFloat(item.lat || item.latitude);
-			const valLng = parseFloat(item.lng || item.longitude);
-			const hasRealLoc = !isNaN(valLat) && !isNaN(valLng) && valLat !== 0;
-
-			if (hasRealLoc) {
-				return {
-					...item,
-					lat: valLat,
-					lng: valLng,
-					isSimulated: false
-				};
-			}
-
-			// REMOVED: Simulation fallback for production
-			// Items without real locations will not be displayed
-			return null;
-		};
-	}, []); // Removed userLocation dependency
-
-	// 1. Process & Normalize All Entities with Location Logic
+	// Normalize real coordinates once at the map boundary. Missing points stay missing.
 	const processedEmergencies = useMemo(() =>
-		emergencyRequests.map((r, i) => resolveLocation(r, i)).filter(Boolean),
-		[emergencyRequests, resolveLocation]);
+		emergencyRequests.map(resolveMapEntityLocation).filter(Boolean),
+		[emergencyRequests]);
 
 	const processedAmbulances = useMemo(() =>
-		ambulances.map((a, i) => resolveLocation(a, i + 1000)).filter(Boolean),
-		[ambulances, resolveLocation]);
+		ambulances.map(resolveMapEntityLocation).filter(Boolean),
+		[ambulances]);
 
-	const processedHospitals = useMemo(() => {
-		// Use nearby hospitals if available, otherwise fall back to all hospitals
-		const hospitalSource = nearbyHospitals.length > 0 ? nearbyHospitals : hospitals;
-		return hospitalSource.map((h, i) => resolveLocation(h, i + 2000, false)).filter(Boolean);
-	}, [hospitals, nearbyHospitals, resolveLocation]);
+	const processedHospitals = useMemo(() =>
+		hospitals.map(resolveMapEntityLocation).filter(Boolean),
+		[hospitals]);
 
 	// Filter processed requests based on selected filter
 	const filteredRequests = useMemo(() => {
@@ -318,25 +177,6 @@ const GodModeMapContent = () => {
 			),
 		[processedEmergencies]
 	);
-
-	const liveStatusSummary = useMemo(() => {
-		return activeAmbulanceRequests.reduce(
-			(acc, request) => {
-				const hasResponderLocation = !!decodePostGISGeometry(request?.responder_location);
-				const telemetry = deriveTelemetryState(request?.updated_at, hasResponderLocation);
-				acc.total += 1;
-				acc[telemetry.state] += 1;
-				return acc;
-			},
-			{ total: 0, live: 0, stale: 0, lost: 0, inactive: 0 }
-		);
-	}, [activeAmbulanceRequests]);
-	const activeRouteProjection = sourceState?.emergencies?.activeRoutes;
-	const hasExactActiveRouteCount = activeRouteProjection?.exact === true
-		&& Number.isFinite(activeRouteProjection?.total);
-	const activeRouteCount = hasExactActiveRouteCount
-		? activeRouteProjection.total
-		: liveStatusSummary.total;
 
 	const assignedAmbulance = useMemo(() => {
 		if (!isDriverMode || !user?.id) return null;
@@ -358,13 +198,9 @@ const GodModeMapContent = () => {
 		return [...scoped].sort((a, b) => Date.parse(b?.updated_at || 0) - Date.parse(a?.updated_at || 0))[0];
 	}, [activeAmbulanceRequests, isDriverMode, user?.id]);
 
-	const driverLocationStatus = useMemo(() => {
-		if (!driverActiveEmergency) {
-			return { state: "inactive", ageLabel: null };
-		}
-		const hasResponderLocation = !!decodePostGISGeometry(driverActiveEmergency?.responder_location);
-		return deriveTelemetryState(driverActiveEmergency?.updated_at, hasResponderLocation);
-	}, [driverActiveEmergency]);
+	const driverLocationRecorded = Boolean(
+		decodePostGISGeometry(driverActiveEmergency?.responder_location)
+	);
 
 	const requestBrowserLocation = useCallback(() => {
 		return new Promise((resolve, reject) => {
@@ -440,57 +276,36 @@ const GodModeMapContent = () => {
 	}, [driverActiveEmergency?.id, driverActiveEmergency?.responder_id, refresh, user?.id]);
 
 
-	// 2. Combine for Rendering Markers
 	const allMarkers = useMemo(() => {
 		return [...processedEmergencies, ...processedAmbulances, ...processedHospitals];
 	}, [processedEmergencies, processedAmbulances, processedHospitals]);
 
-	// 3. Calculate Routes (Polylines) connecting the entities
-	useEffect(() => {
-		if (loading) return;
-
-		const routes = [];
-
-		processedEmergencies.forEach(emergency => {
-			const status = emergency.status || 'pending';
-			if (status === 'completed' || status === 'cancelled') return;
-
-			// START Point: Patient
-			const patientLoc = [emergency.lat, emergency.lng];
-
-			// LEG 1: Ambulance -> Patient
-			if (emergency.responder_id || emergency.ambulance_id) {
-				const ambulance = processedAmbulances.find(a =>
-					a.id === emergency.ambulance_id || (a.profile_id || a.driver_id) === emergency.responder_id
-				);
-
-				if (ambulance) {
-					routes.push({
-						id: `route-amb-${emergency.id}`,
-						positions: [[ambulance.lat, ambulance.lng], patientLoc],
-						color: routePrimaryColor,
-						dashed: true
-					});
-				}
-			}
-
-			// LEG 2: Patient -> Hospital
-			if (emergency.hospital_id) {
-				const hospital = processedHospitals.find(h => h.id === emergency.hospital_id);
-
-				if (hospital) {
-					routes.push({
-						id: `route-hosp-${emergency.id}`,
-						positions: [patientLoc, [hospital.lat, hospital.lng]],
-						color: routePrimaryColor,
-						dashed: false
-					});
-				}
-			}
-		});
-
-		setActiveRoutes(routes);
-	}, [processedEmergencies, processedAmbulances, processedHospitals, loading, routePrimaryColor]);
+	const focus = useMemo(() => getMapFocus({
+		userLocation,
+		assignedEmergency: driverActiveEmergency,
+		selectedMarker,
+		emergencies: filteredRequests,
+		hospitals: processedHospitals,
+		ambulances: processedAmbulances,
+	}), [driverActiveEmergency, filteredRequests, processedAmbulances, processedHospitals, selectedMarker, userLocation]);
+	const focusLocation = focus.coordinates;
+	const mapLens = useMemo(() => getMapLensSummary({
+		center: focusLocation,
+		radiusKm: MAP_VIEW_RADIUS_KM,
+		emergencies: filteredRequests,
+		hospitals: processedHospitals,
+		ambulances: processedAmbulances,
+	}), [filteredRequests, focusLocation, processedAmbulances, processedHospitals]);
+	const routeEmergency = selectedMarker?.type === 'emergency'
+		? selectedMarker.data
+		: driverActiveEmergency;
+	const activeRoutes = useMemo(() => buildRoutePreview({
+		emergency: routeEmergency,
+		ambulances: processedAmbulances,
+		hospitals: processedHospitals,
+		color: routePrimaryColor,
+	}), [processedAmbulances, processedHospitals, routeEmergency, routePrimaryColor]);
+	const hasMapPoints = allMarkers.length > 0;
 
 	// Handle Google Maps Auth Failure
 	useEffect(() => {
@@ -509,35 +324,43 @@ const GodModeMapContent = () => {
 		return () => window.removeEventListener('google-maps-auth-failure', handleAuthFailure);
 	}, [mapProvider, isSwitchingMap]);
 
-	const handleRouteRecenter = useCallback(() => {
-		if (!userLocation) {
-			toast.info('Location not ready');
-			return;
+	const handleRouteRecenter = useCallback(async () => {
+		let center = userLocation;
+		if (!center && locationStatus !== 'locating') {
+			const toastId = 'map-location-request';
+			toast.loading('Requesting location...', { id: toastId });
+			center = await requestLocation();
+			if (center) toast.success('Location found', { id: toastId });
+			else toast.info('Using the operational area', { id: toastId });
 		}
 
-		toast.info('Centering map');
-		window.dispatchEvent(new CustomEvent('recenter-map'));
-	}, [userLocation]);
+		if (!center && locationStatus === 'locating') {
+			toast.info('Location is still loading');
+		}
+		const nextCenter = center || focusLocation;
+		window.dispatchEvent(new CustomEvent('recenter-map', { detail: { center: nextCenter } }));
+	}, [focusLocation, locationStatus, requestLocation, userLocation]);
 
 	useEffect(() => {
 		window.addEventListener('mapRecenterRequested', handleRouteRecenter);
 		return () => window.removeEventListener('mapRecenterRequested', handleRouteRecenter);
 	}, [handleRouteRecenter]);
 
-	if (error) {
-		handleApiError(error, 'fetch');
-	}
+	useEffect(() => {
+		if (error) handleApiError(error, 'fetch');
+	}, [error]);
 
 	const headerActions = useMemo(() => isMobile ? null : (
 		<Button
 			type="button"
 			onClick={handleRouteRecenter}
+			aria-busy={locationStatus === 'locating'}
 			className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-e2-strong transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
 		>
 			<LocateFixed className="mr-2 h-4 w-4" />
 			Recenter
 		</Button>
-	), [handleRouteRecenter, isMobile]);
+	), [handleRouteRecenter, isMobile, locationStatus]);
 
 	usePageHeader("Live Map", headerActions);
 	usePageFooter(null, "status", false);
@@ -551,6 +374,8 @@ const GodModeMapContent = () => {
 			activeRoutes={activeRoutes}
 			showLayers={showLayers}
 			userLocation={userLocation}
+			focusLocation={focusLocation}
+			viewRadiusKm={MAP_VIEW_RADIUS_KM}
 			selectedMarker={selectedMarker}
 			setSelectedMarker={setSelectedMarker}
 		/>
@@ -565,6 +390,11 @@ const GodModeMapContent = () => {
 				setSelectedMarker={setSelectedMarker}
 				refresh={refresh}
 				userLocation={userLocation}
+				focusLocation={focusLocation}
+				focusSource={focus.source}
+				locationStatus={locationStatus}
+				mapLens={mapLens}
+				viewRadiusKm={MAP_VIEW_RADIUS_KM}
 				mapProvider={mapProvider}
 				mapStyles={mapStyles}
 				allMarkers={allMarkers}
@@ -595,6 +425,7 @@ const GodModeMapContent = () => {
 			<div className="absolute inset-0">
 				{/* Map */}
 				<div className="absolute inset-0 overflow-hidden bg-background">
+					{loading && !hasMapPoints && !isSwitchingMap && <MapLoadingState />}
 					{isSwitchingMap && (
 						<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
 							<AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
@@ -621,6 +452,8 @@ const GodModeMapContent = () => {
 								theme={theme}
 								mapStyles={mapStyles}
 								userLocation={userLocation}
+								focusLocation={focusLocation}
+								viewRadiusKm={MAP_VIEW_RADIUS_KM}
 								allMarkers={allMarkers}
 								activeRoutes={activeRoutes}
 								showLayers={showLayers}
@@ -637,13 +470,15 @@ const GodModeMapContent = () => {
 						</MapErrorBoundary>
 					) : (
 						<LeafletMapRenderer
-							center={LAGOS_CENTER}
+							center={focusLocation || DEFAULT_MAP_CENTER}
 							zoom={12}
 							emergencies={filteredRequests}
 							ambulances={processedAmbulances}
 							hospitals={processedHospitals}
 							routes={activeRoutes}
 							userLocation={userLocation}
+							focusLocation={focusLocation}
+							viewRadiusKm={MAP_VIEW_RADIUS_KM}
 							markers={allMarkers}
 							showLayers={showLayers}
 							onMarkerClick={(type, data) => setSelectedMarker({ type, data })}
@@ -659,7 +494,7 @@ const GodModeMapContent = () => {
 									<div className="text-[11px] font-medium text-muted-foreground">Current request</div>
 									<div className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
 										<Radio className="h-3.5 w-3.5" />
-										Live
+										Assigned
 									</div>
 								</div>
 
@@ -676,19 +511,7 @@ const GodModeMapContent = () => {
 												Unit: <span className="font-semibold text-foreground">{assignedAmbulance?.call_sign || assignedAmbulance?.vehicle_number || "Unassigned"}</span>
 											</div>
 											<div className="text-xs text-muted-foreground">
-												Location:{" "}
-												<span
-													className={`font-semibold ${
-														driverLocationStatus.state === "lost"
-															? "text-destructive"
-															: driverLocationStatus.state === "stale"
-																? "text-amber-600 dark:text-amber-300"
-																: "text-emerald-600 dark:text-emerald-300"
-													}`}
-												>
-													{statusLabel(driverLocationStatus.state, 'Unavailable')}
-												</span>
-												{driverLocationStatus.ageLabel ? ` - ${driverLocationStatus.ageLabel} ago` : ""}
+											Location: <span className="font-semibold text-foreground">{driverLocationRecorded ? 'Recorded' : 'Not recorded'}</span>
 											</div>
 										</div>
 										<div className="grid grid-cols-2 gap-2">
@@ -748,29 +571,12 @@ const GodModeMapContent = () => {
 								)}
 							</div>
 						) : (
-							<div className="absolute left-6 top-6 z-[120] w-[18rem] rounded-card bg-card/68 p-4 shadow-e3 backdrop-blur-2xl">
-								<div className="mb-3 text-[11px] font-medium text-muted-foreground">Live status</div>
-								<div className="grid grid-cols-2 gap-2 text-xs">
-									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-muted-foreground">
-											{hasExactActiveRouteCount ? "Active routes" : "Active routes shown"}
-										</div>
-										<div className="text-sm font-semibold">{activeRouteCount}</div>
-									</div>
-									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-emerald-600 dark:text-emerald-300">Current shown</div>
-										<div className="text-sm font-semibold">{liveStatusSummary.live}</div>
-									</div>
-									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-amber-600 dark:text-amber-300">Delayed shown</div>
-										<div className="text-sm font-semibold">{liveStatusSummary.stale}</div>
-									</div>
-									<div className="rounded-inner bg-muted/40 p-2">
-										<div className="text-destructive">Offline shown</div>
-										<div className="text-sm font-semibold">{liveStatusSummary.lost}</div>
-									</div>
-								</div>
-							</div>
+							<MapViewportSummary
+								lens={mapLens}
+								locationStatus={locationStatus}
+								focusSource={focus.source}
+								routeCount={activeRoutes.length}
+							/>
 						)}
 
 						{/* 3. Floating map controls */}
@@ -800,13 +606,9 @@ const GodModeMapContent = () => {
 							whileTap={{ scale: 0.9 }}
 							onClick={(e) => {
 								e.stopPropagation();
-								if (userLocation) {
-									toast.info("Re-centering map...");
-									window.dispatchEvent(new CustomEvent('recenter-map'));
-								} else {
-									toast.info("Location not ready");
-								}
+								handleRouteRecenter();
 							}}
+							aria-busy={locationStatus === 'locating'}
 							className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-button bg-card/68 shadow-e3 backdrop-blur-2xl transition-all hover:bg-card/80"
 							title="Center map"
 							aria-label="Center map"

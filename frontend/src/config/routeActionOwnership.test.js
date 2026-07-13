@@ -16,6 +16,7 @@ describe('route-owned shell actions', () => {
     '/organizations',
     '/subscriptions',
     '/map',
+    '/analytics',
     '/wallet',
     '/pricing',
     '/settings',
@@ -23,7 +24,7 @@ describe('route-owned shell actions', () => {
     expect(routeOwnsShellAction(pathname)).toBe(true);
   });
 
-  it('leaves Analytics on its existing generic read-only analytics action', () => {
-    expect(routeOwnsShellAction('/analytics')).toBe(false);
+  it('leaves unknown routes on the generic action path', () => {
+    expect(routeOwnsShellAction('/not-a-console-route')).toBe(false);
   });
 });

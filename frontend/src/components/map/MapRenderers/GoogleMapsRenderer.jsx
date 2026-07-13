@@ -19,6 +19,36 @@ const sanitizeStrokeColor = (value, fallback = '#86100E') => {
 	return color;
 };
 
+const getRouteStrokeOptions = ({ color, dashed }) => {
+	const strokeColor = sanitizeStrokeColor(color, '#86100E');
+	if (!dashed) {
+		return {
+			strokeColor,
+			strokeOpacity: 0.82,
+			strokeWeight: 5,
+			geodesic: false,
+		};
+	}
+
+	return {
+		strokeColor,
+		strokeOpacity: 0,
+		strokeWeight: 0,
+		geodesic: false,
+		icons: [{
+			icon: {
+				path: 'M 0,-1 0,1',
+				strokeColor,
+				strokeOpacity: 0.72,
+				strokeWeight: 4,
+				scale: 3,
+			},
+			offset: '0',
+			repeat: '18px',
+		}],
+	};
+};
+
 const createImageOverlayNode = ({ src, width, height, opacity = 1 }) => {
 	const img = document.createElement('img');
 	img.src = src;
@@ -91,11 +121,25 @@ const createUserOverlayNode = () => {
 	return root;
 };
 
+const markerLabel = (type, data = {}) => {
+	if (type === 'emergency') {
+		return `Request ${data.display_id || data.id || 'location'}${data.priority ? `, ${data.priority} priority` : ''}`;
+	}
+	if (type === 'ambulance') {
+		return `Ambulance ${data.call_sign || data.vehicle_number || data.id || 'location'}`;
+	}
+	if (type === 'hospital') {
+		return `Hospital ${data.name || data.hospital_name || data.id || 'location'}`;
+	}
+	return 'Your location';
+};
+
 const GoogleMapsOverlayMarker = ({
 	position,
 	zIndex = 200,
 	anchor = 'bottom', // 'bottom' | 'center'
 	onClick,
+	ariaLabel,
 	renderNode,
 	renderKey,
 }) => {
@@ -104,6 +148,7 @@ const GoogleMapsOverlayMarker = ({
 	const containerRef = useRef(null);
 	const clickRef = useRef(onClick);
 	const renderNodeRef = useRef(renderNode);
+	const isInteractive = typeof onClick === 'function';
 
 	useEffect(() => {
 		clickRef.current = onClick;
@@ -126,12 +171,28 @@ const GoogleMapsOverlayMarker = ({
 		container.style.transform =
 			anchor === 'center' ? 'translate(-50%, -50%)' : 'translate(-50%, -100%)';
 		container.style.zIndex = String(zIndex);
+		container.setAttribute('aria-label', ariaLabel || 'Map location');
+		if (isInteractive) {
+			container.setAttribute('role', 'button');
+			container.tabIndex = 0;
+		} else {
+			container.setAttribute('role', 'img');
+		}
+		if (typeof renderNodeRef.current === 'function') {
+			container.replaceChildren(renderNodeRef.current());
+		}
 
 		const handleClick = (event) => {
 			event.stopPropagation();
 			clickRef.current?.();
 		};
+		const handleKeyDown = (event) => {
+			if (!['Enter', ' '].includes(event.key) || typeof clickRef.current !== 'function') return;
+			event.preventDefault();
+			handleClick(event);
+		};
 		container.addEventListener('click', handleClick);
+		container.addEventListener('keydown', handleKeyDown);
 
 		class DomOverlay extends window.google.maps.OverlayView {
 			onAdd() {
@@ -161,13 +222,14 @@ const GoogleMapsOverlayMarker = ({
 
 		return () => {
 			container.removeEventListener('click', handleClick);
+			container.removeEventListener('keydown', handleKeyDown);
 			if (overlayRef.current) {
 				overlayRef.current.setMap(null);
 				overlayRef.current = null;
 			}
 			containerRef.current = null;
 		};
-	}, [map, position?.lat, position?.lng, anchor, zIndex]);
+	}, [map, position?.lat, position?.lng, anchor, ariaLabel, isInteractive, zIndex]);
 
 	useEffect(() => {
 		if (!containerRef.current || typeof renderNodeRef.current !== 'function') return;
@@ -182,6 +244,8 @@ export const GoogleMapsRenderer = ({
 	theme,
 	mapStyles,
 	userLocation,
+	focusLocation,
+	viewRadiusKm,
 	allMarkers,
 	activeRoutes,
 	showLayers,
@@ -211,7 +275,7 @@ export const GoogleMapsRenderer = ({
 			<Map
 				key={theme} // Force remount on theme change for style reliability
 				{...(GOOGLE_MAP_ID ? { mapId: GOOGLE_MAP_ID } : {})}
-				defaultCenter={LAGOS_CENTER}
+				defaultCenter={focusLocation || LAGOS_CENTER}
 				defaultZoom={12}
 				className="w-full h-full"
 				gestureHandling="greedy"
@@ -224,8 +288,8 @@ export const GoogleMapsRenderer = ({
 				}}
 			>
 				<GoogleMapsMapRefiner
-					userLocation={userLocation}
-					hospitals={hospitals}
+					focusLocation={focusLocation || LAGOS_CENTER}
+					radiusKm={viewRadiusKm}
 					styles={useCloudMapStyling ? null : mapStyles}
 				/>
 
@@ -236,12 +300,10 @@ export const GoogleMapsRenderer = ({
 						key={route.id}
 						start={{ lat: route.positions[0][0], lng: route.positions[0][1] }}
 						end={{ lat: route.positions[1][0], lng: route.positions[1][1] }}
-						options={{
-							strokeColor: sanitizeStrokeColor(routePrimaryColor || route.color, '#86100E'),
-							strokeOpacity: route.dashed ? 0.62 : 0.82,
-							strokeWeight: route.dashed ? 4 : 5,
-							geodesic: false,
-						}}
+						options={getRouteStrokeOptions({
+							color: routePrimaryColor || route.color,
+							dashed: route.dashed,
+						})}
 					/>
 				))}
 
@@ -253,6 +315,7 @@ export const GoogleMapsRenderer = ({
 							canUseAdvancedMarkers ? (
 								<AdvancedMarker
 									key={`emergency-${request.id}`}
+									title={markerLabel('emergency', request)}
 									position={{
 										lat: parseFloat(request.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(request.lng) || LAGOS_CENTER.lng
@@ -294,6 +357,7 @@ export const GoogleMapsRenderer = ({
 							) : (
 								<GoogleMapsOverlayMarker
 									key={`emergency-${request.id}`}
+									ariaLabel={markerLabel('emergency', request)}
 									position={{
 										lat: parseFloat(request.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(request.lng) || LAGOS_CENTER.lng
@@ -325,6 +389,7 @@ export const GoogleMapsRenderer = ({
 							canUseAdvancedMarkers ? (
 								<AdvancedMarker
 									key={`ambulance-${ambulance.id}`}
+									title={markerLabel('ambulance', ambulance)}
 									position={{
 										lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(ambulance.lng) || LAGOS_CENTER.lng
@@ -357,6 +422,7 @@ export const GoogleMapsRenderer = ({
 							) : (
 								<GoogleMapsOverlayMarker
 									key={`ambulance-${ambulance.id}`}
+									ariaLabel={markerLabel('ambulance', ambulance)}
 									position={{
 										lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(ambulance.lng) || LAGOS_CENTER.lng
@@ -396,6 +462,7 @@ export const GoogleMapsRenderer = ({
 							canUseAdvancedMarkers ? (
 								<AdvancedMarker
 									key={`hospital-${hospital.id}`}
+									title={markerLabel('hospital', hospital)}
 									position={{
 										lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(hospital.lng) || LAGOS_CENTER.lng
@@ -434,6 +501,7 @@ export const GoogleMapsRenderer = ({
 							) : (
 								<GoogleMapsOverlayMarker
 									key={`hospital-${hospital.id}`}
+									ariaLabel={markerLabel('hospital', hospital)}
 									position={{
 										lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat,
 										lng: parseFloat(hospital.lng) || LAGOS_CENTER.lng
@@ -477,6 +545,7 @@ export const GoogleMapsRenderer = ({
 						<AdvancedMarker
 							position={userLocation}
 							zIndex={300}
+							title={markerLabel('user')}
 						>
 						<div className="relative">
 							<div className="absolute inset-0 scale-150 animate-ping rounded-pill bg-violet-600/25" />
@@ -490,6 +559,7 @@ export const GoogleMapsRenderer = ({
 							position={userLocation}
 							zIndex={300}
 							anchor="center"
+							ariaLabel={markerLabel('user')}
 							renderNode={createUserOverlayNode}
 							renderKey="user-location"
 						/>

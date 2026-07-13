@@ -21,7 +21,10 @@ describe('Analytics Page 13 workspace contract', () => {
     const app = read('src/App.js');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
-    const dock = read('src/components/navigation/DynamicBottomBar.jsx');
+    const dock = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
 
     expect(oldPage).toContain('usePageHeader("Impact Analytics", headerActions)');
     expect(oldPage).toContain('EXPORT');
@@ -29,7 +32,7 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(page).toContain("usePageHeader('Statistics', headerActions)");
     expect(dock).toContain("pathname.startsWith('/analytics')");
     expect(dock).toContain("label: 'View statistics'");
-    expect(dock).toContain("new CustomEvent('openAnalyticsModal')");
+    expect(dock).toContain("action: dispatchWindowEvent('openAnalyticsModal')");
     expect(page).not.toContain('Impact Analytics');
     expect(page).not.toContain('>EXPORT<');
     expect(mobile).not.toContain('Generate Analytics Report');

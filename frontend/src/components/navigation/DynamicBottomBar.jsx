@@ -4,26 +4,23 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { getMobileNavigationItems } from '../../config/mobileNavigation';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageActions } from '../../contexts/PageActionsContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
 import {
     LayoutDashboard,
     Map,
-    Navigation,
     BarChart3,
     Calendar,
     AlertTriangle,
     Stethoscope,
     FileCheck,
     Settings,
-    ClipboardCheck,
-    Plus,
     Hospital,
     Ambulance,
     Wallet,
     ShieldCheck,
     Users,
-    UserPlus,
     Building2,
     Newspaper,
     LifeBuoy,
@@ -40,16 +37,11 @@ import {
     SupportTicketModal,
     SubscriptionModal
 } from '../modals/index';
-import { getProtectedRoutesForRole } from '../../config/routes';
+import { getRouteOwnedMobileAction } from '../../config/mobileRouteActions';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
-// RBAC (2026-07-10): a `to:` FAB navigates to a route, so its role gate must be the
-// SAME truth the route guard uses — derive it from getProtectedRoutesForRole, never a
-// hand-kept role list that can drift out of sync with the route's minRole. A user who
-// can't reach the destination must not see the FAB (no dead affordance).
-const canReachRoute = (userRole, to = '') =>
-  getProtectedRoutesForRole(userRole).includes(String(to).split('?')[0]);
-
+// Route and role decisions live in mobileRouteActions so this component only owns
+// dock rendering, navigation, and the small set of locally hosted command modals.
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
 
@@ -60,7 +52,8 @@ export const DynamicBottomBar = () => {
 
 const DynamicBottomBarContent = () => {
     const { isScrolledDown, pageShellConfig } = useLayout();
-    const { profile } = useAuth();
+    const { profile, can } = useAuth();
+    const { pageAction } = usePageActions();
     const location = useLocation();
     const userRole = profile?.role || 'viewer';
     const routeOwnsAction = routeOwnsShellAction(location.pathname);
@@ -70,7 +63,7 @@ const DynamicBottomBarContent = () => {
     // A `to` action navigates (SPA route change, not an anchor/full reload).
     const [routeModal, setRouteModal] = useState(null);
     const navigate = useNavigate();
-    const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);
+    const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, profile, pageAction, can);
     const routeOwnedAction = routeOwnedActionConfig?.modal
         ? { ...routeOwnedActionConfig, action: () => setRouteModal(routeOwnedActionConfig.modal) }
         : routeOwnedActionConfig?.to
@@ -164,227 +157,6 @@ const DynamicBottomBarContent = () => {
             </AnimatePresence>
         </>
     );
-};
-
-const getRouteOwnedMobileAction = (pathname = '', userRole = 'viewer') => {
-    // Today home: dock parity with /emergencies — same New-request quick action,
-    // same roles. `modal` (not a window event) because the Requests page's
-    // openEmergencyModal listener is not mounted on '/'.
-    if (pathname === '/' && (userRole === 'admin' || userRole === 'org_admin')) {
-        return {
-            icon: Plus,
-            label: 'New request',
-            color: 'destructive',
-            modal: 'emergency',
-        };
-    }
-
-    if (pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')) {
-        return {
-            icon: Plus,
-            label: 'New request',
-            color: 'destructive',
-            action: () => window.dispatchEvent(new CustomEvent('openEmergencyModal'))
-        };
-    }
-
-    if (pathname.startsWith('/map') && canReachRoute(userRole, '/map')) {
-        return {
-            icon: Navigation,
-            label: 'Center map',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('mapRecenterRequested'))
-        };
-    }
-
-    if (pathname.startsWith('/settings') && canReachRoute(userRole, '/settings')) {
-        return {
-            icon: ShieldCheck,
-            label: 'Security',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openSecurityModal'))
-        };
-    }
-
-    if (pathname.startsWith('/analytics') && canReachRoute(userRole, '/analytics')) {
-        return {
-            icon: BarChart3,
-            label: 'View statistics',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
-        };
-    }
-
-    // RBAC fix (2026-07-10 audit): /doctors is org_admin-scoped and staff CREATE is an
-    // admin action, but this FAB had NO role gate — a lower role reaching /doctors would
-    // get "Add staff". Gate it to match the route + create authority.
-    if (pathname.startsWith('/doctors') && ['org_admin', 'admin'].includes(userRole)) {
-        return {
-            icon: Stethoscope,
-            label: 'Add staff',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openDoctorModal'))
-        };
-    }
-
-    if (pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)) {
-        return {
-            icon: BarChart3,
-            label: 'View statistics',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
-        };
-    }
-
-    // Hospitals (user arbitration 2026-07-09 #2: "make the FAB render something
-    // practical and working"): the gated Add toast leaves the FAB; the route
-    // action is now the domain's REAL adjacent write surface — the facility
-    // approval queue (/verification, facilities tab preselected via ?queue=).
-    // Approvals is absent from the dock on /hospitals (the 4th pill morphs to
-    // the current page), so nothing duplicates. The honest create gate stays
-    // reachable via the desktop header pill and the ?add=true deep link.
-    // to:-FAB gate DERIVED from the destination route's RBAC (canReachRoute) — the same
-    // truth the route guard uses, so the FAB can never drift out of sync with
-    // /verification's minRole (RBAC audit 2026-07-10).
-    if (pathname.startsWith('/hospitals') && canReachRoute(userRole, '/verification')) {
-        return {
-            icon: FileCheck,
-            label: 'Facility approvals',
-            color: 'staff',
-            to: '/verification?queue=organizations',
-        };
-    }
-
-    // Ambulances (/ambulances): the FAB mirrors the desktop's primary CTA — the LIVE "Add unit"
-    // create. Ambulances is a WRITE-CAPABLE table ("Org Admins manage ambulances" = ALL,
-    // live-verified — AmbulancesPage.jsx:318): CREATE + EDIT are legitimate for admin/org_admin,
-    // NOT fail-closed (only delete/dispatch/status/location stay gated). The earlier "unit create
-    // is fail-closed" arbitration was built on a FALSE premise and routed create away — corrected
-    // 2026-07-10. Dispatches 'openAmbulanceModal' → AmbulancesPage's own listener → handleCreate →
-    // AmbulanceModal (rendered on the mobile branch too), so a mobile admin creates a unit exactly
-    // like on desktop. Gate = canReachRoute('/ambulances') (= canManageFleet, the create authority).
-    if (pathname.startsWith('/ambulances') && canReachRoute(userRole, '/ambulances')) {
-        return {
-            icon: Plus,
-            label: 'Add unit',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openAmbulanceModal'))
-        };
-    }
-
-    if (pathname.startsWith('/support-tickets') && ['provider', 'org_admin', 'admin'].includes(userRole)) {
-        return {
-            icon: ClipboardCheck,
-            label: 'New ticket',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openSupportTicketModal'))
-        };
-    }
-
-    // Approvals (/verification): a REVIEW-only surface — there is no "create" here, so the
-    // FAB can't mirror the New-request/New-visit siblings. Data-sync-guided action: the
-    // approver's job is the PENDING subset, so the FAB filters the queue to pending (the
-    // items awaiting a decision) — the one dock-level action that turns a long mixed queue
-    // into the actionable list without scrolling back to the chips. Gate = canReachRoute
-    // (org_admin+ = the REVIEW tier that can see the page); approval COMMANDS stay
-    // admin-only inside the sheet. Dispatches to MobileVerification (the mounted mobile
-    // surface owns the filter state), so the dock never couples to the desktop page file.
-    // Without this branch /verification sits in routeOwnsAction with no action -> the dock
-    // collapses to a lone centered pill (the Ambulances bug).
-    if (pathname.startsWith('/verification') && canReachRoute(userRole, '/verification')) {
-        return {
-            icon: ShieldCheck,
-            label: 'Review pending',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('approvalsReviewPending'))
-        };
-    }
-
-    // Users owns invitation as its primary identity command. The legacy event name is
-    // retained for compatibility, but the mounted page resolves it to InviteUserModal.
-    if (pathname.startsWith('/users') && ['org_admin', 'admin'].includes(userRole)) {
-        return {
-            icon: UserPlus,
-            label: 'Invite user',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openUserModal'))
-        };
-    }
-
-    // Organizations (/organizations): mirror the desktop primary CTA. Organization writes are
-    // fail-closed until command authority is proved, so the page-owned event surfaces the same
-    // honest unavailable feedback on both layouts; the dock never substitutes a filter action.
-    if (pathname.startsWith('/organizations') && canReachRoute(userRole, '/organizations')) {
-        return {
-            icon: Plus,
-            label: 'Add organization',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openOrganizationModal'))
-        };
-    }
-
-    // Health News is a read-only published-feed projection. Keep its mobile FAB useful without
-    // advertising an authoring receiver: the page owns this analytics event on both layouts.
-    if (pathname.startsWith('/health-news') && ['org_admin', 'admin'].includes(userRole)) {
-        return {
-            icon: BarChart3,
-            label: 'News stats',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))
-        };
-    }
-
-    // Payments is read-only while money movement remains unproved. Its route-level
-    // command is therefore the scoped statistics view, not Add funds or Withdraw.
-    // Export stays local to the Transactions feed because it does not apply to the
-    // Patient payments KPI.
-    if (pathname.startsWith('/wallet') && canReachRoute(userRole, '/wallet')) {
-        return {
-            icon: BarChart3,
-            label: 'Payment stats',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openWalletAnalytics'))
-        };
-    }
-
-    // Insurance is read-only while policy mutation authority remains unproved. The route still owns
-    // a useful read action: scoped policy statistics. Keep filters local to the SearchRow and route
-    // this FAB through the page's namespaced analytics listener.
-    if (pathname.startsWith('/insurance') && canReachRoute(userRole, '/insurance')) {
-        return {
-            icon: BarChart3,
-            label: 'Policy stats',
-            color: 'utility',
-            action: () => window.dispatchEvent(new CustomEvent('openInsuranceAnalytics'))
-        };
-    }
-
-    // Subscriptions (/subscriptions): the FAB mirrors the desktop's primary CTA — the gated
-    // "Add subscriber" button (SubscriptionManagementPage, isAdmin, data-state="unavailable").
-    // Create is FAIL-CLOSED, so dispatching 'openSubscriptionModal' (the page's OWN listener)
-    // surfaces the honest "not ready" feedback exactly like that button — NOT a redundant filter
-    // (the SearchRow already carries the in-page filter trigger). Gate = canReachRoute (admin).
-    if (pathname.startsWith('/subscriptions') && canReachRoute(userRole, '/subscriptions')) {
-        return {
-            icon: Plus,
-            label: 'Add subscriber',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openSubscriptionModal'))
-        };
-    }
-
-    // Pricing mirrors the desktop primary action. The page owns this event and
-    // reports the command unavailable until facility-scoped authority is proved.
-    if (pathname.startsWith('/pricing') && canReachRoute(userRole, '/pricing')) {
-        return {
-            icon: Plus,
-            label: 'Add pricing',
-            color: 'staff',
-            action: () => window.dispatchEvent(new CustomEvent('openPricingModal'))
-        };
-    }
-
-    return null;
 };
 
 const RouteOwnedBottomAction = ({ actionConfig, isScrolledDown }) => {

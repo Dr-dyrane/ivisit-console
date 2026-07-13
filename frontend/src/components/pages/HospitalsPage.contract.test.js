@@ -233,10 +233,13 @@ describe('HospitalsPage admission audit contract', () => {
     // the FAB is the domain's REAL adjacent write surface — the facility
     // approval queue (/verification?queue=organizations), not the gated Add
     // toast. The honest create gate stays on the desktop header pill + ?add=true.
-    const bottomBar = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const bottomBar = [
+      fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+      fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+    ].join('\n');
     // RBAC (2026-07-10 audit): the FAB gate is DERIVED from the destination route via
     // canReachRoute (same truth the route guard uses), not a hand-kept role list.
-    expect(bottomBar).toContain("pathname.startsWith('/hospitals') && canReachRoute(userRole, '/verification')");
+    expect(bottomBar).toContain("pathname.startsWith('/hospitals') && canReach('/verification')");
     expect(bottomBar).toContain("label: 'Facility approvals'");
     expect(bottomBar).toContain("to: '/verification?queue=organizations'");
     expect(bottomBar).toContain("justify-between' : 'justify-center'");

@@ -286,29 +286,30 @@ function main() {
     }
   }
 
-  // Dock / FAB completeness (added 2026-07-10; DERIVED not hand-listed 2026-07-10b — the
+  // Dock / FAB completeness (added 2026-07-10; derived rather than hand-listed because the
   // /users lone-pill escaped the old hand-list). A route SUPPRESSES the generic context FAB
-  // two ways: (a) it is in DynamicBottomBar's `routeOwnsAction` chain, OR (b) its page calls
+  // two ways: (a) it is in the shared `routeOwnsAction` registry, or (b) its page calls
   // `usePageShell({ hideFab: true })`. If a suppressing route then provides NO
   // `getRouteOwnedMobileAction` branch AND is not exempted, the dock collapses to a lone
   // centered pill (the Ambulances/Users bug). We derive the FULL suppressing set from BOTH
   // sources so a NEW hideFab page (or a NEW routeOwnsAction entry) can't slip through the way
   // the hand-list `ADMITTED_FAB_ROUTES` let /users through. Every suppressing route must own a
-  // branch (real work or an honest gate) OR be in FAB_EXEMPT_ROUTES with a reason.
+  // useful, receiver-backed command/read/utility branch. The exemption object remains explicit so
+  // a future exception cannot be introduced invisibly, but the current contract allows none.
   //
-  // FAB_EXEMPT_ROUTES — routes that legitimately own NO dock FAB action. Each carries a reason;
-  // removing a route here (or its branch) reds the build. Kept honest: only non-list surfaces
-  // and fail-closed pages whose whole filter grammar is already inline get an exemption.
-  const FAB_EXEMPT_ROUTES = {
-    '/map': 'map surface — full-bleed interactive canvas with its own control grammar (layers/refiner); no list to filter, no create (MobileMap is grammar-exempt), so no dock FAB',
-    '/settings': 'own-account dashboard — no create/filter/review dock action; profile and security actions stay route-owned',
-  };
+  // No route-owned surface is exempt: Map and Settings also provide honest utility actions.
+  // The role-route resolver unit test covers per-role reachability in addition to this source gate.
+  const FAB_EXEMPT_ROUTES = {};
   const dockPath = path.join(__dirname, '..', 'src', 'components', 'navigation', 'DynamicBottomBar.jsx');
+  const mobileActionPath = path.join(__dirname, '..', 'src', 'config', 'mobileRouteActions.js');
   const actionOwnershipPath = path.join(__dirname, '..', 'src', 'config', 'routeActionOwnership.js');
   const appPath = path.join(__dirname, '..', 'src', 'App.js');
   const pagesDir = path.join(__dirname, '..', 'src', 'components', 'pages');
   if (fs.existsSync(dockPath)) {
     const dock = fs.readFileSync(dockPath, 'utf8');
+    const routeActions = fs.existsSync(mobileActionPath)
+      ? fs.readFileSync(mobileActionPath, 'utf8')
+      : dock;
 
     // The DERIVED suppressing set (both sources feed one Set).
     const suppress = new Set();
@@ -326,8 +327,8 @@ function main() {
     while ((sm = routeStringRe.exec(prefixesBlock)) !== null) suppress.add(sm[1]);
     if (/pathname\s*===\s*'\/'/.test(ownership)) suppress.add('/');
 
-    // (b) Pages calling `usePageShell({ ... hideFab: true ... })` → their route via App.js.
-    //     Build component→route from `<Route path="/x" element={ ... <PageComponent ... }>`,
+    // (b) Map pages calling `usePageShell({ ... hideFab: true ... })` to their route via App.js.
+    //     Build component-to-route from `<Route path="/x" element={ ... <PageComponent ... }>`,
     //     then map each hideFab page file (basename === exported component) to its route.
     const compToRoute = {};
     if (fs.existsSync(appPath)) {
@@ -363,8 +364,8 @@ function main() {
 
     // Which suppressing routes carry a getRouteOwnedMobileAction branch? `/` is special-cased
     // (its branch is `pathname === '/'`, not a `startsWith`).
-    const fnStart = dock.indexOf('getRouteOwnedMobileAction = (');
-    const fnBody = fnStart >= 0 ? dock.slice(fnStart) : '';
+    const fnStart = routeActions.indexOf('getRouteOwnedMobileAction = (');
+    const fnBody = fnStart >= 0 ? routeActions.slice(fnStart) : '';
     const hasBranch = (r) => (r === '/'
       ? /pathname\s*===\s*'\/'/.test(fnBody)
       : fnBody.includes(`startsWith('${r}')`));
@@ -373,7 +374,7 @@ function main() {
     // Pin management routes whose proved global action is a read surface so they cannot
     // regress to a lone pill or be replaced by a fabricated create command.
     const requiredReadActions = {
-      '/insurance': ["label: 'Policy stats'", "new CustomEvent('openInsuranceAnalytics')"],
+      '/insurance': ["label: 'Policy stats'", "dispatchWindowEvent('openInsuranceAnalytics')"],
     };
     for (const [route, requiredTokens] of Object.entries(requiredReadActions)) {
       const branchMarker = `if (pathname.startsWith('${route}')`;
@@ -386,7 +387,7 @@ function main() {
       const branch = branchStart >= 0 ? fnBody.slice(branchStart, branchEnd) : '';
       const missingTokens = requiredTokens.filter((token) => !branch.includes(token));
       if (!hasBranch(route) || missingTokens.length) {
-        console.log('\nDynamicBottomBar.jsx  [dock/FAB read action]');
+        console.log('\nmobileRouteActions.js  [dock/FAB read action]');
         console.log(`  FATAL  ${route} must keep its route-owned read FAB (${requiredTokens.join(', ')}) while mutation commands remain fail-closed.`);
         fatalCount++;
       }
@@ -396,7 +397,7 @@ function main() {
       .filter((r) => !hasBranch(r) && !(r in FAB_EXEMPT_ROUTES))
       .sort();
     if (dockFatal.length) {
-      console.log('\nDynamicBottomBar.jsx  [dock/FAB]');
+      console.log('\nmobileRouteActions.js  [dock/FAB]');
       dockFatal.forEach((r) => {
         console.log(`  ✗ FATAL  ${r} suppresses the generic context FAB (routeOwnsAction and/or usePageShell hideFab:true) but has NO getRouteOwnedMobileAction branch and is not in FAB_EXEMPT_ROUTES -> the dock collapses to a lone centered pill. Add a startsWith('${r}') branch (filter / review / to:-navigate, gated by canReachRoute) or exempt it in FAB_EXEMPT_ROUTES with a reason.`);
         fatalCount++;

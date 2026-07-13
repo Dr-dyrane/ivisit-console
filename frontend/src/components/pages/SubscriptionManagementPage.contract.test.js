@@ -542,7 +542,10 @@ describe('Subscriptions Page 17 intake contract', () => {
     const oldPanel = gitShowHead('frontend/src/components/context/SubscriptionsPanel.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
-    const bottomBar = read('src/components/navigation/DynamicBottomBar.jsx');
+    const bottomBar = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
     const routeActionOwnership = read('src/config/routeActionOwnership.js');
     const analytics = read('src/components/pages/Analytics.jsx');
     const hook = read('src/hooks/useSubscription.js');
@@ -634,8 +637,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(contextFab).not.toContain('createSubscriber');
     expect(contextFab).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(bottomBar).toContain("pathname.startsWith('/subscriptions')");
-    expect(bottomBar).toContain("label: 'Add subscriber'");
-    expect(bottomBar).toContain("new CustomEvent('openSubscriptionModal')");
+    expect(bottomBar).toContain("label: 'Subscriber stats'");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openAnalyticsModal')");
     expect(bottomBar).toContain("case 'subscription': return <SubscriptionModal key={key} {...props} mode=\"create\" />;");
     expect(bottomBar).not.toContain('createSubscriber');
     expect(bottomBar).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");

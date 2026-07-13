@@ -12,6 +12,7 @@ const ROUTE_ACTION_PREFIXES = [
   '/organizations',
   '/subscriptions',
   '/map',
+  '/analytics',
   '/wallet',
   '/pricing',
   '/settings',

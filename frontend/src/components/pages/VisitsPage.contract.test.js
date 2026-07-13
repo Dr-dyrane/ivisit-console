@@ -20,7 +20,10 @@ describe('VisitsPage admission contract', () => {
   const modalSuppressionSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/visitsService.js', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
@@ -81,9 +84,9 @@ describe('VisitsPage admission contract', () => {
 
     expect(routeOwnsShellAction('/visits')).toBe(true);
     expect(bottomBar).toContain("pathname.startsWith('/visits')");
-    expect(bottomBar).toContain("pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)");
+    expect(bottomBar).toContain("pathname.startsWith('/visits') && canReach('/visits')");
     expect(bottomBar).toContain("label: 'View statistics'");
-    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openAnalyticsModal')");
     expect(bottomBar).not.toContain("case 'visit': return <VisitModal");
     expect(pageSource()).toContain("window.addEventListener('openVisitModal', handleOpenModal)");
   });

@@ -8,7 +8,10 @@ describe('Navigation shell contract', () => {
   const islandSource = () => fs.readFileSync('src/components/common/IslandNavigation.jsx', 'utf8');
   const railSource = () => fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
   const mobileMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
-  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const bottomBarSource = () => [
+    fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+    fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+  ].join('\n');
   const routeActionOwnershipSource = () => fs.readFileSync('src/config/routeActionOwnership.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
   const layoutSource = () => fs.readFileSync('src/contexts/LayoutContext.jsx', 'utf8');
@@ -180,11 +183,12 @@ describe('Navigation shell contract', () => {
     expect(bottomBar).toContain('getMobileNavigationItems(userRole, profile?.provider_type, location.pathname)');
     expect(bottomBar).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(bottomBar).toContain('data-state={isActive ? \'active\' : \'idle\'}');
-    expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
+    expect(bottomBar).toContain('getRouteOwnedMobileAction(location.pathname, profile, pageAction, can)');
     expect(bottomBar).toContain('!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />');
     expect(hardgate).toContain('src/components/navigation/MobileNavMenu.jsx');
     expect(hardgate).toContain('src/components/navigation/DynamicBottomBar.jsx');
     expect(hardgate).toContain('src/config/mobileNavigation.js');
+    expect(hardgate).toContain('src/config/mobileRouteActions.js');
   });
 
   it('keeps Today and Requests route actions from duplicating global FABs', () => {
@@ -202,12 +206,13 @@ describe('Navigation shell contract', () => {
     expect(bottomBar).toContain('const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;');
     // Route-owned actions may open a locally hosted modal (routeModal) — the config
     // is resolved first, then wrapped when it declares `modal` (Today-home FAB parity).
-    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, userRole);');
+    expect(bottomBar).toContain('const routeOwnedActionConfig = getRouteOwnedMobileAction(location.pathname, profile, pageAction, can);');
     expect(bottomBar).toContain('const showAnyAction = Boolean(routeOwnedAction) || !hideContextFab;');
-    expect(bottomBar).toContain("if (pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin'))");
+    expect(bottomBar).toContain("if (pathname.startsWith('/emergencies') && canReach('/emergencies'))");
     expect(bottomBar).toContain("label: 'New request'");
-    expect(bottomBar).toContain("action: () => window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
-    expect(bottomBar).not.toContain("if (pathname === '/')");
+    expect(bottomBar).toContain("action: dispatchWindowEvent('openEmergencyModal')");
+    expect(bottomBar).toContain("if (pathname === '/')");
+    expect(bottomBar).toContain('pageActionMatchesRoute(pageAction, pathname)');
   });
 
   it('keeps global support actions command-only until the route owns support data', () => {

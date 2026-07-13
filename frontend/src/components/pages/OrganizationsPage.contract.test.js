@@ -115,7 +115,10 @@ describe('Organizations Page 15 revamp contract', () => {
     const mobile = read('src/components/mobile/MobileOrganizations.jsx');
     const panel = read('src/components/context/OrganizationsPanel.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
-    const dock = read('src/components/navigation/DynamicBottomBar.jsx');
+    const dock = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
     const mobileGrammar = read('scripts/check-mobile-grammar.js');
     const modal = read('src/components/modals/OrganizationModal.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
@@ -168,9 +171,9 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(panel).toContain('rounded-icon');
     expect(panel).not.toMatch(/\brounded-(?:xl|2xl|3xl|full)\b|\bshadow-premium\b/);
 
-    expect(dock).toContain("pathname.startsWith('/organizations') && canReachRoute(userRole, '/organizations')");
-    expect(dock).toContain("label: 'Add organization'");
-    expect(dock).toContain("new CustomEvent('openOrganizationModal')");
+    expect(dock).toContain("pathname.startsWith('/organizations') && canReach('/organizations')");
+    expect(dock).toContain("label: 'Organization stats'");
+    expect(dock).toContain("action: dispatchWindowEvent('openAnalyticsModal')");
     expect(mobileGrammar).toContain("'MobileOrganizations.jsx': { tier: 'list', selection: 'required' }");
     expect(mobileGrammar).not.toContain("'/organizations': 'Page 15 gate-blocked");
 

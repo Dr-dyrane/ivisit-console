@@ -121,7 +121,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 												: "bg-sky-500/10 text-sky-700 dark:text-sky-200"
 											}`}
 									>
-										{selectedMarker.data.priority || "medium"}
+										{selectedMarker.data.priority || "Not recorded"}
 									</span>
 									<span className="inline-flex rounded-pill bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
 										{selectedMarker.data.status}
@@ -225,7 +225,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 											Type
 										</p>
 										<p className="font-bold">
-											{selectedMarker.data.type || "BLS"}
+											{selectedMarker.data.type || "Not recorded"}
 										</p>
 									</div>
 								</div>
@@ -251,7 +251,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 											Beds
 										</p>
 										<p className="font-bold text-2xl text-sky-600 dark:text-sky-300">
-											{selectedMarker.data.available_beds || 0}
+											{selectedMarker.data.available_beds ?? "Not recorded"}
 										</p>
 									</div>
 									<div className="p-3 rounded-inner bg-muted/30">
@@ -259,7 +259,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 											Fleet
 										</p>
 										<p className="font-bold text-2xl">
-											{selectedMarker.data.ambulances_count || 0}
+											{selectedMarker.data.ambulances_count ?? "Not recorded"}
 										</p>
 									</div>
 								</div>

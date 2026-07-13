@@ -23,7 +23,8 @@ Status: implementation candidate; read projection and rendered proof pending
 - Subscriber create, edit, delete, status/type changes, welcome email, custom email, bulk email, campaign sends, recipient export, and unsubscribe commands remain fail-closed.
 - A command may return only after a named receiver, role/RLS expectation, payload allow-list, consent/delivery lifecycle, audit behavior, and `ivisit`/`ivisit-app` consequence are proved.
 - The page must never infer email delivery from invocation success or mutate `welcome_email_sent` optimistically.
-- The mobile route-owned Add subscriber FAB may remain visible only as an explicitly unavailable mirror of the desktop primary command. It must provide immediate feedback and never open writable chrome.
+- The mobile route-owned FAB opens the admitted `Subscriber stats` read surface. It must not
+  advertise fail-closed subscriber authoring as the primary action or open writable chrome.
 
 ## Perks to preserve
 

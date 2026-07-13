@@ -121,36 +121,31 @@ a generic "Provider" (Decisions log + §5 + §10).
   tone. **DON'T:** paint every active chip crimson. Supersedes the earlier "`.on` = brand" reading
   of the chip element (§3); the one-loud-`bg-primary` law (§0/§2) stays reserved for the route
   FAB, not the filter row.
-- **2026-07-10 · Every list/dashboard page OWNS a dock FAB (or an honest exemption), and that FAB
+- **2026-07-13 · Every route-owned mobile surface OWNS one useful dock FAB, and that FAB
   MIRRORS the route's primary global action** — the mobile dock is a LEFT nav-pill + a route FAB
   (`DynamicBottomBar`). A route in `routeOwnsAction` OR setting `usePageShell({hideFab:true})`
   SUPPRESSES the generic context FAB — so if `getRouteOwnedMobileAction` returns nothing the dock
   collapses to a **LONE CENTERED PILL**, the recurring failure (Ambulances, Approvals, Users all hit
   it). The FAB action mirrors the proved route-level command or read surface — same authority and
-  scope — and is **RBAC-gated** via `canReachRoute` (the SAME truth the route guard uses,
-  `getProtectedRoutesForRole`, never a hand-kept role list that drifts). The four shapes:
-    - **REAL create** where the command is proved: New request / New visit / Add unit (live table).
-    - **GATED create** where a create RECEIVER EXISTS but is fail-closed: Users "Add user" and
-      Subscriptions "Add subscriber". Dispatch the PAGE'S OWN create-modal event (`openUserModal` /
-      `openSubscriptionModal`) so the tap surfaces honest "not ready" feedback. A fail-closed command
-      is not a reason to drop the primary action;
-      it's a reason to show it honestly gated. The DECIDING test is "does a create receiver exist in the
-      service", NOT "does the desktop currently render the button". If the receiver exists, surface the
-      gated button on both lanes and keep the click fail-closed.
-    - **PROVED read action** where no admitted writer exists. Health News opens its page-owned
-      statistics view (`openAnalyticsModal`) instead of advertising article authoring.
+  scope — and is **RBAC-gated** from the full profile plus the capability helper via `canReachRoute`.
+  This keeps provider subtype exclusions and fine-grained resource policy aligned with navigation and
+  route protection; a role string by itself is insufficient. The three shapes:
+    - **REAL command** where role authority and the mounted receiver are proved: New request, Add unit,
+      Invite user, New ticket, and Add staff.
+    - **PROVED read action** where authoring is not admitted. Organizations, Email Subscribers,
+      Pricing, Health News, Payments, Insurance, Visits, Requests for non-admin roles, and Analytics
+      open their page-owned statistics surface instead of advertising a blocked writer.
     - **READ / REVIEW / NAVIGATE** where that is the primary action: Payments "Payment stats",
-      Insurance "Policy stats", Approvals "Review pending", and Hospitals "Facility approvals".
+      Insurance "Policy stats", Approvals "Review pending", Hospitals "Facility approvals",
+      Settings "Security", and Map "Center map".
       Missing mutation authority forbids an unproved write; it does not erase a proved read action.
-    - **HONEST EXEMPTION** (lone pill, `FAB_EXEMPT_ROUTES` + reason) ONLY where the route has no useful
-      global read or write action and its own interaction grammar is documented, currently Settings
-      and Map. No create receiver by itself is not an exemption.
-  **DON'T fake a create** where authority is absent; use the proved read/review action, or the documented
-  action-less exemption when none exists. **DON'T leave a suppressing route branch-less** (dead lone pill). And —
+  There are currently no route-owned action exemptions; `FAB_EXEMPT_ROUTES` is empty. **DON'T fake a
+  create** where authority is absent; use the proved read/review/utility action. **DON'T leave a
+  suppressing route branch-less** (dead lone pill). And —
   the mistake this rule was hardened around — **DON'T make the FAB a "Filter X"**: the canon `SearchRow`
   already renders the in-page filter trigger (`onOpenFilters`), so a filter FAB just DUPLICATES an
   affordance already on the page. (Users shipped "Filter users"; it propagated to Health News /
-  Insurance / Subscriptions before it was caught and corrected to Add-user / Policy-stats / gated-create.)
+  Insurance / Subscriptions before it was caught and corrected to receiver-backed route actions.)
   A **FIRST-CLASS page-close requirement, checked on EVERY page** (§6, §9, §10), enforced by the
   FAB-completeness guard in `scripts/check-mobile-grammar.js`: the suppressing-route set is **DERIVED**
   from `routeOwnsAction` + the `usePageShell({hideFab:true})` pages, and each such route must have a

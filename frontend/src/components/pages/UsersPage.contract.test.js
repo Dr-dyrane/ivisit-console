@@ -61,7 +61,10 @@ describe('Users Page 14 identity contract', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const page = read('src/components/pages/UsersPage.jsx');
     const contextAction = read('src/hooks/useContextAction.js');
-    const bottomBar = read('src/components/navigation/DynamicBottomBar.jsx');
+    const bottomBar = [
+      read('src/components/navigation/DynamicBottomBar.jsx'),
+      read('src/config/mobileRouteActions.js'),
+    ].join('\n');
 
     expect(gate).toContain('Invitation command: admitted for platform and organization administrators within receiver scope.');
     expect(page).toContain("setModalMode('invite');");

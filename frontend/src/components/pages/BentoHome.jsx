@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
+import { usePageActions } from '../../contexts/PageActionsContext';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -415,6 +416,7 @@ const QuickActionCardSkeleton = React.memo(() => (
 
 export const BentoHome = () => {
   const navigate = useNavigate();
+  const { registerPageAction } = usePageActions();
   const { user, profile, hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin, isSkippedOnboarding } = useAuth();
   const {
     emergencyData,
@@ -522,6 +524,14 @@ export const BentoHome = () => {
     sponsor: 'Sponsor',
     viewer: 'Viewer',
   };
+
+  React.useLayoutEffect(() => registerPageAction({
+    route: '/',
+    icon: RefreshCw,
+    label: 'Refresh today',
+    color: 'utility',
+    action: refreshAction,
+  }), [refreshAction, registerPageAction]);
 
   const isTodayShell = Boolean(roleHomeKind) || (isMobile && isPatient());
   const shouldLoadSubscriptionStats = !roleHomeKind || (isMobile && isPatient());

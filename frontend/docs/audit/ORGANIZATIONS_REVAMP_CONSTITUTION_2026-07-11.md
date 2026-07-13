@@ -71,8 +71,8 @@ Preservation decisions:
 - **ORG-6 - unsafe mobile commands:** live-looking edit/delete controls were removed. Mobile is
   details-only; selection delete remains disabled with an authority reason.
 - **ORG-7 - FAB omission:** `/organizations` suppressed the generic FAB while claiming an
-  exemption. The dock now mirrors desktop `Add organization` and reaches the same fail-closed
-  page handler.
+  exemption. The dock now opens the admitted `Organization stats` read surface; it does not
+  advertise fail-closed organization authoring as the primary mobile action.
 - **ORG-8 - placeholder poisoning / page replacement:** the mobile accumulator ignores React
   Query placeholder rows, replaces settled page 1, and appends later pages by id.
 - **ORG-9 - disabled-input view modal:** the reachable view mode now renders read-only fields;

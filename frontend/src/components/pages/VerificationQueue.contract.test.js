@@ -99,7 +99,10 @@ describe('VerificationQueue Approvals desktop contract', () => {
   it('gives BOTH lanes multi-select + bulk, routed per queue (providers approve-only, facilities tri-state)', () => {
     const source = pageSource();
     const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
-    const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const bottomBarSource = [
+      fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
+      fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
+    ].join('\n');
 
     expect(source).not.toContain('onDelete={() => { }}');
     // Multi-select + bulk on BOTH lanes for admins (facilities used to have neither).

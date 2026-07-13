@@ -1,28 +1,29 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 /**
- * PageActionsContext — coordinates page-level primary actions.
+ * PageActionsContext coordinates page-level primary actions.
  *
  * Pages register a primary action (e.g. "New Doctor") via `registerPageAction`.
- * Navigation shell (SmartTopNav, ContextAwareFAB) reads it via `pageAction`.
+ * Navigation shells read it via `pageAction`.
  * Registration is cleared when the component unmounts (or calls the returned cleanup).
  *
  * Replaces the `window.dispatchEvent(new CustomEvent('openCreateModal'))` pattern
  * that was used for cross-component communication between pages and the nav shell.
  *
- * Usage — in a page component:
+ * Usage in a page component:
  *
  *   const { registerPageAction } = usePageActions();
  *   useEffect(() => {
  *     return registerPageAction({
  *       label: 'New Doctor',
- *       icon: <Stethoscope className="h-4 w-4" />,
+ *       icon: Stethoscope,
  *       action: () => setCreateOpen(true),
  *       color: 'primary',          // optional, used by ContextAwareFAB gradient
+ *       route: '/doctors',         // required when a mobile dock consumes the action
  *     });
  *   }, []);
  *
- * Usage — in a shell component:
+ * Usage in a shell component:
  *
  *   const { pageAction } = usePageActions();
  *   // pageAction is null when no page has registered, or the current page's action object.
@@ -38,8 +39,8 @@ export const PageActionsProvider = ({ children }) => {
     /**
      * Register the current page's primary action.
      *
-     * @param {{ label: string, icon?: ReactNode, action: function, color?: string }} config
-     * @returns {function} cleanup — call or return from useEffect to unregister
+     * @param {{ label: string, icon?: React.ComponentType, action: function, color?: string, route?: string }} config
+     * @returns {function} cleanup; call or return from useEffect to unregister
      */
     const registerPageAction = useCallback((config) => {
         const generation = ++generationRef.current;

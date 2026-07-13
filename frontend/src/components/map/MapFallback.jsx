@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { AlertTriangle, Ambulance, Hospital, LocateFixed, MapPin } from 'lucide-react';
+import { isWithinMapRadius, MAP_VIEW_RADIUS_KM } from './mapViewModel';
 
 const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
 
@@ -89,6 +90,8 @@ export const MapFallback = ({
 	activeRoutes = [],
 	showLayers = {},
 	userLocation = null,
+	focusLocation = null,
+	viewRadiusKm = MAP_VIEW_RADIUS_KM,
 	selectedMarker = null,
 	setSelectedMarker = null,
 }) => {
@@ -136,7 +139,14 @@ export const MapFallback = ({
 		return collected;
 	}, [ambulances, filteredRequests, hospitals, showLayers, userLocation]);
 
-	const bounds = useMemo(() => getBounds(markers), [markers]);
+	const visibleMarkers = useMemo(() => {
+		if (!focusLocation) return markers;
+		return markers.filter((marker) => (
+			marker.type === 'user'
+			|| isWithinMapRadius(marker, focusLocation, viewRadiusKm)
+		));
+	}, [focusLocation, markers, viewRadiusKm]);
+	const bounds = useMemo(() => getBounds(visibleMarkers), [visibleMarkers]);
 	const selectedId = selectedMarker?.data?.id ? `${selectedMarker.type}-${selectedMarker.data.id}` : null;
 
 	return (
@@ -158,18 +168,18 @@ export const MapFallback = ({
 					Limited map
 				</div>
 				<div className="mt-1 text-sm font-semibold text-foreground">
-					{markers.length ? 'Select a point' : 'No map points yet'}
+					{visibleMarkers.length ? 'Select a point' : 'No map points in this area'}
 				</div>
 			</div>
 
 			<div className="absolute right-5 top-5 z-20 rounded-card bg-background/72 px-4 py-3 text-right shadow-e3 backdrop-blur-xl">
 				<div className="text-[11px] font-medium text-muted-foreground">Live data</div>
 				<div className="mt-1 text-sm font-semibold text-foreground">
-					{markers.length} points / {activeRoutes.length} routes
+					{visibleMarkers.length} points shown / {activeRoutes.length} route previews
 				</div>
 			</div>
 
-			{markers.map((marker, index) => {
+			{visibleMarkers.map((marker, index) => {
 				const meta = MARKER_META[marker.type] || MARKER_META.emergency;
 				const Icon = meta.Icon;
 				const isSelected = marker.id === selectedId;

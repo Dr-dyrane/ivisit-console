@@ -1,5 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useMap as useGoogleMap } from '@vis.gl/react-google-maps';
+import { getRadiusBounds, MAP_VIEW_RADIUS_KM } from '../mapViewModel';
+
+const WORLD_TILE_SIZE = 256;
+
+const latitudeRadians = (latitude) => {
+	const bounded = Math.max(-85, Math.min(85, Number(latitude) || 0));
+	const sine = Math.sin((bounded * Math.PI) / 180);
+	const radians = Math.log((1 + sine) / (1 - sine)) / 2;
+	return Math.max(-Math.PI, Math.min(Math.PI, radians)) / 2;
+};
+
+const zoomForFraction = (pixels, fraction) => (
+	Math.log(pixels / WORLD_TILE_SIZE / Math.max(fraction, Number.EPSILON)) / Math.LN2
+);
+
+const getViewportPadding = (map) => {
+	const compact = (map?.getDiv()?.clientWidth || 0) <= 640;
+	return compact
+		? { top: 160, bottom: 128, left: 24, right: 24 }
+		: { top: 96, bottom: 128, left: 72, right: 72 };
+};
+
+const getViewportZoom = (map, bounds, padding) => {
+	const mapElement = map?.getDiv();
+	if (!mapElement) return 12;
+
+	const availableWidth = Math.max(1, mapElement.clientWidth - padding.left - padding.right);
+	const availableHeight = Math.max(1, mapElement.clientHeight - padding.top - padding.bottom);
+	const latitudeFraction = Math.abs(
+		(latitudeRadians(bounds.north) - latitudeRadians(bounds.south)) / Math.PI
+	);
+	const longitudeFraction = Math.abs((bounds.east - bounds.west) / 360);
+	const target = Math.floor(Math.min(
+		zoomForFraction(availableWidth, longitudeFraction),
+		zoomForFraction(availableHeight, latitudeFraction),
+	));
+
+	return Math.max(3, Math.min(18, target));
+};
 
 // Google Maps Polyline Component
 export const GoogleMapsPolyline = ({ path, options }) => {
@@ -34,90 +73,50 @@ export const GoogleMapsPolyline = ({ path, options }) => {
 	return null;
 };
 
-export const GoogleMapsMapRefiner = ({ userLocation, hospitals = [], styles }) => {
+export const GoogleMapsMapRefiner = ({
+	focusLocation,
+	radiusKm = MAP_VIEW_RADIUS_KM,
+	styles,
+}) => {
 	const map = useGoogleMap();
-	const zoomedStatus = React.useRef('none'); // 'none' | 'user' | 'full'
 
 	// Sync map styles
 	useEffect(() => {
 		if (map && styles) map.setOptions({ styles });
 	}, [map, styles]);
 
-	// Memoize top 5 closest hospitals (not emergencies) for deterministic zooming
-	const top5Hospitals = React.useMemo(() => {
-		if (!userLocation || !hospitals || hospitals.length === 0) return [];
-		const uLat = userLocation.lat;
-		const uLng = userLocation.lng;
-
-		return [...hospitals]
-			.filter(m => m.lat && m.lng)
-			.map(m => {
-				const mLat = parseFloat(m.lat);
-				const mLng = parseFloat(m.lng);
-				if (!Number.isFinite(mLat) || !Number.isFinite(mLng)) return null;
-				return {
-					lat: mLat,
-					lng: mLng,
-					dist: Math.pow(mLat - uLat, 2) + Math.pow(mLng - uLng, 2)
-				};
-			})
-			.filter(Boolean)
-			.sort((a, b) => a.dist - b.dist)
-			.slice(0, 5);
-	}, [userLocation, hospitals]);
-
-	const hospitalZoomKey = React.useMemo(
-		() => top5Hospitals.map((m) => `${m.lat.toFixed(6)},${m.lng.toFixed(6)}`).join('|'),
-		[top5Hospitals]
-	);
-
-	// State to force re-run of centering logic
-	const [recenterTrigger, setRecenterTrigger] = useState(0);
+	const applyViewport = React.useCallback((center = focusLocation) => {
+		if (!map || !center) return;
+		const bounds = getRadiusBounds(center, radiusKm);
+		const padding = getViewportPadding(map);
+		const targetZoom = getViewportZoom(map, bounds, padding);
+		map.fitBounds(
+			{
+				south: bounds.south,
+				west: bounds.west,
+				north: bounds.north,
+				east: bounds.east,
+			},
+			padding,
+		);
+		// fitBounds can run before Google has measured the map div and leave the
+		// camera at a world-scale zoom. Pin the same radius deterministically.
+		map.setCenter(center);
+		map.setZoom(targetZoom);
+	}, [focusLocation, map, radiusKm]);
 
 	useEffect(() => {
-		if (!map) return;
-		zoomedStatus.current = 'none';
-	}, [map]);
-
-	useEffect(() => {
-		if (!map || !userLocation) return;
-
-		// Stage 1: Absolute immediate snap to user coordinate (Fast Focus)
-		if (zoomedStatus.current === 'none') {
-			console.log("MapRefiner: Stage 1 - Immediate snap to user location");
-			map.setCenter(userLocation);
-			map.setZoom(15);
-			zoomedStatus.current = 'user';
-		}
-	}, [map, userLocation, recenterTrigger]);
-
-	useEffect(() => {
-		if (!map || !userLocation) return;
-
-		// Stage 2: Upgrade to smart zoom once nearby hospitals are loaded
-		if (zoomedStatus.current === 'user' && top5Hospitals.length > 0) {
-			console.log("MapRefiner: Stage 2 - Expanding to include closest hospitals");
-			const bounds = new window.google.maps.LatLngBounds();
-			bounds.extend(userLocation);
-			top5Hospitals.forEach(m => bounds.extend(m));
-
-			map.fitBounds(bounds, {
-				padding: { top: 150, bottom: 150, left: 100, right: 100 }
-			});
-			zoomedStatus.current = 'full';
-		}
-	}, [map, userLocation, top5Hospitals, hospitalZoomKey, recenterTrigger]);
+		applyViewport();
+	}, [applyViewport]);
 
 	// Listen for re-center events
 	useEffect(() => {
-		const handleRecenter = () => {
-			console.log("MapRefiner: Resetting focus status for re-center request");
-			zoomedStatus.current = 'none';
-			setRecenterTrigger(prev => prev + 1); // Trigger the main effect
+		const handleRecenter = (event) => {
+			applyViewport(event?.detail?.center || focusLocation);
 		};
 		window.addEventListener('recenter-map', handleRecenter);
 		return () => window.removeEventListener('recenter-map', handleRecenter);
-	}, []);
+	}, [applyViewport, focusLocation]);
 
 	return null;
 };
