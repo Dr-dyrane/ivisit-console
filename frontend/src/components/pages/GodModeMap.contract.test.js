@@ -26,7 +26,13 @@ describe('GodModeMap Live Map contract', () => {
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
     fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
   ].join('\n');
-  const googleRendererSource = () => fs.readFileSync('src/components/map/MapRenderers/GoogleMapsRenderer.jsx', 'utf8');
+  const googleRendererSource = () => [
+    fs.readFileSync('src/components/map/MapRenderers/GoogleMapsRenderer.jsx', 'utf8'),
+    ...fs.readdirSync('src/components/map/MapRenderers/google-maps')
+      .filter((name) => /\.(js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`src/components/map/MapRenderers/google-maps/${name}`, 'utf8')),
+  ].join('\n');
   const leafletRendererSource = () => fs.readFileSync('src/components/map/MapRenderers/LeafletMapRenderer.jsx', 'utf8');
   const googleRefinerSource = () => fs.readFileSync('src/components/map/MapRefiner/GoogleMapsRefiner.jsx', 'utf8');
   const leafletRefinerSource = () => fs.readFileSync('src/components/map/MapRefiner/LeafletMapRefiner.jsx', 'utf8');
