@@ -5,8 +5,24 @@ import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
 describe('DoctorsPage Staff contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/DoctorsPage.jsx', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileDoctors.jsx', 'utf8');
+  const readSources = (...paths) => paths
+    .map((path) => fs.readFileSync(path, 'utf8'))
+    .join('\n');
+  const pageSource = () => readSources(
+    'src/components/pages/DoctorsPage.jsx',
+    'src/components/pages/doctors/DoctorsPageView.jsx',
+    'src/components/pages/doctors/StaffDesktopWorkspace.jsx',
+    'src/components/pages/doctors/staffPageModel.js',
+    'src/components/pages/doctors/useDoctorsPageChrome.js',
+    'src/components/pages/doctors/useDoctorsPageController.js',
+    'src/components/pages/doctors/useDoctorsRouteBridge.js'
+  );
+  const mobileSource = () => readSources(
+    'src/components/mobile/MobileDoctors.jsx',
+    'src/components/mobile/doctors/MobileDoctorsView.jsx',
+    'src/components/mobile/doctors/mobileDoctorsModel.js',
+    'src/components/mobile/doctors/useMobileDoctorsController.js'
+  );
   const listSource = () => fs.readFileSync('src/components/views/DoctorListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/DoctorTableView.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/DoctorModal.jsx', 'utf8');
@@ -22,7 +38,11 @@ describe('DoctorsPage Staff contract', () => {
   const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
   const modalChromeHookSource = () => fs.readFileSync('src/hooks/useModalChromeSuppression.js', 'utf8');
   const smartHeaderSource = () => fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
+  const routeSource = () => readSources(
+    'src/app/AppRoutes.jsx',
+    'src/app/appRouteMetadata.js'
+  );
+  const appChromeSource = () => fs.readFileSync('src/App.js', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
 
@@ -41,6 +61,10 @@ describe('DoctorsPage Staff contract', () => {
 
     expect(getAccessibleNav({ role: 'org_admin' }).ops.items.find((item) => item.path === '/doctors')?.label)
       .toBe('Staff');
+
+    const routes = routeSource();
+    expect(routes).toContain("doctors: lazyNamedPage(() => import('../components/pages/DoctorsPage'), 'DoctorsPage')");
+    expect(routes).toContain("{ id: 'doctors', path: '/doctors', minRole: 'org_admin' }");
   });
 
   it('keeps Staff route-owned so PageData and shell actions do not duplicate the page', () => {
@@ -66,7 +90,7 @@ describe('DoctorsPage Staff contract', () => {
       .toBeLessThan(bottomBar.indexOf('const DynamicBottomAction'));
     expect(gateSource()).toContain('Staff right-panel route-context cleanup on 2026-07-06 moved `DoctorsPanel.jsx` off `PageDataContext` staff truth');
     expect(gateSource()).toContain('`ContextPanel.jsx` no longer passes `PageDataContext` `doctorsData` into the `/doctors` right panel.');
-    expect(page).toContain('const staffPanelContext = useMemo(() => ({');
+    expect(page).toContain('const staffPanelContext = useMemo(() => buildStaffPanelContext({');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('doctorsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestDoctorsRouteContext', publishStaffRouteContext);");
     expect(contextPanel).toContain('const [doctorsRouteContext, setDoctorsRouteContext] = React.useState(null);');
@@ -86,10 +110,10 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).toContain('const canManageStaff = isAdmin() || isOrgAdmin();');
     expect(page).toContain('quiet: true');
     expect(page).toContain('resolveStaffStatusFilter(filters)');
-    expect(page).toContain('limit: isMobile ? pagination.currentPage * pagination.itemsPerPage : pagination.itemsPerPage');
-    expect(page).toContain('offset: isMobile ? 0 : pagination.paginationRange.start');
+    expect(page).toContain('limit: isMobile ? currentPage * itemsPerPage : itemsPerPage');
+    expect(page).toContain('offset: isMobile ? 0 : offset');
     expect(page).toContain('stats: staffStats');
-    expect(page).toContain('pagination.setTotalCount(count)');
+    expect(page).toContain('setTotalCount(count)');
     expect(page).toContain('filters.search,');
     expect(page).toContain('filters.kpiFilter,');
     expect(page).toContain('filters.created_at,');
@@ -103,7 +127,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).not.toContain('processedDoctors.slice');
     expect(page).toContain('if (!canManageStaff) return;');
     expect(page).toContain("usePageFooter(null, 'status', false);");
-    expect(page).toContain('canManage={canManageStaff}');
+    expect(page).toContain('canManage={role.canManageStaff}');
     expect(gateSource()).toContain('Staff source-owner cleanup on 2026-07-04 moved desktop and mobile Staff filtering/counting/pagination');
     expect(gateSource()).toContain('Staff mobile projection cleanup on 2026-07-04 removed duplicate mobile search/KPI filtering');
 
@@ -121,12 +145,12 @@ describe('DoctorsPage Staff contract', () => {
 
     // Staff mobile detail is a tap-opens bottom sheet (MobileDetailSheet), not an inline
     // dropdown. One active-record state; the canon MobileListRow opens it via onOpen
-    // (rebuilt to canon 2026-07-10 — was an inline MobileMetricRow onClick).
+    // (rebuilt to canon 2026-07-10; it was an inline MobileMetricRow onClick).
     expect(mobile).toContain('const [activeDoctor, setActiveDoctor] = useState(null);');
     expect(mobile).toContain('onOpen={setActiveDoctor}');
     expect(mobile).toContain('<MobileListRow');
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('isOpen={!!activeDoctor}');
+    expect(mobile).toContain('isOpen={!!doctor}');
     expect(mobile).not.toContain('expandedContent');
     expect(mobile).not.toContain('onExpand');
     expect(mobile).not.toContain('expandedDoctorId');
@@ -135,7 +159,7 @@ describe('DoctorsPage Staff contract', () => {
 
     // Selection stays mounted for non-destructive workflows, while the route has
     // no single or bulk destructive doctor action.
-    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
+    expect(page).toContain("import { BulkActionBar } from '../../common/BulkActionBar';");
     expect(page).not.toContain('deleteDoctor');
     expect(page).not.toContain('applyOptimisticRemove');
     expect(page).not.toContain('ConfirmationModal');
@@ -144,9 +168,9 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).not.toContain('onDelete=');
     // Selection is now the SHARED useRowSelection hook (gains shift-range + prune-to-
     // visible); the mobile surface consumes handleToggleSelect/handleSelectAll from it.
-    expect(page).toContain('onSelect={handleToggleSelect}');
-    expect(page).toContain('onSelectAll={handleSelectAll}');
-    expect(page).toContain('selectionEnabled={canManageStaff}');
+    expect(page).toContain('onSelect={selection.handleToggleSelect}');
+    expect(page).toContain('onSelectAll={selection.handleSelectAll}');
+    expect(page).toContain('selectionEnabled={role.canManageStaff}');
     expect(page).toContain('<BulkActionBar');
 
     // Legacy density components retain dormant props, but the mounted page/mobile
@@ -192,10 +216,10 @@ describe('DoctorsPage Staff contract', () => {
   it('is composed on the console design system, not the retired ViewToggle/bento shell', () => {
     const page = pageSource();
     // COMPOSITION: the shared workspace grammar, not bespoke StaffSignalPanel/StaffStateStrip/StaffDetailRail.
-    expect(page).toContain("from '../console/WorkspaceStage'");
-    expect(page).toContain("import { SignalPanel } from '../console/SignalPanel';");
-    expect(page).toContain("import { KpiStrip } from '../console/KpiStrip';");
-    expect(page).toContain("from '../console/ActivitySheet'");
+    expect(page).toContain("from '../../console/WorkspaceStage'");
+    expect(page).toContain("import { SignalPanel } from '../../console/SignalPanel';");
+    expect(page).toContain("import { KpiStrip } from '../../console/KpiStrip';");
+    expect(page).toContain("from '../../console/ActivitySheet'");
     expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('<SignalPanel');
     expect(page).toContain('<KpiStrip');
@@ -203,7 +227,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
     // Shared MECHANISMS (not reinvented inline): selection prune, keyboard nav, scroll
     // reset, auto-select, arrival toast, deep-link, isFetching surfaced.
-    expect(page).toContain("from '../../hooks/useRowSelection'");
+    expect(page).toContain("from '../../../hooks/useRowSelection'");
     expect(page).toContain('useRowSelection(staffRows)');
     expect(page).toContain("useFocusedRecord('doctors', staffRows)");
     expect(page).toContain('useListKeyboardNav');
@@ -372,7 +396,7 @@ describe('DoctorsPage Staff contract', () => {
     const shell = modalShellSource();
     const chromeHook = modalChromeHookSource();
     const header = smartHeaderSource();
-    const app = appSource();
+    const app = appChromeSource();
 
     expect(shell).toContain("import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression'");
     expect(shell).toContain('useModalChromeSuppression(isOpen);');
