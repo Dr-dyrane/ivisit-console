@@ -6,6 +6,30 @@ import {
 } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readSubscriptionPageEstate = () => [
+  'src/components/pages/SubscriptionManagementPage.jsx',
+  'src/components/pages/subscriptions/SubscriptionManagementPageView.jsx',
+  'src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx',
+  'src/components/pages/subscriptions/subscriptionPageModel.js',
+  'src/components/pages/subscriptions/useSubscriptionPageChrome.js',
+  'src/components/pages/subscriptions/useSubscriptionPageController.js',
+].map(read).join('\n');
+const readMobileSubscriptionEstate = () => [
+  'src/components/mobile/MobileSubscriptions.jsx',
+  'src/components/mobile/subscriptions/MobileSubscriptionDetailSheet.jsx',
+  'src/components/mobile/subscriptions/MobileSubscriptionsAtlasLayer.jsx',
+  'src/components/mobile/subscriptions/mobileSubscriptionModel.js',
+  'src/components/mobile/subscriptions/useMobileSubscriptionsController.js',
+].map(read).join('\n');
+const readAppRouteEstate = () => [
+  'src/app/AppRoutes.jsx',
+  'src/app/appRouteMetadata.js',
+].map(read).join('\n');
+const readAnalyticsEstate = () => [
+  'src/components/pages/Analytics.jsx',
+  'src/components/pages/analytics/analyticsPageModel.js',
+  'src/components/pages/analytics/useAnalyticsPageController.js',
+].map(read).join('\n');
 // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
@@ -29,11 +53,11 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(queryHook).toContain('isPlaceholderData: query.isPlaceholderData');
     expect(queryHook).toContain("invalidateQueries({ queryKey: ['subscriptions'] })");
     expect(queryHook).toContain('return useCallback(');
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const page = readSubscriptionPageEstate();
     const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
     expect(page).toContain('subscribeToSubscribers(() => invalidateSubscriptions())');
-    expect(page).toContain("subscriptionStatsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
-    expect(page).toContain('analytics={subscriptionAnalytics}');
+    expect(page).toContain("distributionScope: statsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
+    expect(page).toContain('buildSubscriptionAnalytics');
     expect(page).not.toContain('total: subscribers.length');
     expect(page).toContain('useRowSelection(visibleSubscriberRows)');
     expect(page).toContain('byType: { paid, free }');
@@ -44,21 +68,21 @@ describe('Subscriptions Page 17 intake contract', () => {
   });
 
   it('keeps desktop and mobile multi-select admin-gated and fail-closed', () => {
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const page = readSubscriptionPageEstate();
     const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
-    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+    const mobile = readMobileSubscriptionEstate();
     const mobileListRow = read('src/components/mobile/canon/GroupedList.jsx');
 
     // One page-owned selection state follows every row currently rendered on each viewport.
-    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
-    expect(page).toContain('const canManageSubscribers = isAdmin();');
+    expect(page).toContain('useRowSelection');
+    expect(page).toContain('const canManageSubscribers = admin;');
     expect(page).toContain('useRowSelection(visibleSubscriberRows)');
-    expect(page).toContain('selectable={canManageSubscribers}');
-    expect(page).toContain('selectionEnabled={canManageSubscribers}');
-    expect(page).toContain('selectedIds={selectedIds}');
-    expect(page).toContain('onSelect={handleToggleSelect}');
-    expect(page).toContain('onSelectClick={handleSelectClick}');
-    expect(page).toContain('onSelectAll={handleSelectAll}');
+    expect(page).toContain('selectable={role.canManageSubscribers}');
+    expect(page).toContain('selectionEnabled={role.canManageSubscribers}');
+    expect(page).toContain('selectedIds={selection.selectedIds}');
+    expect(page).toContain('onSelect={selection.handleToggleSelect}');
+    expect(page).toContain('onSelectClick={selection.handleSelectClick}');
+    expect(page).toContain('onSelectAll={selection.handleSelectAll}');
 
     // Desktop uses the shared checkbox/range-selection mechanism and shared bulk bar.
     expect(desktop).toContain("import { Checkbox } from '../../ui/checkbox';");
@@ -66,18 +90,18 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(desktop).toContain("aria-label={allSelected ? 'Clear subscriber selection' : 'Select all subscribers'}");
     expect(desktop).toContain('checked={selectedIds.includes(subscriber.id)}');
     expect(desktop).toContain('onSelectClick?.(event);');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>');
 
     // Mobile long-press enters selection, selected rows receive the shared check overlay,
     // and the selection bar owns select-all plus clear.
-    expect(mobile).toContain('selectable={selectionActive}');
-    expect(mobile).toContain('selected={selectedIdSet.has(subscriber.id)}');
-    expect(mobile).toContain('onLongPress={(it) => onSelect?.(it.id, true)}');
+    expect(mobile).toContain('selectable={controller.selectionActive}');
+    expect(mobile).toContain('selected={controller.selectedIdSet.has(subscriber.id)}');
+    expect(mobile).toContain('onLongPress={(item) => onSelect?.(item.id, true)}');
     expect(mobile).toContain('<MobileSelectionBar');
     expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
     expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
     expect(mobileListRow).toContain('{selectable && selected && (');
-    expect(mobile).toContain('!loading && !refetching && !showTopSectionLoading && !hasMore');
+    expect(mobile).toContain('!loading && !controller.refetching && !controller.showTopSectionLoading && !hasMore');
 
     // Selection never implies write authority: both bulk controls are disabled and no
     // subscriber/email mutation is called from the page or mobile surface.
@@ -91,8 +115,8 @@ describe('Subscriptions Page 17 intake contract', () => {
   });
 
   it('uses fixed offset pages and appends only settled mobile results', () => {
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
-    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+    const page = readSubscriptionPageEstate();
+    const mobile = readMobileSubscriptionEstate();
 
     expect(page).toContain('limit: pagination.itemsPerPage');
     expect(page).toContain('offset: (pagination.currentPage - 1) * pagination.itemsPerPage');
@@ -106,22 +130,22 @@ describe('Subscriptions Page 17 intake contract', () => {
 
   it('keeps subscriber rows visible with explicit loaded-row stats when auxiliary counts fail', () => {
     const service = read('src/services/subscriptionService.js');
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
-    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+    const page = readSubscriptionPageEstate();
+    const mobile = readMobileSubscriptionEstate();
 
     expect(service).toContain('UNAVAILABLE_SUBSCRIPTION_STATS');
     expect(service).toContain("reason: 'stats_query_failed'");
     expect(service).toContain('statsPromise');
     expect(page).toContain('buildVisibleSubscriptionStats');
     expect(page).toContain('subscriptionStatsUnavailable');
-    expect(page).toContain("subscriptionStatsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
-    expect(page).toContain('stats={subscriptionDisplayStats}');
+    expect(page).toContain("distributionScope: statsUnavailable ? 'visible_page' : 'exact_filtered_projection'");
+    expect(page).toContain('stats={data.subscriptionDisplayStats}');
     expect(mobile).toContain('statsUnavailable = false');
     expect(mobile).toContain('Subscriber statistics are unavailable. Counts use the loaded rows; the list remains current.');
   });
 
   it('maps exact subscriber type and status buckets to their analytics phases', () => {
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const page = readSubscriptionPageEstate();
     const analyticsModal = read('src/components/modals/AnalyticsModal.jsx');
 
     expect(page).toContain('byType: { paid, free }');
@@ -134,17 +158,17 @@ describe('Subscriptions Page 17 intake contract', () => {
   });
 
   it('closes the desktop shell with donor rails, shared KPIs, stats, context, and honest states', () => {
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const page = readSubscriptionPageEstate();
     const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
     const panel = read('src/components/context/SubscriptionsPanel.jsx');
 
-    expect(page).toContain("if (isAdmin()) return 'admin';");
-    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
-    expect(page).toContain("if (isProvider()) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain("if (admin) return 'admin';");
+    expect(page).toContain("if (orgAdmin) return 'org_admin';");
+    expect(page).toContain("if (provider) return driver ? 'driver' : 'provider';");
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
     expect(page).not.toContain('getConsoleModuleRailItems({');
     expect(page).toContain('denied: subscriptionDenied');
-    expect(page).toContain('denied={subscriptionDenied}');
+    expect(page).toContain('denied={data.subscriptionDenied}');
 
     expect(desktop.match(/<KpiStrip/g)).toHaveLength(1);
     expect(desktop).toContain("pinnedIds={['pending', 'new']}");
@@ -186,7 +210,7 @@ describe('Subscriptions Page 17 intake contract', () => {
 
   it('keeps Subscriptions in intake only and out of the default visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
+    const app = readAppRouteEstate();
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
@@ -202,7 +226,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(gate).toContain('remains command/backend intake only and is not admitted under the Today/Requests canon.');
     expect(gate).toContain('Promotion rule: the first Subscriptions visual pass must close this blocker map before adding Page 17 to the default hardgate.');
 
-    expect(app).toContain('<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />');
+    expect(app).toContain("subscriptions: lazyNamedPage(() => import('../components/pages/SubscriptionManagementPage'), 'SubscriptionManagementPage')");
+    expect(app).toContain("{ id: 'subscriptions', path: '/subscriptions', minRole: 'admin' }");
     expect(routes).toContain("'/subscriptions': {");
     expect(routes).toContain("minRole: 'admin'");
     expect(routes).toContain("resource: 'subscriptions'");
@@ -241,8 +266,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     const oldService = gitShowHead('frontend/src/services/subscriptionService.js');
     const oldDuplicateService = gitShowHead('frontend/src/services/subscribersService.js');
 
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
-    const mobile = read('src/components/mobile/MobileSubscriptions.jsx');
+    const page = readSubscriptionPageEstate();
+    const mobile = readMobileSubscriptionEstate();
     const panel = read('src/components/context/SubscriptionsPanel.jsx');
     const modal = read('src/components/modals/SubscriptionModal.jsx');
     const list = read('src/components/views/SubscriptionListView.jsx');
@@ -304,16 +329,16 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(page).toContain('setSubscriptionCommandNotice(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);');
     expect(mobile).toContain('id="subscriptions-action-feedback"');
-    expect(page).toContain('actionNotice={subscriptionCommandNotice}');
+    expect(page).toContain('actionNotice={state.subscriptionCommandNotice}');
     expect(page).toContain('aria-label="Subscriber stats"');
     expect(read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx')).toContain('<Checkbox');
     expect(page).toContain("data-state={analyticsModalOpen ? 'open' : 'idle'}");
     expect(page).toContain('onEdit={null}');
     expect(page).toContain('onDelete={null}');
-    expect(page).toContain('canManage={canManageSubscribers}');
-    expect(page).toContain("case 'pending': return 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200';");
-    expect(page).toContain("case 'unsubscribed': return 'bg-muted/60 text-muted-foreground';");
-    expect(page).toContain("case 'bounced': return 'bg-destructive/20 text-destructive';");
+    expect(page).toContain('canManage={role.canManageSubscribers}');
+    expect(page).toContain("return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';");
+    expect(page).toContain("return 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]';");
+    expect(page).toContain("return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';");
 
     // Baseline (f31f29f) billboard inventory: the old dashboard billboard + glance-tile rail
     // existed before the canon LIST rebuild. Preserved as EVIDENCE (oldMobile only), not canon.
@@ -359,14 +384,14 @@ describe('Subscriptions Page 17 intake contract', () => {
     // The canonical list now carries only grounded status/type evidence. The status KPI really
     // scopes the rows and the adaptive grouping falls back to coarse recency when one status
     // dominates; there is no billboard-era loaded/shown metric furniture left to preserve.
-    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
+    expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain("import { resolveVital } from '../../constants/vitalTracks';");
-    expect(mobile).toContain("import { resolveAdaptiveGroups } from '../../utils/adaptiveGrouping';");
+    expect(mobile).toContain('resolveAdaptiveGroups');
     expect(mobile).not.toContain("import { groupByMonth } from '../../utils/groupByMonth';");
-    expect(mobile).toContain('resolveAdaptiveGroups(displaySubscribers');
+    expect(mobile).toContain('buildMobileSubscriptionGroups(displaySubscribers)');
     expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
     expect(mobile).toContain("const kpiEmptyCause = activeKpi !== 'all'");
-    expect(mobile).toContain("{ type: 'coarse-recency', key: 'subscribed'");
+    expect(mobile).toContain("type: 'coarse-recency'");
     expect(mobile).toContain("const vital = resolveVital('subscription', status);");
     expect(mobile).toContain('statusPill={vital?.pill}');
     expect(mobile).toContain("meta={`${planLabel(subscriber.type)} plan`}");
@@ -374,10 +399,10 @@ describe('Subscriptions Page 17 intake contract', () => {
 
     // Tap opens one detail sheet; no inline row expansion or live write command survives.
     expect(mobile).toContain('const [activeSubscriber, setActiveSubscriber] = useState(null);');
-    expect(mobile).toContain('onOpen={setActiveSubscriber}');
+    expect(mobile).toContain('onOpen={controller.setActiveSubscriber}');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen={!!activeSubscriber}');
-    expect(mobile).toContain('onClose={() => setActiveSubscriber(null)}');
+    expect(mobile).toContain('onClose={() => controller.setActiveSubscriber(null)}');
     expect(mobile).toContain("vital={vital ? { ...vital, label: 'Subscription status' } : null}");
     expect(mobile).toContain('islands={[');
     expect(mobile).toContain("value: planLabel(activeSubscriber.type)");
@@ -393,7 +418,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).not.toContain('label={formatLabel(sub.status)}');
 
     // Read-only lock (S7): a single Details CTA on the sheet, no live edit/delete handler.
-    expect(mobile).toContain("primary={{ label: 'Details', icon: Eye, onClick: () => { setActiveSubscriber(null); onView?.(activeSubscriber); } }}");
+    expect(mobile).toContain("label: 'Details'");
+    expect(mobile).toContain('onView?.(activeSubscriber)');
     expect(mobile).not.toContain('onClick={() => onEdit(sub)}');
     expect(mobile).not.toContain('onClick={() => onDelete(sub)}');
 
@@ -537,7 +563,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     const evidence = read('docs/implementation/console-service-alignment/passes/PASS_7_SUBSCRIPTION_MANAGEMENT_EVIDENCE_AUDIT_2026-05-24.md');
     const checklist = read('docs/implementation/console-service-alignment/checklists/PASS_7_CARE_CONTENT_SUBSCRIBERS_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md');
     const stage5 = read('docs/implementation/console-service-alignment/services/STAGE_5_FULL_SERVICE_COVERAGE_AUDIT_2026-05-24.md');
-    const page = read('src/components/pages/SubscriptionManagementPage.jsx');
+    const page = readSubscriptionPageEstate();
     const panel = read('src/components/context/SubscriptionsPanel.jsx');
     const oldPanel = gitShowHead('frontend/src/components/context/SubscriptionsPanel.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
@@ -547,7 +573,7 @@ describe('Subscriptions Page 17 intake contract', () => {
       read('src/config/mobileRouteActions.js'),
     ].join('\n');
     const routeActionOwnership = read('src/config/routeActionOwnership.js');
-    const analytics = read('src/components/pages/Analytics.jsx');
+    const analytics = readAnalyticsEstate();
     const hook = read('src/hooks/useSubscription.js');
     const pageDataAccess = read('src/config/pageDataAccess.js');
 
@@ -644,7 +670,8 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(bottomBar).toContain("case 'emailActions': return <SubscriptionModal key={key} {...props} mode=\"emailActions\" />;");
     expect(analytics).not.toContain('useSubscription');
     expect(analytics).not.toContain('fetchSubscriptionAnalytics');
-    expect(analytics).toContain("import { DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, getAnalyticsIntakePage } from '../../services/analyticsService';");
+    expect(analytics).toContain('DEFAULT_ANALYTICS_SUBSCRIPTION_STATS');
+    expect(analytics).toContain('getAnalyticsIntakePage');
     expect(hook).toContain('export const useSubscription = (options = {}) => {');
     expect(hook).toContain('fetchSubscribers({ quiet: true });');
     expect(hook).toContain('if (!autoFetch) {');
