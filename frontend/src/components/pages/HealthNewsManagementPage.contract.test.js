@@ -23,7 +23,10 @@ describe('HealthNewsManagementPage intake audit contract', () => {
   const modalSource = () => fs.readFileSync('src/components/modals/HealthNewsModal.jsx', 'utf8');
   const filterSheetSource = () => fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/healthNewsService.js', 'utf8');
+  const serviceSource = () => [
+    fs.readFileSync('src/services/healthNewsService.js', 'utf8'),
+    ...readOwnedModules('src/services/health-news'),
+  ].join('\n');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
