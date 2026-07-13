@@ -33,7 +33,10 @@ describe('WalletManagementPage Payments contract', () => {
     readTree('src/components/mobile/wallet'),
   ].join('\n');
   const analyticsModalSource = () => fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
-  const serviceSource = () => fs.readFileSync('src/services/walletService.js', 'utf8');
+  const serviceSource = () => [
+    fs.readFileSync('src/services/walletService.js', 'utf8'),
+    readTree('src/services/wallet'),
+  ].join('\n');
   const pageDataSource = readPageDataImplementation;
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const walletPanelSource = () => fs.readFileSync('src/components/context/WalletPanel.jsx', 'utf8');
