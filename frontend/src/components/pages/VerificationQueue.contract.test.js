@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
+import { readIslandNavigationImplementation } from '../../test/sourceEstates';
 import { canAccessContextPanel } from '../navigation/context-panel/contextPanelAccess';
 
 // Approvals DESKTOP contract. The mobile surface (MobileVerification.jsx) has its
@@ -27,7 +28,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
   const modalSource = () => fs.readFileSync('src/components/modals/VerificationModal.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/context/VerificationPanel.jsx', 'utf8');
   const colorSource = () => fs.readFileSync('src/constants/verificationStatus.js', 'utf8');
-  const islandSource = () => fs.readFileSync('src/components/common/IslandNavigation.jsx', 'utf8');
+  const islandSource = () => readIslandNavigationImplementation();
   const checkboxSource = () => fs.readFileSync('src/components/ui/checkbox.jsx', 'utf8');
   const providerServiceSource = () => fs.readFileSync('src/services/verificationService.js', 'utf8');
   const facilityServiceSource = () => fs.readFileSync('src/services/orgVerificationService.js', 'utf8');

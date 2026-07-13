@@ -2,13 +2,14 @@ import fs from 'fs';
 import { getMobileNavigationItems, MOBILE_NAV_CHROME } from '../../config/mobileNavigation';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
+import { readIslandNavigationImplementation } from '../../test/sourceEstates';
 
 describe('Navigation shell contract', () => {
   const appSource = () => [
     fs.readFileSync('src/App.js', 'utf8'),
     fs.readFileSync('src/app/AppShell.jsx', 'utf8'),
   ].join('\n');
-  const islandSource = () => fs.readFileSync('src/components/common/IslandNavigation.jsx', 'utf8');
+  const islandSource = () => readIslandNavigationImplementation();
   const railSource = () => fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
   const mobileMenuSource = () => fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
   const bottomBarSource = () => [
@@ -96,7 +97,7 @@ describe('Navigation shell contract', () => {
   it('keeps sidebar layout controls accessible without private dialog chrome', () => {
     const island = islandSource();
 
-    expect(island).toContain("import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';");
+    expect(island).toContain("import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../ui/dialog';");
     expect(island).toContain('aria-haspopup="dialog"');
     expect(island).toContain('aria-expanded={configOpen}');
     expect(island).toContain('style={{ borderWidth: 0 }}');

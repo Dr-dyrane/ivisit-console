@@ -53,3 +53,8 @@ export const readAnalyticsServiceImplementation = () => readSourceEstate({
   files: ['src/services/analyticsService.js'],
   directories: ['src/services/analytics'],
 });
+
+export const readIslandNavigationImplementation = () => readSourceEstate({
+  files: ['src/components/common/IslandNavigation.jsx'],
+  directories: ['src/components/common/island-navigation'],
+});
