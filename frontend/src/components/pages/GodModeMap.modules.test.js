@@ -13,6 +13,12 @@ describe('GodModeMap module ownership', () => {
   const googleMarkerLayers = read('src/components/map/MapRenderers/google-maps/GoogleMapMarkerLayers.jsx');
   const googleOverlayMarker = read('src/components/map/MapRenderers/google-maps/GoogleMapsOverlayMarker.jsx');
   const googlePresentation = read('src/components/map/MapRenderers/google-maps/presentation.js');
+  const mobileMap = read('src/components/mobile/MobileMap.jsx');
+  const mobileMapCanvas = read('src/components/mobile/mobile-map/MobileMapCanvas.jsx');
+  const mobileMapChrome = read('src/components/mobile/mobile-map/MobileMapChrome.jsx');
+  const mobileMapDetails = read('src/components/mobile/mobile-map/MobileMapDetailSheet.jsx');
+  const mobileMapController = read('src/components/mobile/mobile-map/useMobileMapController.js');
+  const mobileMapPresentation = read('src/components/mobile/mobile-map/mobileMapPresentation.js');
 
   it('keeps the route facade and map modules within focused size limits', () => {
     expect(facade.split(/\r?\n/).length).toBeLessThanOrEqual(140);
@@ -24,6 +30,12 @@ describe('GodModeMap module ownership', () => {
     expect(googleMarkerLayers.split(/\r?\n/).length).toBeLessThanOrEqual(240);
     expect(googleOverlayMarker.split(/\r?\n/).length).toBeLessThanOrEqual(140);
     expect(googlePresentation.split(/\r?\n/).length).toBeLessThanOrEqual(180);
+    expect(mobileMap.split(/\r?\n/).length).toBeLessThanOrEqual(120);
+    expect(mobileMapCanvas.split(/\r?\n/).length).toBeLessThanOrEqual(160);
+    expect(mobileMapChrome.split(/\r?\n/).length).toBeLessThanOrEqual(180);
+    expect(mobileMapDetails.split(/\r?\n/).length).toBeLessThanOrEqual(240);
+    expect(mobileMapController.split(/\r?\n/).length).toBeLessThanOrEqual(160);
+    expect(mobileMapPresentation.split(/\r?\n/).length).toBeLessThanOrEqual(80);
   });
 
   it('keeps shell composition thin while controller and desktop ownership stay separate', () => {
@@ -50,6 +62,20 @@ describe('GodModeMap module ownership', () => {
     expect(googleOverlayMarker).toContain('class DomOverlay extends window.google.maps.OverlayView');
     expect(googlePresentation).toContain('export const getRouteStrokeOptions');
     expect(googlePresentation).toContain('export const markerLabel');
+  });
+
+  it('keeps mobile map canvas, chrome, commands, and details separately owned', () => {
+    expect(mobileMap).toContain("from './mobile-map/MobileMapCanvas'");
+    expect(mobileMap).toContain("from './mobile-map/MobileMapChrome'");
+    expect(mobileMap).toContain("from './mobile-map/MobileMapDetailSheet'");
+    expect(mobileMap).toContain("from './mobile-map/useMobileMapController'");
+    expect(mobileMapCanvas).toContain('<GoogleMapsRenderer');
+    expect(mobileMapCanvas).toContain('<LeafletMapRenderer');
+    expect(mobileMapChrome).toContain('<MapViewportSummary');
+    expect(mobileMapDetails).toContain('emergencyActionState?.canDispatch');
+    expect(mobileMapController).toContain('dispatchEmergency(');
+    expect(mobileMapController).toContain('completeEmergency(');
+    expect(mobileMapPresentation).toContain('export const getMobileMapKpis');
   });
 
   it('keeps the existing route import stable', () => {

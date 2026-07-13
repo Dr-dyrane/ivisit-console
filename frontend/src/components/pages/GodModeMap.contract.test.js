@@ -15,7 +15,13 @@ describe('GodModeMap Live Map contract', () => {
       .sort()
       .map((name) => fs.readFileSync(`src/components/map/god-mode/${name}`, 'utf8')),
   ].join('\n');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileMap.jsx', 'utf8');
+  const mobileSource = () => [
+    fs.readFileSync('src/components/mobile/MobileMap.jsx', 'utf8'),
+    ...fs.readdirSync('src/components/mobile/mobile-map')
+      .filter((name) => /\.(js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .sort()
+      .map((name) => fs.readFileSync(`src/components/mobile/mobile-map/${name}`, 'utf8')),
+  ].join('\n');
   const markerSource = () => fs.readFileSync('src/components/map/MarkerDetailPanel.jsx', 'utf8');
   const layerControlsSource = () => fs.readFileSync('src/components/map/MapLayerControls.jsx', 'utf8');
   const fallbackSource = () => fs.readFileSync('src/components/map/MapFallback.jsx', 'utf8');
