@@ -56,7 +56,7 @@ describe('Console design system contract', () => {
     // write-surface is the provider modal; the facility inline write (rail) carries the
     // submit spinner via the page (animate-spin), which the interaction gate accepts.
     { name: 'verificationQueue', page: 'src/components/pages/VerificationQueue.jsx', ownedDir: 'src/components/pages/verification', modal: 'src/components/modals/VerificationModal.jsx', exclusions: ['arrival-toast'] },
-    { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', ownedDir: 'src/components/pages/doctors', modal: 'src/components/modals/DoctorModal.jsx' },
+    { name: 'doctors', page: 'src/components/pages/DoctorsPage.jsx', ownedDir: 'src/components/pages/doctors', modal: 'src/components/modals/DoctorModal.jsx', modalOwnedDir: 'src/components/modals/doctor' },
     { name: 'users', page: 'src/components/pages/UsersPage.jsx', ownedDir: 'src/components/pages/users', modal: 'src/components/modals/UserModal.jsx' },
     // Support: single-shared-list status-axis page (All/Open/Active/Resolved). The paired
     // write-surface is SupportTicketModal (create/edit); single+bulk delete and provider

@@ -25,7 +25,13 @@ describe('DoctorsPage Staff contract', () => {
   );
   const listSource = () => fs.readFileSync('src/components/views/DoctorListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/DoctorTableView.jsx', 'utf8');
-  const modalSource = () => fs.readFileSync('src/components/modals/DoctorModal.jsx', 'utf8');
+  const modalSource = () => readSources(
+    'src/components/modals/DoctorModal.jsx',
+    ...fs.readdirSync('src/components/modals/doctor')
+      .filter((file) => /\.(js|jsx)$/.test(file) && !file.includes('.test.'))
+      .sort()
+      .map((file) => `src/components/modals/doctor/${file}`)
+  );
   const panelSource = () => fs.readFileSync('src/components/context/DoctorsPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/doctorsService.js', 'utf8');
@@ -333,10 +339,10 @@ describe('DoctorsPage Staff contract', () => {
     const service = serviceSource();
     const hook = hookSource();
 
-    expect(modal).toContain("from '../../services/doctorsService';");
+    expect(modal).toContain("from '../../../services/doctorsService';");
     expect(modal).toContain('filterDoctorFacilityOptions');
     expect(modal).toContain('assertDoctorWriteScope(payload, actorScope');
-    expect(modal).toContain("import { getHospitals } from '../../services/hospitalsService';");
+    expect(modal).toContain("import { getHospitals } from '../../../services/hospitalsService';");
     expect(modal).toContain('if (!isOpen) return;');
     expect(modal).toContain('getHospitals({ quiet: true, limit: 500 })');
     expect(modal).toContain('toast.error(\'Select a facility first.\')');

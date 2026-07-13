@@ -1,6 +1,16 @@
 import fs from 'fs';
 import { buildStaffPayload, normalizeForm } from './DoctorModal';
 
+const doctorModalSource = () => [
+  'src/components/modals/DoctorModal.jsx',
+  ...fs.readdirSync('src/components/modals/doctor')
+    .filter((file) => /\.(js|jsx)$/.test(file) && !file.includes('.test.'))
+    .sort()
+    .map((file) => `src/components/modals/doctor/${file}`),
+]
+  .map((path) => fs.readFileSync(path, 'utf8'))
+  .join('\n');
+
 jest.mock('@/lib/utils', () => ({
   cn: (...classes) => classes.filter(Boolean).join(' '),
 }), { virtual: true });
@@ -54,7 +64,7 @@ describe('DoctorModal lifecycle and profile authority', () => {
   });
 
   it('keeps linked identity and lifecycle controls read-only in the mounted modal', () => {
-    const source = fs.readFileSync('src/components/modals/DoctorModal.jsx', 'utf8');
+    const source = doctorModalSource();
 
     expect(source).toContain('const isProfileLinked = Boolean(doctor?.profile_id);');
     expect(source).toContain('Synced from the linked account');
@@ -63,7 +73,7 @@ describe('DoctorModal lifecycle and profile authority', () => {
   });
 
   it('keeps facility choices and payloads behind canonical actor scope', () => {
-    const source = fs.readFileSync('src/components/modals/DoctorModal.jsx', 'utf8');
+    const source = doctorModalSource();
 
     expect(source).toContain('filterDoctorFacilityOptions(visibleFacilities, actorScope)');
     expect(source).toContain('assertDoctorWriteScope(payload, actorScope');
