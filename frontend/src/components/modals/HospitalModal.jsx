@@ -1,134 +1,47 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Hospital, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { Hospital, MapPin, Phone, Bed, Ambulance, Clock, Activity, User } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { CopyChip } from '../console/primitives';
-import { AnimatePresence, motion } from 'framer-motion';
+import { HospitalCapacitySection } from './hospital/HospitalCapacitySection';
+import {
+  HospitalFacilityDetailsSection,
+  HospitalLocationSection,
+  HospitalSystemSection,
+} from './hospital/HospitalDetailsSections';
+import {
+  buildHospitalSavePayload,
+  buildInitialHospitalForm,
+  HOSPITAL_FORM_ID,
+  toIntOrZero,
+} from './hospital/hospitalModalModel';
+import { useHospitalBedData } from './hospital/useHospitalBedData';
 
-import { Loader2, RefreshCw } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { bedManagementService } from '../../services/bedManagementService';
+export { buildHospitalSavePayload } from './hospital/hospitalModalModel';
 
-const DEFAULT_HOSPITAL_FORM = {
-  name: '',
-  address: '',
-  phone: '',
-  rating: 4.5,
-  type: 'premium',
-  image: '',
-  specialties: [],
-  service_types: [],
-  features: [],
-  emergency_level: 'Level 1',
-  available_beds: 0,
-  icu_beds_available: 0,
-  total_beds: 0,
-  ambulances_count: 0,
-  emergency_wait_time_minutes: 0,
-  wait_time: '',
-  price_range: '',
-  latitude: null,
-  longitude: null,
-  place_id: null,
-  last_availability_update: null,
-  verified: false,
-  verification_status: 'pending',
-  status: 'available'
-};
-
-const toTextArray = (value) => {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => String(item || '').trim()).filter(Boolean);
-};
-
-const toNumberOrNull = (value) => {
-  if (value === null || value === undefined || value === '') return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toIntOrZero = (value) => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.max(0, Math.round(parsed));
-};
-
-const formatDateTime = (value) => {
-  if (!value) return 'Unknown';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString();
-};
-
-const buildInitialFormData = (hospital) => {
-  if (!hospital) return { ...DEFAULT_HOSPITAL_FORM };
-  return {
-    ...DEFAULT_HOSPITAL_FORM,
-    ...hospital,
-    specialties: toTextArray(hospital.specialties),
-    service_types: toTextArray(hospital.service_types),
-    features: toTextArray(hospital.features),
-    rating: Number.isFinite(Number(hospital.rating)) ? Number(hospital.rating) : DEFAULT_HOSPITAL_FORM.rating,
-    available_beds: toIntOrZero(hospital.available_beds),
-    icu_beds_available: toIntOrZero(hospital.icu_beds_available),
-    total_beds: toIntOrZero(hospital.total_beds),
-    ambulances_count: toIntOrZero(hospital.ambulances_count),
-    emergency_wait_time_minutes: toIntOrZero(hospital.emergency_wait_time_minutes),
-    latitude: toNumberOrNull(hospital.latitude),
-    longitude: toNumberOrNull(hospital.longitude),
-    place_id: hospital.place_id || null,
-    last_availability_update: hospital.last_availability_update || null,
-  };
-};
-
-export const buildHospitalSavePayload = (formData, canManageVerification) => {
-  const payload = { ...formData };
-  if (!canManageVerification) {
-    delete payload.verified;
-    delete payload.verification_status;
-  }
-  return payload;
-};
-
-// Donor field token (EmergencyRequestModal requestFieldClassName) minus the
-// baked h-11 -- this modal sizes per-field -- plus the disabled modifiers the
-// view mode and the read-only ER-wait field rely on.
-const modalFieldClassName = 'rounded-inner bg-background/60 transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60';
-const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl backdrop-blur-xl';
-
-const formId = 'hospital-modal-form';
-
-// Create mode was DELETED (user close-out 2026-07-09): the live DB enforces
-// fail-closed create -- hospitals has zero INSERT policies and no create RPC
-// (DATA_SYNC 12c), so the interactive-but-unreachable create + Google Places
-// autofill path was a booby-trap held closed only by the page. Git history
-// keeps the recipe if a backend receiver is ever authored in ivisit-app.
+// Create mode stays unavailable until the backend exposes a proved insert
+// receiver. This modal therefore owns view and edit behavior only.
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
   const { isAdmin } = useAuth();
   const canManageVerification = Boolean(isAdmin?.());
   const hospitalId = hospital?.id;
-
-  const [formData, setFormData] = useState(() => buildInitialFormData(hospital));
-
-  const [activeReservations, setActiveReservations] = useState([]);
-  const [bedUtilization, setBedUtilization] = useState(null);
-  const [loadingReservations, setLoadingReservations] = useState(false);
-  const [reservationError, setReservationError] = useState(null);
-  const bedLoadSequenceRef = useRef(0);
-
+  const [formData, setFormData] = useState(() => buildInitialHospitalForm(hospital));
   const [loading, setLoading] = useState(false);
   const [showImage, setShowImage] = useState(false);
+  const {
+    activeReservations,
+    bedUtilization,
+    loadBedData,
+    loadingReservations,
+    reservationError,
+  } = useHospitalBedData({ hospitalId, isOpen, isView });
 
   useEffect(() => {
-    setFormData(buildInitialFormData(hospital));
+    setFormData(buildInitialHospitalForm(hospital));
   }, [hospital, mode, isOpen]);
 
   const totalBeds = toIntOrZero(formData.total_beds);
@@ -140,52 +53,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     ? Math.min(Math.round(((totalBeds - availableBeds) / totalBeds) * 100), 100)
     : 0;
 
-  const loadBedData = useCallback(async () => {
-    if (!hospitalId) return;
-    const requestId = ++bedLoadSequenceRef.current;
-
-    try {
-      setLoadingReservations(true);
-      setReservationError(null);
-      const [reservations, utilization] = await Promise.all([
-        bedManagementService.getActiveReservations(hospitalId),
-        bedManagementService.getBedUtilization(hospitalId),
-      ]);
-      if (requestId !== bedLoadSequenceRef.current) return;
-
-      setActiveReservations(reservations);
-      setBedUtilization(utilization);
-    } catch (error) {
-      if (requestId !== bedLoadSequenceRef.current) return;
-      console.error('Error loading bed data:', error);
-      setReservationError('Reservation data is unavailable. Try again.');
-    } finally {
-      if (requestId === bedLoadSequenceRef.current) setLoadingReservations(false);
-    }
-  }, [hospitalId]);
-
-  // Reservation truth stays separate from an empty result. Reset when the record changes,
-  // preserve the last settled rows on a refresh failure, and ignore stale async responses.
-  useEffect(() => {
-    if (!isOpen || !hospitalId || !isView) {
-      bedLoadSequenceRef.current += 1;
-      return undefined;
-    }
-
-    setActiveReservations([]);
-    setBedUtilization(null);
-    setReservationError(null);
-    loadBedData();
-
-    const unsubscribe = bedManagementService.subscribeToReservations(hospitalId, loadBedData);
-    return () => {
-      bedLoadSequenceRef.current += 1;
-      if (unsubscribe) unsubscribe();
-    };
-  }, [hospitalId, isOpen, isView, loadBedData]);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
     const numericFields = new Set([
       'rating',
       'available_beds',
@@ -194,21 +63,20 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       'ambulances_count',
       'emergency_wait_time_minutes',
       'latitude',
-      'longitude'
+      'longitude',
     ]);
-    setFormData(prev => ({
-      ...prev,
-      [name]:
-        type === 'checkbox'
-          ? checked
-          : numericFields.has(name)
-            ? (value === '' ? 0 : Number(value))
-            : value
+    setFormData((current) => ({
+      ...current,
+      [name]: type === 'checkbox'
+        ? checked
+        : numericFields.has(name)
+          ? (value === '' ? 0 : Number(value))
+          : value,
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!onSave) {
       console.error('HospitalModal: onSave prop is required but was not provided');
       toast.error('Configuration error: cannot save. Please reload the page.');
@@ -218,10 +86,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
     try {
       await onSave(buildHospitalSavePayload(formData, canManageVerification));
-      // Single toast owner is the page (HospitalsPage.handleSave toasts
-      // success and error itself, then re-throws) -- toasting here duplicated
-      // every notification (VisitModal V-16 rule). The modal only closes on
-      // success and stays open on failure so edits are not lost.
       onClose();
     } catch (error) {
       console.error('Error saving hospital:', error);
@@ -238,17 +102,19 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       subtitle={hospital?.display_id ? (
         <span className="inline-flex min-w-0 items-center gap-1">
           {formData.type && <span className="truncate">{formData.type}</span>}
-          {formData.type && <span aria-hidden="true">·</span>}
-          <span className="truncate font-mono text-[11px] font-medium tracking-wide" title={hospital.display_id}>{hospital.display_id}</span>
+          {formData.type && <span aria-hidden="true">&middot;</span>}
+          <span className="truncate font-mono text-[11px] font-medium tracking-wide" title={hospital.display_id}>
+            {hospital.display_id}
+          </span>
           <CopyChip value={hospital.display_id} label="Copy record ID" />
         </span>
       ) : formData.type}
-      icon={<Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />}
-      badge={
-        <Badge className={`rounded-pill font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+      icon={<Hospital className="h-5 w-5 text-blue-500 md:h-6 md:w-6" />}
+      badge={(
+        <Badge className={`rounded-pill px-3 py-0.5 text-xs font-semibold uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
           {formData.status || 'AVAILABLE'}
         </Badge>
-      }
+      )}
       size="lg"
       managed
       footer={(
@@ -265,7 +131,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
           {!isView && (
             <Button
               type="submit"
-              form={formId}
+              form={HOSPITAL_FORM_ID}
               disabled={loading}
               className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground active:scale-[0.96] hover:bg-primary/90"
             >
@@ -276,570 +142,43 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
         </div>
       )}
     >
-      <div className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar flex-1 min-h-0">
-        <form id={formId} onSubmit={handleSubmit} className="space-y-6">
-
-                {/* General Information */}
-                <GlassCard icon={<Activity />} title="Facility Details">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Name</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.name} icon={<Hospital className="h-4 w-4" />} />
-                      ) : (
-                        <Input
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          className={`${modalFieldClassName} h-11 md:h-12 font-semibold text-base md:text-lg`}
-                          placeholder="General Hospital..."
-                        />
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="type" className="text-xs font-semibold text-muted-foreground uppercase px-1">Tier</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.type} />
-                      ) : (
-                        <Select
-                          value={formData.type}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
-                        >
-                          <SelectTrigger id="type" className={`${modalFieldClassName} h-12 font-normal`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className={modalSelectContentClassName}>
-                            <SelectItem value="premium">Premium</SelectItem>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="basic">Basic</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="emergency_level" className="text-xs font-semibold text-muted-foreground uppercase px-1">Trauma Level</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.emergency_level} />
-                      ) : (
-                        <Input
-                          id="emergency_level"
-                          name="emergency_level"
-                          value={formData.emergency_level}
-                          onChange={handleChange}
-                          className={`${modalFieldClassName} h-12 font-normal`}
-                          placeholder="Level 1 Trauma..."
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price_range" className="text-xs font-semibold text-muted-foreground uppercase px-1">Price Range</Label>
-                    {isView ? (
-                      <ReadOnlyField value={formData.price_range} />
-                    ) : (
-                      <Input
-                        id="price_range"
-                        name="price_range"
-                        value={formData.price_range}
-                        onChange={handleChange}
-                        className={`${modalFieldClassName} font-normal`}
-                        placeholder="e.g. $150"
-                      />
-                    )}
-                  </div>
-
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="specialties" className="text-xs font-semibold text-muted-foreground uppercase px-1">{isView ? 'Specialties' : 'Specialties (comma separated)'}</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.specialties} multiline />
-                      ) : (
-                        <Input
-                          id="specialties"
-                          name="specialties"
-                          value={Array.isArray(formData.specialties) ? formData.specialties.join(', ') : formData.specialties || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()) }))}
-                          className={`${modalFieldClassName} font-normal`}
-                          placeholder="General Care, Surgery..."
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="features" className="text-xs font-semibold text-muted-foreground uppercase px-1">{isView ? 'Features' : 'Features (comma separated)'}</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.features} multiline />
-                      ) : (
-                        <Input
-                          id="features"
-                          name="features"
-                          value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value.split(',').map(s => s.trim()) }))}
-                          className={`${modalFieldClassName} font-normal`}
-                          placeholder="Lab, Helipad..."
-                        />
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Capacity & Stats */}
-                <GlassCard icon={<Activity />} title="Live Capacity">
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="total_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
-                      <div className="relative">
-                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-                        {isView ? (
-                          <ReadOnlyStat value={formData.total_beds || 0} />
-                        ) : (
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            id="total_beds"
-                            name="total_beds"
-                            value={formData.total_beds || 0}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="available_beds" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Available</Label>
-                      <div className="relative">
-                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                        {isView ? (
-                          <ReadOnlyStat value={formData.available_beds} />
-                        ) : (
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            id="available_beds"
-                            name="available_beds"
-                            value={formData.available_beds}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="icu_beds_available" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ICU Beds</Label>
-                      <div className="relative">
-                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
-                        {isView ? (
-                          <ReadOnlyStat value={formData.icu_beds_available || 0} />
-                        ) : (
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            id="icu_beds_available"
-                            name="icu_beds_available"
-                            value={formData.icu_beds_available || 0}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Reserved</Label>
-                      <div className="relative">
-                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
-                        {isView ? (
-                          <ReadOnlyStat value={reservedBedsDisplay} />
-                        ) : (
-                          <Input
-                            type="number"
-                            value={reservedBedsDisplay}
-                            disabled
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="ambulances_count" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Ambulances</Label>
-                      <div className="relative">
-                        <Ambulance className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        {isView ? (
-                          <ReadOnlyStat value={formData.ambulances_count} />
-                        ) : (
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            id="ambulances_count"
-                            name="ambulances_count"
-                            value={formData.ambulances_count}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="emergency_wait_time_minutes" className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ER Wait (min)</Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-500" />
-                        {/* OPERATIONAL INSIGHT, read-only by decision (user 2026-07-09): ER wait
-                            derives from live operations, not hand-edits -- the update RPC's SET
-                            clause deliberately omits this column (metadata vs operational-
-                            capacity split). Editable before, the value was silently dropped
-                            server-side with an optimistic ghost-flicker
-                            (HOSPITALS_REVAMP_CONSTITUTION F3). */}
-                        {isView ? (
-                          <ReadOnlyStat value={formData.emergency_wait_time_minutes || 0} />
-                        ) : (
-                          <Input
-                            type="number"
-                            id="emergency_wait_time_minutes"
-                            name="emergency_wait_time_minutes"
-                            value={formData.emergency_wait_time_minutes || 0}
-                            disabled
-                            title="Operational insight -- updates from live activity, not editable here"
-                            className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 text-[11px] text-muted-foreground">
-                    Last availability update: {formatDateTime(formData.last_availability_update)}
-                  </div>
-                  
-                  {/* Bed Utilization Indicator */}
-                  {(formData.total_beds || 0) > 0 && (
-                    <div className="mt-4 p-3 bg-white/5 rounded-inner" aria-live="polite">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
-                        <span className="text-xs font-bold">
-                          {bedUtilizationPercent}%
-                        </span>
-                      </div>
-                        <div className="w-full bg-white/10 rounded-pill h-2">
-                        <div 
-                            className="h-2 rounded-pill bg-gradient-to-r from-green-500 via-orange-500 to-red-500"
-                          style={{ width: `${bedUtilizationPercent}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
-                        <span>{reservedBedsDisplay} occupied</span>
-                        <span>{availableBeds} available</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Active Bed Reservations - Only show in view mode */}
-                  {isView && (
-                    <div className="mt-4" aria-live="polite">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Bed className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-muted-foreground uppercase">Active Reservations</span>
-                        </div>
-                        <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200 text-xs">
-                          {reservationError && activeReservations.length === 0
-                            ? 'Unavailable'
-                            : `${activeReservations.length} active`}
-                        </Badge>
-                      </div>
-
-                      {reservationError && (
-                        <div className="mb-3 flex items-center justify-between gap-3 rounded-inner bg-destructive/10 p-3 text-destructive" role="alert">
-                          <span className="text-xs font-medium">
-                            {activeReservations.length > 0
-                              ? 'Reservations did not refresh. Showing the last loaded records.'
-                              : reservationError}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={loadBedData}
-                            disabled={loadingReservations}
-                            className="h-8 shrink-0 rounded-button px-3 text-xs"
-                          >
-                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loadingReservations ? 'animate-spin' : ''}`} />
-                            Retry
-                          </Button>
-                        </div>
-                      )}
-
-                      {loadingReservations ? (
-                        <div className="space-y-2">
-                          {[1, 2].map((i) => (
-                        <div key={i} className="h-16 bg-white/5 rounded-inner animate-pulse" />
-                          ))}
-                        </div>
-                      ) : activeReservations.length === 0 && !reservationError ? (
-                        <div className="text-center py-4 text-xs text-muted-foreground">
-                          No active bed reservations
-                        </div>
-                      ) : activeReservations.length > 0 ? (
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {activeReservations.map((reservation) => (
-                        <div key={reservation.id} className="p-3 bg-white/5 rounded-inner ">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <User className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-sm font-medium truncate">
-                                      {reservation.patient_name || 'Patient'}
-                                    </span>
-                                    <Badge className={`text-xs ${
-                                      reservation.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
-                                      reservation.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
-                                      'bg-green-500/20 text-green-500'
-                                    }`}>
-                                      {reservation.status_display}
-                                    </Badge>
-                                  </div>
-                                  
-                                  <div className="text-xs text-muted-foreground space-y-1">
-                                    {reservation.bed_category && (
-                                      <div>Bed: {reservation.bed_category}</div>
-                                    )}
-                                    {reservation.bed_number && (
-                                      <div>Room: {reservation.bed_number}</div>
-                                    )}
-                                    <div>Reserved: {new Date(reservation.reserved_at).toLocaleString()}</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="ml-2 shrink-0">
-                                  <span className="rounded-pill bg-white/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-                                    Manage in Requests
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </GlassCard>
-
-                {/* Location & Contact */}
-                <GlassCard icon={<MapPin />} title="Location & Contact">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase px-1">Address</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.address} icon={<MapPin className="h-4 w-4" />} multiline />
-                      ) : (
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                          <Textarea
-                            id="address"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} min-h-[80px] pl-10 pt-3 font-normal resize-none`}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase px-1">Phone</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.phone} icon={<Phone className="h-4 w-4" />} />
-                      ) : (
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            id="phone"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} h-12 pl-10 font-mono`}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase px-1">Operational Status</Label>
-                      {isView ? (
-                        <ReadOnlyField value={formData.status} />
-                      ) : (
-                        <Select
-                          value={formData.status}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                        >
-                          <SelectTrigger id="status" className={`${modalFieldClassName} h-12 font-normal`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className={modalSelectContentClassName}>
-                            <SelectItem value="available">Available</SelectItem>
-                            <SelectItem value="busy">Busy</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Additional Settings */}
-                <GlassCard icon={<Activity />} title="System & Verification">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {isView || !canManageVerification ? (
-                      <ReadOnlyField
-                        value={formData.verified ? 'Verified partner' : 'Not verified'}
-                        subtext={canManageVerification
-                          ? 'Trusted medical facility flag'
-                          : 'Verification is managed by platform administrators'}
-                      />
-                    ) : (
-                      <div className="flex items-center gap-3 p-4 bg-white/5 rounded-inner shadow-[0_12px_28px_rgb(0_0_0/0.05)]">
-                        <input
-                          type="checkbox"
-                          id="verified"
-                          name="verified"
-                          checked={formData.verified}
-                          onChange={handleChange}
-                          className="w-5 h-5 rounded-icon accent-primary"
-                        />
-                        <Label htmlFor="verified" className="text-sm font-medium cursor-pointer">
-                          Verified Partner
-                          <p className="text-[10px] text-muted-foreground font-normal">Mark as a trusted medical facility</p>
-                        </Label>
-                      </div>
-                    )}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="image" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Image</Label>
-                        {formData.image && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowImage(!showImage)}
-                            className="h-5 text-[10px] text-primary hover:text-primary/90 hover:bg-primary/10 px-2"
-                          >
-                            {showImage ? 'Hide Preview' : 'View Image'}
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Image Preview */}
-                      <AnimatePresence>
-                        {showImage && formData.image && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
-                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            className="rounded-icon overflow-hidden  relative bg-black/20"
-                          >
-                            <img
-                              src={formData.image}
-                              alt="Hospital Preview"
-                              className="w-full h-48 object-cover"
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                            {/* Places attribution compliance: the sync pipeline
-                                stores the provider's attribution string (often
-                                HTML) -- render it as plain text wherever the
-                                photo displays (SHELL_PARITY_AUDIT section 4). */}
-                            {hospital?.image_attribution_text && (
-                              <p className="absolute bottom-0 left-0 right-0 bg-black/55 px-2 py-1 text-[10px] leading-4 text-white/90">
-                                Photo: {String(hospital.image_attribution_text).replace(/<[^>]*>/g, '')}
-                              </p>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Inputs - Hidden in View Mode unless explicit */}
-                      {!isView ? (
-                        <div className="flex gap-2">
-                          <Input
-                            id="image"
-                            name="image"
-                            value={formData.image || ''}
-                            onChange={handleChange}
-                            className={`${modalFieldClassName} font-normal flex-1`}
-                            placeholder="https://..."
-                          />
-                        </div>
-                      ) : (
-                        // View Mode Fallback if image is missing or just to show url text optionally? 
-                        // User said "in read form we only display image".
-                        // If showImage is false, and we are in View mode, we show nothing? Or a placeholder?
-                        // Let's show the input ONLY if showImage is false, so they can at least see the URL if they want? 
-                        // Or stricly follow "only display image".
-                        // I will hide the input in View mode completely as requested
-                        !formData.image && <p className="text-sm text-muted-foreground italic px-1">No image available</p>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-2 pt-2 no-scrollbar md:p-8 md:pt-2">
+        <form id={HOSPITAL_FORM_ID} onSubmit={handleSubmit} className="space-y-6">
+          <HospitalFacilityDetailsSection
+            formData={formData}
+            handleChange={handleChange}
+            isView={isView}
+            setFormData={setFormData}
+          />
+          <HospitalCapacitySection
+            activeReservations={activeReservations}
+            availableBeds={availableBeds}
+            bedUtilizationPercent={bedUtilizationPercent}
+            formData={formData}
+            handleChange={handleChange}
+            isView={isView}
+            loadBedData={loadBedData}
+            loadingReservations={loadingReservations}
+            reservationError={reservationError}
+            reservedBedsDisplay={reservedBedsDisplay}
+          />
+          <HospitalLocationSection
+            formData={formData}
+            handleChange={handleChange}
+            isView={isView}
+            setFormData={setFormData}
+          />
+          <HospitalSystemSection
+            canManageVerification={canManageVerification}
+            formData={formData}
+            handleChange={handleChange}
+            hospital={hospital}
+            isView={isView}
+            setShowImage={setShowImage}
+            showImage={showImage}
+          />
         </form>
       </div>
     </ModalShell>
   );
 };
-
-/* Sub-components */
-
-// View-mode presentation (VisitModal ReadOnlyField recipe, radii swapped to
-// the canonical tokens -- this file is hardgate-gated; the donor's literal
-// radius utilities are flagged debt there). Read surfaces never render as
-// disabled inputs.
-const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
-  const displayValue = Array.isArray(value)
-    ? (value.filter(Boolean).join('\n') || 'Not set')
-    : String(value || 'Not set');
-
-  return (
-    <div className={`flex gap-3 rounded-inner bg-muted/30 px-3 py-3 text-sm ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
-      {icon && (
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/50 text-muted-foreground">
-          {icon}
-        </span>
-      )}
-      <span className="min-w-0 flex-1">
-        <span className={`block font-medium text-foreground ${multiline ? 'whitespace-pre-wrap leading-6' : 'truncate'}`}>
-          {displayValue}
-        </span>
-        {subtext && (
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-            {subtext}
-          </span>
-        )}
-      </span>
-    </div>
-  );
-};
-
-// Compact read-only cell for the Live Capacity grid: same footprint as the
-// numeric inputs it replaces in view mode, minus the editable affordance.
-const ReadOnlyStat = ({ value }) => (
-  <div className="flex h-10 items-center rounded-inner bg-muted/30 pl-9 pr-3 text-sm font-semibold tabular-nums text-foreground">
-    {value}
-  </div>
-);
-
-const GlassCard = ({ children, title, icon }) => (
-  // Donor two-tone surface (EmergencyRequestModal): single-tone bg-white/5 was
-  // near-invisible in light mode.
-  <div className="p-4 sm:p-6 rounded-card bg-foreground/[0.05] dark:bg-white/[0.07]">
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-white/5 rounded-icon">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
-      </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
-    </div>
-    {children}
-  </div>
-);

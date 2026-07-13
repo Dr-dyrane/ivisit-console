@@ -49,7 +49,7 @@ describe('Console design system contract', () => {
   const LIST_WORKSPACE_PAGES = [
     { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx' },
     { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx' },
-    { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx' },
+    { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx', modalOwnedDir: 'src/components/modals/hospital' },
     { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', exclusions: ['arrival-toast'] },
     // Approvals: a DUAL-QUEUE list page (providers|facilities) composed single-shared-list
     // -- ONE ActivitySheet whose rows swap by queueType, ONE Time header. The paired
@@ -524,7 +524,10 @@ describe('Console design system contract', () => {
     // Same shared registry as the mechanism gate -- one place to register a page.
     for (const entry of LIST_WORKSPACE_PAGES) {
       const src = readEstate(entry);
-      const modal = entry.modal ? read(entry.modal) : '';
+      const modal = [
+        entry.modal ? read(entry.modal) : '',
+        entry.modalOwnedDir ? readProductionTree(entry.modalOwnedDir) : '',
+      ].filter(Boolean).join('\n');
       const checks = {
         // A registered page MUST be a list surface -- no silent skip if it lost
         // its header (singleTimeSort would also catch 0, but assert intent).

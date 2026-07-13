@@ -1,5 +1,5 @@
-import fs from 'fs';
 import { buildHospitalSavePayload } from './HospitalModal';
+import { readSourceEstate } from '../../test/sourceEstates';
 
 jest.mock('@/lib/utils', () => ({
   cn: (...classes) => classes.filter(Boolean).join(' '),
@@ -28,7 +28,10 @@ describe('HospitalModal verification authority', () => {
   });
 
   it('keeps non-admin verification read-only in the mounted modal', () => {
-    const source = fs.readFileSync('src/components/modals/HospitalModal.jsx', 'utf8');
+    const source = readSourceEstate({
+      files: ['src/components/modals/HospitalModal.jsx'],
+      directories: ['src/components/modals/hospital'],
+    });
 
     expect(source).toContain('const canManageVerification = Boolean(isAdmin?.());');
     expect(source).toContain('buildHospitalSavePayload(formData, canManageVerification)');

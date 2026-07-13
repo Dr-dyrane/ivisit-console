@@ -4,6 +4,7 @@ import { execFileSync } from 'child_process';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+import { readSourceEstate } from '../../test/sourceEstates';
 
 describe('HospitalsPage admission audit contract', () => {
   const readSource = (path) => fs.readFileSync(path, 'utf8');
@@ -34,7 +35,10 @@ describe('HospitalsPage admission audit contract', () => {
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/HospitalListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/HospitalTableView.jsx', 'utf8');
-  const modalSource = () => fs.readFileSync('src/components/modals/HospitalModal.jsx', 'utf8');
+  const modalSource = () => readSourceEstate({
+    files: ['src/components/modals/HospitalModal.jsx'],
+    directories: ['src/components/modals/hospital'],
+  });
   const serviceSource = () => [
     'src/services/hospitalsService.js',
     'src/services/hospitals/constants.js',
@@ -730,14 +734,16 @@ describe('HospitalsPage admission audit contract', () => {
     expect(modal).toContain('image_attribution_text');
     // Toast single-owner rule (VisitModal V-16): the page toasts success and
     // error; the modal only closes on success and stays open on failure.
-    expect(modal).toContain('Single toast owner is the page');
+    expect(modal).toContain('await onSave(buildHospitalSavePayload(formData, canManageVerification));');
+    expect(modal).toContain("console.error('Error saving hospital:', error);");
+    expect(modal).not.toContain("toast.success('Hospital");
     // Sticky footer via ModalShell footer prop + cross-boundary submit.
-    expect(modal).toContain("const formId = 'hospital-modal-form';");
-    expect(modal).toContain('form={formId}');
+    expect(modal).toContain("export const HOSPITAL_FORM_ID = 'hospital-modal-form';");
+    expect(modal).toContain('form={HOSPITAL_FORM_ID}');
     expect(modal).toContain('Manage in Requests');
     expect(modal).toContain("import { AnimatePresence, motion } from 'framer-motion';");
-    expect(modal).toContain('const modalFieldClassName =');
-    expect(modal).toContain('const modalSelectContentClassName =');
+    expect(modal).toContain('export const HOSPITAL_FIELD_CLASS =');
+    expect(modal).toContain('export const HOSPITAL_SELECT_CONTENT_CLASS =');
     expect(modal).not.toContain('border-0');
     expect(modal).not.toContain('border-white/10');
     expect(modal).not.toContain('border-b');
