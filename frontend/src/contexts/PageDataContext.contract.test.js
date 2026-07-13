@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
+import { readSourceEstate } from '../test/sourceEstates';
 
 const readPageDataImplementation = () => [
   'src/contexts/PageDataContext.jsx',
@@ -14,6 +15,11 @@ const readPageDataImplementation = () => [
   'src/contexts/page-data/adapters/usersPageData.js',
   'src/contexts/page-data/adapters/walletPageData.js',
 ].map((path) => fs.readFileSync(path, 'utf8')).join('\n');
+
+const readEmergencyServiceImplementation = () => readSourceEstate({
+  files: ['src/services/emergencyService.js'],
+  directories: ['src/services/emergency'],
+});
 
 describe('PageDataContext role loading contract', () => {
   it('keeps viewers out of startup domain loads', () => {
@@ -110,7 +116,7 @@ describe('PageDataContext role loading contract', () => {
 
   it('keeps provider Today emergency failures as UI state instead of noisy console fallback', () => {
     const pageDataSource = readPageDataImplementation();
-    const emergencySource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+    const emergencySource = readEmergencyServiceImplementation();
 
     expect(pageDataSource).toContain("getEmergencyRequests({ quiet: true, limit: 10 })");
     expect(pageDataSource).toContain("getEmergencyRequestsPageStats({}, undefined, true)");
@@ -164,7 +170,10 @@ describe('PageDataContext role loading contract', () => {
 
   it('keeps Today startup service fan-out quiet below PageData', () => {
     const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
-    const profilesSource = fs.readFileSync('src/services/profilesService.js', 'utf8');
+    const profilesSource = readSourceEstate({
+      files: ['src/services/profilesService.js'],
+      directories: ['src/services/profiles'],
+    });
     const doctorsSource = fs.readFileSync('src/services/doctorsService.js', 'utf8');
 
     expect(analyticsSource).toContain('const quietOptions = { quiet };');
@@ -293,14 +302,16 @@ describe('PageDataContext role loading contract', () => {
   });
 
   it('does not start the legacy wallet summary before rendering canonical Today', () => {
-    const bentoSource = fs.readFileSync('src/components/pages/BentoHome.jsx', 'utf8');
-    const walletEffectStart = bentoSource.indexOf('// Fetch wallet stats');
-    const todayGuard = bentoSource.indexOf('if (roleHomeKind) return undefined;', walletEffectStart);
-    const walletRead = bentoSource.indexOf('getWalletSummary(profile', walletEffectStart);
+    const bentoEntry = fs.readFileSync('src/components/pages/BentoHome.jsx', 'utf8');
+    const legacyData = readSourceEstate({
+      files: ['src/components/pages/bento/useLegacyBentoData.js'],
+    });
+    const todayGuard = bentoEntry.indexOf('if (roleHomeKind) return <TodayHome role={roleHomeKind} />;');
+    const legacyMount = bentoEntry.indexOf('return <LegacyBentoHome />;');
 
-    expect(walletEffectStart).toBeGreaterThan(-1);
-    expect(todayGuard).toBeGreaterThan(walletEffectStart);
-    expect(walletRead).toBeGreaterThan(todayGuard);
+    expect(todayGuard).toBeGreaterThan(-1);
+    expect(legacyMount).toBeGreaterThan(todayGuard);
+    expect(legacyData).toContain('getWalletSummary(profile, isAdmin() || isSponsor())');
   });
 
   it('keeps map data route-owned instead of loading from the app shell', () => {

@@ -3,6 +3,12 @@ import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const profilesServiceSource = () => [
+  read('src/services/profilesService.js'),
+  read('src/services/profiles/normalization.js'),
+  read('src/services/profiles/profileMutations.js'),
+  read('src/services/profiles/usersPageRead.js'),
+].join('\n');
 
 describe('Users Page 14 identity contract', () => {
   const pageSource = () => [
@@ -117,7 +123,7 @@ describe('Users Page 14 identity contract', () => {
   it('submits organization identity and verifies all invitation consequences', () => {
     const invite = read('src/components/modals/InviteUserModal.jsx');
     const userModal = read('src/components/modals/UserModal.jsx');
-    const profiles = read('src/services/profilesService.js');
+    const profiles = profilesServiceSource();
 
     expect(invite).toContain("getOrganizationOptions({ limit: 200 })");
     expect(invite).not.toContain('getHospitals');
@@ -151,7 +157,7 @@ describe('Users Page 14 identity contract', () => {
     const page = pageSource();
     const mobile = read('src/components/mobile/MobileUsers.jsx');
     const hook = read('src/hooks/useProfilesQuery.js');
-    const profiles = read('src/services/profilesService.js');
+    const profiles = profilesServiceSource();
 
     expect(profiles).toContain("kind: 'count_unavailable'");
     expect(profiles).toContain("message: 'User totals are unavailable. Retry to refresh them.'");

@@ -1,4 +1,4 @@
-import { getUsersPage, updateProfile } from './profilesService';
+import { getProfiles, getUsersPage, updateProfile } from './profilesService';
 
 const mockFrom = jest.fn();
 const mockRpc = jest.fn();
@@ -104,6 +104,153 @@ describe('profilesService identity integrity', () => {
         provider_type: '',
       }),
     });
+  });
+
+  it('keeps auth-enriched profile reads inside the signed-in organization scope', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: 'org-admin-1',
+      role: 'org_admin',
+      organization_id: 'org-1',
+    });
+    mockRpc.mockResolvedValue({
+      data: [
+        {
+          id: 'user-1',
+          email: 'user@example.com',
+          profile_role: 'provider',
+          profile_username: 'doctor-one',
+          profile_organization_id: 'org-1',
+          profile_bvn_verified: true,
+        },
+      ],
+      error: null,
+    });
+
+    const result = await getProfiles({
+      includeAuthData: true,
+      organization_id: 'org-outside-scope',
+      quiet: true,
+    });
+
+    expect(mockRpc).toHaveBeenCalledWith('get_all_auth_users', {
+      p_organization_id: 'org-1',
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'user-1',
+        role: 'provider',
+        username: 'doctor-one',
+        organization_id: 'org-1',
+        bvn_verified: true,
+        display_id: 'USR-1',
+      }),
+    ]);
+  });
+
+  it('rethrows the original privileged-read error without logging in quiet mode', async () => {
+    const expectedError = new Error('scope denied');
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockRpc.mockResolvedValue({ data: null, error: expectedError });
+
+    await expect(getProfiles({ includeAuthData: true, quiet: true })).rejects.toBe(expectedError);
+    expect(consoleError).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
+  });
+
+  it('applies the same actor scope to the paged list and every exact-count bucket', async () => {
+    const listQuery = makeQuery({ data: [], count: 0, error: null });
+    const countQueries = Array.from({ length: 5 }, () =>
+      makeQuery({ count: 0, error: null })
+    );
+    const queries = [listQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+
+    await getUsersPage({
+      limit: 20,
+      offset: 40,
+      search: 'sam_doe%',
+      role: 'provider',
+      provider_type: 'doctor',
+      verified: true,
+      forceEmpty: true,
+      quiet: true,
+    });
+
+    expect(mockApplyAuthFilter).toHaveBeenCalledTimes(6);
+    mockApplyAuthFilter.mock.calls.forEach(([, actor, fields]) => {
+      expect(actor).toEqual({ id: 'admin-1', role: 'admin', organization_id: null });
+      expect(fields).toEqual({ userIdField: 'id', orgIdField: 'organization_id' });
+    });
+    expect(listQuery.select).toHaveBeenCalledWith('*', { count: 'exact' });
+    expect(listQuery.eq).toHaveBeenCalledWith(
+      'id',
+      '00000000-0000-0000-0000-000000000000'
+    );
+    expect(listQuery.or).toHaveBeenCalledWith(
+      'username.ilike.%sam doe%,email.ilike.%sam doe%,phone.ilike.%sam doe%,full_name.ilike.%sam doe%'
+    );
+    expect(listQuery.range).toHaveBeenCalledWith(40, 59);
+    countQueries.forEach((query) => {
+      expect(query.select).toHaveBeenCalledWith('id', { count: 'exact', head: true });
+    });
+  });
+
+  it('keeps safe self-edits on the owner-scoped table receiver', async () => {
+    const savedProfile = { id: 'user-1', phone: '555-0100' };
+    const query = {
+      update: jest.fn(),
+      eq: jest.fn(),
+      select: jest.fn(),
+      single: jest.fn().mockResolvedValue({ data: savedProfile, error: null }),
+    };
+    for (const method of ['update', 'eq', 'select']) query[method].mockReturnValue(query);
+    mockFrom.mockReturnValue(query);
+    mockAuthGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+    await expect(updateProfile('user-1', { phone: ' 555-0100 ' })).resolves.toEqual(
+      savedProfile
+    );
+
+    expect(query.update).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '555-0100', updated_at: expect.any(String) })
+    );
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(mockWithAudit).toHaveBeenCalledWith(
+      'profile.update',
+      'profile',
+      expect.any(Function),
+      { entityId: 'user-1', self: true }
+    );
+  });
+
+  it('rejects a non-admin self role change before either mutation receiver runs', async () => {
+    const query = {
+      select: jest.fn(),
+      eq: jest.fn(),
+      single: jest.fn().mockResolvedValue({
+        data: {
+          role: 'provider',
+          organization_id: 'org-1',
+          provider_type: 'doctor',
+          bvn_verified: false,
+        },
+        error: null,
+      }),
+    };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    mockFrom.mockReturnValue(query);
+    mockAuthGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(updateProfile('user-1', { role: 'viewer' })).rejects.toThrow(
+      'Access settings require another administrator.'
+    );
+
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(mockWithAudit).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('keeps loaded users but marks exact KPI counts unavailable when a count fails', async () => {
