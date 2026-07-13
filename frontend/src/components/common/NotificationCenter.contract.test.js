@@ -1,8 +1,14 @@
 import fs from 'fs';
+import { readSourceEstate } from '../../test/sourceEstates';
+
+const readNotificationCenterSource = () => readSourceEstate({
+  files: ['src/components/common/NotificationCenter.jsx'],
+  directories: ['src/components/common/notification-center'],
+});
 
 describe('NotificationCenter quiet startup contract', () => {
   it('keeps shell notification fetches quiet and stale-safe', () => {
-    const centerSource = fs.readFileSync('src/components/common/NotificationCenter.jsx', 'utf8');
+    const centerSource = readNotificationCenterSource();
     const serviceSource = fs.readFileSync('src/services/notificationService.js', 'utf8');
 
     expect(centerSource).toContain('const fetchSeqRef = useRef(0)');
@@ -27,7 +33,7 @@ describe('NotificationCenter quiet startup contract', () => {
   });
 
   it('keeps notifications as shared shell chrome with immediate feedback', () => {
-    const centerSource = fs.readFileSync('src/components/common/NotificationCenter.jsx', 'utf8');
+    const centerSource = readNotificationCenterSource();
     const cardSource = fs.readFileSync('src/components/common/NotificationCard.jsx', 'utf8');
     const routeSource = fs.readFileSync('src/components/common/notificationRoutes.js', 'utf8');
     const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
