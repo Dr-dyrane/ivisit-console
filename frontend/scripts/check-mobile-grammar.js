@@ -353,6 +353,8 @@ function main() {
   const mobileActionPath = path.join(__dirname, '..', 'src', 'config', 'mobileRouteActions.js');
   const actionOwnershipPath = path.join(__dirname, '..', 'src', 'config', 'routeActionOwnership.js');
   const appPath = path.join(__dirname, '..', 'src', 'App.js');
+  const appRoutesPath = path.join(__dirname, '..', 'src', 'app', 'AppRoutes.jsx');
+  const routeMetadataPath = path.join(__dirname, '..', 'src', 'app', 'appRouteMetadata.js');
   const pagesDir = path.join(__dirname, '..', 'src', 'components', 'pages');
   if (fs.existsSync(dockPath)) {
     const dock = fs.readFileSync(dockPath, 'utf8');
@@ -376,9 +378,9 @@ function main() {
     while ((sm = routeStringRe.exec(prefixesBlock)) !== null) suppress.add(sm[1]);
     if (/pathname\s*===\s*'\/'/.test(ownership)) suppress.add('/');
 
-    // (b) Map pages calling `usePageShell({ ... hideFab: true ... })` to their route via App.js.
-    //     Build component-to-route from `<Route path="/x" element={ ... <PageComponent ... }>`,
-    //     then map each hideFab page file (basename === exported component) to its route.
+    // (b) Map pages calling `usePageShell({ ... hideFab: true ... })` to their route.
+    //     Support both the historical inline App.js routes and the current AppRoutes registry
+    //     plus metadata split so modularizing route ownership cannot create scanner blind spots.
     const compToRoute = {};
     if (fs.existsSync(appPath)) {
       const app = fs.readFileSync(appPath, 'utf8');
@@ -392,6 +394,23 @@ function main() {
           if (cm[1] === 'ProtectedRoute') continue; // guard wrapper, not the page
           compToRoute[cm[1]] = routePath;
         }
+      }
+    }
+    if (fs.existsSync(appRoutesPath) && fs.existsSync(routeMetadataPath)) {
+      const appRoutes = fs.readFileSync(appRoutesPath, 'utf8');
+      const routeMetadata = fs.readFileSync(routeMetadataPath, 'utf8');
+      const componentByRouteId = {};
+      const componentRe = /^\s*([A-Za-z]\w*):\s*lazyNamedPage\([^\r\n]*,\s*'([A-Za-z]\w*)'\),?\s*$/gm;
+      let componentMatch;
+      while ((componentMatch = componentRe.exec(appRoutes)) !== null) {
+        componentByRouteId[componentMatch[1]] = componentMatch[2];
+      }
+
+      const metadataRe = /\{\s*id:\s*'([^']+)'\s*,\s*path:\s*'([^']+)'/g;
+      let metadataMatch;
+      while ((metadataMatch = metadataRe.exec(routeMetadata)) !== null) {
+        const component = componentByRouteId[metadataMatch[1]];
+        if (component) compToRoute[component] = metadataMatch[2];
       }
     }
     const hideFabRe = /usePageShell\(\{[^}]*hideFab:\s*true[^}]*\}\)/;
