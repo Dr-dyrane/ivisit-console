@@ -8,6 +8,35 @@ import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../..
 describe('SupportTicketsPage canonical source contract', () => {
   const pageSource = () => fs.readFileSync('src/components/pages/SupportTicketsPage.jsx', 'utf8');
   const mobileSource = () => fs.readFileSync('src/components/mobile/MobileSupportTickets.jsx', 'utf8');
+  const modelSource = () => fs.readFileSync('src/components/pages/support/supportTicketsModel.js', 'utf8');
+  const controllerSource = () => fs.readFileSync('src/components/pages/support/useSupportTicketsPageController.js', 'utf8');
+  const commandsSource = () => fs.readFileSync('src/components/pages/support/useSupportTicketCommands.js', 'utf8');
+  const desktopWorkspaceSource = () => fs.readFileSync('src/components/pages/support/SupportDesktopWorkspace.jsx', 'utf8');
+  const ticketListSource = () => fs.readFileSync('src/components/pages/support/SupportTicketList.jsx', 'utf8');
+  const detailRailSource = () => fs.readFileSync('src/components/pages/support/SupportDetailRail.jsx', 'utf8');
+  const desktopSource = () => [
+    desktopWorkspaceSource(),
+    ticketListSource(),
+    detailRailSource(),
+  ].join('\n');
+  const modalsSource = () => fs.readFileSync('src/components/pages/support/SupportPageModals.jsx', 'utf8');
+  const mobileModelSource = () => fs.readFileSync('src/components/mobile/support/mobileSupportModel.js', 'utf8');
+  const mobileControllerSource = () => fs.readFileSync('src/components/mobile/support/useMobileSupportTicketsController.js', 'utf8');
+  const mobileViewSource = () => fs.readFileSync('src/components/mobile/support/MobileSupportTicketsView.jsx', 'utf8');
+  const pageEstateSource = () => [
+    pageSource(),
+    modelSource(),
+    controllerSource(),
+    commandsSource(),
+    desktopSource(),
+    modalsSource(),
+  ].join('\n');
+  const mobileEstateSource = () => [
+    mobileSource(),
+    mobileModelSource(),
+    mobileControllerSource(),
+    mobileViewSource(),
+  ].join('\n');
   const panelSource = () => fs.readFileSync('src/components/context/SupportTicketsPanel.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
   const modalSource = () => fs.readFileSync('src/components/modals/SupportTicketModal.jsx', 'utf8');
@@ -19,17 +48,26 @@ describe('SupportTicketsPage canonical source contract', () => {
   const mutationsHookSource = () => fs.readFileSync('src/hooks/useSupportTicketsMutations.js', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
-  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const bottomBarSource = () => [
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
     fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
   ].join('\n');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
+  const MODULARIZATION_BASELINE = '4d1de70a';
   const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024,
   });
+  const modularizationBaselineSource = (path) => execFileSync('git', ['show', `${MODULARIZATION_BASELINE}:${path}`], {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024,
+  });
+  const literalAttributeValues = (source, attribute) => (
+    [...source.matchAll(new RegExp(`${attribute}="([^"]*)"`, 'g'))]
+      .map((match) => match[1])
+      .sort()
+  );
 
   it('keeps Support provider-accessible while excluding sponsor routes', () => {
     expect(getRouteProtection('/support-tickets')).toEqual({
@@ -90,11 +128,112 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(gate).toContain('Support preservation ledger');
   });
 
-  it('locks Support to the shared shell and route-owned data model', () => {
+  it('keeps PAGE-02 split into route, model, controller, and presentation owners', () => {
     const page = pageSource();
+    const model = modelSource();
+    const controller = controllerSource();
+    const commands = commandsSource();
+    const desktop = desktopSource();
+    const modals = modalsSource();
+    const mobile = mobileSource();
+    const mobileModel = mobileModelSource();
+    const mobileController = mobileControllerSource();
+    const mobileView = mobileViewSource();
+
+    expect(page.split('\n').length).toBeLessThan(350);
+    expect(page).toContain("from './support/supportTicketsModel'");
+    expect(page).toContain("from './support/useSupportTicketsPageController'");
+    expect(page).toContain("from './support/SupportDesktopWorkspace'");
+    expect(page).toContain("from './support/SupportPageModals'");
+    expect(page).not.toContain("from '../../services/");
+    expect(page).not.toContain('useSupportTicketsQuery(');
+    expect(page).not.toContain(".channel('support_tickets_page_changes')");
+
+    expect(model).toContain('export const buildSupportQueryFilter');
+    expect(model).toContain('export const buildSupportAnalytics');
+    expect(model).not.toContain("from 'react'");
+    expect(model).not.toContain('useState(');
+    expect(controller).toContain('useSupportTicketsQuery(queryFilter)');
+    expect(controller).toContain(".channel('support_tickets_page_changes')");
+    expect(controller).toContain('useRowSelection(ticketRows)');
+    expect(controller).toContain('useFocusedRecord(\'support\', ticketRows)');
+    expect(controller).toContain('useSupportTicketCommands({');
+    expect(commands).toContain('export const useSupportTicketCommands');
+    expect(commands).toContain('useSupportTicketsMutations({');
+    expect(commands).toContain('const deletePendingRef = useRef(false);');
+    expect(commands).toContain('const assignPendingRef = useRef(false);');
+    expect(desktop).toContain('export const SupportDesktopWorkspace');
+    expect(desktop).toContain('export const SupportTicketList');
+    expect(desktop).toContain('export const SupportDetailRail');
+    expect(desktop).toContain('<WorkspaceStage');
+    expect(desktop).toContain('<SortableColumnHeader');
+    expect(modals).toContain('export const SupportPageModals');
+
+    expect(mobile.split('\n').length).toBeLessThan(300);
+    expect(mobile).toContain('export const MobileSupportTickets');
+    expect(mobile).toContain('createMobileSupportAccumulator');
+    expect(mobile).toContain('reconcileMobileSupportAccumulator');
+    expect(mobile).toContain('pruneSupportTicketIdsFromCache');
+    expect(mobile).toContain('useSkeletonWarmup()');
+    expect(mobile).toContain('<MobileHeading');
+    expect(mobile).toContain('<SearchRow');
+    expect(mobile).toContain('<GroupPanel');
+    expect(mobile).toContain('<SkeletonGroupPanel');
+    expect(mobile).toContain('<UpdatingPillRow');
+    expect(mobile).toContain('animatePageLoad={false}');
+    expect(mobileModel).not.toContain("from 'react'");
+    expect(mobileController).toContain('export const useMobileSupportTicketsController');
+    expect(mobileController).toContain('accumulatorRef');
+    expect(mobileView).toContain('export const MobileSupportAtlasLayer');
+    expect(mobileView).toContain('export const MobileSupportTicketRow');
+    expect(mobileView).toContain('export const MobileSupportNotices');
+    expect(mobileView).toContain('export const MobileSupportTicketDetailSheet');
+
+    [
+      page,
+      model,
+      controller,
+      commands,
+      desktopWorkspaceSource(),
+      ticketListSource(),
+      detailRailSource(),
+      modals,
+      mobile,
+      mobileModel,
+      mobileController,
+      mobileView,
+    ].forEach((source) => expect(source.split('\n').length).toBeLessThan(500));
+
+    execFileSync('node', [
+      'scripts/check-ui-surface-hardgate.js',
+      'src/components/pages/SupportTicketsPage.jsx',
+      'src/components/pages/support/SupportDesktopWorkspace.jsx',
+      'src/components/pages/support/SupportTicketList.jsx',
+      'src/components/pages/support/SupportDetailRail.jsx',
+      'src/components/pages/support/SupportPageModals.jsx',
+      'src/components/mobile/MobileSupportTickets.jsx',
+      'src/components/mobile/support/MobileSupportTicketsView.jsx',
+    ], { encoding: 'utf8' });
+  });
+
+  it('preserves desktop and mobile rendered class, test-id, and literal aria contracts', () => {
+    const oldPage = modularizationBaselineSource('frontend/src/components/pages/SupportTicketsPage.jsx');
+    const oldMobile = modularizationBaselineSource('frontend/src/components/mobile/MobileSupportTickets.jsx');
+    const currentPage = pageEstateSource();
+    const currentMobile = mobileEstateSource();
+
+    ['className', 'data-testid', 'aria-label'].forEach((attribute) => {
+      expect(literalAttributeValues(currentPage, attribute))
+        .toEqual(literalAttributeValues(oldPage, attribute));
+      expect(literalAttributeValues(currentMobile, attribute))
+        .toEqual(literalAttributeValues(oldMobile, attribute));
+    });
+  });
+
+  it('locks Support to the shared shell and route-owned data model', () => {
+    const page = pageEstateSource();
     const service = serviceSource();
     const contextPanel = contextPanelSource();
-    const fab = fabSource();
     const bottomBar = bottomBarSource();
     const gate = gateSource();
 
@@ -116,7 +255,7 @@ describe('SupportTicketsPage canonical source contract', () => {
     // list/stats/loading/error useState setters are gone, but every governance guard
     // below is preserved.
     expect(page).toContain('useSupportTicketsQuery(queryFilter)');
-    expect(page).toContain('statsFilter: getStatsFilters(routeFilters)');
+    expect(page).toContain('statsFilter: getSupportStatsFilters(routeFilters)');
     expect(page).toContain('stats: supportStats');
     expect(page).toContain('createTicketMutation.mutateAsync(args[0])');
     expect(page).toContain('updateTicketMutation.mutateAsync({ id: args[0], ...args[1] })');
@@ -124,7 +263,7 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(page).toContain("queryClient.invalidateQueries({ queryKey: ['support'] })");
     expect(page).toContain('supabase.removeChannel(channel)');
     expect(page).toContain('const supportError = queryError');
-    expect(page).toContain('pagination.setTotalCount(count || 0)');
+    expect(page).toContain('setTotalCount(count || 0)');
     expect(page).not.toContain('fetchRequestRef');
     expect(page).not.toContain('setTickets(');
     expect(page).not.toContain('setSupportStats(');
@@ -197,7 +336,7 @@ describe('SupportTicketsPage canonical source contract', () => {
   });
 
   it('blocks unsafe Support actions from the active UI while keeping service inventory explicit', () => {
-    const page = pageSource();
+    const page = pageEstateSource();
     const modal = modalSource();
     const service = serviceSource();
     const createFields = service.slice(
@@ -248,7 +387,7 @@ describe('SupportTicketsPage canonical source contract', () => {
   });
 
   it('guards destructive and assignment commands while one layer owns save errors', () => {
-    const page = pageSource();
+    const page = pageEstateSource();
     const modal = modalSource();
     const saveHandler = page.slice(
       page.indexOf('const handleSave = useCallback'),
@@ -267,15 +406,16 @@ describe('SupportTicketsPage canonical source contract', () => {
   });
 
   it('tombstones only receiver-confirmed deletes across every mobile page and Support cache', () => {
-    const page = pageSource();
-    const mobile = mobileSource();
-    const singleDelete = page.slice(
-      page.indexOf('// Single delete:'),
-      page.indexOf('// Bulk delete')
+    const page = pageEstateSource();
+    const commands = commandsSource();
+    const mobile = mobileEstateSource();
+    const singleDelete = commands.slice(
+      commands.indexOf('const handleDelete = useCallback'),
+      commands.indexOf('const handleBulkDelete = useCallback')
     );
-    const bulkDelete = page.slice(
-      page.indexOf('// Bulk delete'),
-      page.indexOf('// Provider self-assign')
+    const bulkDelete = commands.slice(
+      commands.indexOf('const handleBulkDelete = useCallback'),
+      commands.indexOf('const canAssign = isProvider()')
     );
 
     expect(page).toContain('const [confirmedDeletedTicketIds, setConfirmedDeletedTicketIds] = useState([]);');
@@ -297,10 +437,10 @@ describe('SupportTicketsPage canonical source contract', () => {
   });
 
   it('labels Support analytics as a visible-page projection without fake high or timing values', () => {
-    const page = pageSource();
+    const page = pageEstateSource();
     const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
 
-    expect(page).toContain('buildAnalytics(supportStats, ticketRows)');
+    expect(page).toContain('buildSupportAnalytics(supportStats, ticketRows)');
     expect(page).toContain("averageResolutionScope: 'visible_page'");
     expect(page).toContain("distributionScope: 'visible_page'");
     expect(page).toContain('byPriority[priority] = (byPriority[priority] || 0) + 1;');
@@ -312,7 +452,7 @@ describe('SupportTicketsPage canonical source contract', () => {
   });
 
   it('recomposes mobile Support to the canon LIST while preserving f31f29f affordances', () => {
-    const mobile = mobileSource();
+    const mobile = mobileEstateSource();
     const oldMobile = headSource('frontend/src/components/mobile/MobileSupportTickets.jsx');
 
     // Preservation baseline (f31f29f): the affordances that MUST survive the rebuild are
