@@ -4,11 +4,22 @@ import { getAccessibleNav } from '../../config/navigation';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
 describe('HealthNewsManagementPage intake audit contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/HealthNewsManagementPage.jsx', 'utf8');
+  const readOwnedModules = (directory) => fs.readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /\.[jt]sx?$/.test(entry.name) && !entry.name.includes('.test.'))
+    .map((entry) => entry.name)
+    .sort()
+    .map((name) => fs.readFileSync(`${directory}/${name}`, 'utf8'));
+  const pageSource = () => [
+    fs.readFileSync('src/components/pages/HealthNewsManagementPage.jsx', 'utf8'),
+    ...readOwnedModules('src/components/pages/health-news'),
+  ].join('\n');
   const panelSource = () => fs.readFileSync('src/components/context/HealthNewsPanel.jsx', 'utf8');
   const listSource = () => fs.readFileSync('src/components/views/HealthNewsListView.jsx', 'utf8');
   const tableSource = () => fs.readFileSync('src/components/views/HealthNewsTableView.jsx', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileHealthNews.jsx', 'utf8');
+  const mobileSource = () => [
+    fs.readFileSync('src/components/mobile/MobileHealthNews.jsx', 'utf8'),
+    ...readOwnedModules('src/components/mobile/health-news'),
+  ].join('\n');
   const modalSource = () => fs.readFileSync('src/components/modals/HealthNewsModal.jsx', 'utf8');
   const filterSheetSource = () => fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
   const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
@@ -23,6 +34,9 @@ describe('HealthNewsManagementPage intake audit contract', () => {
   });
 
   it('keeps Health News org-admin scoped in route and navigation contracts', () => {
+    const appRoutes = fs.readFileSync('src/app/AppRoutes.jsx', 'utf8');
+    const routeMetadata = fs.readFileSync('src/app/appRouteMetadata.js', 'utf8');
+
     expect(getRouteProtection('/health-news')).toEqual({
       minRole: 'org_admin',
       resource: 'news',
@@ -43,6 +57,8 @@ describe('HealthNewsManagementPage intake audit contract', () => {
       .not.toContain('/health-news');
     expect(getAccessibleNav({ role: 'sponsor' }).mgmt)
       .toBeNull();
+    expect(appRoutes).toContain("healthNews: lazyNamedPage(() => import('../components/pages/HealthNewsManagementPage'), 'HealthNewsManagementPage')");
+    expect(routeMetadata).toContain("{ id: 'healthNews', path: '/health-news', minRole: 'org_admin' }");
   });
 
   it('anchors the Health News ledger to old Git-backed behavior', () => {
@@ -254,11 +270,11 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     const page = pageSource();
     const analyticsModal = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
 
-    expect(page).toContain('const newsAnalytics = useMemo(() => {');
+    expect(page).toContain('buildHealthNewsAnalytics');
     expect(page).toContain('bySource[source] = (bySource[source] || 0) + 1;');
     expect(page).toContain('byCategory[category] = (byCategory[category] || 0) + 1;');
     expect(page).toContain("distributionScope: 'visible_page'");
-    expect(page).toContain('analytics={newsAnalytics}');
+    expect(page).toContain('analytics={controller.newsAnalytics}');
     expect(analyticsModal).toContain("type === 'news'");
     expect(analyticsModal).toContain('? (analytics.bySource || {})');
     expect(analyticsModal).toContain("type === 'news' || type === 'support'");
