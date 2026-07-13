@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { execFileSync } from 'child_process';
 import {
   getPageDataStartupDomainsForRole,
@@ -6,6 +7,29 @@ import {
 } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readTree = (directory) => fs.readdirSync(directory, { withFileTypes: true })
+  .flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return readTree(entryPath);
+    return /\.(js|jsx)$/.test(entry.name) && !entry.name.endsWith('.test.js')
+      ? [read(entryPath)]
+      : [];
+  })
+  .join('\n');
+const pricingPageEntrySource = () => read('src/components/pages/PricingManagementPage.jsx');
+const pricingPageSource = () => [
+  pricingPageEntrySource(),
+  readTree('src/components/pages/pricing'),
+].join('\n');
+const mobilePricingEntrySource = () => read('src/components/mobile/MobilePricing.jsx');
+const mobilePricingSource = () => [
+  mobilePricingEntrySource(),
+  readTree('src/components/mobile/pricing'),
+].join('\n');
+const appSource = () => [
+  read('src/app/AppRoutes.jsx'),
+  read('src/app/appRouteMetadata.js'),
+].join('\n');
 // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
@@ -13,7 +37,7 @@ const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESER
 describe('Pricing Page 18 intake contract', () => {
   it('preserves Pricing intake archaeology and admits the canonical active surfaces to the visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
+    const app = appSource();
     const routes = read('src/config/routes.jsx');
     const navigation = read('src/config/navigation.js');
     const mobileNavigation = read('src/config/mobileNavigation.js');
@@ -24,7 +48,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(gate).toContain('No visual revamp, shared Requests pattern reuse, price create/edit/delete/bulk delete, org-wide pricing save, context-panel command promotion, route-owned action promotion, or hardgate promotion is authorized yet.');
     expect(gate).toContain('Promotion rule: the first Pricing visual pass must close this blocker map before adding Page 18 to the default hardgate.');
 
-    expect(app).toContain('<Route path="/pricing" element={<ProtectedRoute minRole="org_admin"><PricingManagementPage /></ProtectedRoute>} />');
+    expect(app).toContain("pricing: lazyNamedPage(() => import('../components/pages/PricingManagementPage'), 'PricingManagementPage')");
+    expect(app).toContain("{ id: 'pricing', path: '/pricing', minRole: 'org_admin' }");
     expect(routes).toContain("'/pricing': {");
     expect(routes).toContain("minRole: 'org_admin'");
     expect(routes).toContain("resource: 'pricing'");
@@ -51,14 +76,37 @@ describe('Pricing Page 18 intake contract', () => {
     });
   });
 
+  it('keeps Pricing route, controller, bridge, desktop, and mobile ownership modular', () => {
+    const pageEntry = pricingPageEntrySource();
+    const mobileEntry = mobilePricingEntrySource();
+    const page = pricingPageSource();
+    const mobile = mobilePricingSource();
+
+    expect(pageEntry.split(/\r?\n/).length).toBeLessThanOrEqual(80);
+    expect(mobileEntry.split(/\r?\n/).length).toBeLessThanOrEqual(240);
+    expect(pageEntry).toContain("import { usePricingPageController } from './pricing/usePricingPageController';");
+    expect(pageEntry).toContain("import { usePricingRouteBridge } from './pricing/usePricingRouteBridge';");
+    expect(pageEntry).toContain("import { usePricingPageChrome } from './pricing/usePricingPageChrome';");
+    expect(page).toContain('export const usePricingPageController');
+    expect(page).toContain('export const usePricingRouteBridge');
+    expect(page).toContain('export const PricingManagementPageView');
+    expect(page).toContain('export const PricingDetailRail');
+    expect(page).toContain('export const normalizePricingProjection');
+    expect(mobile).toContain("import { MobilePricingList } from './pricing/MobilePricingList';");
+    expect(mobile).toContain('export const MobilePricingDetailSheet');
+    expect(mobile).toContain('export const getMobilePricingCounts');
+    expect(page).not.toContain('saveServicePricing');
+    expect(page).not.toContain('saveRoomPricing');
+  });
+
   it('closes the desktop shell with role rails, shared KPIs, stats, focus, and honest states', () => {
-    const page = read('src/components/pages/PricingManagementPage.jsx');
+    const page = pricingPageSource();
     const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
     const panel = read('src/components/context/PricingContextPanel.jsx');
 
-    expect(page).toContain("if (isAdmin()) return 'admin';");
-    expect(page).toContain("if (isOrgAdmin()) return 'org_admin';");
-    expect(page).toContain("if (isProvider()) return isDriver() ? 'driver' : 'provider';");
+    expect(page).toContain("if (admin) return 'admin';");
+    expect(page).toContain("if (orgAdmin) return 'org_admin';");
+    expect(page).toContain("if (provider) return driver ? 'driver' : 'provider';");
     expect(page).toContain('getConsoleModuleRailItems(roleKind)');
     expect(page).not.toContain('getConsoleModuleRailItems({');
     expect(page).toContain("usePageFooter(null, 'status', false)");
@@ -74,12 +122,14 @@ describe('Pricing Page 18 intake contract', () => {
     expect(workspace).toContain('searchTestId="pricing-sheet-search"');
     expect(workspace).toContain('onRefresh={retry}');
 
-    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
-    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
-    expect(page).toContain('const canSelectPricing = isAdmin() || isOrgAdmin();');
+    expect(page).toContain("import { useRowSelection } from '../../../hooks/useRowSelection';");
+    expect(page).toContain("import { BulkActionBar } from '../../common/BulkActionBar';");
+    expect(page).toContain('const canSelectPricing = admin || orgAdmin;');
     expect(page).toContain('useRowSelection(paginatedPricing)');
     expect(page).toContain('selectable={canSelectPricing}');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar');
+    expect(page).toContain('selectedCount={selection.selectedIds.length}');
+    expect(page).toContain('onClear={selection.clearSelection}');
     expect(page).toContain('Bulk price changes are unavailable');
     expect(workspace).toContain("import { Checkbox } from '../../ui/checkbox';");
     expect(workspace).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
@@ -117,9 +167,9 @@ describe('Pricing Page 18 intake contract', () => {
     const oldList = gitShowHead('frontend/src/components/views/PricingListView.jsx');
     const oldService = gitShowHead('frontend/src/services/pricingService.js');
 
-    const page = read('src/components/pages/PricingManagementPage.jsx');
+    const page = pricingPageSource();
     const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
-    const mobile = read('src/components/mobile/MobilePricing.jsx');
+    const mobile = mobilePricingSource();
     const panel = read('src/components/context/PricingContextPanel.jsx');
     const table = read('src/components/views/PricingTableView.jsx');
     const list = read('src/components/views/PricingListView.jsx');
@@ -152,7 +202,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('<PricingTableView');
     expect(page).not.toContain('<PricingListView');
     expect(workspace).toContain('<ActivitySheet');
-    expect(workspace).toContain('<SortableColumnHeader label="Updated"');
+    expect(workspace).toContain('<SortableColumnHeader');
+    expect(workspace).toContain('label="Updated"');
     expect(workspace).toContain('aria-label="Inspect pricing rule"');
     expect(workspace).toContain('onOpen: (row) => setFocused(row.id)');
     expect(workspace).not.toContain('Details unavailable');
@@ -171,7 +222,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(oldPage).toContain('<BulkActionBar');
     expect(oldPage).toContain('Delete Selected Pricing Rules');
 
-    expect(page).toContain("import { getPricingPageData } from '../../services/pricingService';");
+    expect(page).toContain("import { getPricingPageData } from '../../../services/pricingService';");
     expect(page).not.toContain('saveServicePricing');
     expect(page).not.toContain('saveRoomPricing');
     expect(page).not.toContain('deleteServicePricing');
@@ -181,7 +232,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain("toast.success('Pricing deleted successfully')");
     expect(page).not.toContain('toast.success(`${selectedIds.length} pricing rules deleted`);');
     expect(page).not.toContain('<ConfirmationModal');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar');
+    expect(page).toContain('selectedCount={selection.selectedIds.length}');
     expect(page).not.toContain('Delete Selected Pricing Rules');
     expect(page).toContain('useRowSelection(paginatedPricing)');
     expect(workspace).toContain('<Checkbox');
@@ -192,7 +244,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain('const selectionMode = selectionEnabled && selectedIdSet.size > 0;');
     expect(mobile).toContain('selectable={selectionEnabled}');
     expect(mobile).toContain('selected={selectedIdSet.has(item.id)}');
-    expect(mobile).toContain('onToggleSelect={(selectedItem) => onSelect?.(selectedItem.id, !selectedIdSet.has(selectedItem.id))}');
+    expect(mobile).toContain('onToggleSelect={(selectedItem) => onSelect?.(');
+    expect(mobile).toContain('!selectedIdSet.has(selectedItem.id)');
     expect(mobile).toContain('onLongPress={(selectedItem) => onSelect?.(selectedItem.id, true)}');
     expect(mobile).toContain('onSelectAll={() => onSelectAll?.(true)}');
     expect(mobile).toContain('onClear={() => onSelectAll?.(false)}');
@@ -202,7 +255,8 @@ describe('Pricing Page 18 intake contract', () => {
 
     expect(oldPage).toContain("getPricing('services', orgId)");
     expect(oldPage).toContain("getPricing('rooms', orgId)");
-    expect(page).toContain('getPricingPageData({');
+    expect(page).toContain('getPricingPageData(');
+    expect(page).toContain('buildPricingPageQuery({');
     expect(page).toContain('setPricingProjection(projection);');
     expect(page).toContain("const [loadError, setLoadError] = useState(null);");
     expect(page).toContain("setLoadError('Pricing rules could not load. Try again.');");
@@ -210,8 +264,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain('Pricing did not refresh');
     expect(mobile).toContain('Showing the last loaded pricing rules.');
     expect(page).not.toContain('Pricing did not refresh. Showing the last loaded rules.');
-    expect(page).toContain('page: isMobile ? 1 : pagination.currentPage');
-    expect(page).toContain('pageSize: isMobile ? mobilePageSize : pagination.itemsPerPage');
+    expect(page).toContain('page: isMobile ? 1 : currentPage');
+    expect(page).toContain('pageSize: isMobile ? currentPage * itemsPerPage : itemsPerPage');
     expect(page).toContain('hasMore={pagination.hasNextPage}');
     expect(page).toContain('onLoadMore={handleMobileLoadMore}');
     expect(page).toContain('isLoadingMore={mobileLoadingMore}');
@@ -225,7 +279,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(workspace).not.toContain('Average ${averageAmount} in these results.');
     expect(workspace).toContain('Show all pricing rules');
     expect(mobile).toContain("label={errorMessage ? 'Pricing did not load' : 'No pricing rules found'}");
-    expect(page).toContain('pagination.setTotalCount(projection.totalCount || 0);');
+    expect(page).toContain('setTotalCount(projection.totalCount || 0);');
     expect(page).toContain('const filteredPricing = pricing;');
     expect(page).toContain('const paginatedPricing = pricing;');
     expect(page).not.toContain("getPricing('services', orgId)");
@@ -258,7 +312,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain('<MobileListRow');
     // Tap-opens-detail-sheet: the row now opens MobileDetailSheet on tap instead of
     // expanding an inline dropdown (no MobileDetailIslands/expandedContent composition).
-    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
+    expect(mobile).toContain("import { MobileDetailSheet } from '../MobileDetailSheet';");
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('onOpen={setActiveItem}');
     expect(mobile).not.toContain('primary={{');
@@ -383,7 +437,7 @@ describe('Pricing Page 18 intake contract', () => {
     const stage4 = read('docs/implementation/console-service-alignment/stages/STAGE_4_L5_STATE_DATA_OWNERSHIP_AUDIT_2026-05-24.md');
     const stage6 = read('docs/implementation/console-service-alignment/stages/STAGE_6_IMPLEMENTATION_PASS_PLAN_2026-05-24.md');
     const pass3 = read('docs/implementation/console-service-alignment/passes/PASS_3_HOSPITAL_CAPACITY_PRICING_FLOW_SUBPLAN_2026-05-24.md');
-    const page = read('src/components/pages/PricingManagementPage.jsx');
+    const page = pricingPageSource();
     const pageDataContext = read('src/contexts/PageDataContext.jsx');
     const contextPanel = read('src/components/navigation/ContextPanel.jsx');
     const panel = read('src/components/context/PricingContextPanel.jsx');
@@ -395,7 +449,7 @@ describe('Pricing Page 18 intake contract', () => {
     const contextAction = read('src/hooks/useContextAction.js');
     const routeActionOwnership = read('src/config/routeActionOwnership.js');
     const service = read('src/services/pricingService.js');
-    const mobile = read('src/components/mobile/MobilePricing.jsx');
+    const mobile = mobilePricingSource();
     const table = read('src/components/views/PricingTableView.jsx');
 
     expect(gate).toContain('Pricing Requests-canon blocker map:');
@@ -452,7 +506,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(panel).not.toContain("new CustomEvent('openAnalyticsModal')");
     expect(panel).toContain('Select a pricing rule to view more details.');
     expect(panel).toContain('Pricing changes are unavailable until a facility is selected.');
-    expect(page).toContain("new CustomEvent('pricingRouteContextUpdated'");
+    expect(page).toContain('new CustomEvent(');
+    expect(page).toContain("'pricingRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestPricingRouteContext'");
     expect(page).toContain('focusedPrice');
 
@@ -466,15 +521,16 @@ describe('Pricing Page 18 intake contract', () => {
     expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openPricingModal'))");
 
     expect(page).toContain('const PRICING_MUTATION_COMMANDS_ENABLED = false;');
-    expect(page).toContain("const PRICING_SCOPE_UNAVAILABLE_MESSAGE = 'Price changes need a selected facility before they can run.';");
-    expect(page).toContain("import { getPricingPageData } from '../../services/pricingService';");
-    expect(page).toContain('getPricingPageData({');
+    expect(page).toContain('PRICING_SCOPE_UNAVAILABLE_MESSAGE');
+    expect(page).toContain('Price changes need a selected facility before they can run.');
+    expect(page).toContain("import { getPricingPageData } from '../../../services/pricingService';");
+    expect(page).toContain('getPricingPageData(');
     expect(page).toContain('setPricingProjection(projection);');
-    expect(page).toContain('pagination.setTotalCount(projection.totalCount || 0);');
+    expect(page).toContain('setTotalCount(projection.totalCount || 0);');
     expect(page).toContain('const filteredPricing = pricing;');
     expect(page).toContain('const paginatedPricing = pricing;');
     expect(page).toContain('pricingProjection={pricingProjection}');
-    expect(page).toContain('if (!PRICING_MUTATION_COMMANDS_ENABLED) return false;');
+    expect(page).toContain('export const PRICING_MUTATION_COMMANDS_ENABLED = false;');
     expect(page).toContain('const showPricingCommandUnavailable = useCallback(() => {');
     expect(page).toContain('setActionNotice(PRICING_SCOPE_UNAVAILABLE_MESSAGE);');
     expect(page).toContain('toast.info(PRICING_SCOPE_UNAVAILABLE_MESSAGE);');
@@ -484,8 +540,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('selection={selection}');
     expect(page).toContain('sortConfig={sortConfig}');
     expect(page).toContain('selectionEnabled={canSelectPricing}');
-    expect(page).toContain('onSelect={handleToggleSelect}');
-    expect(page).toContain('onSelectAll={handleSelectAll}');
+    expect(page).toContain('onSelect={selection.handleToggleSelect}');
+    expect(page).toContain('onSelectAll={selection.handleSelectAll}');
     expect(mobile).toContain('role="status"');
     expect(mobile).toContain('aria-live="polite"');
     expect(page).not.toContain('saveServicePricing');
@@ -494,7 +550,8 @@ describe('Pricing Page 18 intake contract', () => {
     expect(page).not.toContain('deleteRoomPricing');
     expect(page).not.toContain('<Dialog');
     expect(page).not.toContain('<ConfirmationModal');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('<BulkActionBar');
+    expect(page).toContain('selectedCount={selection.selectedIds.length}');
     expect(mobile).toContain("actionNotice = ''");
     expect(mobile).toContain('pricingProjection = null');
     expect(mobile).not.toContain("trend: 'LIVE'");
