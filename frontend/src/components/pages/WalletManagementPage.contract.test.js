@@ -1,12 +1,36 @@
 import fs from 'fs';
+import path from 'path';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 
 describe('WalletManagementPage Payments contract', () => {
-  const pageSource = () => fs.readFileSync('src/components/pages/WalletManagementPage.jsx', 'utf8');
-  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
-  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileWallet.jsx', 'utf8');
+  const readTree = (directory) => fs.readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) return readTree(entryPath);
+      return /\.(js|jsx)$/.test(entry.name) && !entry.name.endsWith('.test.js')
+        ? [fs.readFileSync(entryPath, 'utf8')]
+        : [];
+    })
+    .join('\n');
+  const pageEntrySource = () => fs.readFileSync('src/components/pages/WalletManagementPage.jsx', 'utf8');
+  const pageSource = () => [
+    pageEntrySource(),
+    readTree('src/components/pages/wallet'),
+  ].join('\n');
+  const walletModuleSource = (file) => fs.readFileSync(`src/components/pages/wallet/${file}`, 'utf8');
+  const mobileWalletModuleSource = (file) => fs.readFileSync(`src/components/mobile/wallet/${file}`, 'utf8');
+  const appSource = () => [
+    fs.readFileSync('src/app/AppRoutes.jsx', 'utf8'),
+    fs.readFileSync('src/app/appRouteMetadata.js', 'utf8'),
+    fs.readFileSync('src/app/AppLayout.jsx', 'utf8'),
+  ].join('\n');
+  const mobileEntrySource = () => fs.readFileSync('src/components/mobile/MobileWallet.jsx', 'utf8');
+  const mobileSource = () => [
+    mobileEntrySource(),
+    readTree('src/components/mobile/wallet'),
+  ].join('\n');
   const analyticsModalSource = () => fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
   const serviceSource = () => fs.readFileSync('src/services/walletService.js', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
@@ -20,6 +44,47 @@ describe('WalletManagementPage Payments contract', () => {
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
     fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
   ].join('\n');
+
+  it('keeps PAGE-04 route, controller, model, and presentation ownership modular', () => {
+    const pageEntry = pageEntrySource();
+    const mobileEntry = mobileEntrySource();
+    const routeController = walletModuleSource('useWalletPageController.js');
+    const desktopController = walletModuleSource('usePaymentsDesktopController.js');
+    const model = walletModuleSource('walletPageModel.js');
+    const desktopPresentation = [
+      walletModuleSource('PaymentsDesktopWorkspace.jsx'),
+      walletModuleSource('PaymentsActivity.jsx'),
+      walletModuleSource('PaymentsMetrics.jsx'),
+      walletModuleSource('PaymentDetailRail.jsx'),
+      walletModuleSource('PaymentReceiptDialog.jsx'),
+    ].join('\n');
+    const mobileController = mobileWalletModuleSource('useMobileWalletController.js');
+    const app = appSource();
+
+    expect(pageEntry.split(/\r?\n/).length).toBeLessThanOrEqual(180);
+    expect(mobileEntry.split(/\r?\n/).length).toBeLessThanOrEqual(240);
+    expect(pageEntry).toContain("import { useWalletPageController } from './wallet/useWalletPageController';");
+    expect(pageEntry).toContain("export { PaymentReceiptDialog } from './wallet/PaymentReceiptDialog';");
+    expect(pageEntry).toContain("export { PaymentsDesktopWorkspace } from './wallet/PaymentsDesktopWorkspace';");
+    expect(mobileEntry).toContain("import { useMobileWalletController } from './wallet/useMobileWalletController';");
+    expect(mobileEntry).toContain("export { MobileWalletActivity } from './wallet/MobileWalletActivity';");
+    expect(mobileEntry).toContain("export { MobileWalletDetail } from './wallet/MobileWalletDetail';");
+
+    expect(routeController).toContain('getWalletPageData({');
+    expect(routeController).toContain('buildLoadedLedgerCsv({');
+    expect(routeController).not.toContain('<PaymentsDesktopWorkspace');
+    expect(desktopController).toContain('useRowSelection(activeItems)');
+    expect(desktopController).toContain('useSearchParams()');
+    expect(model).not.toContain("from 'react'");
+    expect(model).not.toContain('window.');
+    expect(model).not.toContain('document.');
+    expect(model).not.toContain('getWalletPageData');
+    expect(desktopPresentation).not.toContain('getWalletPageData');
+    expect(desktopPresentation).not.toContain('buildLoadedLedgerCsv');
+    expect(mobileController).not.toContain('getWalletPageData');
+    expect(app).toContain("wallet: lazyNamedPage(() => import('../components/pages/WalletManagementPage'), 'WalletManagementPage')");
+    expect(app).toContain("{ id: 'wallet', path: '/wallet', minRole: 'org_admin' }");
+  });
 
   it('keeps the Payments route at org-admin scope while preserving the /wallet route', () => {
     expect(getRouteProtection('/wallet')).toEqual({
@@ -308,7 +373,7 @@ describe('WalletManagementPage Payments contract', () => {
   });
 
   it('keeps Payments inside the shared shell without private shell chrome', () => {
-    const page = pageSource();
+    const page = pageEntrySource();
 
     const forbiddenShellOwners = [
       'SmartHeader',
@@ -327,7 +392,7 @@ describe('WalletManagementPage Payments contract', () => {
       expect(page).not.toContain(owner);
     });
 
-    expect(page).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';");
+    expect(page).toContain("import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true });');
   });
 
@@ -355,17 +420,18 @@ describe('WalletManagementPage Payments contract', () => {
 
   it('shows at most three source-backed desktop payment metrics', () => {
     const page = pageSource();
+    const metrics = walletModuleSource('PaymentsMetrics.jsx');
     const service = serviceSource();
 
-    expect(page).toContain("import { MetricStrip } from '../console/MetricStrip';");
-    expect(page).toContain('const PaymentsMetrics = ({');
-    expect(page).toContain('max={3}');
-    expect(page.match(/label: '(Balance|Credits|Debits)'/g)).toHaveLength(3);
+    expect(metrics).toContain('MetricStrip');
+    expect(metrics).toContain('const PaymentsMetrics = ({');
+    expect(metrics).toContain('max={3}');
+    expect(metrics.match(/label: '(Balance|Credits|Debits)'/g)).toHaveLength(3);
     expect(page).toContain("['ready', 'stale'].includes(readState?.wallet)");
     expect(page).toContain("['ready', 'stale'].includes(readState?.financeMetrics)");
     expect(page).toContain("String(value).trim() !== ''");
-    expect(page).toContain('available: Boolean(balanceAvailable)');
-    expect(page).toContain('available: ledgerTotalsAvailable');
+    expect(metrics).toContain('available: totals.balanceAvailable');
+    expect(metrics).toContain('available: totals.ledgerTotalsAvailable');
     expect(page).toContain('financeMetrics.credits');
     expect(page).toContain('financeMetrics.debits');
     expect(page).toContain('Last confirmed ledger totals');
@@ -385,17 +451,17 @@ describe('WalletManagementPage Payments contract', () => {
   it('wires desktop search, refresh, and FilterSheet to the returned activity window', () => {
     const page = pageSource();
 
-    expect(page).toContain("import { ActivitySheet, SheetToolbar, SortableColumnHeader, ListRowShell } from '../console/ActivitySheet';");
-    expect(page).toContain('search={mobileSearch}');
-    expect(page).toContain('onSearchCommit={setMobileSearch}');
-    expect(page).toContain('filters={activeMobileFilters}');
-    expect(page).toContain('const matchesWalletActivity = ({ item, activeTab, filters, normalizedSearch }) =>');
+    expect(page).toContain('ActivitySheet');
+    expect(page).toContain('search={controller.search}');
+    expect(page).toContain('onSearchCommit={controller.setSearch}');
+    expect(page).toContain('filters={controller.activeFilters}');
+    expect(page).toContain('export const matchesWalletActivity = ({ item, activeTab, filters = {}, normalizedSearch = \'\' }) =>');
     expect(page).toContain('.filter((item) => matchesWalletActivity({ item, activeTab, filters, normalizedSearch }))');
     expect(page).toContain('searchValue={search}');
     expect(page).toContain('searchTestId="payments-sheet-search"');
     expect(page).toContain('onOpenFilters={onOpenFilters}');
     expect(page).toContain('filtersActive={hasWalletFilters(filters)}');
-    expect(page).toContain('isMobile={false}');
+    expect(page).toContain('isMobile={isMobile}');
     expect(page).not.toContain('Search and filters apply only to the records currently shown.');
     expect(page).toContain('role="tablist"');
     expect(page).toContain('aria-label="Payment activity source"');
@@ -441,15 +507,15 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('Add funds, withdrawals, and card changes are not available for this account.');
     expect(panel).toContain('Payment history is available here. Money and card changes are unavailable.');
     expect(panel).not.toContain('aria-disabled="true"');
-    expect(page).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
-    expect(page).toContain("import { BulkActionBar } from '../common/BulkActionBar';");
-    expect(page).toContain("import { Checkbox } from '../ui/checkbox';");
+    expect(page).toContain('useRowSelection');
+    expect(page).toContain('BulkActionBar');
+    expect(page).toContain('Checkbox');
     expect(page).toContain('useRowSelection(activeItems)');
     expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
     expect(page).toContain('aria-label={allSelected ? \'Clear payment selection\' : \'Select all visible payment records\'}');
-    expect(page).toContain('checked={selectedIds.includes(item.id)}');
-    expect(page).toContain('onSelectClick={handleSelectClick}');
-    expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
+    expect(page).toContain('checked={workspace.selectedIds.includes(item.id)}');
+    expect(page).toContain('onSelectClick={workspace.handleSelectClick}');
+    expect(page).toContain('<BulkActionBar selectedCount={workspace.selectedIds.length} onClear={workspace.clearSelection}>');
     expect(page).toContain('Bulk payment actions are unavailable');
     expect(page).toContain('[activeTab, clearSelection, filters, normalizedSearch, pagination.currentPage]');
     expect(page).toContain('[clearSelection, searchParams, setActiveTab, setSearchParams]');
@@ -461,19 +527,20 @@ describe('WalletManagementPage Payments contract', () => {
   it('uses the shared long-press selection grammar on mobile without money writes', () => {
     const mobile = mobileSource();
 
-    expect(mobile).toContain("import { MobileSelectionBar } from './MobileSelectionBar';");
-    expect(mobile).toContain("import { useRowSelection } from '../../hooks/useRowSelection';");
+    expect(mobile).toContain('MobileSelectionBar');
+    expect(mobile).toContain('useRowSelection');
     expect(mobile).toContain('useRowSelection(items)');
     expect(mobile).toContain('selectable');
-    expect(mobile).toContain('selected={selectedIdSet.has(item.id)}');
-    expect(mobile).toContain('selectionMode={selectionMode}');
-    expect(mobile).toContain('onLongPress={(entry) => handleToggleSelect(entry.id, true)}');
+    expect(mobile).toContain('selected={controller.selectedIdSet.has(item.id)}');
+    expect(mobile).toContain('selectionMode={controller.selectionMode}');
+    expect(mobile).toContain('onLongPress={(entry) => controller.handleToggleSelect(entry.id, true)}');
     expect(mobile).toContain('<MobileSelectionBar');
-    expect(mobile).toContain('onSelectAll={() => handleSelectAll(true)}');
-    expect(mobile).toContain('onClear={clearSelection}');
+    expect(mobile).toContain('onSelectAll={() => controller.handleSelectAll(true)}');
+    expect(mobile).toContain('onClear={controller.clearSelection}');
     expect(mobile).toContain('Bulk payment actions are unavailable');
     expect(mobile).toContain('[activeTab, clearSelection, filters, normalizedSearch]');
-    expect(mobile).toContain('<WalletActivityTabs activeTab={activeTab} setActiveTab={handleTabChange} />');
+    expect(mobile).toContain('role="tablist"');
+    expect(mobile).toContain('<WalletActivityTabButtons activeTab={activeTab} setActiveTab={controller.handleTabChange} />');
     expect(mobile).toMatch(/<MobileSelectionBar[\s\S]*?<button[\s\S]*?disabled[\s\S]*?title="Bulk payment actions are unavailable"/);
     expect(mobile).not.toContain('handleBulkPayment');
     expect(mobile).not.toContain('handleBulkTransaction');
@@ -494,9 +561,10 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('setPayments([])');
     expect(page).not.toContain('error?.message');
     expect(page).toContain("setLoadError('Payments could not load. Please try again.');");
-    expect(page).toContain("key === 'financeMetrics' && financeMetricsRef.current?.complete");
+    expect(page).toContain("key === 'financeMetrics' && hasConfirmedMetrics");
     expect(page).toContain("value === 'ready'");
-    expect(page).toContain('setFinanceMetrics(financeMetricsRef.current);');
+    expect(page).toContain('preserveWalletPageDataAfterFailure(current)');
+    expect(page).toContain('financeMetricsStale: hasConfirmedMetrics || current.financeMetricsStale');
     expect(panel).toContain('Showing the most recent available records.');
   });
 
@@ -505,16 +573,16 @@ describe('WalletManagementPage Payments contract', () => {
     const service = serviceSource();
 
     expect(page).toContain('<MobileWallet');
-    expect(page).toContain('isFetching={isFetching && !mobileLoadingMore}');
-    expect(page).toContain('errorMessage={loadError}');
-    expect(page).toContain('onRefresh={fetchData}');
-    expect(page).toContain('hasMore={Boolean(hasMore[activeTab])}');
-    expect(page).toContain('onLoadMore={handleMobileLoadMore}');
-    expect(page).toContain('readState={readState}');
-    expect(page).toContain('search={mobileSearch}');
-    expect(page).toContain('filters={activeMobileFilters}');
+    expect(page).toContain('isFetching={controller.isFetching && !controller.mobileLoadingMore}');
+    expect(page).toContain('errorMessage={controller.loadError}');
+    expect(page).toContain('onRefresh={controller.fetchData}');
+    expect(page).toContain('hasMore={Boolean(controller.hasMore[controller.activeTab])}');
+    expect(page).toContain('onLoadMore={controller.handleMobileLoadMore}');
+    expect(page).toContain('readState={controller.readState}');
+    expect(page).toContain('search={controller.search}');
+    expect(page).toContain('filters={controller.activeFilters}');
     expect(page).toContain('<FilterSheet');
-    expect(page).toContain("title={activeTab === 'ledger' ? 'Transaction filters' : 'Payment filters'}");
+    expect(page).toContain("title={controller.activeTab === 'ledger' ? 'Transaction filters' : 'Payment filters'}");
     expect(service).toContain('safeLimit + 1');
     expect(service).toContain('ledgerRows.length > safeLimit');
     expect(service).toContain('paymentRows.length > safeLimit');
@@ -539,7 +607,7 @@ describe('WalletManagementPage Payments contract', () => {
     const mobile = mobileSource();
 
     expect(page).toContain('formatCurrency(payment.amount, payment.currency)');
-    expect(page).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(page).toContain('ModalShell');
     expect(page).toContain('<ModalShell');
     expect(page).toContain('title="Payment details"');
     expect(page).toContain('size="md"');
@@ -578,10 +646,10 @@ describe('WalletManagementPage Payments contract', () => {
     const page = pageSource();
     const analyticsModal = analyticsModalSource();
 
-    expect(page.match(/type="payments"/g)?.length).toBe(2);
+    expect(page.match(/type="payments"/g)?.length).toBe(1);
     expect(page).not.toContain('type="generic"');
     expect(page).toContain('const byStatus = payments.reduce((counts, payment) => {');
-    expect(page).toContain("!['completed', 'refunded'].includes(String(payment.status || '').toLowerCase())");
+    expect(page).toContain("!['completed', 'refunded'].includes(normalizedValue(payment.status))");
     expect(page).toContain('paymentCount: payments.length');
     expect(page).toContain('lifecycleCount: payments.length');
     expect(page).toContain('transactions: ledger.length');
@@ -604,9 +672,10 @@ describe('WalletManagementPage Payments contract', () => {
     const panel = walletPanelSource();
     const mobile = mobileSource();
 
-    expect(page).toContain('buildLoadedLedgerCsv({ ledger, currency: wallet?.currency })');
+    expect(page).toContain('buildLoadedLedgerCsv({');
+    expect(page).toContain('ledger: pageData.ledger');
     expect(page).toContain('ivisit_loaded_transactions_');
-    expect(page).toContain('loaded transaction${ledger.length === 1');
+    expect(page).toContain('loaded transaction${pageData.ledger.length === 1');
     expect(page).toContain("window.addEventListener('exportLedger', handleExportEvent);");
     expect(page).toContain("window.removeEventListener('exportLedger', handleExportEvent);");
     expect(panel).toContain("new CustomEvent('exportLedger')");
@@ -633,7 +702,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain('financeMetrics.credits');
     expect(mobile).toContain('financeMetrics.debits');
     expect(mobile).toContain('Last confirmed ledger totals');
-    expect(mobile).toContain("const normalizedValue = (value) => String(value || '').toLowerCase();");
+    expect(mobile).toContain('normalizedValue');
     expect(mobile).toContain("label: 'Transactions'");
     expect(mobile).toContain("label: 'Patient payments'");
     expect(mobile).toContain('role="tablist"');
@@ -655,13 +724,13 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).not.toContain('onOpenBilling');
 
     // Tap-opens-detail-sheet: active-record state + row onClick + one MobileDetailSheet render.
-    expect(mobile).toContain("import { MobileDetailSheet } from './MobileDetailSheet';");
+    expect(mobile).toContain("import { MobileDetailSheet } from '../MobileDetailSheet';");
     expect(mobile).toContain('const [activeEntry, setActiveEntry] = useState(null);');
     expect(mobile).toContain('<MobileListRow');
-    expect(mobile).toContain('setActiveEntry({ kind: activeTab, item: entry })');
+    expect(mobile).toContain('controller.setActiveEntry({ kind: activeTab, item: entry })');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen');
-    expect(mobile).toContain('onClose={() => setActiveEntry(null)}');
+    expect(mobile).toContain('onClose: () => setActiveEntry(null)');
 
     // Read-only ledger: the payment receipt CTA is the only action, still via onOpenPayment.
     expect(mobile).toContain('onOpenPayment(item)');
