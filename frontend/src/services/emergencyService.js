@@ -14,6 +14,7 @@ import {
   buildLatestPaymentMap,
   normalizeEmergencyRequestRow,
 } from '../utils/emergencyRequestMapper';
+import { applyQueryAbortSignal, throwIfQueryAborted } from './queryAbort';
 
 const TABLE_NAME = 'emergency_requests';
 const EMERGENCY_CREATE_FACILITY_LIMIT = 100;
@@ -369,25 +370,30 @@ function applyEmergencyRequestScope(query, user) {
   });
 }
 
-async function getEmergencyPageExactCount(filter = {}, user) {
+async function getEmergencyPageExactCount(filter = {}, user, abortSignal) {
   // L1 hardening: retry the idempotent count read on transient failures. The
   // query is rebuilt inside the callback because Supabase builders are single-use
   // thenables; non-retryable errors (auth/RLS) still throw on the first attempt.
   return withRetry(async () => {
+    throwIfQueryAborted(abortSignal);
     let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
     query = applyEmergencyRequestScope(query, user);
     query = applyEmergencyListFilters(query, filter);
     query = applyEmergencyKpiFilter(query, filter.kpiFilter);
+    query = applyQueryAbortSignal(query, abortSignal);
 
     const { count, error } = await query;
+    throwIfQueryAborted(abortSignal);
     if (error) throw error;
     return count || 0;
   });
 }
 
-export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = false) {
+export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = false, abortSignal) {
   try {
+    throwIfQueryAborted(abortSignal);
     const scopedUser = user || await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
     // Stats contract: the KPI chips ARE the status dimension, so chip counts ignore the
     // sheet status filter (search/date/service filters still apply). Each count below
     // sets its own status/kpi scope on this one consistent base.
@@ -407,19 +413,19 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       cancelled,
       mine,
     ] = await Promise.all([
-      getEmergencyPageExactCount(baseFilter, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'pending_approval' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, kpiFilter: 'active' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, service_type: 'bed' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, service_type: 'ambulance' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, service_type: 'booking' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'in_progress' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'accepted' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'arrived' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'completed' }, scopedUser),
-      getEmergencyPageExactCount({ ...baseFilter, status: 'cancelled' }, scopedUser),
+      getEmergencyPageExactCount(baseFilter, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'pending_approval' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, kpiFilter: 'active' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'bed' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'ambulance' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'booking' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'in_progress' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'accepted' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'arrived' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'completed' }, scopedUser, abortSignal),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'cancelled' }, scopedUser, abortSignal),
       scopedUser?.id
-        ? getEmergencyPageExactCount({ ...baseFilter, responder_id: scopedUser.id }, scopedUser)
+        ? getEmergencyPageExactCount({ ...baseFilter, responder_id: scopedUser.id }, scopedUser, abortSignal)
         : Promise.resolve(0),
     ]);
 
@@ -446,16 +452,20 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
   }
 }
 
-async function getLatestPaymentMapForRequests(rows) {
+async function getLatestPaymentMapForRequests(rows, abortSignal) {
   const requestIds = (rows || []).map((row) => row.id).filter(Boolean);
   if (requestIds.length === 0) return new Map();
 
   const data = await withRetry(async () => {
-    const result = await supabase
+    throwIfQueryAborted(abortSignal);
+    let query = supabase
       .from('payments')
       .select('id,emergency_request_id,payment_method,status,amount,currency,created_at')
       .in('emergency_request_id', requestIds)
       .order('created_at', { ascending: false });
+    query = applyQueryAbortSignal(query, abortSignal);
+    const result = await query;
+    throwIfQueryAborted(abortSignal);
 
     if (result.error) throw result.error;
     return result.data || [];
@@ -509,7 +519,10 @@ export async function getEmergencyRequests(filter) {
  */
 export async function getEmergencyRequestsPage(filter = {}) {
   try {
+    const abortSignal = filter?.abortSignal;
+    throwIfQueryAborted(abortSignal);
     const user = await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
 
     // 'mine' is the responder-persona chip (drivers): resolve it to a concrete
     // responder_id filter here so count/stats/list all inherit it without the
@@ -519,8 +532,8 @@ export async function getEmergencyRequestsPage(filter = {}) {
     }
 
     const statsFilter = filter.statsFilter || { ...filter, kpiFilter: undefined, responder_id: undefined };
-    const countPromise = getEmergencyPageExactCount(filter, user);
-    const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);
+    const countPromise = getEmergencyPageExactCount(filter, user, abortSignal);
+    const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true, abortSignal);
 
     let dataQuery = supabase.from(TABLE_NAME).select('*');
     dataQuery = applyEmergencyRequestScope(dataQuery, user);
@@ -535,15 +548,18 @@ export async function getEmergencyRequestsPage(filter = {}) {
     if (Number.isFinite(limit) && limit > 0) {
       dataQuery = dataQuery.range(offset, offset + limit - 1);
     }
+    dataQuery = applyQueryAbortSignal(dataQuery, abortSignal);
 
     const [{ data, error }, count, stats] = await Promise.all([
       dataQuery,
       countPromise,
       statsPromise,
     ]);
+    throwIfQueryAborted(abortSignal);
     if (error) throw error;
 
-    const paymentByRequestId = await getLatestPaymentMapForRequests(data || []);
+    const paymentByRequestId = await getLatestPaymentMapForRequests(data || [], abortSignal);
+    throwIfQueryAborted(abortSignal);
     const normalizedRows = (data || []).map((row) =>
       normalizeEmergencyRequestRow(row, paymentByRequestId.get(row.id))
     );

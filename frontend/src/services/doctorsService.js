@@ -7,6 +7,7 @@
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { supabase } from '../lib/supabase';
 import { withRetry } from './supabaseHelpers';
+import { applyQueryAbortSignal, throwIfQueryAborted } from './queryAbort';
 
 const TABLE_NAME = 'doctors';
 const STAFF_STATUSES = ['available', 'on_call', 'busy', 'off_duty'];
@@ -48,7 +49,10 @@ export function filterDoctorFacilityOptions(facilities, actor = {}) {
 }
 
 export function assertDoctorWriteScope(input = {}, actor = {}, { requireFacility = false } = {}) {
-  if (actor.role !== 'org_admin') return input;
+  if (!['admin', 'org_admin'].includes(actor?.role)) {
+    throw createDoctorScopeError('This role cannot change staff directory records.');
+  }
+  if (actor.role === 'admin') return input;
 
   const submittedFacility = Object.prototype.hasOwnProperty.call(input, 'hospital_id');
   if (!submittedFacility && !requireFacility) return input;
@@ -58,6 +62,29 @@ export function assertDoctorWriteScope(input = {}, actor = {}, { requireFacility
     throw createDoctorScopeError('Select a facility in your organization.');
   }
 
+  return input;
+}
+
+const DOCTOR_WORKFLOW_FIELDS = new Set([
+  'profile_id',
+  'status',
+  'is_available',
+  'is_on_call',
+  'rating',
+  'reviews_count',
+  'max_patients',
+  'current_patients',
+  'display_id',
+]);
+
+export function assertDoctorWritableFields(input = {}) {
+  const rejected = Object.keys(input || {}).filter((field) => DOCTOR_WORKFLOW_FIELDS.has(field));
+  if (rejected.length > 0) {
+    const error = new Error('Staff identity, availability, and lifecycle use their dedicated workflows.');
+    error.code = 'DOCTOR_FIELD_AUTHORITY_DENIED';
+    error.fields = rejected;
+    throw error;
+  }
   return input;
 }
 
@@ -121,12 +148,15 @@ function applyDoctorFilters(query, user, filter = {}) {
   return applyDateRange(query, filter.created_at);
 }
 
-async function getDoctorExactCount(filter = {}, user, quiet = false) {
+async function getDoctorExactCount(filter = {}, user, quiet = false, abortSignal) {
   try {
+    throwIfQueryAborted(abortSignal);
     let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
     query = applyDoctorFilters(query, user, filter);
+    query = applyQueryAbortSignal(query, abortSignal);
 
     const { error, count } = await query;
+    throwIfQueryAborted(abortSignal);
     if (error) throw error;
     return Number.isFinite(count) ? count : 0;
   } catch (error) {
@@ -145,7 +175,7 @@ const withStatusForCount = (filter = {}, status) => {
   return { ...filter, status };
 };
 
-async function getDoctorPageStats(filter = {}, user, quiet = false) {
+async function getDoctorPageStats(filter = {}, user, quiet = false, abortSignal) {
   const statsFilter = {
     search: filter.search,
     specialization: filter.specialization,
@@ -155,11 +185,11 @@ async function getDoctorPageStats(filter = {}, user, quiet = false) {
   };
 
   const [total, available, onCall, busy, offDuty] = await Promise.all([
-    getDoctorExactCount(statsFilter, user, quiet),
-    getDoctorExactCount(withStatusForCount(statsFilter, 'available'), user, quiet),
-    getDoctorExactCount(withStatusForCount(statsFilter, 'on_call'), user, quiet),
-    getDoctorExactCount(withStatusForCount(statsFilter, 'busy'), user, quiet),
-    getDoctorExactCount(withStatusForCount(statsFilter, 'off_duty'), user, quiet),
+    getDoctorExactCount(statsFilter, user, quiet, abortSignal),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'available'), user, quiet, abortSignal),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'on_call'), user, quiet, abortSignal),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'busy'), user, quiet, abortSignal),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'off_duty'), user, quiet, abortSignal),
   ]);
 
   return {
@@ -178,7 +208,9 @@ async function getDoctorPageStats(filter = {}, user, quiet = false) {
 const sanitizeInput = (input) => {
   const cleaned = { ...input };
   Object.keys(cleaned).forEach(key => {
-    if (cleaned[key] === '') {
+    if (cleaned[key] === undefined) {
+      delete cleaned[key];
+    } else if (cleaned[key] === '') {
       cleaned[key] = null;
     }
   });
@@ -190,7 +222,10 @@ const sanitizeInput = (input) => {
  */
 export async function getDoctors(filter = {}) {
   try {
+    const abortSignal = filter?.abortSignal;
+    throwIfQueryAborted(abortSignal);
     const user = await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
 
     const sortKey = DOCTOR_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
     const sortDirection = filter.sortDirection === 'asc' ? 'asc' : 'desc';
@@ -209,30 +244,23 @@ export async function getDoctors(filter = {}) {
         const from = filter.offset || 0;
         query = query.range(from, from + filter.limit - 1);
       }
+      query = applyQueryAbortSignal(query, abortSignal);
 
       const result = await query;
+      throwIfQueryAborted(abortSignal);
       if (result.error) throw result.error;
       return result;
     });
 
     if (error) throw error;
 
-    // NEW: Enrich with display IDs (PRV-XXXXXX) via profile_id
-    let enrichedData = data || [];
-    if (enrichedData.length > 0) {
-      const { getDisplayIds } = await import('./displayIdService');
-      const profileIds = enrichedData.map(d => d.profile_id).filter(Boolean);
-      const displayIds = await getDisplayIds(profileIds, { quiet: filter?.quiet });
+    // doctors.display_id is the canonical directory label. The former profile-id
+    // enrichment queried the hospitals table and could overwrite real labels.
+    const rows = data || [];
+    const stats = await getDoctorPageStats(filter, user, filter?.quiet, abortSignal);
+    throwIfQueryAborted(abortSignal);
 
-      enrichedData = enrichedData.map(d => ({
-        ...d,
-        display_id: displayIds.get(d.profile_id) || null
-      }));
-    }
-
-    const stats = await getDoctorPageStats(filter, user, filter?.quiet);
-
-    return { data: enrichedData, count: count || 0, stats };
+    return { data: rows, count: count || 0, stats };
   } catch (error) {
     if (!filter?.quiet) {
       console.error('Error fetching doctors:', error);
@@ -268,24 +296,20 @@ export async function createDoctor(input) {
   try {
     const actor = await getCurrentUser();
     assertDoctorWriteScope(input, actor, { requireFacility: actor?.role === 'org_admin' });
+    assertDoctorWritableFields(input);
 
     const payload = sanitizeInput({
-      profile_id: input.profile_id, // Added
       name: input.name,
       specialization: input.specialization,
       hospital_id: input.hospital_id === '' ? null : input.hospital_id,
       image: input.image,
-      rating: input.rating ?? null,
-      reviews_count: input.reviews_count ?? 0,
       experience: input.experience,
       about: input.about,
       consultation_fee: input.consultation_fee,
+      department: input.department,
       license_number: input.license_number,
-      status: input.status || 'available',
       phone: input.phone,
       email: input.email,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     });
 
     const { data, error } = await supabase
@@ -310,15 +334,15 @@ export async function updateDoctor(doctorId, input) {
   try {
     const actor = await getCurrentUser();
     assertDoctorWriteScope(input, actor);
+    assertDoctorWritableFields(input);
 
     // Whitelist of writable doctor columns (mirrors ambulancesService.updateAmbulance
     // VALID_COLUMNS) so arbitrary/forged fields (including the `hospitals` join)
     // cannot be written. These service checks complement, but do not replace, RLS.
     const VALID_COLUMNS = [
-      'profile_id', 'name', 'specialization', 'hospital_id',
-      'image', 'rating', 'reviews_count', 'experience',
-      'about', 'consultation_fee', 'license_number',
-      'status', 'phone', 'email',
+      'name', 'specialization', 'hospital_id',
+      'image', 'experience', 'about', 'consultation_fee',
+      'department', 'license_number', 'phone', 'email',
     ];
 
     const source = input || {};
@@ -326,7 +350,7 @@ export async function updateDoctor(doctorId, input) {
     for (const key of VALID_COLUMNS) {
       if (key in source) {
         // Sanitize empty strings to null for UUID/FK fields
-        if (['profile_id', 'hospital_id'].includes(key)) {
+        if (key === 'hospital_id') {
           payload[key] = source[key] === '' ? null : source[key];
         } else {
           payload[key] = source[key];
@@ -336,6 +360,11 @@ export async function updateDoctor(doctorId, input) {
 
     // Preserve existing empty-string → null normalization for the remaining columns
     const sanitized = sanitizeInput(payload);
+    if (Object.keys(sanitized).length === 0) {
+      const error = new Error('No supported staff directory changes were provided.');
+      error.code = 'DOCTOR_NO_WRITABLE_FIELDS';
+      throw error;
+    }
     sanitized.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
@@ -358,17 +387,10 @@ export async function updateDoctor(doctorId, input) {
  * Delete doctor
  */
 export async function deleteDoctor(doctorId) {
-  try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', doctorId);
-
-    if (error) throw error;
-  } catch (error) {
-    console.error(`Error deleting doctor ${doctorId}:`, error);
-    throw error;
-  }
+  void doctorId;
+  const error = new Error('Staff retirement is unavailable until a canonical retirement workflow is approved.');
+  error.code = 'DOCTOR_RETIREMENT_UNAVAILABLE';
+  throw error;
 }
 
 /**

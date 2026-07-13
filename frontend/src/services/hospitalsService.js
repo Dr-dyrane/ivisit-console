@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 import { withRetry, withAudit } from './supabaseHelpers';
+import { applyQueryAbortSignal, throwIfQueryAborted } from './queryAbort';
 
 const TABLE_NAME = 'hospitals';
 const HOSPITAL_CREATE_FIELDS = [
@@ -171,16 +172,19 @@ export function getHospitalVisibleStats(rows = []) {
   return { total, available, full, busy, verified, totalBeds, totalAmbulances };
 }
 
-async function getHospitalExactCount(filters = {}, quiet = false) {
+async function getHospitalExactCount(filters = {}, quiet = false, abortSignal) {
   try {
+    throwIfQueryAborted(abortSignal);
     // L1 hardening: retry this idempotent count read on transient failures. The
     // builder is rebuilt inside the callback because Supabase builders are
     // single-use thenables; non-retryable errors (auth/RLS) throw on attempt 1.
     const { error, count } = await withRetry(async () => {
       let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
       query = applyHospitalFilters(query, filters);
+      query = applyQueryAbortSignal(query, abortSignal);
 
       const result = await query;
+      throwIfQueryAborted(abortSignal);
       if (result.error) throw result.error;
       return result;
     });
@@ -195,13 +199,13 @@ async function getHospitalExactCount(filters = {}, quiet = false) {
   }
 }
 
-export async function getHospitalPageStats(filters = {}, quiet = false) {
+export async function getHospitalPageStats(filters = {}, quiet = false, abortSignal) {
   const [total, available, full, busy, verified] = await Promise.all([
-    getHospitalExactCount(filters, quiet),
-    getHospitalExactCount({ ...filters, status: 'available' }, quiet),
-    getHospitalExactCount({ ...filters, status: 'full' }, quiet),
-    getHospitalExactCount({ ...filters, status: 'busy' }, quiet),
-    getHospitalExactCount({ ...filters, verified: true }, quiet),
+    getHospitalExactCount(filters, quiet, abortSignal),
+    getHospitalExactCount({ ...filters, status: 'available' }, quiet, abortSignal),
+    getHospitalExactCount({ ...filters, status: 'full' }, quiet, abortSignal),
+    getHospitalExactCount({ ...filters, status: 'busy' }, quiet, abortSignal),
+    getHospitalExactCount({ ...filters, verified: true }, quiet, abortSignal),
   ]);
 
   return {
@@ -322,6 +326,8 @@ export function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
  */
 export async function getHospitals(filter = {}) {
   try {
+    const abortSignal = filter?.abortSignal;
+    throwIfQueryAborted(abortSignal);
     // L1 hardening: retry the primary hospitals read on transient failures. The
     // query is rebuilt inside the callback because Supabase builders are single-use
     // thenables; non-retryable errors (auth/RLS/constraint) still throw on the first
@@ -345,8 +351,10 @@ export async function getHospitals(filter = {}) {
       } else if (filter?.limit) {
         query = query.limit(filter.limit);
       }
+      query = applyQueryAbortSignal(query, abortSignal);
 
       const result = await query;
+      throwIfQueryAborted(abortSignal);
       if (result.error) throw result.error;
       return result;
     });
@@ -399,9 +407,11 @@ export async function getHospitalsPageData(options = {}) {
     sortKey,
     sortDirection,
     quiet = false,
+    abortSignal,
   } = options;
 
   try {
+    throwIfQueryAborted(abortSignal);
     const [pageResult, stats] = await Promise.all([
       getHospitals({
         ...filters,
@@ -411,9 +421,11 @@ export async function getHospitalsPageData(options = {}) {
         sortDirection,
         count: true,
         quiet,
+        abortSignal,
       }),
-      getHospitalPageStats(statsFilters, quiet),
+      getHospitalPageStats(statsFilters, quiet, abortSignal),
     ]);
+    throwIfQueryAborted(abortSignal);
 
     const pageRows = pageResult?.data || [];
     const visibleStats = getHospitalVisibleStats(pageRows);
@@ -439,8 +451,9 @@ export async function getHospitalsPageData(options = {}) {
 /**
  * Get single hospital by ID
  */
-export async function getHospital(hospitalId) {
+export async function getHospital(hospitalId, { abortSignal } = {}) {
   try {
+    throwIfQueryAborted(abortSignal);
     // maybeSingle(): this is a non-owner lookup (operators/admins fetch any
     // facility), so 0 rows under RLS must resolve to null, not PGRST116/HTTP 406.
     // NOTE: no isValidUUID early-return here - this function intentionally accepts
@@ -457,8 +470,10 @@ export async function getHospital(hospitalId) {
       } else {
         query = query.eq('display_id', hospitalId);
       }
+      query = applyQueryAbortSignal(query, abortSignal);
 
       const result = await query.maybeSingle();
+      throwIfQueryAborted(abortSignal);
       if (result.error && result.error.code !== 'PGRST116') throw result.error;
       return result;
     });

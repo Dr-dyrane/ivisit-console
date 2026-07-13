@@ -52,7 +52,7 @@ export function useAmbulancesQuery(filter = {}) {
  */
 export function useInvalidateAmbulances() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['ambulances'] });
+  return (options) => queryClient.invalidateQueries({ queryKey: ['ambulances'] }, options);
 }
 
 export default useAmbulancesQuery;

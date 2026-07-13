@@ -5,7 +5,7 @@
  * transient failure is retried with backoff, while a non-retryable error still
  * throws on the first attempt (behavior preserved).
  *
- * Supabase / auth / displayId dependencies are mocked so no real client or env
+ * Supabase and auth dependencies are mocked so no real client or env
  * vars are required. The mock query builder is a chainable thenable that yields
  * a queued response per await, and a fresh builder is returned per from() call
  * (matching how withRetry rebuilds the single-use Supabase builder each attempt).
@@ -14,7 +14,6 @@
 import { getDoctors } from './doctorsService';
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
-import { getDisplayIds } from './displayIdService';
 
 jest.mock('../lib/supabase', () => ({
   supabase: { from: jest.fn() },
@@ -23,10 +22,6 @@ jest.mock('../lib/supabase', () => ({
 jest.mock('./authService', () => ({
   getCurrentUser: jest.fn(),
   applyAuthFilter: jest.fn((query) => query),
-}));
-
-jest.mock('./displayIdService', () => ({
-  getDisplayIds: jest.fn(),
 }));
 
 const BUILDER_METHODS = ['select', 'eq', 'in', 'or', 'gte', 'lte', 'order', 'range'];
@@ -59,7 +54,7 @@ describe('doctorsService.getDoctors withRetry hardening', () => {
       // attempt 1: transient network error -> retryable
       { data: null, error: { message: 'network fetch failed' }, count: null },
       // attempt 2: success
-      { data: [{ id: 'doc-1', profile_id: 'prof-1' }], error: null, count: 1 },
+      { data: [{ id: 'doc-1', profile_id: 'prof-1', display_id: 'PRV-000001' }], error: null, count: 1 },
       // getDoctorPageStats: five exact-count reads
       { data: null, error: null, count: 0 },
       { data: null, error: null, count: 0 },
@@ -68,7 +63,6 @@ describe('doctorsService.getDoctors withRetry hardening', () => {
       { data: null, error: null, count: 0 },
     ];
     supabase.from.mockImplementation(() => makeBuilder(responses));
-    getDisplayIds.mockResolvedValue(new Map([['prof-1', 'PRV-000001']]));
 
     const result = await getDoctors({ quiet: true });
 

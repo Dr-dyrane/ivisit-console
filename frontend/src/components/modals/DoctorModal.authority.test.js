@@ -37,10 +37,10 @@ describe('DoctorModal lifecycle and profile authority', () => {
     expect(payload).not.toHaveProperty('is_available');
   });
 
-  it('creates the only locally aligned lifecycle pair supported by database defaults', () => {
+  it('leaves initial lifecycle fields to database defaults on create', () => {
     const payload = buildStaffPayload(formData, { isCreate: true, isProfileLinked: false });
 
-    expect(payload.status).toBe('available');
+    expect(payload).not.toHaveProperty('status');
     expect(payload).not.toHaveProperty('is_available');
   });
 

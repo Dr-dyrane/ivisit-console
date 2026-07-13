@@ -88,7 +88,9 @@ export function applyOptimisticRemove(cache, hospitalId) {
  * @param {(cache:any, variables:any)=>any} [params.applyOptimistic] - pure
  *   reducer producing the optimistic cache value. Omit to mutate without an
  *   optimistic write (rollback still restores the exact snapshot).
- * @param {() => void} [params.invalidate] - convergence step; defaults to
+ * @param {(error:unknown, context:object)=>void} [params.onConvergenceError] -
+ *   reports a post-commit refetch failure without reclassifying the write.
+ * @param {(options?:object) => Promise<void>} [params.invalidate] - convergence step; defaults to
  *   invalidating the HOSPITALS_KEY_ROOT prefix (matches useInvalidateHospitals).
  * @param {Array} [params.listKey] - exact cache key to snapshot/patch/rollback.
  */
@@ -96,6 +98,7 @@ export function buildHospitalsMutationOptions({
   queryClient,
   mutationFn,
   applyOptimistic,
+  onConvergenceError,
   invalidate,
   listKey = hospitalsListKey(),
 }) {
@@ -129,11 +132,20 @@ export function buildHospitalsMutationOptions({
 
     // Always converge to server truth, whether the mutation succeeded or the
     // rollback ran - the optimistic value is only ever a placeholder.
-    onSettled() {
-      if (typeof invalidate === 'function') {
-        invalidate();
-      } else {
-        queryClient.invalidateQueries({ queryKey: HOSPITALS_KEY_ROOT });
+    async onSettled(data, error, variables, context) {
+      try {
+        if (typeof invalidate === 'function') {
+          await invalidate({ throwOnError: true });
+        } else {
+          await queryClient.invalidateQueries(
+            { queryKey: HOSPITALS_KEY_ROOT },
+            { throwOnError: true }
+          );
+        }
+      } catch (convergenceError) {
+        if (!error && typeof onConvergenceError === 'function') {
+          onConvergenceError(convergenceError, { data, variables, context });
+        }
       }
     },
   };
@@ -151,7 +163,12 @@ export function buildHospitalsMutationOptions({
  *   useHospitalsQuery, so the optimistic write patches that page's cache entry.
  * @returns the React Query mutation object ({ mutate, mutateAsync, isPending, ... }).
  */
-export function useHospitalsMutations({ mutationFn, applyOptimistic, filter } = {}) {
+export function useHospitalsMutations({
+  mutationFn,
+  applyOptimistic,
+  onConvergenceError,
+  filter,
+} = {}) {
   const queryClient = useQueryClient();
   const invalidateHospitals = useInvalidateHospitals();
 
@@ -160,6 +177,7 @@ export function useHospitalsMutations({ mutationFn, applyOptimistic, filter } = 
       queryClient,
       mutationFn,
       applyOptimistic,
+      onConvergenceError,
       invalidate: invalidateHospitals,
       listKey: hospitalsListKey(filter),
     })

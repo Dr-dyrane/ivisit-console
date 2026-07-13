@@ -103,14 +103,7 @@ if (fs.existsSync(appScriptsDir)) {
         fs.mkdirSync(consoleScriptsDir, { recursive: true });
     }
 
-    // Clean existing scripts
-    const existingScriptFiles = fs.readdirSync(consoleScriptsDir)
-        .filter(f => f.endsWith('.js') || f.endsWith('.sql') || f === 'README.md');
-    existingScriptFiles.forEach(file => {
-        fs.unlinkSync(path.join(consoleScriptsDir, file));
-    });
-
-    // Copy all scripts
+    // Overwrite canonical shared scripts without pruning Console-owned utilities.
     const activeScriptFiles = fs.readdirSync(appScriptsDir)
         .filter(f => f.endsWith('.js') || f.endsWith('.sql') || f === 'README.md');
     activeScriptFiles.forEach(file => {

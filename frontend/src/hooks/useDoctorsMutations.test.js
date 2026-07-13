@@ -124,11 +124,11 @@ describe('buildDoctorsMutationOptions callbacks (direct, real QueryClient)', () 
     expect(queryClient.getQueryData(listKey).data.map((d) => d.id)).toEqual(['doc-1']);
   });
 
-  it('onSettled invalidates so the cache converges to server truth', () => {
+  it('onSettled awaits invalidation so the cache converges to server truth', async () => {
     const queryClient = freshClient();
     const invalidate = jest.fn();
 
-    buildDoctorsMutationOptions({
+    const settled = buildDoctorsMutationOptions({
       queryClient,
       mutationFn: createDoctor,
       applyOptimistic: applyOptimisticUpsert,
@@ -136,25 +136,71 @@ describe('buildDoctorsMutationOptions callbacks (direct, real QueryClient)', () 
       listKey: doctorsListKey(),
     }).onSettled();
 
-    expect(invalidate).toHaveBeenCalledTimes(1);
+    await expect(settled).resolves.toBeUndefined();
+    expect(invalidate).toHaveBeenCalledWith({ throwOnError: true });
   });
 
-  it('onSettled falls back to invalidating the DOCTORS_KEY_ROOT prefix when no invalidate fn is given', () => {
+  it('onSettled falls back to invalidating the DOCTORS_KEY_ROOT prefix when no invalidate fn is given', async () => {
     const queryClient = freshClient();
     const spy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    buildDoctorsMutationOptions({
+    await buildDoctorsMutationOptions({
       queryClient,
       mutationFn: createDoctor,
       applyOptimistic: applyOptimisticUpsert,
       listKey: doctorsListKey(),
     }).onSettled();
 
-    expect(spy).toHaveBeenCalledWith({ queryKey: DOCTORS_KEY_ROOT });
+    expect(spy).toHaveBeenCalledWith(
+      { queryKey: DOCTORS_KEY_ROOT },
+      { throwOnError: true }
+    );
   });
 });
 
 describe('end-to-end mutation lifecycle via MutationObserver', () => {
+  it('keeps mutateAsync pending until delayed server convergence settles', async () => {
+    const queryClient = freshClient();
+    const listKey = doctorsListKey();
+    queryClient.setQueryData(listKey, seedCache());
+    createDoctor.mockResolvedValueOnce({ id: 'doc-2', name: 'New Doctor' });
+
+    let releaseInvalidation;
+    let markInvalidationStarted;
+    const invalidationStarted = new Promise((resolve) => {
+      markInvalidationStarted = resolve;
+    });
+    const invalidate = jest.fn(() => {
+      markInvalidationStarted();
+      return new Promise((resolve) => {
+        releaseInvalidation = resolve;
+      });
+    });
+    const observer = new MutationObserver(
+      queryClient,
+      buildDoctorsMutationOptions({
+        queryClient,
+        mutationFn: createDoctor,
+        applyOptimistic: applyOptimisticUpsert,
+        invalidate,
+        listKey,
+      })
+    );
+
+    let mutationSettled = false;
+    const mutation = observer.mutate({ id: 'doc-2', name: 'New Doctor' }).then(() => {
+      mutationSettled = true;
+    });
+
+    await invalidationStarted;
+    expect(mutationSettled).toBe(false);
+    expect(invalidate).toHaveBeenCalledWith({ throwOnError: true });
+
+    releaseInvalidation();
+    await mutation;
+    expect(mutationSettled).toBe(true);
+  });
+
   it('applies optimistic value, calls the service, and invalidates on success', async () => {
     const queryClient = freshClient();
     const listKey = doctorsListKey();

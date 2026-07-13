@@ -22,7 +22,7 @@ import { getHospitalsPageData } from '../services/hospitalsService';
 export function useHospitalsQuery(filter = {}) {
   const query = useQuery({
     queryKey: ['hospitals', filter],
-    queryFn: () => getHospitalsPageData(filter),
+    queryFn: ({ signal }) => getHospitalsPageData({ ...filter, abortSignal: signal }),
     staleTime: 30_000,
     // v5 equivalent of keepPreviousData - avoids a flash to empty while refetching
     // (e.g. when the KPI/status filter or page offset changes).
@@ -47,7 +47,7 @@ export function useHospitalsQuery(filter = {}) {
  */
 export function useInvalidateHospitals() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['hospitals'] });
+  return (options) => queryClient.invalidateQueries({ queryKey: ['hospitals'] }, options);
 }
 
 export default useHospitalsQuery;

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getDoctorByProfileId, updateDoctor } from '../services/doctorsService';
+import { getDoctorByProfileId } from '../services/doctorsService';
 import { toast } from 'sonner';
 
 export const useDoctorProfile = () => {
@@ -28,19 +28,12 @@ export const useDoctorProfile = () => {
     }, [fetchProfile]);
 
     const updateProfile = async (updates) => {
-        if (!doctorProfile) return;
-        try {
-            setLoading(true);
-            const updated = await updateDoctor(doctorProfile.id, updates);
-            setDoctorProfile(prev => ({ ...prev, ...updated }));
-            toast.success('Professional profile updated successfully');
-            return updated;
-        } catch (error) {
-            toast.error('Failed to update profile');
-            throw error;
-        } finally {
-            setLoading(false);
-        }
+        void updates;
+        if (!doctorProfile) return null;
+        const error = new Error('Professional directory changes require an approved provider-profile workflow.');
+        error.code = 'DOCTOR_PROFILE_WRITE_UNAVAILABLE';
+        toast.info('Professional directory editing is not available here.');
+        throw error;
     };
 
     return { doctorProfile, loading, updateProfile, refresh: fetchProfile };

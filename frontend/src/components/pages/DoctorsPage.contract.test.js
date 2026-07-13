@@ -321,7 +321,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(modal).toContain('const isProfileLinked = Boolean(doctor?.profile_id);');
     expect(modal).toContain('buildStaffPayload(formData, { isCreate, isProfileLinked })');
     expect(modal).toContain('if (isCreate || !isProfileLinked)');
-    expect(modal).toContain("if (isCreate) payload.status = 'available';");
+    expect(modal).not.toContain('payload.status');
     expect(modal).toContain('Synced from the linked account');
     expect(modal).not.toContain("updateField('status'");
     expect(modal).not.toContain('status: formData.status');
@@ -341,9 +341,12 @@ describe('DoctorsPage Staff contract', () => {
     expect(modal).not.toContain('profile.organization_id');
     expect(modal).not.toContain('\u00e2');
 
-    expect(service).toContain('rating: input.rating ?? null');
-    expect(service).toContain('reviews_count: input.reviews_count ?? 0');
-    expect(service).not.toContain('rating: input.rating || 4.5');
+    expect(service).toContain('const DOCTOR_WORKFLOW_FIELDS = new Set([');
+    expect(service).toContain("'rating',");
+    expect(service).toContain("'reviews_count',");
+    expect(service).toContain('assertDoctorWritableFields(input);');
+    expect(service).not.toContain('rating: input.rating');
+    expect(service).not.toContain('reviews_count: input.reviews_count');
     expect(service).toContain('async function getDoctorExactCount');
     expect(service).toContain('async function getDoctorPageStats');
     expect(service).toContain('applyDoctorFilters(query, user, filter)');
@@ -356,7 +359,8 @@ describe('DoctorsPage Staff contract', () => {
     expect(service).toContain("query = query.gte('created_at'");
     expect(service).toContain("query = query.lte('created_at'");
     expect(service).toContain('const sortKey = DOCTOR_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : \'created_at\';');
-    expect(service).toContain('return { data: enrichedData, count: count || 0, stats };');
+    expect(service).toContain('return { data: rows, count: count || 0, stats };');
+    expect(service).toContain("error.code = 'DOCTOR_RETIREMENT_UNAVAILABLE';");
     expect(service).not.toContain("query = query.ilike('name'");
     expect(hook).toContain('stats: query.data?.stats');
   });

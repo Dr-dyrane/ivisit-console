@@ -158,6 +158,55 @@ describe('emergencyResponseService command guards', () => {
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
+  it('allows a dispatcher to use a directly organization-owned unit without a station', async () => {
+    getCurrentUser.mockResolvedValue({
+      id: 'dispatcher-1',
+      role: 'dispatcher',
+      organization_id: 'organization-local',
+      hospital_ids: ['hospital-local'],
+    });
+    getAmbulance.mockResolvedValue({
+      id: 'ambulance-direct',
+      status: 'available',
+      type: 'advanced',
+      organization_id: 'organization-local',
+      hospital_id: null,
+    });
+    supabase.rpc.mockImplementation((name) => {
+      if (name === 'nearby_ambulances') {
+        return Promise.resolve({ data: [{ id: 'ambulance-direct', distance: 2 }], error: null });
+      }
+      if (name === 'console_dispatch_emergency') {
+        return Promise.resolve({ data: { success: true, request: { id: 'request-1' } }, error: null });
+      }
+      throw new Error(`Unexpected RPC: ${name}`);
+    });
+
+    await expect(dispatchEmergency('request-1', {
+      status: 'in_progress',
+      service_type: 'ambulance',
+      hospital_id: 'hospital-local',
+      patient_location: { lat: 6.5, lng: 3.4 },
+    })).resolves.toEqual(expect.objectContaining({ success: true }));
+
+    expect(supabase.rpc).toHaveBeenLastCalledWith(
+      'console_dispatch_emergency',
+      expect.objectContaining({ p_ambulance_id: 'ambulance-direct' })
+    );
+  });
+
+  it('rejects a role without dispatch authority before candidate lookup', async () => {
+    getCurrentUser.mockResolvedValue({ id: 'provider-1', role: 'provider' });
+
+    await expect(dispatchEmergency('request-1', {
+      status: 'in_progress',
+      service_type: 'ambulance',
+      patient_location: { lat: 6.5, lng: 3.4 },
+    })).rejects.toThrow('This role cannot dispatch emergency requests.');
+
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
   it('does not dispatch when request location cannot support proximity matching', async () => {
     await expect(dispatchEmergency('request-1', {
       status: 'in_progress',

@@ -157,7 +157,8 @@ describe('PageDataContext role loading contract', () => {
     expect(analyticsSource).toContain('if (!options?.quiet) {');
     expect(profilesSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
     expect(profilesSource).toContain('if (!options?.quiet) {');
-    expect(doctorsSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
+    expect(doctorsSource).toContain('const rows = data || [];');
+    expect(doctorsSource).not.toContain('getDisplayIds(profileIds');
   });
 
   it('loads only the domains each Today role actually renders', () => {

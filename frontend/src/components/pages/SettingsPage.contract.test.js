@@ -403,13 +403,15 @@ describe('Settings Page 16 intake contract', () => {
 
     for (const source of [oldDoctorHook, doctorHook]) {
       expect(source).toContain('getDoctorByProfileId(user.id)');
-      expect(source).toContain('updateDoctor(doctorProfile.id, updates)');
-      expect(source).toContain("toast.success('Professional profile updated successfully')");
     }
+    expect(oldDoctorHook).toContain('updateDoctor(doctorProfile.id, updates)');
+    expect(oldDoctorHook).toContain("toast.success('Professional profile updated successfully')");
     expect(oldDoctorHook).toContain("console.error('Error loading doctor profile', error)");
     expect(oldDoctorHook).toContain('console.error(error)');
     expect(doctorHook).not.toContain('console.error');
-    expect(doctorHook).toContain("toast.error('Failed to update profile')");
+    expect(doctorHook).not.toContain('updateDoctor(');
+    expect(doctorHook).toContain("error.code = 'DOCTOR_PROFILE_WRITE_UNAVAILABLE';");
+    expect(doctorHook).toContain("toast.info('Professional directory editing is not available here.')");
     expect(doctorHook).toContain('throw error');
     expect(gate).toContain('Settings diagnostic hygiene cleanup on 2026-07-06 removed raw browser `console.error` diagnostics from profile image upload/profile save failures, password update failures, and provider-profile load/update failures, and changed the password placeholders in `SecurityModal.jsx` to ASCII `********`.');
     expect(gate).toContain('User-facing failure feedback remains through existing toast/error handlers, but this is redaction/copy hygiene only; it does not prove the profile, security, or provider-profile receivers as final Settings authority.');

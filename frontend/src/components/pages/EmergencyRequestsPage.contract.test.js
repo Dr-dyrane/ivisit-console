@@ -12,7 +12,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // the only caller of the service projection. The page reads the ['emergency']
     // cache, never the raw table, and never invokes the service read directly.
     expect(pageSource).toContain('useEmergencyQuery(queryFilter');
-    expect(queryHookSource).toContain('getEmergencyRequestsPage(filter)');
+    expect(queryHookSource).toContain('getEmergencyRequestsPage({ ...filter, abortSignal: signal })');
     expect(pageSource).not.toContain('getEmergencyRequestsPage({');
     expect(pageSource).not.toContain("supabase.from('emergency_requests')");
     expect(pageSource).not.toContain("supabase.from('payments')");
@@ -70,7 +70,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('setTotalCount(normalizedRows.length');
     expect(pageSource).not.toContain('pagination.setTotalCount(requests.length');
 
-    expect(serviceSource).toContain('async function getEmergencyPageExactCount(filter = {}, user) {');
+    expect(serviceSource).toContain('async function getEmergencyPageExactCount(filter = {}, user, abortSignal) {');
     expect(serviceSource).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
     expect(serviceSource).toContain('query = applyEmergencyRequestScope(query, user);');
     expect(serviceSource).toContain('query = applyEmergencyListFilters(query, filter);');
@@ -81,8 +81,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(serviceSource).not.toContain("if (Array.isArray(filter.status) && filter.status.length > 0) {\n    query = query.in('status', filter.status);\n  } else if (filter.status) {");
     expect(serviceSource).toContain('query = applyEmergencyKpiFilter(query, filter.kpiFilter);');
     expect(serviceSource).toContain("if (kpiFilter === 'booking') return query.eq('service_type', 'booking');");
-    expect(serviceSource).toContain('const countPromise = getEmergencyPageExactCount(filter, user);');
-    expect(serviceSource).toContain('const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);');
+    expect(serviceSource).toContain('const countPromise = getEmergencyPageExactCount(filter, user, abortSignal);');
+    expect(serviceSource).toContain('const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true, abortSignal);');
     expect(serviceSource).toContain("const sortKey = EMERGENCY_REQUEST_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';");
     expect(serviceSource).toContain("dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });");
     expect(serviceSource).toContain('const limit = Number(filter.limit);');
@@ -814,8 +814,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('const [requests, setRequests]');
     expect(pageSource).not.toContain('getEmergencyRequestsPage({');
     expect(queryHookSource).toContain("queryKey: ['emergency', filter]");
-    expect(queryHookSource).toContain('getEmergencyRequestsPage(filter)');
-    expect(queryHookSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] })");
+    expect(queryHookSource).toContain('getEmergencyRequestsPage({ ...filter, abortSignal: signal })');
+    expect(queryHookSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] }, options)");
 
     // Write path: mutations wrap the EXISTING reused RPC service fns; onMutate
     // snapshot -> optimistic status -> onError rollback -> onSettled invalidate(['emergency']).

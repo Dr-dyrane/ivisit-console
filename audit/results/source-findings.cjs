@@ -1,4 +1,4 @@
-const capturedAt = "2026-07-13T11:38:29Z";
+const capturedAt = "2026-07-13T14:35:44Z";
 
 function finding({
   id, actionId, route, role, locator, sourceComponent, crudOperation, payloadCase,
@@ -939,28 +939,34 @@ const baseBlockedCandidates = [
     locator: "support_tickets category/status/priority columns", sourceComponent: "frontend/supabase/migrations/20260219000500_ops_content.sql",
     crudOperation: "deploy", payloadCase: "invalid_enum",
     reason: "Console service writes now enforce the mounted category, status, and priority vocabularies, but the canonical table still declares unconstrained TEXT columns. Add and reconcile database CHECK constraints before claiming ecosystem-wide enum enforcement."
+  }),
+  blocked({
+    id: "PR-DB-SHARED-CONTRACT-LIVE-APPLY", actionId: "schema.console-shared-contracts.deploy", route: "multiple", role: "schema_owner",
+    locator: "ivisit-app canonical pillars and linked Supabase project", sourceComponent: "ivisit-app/supabase/migrations; frontend/supabase/migrations",
+    crudOperation: "deploy", payloadCase: "partial_response", additionalPayloadCases: ["unauthorized_role", "concurrency"],
+    reason: "The canonical App pillars, Console mirror, static shared-contract guard, Console tests, and production build are aligned. These dated pillar versions are already recorded on the linked project and will not replay automatically; merge the App owner source, apply the reviewed SQL through the approved Supabase workflow, and run receiver-level role/concurrency proof before claiming linked-project parity."
   })
 ];
 
 const sourceSnapshots = [
   { lane: "B", capturedAt, mode: "read_only", note: "Facilities, organizations, verification, onboarding, fleet, and staff receivers revalidated against the current worktree and maintained SQL." },
-  { lane: "C", capturedAt, mode: "read_only", head: "a3e2d4d0aaad2e63e2f95aa1eb4e707f40e9047c", note: "Clinical and dispatch mounted paths revalidated; unresolved receiver and SECURITY DEFINER authority remains active." },
+  { lane: "C", capturedAt, mode: "read_only", head: "b827458b", note: "Clinical and dispatch mounted paths plus canonical receiver source revalidated; linked-project application remains separately blocked." },
   { lane: "D", capturedAt, mode: "read_only", visibleCandidates: 67, note: "Identity, profiles, Settings, MFA assurance, account cache, avatar persistence, and role guards revalidated with focused tests." },
   { lane: "E", capturedAt, mode: "read_only", mountedSourceActions: 75, note: "Financial routes plus emergency payment actions; trigger-sensitive writes were not invoked." },
   { lane: "F", capturedAt, mode: "read_only", semanticCandidates: 84, note: "Health News, Support, and subscriber mounted paths revalidated; schema-wide Support enum authority remains blocked." },
   { lane: "G", capturedAt, mode: "read_only", semanticFailureInjectionCases: 50, note: "Failure, concurrency, timeout, cache, and navigation mechanisms revalidated with focused tests; unsafe live mutation was not performed." },
-  { lane: "PR", capturedAt, mode: "read_only_current_worktree", note: "All source findings were revalidated against the dirty PR worktree; active, resolved, and runtime-blocked states are disjoint." }
+  { lane: "PR", capturedAt, mode: "read_only_current_worktree", note: "All findings were revalidated against the dirty PR worktree and App-owned canonical pillars; source resolution and linked-project deployment proof remain disjoint." }
 ];
 
 const resolvedFindingReasons = Object.freeze({
-  "B-HSP-SELF-VERIFY": "The mounted hospital editor now exposes verification controls only to platform admins and strips verification fields from non-admin payloads; receiver defense in depth is tracked separately.",
-  "B-FAC-VERIFY-CLEARS-TAXONOMY-APPROVE": "The deployed update_hospital_by_admin receiver is documented and live-verified as preserving omitted taxonomy arrays; the remaining gap is the unmerged canonical pillar branch.",
-  "B-FAC-VERIFY-CLEARS-TAXONOMY-REJECT": "The deployed update_hospital_by_admin receiver is documented and live-verified as preserving omitted taxonomy arrays; the remaining gap is the unmerged canonical pillar branch.",
+  "B-HSP-SELF-VERIFY": "The mounted hospital editor strips verification fields for non-admins, and the canonical receiver independently rejects verification keys unless the actor is a platform admin.",
+  "B-FAC-VERIFY-CLEARS-TAXONOMY-APPROVE": "update_hospital_by_admin preserves omitted taxonomy arrays and still permits an explicit empty array to clear them; the exact branch patch is absorbed in the App-owned pillar.",
+  "B-FAC-VERIFY-CLEARS-TAXONOMY-REJECT": "update_hospital_by_admin preserves omitted taxonomy arrays and still permits an explicit empty array to clear them; the exact branch patch is absorbed in the App-owned pillar.",
   "B-VER-MODAL-FALSE-SUCCESS-APPROVE": "Verification approval now withholds success and keeps the modal open when the receiver rejects or returns false.",
   "B-VER-MODAL-FALSE-SUCCESS-REJECT": "The provider verification modal is approve-only; facility rejection is owned by a separate page action.",
   "B-VER-MOBILE-BULK-RACE-APPROVE": "Mobile provider approvals now run sequentially with progress and retain failed selections.",
   "B-VER-MOBILE-BULK-RACE-REJECT": "Mobile verification selection is provider-only and the bulk surface no longer advertises rejection.",
-  "B-ONB-STORAGE-CLEANUP-UNVERIFIED": "Onboarding now inspects Storage remove results and surfaces DOCUMENT_CLEANUP_FAILED when cleanup is rejected; policy canon remains separately blocked.",
+  "B-ONB-STORAGE-CLEANUP-UNVERIFIED": "Onboarding inspects Storage remove results and surfaces DOCUMENT_CLEANUP_FAILED when cleanup is rejected; canonical private evidence policies restrict upload, read, and pre-submission cleanup to the actor path.",
   "B-ONB-SIGNOUT-UNHANDLED": "Onboarding awaits sign-out and AuthContext clears local state from a finally block when remote sign-out fails.",
   "C-09-ANALYTICS-PARTIAL-AS-TOTAL": "The analytics entry point now treats loaded rows as an explicit preview and does not open complete statistics when the server summary is unavailable.",
   "C-10-MOBILE-VISIT-INCIDENT-NO-DESTINATION": "The visit incident event now opens Emergency Details on mobile as well as desktop.",
@@ -992,19 +998,19 @@ const resolvedFindingReasons = Object.freeze({
   "B-HSP-RESERVATION-FAILURE-AS-EMPTY": "Bed read failures now propagate to a retryable modal error state; an empty reservation list is rendered only after a successful read.",
   "B-AMB-STALE-STATUS-OVERWRITE": "Ambulance metadata edits omit status in both the modal payload and generic update whitelist; dispatch lifecycle state is read-only on existing units.",
   "B-DOC-INVITED-STATUS-MUTATION": "Staff editing preserves invited and unknown lifecycle values and no longer submits status during ordinary edits.",
-  "B-DOC-AVAILABLE-BUT-UNUSABLE": "The mounted Staff editor no longer advertises a lifecycle write, and rows with status available but is_available false are labeled unavailable for assignment. Generic receiver ownership remains separately blocked.",
-  "B-DOC-DELETE-CLINICAL-EVIDENCE": "Mounted single and bulk Staff deletion were removed from desktop, mobile, and the detail rail; generic receiver retirement remains separately blocked.",
+  "B-DOC-AVAILABLE-BUT-UNUSABLE": "The mounted Staff editor no longer advertises a lifecycle write, rows with status available but is_available false are labeled unavailable for assignment, and the generic service rejects lifecycle and availability fields.",
+  "B-DOC-DELETE-CLINICAL-EVIDENCE": "Mounted single and bulk Staff deletion were removed from desktop, mobile, and the detail rail; the generic delete export also fails closed without a database call.",
   "B-DOC-STALE-DELETE-SUCCESS": "The mounted Staff route no longer invokes doctor deletion, so stale zero-row success cannot be presented by the current page.",
-  "B-DOC-LINKED-DELETE-NOT-DURABLE": "The mounted Staff route no longer invokes doctor deletion; durable backend retirement remains separately blocked.",
+  "B-DOC-LINKED-DELETE-NOT-DURABLE": "The mounted Staff route no longer invokes doctor deletion, and the generic delete export fails closed until a durable retirement receiver exists.",
   "G-F002-DOCTOR-DELETE-DOUBLE-CONFIRM": "The mounted Staff route no longer exposes single deletion or a deletion confirmation surface.",
   "G-F003-DOCTOR-BULK-PARTIAL-CONCURRENT": "The mounted Staff selection bar no longer exposes bulk deletion.",
-  "B-DOC-PROFILE-FIELDS-NOT-DURABLE": "Linked profile identity fields are read-only in the mounted Staff editor and are omitted from edit payloads; generic receiver ownership remains separately blocked.",
+  "B-DOC-PROFILE-FIELDS-NOT-DURABLE": "Linked profile identity fields are read-only in the mounted Staff editor, omitted from generic writes, and guarded at the database trigger boundary as profile-owned identity.",
   "B-DOC-EXTERNAL-FACILITY-OPTION": "The Staff editor now loads canonical organization-scoped facility options, and the service rejects missing, cleared, or forged external facility ids before Supabase for org_admin creates and updates.",
   "C-01-ORG-ADMIN-CREATE-MISSING-FACILITY": "Org-admin emergency creation now requires and server-verifies a facility in the actor organization before either create receiver is called.",
   "C-02-ADMIN-CREATE-DROPS-COORDINATES": "Console emergency creation normalizes {lat,lng}, pickup, and scalar coordinate inputs into the patient_location and scalar receiver fields without dropping valid zero values.",
   "C-03-CREATE-TYPE-COERCED": "The create surface and service accept only the canonical ambulance, bed, and booking service vocabulary; incident language remains separate from service_type.",
   "C-06-PROVIDER-COMPLETE-OWNERSHIP-MISMATCH": "Provider completion now requires the current actor to be the assigned responder in both page action state and the service boundary.",
-  "C-07-RETRY-PAYMENT-METHOD-RLS": "The mounted retry-payment path is disconnected and the exported browser service now fails unavailable before invoking the unproved RPC; the insecure SQL receiver remains active as separate FIN findings.",
+  "C-07-RETRY-PAYMENT-METHOD-RLS": "The mounted retry-payment path remains disconnected until deployment proof, while the canonical receiver now validates owner, method, request state, locking, and execute scope.",
   "C-08-DETAIL-REFRESH-REUSES-STALE-PROP": "Emergency Details always rereads the canonical row by id and applies payment, visit, loading, error, and request state only for the latest open request sequence.",
   "C-16-WRONG-ASSIGNEE-DRIVER-CONTROLS": "Map lifecycle controls now require the current provider identity to match the assigned responder before a command is exposed or submitted.",
   "C-17-LOCATION-COMMIT-THEN-READ-FAILS": "Responder location command success is returned independently from the optional projection reload, which now reports projectionState unavailable without reclassifying the committed command.",
@@ -1022,20 +1028,34 @@ const resolvedFindingReasons = Object.freeze({
   "D-ID-007-USERS-COUNT-FAILS-AS-ZERO": "Exact-count failure no longer becomes zero: loaded users remain visible while desktop and mobile render an explicit retryable totals-unavailable state.",
   "F-SUPPORT-MOBILE-DELETE-STALE": "Receiver-confirmed Support deletions become durable mobile tombstones that prune every loaded and later page window; failed mutations create no tombstone.",
   "F-SUPPORT-STALE-DELETE-FALSE-SUCCESS": "Support delete requires the exact returned deleted id and rejects stale, policy-filtered, or zero-row results before success feedback.",
-  "F-SUPPORT-INVALID-ENUM-ACCEPTED": "Mounted Support create, update, status, and filter paths validate category, priority, and status against one canonical service allowlist; database-wide CHECK authority remains separately blocked.",
+  "F-SUPPORT-INVALID-ENUM-ACCEPTED": "Mounted Support paths validate one canonical service allowlist and the App-owned table pillar enforces the same category, priority, and status vocabularies with CHECK constraints.",
   "F-HEALTH-PARTIAL-STATS-FAIL-CLOSE": "Health News auxiliary-stat failure now preserves successfully loaded rows and exact count while labeling the KPI fallback as loaded-row evidence.",
   "F-SUBSCRIBER-PARTIAL-STATS-FAIL-CLOSE": "Subscriber auxiliary-count failure now preserves successfully loaded rows and reports totals as unavailable instead of replacing the route with false empty state.",
-  "C-22-CRITICAL-CARE-IMPOSSIBLE-FACET": "The impossible critical_care facet was removed; Requests and Map now use canonical ambulance, bed, booking, and active dimensions only."
+  "C-22-CRITICAL-CARE-IMPOSSIBLE-FACET": "The impossible critical_care facet was removed; Requests and Map now use canonical ambulance, bed, booking, and active dimensions only.",
+  "B-AMB-CROSS-ORG-STATION": "Canonical ambulance RLS now requires an org_admin role, treats a non-null organization_id as the primary owner, and requires every supplied hospital edge to belong to the same actor organization; Console service and dispatch candidate scope use the same rule.",
+  "B-HSP-RPC-ORG-ADMIN-SELF-VERIFY": "update_hospital_by_admin now requires platform-admin authority whenever verified or verification_status is present, even for a same-organization org_admin direct RPC call.",
+  "C-04-CREATE-OMITS-LINKED-VISIT": "console_create_emergency_request now inserts the linked visit in the same receiver transaction and returns the visit identity with the request projection.",
+  "C-21-NEARBY-AMBULANCES-PUBLIC-DEFINER": "nearby_ambulances now validates the authenticated operator role, scopes org_admin and dispatcher results to their organization, uses geography meters, and revokes PUBLIC and anon execution.",
+  "FIN-EMG-RETRY-DUPLICATE-STALE": "Payment retry now locks the request, reuses any existing pending payment, serializes new pending creation, and converges request status and payment_status before returning.",
+  "FIN-EMG-RETRY-RPC-AUTH": "Payment retry now permits only the request owner or service_role, validates the replacement method against that owner, sets a safe search_path, and revokes PUBLIC and anon execution.",
+  "FIN-INS-POLICY-PROJECTION-RLS": "The canonical insurance policy pillar now matches the App and Console projection, owner writes include WITH CHECK, and platform admins have an explicit SELECT policy for complete Console reads.",
+  "B-RQ-DERIVED-STALE-UI": "Hospital mutations await a throwing root invalidation before mutateAsync settles and report convergence failures separately from committed writes; route queries and deep-link reads consume cancellation signals."
 });
 
 const resolvedBlockedCandidateReasons = Object.freeze({
   "G-H001-CROSS-ACCOUNT-CACHE-SCOPE": "AuthContext clears the TanStack Query client whenever authenticated ownership changes or ends, while same-user token and MFA refreshes retain the cache; focused contracts cover replacement and sign-out paths.",
-  "G-H003-GO-BACK-EMPTY-HISTORY": "Unauthorized Go Back enters pending immediately, detects unusable history, and falls back to the first role-accessible canonical navigation route or signs out before Login when no console route exists."
+  "G-H003-GO-BACK-EMPTY-HISTORY": "Unauthorized Go Back enters pending immediately, detects unusable history, and falls back to the first role-accessible canonical navigation route or signs out before Login when no console route exists.",
+  "G-H002-REALTIME-OPTIMISTIC-RACE": "All five active domain query owners forward TanStack cancellation to PostgREST, all five mutation owners await throwing invalidation, and focused delayed-invalidation coverage proves mutateAsync cannot settle before convergence.",
+  "PR-DB-HOSPITAL-ARRAY-CANON-MERGE": "The exact hospital array-preservation branch behavior is absorbed in the App-owned core RPC pillar, synchronized to Console, and guarded; the standalone branch no longer needs merging.",
+  "PR-DB-INSURANCE-PILLAR-DRIFT": "The App-owned finance pillar now creates the modern insurance fields consumed by both products and the shared-contract guard locks clean-rebuild parity.",
+  "PR-DB-STORAGE-POLICY-CANON": "The security pillar now declares public images and private documents buckets, owner-folder image writes, and private onboarding evidence policies; unproved hospital, ambulance, and insurance uploads remain disconnected.",
+  "PR-DOCTOR-GENERIC-UPDATE-RECEIVER": "The generic doctor service rejects profile, lifecycle, availability, rating, and derived fields; linked provider editing is fail-closed until a dedicated workflow exists.",
+  "PR-DOCTOR-GENERIC-DELETE-RECEIVER": "The generic doctor delete export now fails closed with DOCTOR_RETIREMENT_UNAVAILABLE and performs no database call.",
+  "PR-DOCTOR-RLS-ROLE-AUTHORITY": "Doctor RLS now requires platform admin or an explicit org_admin in the facility organization, and authenticated grants are limited to proved directory columns with no DELETE grant.",
+  "PR-SUPPORT-ENUM-CONSTRAINT": "The canonical support_tickets table now enforces the mounted category, status, and priority vocabularies with database CHECK constraints."
 });
 
-const uncertainFindingReasons = Object.freeze({
-  "B-RQ-DERIVED-STALE-UI": "Invalidation is still not awaited, but the current modal no longer exposes the relationship field used by the original reproduction; the exact stale-derived-state claim needs synthetic runtime proof."
-});
+const uncertainFindingReasons = Object.freeze({});
 
 const resolvedCatalogFindings = findingCatalog
   .filter((item) => resolvedFindingReasons[item.failureId])

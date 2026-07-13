@@ -18,7 +18,7 @@ import { getDoctors } from '../services/doctorsService';
 export function useDoctorsQuery(filter = {}) {
   const query = useQuery({
     queryKey: ['doctors', filter],
-    queryFn: () => getDoctors(filter),
+    queryFn: ({ signal }) => getDoctors({ ...filter, abortSignal: signal }),
     staleTime: 30_000,
     // v5 equivalent of keepPreviousData - avoids a flash to empty while refetching
     placeholderData: (previous) => previous,
@@ -41,7 +41,7 @@ export function useDoctorsQuery(filter = {}) {
  */
 export function useInvalidateDoctors() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['doctors'] });
+  return (options) => queryClient.invalidateQueries({ queryKey: ['doctors'] }, options);
 }
 
 export default useDoctorsQuery;

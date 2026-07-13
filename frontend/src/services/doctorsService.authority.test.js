@@ -1,6 +1,8 @@
 import {
+  assertDoctorWritableFields,
   assertDoctorWriteScope,
   createDoctor,
+  deleteDoctor,
   filterDoctorFacilityOptions,
   updateDoctor,
 } from './doctorsService';
@@ -43,6 +45,26 @@ describe('doctor facility write scope authority', () => {
     expect(filterDoctorFacilityOptions(facilities, { role: 'admin' })).toEqual(facilities);
   });
 
+  it('rejects provider and viewer writes before a table request is built', () => {
+    expect(() => assertDoctorWriteScope({}, { role: 'provider' })).toThrow(
+      'This role cannot change staff directory records.'
+    );
+    expect(() => assertDoctorWriteScope({}, { role: 'viewer' })).toThrow();
+  });
+
+  it.each(['profile_id', 'status', 'is_available', 'rating', 'reviews_count'])(
+    'rejects the workflow-owned %s field',
+    (field) => {
+      expect(() => assertDoctorWritableFields({ [field]: 'forged' })).toThrow();
+      try {
+        assertDoctorWritableFields({ [field]: 'forged' });
+      } catch (error) {
+        expect(error.code).toBe('DOCTOR_FIELD_AUTHORITY_DENIED');
+        expect(error.fields).toContain(field);
+      }
+    }
+  );
+
   it('accepts an in-scope facility and an unrelated edit with no facility field', () => {
     const scopedPayload = { hospital_id: FACILITY_ID };
     const unrelatedPayload = { specialization: 'Emergency' };
@@ -77,5 +99,12 @@ describe('doctor facility write scope authority', () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it('keeps direct doctor deletion fail-closed without contacting Supabase', async () => {
+    await expect(deleteDoctor('doctor-1')).rejects.toMatchObject({
+      code: 'DOCTOR_RETIREMENT_UNAVAILABLE',
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });

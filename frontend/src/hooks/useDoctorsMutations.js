@@ -87,7 +87,9 @@ export function applyOptimisticRemove(cache, doctorId) {
  * @param {(cache:any, variables:any)=>any} [params.applyOptimistic] - pure
  *   reducer producing the optimistic cache value. Omit to mutate without an
  *   optimistic write (rollback still restores the exact snapshot).
- * @param {() => void} [params.invalidate] - convergence step; defaults to
+ * @param {(error:unknown, context:object)=>void} [params.onConvergenceError] -
+ *   reports a post-commit refetch failure without reclassifying the write.
+ * @param {(options?:object) => Promise<void>} [params.invalidate] - convergence step; defaults to
  *   invalidating the DOCTORS_KEY_ROOT prefix (matches useInvalidateDoctors).
  * @param {Array} [params.listKey] - exact cache key to snapshot/patch/rollback.
  */
@@ -95,6 +97,7 @@ export function buildDoctorsMutationOptions({
   queryClient,
   mutationFn,
   applyOptimistic,
+  onConvergenceError,
   invalidate,
   listKey = doctorsListKey(),
 }) {
@@ -128,11 +131,20 @@ export function buildDoctorsMutationOptions({
 
     // Always converge to server truth, whether the mutation succeeded or the
     // rollback ran - the optimistic value is only ever a placeholder.
-    onSettled() {
-      if (typeof invalidate === 'function') {
-        invalidate();
-      } else {
-        queryClient.invalidateQueries({ queryKey: DOCTORS_KEY_ROOT });
+    async onSettled(data, error, variables, context) {
+      try {
+        if (typeof invalidate === 'function') {
+          await invalidate({ throwOnError: true });
+        } else {
+          await queryClient.invalidateQueries(
+            { queryKey: DOCTORS_KEY_ROOT },
+            { throwOnError: true }
+          );
+        }
+      } catch (convergenceError) {
+        if (!error && typeof onConvergenceError === 'function') {
+          onConvergenceError(convergenceError, { data, variables, context });
+        }
       }
     },
   };
@@ -150,7 +162,12 @@ export function buildDoctorsMutationOptions({
  *   useDoctorsQuery, so the optimistic write patches that page's cache entry.
  * @returns the React Query mutation object ({ mutate, mutateAsync, isPending, ... }).
  */
-export function useDoctorsMutations({ mutationFn, applyOptimistic, filter } = {}) {
+export function useDoctorsMutations({
+  mutationFn,
+  applyOptimistic,
+  onConvergenceError,
+  filter,
+} = {}) {
   const queryClient = useQueryClient();
   const invalidateDoctors = useInvalidateDoctors();
 
@@ -159,6 +176,7 @@ export function useDoctorsMutations({ mutationFn, applyOptimistic, filter } = {}
       queryClient,
       mutationFn,
       applyOptimistic,
+      onConvergenceError,
       invalidate: invalidateDoctors,
       listKey: doctorsListKey(filter),
     })

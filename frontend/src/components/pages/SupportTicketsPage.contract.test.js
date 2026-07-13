@@ -127,8 +127,9 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(page).not.toContain('setSupportStats(');
     expect(page).not.toContain('setSupportError(');
     expect(page).not.toContain('getSupportTicketsPage({');
-    expect(queryHookSource()).toContain('getSupportTicketsPage(filter)');
+    expect(queryHookSource()).toContain('getSupportTicketsPage({ ...filter, abortSignal: signal })');
     expect(queryHookSource()).toContain("queryKey: ['support', filter]");
+    expect(queryHookSource()).toContain("queryClient.invalidateQueries({ queryKey: ['support'] }, options)");
     expect(mutationsHookSource()).toContain('applyOptimisticUpsert');
     expect(page).toContain('const location = useLocation();');
     expect(page).toContain('const navigate = useNavigate();');

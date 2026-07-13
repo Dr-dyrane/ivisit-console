@@ -144,7 +144,36 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
     v_user_location GEOMETRY;
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_is_service_role BOOLEAN := COALESCE(v_claims->>'role', '') = 'service_role';
+    v_global_scope BOOLEAN := false;
+    v_radius_km INTEGER := LEAST(100, GREATEST(1, COALESCE(radius_km, 50)));
 BEGIN
+    IF user_lat IS NULL OR user_lng IS NULL
+       OR user_lat < -90 OR user_lat > 90
+       OR user_lng < -180 OR user_lng > 180 THEN
+        RAISE EXCEPTION 'A valid dispatch location is required';
+    END IF;
+
+    IF v_is_service_role THEN
+        v_global_scope := true;
+    ELSE
+        SELECT profile.role, profile.organization_id
+        INTO v_actor_role, v_actor_org_id
+        FROM public.profiles profile
+        WHERE profile.id = auth.uid();
+
+        IF v_actor_role = 'admin' THEN
+            v_global_scope := true;
+        ELSIF v_actor_role IN ('org_admin', 'dispatcher') AND v_actor_org_id IS NOT NULL THEN
+            v_global_scope := false;
+        ELSE
+            RAISE EXCEPTION 'Unauthorized: dispatch fleet scope is unavailable';
+        END IF;
+    END IF;
+
     v_user_location := ST_SetSRID(ST_MakePoint(user_lng, user_lat), 4326);
 
     RETURN QUERY
@@ -152,15 +181,31 @@ BEGIN
         a.id, a.call_sign, 
         ST_Y(a.location::geometry) as latitude,
         ST_X(a.location::geometry) as longitude,
-        ST_Distance(a.location, v_user_location) / 1000 AS distance,
+        ST_Distance(a.location::geography, v_user_location::geography) / 1000 AS distance,
         a.status, a.display_id
     FROM public.ambulances a
     WHERE a.location IS NOT NULL 
       AND a.status = 'available'
-      AND ST_DWithin(a.location, v_user_location, radius_km * 1000)
+      AND ST_DWithin(a.location::geography, v_user_location::geography, v_radius_km * 1000)
+      AND (
+          v_global_scope
+          OR a.organization_id = v_actor_org_id
+          OR (
+              a.organization_id IS NULL
+              AND a.hospital_id IN (
+                  SELECT hospital.id
+                  FROM public.hospitals hospital
+                  WHERE hospital.organization_id = v_actor_org_id
+              )
+          )
+      )
     ORDER BY distance ASC;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.nearby_ambulances(DOUBLE PRECISION, DOUBLE PRECISION, INTEGER) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.nearby_ambulances(DOUBLE PRECISION, DOUBLE PRECISION, INTEGER) TO authenticated, service_role;
 
 -- 3. Get All Auth Users (Console Support)
 -- This requires a SECURITY DEFINER function because it reads from auth.users
@@ -225,19 +270,62 @@ DECLARE
     v_features TEXT[];
     v_specialties TEXT[];
     v_service_types TEXT[];
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_is_service_role BOOLEAN := COALESCE(v_claims->>'role', '') = 'service_role';
+    v_is_platform_admin BOOLEAN := false;
 BEGIN
-    -- Check permissions (Org Admin of target OR Super Admin)
-    IF NOT public.p_is_admin() AND NOT EXISTS (
-        SELECT 1 FROM public.hospitals 
-        WHERE id = target_hospital_id AND organization_id = public.p_get_current_org_id()
-    ) THEN
-        RAISE EXCEPTION 'Unauthorized: You do not manage this hospital';
+    IF target_hospital_id IS NULL OR payload IS NULL THEN
+        RAISE EXCEPTION 'Hospital id and payload are required';
     END IF;
 
-    -- Extract Arrays safely
-    SELECT COALESCE(array_agg(x), '{}') INTO v_features FROM jsonb_array_elements_text(payload->'features') t(x);
-    SELECT COALESCE(array_agg(x), '{}') INTO v_specialties FROM jsonb_array_elements_text(payload->'specialties') t(x);
-    SELECT COALESCE(array_agg(x), '{}') INTO v_service_types FROM jsonb_array_elements_text(payload->'service_types') t(x);
+    IF v_is_service_role THEN
+        v_is_platform_admin := true;
+    ELSE
+        SELECT profile.role, profile.organization_id
+        INTO v_actor_role, v_actor_org_id
+        FROM public.profiles profile
+        WHERE profile.id = auth.uid();
+
+        v_is_platform_admin := v_actor_role = 'admin';
+
+        IF auth.uid() IS NULL
+           OR v_actor_role IS NULL
+           OR v_actor_role NOT IN ('admin', 'org_admin') THEN
+            RAISE EXCEPTION 'Unauthorized: hospital management role required';
+        END IF;
+
+        IF v_actor_role = 'org_admin' AND NOT EXISTS (
+            SELECT 1
+            FROM public.hospitals hospital
+            WHERE hospital.id = target_hospital_id
+              AND hospital.organization_id = v_actor_org_id
+        ) THEN
+            RAISE EXCEPTION 'Unauthorized: You do not manage this hospital';
+        END IF;
+
+        IF v_actor_role = 'org_admin'
+           AND (payload ? 'verified' OR payload ? 'verification_status') THEN
+            RAISE EXCEPTION 'Platform admin approval is required for verification changes';
+        END IF;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public.hospitals WHERE id = target_hospital_id) THEN
+        RAISE EXCEPTION 'Hospital not found';
+    END IF;
+
+    -- Preserve arrays when a partial payload omits the key, while an explicit []
+    -- still clears the corresponding array. This is the live-proven July 8 fix.
+    v_features := CASE WHEN payload ? 'features'
+        THEN (SELECT COALESCE(array_agg(x), '{}') FROM jsonb_array_elements_text(payload->'features') t(x))
+        ELSE NULL END;
+    v_specialties := CASE WHEN payload ? 'specialties'
+        THEN (SELECT COALESCE(array_agg(x), '{}') FROM jsonb_array_elements_text(payload->'specialties') t(x))
+        ELSE NULL END;
+    v_service_types := CASE WHEN payload ? 'service_types'
+        THEN (SELECT COALESCE(array_agg(x), '{}') FROM jsonb_array_elements_text(payload->'service_types') t(x))
+        ELSE NULL END;
 
     UPDATE public.hospitals
     SET
@@ -249,8 +337,14 @@ BEGIN
         latitude = COALESCE((payload->>'latitude')::FLOAT, latitude),
         longitude = COALESCE((payload->>'longitude')::FLOAT, longitude),
         
-        verified = COALESCE((payload->>'verified')::BOOLEAN, verified),
-        verification_status = COALESCE(payload->>'verification_status', verification_status),
+        verified = CASE
+            WHEN v_is_platform_admin THEN COALESCE((payload->>'verified')::BOOLEAN, verified)
+            ELSE verified
+        END,
+        verification_status = CASE
+            WHEN v_is_platform_admin THEN COALESCE(payload->>'verification_status', verification_status)
+            ELSE verification_status
+        END,
         status = COALESCE(payload->>'status', status),
         place_id = COALESCE(payload->>'place_id', place_id),
         
@@ -272,17 +366,20 @@ BEGIN
             ELSE last_availability_update
         END,
         
-        -- Arrays
-        specialties = v_specialties,
-        service_types = v_service_types,
-        features = v_features,
+        specialties = COALESCE(v_specialties, specialties),
+        service_types = COALESCE(v_service_types, service_types),
+        features = COALESCE(v_features, features),
         
         updated_at = NOW()
     WHERE id = target_hospital_id;
     
     RETURN jsonb_build_object('success', true, 'id', target_hospital_id);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.update_hospital_by_admin(UUID, JSONB) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.update_hospital_by_admin(UUID, JSONB) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.delete_hospital_by_admin(target_hospital_id UUID)
 RETURNS JSONB AS $$
@@ -311,7 +408,6 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 
 -- 2. Stats & Analytics
 -- BEGIN CONSOLE_USER_STATISTICS_SCOPE
@@ -949,9 +1045,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.get_org_stripe_status(p_organization_id UUID)
 RETURNS JSONB AS $$
 DECLARE
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_is_service_role BOOLEAN := COALESCE(v_claims->>'role', '') = 'service_role';
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
     v_stripe_id TEXT;
     v_balance NUMERIC;
 BEGIN
+    IF p_organization_id IS NULL THEN
+        RAISE EXCEPTION 'Organization is required';
+    END IF;
+
+    IF NOT v_is_service_role THEN
+        SELECT role, organization_id
+        INTO v_actor_role, v_actor_org_id
+        FROM public.profiles
+        WHERE id = auth.uid();
+
+        IF auth.uid() IS NULL OR v_actor_role NOT IN ('admin', 'org_admin') THEN
+            RAISE EXCEPTION 'Unauthorized: organization finance role required';
+        END IF;
+
+        IF v_actor_role = 'org_admin'
+           AND v_actor_org_id IS DISTINCT FROM p_organization_id THEN
+            RAISE EXCEPTION 'Unauthorized: organization finance scope denied';
+        END IF;
+    END IF;
+
     SELECT stripe_account_id INTO v_stripe_id FROM public.organizations WHERE id = p_organization_id;
     SELECT balance INTO v_balance FROM public.organization_wallets WHERE organization_id = p_organization_id;
     RETURN jsonb_build_object(
@@ -960,7 +1080,10 @@ BEGIN
         'wallet_balance', COALESCE(v_balance, 0)
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.get_org_stripe_status(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_org_stripe_status(UUID) TO authenticated, service_role;
 
 -- process_cash_payment: Used by console walletService (legacy non-v2)
 CREATE OR REPLACE FUNCTION public.process_cash_payment(
@@ -986,9 +1109,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.check_cash_eligibility(p_organization_id UUID)
 RETURNS JSONB AS $$
 DECLARE
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_is_service_role BOOLEAN := COALESCE(v_claims->>'role', '') = 'service_role';
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
     v_balance NUMERIC;
     v_fee_pct NUMERIC;
 BEGIN
+    IF p_organization_id IS NULL THEN
+        RAISE EXCEPTION 'Organization is required';
+    END IF;
+
+    IF NOT v_is_service_role THEN
+        SELECT role, organization_id
+        INTO v_actor_role, v_actor_org_id
+        FROM public.profiles
+        WHERE id = auth.uid();
+
+        IF auth.uid() IS NULL OR v_actor_role NOT IN ('admin', 'org_admin') THEN
+            RAISE EXCEPTION 'Unauthorized: organization finance role required';
+        END IF;
+
+        IF v_actor_role = 'org_admin'
+           AND v_actor_org_id IS DISTINCT FROM p_organization_id THEN
+            RAISE EXCEPTION 'Unauthorized: organization finance scope denied';
+        END IF;
+    END IF;
+
     SELECT balance INTO v_balance FROM public.organization_wallets WHERE organization_id = p_organization_id;
     SELECT ivisit_fee_percentage INTO v_fee_pct FROM public.organizations WHERE id = p_organization_id;
     RETURN jsonb_build_object(
@@ -997,7 +1144,10 @@ BEGIN
         'fee_percentage', COALESCE(v_fee_pct, 2.5)
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.check_cash_eligibility(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.check_cash_eligibility(UUID) TO authenticated, service_role;
 
 -- process_wallet_payment: Used by app paymentService
 CREATE OR REPLACE FUNCTION public.process_wallet_payment(
@@ -1579,6 +1729,7 @@ DECLARE
     v_patient_location geometry;
     v_transition_reason TEXT;
     v_request public.emergency_requests%ROWTYPE;
+    v_visit public.visits%ROWTYPE;
 BEGIN
     SELECT role, organization_id
     INTO v_actor_role, v_actor_org_id
@@ -1706,10 +1857,33 @@ BEGIN
     )
     RETURNING * INTO v_request;
 
+    -- Match the patient create_emergency_v4 contract: request creation is not
+    -- successful unless its linked visit evidence is created in the same transaction.
+    INSERT INTO public.visits (
+        user_id,
+        hospital_id,
+        request_id,
+        status,
+        date,
+        time,
+        type
+    ) VALUES (
+        v_user_id,
+        v_hospital_id,
+        v_request.id,
+        'pending',
+        TO_CHAR(NOW(), 'YYYY-MM-DD'),
+        TO_CHAR(NOW(), 'HH24:MI:SS'),
+        'emergency'
+    )
+    RETURNING * INTO v_visit;
+
     RETURN jsonb_build_object(
         'success', true,
         'request_id', v_request.id,
-        'request', to_jsonb(v_request)
+        'request', to_jsonb(v_request),
+        'visit_id', v_visit.id,
+        'visit', to_jsonb(v_visit)
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

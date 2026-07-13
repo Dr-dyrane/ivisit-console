@@ -25,7 +25,7 @@ import { getSupportTicketsPage } from '../services/supportTicketsService';
 export function useSupportTicketsQuery(filter = {}) {
   const query = useQuery({
     queryKey: ['support', filter],
-    queryFn: () => getSupportTicketsPage(filter),
+    queryFn: ({ signal }) => getSupportTicketsPage({ ...filter, abortSignal: signal }),
     staleTime: 30_000,
     // v5 equivalent of keepPreviousData - avoids a flash to empty while refetching
     // (e.g. when the KPI/status filter or page offset changes).

@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
 import { withRetry, withAudit } from './supabaseHelpers';
+import { applyQueryAbortSignal, throwIfQueryAborted } from './queryAbort';
 
 const TABLE_NAME = 'support_tickets';
 const SUPPORT_TICKET_CREATE_FIELDS = [
@@ -136,9 +137,11 @@ function applySupportTicketFilters(query, filter = {}) {
   return query;
 }
 
-async function getSupportTicketExactCount(filter = {}, quiet = false) {
+async function getSupportTicketExactCount(filter = {}, quiet = false, scopedUser, abortSignal) {
   try {
-    const user = await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
+    const user = scopedUser || await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
 
     // L1 hardening: retry the idempotent count read on transient failures
     // (network/timeout, 429, 5xx, serialization). The single-use Supabase builder
@@ -148,7 +151,9 @@ async function getSupportTicketExactCount(filter = {}, quiet = false) {
       let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
       query = applySupportTicketScope(query, user);
       query = applySupportTicketFilters(query, filter);
+      query = applyQueryAbortSignal(query, abortSignal);
       const result = await query;
+      throwIfQueryAborted(abortSignal);
       if (result.error) throw result.error;
       return result;
     });
@@ -163,14 +168,14 @@ async function getSupportTicketExactCount(filter = {}, quiet = false) {
   }
 }
 
-export async function getSupportTicketsPageStats(filter = {}, quiet = false) {
+export async function getSupportTicketsPageStats(filter = {}, quiet = false, user, abortSignal) {
   const [total, open, inProgress, resolved, closed, urgent] = await Promise.all([
-    getSupportTicketExactCount(filter, quiet),
-    getSupportTicketExactCount({ ...filter, status: 'open' }, quiet),
-    getSupportTicketExactCount({ ...filter, status: 'in_progress' }, quiet),
-    getSupportTicketExactCount({ ...filter, status: 'resolved' }, quiet),
-    getSupportTicketExactCount({ ...filter, status: 'closed' }, quiet),
-    getSupportTicketExactCount({ ...filter, priority: 'urgent' }, quiet),
+    getSupportTicketExactCount(filter, quiet, user, abortSignal),
+    getSupportTicketExactCount({ ...filter, status: 'open' }, quiet, user, abortSignal),
+    getSupportTicketExactCount({ ...filter, status: 'in_progress' }, quiet, user, abortSignal),
+    getSupportTicketExactCount({ ...filter, status: 'resolved' }, quiet, user, abortSignal),
+    getSupportTicketExactCount({ ...filter, status: 'closed' }, quiet, user, abortSignal),
+    getSupportTicketExactCount({ ...filter, priority: 'urgent' }, quiet, user, abortSignal),
   ]);
 
   return {
@@ -275,11 +280,14 @@ export async function getSupportTickets(filter = {}) {
  */
 export async function getSupportTicketsPage(filter = {}) {
   try {
+    const abortSignal = filter?.abortSignal;
+    throwIfQueryAborted(abortSignal);
     const user = await getCurrentUser();
+    throwIfQueryAborted(abortSignal);
     const statsFilter = filter.statsFilter || {};
 
-    const countPromise = getSupportTicketExactCount(filter, true);
-    const statsPromise = getSupportTicketsPageStats(statsFilter, true);
+    const countPromise = getSupportTicketExactCount(filter, true, user, abortSignal);
+    const statsPromise = getSupportTicketsPageStats(statsFilter, true, user, abortSignal);
 
     const sortKey = SUPPORT_TICKET_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
     const limit = Number(filter.limit);
@@ -295,7 +303,9 @@ export async function getSupportTicketsPage(filter = {}) {
       if (Number.isFinite(limit) && limit > 0) {
         dataQuery = dataQuery.range(offset, offset + limit - 1);
       }
+      dataQuery = applyQueryAbortSignal(dataQuery, abortSignal);
       const result = await dataQuery;
+      throwIfQueryAborted(abortSignal);
       if (result.error) throw result.error;
       return result;
     });
@@ -305,6 +315,7 @@ export async function getSupportTicketsPage(filter = {}) {
       dataPromise,
       statsPromise,
     ]);
+    throwIfQueryAborted(abortSignal);
 
     if (error) throw error;
 

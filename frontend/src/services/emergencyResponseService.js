@@ -29,7 +29,10 @@ const getActorHospitalIds = (actor) => new Set(
 );
 
 const assertDispatchRequestScope = (actor, emergencyDetails) => {
-  if (actor?.role !== 'org_admin') return;
+  if (actor?.role === 'admin') return;
+  if (!['org_admin', 'dispatcher'].includes(actor?.role)) {
+    throw new Error('This role cannot dispatch emergency requests.');
+  }
   const hospitalIds = getActorHospitalIds(actor);
   if (!emergencyDetails?.hospital_id || !hospitalIds.has(emergencyDetails.hospital_id)) {
     throw new Error('Assign a facility in your organization before dispatching this request.');
@@ -38,12 +41,13 @@ const assertDispatchRequestScope = (actor, emergencyDetails) => {
 
 const ambulanceIsWithinActorScope = (ambulance, actor) => {
   if (actor?.role === 'admin') return true;
-  if (actor?.role !== 'org_admin' || !actor?.organization_id) return false;
+  if (!['org_admin', 'dispatcher'].includes(actor?.role) || !actor?.organization_id) return false;
 
   const hospitalIds = getActorHospitalIds(actor);
-  if (!ambulance?.hospital_id || !hospitalIds.has(ambulance.hospital_id)) return false;
-  if (ambulance?.organization_id && ambulance.organization_id !== actor.organization_id) return false;
-  return true;
+  if (ambulance?.organization_id) {
+    return ambulance.organization_id === actor.organization_id;
+  }
+  return Boolean(ambulance?.hospital_id && hospitalIds.has(ambulance.hospital_id));
 };
 
 const getDispatchErrorMessage = (result, fallback) => {
@@ -59,6 +63,7 @@ const getDispatchErrorMessage = (result, fallback) => {
 
 const DISPATCH_PUBLIC_MESSAGES = [
   /^Authentication required$/,
+  /^This role cannot dispatch/,
   /^This request changed state/,
   /^Assign a facility/,
   /^No eligible ambulance/,

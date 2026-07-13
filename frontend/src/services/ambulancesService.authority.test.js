@@ -1,4 +1,5 @@
 import {
+  applyAmbulanceOrgAdminScope,
   assertAmbulanceWriteScope,
   createAmbulance,
   filterAmbulanceStationOptions,
@@ -41,6 +42,21 @@ describe('ambulance write scope authority', () => {
 
   it('allows platform admins to retain the global station list', () => {
     expect(filterAmbulanceStationOptions(stations, { role: 'admin' })).toEqual(stations);
+  });
+
+  it('uses facility ownership only as a fallback for rows without a direct owner', () => {
+    const query = {
+      or: jest.fn(function scopedOr() { return this; }),
+      eq: jest.fn(function scopedEq() { return this; }),
+    };
+
+    expect(applyAmbulanceOrgAdminScope(query, {
+      organization_id: ORG_ID,
+      hospital_ids: [FACILITY_ID],
+    })).toBe(query);
+    expect(query.or).toHaveBeenCalledWith(
+      `organization_id.eq.${ORG_ID},and(organization_id.is.null,hospital_id.in.(${FACILITY_ID}))`
+    );
   });
 
   it('accepts an organization-admin payload only inside both scope edges', () => {

@@ -715,6 +715,29 @@ Current guard focus:
   - `payments.payment_method_id` insert column
 - Retry flow must use canonical payment contract fields:
   - `total_cost`, `payment_method`, `metadata`
+- Retry execution must verify the request owner, serialize on the request row,
+  reuse an existing pending payment, converge request state, and revoke
+  `PUBLIC`/`anon` execution.
+
+### **Console Shared Contract Guard**
+For the App-owned database contracts consumed by Console:
+
+```bash
+npm run hardening:console-shared-contract-guard
+```
+
+Current guard focus:
+- insurance clean-rebuild fields and admin read policy
+- ambulance primary organization ownership with null-owner facility fallback
+- role-scoped, column-limited doctor writes and profile-owned identity sync
+- support ticket database vocabularies and patient payload compatibility
+- authenticated/scoped nearby fleet lookup
+- hospital verification authority and omitted-array preservation
+- Console emergency creation with linked visit evidence
+- payment retry authority, idempotent convergence, and canonical transition
+- private onboarding evidence storage and Console operator read projections
+- owner-scoped public profile media and canonical Storage bucket declarations
+- organization finance helper role, organization, and execute scope
 
 ### **Automation Contract Guard**
 For emergency logistics automations and emergency->visit lifecycle sync contract safety:

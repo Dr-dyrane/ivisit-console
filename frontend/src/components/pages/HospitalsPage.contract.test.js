@@ -579,10 +579,10 @@ describe('HospitalsPage admission audit contract', () => {
     // The route projection call relocated into the query hook; the page keeps the
     // ?id deep-link read (getHospital) and the guarded edit write (updateHospital),
     // and create stays absent.
-    expect(queryHookSource()).toContain('getHospitalsPageData(filter)');
+    expect(queryHookSource()).toContain('getHospitalsPageData({ ...filter, abortSignal: signal })');
     expect(queryHookSource()).toContain("queryKey: ['hospitals', filter]");
     expect(mutationsHookSource()).toContain('applyOptimisticUpsert');
-    expect(page).toContain('getHospital(hospitalId)');
+    expect(page).toContain('getHospital(hospitalId, { abortSignal: controller.signal })');
     expect(page).not.toContain('createHospital(formData)');
     expect(page).toContain('updateHospital(selectedHospital.id, formData)');
     expect(page).toContain('<HospitalModal');
@@ -689,8 +689,8 @@ describe('HospitalsPage admission audit contract', () => {
     expect(service).toContain('export async function getHospitals(filter = {})');
     expect(service).toContain('export async function getHospitalsPageData(options = {})');
     expect(service).toContain('export function getHospitalVisibleStats(rows = [])');
-    expect(service).toContain('async function getHospitalExactCount(filters = {}, quiet = false)');
-    expect(service).toContain('export async function getHospitalPageStats(filters = {}, quiet = false)');
+    expect(service).toContain('async function getHospitalExactCount(filters = {}, quiet = false, abortSignal)');
+    expect(service).toContain('export async function getHospitalPageStats(filters = {}, quiet = false, abortSignal)');
     expect(service).toContain('applyHospitalFilters(query, filter)');
     expect(service).toContain("supabase.from(TABLE_NAME).select('*')");
     expect(service).toContain("supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true })");
@@ -706,7 +706,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(service).toContain('display_id.ilike');
     expect(service).toContain('phone.ilike');
     expect(service).not.toContain('displayIdService');
-    expect(service).toContain('export async function getHospital(hospitalId)');
+    expect(service).toContain('export async function getHospital(hospitalId, { abortSignal } = {})');
     expect(service).toContain('export async function createHospital(input)');
     expect(service).toContain('export async function updateHospital(hospitalId, input)');
     expect(service).toContain("supabase.rpc('update_hospital_by_admin'");

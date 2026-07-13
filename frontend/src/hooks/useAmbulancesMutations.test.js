@@ -126,11 +126,11 @@ describe('buildAmbulancesMutationOptions callbacks (direct, real QueryClient)', 
     expect(queryClient.getQueryData(listKey).data.map((a) => a.id)).toEqual(['amb-1']);
   });
 
-  it('onSettled invalidates so the cache converges to server truth', () => {
+  it('onSettled awaits invalidation so the cache converges to server truth', async () => {
     const queryClient = freshClient();
     const invalidate = jest.fn();
 
-    buildAmbulancesMutationOptions({
+    const settled = buildAmbulancesMutationOptions({
       queryClient,
       mutationFn: createAmbulance,
       applyOptimistic: applyOptimisticUpsert,
@@ -138,21 +138,25 @@ describe('buildAmbulancesMutationOptions callbacks (direct, real QueryClient)', 
       listKey: ambulancesListKey(),
     }).onSettled();
 
-    expect(invalidate).toHaveBeenCalledTimes(1);
+    await expect(settled).resolves.toBeUndefined();
+    expect(invalidate).toHaveBeenCalledWith({ throwOnError: true });
   });
 
-  it('onSettled falls back to invalidating the AMBULANCES_KEY_ROOT prefix when no invalidate fn is given', () => {
+  it('onSettled falls back to invalidating the AMBULANCES_KEY_ROOT prefix when no invalidate fn is given', async () => {
     const queryClient = freshClient();
     const spy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    buildAmbulancesMutationOptions({
+    await buildAmbulancesMutationOptions({
       queryClient,
       mutationFn: createAmbulance,
       applyOptimistic: applyOptimisticUpsert,
       listKey: ambulancesListKey(),
     }).onSettled();
 
-    expect(spy).toHaveBeenCalledWith({ queryKey: AMBULANCES_KEY_ROOT });
+    expect(spy).toHaveBeenCalledWith(
+      { queryKey: AMBULANCES_KEY_ROOT },
+      { throwOnError: true }
+    );
   });
 });
 

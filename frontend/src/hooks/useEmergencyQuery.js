@@ -27,7 +27,7 @@ import { getEmergencyRequestsPage } from '../services/emergencyService';
 export function useEmergencyQuery(filter = {}, { enabled = true } = {}) {
   const query = useQuery({
     queryKey: ['emergency', filter],
-    queryFn: () => getEmergencyRequestsPage(filter),
+    queryFn: ({ signal }) => getEmergencyRequestsPage({ ...filter, abortSignal: signal }),
     enabled,
     staleTime: 30_000,
     // v5 equivalent of keepPreviousData - avoids a flash to empty while refetching
@@ -52,7 +52,7 @@ export function useEmergencyQuery(filter = {}, { enabled = true } = {}) {
  */
 export function useInvalidateEmergency() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['emergency'] });
+  return (options) => queryClient.invalidateQueries({ queryKey: ['emergency'] }, options);
 }
 
 export default useEmergencyQuery;

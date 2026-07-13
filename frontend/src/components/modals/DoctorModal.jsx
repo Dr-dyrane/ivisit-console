@@ -127,9 +127,8 @@ export const buildStaffPayload = (formData, { isCreate = false, isProfileLinked 
     payload.email = cleanText(formData.email);
   }
 
-  // Creation pairs the database's is_available=true default with available.
-  // Ordinary edits do not own either lifecycle field.
-  if (isCreate) payload.status = 'available';
+  // Database defaults own initial availability; ordinary directory edits do not
+  // write lifecycle fields.
 
   return payload;
 };

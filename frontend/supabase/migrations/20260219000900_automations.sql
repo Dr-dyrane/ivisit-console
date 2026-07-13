@@ -121,6 +121,10 @@ BEGIN
             LIMIT 1;
         END IF;
 
+        -- Mark identity changes as profile-owned so the doctors-table guard can
+        -- distinguish this canonical sync from direct Console edits.
+        PERFORM set_config('ivisit.allow_doctor_profile_sync', '1', true);
+
         INSERT INTO public.doctors (
             profile_id,
             hospital_id,
@@ -159,6 +163,36 @@ CREATE TRIGGER on_profile_sync_doctor_record
 AFTER INSERT OR UPDATE OF role, provider_type, organization_id, full_name, first_name, last_name, email, phone
 ON public.profiles
 FOR EACH ROW EXECUTE PROCEDURE public.sync_doctor_record_from_profile();
+
+CREATE OR REPLACE FUNCTION public.enforce_doctor_profile_identity_write()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_profile_sync TEXT := current_setting('ivisit.allow_doctor_profile_sync', true);
+BEGIN
+    IF NEW.profile_id IS DISTINCT FROM OLD.profile_id THEN
+        RAISE EXCEPTION 'Doctor profile linkage is immutable; use the provider profile workflow'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF OLD.profile_id IS NOT NULL
+       AND COALESCE(v_profile_sync, '0') <> '1'
+       AND (
+            NEW.name IS DISTINCT FROM OLD.name
+            OR NEW.email IS DISTINCT FROM OLD.email
+            OR NEW.phone IS DISTINCT FROM OLD.phone
+       ) THEN
+        RAISE EXCEPTION 'Linked doctor identity is owned by the provider profile workflow'
+            USING ERRCODE = '42501';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_enforce_doctor_profile_identity_write ON public.doctors;
+CREATE TRIGGER trg_enforce_doctor_profile_identity_write
+BEFORE UPDATE OF profile_id, name, email, phone ON public.doctors
+FOR EACH ROW EXECUTE FUNCTION public.enforce_doctor_profile_identity_write();
 
 
 -- 2. Logistics & Operations Synchronization

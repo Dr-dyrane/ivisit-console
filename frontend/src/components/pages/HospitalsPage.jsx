@@ -9,6 +9,7 @@ import { useHospitalsMutations, applyOptimisticUpsert } from '../../hooks/useHos
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { updateHospital, getHospital } from '../../services/hospitalsService';
+import { isQueryAbortError } from '../../services/queryAbort';
 import { Button } from '../ui/button';
 // Console design system: the workspace grammar lives in shared components --
 // pages compose the canon instead of re-remembering it.
@@ -451,7 +452,8 @@ export const HospitalsPage = () => {
     if (!hospitalId) return undefined;
 
     let active = true;
-    getHospital(hospitalId)
+    const controller = new AbortController();
+    getHospital(hospitalId, { abortSignal: controller.signal })
       .then((specificHospital) => {
         if (!active || !isMountedRef.current || !specificHospital) return;
         setFocused(specificHospital.id);
@@ -459,11 +461,13 @@ export const HospitalsPage = () => {
         setModalMode('view');
       })
       .catch((error) => {
+        if (isQueryAbortError(error)) return;
         handleApiError(error, 'fetch');
       });
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [location.search, setFocused]);
 
