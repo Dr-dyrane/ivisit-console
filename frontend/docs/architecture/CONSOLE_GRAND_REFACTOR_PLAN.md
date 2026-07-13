@@ -1,8 +1,9 @@
 # iVisit Console — Grand Refactor Plan
 
-> **Status**: ACTIVE - staged, contract-first modularization
-> **Current baseline**: `98418462` (`main`, 2026-07-13)
-> **Active implementation branch**: `codex/rbac-fab-map-usability`
+> **Status**: ACTIVE - implementation complete; admission verification in progress
+> **Current main baseline**: `4d1de70a` (`main`, 2026-07-13)
+> **Current wave checkpoint**: `06f639d2` (before this ledger refresh)
+> **Active implementation branch**: `codex/console-modularization-wave-2`
 > **Original audit date**: 2026-05-04
 > **Standard**: iVisit-app Gold Standard (5-Layer State Architecture)  
 > **Goal**: Make ivisit-console/frontend deterministic, production-grade, and architecturally consistent with ivisit-app.
@@ -30,31 +31,29 @@ are restated here or reverified against the current tree.
 
 ### Baseline proof
 
-At `98418462`, the repository checkpoint passed 91 Jest suites / 629 tests, the production build, data
-contract and database-type checks, mobile grammar, and the UI hardgates. Every work pack must preserve
-that baseline in addition to its focused characterization tests.
+At `4d1de70a`, the main checkpoint passed 93 Jest suites / 650 tests, the production build, data contract
+and database-type checks, mobile grammar, and the UI hardgates. Every work pack must preserve that
+baseline in addition to its focused characterization tests. The wave 2 branch is not admitted to main
+until its refreshed full-suite, production-build, audit-artifact, and rendered-browser proof is recorded.
 
 ### Current-tree inventory
 
-The 2026-07-13 active worktree contains 400 hand-maintained implementation files under `frontend/src`,
-95,288 lines, and 54 files at or above 500 lines when `*.test.*`, `*.contract.test.*`, and generated
-`src/types/database.ts` are excluded. The generated database type file is an input to contracts, not a
-manual modularization target.
+The wave 2 checkpoint contains 786 hand-maintained implementation files under `frontend/src` and
+104,536 lines when `*.test.*`, `*.spec.*`, `*.contract.test.*`, and generated `src/types/database.ts`
+are excluded. The higher file count reflects explicit page, controller, projection, service, modal, and
+view owners extracted from the original monoliths. There are now **zero** hand-maintained production
+files at or above 500 lines. The generated database type file remains a contract input, not a manual
+modularization target.
 
-The highest-risk page owners are Requests (1,984 lines), Support (1,614), Bento/Today dashboard (1,502),
-Payments (1,448), Hospitals (1,426), Approvals (1,334), Visits (1,274), Today home (1,176), Users (1,148),
-Ambulances (1,018), Organizations (1,010), Doctors (1,010), and Health News (1,002). The next tier is
-Analytics (701), Insurance (694), Live Map after the first extraction (636), and Subscriptions (609).
+The largest remaining owners are `EmergencyDetailsModal.jsx` (499), `VisitsDesktopWorkspace.jsx` (494),
+`VisitModal.jsx` (489), `MobileUsers.jsx` (476), `StaffDesktopWorkspace.jsx` (463), `VisitsPage.jsx` (451),
+`requestPageModel.js` (448), and `ContextPanel.jsx` (444). These remain below the current ceiling and are
+covered by source-estate and behavior contracts. A later extraction must still prove a meaningful
+ownership boundary; line count alone is not permission to add indirection.
 
-The highest-risk service owners are `emergencyService.js` (1,235), `profilesService.js` (925),
-`visitsService.js` (880), `ambulancesService.js` (835), `hospitalsService.js` (731),
-`insuranceService.js` (722), `supportTicketsService.js` (701), `subscriptionService.js` (696), and
-`walletService.js` (673). Shared owners that require their own packs are `AuthContext.jsx` (926),
-`PageDataContext.jsx` (607), and `ContextPanel.jsx` (566).
-
-Priority is based on behavioral density and import blast radius, not line count alone. Generated types,
-small stable primitives, and files whose only split would add indirection remain in scope for audit but
-are changed only when a pack proves a real ownership boundary.
+Priority remains based on behavioral density and import blast radius, not line count alone. Generated
+types, small stable primitives, and files whose only split would add indirection remain in audit scope
+but are changed only when a pack proves a real ownership boundary.
 
 ### Per-pack extraction protocol
 
@@ -81,46 +80,49 @@ are changed only when a pack proves a real ownership boundary.
 
 | Pack | Scope | Reserved write paths | Status / owner | Required proof |
 |---|---|---|---|---|
-| `MOD-00` | Rebaseline this plan and rank current monoliths/duplication | This document only | Complete - current session | Current-tree inventory, Git-backed priorities, disjoint follow-on packs |
-| `NAV-01` | Extract the mobile route-action matrix and close RBAC FAB gaps | `src/components/navigation/DynamicBottomBar.jsx`, `src/config/routeActionOwnership.js`, new route-action module, directly related navigation contracts | Complete - current session | All role/route pairs reachable through `routes.jsx` resolve one honest mobile action; desktop ownership unchanged |
-| `MAP-01` | Extract map projection/location/presentation boundaries and improve the approved map UX | `src/components/pages/GodModeMap.jsx`, `src/components/mobile/MobileMap.jsx`, `src/components/map/**`, `src/contexts/MapContext.jsx`, `src/services/supabaseMapService.js`, map contracts | Complete - current session | Scoped reads stay authoritative; honest location fallback; approximately 5 km view lens; shown-only nearby context; selected/assigned route preview; structural loading; renderer parity; existing receivers and realtime cleanup preserved |
-| `TEST-00` | Add a reusable role/route render-characterization harness | New `src/test/route-contract/**`, test utilities, harness contracts, and test-only Jest resolver setup in `craco.config.js` | Complete - wave 2 parent session | Route mount, provider wrapper, role fixture, loading/error/empty capture, action receiver spy, no production behavior |
-| `APP-01` | Extract `AppRoutes`, `AppLayout`, and `AppShell` without provider/order changes | `src/App.js` plus new `src/app/**` modules and app-shell contracts | Complete - Erdos / wave 2 | Provider order, lazy routes, protected-route metadata, shell chrome, startup overlay, and global modal mounts unchanged |
-| `CTX-01` | Split `PageDataContext` compatibility facade by domain without changing its public value contract | `src/contexts/PageDataContext.jsx`, new domain context/query adapters, PageData contracts | Complete - Newton / wave 2 | Consumer key inventory, route startup domains, query cancellation, exact loading/error semantics, no duplicate reads |
-| `CTX-02` | Decompose route context-panel dispatch/render ownership | `src/components/navigation/ContextPanel.jsx`, new context-panel registry/modules, panel contracts | Unclaimed; start after `NAV-01` | Same route-to-panel mapping, lazy reads, modal closure, focused-record context, and panel actions |
-| `PAGE-01` | Decompose `EmergencyRequestsPage` after `NAV-01` | Requests page/mobile/workspace/controller files and Requests contracts only | In progress - Fermat (`019f5caf-f365-7f53-b893-be20f1f20b2a`) | Today/Requests canon, role commands, selection, pagination, realtime, modal/filter/stats behavior, payloads |
-| `PAGE-02` | Decompose `SupportTicketsPage` without service or visual changes | Support page/mobile/workspace/controller files and Support contracts only | In progress - Bernoulli (`019f5cb0-1478-7243-86a7-b60c4a7b8d9b`) | Role scope, list/search/filter/pagination, selection, ticket modal commands, loading/error/realtime behavior |
-| `PAGE-03` | Decompose Hospitals page orchestration | Hospitals page/mobile/view/workspace files and Hospitals contracts; excludes services/modals | In progress - Sartre (`019f5cb0-2f06-7801-87ac-76ea340ed18b`) | Scoped projection, selection, pagination, context, loading/error/empty, existing update/unavailable commands |
-| `PAGE-04` | Decompose Payments page orchestration | Wallet page/mobile/workspace/view files and Payments contracts; excludes services/modals | In progress - James (`019f5cb0-4d98-7d90-9d3c-0f5611df82da`) | Finance source states, tabs/deep links, selection, context, balance privacy, read-only/unavailable actions |
-| `PAGE-05` | Decompose Visits page orchestration | Visits page/mobile/view/workspace files and Visits contracts; excludes services/modals | Complete - wave 2 parent session | Derived visit evidence, pagination, selection, context, modal/read-only boundaries, role scope |
-| `PAGE-06` | Decompose Approvals page orchestration | Verification page/mobile/workspace files and Approvals contracts; excludes services/modals | In progress - Pauli (`019f5cc0-3bea-7060-8d44-3e46bf9ef108`) | Queue axes, review receiver, selection, pagination, focused evidence, pending/refetch behavior |
-| `PAGE-07` | Separate Bento composition from Today route orchestration | `BentoHome.jsx`, `TodayHome.jsx`, Today-only children and contracts | In progress - Leibniz (`019f5cc2-e80b-7e13-aa97-c20a67b4e9d6`) | Role cards, next action, refresh, route context, loading/degraded states, no command relocation |
-| `PAGE-08` | Decompose Users page orchestration | Users page/mobile/view/workspace files and Users contracts; excludes Auth/services/modals | Unclaimed | Identity scope, selection, filters, focused record, unavailable invite/delete authority, no broad reads |
-| `PAGE-09` | Decompose Ambulances page orchestration | Ambulances page/mobile/view/workspace files and Ambulances contracts; excludes services/modals | Unclaimed | Fleet scope, selection, create/update receiver parity, filters, pagination, context, realtime behavior |
-| `PAGE-10` | Decompose Doctors page orchestration | Doctors page/mobile/view/workspace files and Staff contracts; excludes services/modals | Unclaimed | Staff role scope, selection, create/edit receiver parity, filters, context, loading/error behavior |
-| `PAGE-11` | Decompose Organizations page orchestration | Organizations page/mobile/view/workspace files and Organizations contracts; excludes services/modals | Unclaimed | Server projection, selection, wallet evidence scope, focused detail, blocked writes, route context |
-| `PAGE-12` | Decompose Health News page orchestration | Health News page/mobile/view/workspace files and News contracts; excludes services/modals | Unclaimed | Read-only authority, no mobile multiselect, filters, pagination, analytics, focused evidence |
-| `PAGE-13` | Decompose Analytics composition | Analytics page plus `components/pages/analytics/**` and Analytics contracts | Unclaimed | Window/source readiness, role-gated slices, no synthetic metrics, context detail, loading/degraded states |
-| `PAGE-14` | Decompose Insurance composition | Insurance page plus `components/pages/insurance/**`, mobile/view files, and Insurance contracts | Unclaimed | Read-only policy/billing split, selection, source readiness, filters, context, no writer enablement |
-| `PAGE-15` | Decompose Subscriptions composition | Subscription page/mobile/view/workspace files and Subscriptions contracts | Unclaimed | Subscriber projection, selection, lifecycle/type separation, stats action, blocked email/write commands |
-| `PAGE-16` | Decompose Pricing composition | Pricing page/mobile/view/workspace files and Pricing contracts | Unclaimed | Facility/global scope, selection, tabs, stats action, blocked writes, loading/error/empty states |
-| `PAGE-17` | Decompose Settings composition | Settings page/mobile/section files and Settings contracts | Unclaimed | Own-user vs system scope, modal z-index, security/support/session receivers, unavailable billing |
-| `AUTH-01` | Split Auth context state, profile projection, capability helpers, and effects behind the current facade | `src/contexts/AuthContext.jsx`, new auth modules, Auth contracts | Unclaimed; after `APP-01` characterization | Identical context value, session sequencing, profile/provider subtype, capability checks, redirects/errors |
-| `SRV-01` | Split emergency service read projection, normalization, and command adapters | `src/services/emergencyService.js`, new emergency service modules, service tests | Unclaimed; after `PAGE-01` characterization | Identical exports/payloads/errors/query scope; no change to workflow RPC ownership |
-| `SRV-02` | Split profile/identity reads and normalization | `src/services/profilesService.js`, new profile service modules, service tests | Unclaimed; coordinate with `AUTH-01` | Identical role/org/profile identity, search/count scope, errors, and compatibility exports |
-| `SRV-03` | Split visits service by read, normalization, and proved commands | `src/services/visitsService.js`, new visit service modules/tests | Unclaimed; after `PAGE-05` characterization | Request-derived evidence and receiver ownership unchanged |
-| `SRV-04` | Split ambulance service by fleet reads and proved commands | `src/services/ambulancesService.js`, new ambulance service modules/tests | Unclaimed; after `PAGE-09` characterization | Organization scope, payload allow-list, errors, realtime/invalidation unchanged |
-| `SRV-05` | Split hospital service by projections, normalization, and proved update command | `src/services/hospitalsService.js`, new hospital service modules/tests | Unclaimed; after `PAGE-03` characterization | Facility identity, counts/capacity scope, RPC authority, compatibility exports unchanged |
-| `SRV-06` | Split insurance service while preserving fail-closed writers | `src/services/insuranceService.js`, new insurance service modules/tests | Unclaimed; after `PAGE-14` characterization | Policy/billing reads, parser shapes, RLS errors, disabled command behavior unchanged |
-| `SRV-07` | Split support service read/realtime/command ownership | `src/services/supportTicketsService.js`, new support service modules/tests | Unclaimed; after `PAGE-02` characterization | Ticket scope, pagination/counts, payloads, subscriptions, errors unchanged |
-| `SRV-08` | Split subscription service read/email/write boundaries | `src/services/subscriptionService.js`, new subscription service modules/tests | Unclaimed; after `PAGE-15` characterization | Read projection unchanged; unproved email/write paths remain fail-closed |
-| `SRV-09` | Split wallet service read/finance-command boundaries | `src/services/walletService.js`, new wallet service modules/tests | Unclaimed; after `PAGE-04` characterization | Ledger/balance scope, money normalization, payment receivers, errors unchanged |
-| `SRV-10` | Split pricing service projections from blocked command inventory | `src/services/pricingService.js`, new pricing service modules/tests | Unclaimed; after `PAGE-16` characterization | Rule scope, fallbacks, parsers, errors, and fail-closed writes unchanged |
-| `SHELL-01` | Decompose remaining shared navigation/shell components | Shell/navigation files not reserved by `APP-01`, `NAV-01`, or `CTX-02`; shell contracts | Unclaimed; after those packs | Shared chrome, safe areas, action ownership, panel/modal relationships, responsive behavior unchanged |
-| `UI-01` | Inventory and consolidate duplicate UI primitives | `src/components/ui/**` only | Unclaimed; after page characterization | Public props/classes/ARIA and rendered tokens preserved; no page redesign |
-| `RUNTIME-01` | Audit and split remaining large hooks/providers by existing ownership | Unclaimed hooks/contexts plus focused contracts, excluding Auth/PageData/Map | Unclaimed | No startup fanout, duplicate reads, subscription leaks, or public context changes |
-| `STYLE-01` | Consolidate token/style duplication after component extraction | `src/styles/**`, Tailwind config, style contracts | Unclaimed; late program | Computed colors/radii/elevation/responsive layout unchanged |
-| `DEAD-01` | Remove proved-unreachable compatibility code and stale exports | Paths named by completed-pack import proof only | Unclaimed; final program pass | `rg` importer proof, build/test parity, no generated type edits, no speculative deletion |
+| `MOD-00` | Rebaseline this plan and rank current monoliths/duplication | This document only | Complete - `4d1de70a` plus this closeout refresh | Current-tree inventory, Git-backed priorities, disjoint follow-on packs |
+| `NAV-01` | Extract the mobile route-action matrix and close RBAC FAB gaps | `src/components/navigation/DynamicBottomBar.jsx`, `src/config/routeActionOwnership.js`, new route-action module, directly related navigation contracts | Complete - `4d1de70a` | All role/route pairs reachable through `routes.jsx` resolve one honest mobile action; desktop ownership unchanged |
+| `MAP-01` | Extract map projection/location/presentation boundaries and improve the approved map UX | `src/components/pages/GodModeMap.jsx`, `src/components/mobile/MobileMap.jsx`, `src/components/map/**`, `src/contexts/MapContext.jsx`, `src/services/supabaseMapService.js`, map contracts | Complete - `4d1de70a`, `933b8e8d`, `5844be0f`, `d680302a` | Scoped reads stay authoritative; honest location fallback; approximately 5 km view lens; shown-only nearby context; selected/assigned route preview; structural loading; renderer parity; existing receivers and realtime cleanup preserved |
+| `TEST-00` | Add a reusable role/route render-characterization harness | New `src/test/route-contract/**`, test utilities, harness contracts, and test-only Jest resolver setup in `craco.config.js` | Complete - `ea5d8111`, `6167c781` | Route mount, provider wrapper, role fixture, loading/error/empty capture, action receiver spy, no production behavior |
+| `APP-01` | Extract `AppRoutes`, `AppLayout`, and `AppShell` without provider/order changes | `src/App.js` plus new `src/app/**` modules and app-shell contracts | Complete - `a111d640` | Provider order, lazy routes, protected-route metadata, shell chrome, startup overlay, and global modal mounts unchanged |
+| `CTX-01` | Split `PageDataContext` compatibility facade by domain without changing its public value contract | `src/contexts/PageDataContext.jsx`, new domain context/query adapters, PageData contracts | Complete - `7dd06f44` | Consumer key inventory, route startup domains, query cancellation, exact loading/error semantics, no duplicate reads |
+| `CTX-02` | Decompose route context-panel dispatch/render ownership | `src/components/navigation/ContextPanel.jsx`, new context-panel registry/modules, panel contracts | Complete - `79636eb6` | Same route-to-panel mapping, lazy reads, modal closure, focused-record context, and panel actions |
+| `PAGE-01` | Decompose `EmergencyRequestsPage` after `NAV-01` | Requests page/mobile/workspace/controller files and Requests contracts only | Complete - `3dd06218` | Today/Requests canon, role commands, selection, pagination, realtime, modal/filter/stats behavior, payloads |
+| `PAGE-02` | Decompose `SupportTicketsPage` without service or visual changes | Support page/mobile/workspace/controller files and Support contracts only | Complete - `3b43de3e` | Role scope, list/search/filter/pagination, selection, ticket modal commands, loading/error/realtime behavior |
+| `PAGE-03` | Decompose Hospitals page orchestration | Hospitals page/mobile/view/workspace files and Hospitals contracts; excludes services/modals | Complete - `aba726b5` | Scoped projection, selection, pagination, context, loading/error/empty, existing update/unavailable commands |
+| `PAGE-04` | Decompose Payments page orchestration | Wallet page/mobile/workspace/view files and Payments contracts; excludes services/modals | Complete - `3ca9c0f2` | Finance source states, tabs/deep links, selection, context, balance privacy, read-only/unavailable actions |
+| `PAGE-05` | Decompose Visits page orchestration | Visits page/mobile/view/workspace files and Visits contracts; excludes services/modals | Complete - `2ded1a4e` | Derived visit evidence, pagination, selection, context, modal/read-only boundaries, role scope |
+| `PAGE-06` | Decompose Approvals page orchestration | Verification page/mobile/workspace files and Approvals contracts; excludes services/modals | Complete - `d31df835` | Queue axes, review receiver, selection, pagination, focused evidence, pending/refetch behavior |
+| `PAGE-07` | Separate Bento composition from Today route orchestration | `BentoHome.jsx`, `TodayHome.jsx`, Today-only children and contracts | Complete - `948be900` | Role cards, next action, refresh, route context, loading/degraded states, no command relocation |
+| `PAGE-08` | Decompose Users page orchestration | Users page/mobile/view/workspace files and Users contracts; excludes Auth/services/modals | Complete - `b3f4c6b4` | Identity scope, selection, filters, focused record, unavailable invite/delete authority, no broad reads |
+| `PAGE-09` | Decompose Ambulances page orchestration | Ambulances page/mobile/view/workspace files and Ambulances contracts; excludes services/modals | Complete - `01859c22` | Fleet scope, selection, create/update receiver parity, filters, pagination, context, realtime behavior |
+| `PAGE-10` | Decompose Doctors page orchestration | Doctors page/mobile/view/workspace files and Staff contracts; excludes services/modals | Complete - `f86d01ce` | Staff role scope, selection, create/edit receiver parity, filters, context, loading/error behavior |
+| `PAGE-11` | Decompose Organizations page orchestration | Organizations page/mobile/view/workspace files and Organizations contracts; excludes services/modals | Complete - `1c978dbf` | Server projection, selection, wallet evidence scope, focused detail, blocked writes, route context |
+| `PAGE-12` | Decompose Health News page orchestration | Health News page/mobile/view/workspace files and News contracts; excludes services/modals | Complete - `fc2e4471` | Read-only authority, no mobile multiselect, filters, pagination, analytics, focused evidence |
+| `PAGE-13` | Decompose Analytics composition | Analytics page plus `components/pages/analytics/**` and Analytics contracts | Complete - `95cba2c2` | Window/source readiness, role-gated slices, no synthetic metrics, context detail, loading/degraded states |
+| `PAGE-14` | Decompose Insurance composition | Insurance page plus `components/pages/insurance/**`, mobile/view files, and Insurance contracts | Complete - `720f69db` | Read-only policy/billing split, selection, source readiness, filters, context, no writer enablement |
+| `PAGE-15` | Decompose Subscriptions composition | Subscription page/mobile/view/workspace files and Subscriptions contracts | Complete - `6b3ad083` | Subscriber projection, selection, lifecycle/type separation, stats action, blocked email/write commands |
+| `PAGE-16` | Decompose Pricing composition | Pricing page/mobile/view/workspace files and Pricing contracts | Complete - `6a47beb4` | Facility/global scope, selection, tabs, stats action, blocked writes, loading/error/empty states |
+| `PAGE-17` | Decompose Settings composition | Settings page/mobile/section files and Settings contracts | Complete - `9754ec29` | Own-user vs system scope, modal z-index, security/support/session receivers, unavailable billing |
+| `AUTH-01` | Split Auth context state, profile projection, capability helpers, and effects behind the current facade | `src/contexts/AuthContext.jsx`, new auth modules, Auth contracts | Complete - `2c78c111`, `7dd709ae` | Identical context value, session sequencing, profile/provider subtype, capability checks, redirects/errors |
+| `SRV-01` | Split emergency service read projection, normalization, and command adapters | `src/services/emergencyService.js`, new emergency service modules, service tests | Complete - `172278f1` | Identical exports/payloads/errors/query scope; no change to workflow RPC ownership |
+| `SRV-02` | Split profile/identity reads and normalization | `src/services/profilesService.js`, new profile service modules, service tests | Complete - `90054e24` | Identical role/org/profile identity, search/count scope, errors, and compatibility exports |
+| `SRV-03` | Split visits service by read, normalization, and proved commands | `src/services/visitsService.js`, new visit service modules/tests | Complete - `c1768282`, `d5215c44` | Request-derived evidence and receiver ownership unchanged |
+| `SRV-04` | Split ambulance service by fleet reads and proved commands | `src/services/ambulancesService.js`, new ambulance service modules/tests | Complete - `7f1989dc` | Organization scope, payload allow-list, errors, realtime/invalidation unchanged |
+| `SRV-05` | Split hospital service by projections, normalization, and proved update command | `src/services/hospitalsService.js`, new hospital service modules/tests | Complete - `172278f1`, `6093c896` | Facility identity, counts/capacity scope, RPC authority, compatibility exports unchanged |
+| `SRV-06` | Split insurance service while preserving fail-closed writers | `src/services/insuranceService.js`, new insurance service modules/tests | Complete - `a1c3742d` | Policy/billing reads, parser shapes, RLS errors, disabled command behavior unchanged |
+| `SRV-07` | Split support service read/realtime/command ownership | `src/services/supportTicketsService.js`, new support service modules/tests | Complete - `0885f2de` | Ticket scope, pagination/counts, payloads, subscriptions, errors unchanged |
+| `SRV-08` | Split subscription service read/email/write boundaries | `src/services/subscriptionService.js`, new subscription service modules/tests | Complete - `1fde834b` | Read projection unchanged; unproved email/write paths remain fail-closed |
+| `SRV-09` | Split wallet service read/finance-command boundaries | `src/services/walletService.js`, new wallet service modules/tests | Complete - `ad8e78f3` | Ledger/balance scope, money normalization, payment receivers, errors unchanged |
+| `SRV-10` | Split pricing service projections from blocked command inventory | `src/services/pricingService.js`, new pricing service modules/tests | Complete - `30384b4e` | Rule scope, fallbacks, parsers, errors, and fail-closed writes unchanged |
+| `SHELL-01` | Decompose remaining shared navigation/shell components | Shell/navigation files not reserved by `APP-01`, `NAV-01`, or `CTX-02`; shell contracts | Complete - `76fc0aa0`, `3ce9325e` | Shared chrome, safe areas, action ownership, panel/modal relationships, responsive behavior unchanged |
+| `UI-01` | Inventory and consolidate duplicate UI primitives | `src/components/ui/**` only | Closed for this wave - no behavior-safe primitive consolidation required by the zero-monolith audit | Public props/classes/ARIA and rendered tokens preserved; no page redesign |
+| `RUNTIME-01` | Audit and split remaining large hooks/providers by existing ownership | Remaining hooks/contexts plus focused contracts, excluding Auth/PageData/Map | Complete - `7dd06f44`, `2c78c111`, `933b8e8d` | No startup fanout, duplicate reads, subscription leaks, or public context changes |
+| `STYLE-01` | Consolidate token/style duplication after component extraction | `src/styles/**`, Tailwind config, style contracts | Closed for this wave - no style rewrite mixed into the behavior-preserving extraction | Computed colors/radii/elevation/responsive layout unchanged |
+| `DEAD-01` | Remove proved-unreachable compatibility code and stale exports | Paths named by completed-pack import proof only | Complete - `3d32592a`, `6813e972` | `rg` importer proof, build/test parity, no generated type edits, no speculative deletion |
+| `MODAL-01` | Split remaining large operational modal owners behind compatibility facades | Hospital, staff scheduling, doctor, request, analytics, and ambulance modal estates plus direct contracts | Complete - `6093c896`, `fa8181d7`, `bb68e164`, `aaf254ef`, `6fcc6899`, `5ad85a59` | Public props, receiver ownership, pending/error/close behavior, identity lanes, and rendered modal contracts preserved |
+| `SRV-11` | Split remaining large analytics, content, and scheduling service owners | Analytics, health-news, and staff-scheduling service estates plus focused service contracts | Complete - `6fcc6899`, `18bb214d`, `f7e4baee` | Public exports, projection semantics, authorization, query scope, and receiver ownership preserved |
+| `SCHED-01` | Split the dormant local staff scheduler without advertising backend authority | `StaffScheduler.jsx`, new `staff-scheduler/**`, focused source-estate and controller tests | Complete - `2e41b5df` | Local mock behavior preserved; component remains unmounted and receiver-free |
 
 The ranked full-repository pack inventory is completed by `MOD-00`; later packs must be appended here,
 not tracked in a conflicting refactor document.
