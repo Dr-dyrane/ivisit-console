@@ -74,7 +74,7 @@ describe('useIslandNavigationController', () => {
       setSidebarMode: mockSetSidebarMode,
       isScrolledDown: false,
     };
-    mockLocationState = { pathname: '/doctors' };
+    mockLocationState = { pathname: '/doctors/' };
     mockThemeState = { theme: 'dark', toggle: mockToggleTheme };
     mockGetAccessibleNav.mockReturnValue(accessibleNav);
   });

@@ -50,7 +50,8 @@ describe('Island navigation module ownership', () => {
 
     expect(controller).toContain("import { getAccessibleNav } from '../../../config/navigation';");
     expect(controller).toContain("import { useAuth } from '../../../contexts/AuthContext';");
-    expect(controller).toContain('getActiveNavigationGroup(accessibleNav, location.pathname)');
+    expect(controller).toContain('normalizeNavigationPathname(location.pathname)');
+    expect(controller).toContain('getActiveNavigationGroup(accessibleNav, pathname)');
     expect(renderers).not.toContain('useAuth(');
     expect(renderers).not.toContain('useLocation(');
     expect(renderers).not.toContain('getAccessibleNav(');

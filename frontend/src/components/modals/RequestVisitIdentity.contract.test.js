@@ -55,6 +55,8 @@ describe('request and visit detail identity contract', () => {
     expect(requestModal).toContain("const requesterUsername = patient.username || 'Patient';");
     expect(requestModal).not.toContain('activeRequest.profiles?.username');
     expect(requestModal).toContain('fetchRequestVisitIdentity({ request: activeRequest, visit: visitOutcome })');
+    expect(requestModal).toContain('identity: context?.identity || null');
+    expect(requestModal).toContain('identityContext && identityContext.requestId === activeRequest?.id');
   });
 
   it.each([

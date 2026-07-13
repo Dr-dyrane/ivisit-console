@@ -21,10 +21,17 @@ export const SIDEBAR_LAYOUT_OPTIONS = [
   },
 ];
 
+export const normalizeNavigationPathname = (pathname) => {
+  const value = String(pathname || '/');
+  if (value === '/') return value;
+  return value.replace(/\/+$/, '') || '/';
+};
+
 export const getActiveNavigationGroup = (accessibleNav, pathname) => {
-  if (accessibleNav.ops?.items.some((item) => item.path === pathname)) return 'ops';
-  if (accessibleNav.mgmt?.items.some((item) => item.path === pathname)) return 'mgmt';
-  if (accessibleNav.finance?.items.some((item) => item.path === pathname)) return 'finance';
+  const normalizedPathname = normalizeNavigationPathname(pathname);
+  if (accessibleNav.ops?.items.some((item) => item.path === normalizedPathname)) return 'ops';
+  if (accessibleNav.mgmt?.items.some((item) => item.path === normalizedPathname)) return 'mgmt';
+  if (accessibleNav.finance?.items.some((item) => item.path === normalizedPathname)) return 'finance';
   return null;
 };
 

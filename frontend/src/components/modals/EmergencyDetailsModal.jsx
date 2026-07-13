@@ -86,7 +86,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     detailOpenRef.current = isOpen;
   }, [isOpen, request, requestId]);
   const activeRequest = detailRequest?.id === requestId ? detailRequest : request;
-  const resolvedIdentity = identityContext?.requestId === activeRequest?.id
+  const resolvedIdentity = identityContext && identityContext.requestId === activeRequest?.id
     ? identityContext.identity
     : null;
   const renderProjection = React.useMemo(
@@ -235,7 +235,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
         if (!active) return;
         setIdentityContext({
           requestId: activeRequest.id,
-          identity: context.identity,
+          identity: context?.identity || null,
         });
       })
       .catch((error) => {

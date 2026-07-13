@@ -8,6 +8,7 @@ import {
   getActiveNavigationGroup,
   getAvatarToneClass,
   getIsBroad,
+  normalizeNavigationPathname,
 } from './islandNavigationModel';
 
 export const useIslandNavigationController = () => {
@@ -21,6 +22,7 @@ export const useIslandNavigationController = () => {
   const [isFocusWithin, setIsFocusWithin] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
   const [configOpen, setConfigOpen] = useState(false);
+  const pathname = normalizeNavigationPathname(location.pathname);
 
   const accessibleNav = useMemo(
     () => getAccessibleNav(profile, can),
@@ -32,9 +34,9 @@ export const useIslandNavigationController = () => {
   );
 
   useEffect(() => {
-    const activeGroup = getActiveNavigationGroup(accessibleNav, location.pathname);
+    const activeGroup = getActiveNavigationGroup(accessibleNav, pathname);
     if (activeGroup) setOpenGroups([activeGroup]);
-  }, [location.pathname, accessibleNav]);
+  }, [pathname, accessibleNav]);
 
   const closeSmartReveal = () => {
     if (sidebarMode !== 'smart') return;
@@ -88,14 +90,14 @@ export const useIslandNavigationController = () => {
     handleNavKeyDown,
     handleSidebarModeSelect,
     isBroad,
-    isNotHome: location.pathname !== '/',
+    isNotHome: pathname !== '/',
     isScrolledDown,
     navWidth: isBroad ? 260 : 72,
     onNavFocus: () => setIsFocusWithin(true),
     onNavMouseEnter: () => setIsHovered(true),
     onNavMouseLeave: () => setIsHovered(false),
     openGroups,
-    pathname: location.pathname,
+    pathname,
     profile,
     setConfigOpen,
     sidebarMode,
