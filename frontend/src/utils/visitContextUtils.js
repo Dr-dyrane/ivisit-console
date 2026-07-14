@@ -121,9 +121,9 @@ export const fetchVisitContext = async (visit) => {
     if (!visit) return null;
     const identityContext = await fetchRequestVisitIdentity({ visit });
     const hospitalId = visit.hospital_id || identityContext.request?.hospital_id || null;
-    const nestedHospital = typeof visit.hospital === 'object'
-      && (!hospitalId || visit.hospital?.id === hospitalId)
-      ? visit.hospital
+    const facilityRecord = visit.facility || (typeof visit.hospital === 'object' ? visit.hospital : null);
+    const nestedHospital = facilityRecord && (!hospitalId || facilityRecord.id === hospitalId)
+      ? facilityRecord
       : null;
     const hospitalResult = nestedHospital || !hospitalId
       ? { status: 'fulfilled', value: nestedHospital }
@@ -217,7 +217,7 @@ export const formatVisitDateTime = (visit) => {
   // written back into `payload.date` on save, so preferring `created_at` here
   // corrupted the scheduled visit date with the row-creation timestamp.
   // `created_at` is only a fallback for legacy rows that never got a date.
-  const dateSource = visit.date || visit.created_at;
+  const dateSource = visit.scheduled_start_at || visit.date || visit.created_at;
   if (!dateSource) return '';
   
   // Handle ISO dates directly

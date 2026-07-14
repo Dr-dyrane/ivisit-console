@@ -3,15 +3,21 @@ import { isValidUUID } from '../../lib/utils';
 import { withRetry } from '../supabaseHelpers';
 import { TABLE_NAME } from './constants';
 import { normalizeVisitForUI } from './normalization';
+import {
+  applyGenericVisitSourceScope,
+  GENERIC_VISIT_SELECT,
+} from './pageProjection';
+
+const createGenericVisitQuery = (options) => applyGenericVisitSourceScope(
+  supabase.from(TABLE_NAME).select(GENERIC_VISIT_SELECT, options),
+);
 
 export async function getUserVisits(userId) {
   try {
     if (!isValidUUID(userId)) return [];
 
     const data = await withRetry(async () => {
-      const { data: rows, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
+      const { data: rows, error } = await createGenericVisitQuery()
         .eq('user_id', userId)
         .order('date', { ascending: false });
 
@@ -32,9 +38,7 @@ export async function getUserUpcomingVisits(userId) {
 
     const today = new Date().toISOString().split('T')[0];
     const data = await withRetry(async () => {
-      const { data: rows, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
+      const { data: rows, error } = await createGenericVisitQuery()
         .eq('user_id', userId)
         .eq('status', 'scheduled')
         .gte('date', today)
@@ -56,9 +60,7 @@ export async function getUserCompletedVisits(userId) {
     if (!isValidUUID(userId)) return [];
 
     const data = await withRetry(async () => {
-      const { data: rows, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
+      const { data: rows, error } = await createGenericVisitQuery()
         .eq('user_id', userId)
         .eq('status', 'completed')
         .order('date', { ascending: false });
@@ -78,9 +80,7 @@ export async function getDoctorVisits(doctorId) {
   try {
     // doctor_name is text, not a UUID foreign key.
     const data = await withRetry(async () => {
-      const { data: rows, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
+      const { data: rows, error } = await createGenericVisitQuery()
         .eq('doctor_name', doctorId)
         .order('date', { ascending: false });
 
@@ -100,9 +100,7 @@ export async function getHospitalVisits(hospitalId) {
     if (!isValidUUID(hospitalId)) return [];
 
     const data = await withRetry(async () => {
-      const { data: rows, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
+      const { data: rows, error } = await createGenericVisitQuery()
         .eq('hospital_id', hospitalId)
         .order('date', { ascending: false });
 
@@ -119,41 +117,30 @@ export async function getHospitalVisits(hospitalId) {
 
 export async function getVisitStats() {
   try {
-    const { count: totalCount } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact', head: true });
+    const { count: totalCount } = await createGenericVisitQuery({
+      count: 'exact',
+      head: true,
+    });
 
-    const { data: scheduledData } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact' })
+    const { data: scheduledData } = await createGenericVisitQuery({ count: 'exact' })
       .eq('status', 'scheduled');
 
-    const { data: completedData } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact' })
+    const { data: completedData } = await createGenericVisitQuery({ count: 'exact' })
       .eq('status', 'completed');
 
-    const { data: cancelledData } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact' })
+    const { data: cancelledData } = await createGenericVisitQuery({ count: 'exact' })
       .eq('status', 'cancelled');
 
-    const { data: noShowData } = await supabase
-      .from(TABLE_NAME)
-      .select('id', { count: 'exact' })
+    const { data: noShowData } = await createGenericVisitQuery({ count: 'exact' })
       .eq('status', 'no-show');
 
     const today = new Date().toISOString().split('T')[0];
-    const { data: completedToday } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
+    const { data: completedToday } = await createGenericVisitQuery()
       .eq('status', 'completed')
       .gte('date', `${today}T00:00:00`)
       .lte('date', `${today}T23:59:59`);
 
-    const { data: scheduledUpcoming } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
+    const { data: scheduledUpcoming } = await createGenericVisitQuery()
       .eq('status', 'scheduled')
       .gte('date', today);
 

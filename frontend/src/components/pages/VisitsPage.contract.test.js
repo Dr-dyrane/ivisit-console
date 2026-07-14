@@ -41,6 +41,7 @@ describe('VisitsPage admission contract', () => {
     fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
     fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
   ].join('\n');
+  const mobileSheetActionsSource = () => fs.readFileSync('src/components/mobile/MobileSheetActions.jsx', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
   const PRESERVATION_BASELINE = 'f31f29f';
@@ -131,8 +132,8 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
     expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
-    expect(page).toContain(".channel('visits')");
-    expect(page).toContain('setTotalCount(pageData.count || 0)');
+    expect(page).toContain('.channel(`visits_page_focus_${focusedVisitId}`)');
+    expect(page).toContain('setTotalCount(totalCount)');
     expect(page).not.toContain('createVisit({');
     expect(page).not.toContain('updateVisit(selectedVisit.id, formData)');
     expect(page).toContain('VISIT_MUTATION_UNAVAILABLE_REASON');
@@ -147,7 +148,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("from '../../hooks/useRowSelection'");
     expect(page).toContain('selectable={isAdmin()}');
     expect(page).toContain('<BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>');
-    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
+    expect(page).toContain('Bulk visit changes are unavailable');
     expect(page).not.toContain('<ConfirmationModal');
 
     expect(mobile).toContain('<PullToRefresh onRefresh={onRefresh}>');
@@ -258,23 +259,25 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     // One canonical render (converted 2026-07-09): sortable header + rows from the
-    // console design system, no view modes. aria-sort/columnheader semantics are
+    // console design system, with a source-lane toggle rather than density modes.
+    // aria-sort/columnheader semantics are
     // locked in ConsoleDesignSystem.contract.test.js.
     expect(page).toContain("from '../../console/ActivitySheet'");
     // Donor sort truth (Requests): TIME is the only sortable column; the other
     // headers are plain labels -- alphabetical sorts are not operational, and
     // status/type filtering belongs to the state chips + FilterSheet (user
     // arbitration: per-column filters removed).
-    expect(page).toContain('<SortableColumnHeader label="Time" sortKey="date" sortConfig={sortConfig} onSort={onSort} />');
+    expect(page).toContain("<SortableColumnHeader label=\"Time\" sortKey={viewMode === 'scheduled' ? 'scheduled_start_at' : 'date'} sortConfig={sortConfig} onSort={onSort} />");
     expect(page).toContain('<span>Patient</span>');
     expect(page).toContain('<span>Status</span>');
-    expect(page).toContain('<span>Type</span>');
+    expect(page).toContain("<span>{viewMode === 'scheduled' ? 'Care mode' : 'Type'}</span>");
     expect(page).toContain('<span>Facility</span>');
     expect(page).not.toContain('sortKey="user_id"');
     expect(page).not.toContain('sortKey="status"');
     expect(page).not.toContain('sortKey="type"');
     expect(page).not.toContain('sortKey="hospital_id"');
-    expect(page).not.toContain('viewMode');
+    expect(page).toContain("const [viewMode, setViewMode] = useState('all')");
+    expect(page).not.toContain('useViewMode');
 
     expect(gate).toContain('Visual implementation start proof, 2026-06-29');
     expect(gate).toContain('This starts the visual implementation but does not admit Visits.');
@@ -289,7 +292,9 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain('<VisitsDetailRail');
     expect(page).toContain('visit={focusedVisit}');
-    expect(page).toContain('const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {');
+    expect(page).toContain('const VisitsDetailRail = ({');
+    expect(page).toContain('onManageScheduledVisit,');
+    expect(page).toContain('canManageScheduledVisit,');
     // Rail anatomy composes the console DS: shell + inset hero + film rows + copy
     // affordance + lifecycle stage strip (specs locked in the DS contract).
     expect(page).toContain('<DetailRailShell>');
@@ -350,7 +355,9 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<SheetToolbar');
     expect(page).toContain('searchTestId="visits-sheet-search"');
     // Search placeholder names exactly what the service .or() can match.
-    expect(page).toContain('searchPlaceholder="Search by ID, type, facility, practitioner, or room..."');
+    expect(page).toContain("searchPlaceholder={viewMode === 'scheduled'");
+    expect(page).toContain("? 'Search by ID, facility, clinician, or type...'");
+    expect(page).toContain(": 'Search by ID, type, facility, practitioner, or room...'}");
     expect(page).toContain("onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}");
     // Donor-parity failure states: failed-empty owns the scroller with an honest
     // destructive card; a partial failure keeps rows and shows the inline banner.
@@ -370,7 +377,9 @@ describe('VisitsPage admission contract', () => {
 
     expect(page).toContain('const [visitPageError, setVisitPageError] = useState(null)');
     expect(page).toContain('setVisitPageError(null)');
-    expect(page).toContain("setVisitPageError('Visits could not load. Try again.')");
+    expect(page).toContain("setVisitPageError(viewMode === 'scheduled'");
+    expect(page).toContain("? 'Scheduled visits could not load. Try again.'");
+    expect(page).toContain(": 'Visits could not load. Try again.');");
     expect(page).toContain('loadError={visitPageError}');
     expect(page).toContain('onRetry={fetchVisits}');
     expect(page).toContain('<ErrorBanner');
@@ -448,7 +457,7 @@ describe('VisitsPage admission contract', () => {
 
     expect(panel).toContain('export const VisitsPanel = ({ visitContext }) =>');
     expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Visit records ready.');");
-    expect(panel).toContain('Visit changes need an authorized workflow receiver.');
+    expect(panel).toContain('New visits cannot be created here.');
     expect(panel).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
     expect(panel).toContain('Visits overview');
     expect(panel).toContain('Current route scope');
@@ -457,7 +466,7 @@ describe('VisitsPage admission contract', () => {
     expect(panel).toContain('No visits in the current view.');
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
-    expect(panel).toContain("title={canCreate ? 'New visit' : 'Visit changes need an authorized workflow receiver'}");
+    expect(panel).toContain("title={canCreate ? 'New visit' : 'New visits cannot be created here'}");
     expect(panel).toContain('title="View visit statistics"');
 
     expect(panel).not.toContain('visitsData');
@@ -529,7 +538,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('handleDelete');
     // Selection UI is adopted (Requests parity) but carries NO write path: the
     // bulk bar's single action is disabled with the locked reason.
-    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
+    expect(page).toContain('Bulk visit changes are unavailable');
     expect(page).toContain('canDelete={false}');
     expect(page).toContain('selectionEnabled={isAdmin()}');
 
@@ -545,7 +554,7 @@ describe('VisitsPage admission contract', () => {
     // Selection ON (isAdmin) but fail-closed: the mobile bulk bar's only control is a
     // DISABLED delete with the locked reason; mechanism restored, write stays locked.
     expect(mobile).toContain('MobileSelectionBar');
-    expect(mobile).toContain('Bulk visit outcomes are locked until authorized');
+    expect(mobile).toContain('Bulk visit changes are unavailable');
   });
 
   it('guards Visits realtime refreshes and async list results after route cleanup', () => {
@@ -557,24 +566,33 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('fetchRequestRef.current += 1');
     expect(page).toContain('if (!isMountedRef.current || fetchRequestRef.current !== requestId)');
     expect(page).toContain('let active = true');
-    expect(page).toContain('if (active && isMountedRef.current)');
+    expect(page).toContain('filter: `id=eq.${focusedVisitId}`');
+    expect(page).toContain('VISIT_REALTIME_REFRESH_DEBOUNCE_MS');
+    expect(page).toContain('window.clearTimeout(refreshTimer)');
     expect(page).toContain('active = false');
     expect(page).toContain('supabase.removeChannel(channel)');
+    expect(page).not.toContain(".channel('visits')");
+    expect(page).not.toContain('payload?.new');
   });
 
   it('fails closed for every visit mutation until a workflow receiver is admitted', () => {
     const page = pageSource();
     const service = serviceSource();
+    const legacyCommands = fs.readFileSync('src/services/visits/commands.js', 'utf8');
 
-    expect(service).toContain("export const VISIT_MUTATION_UNAVAILABLE_REASON = 'Visit changes are unavailable until an authorized workflow receiver is connected.'");
+    expect(service).toContain("export const VISIT_MUTATION_UNAVAILABLE_REASON = 'Visit changes are not available here.'");
     expect(service.match(/throw new Error\(VISIT_MUTATION_UNAVAILABLE_REASON\)/g)).toHaveLength(6);
-    expect(service).not.toContain('.insert([payload])');
-    expect(service).not.toContain('.update(payload)');
-    expect(service).not.toContain("status: 'completed'");
-    expect(service).not.toContain("status: 'cancelled'");
-    expect(service).not.toContain("status: 'no-show'");
+    expect(legacyCommands).not.toContain('.insert([payload])');
+    expect(legacyCommands).not.toContain('.update(payload)');
+    expect(legacyCommands).not.toContain("status: 'completed'");
+    expect(legacyCommands).not.toContain("status: 'cancelled'");
+    expect(legacyCommands).not.toContain("status: 'no-show'");
+    expect(service).toContain("supabase.rpc('transition_scheduled_visit', args)");
     expect(page).toContain('const canCreateVisits = false');
     expect(page).toContain('const canEditVisits = false');
+    expect(page).toContain('const scheduledActionsEnabled = scheduledCareRelease.scheduledVisitReads');
+    expect(page).toContain('&& scheduledCareRelease.scheduledVisitActions;');
+    expect(page).toContain('actionsEnabled: scheduledActionsEnabled');
     expect(page).not.toContain('onSave={handleSaveVisit}');
   });
 
@@ -582,7 +600,7 @@ describe('VisitsPage admission contract', () => {
     const page = pageSource();
     const service = serviceSource();
 
-    expect(page).toContain('getVisitsPageData({');
+    expect(page).toContain("viewMode === 'scheduled' ? getScheduledVisitsPageData : getVisitsPageData");
     expect(page).toContain('setVisitPageStats(pageData.stats || null)');
     expect(page).not.toContain("supabase.from('visits').select('*', { count: 'exact', head: true })");
     expect(page).not.toContain(".from('profiles')");
@@ -593,6 +611,10 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('applyAuthFilter');
 
     expect(service).toContain('export async function getVisitsPageData');
+    expect(service).toContain('GENERIC_VISIT_SELECT');
+    expect(service).toContain('GENERIC_VISIT_WITH_PATIENT_SELECT');
+    expect(service).toContain('applyGenericVisitSourceScope');
+    expect(service).not.toContain(".select('*', { count: 'exact' })");
     expect(service).toContain('getVisitResolutionRows({ filters, user, abortSignal: request.signal })');
     expect(service).toContain('retryTransientRead(');
     expect(service).toContain('applyQueryAbortSignal(resolutionQuery, abortSignal)');
@@ -623,13 +645,19 @@ describe('VisitsPage admission contract', () => {
     // taps override, otherwise the default resolves to a chip with live signal.
     expect(page).toContain('activeKpi={selectedKpiFilter}');
     expect(page).toContain('onKpiChange={setKpiFilter}');
-    expect(page).toContain("placeholder: 'Search by ID, type, facility, practitioner, or room...'");
+    expect(page).toContain("placeholder: viewMode === 'scheduled'");
+    expect(page).toContain("? 'Search by ID, facility, clinician, or type...'");
+    expect(page).toContain(": 'Search by ID, type, facility, practitioner, or room...'");
 
     expect(mobile).not.toContain("const search = String(filters?.search");
     expect(mobile).not.toContain("const kpi = String(filters?.kpiFilter");
     expect(mobile).not.toContain('patientName.includes(search)');
     expect(mobile).not.toContain("if (kpi !== 'all')");
     expect(mobile).toContain('useStableList(visitRows, loading)');
+    expect(mobile).toContain('mergeMobileVisitPageSnapshot(accumulatorRef.current');
+    expect(mobile).toContain('pageSnapshot?.scopeKey || getVisitQueryScopeKey({');
+    expect(mobile).toContain('pageSnapshot?.totalCount ?? count');
+    expect(mobile).not.toContain('byId: new Map()');
     expect(mobile).toContain("id: 'in_progress'");
     expect(mobile).toContain('onKpiClick={onKpiChange}');
 
@@ -642,10 +670,12 @@ describe('VisitsPage admission contract', () => {
     expect(service).toContain('hospital_name.ilike');
     expect(service).toContain('doctor_name.ilike');
     expect(service).toContain('room_number.ilike');
+    expect(service).not.toContain('notes.ilike');
   });
 
   it('converts mobile Visits into the Requests-style signal and handled sheet', () => {
     const mobile = mobileSource();
+    const mobileSheetActions = mobileSheetActionsSource();
     const gate = gateSource();
 
     expect(mobile).toContain('const MobileVisitsAtlasLayer = () => (');
@@ -667,6 +697,10 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('<MobileListEnd label="End of visits" />');
     expect(mobile).toContain('Details');
     expect(mobile).toContain('Edit');
+    expect(mobileSheetActions).toContain("const tone = primary?.tone || 'hsl(var(--foreground))'");
+    expect(mobileSheetActions).toContain("boxShadow: '0 6px 16px rgb(0 0 0 / 0.12)'");
+    expect(mobileSheetActions).not.toContain("primary?.tone || 'hsl(var(--primary))'");
+    expect(mobileSheetActions).not.toContain('const glow =');
 
     expect(mobile).toContain('MobileKPIStrip');
     expect(mobile).not.toContain('MobileFeaturedMetric');
@@ -686,7 +720,14 @@ describe('VisitsPage admission contract', () => {
     const gate = gateSource();
     expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
-    expect(page).toContain('const visitData = await getVisit(viewVisitId)');
+    expect(page).toContain("setDeepLinkState({ status: 'loading', visitId, scheduledOnly })");
+    expect(page).toContain("status: isVisitAccessDeniedError(error) ? 'denied' : 'error'");
+    expect(page).toContain("setDeepLinkState({ status: 'not_found', visitId, scheduledOnly })");
+    expect(page).toContain("urlParams.get('source') === 'scheduled'");
+    expect(page).toContain('if (!visitData) visitData = await getVisit(visitId)');
+    expect(page).toContain('<VisitDeepLinkNotice state={deepLinkState} onRetry={retryDeepLinkedVisit} />');
+    expect(page).toContain('Retry');
+    expect(page).not.toContain('getScheduledVisitById(viewVisitId).catch(() => null)');
     expect(page).not.toContain('getHospitalOptions()');
     expect(page).not.toContain("getProfiles({ role: 'patient' })");
     expect(page).toContain('const canCreateVisits = false');
@@ -695,7 +736,7 @@ describe('VisitsPage admission contract', () => {
     // list inside the activity sheet (grid cards retired with the density variants).
     // Donor-parity stage (Requests gold standard): atlas backdrop + shared wayfinding
     // dock + fixed-width detail rail.
-    expect(page).toContain("const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]'");
+    expect(page).toContain("const VISIT_GRID_COLS = 'grid-cols-[minmax(130px,1.1fr)_minmax(86px,auto)_minmax(92px,0.7fr)_minmax(110px,0.9fr)_minmax(105px,0.9fr)_minmax(105px,auto)_72px]'");
     // Stage, atlas, dock and rail widths come from the console design system
     // (WorkspaceStage/DetailRailShell -- specs locked in the DS contract).
     expect(page).toContain("from '../console/WorkspaceStage'");
@@ -727,7 +768,7 @@ describe('VisitsPage admission contract', () => {
     // The selection mechanism exists (Requests parity) but every bulk OUTCOME
     // remains fail-closed until receiver/RLS/app-consequence proof.
     expect(page).toContain('disabled');
-    expect(page).toContain('Bulk visit outcomes are locked until backend authority is proved');
+    expect(page).toContain('Bulk visit changes are unavailable');
   });
 
   it('keeps mobile Visits free of fake trend charts and stale live copy', () => {

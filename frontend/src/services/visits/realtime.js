@@ -23,25 +23,8 @@ export function subscribeToVisit(visitId, callback) {
   return () => supabase.removeChannel(channel);
 }
 
-export function subscribeToAllVisits(callback) {
-  const channel = supabase
-    .channel('visits_all')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: TABLE_NAME,
-      },
-      (payload) => {
-        if (payload.new) {
-          callback(payload.new, payload.eventType);
-        }
-      }
-    )
-    .subscribe();
-
-  return () => supabase.removeChannel(channel);
+export function subscribeToAllVisits(_callback) {
+  throw new Error('Unscoped visits realtime is unavailable. Use a visit or user-scoped subscription.');
 }
 
 export function subscribeToUserVisits(userId, callback) {

@@ -5,6 +5,7 @@ import { BulkActionBar } from '../../common/BulkActionBar';
 import { FilterSheet } from '../../common/FilterSheet';
 import { SEOHead } from '../../common/SEOHead';
 import { MobileDoctors } from '../../mobile/MobileDoctors';
+import StaffSchedulingModal from '../../modals/StaffSchedulingModal';
 import { StaffDesktopWorkspace } from './StaffDesktopWorkspace';
 
 export const DoctorsPageView = ({ controller }) => {
@@ -50,6 +51,8 @@ export const DoctorsPageView = ({ controller }) => {
           isFetching={data.isFetching}
           errorMessage={data.loadError}
           onRetry={data.fetchDoctors}
+          onSchedule={actions.handleSchedule}
+          scheduleEnabled={role.canManageSchedules}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
@@ -82,6 +85,16 @@ export const DoctorsPageView = ({ controller }) => {
         />
 
         <BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection} />
+
+        {state.scheduleModalOpen && (
+          <StaffSchedulingModal
+            isOpen
+            onClose={actions.handleScheduleClose}
+            hospitalId={state.scheduleInitialDoctor?.hospital_id || null}
+            initialDoctor={state.scheduleInitialDoctor}
+            scheduleId={state.scheduleId}
+          />
+        )}
       </div>
     );
   }
@@ -119,6 +132,8 @@ export const DoctorsPageView = ({ controller }) => {
         onSelectAll={selection.handleSelectAll}
         onView={actions.handleView}
         onEdit={actions.handleEdit}
+        onSchedule={actions.handleSchedule}
+        scheduleEnabled={role.canManageSchedules}
         onCreate={actions.handleCreate}
         moduleRailItems={wayfinding.visibleModuleRail}
         routingPath={wayfinding.routingPath}
@@ -155,6 +170,16 @@ export const DoctorsPageView = ({ controller }) => {
         analytics={data.derivedStats}
         type="doctor"
       />
+
+      {state.scheduleModalOpen && (
+        <StaffSchedulingModal
+          isOpen
+          onClose={actions.handleScheduleClose}
+          hospitalId={state.scheduleInitialDoctor?.hospital_id || null}
+          initialDoctor={state.scheduleInitialDoctor}
+          scheduleId={state.scheduleId}
+        />
+      )}
     </div>
   );
 };

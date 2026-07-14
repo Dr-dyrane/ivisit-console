@@ -1,28 +1,36 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { supabase } from '../../../lib/supabase';
 import { isQueryAbortError } from '../../../services/queryAbort';
-import { getVisitsPageData } from '../../../services/visitsService';
+import { getVisitQueryScopeKey } from '../../../services/visits/pageProjection';
+import { getScheduledVisitsPageData, getVisitsPageData } from '../../../services/visitsService';
 import { handleApiError } from '../../../utils/errorHandler';
 import { getDefaultVisitKpi } from './visitPageModel';
 
-export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig }) => {
+const VISIT_REALTIME_REFRESH_DEBOUNCE_MS = 250;
+
+export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig, viewMode = 'all' }) => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [visitPageStats, setVisitPageStats] = useState(null);
   const [visitPageError, setVisitPageError] = useState(null);
+  const [visitPageSnapshot, setVisitPageSnapshot] = useState(null);
   const [focusedVisitId, setFocusedVisitId] = useState(null);
   const isMountedRef = useRef(false);
   const fetchRequestRef = useRef(0);
   const fetchAbortControllerRef = useRef(null);
   const hasLoadedRef = useRef(false);
-  const lastInsertToastAtRef = useRef(0);
   const { paginationRange, setTotalCount } = pagination;
   const selectedKpiFilter = React.useMemo(
     () => kpiFilter || getDefaultVisitKpi(visitPageStats),
     [kpiFilter, visitPageStats],
   );
+  const queryScopeKey = React.useMemo(() => getVisitQueryScopeKey({
+    filters,
+    kpiFilter: selectedKpiFilter,
+    sortConfig,
+    viewMode,
+  }), [filters, selectedKpiFilter, sortConfig, viewMode]);
   const focusedVisit = React.useMemo(() => (
     visits.find((visit) => visit.id === focusedVisitId) || visits[0] || null
   ), [visits, focusedVisitId]);
@@ -52,7 +60,7 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
         setVisitPageError(null);
       }
 
-      const pageData = await getVisitsPageData({
+      const pageData = await (viewMode === 'scheduled' ? getScheduledVisitsPageData : getVisitsPageData)({
         filters,
         kpiFilter: selectedKpiFilter,
         range: paginationRange,
@@ -63,16 +71,26 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
 
       if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
 
-      setTotalCount(pageData.count || 0);
+      const nextVisits = pageData.visits || [];
+      const totalCount = Number.isFinite(pageData.count) ? pageData.count : 0;
+      setTotalCount(totalCount);
       setVisitPageStats(pageData.stats || null);
-      setVisits(pageData.visits || []);
+      setVisits(nextVisits);
+      setVisitPageSnapshot({
+        end: paginationRange.start + Math.max(nextVisits.length - 1, 0),
+        requestId,
+        scopeKey: queryScopeKey,
+        start: paginationRange.start,
+        totalCount,
+      });
       setVisitPageError(null);
     } catch (error) {
       if (isQueryAbortError(error)) return;
       if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
 
-      console.error('Error fetching visits:', error);
-      setVisitPageError('Visits could not load. Try again.');
+      setVisitPageError(viewMode === 'scheduled'
+        ? 'Scheduled visits could not load. Try again.'
+        : 'Visits could not load. Try again.');
       handleApiError(error, 'fetch');
     } finally {
       if (fetchAbortControllerRef.current === requestController) {
@@ -84,7 +102,7 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
         setIsFetching(false);
       }
     }
-  }, [filters, selectedKpiFilter, paginationRange, setTotalCount, sortConfig]);
+  }, [filters, selectedKpiFilter, paginationRange, queryScopeKey, setTotalCount, sortConfig, viewMode]);
 
   useEffect(() => {
     fetchVisits();
@@ -102,37 +120,36 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
   }, [visits, focusedVisitId]);
 
   useEffect(() => {
+    if (!focusedVisitId) return undefined;
+
     let active = true;
+    let refreshTimer = null;
     const channel = supabase
-      .channel('visits')
+      .channel(`visits_page_focus_${focusedVisitId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'visits' },
-        () => {
-          if (active && isMountedRef.current) {
-            fetchVisits();
-          }
+        {
+          event: '*',
+          schema: 'public',
+          table: 'visits',
+          filter: `id=eq.${focusedVisitId}`,
         },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'visits' },
-        (payload) => {
-          if (!active || !isMountedRef.current || payload?.eventType !== 'INSERT') return;
-          const now = Date.now();
-          if (now - lastInsertToastAtRef.current < 10000) return;
-          lastInsertToastAtRef.current = now;
-          const typeLabel = payload?.new?.type || null;
-          toast('New visit scheduled', typeLabel ? { description: typeLabel } : undefined);
+        () => {
+          if (!active || !isMountedRef.current) return;
+          if (refreshTimer) window.clearTimeout(refreshTimer);
+          refreshTimer = window.setTimeout(() => {
+            if (active && isMountedRef.current) fetchVisits();
+          }, VISIT_REALTIME_REFRESH_DEBOUNCE_MS);
         },
       )
       .subscribe();
 
     return () => {
       active = false;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
-  }, [fetchVisits]);
+  }, [fetchVisits, focusedVisitId]);
 
   return {
     fetchVisits,
@@ -143,6 +160,7 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
     selectedKpiFilter,
     setFocusedVisitId,
     visitPageError,
+    visitPageSnapshot,
     visitPageStats,
     visits,
   };

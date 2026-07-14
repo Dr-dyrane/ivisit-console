@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDoctorsQuery } from '../../../hooks/useDoctorsQuery';
 import { usePagination } from '../../../hooks/usePagination';
 import { useRowSelection } from '../../../hooks/useRowSelection';
@@ -6,6 +7,7 @@ import { useNavigation } from '../../../contexts/NavigationContext';
 import { useFocusedRecord } from '../../../contexts/FocusedRecordContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getConsoleModuleRailItems } from '../../../config/consoleModuleRail';
+import { scheduledCareRelease } from '../../../config/scheduledCareRelease';
 import { useWayfindingNav } from '../../console/WorkspaceStage';
 import {
   buildStaffQueryFilter,
@@ -20,6 +22,8 @@ import { useDoctorsRouteBridge } from './useDoctorsRouteBridge';
 
 export const useDoctorsPageController = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { isMobile } = useNavigation();
   const { routingPath, handleRailNavigate } = useWayfindingNav();
 
@@ -27,12 +31,15 @@ export const useDoctorsPageController = () => {
   const [modalMode, setModalMode] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleInitialDoctor, setScheduleInitialDoctor] = useState(null);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [sortConfig, setSortConfig] = useState(STAFF_DEFAULT_SORT);
 
   const pagination = usePagination(STAFF_PAGE_SIZE);
   const { resetPagination, setTotalCount } = pagination;
   const canManageStaff = isAdmin() || isOrgAdmin();
+  const canManageSchedules = canManageStaff && scheduledCareRelease.scheduleReads;
   const admin = isAdmin();
   const orgAdmin = isOrgAdmin();
 
@@ -147,6 +154,34 @@ export const useDoctorsPageController = () => {
     setModalMode('edit');
   }, [canManageStaff]);
 
+  const handleSchedule = useCallback((doctor = null) => {
+    if (!canManageSchedules) return;
+    const requestedDoctor = doctor?.id && doctor?.hospital_id ? doctor : focusedStaff;
+    setScheduleInitialDoctor(requestedDoctor || null);
+    setScheduleModalOpen(true);
+  }, [canManageSchedules, focusedStaff]);
+
+  const handleScheduleClose = useCallback(() => {
+    setScheduleModalOpen(false);
+    setScheduleInitialDoctor(null);
+    const params = new URLSearchParams(location.search);
+    if (params.has('schedule')) {
+      params.delete('schedule');
+      navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  const scheduleId = useMemo(
+    () => new URLSearchParams(location.search).get('schedule'),
+    [location.search],
+  );
+
+  useEffect(() => {
+    if (!scheduleId || !canManageSchedules) return;
+    setScheduleInitialDoctor(null);
+    setScheduleModalOpen(true);
+  }, [canManageSchedules, scheduleId]);
+
   const handleSort = useCallback((key) => {
     setSortConfig((current) => ({
       key,
@@ -179,6 +214,8 @@ export const useDoctorsPageController = () => {
     handleCreate,
     handleOpenFilters,
     handleOpenAnalytics,
+    handleSchedule,
+    canManageSchedules,
   });
 
   return {
@@ -187,6 +224,7 @@ export const useDoctorsPageController = () => {
       admin,
       orgAdmin,
       canManageStaff,
+      canManageSchedules,
     },
     data: {
       staffRows,
@@ -202,6 +240,9 @@ export const useDoctorsPageController = () => {
       modalMode,
       analyticsModalOpen,
       filterSheetOpen,
+      scheduleModalOpen,
+      scheduleInitialDoctor,
+      scheduleId,
       filters,
       sortConfig,
       focusedStaff,
@@ -219,6 +260,8 @@ export const useDoctorsPageController = () => {
       handleOpenAnalytics,
       handleView,
       handleEdit,
+      handleSchedule,
+      handleScheduleClose,
       handleSort,
       handleModalClose,
       setKpiFilter,

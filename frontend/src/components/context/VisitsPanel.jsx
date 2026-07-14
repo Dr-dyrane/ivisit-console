@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   BarChart3,
   Calendar,
+  CalendarClock,
   CheckCircle,
   Clock,
   Loader2,
@@ -50,11 +51,12 @@ export const VisitsPanel = ({ visitContext }) => {
   const loading = Boolean(context.loading);
   // Fail-closed until the route proves an admitted workflow receiver.
   const canCreate = context.canCreate === true;
+  const canManageFocused = context.canManageFocused === true;
   const [panelNotice, setPanelNotice] = React.useState('Visit records ready.');
 
   const handleCreateVisit = () => {
     if (!canCreate) {
-      setPanelNotice('Visit changes need an authorized workflow receiver.');
+      setPanelNotice('New visits cannot be created here.');
       return;
     }
 
@@ -65,6 +67,15 @@ export const VisitsPanel = ({ visitContext }) => {
   const handleOpenAnalytics = () => {
     setPanelNotice('Opening visit statistics.');
     window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
+  };
+
+  const handleManageFocused = () => {
+    if (!canManageFocused) {
+      setPanelNotice('No changes are available for the selected visit.');
+      return;
+    }
+    setPanelNotice('Opening scheduled visit actions.');
+    window.dispatchEvent(new CustomEvent('manageFocusedScheduledVisit'));
   };
 
   return (
@@ -99,7 +110,7 @@ export const VisitsPanel = ({ visitContext }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${canManageFocused ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
           <div className="rounded-inner bg-amber-500/10 p-3 text-amber-800 shadow-e2 dark:text-amber-200">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/55">
@@ -146,7 +157,7 @@ export const VisitsPanel = ({ visitContext }) => {
             onClick={handleCreateVisit}
             disabled={!canCreate}
             className="group flex min-h-[68px] items-center justify-center gap-3 rounded-button bg-sky-500/10 px-3 text-sky-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
-            title={canCreate ? 'New visit' : 'Visit changes need an authorized workflow receiver'}
+            title={canCreate ? 'New visit' : 'New visits cannot be created here'}
             aria-disabled={!canCreate}
           >
             <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
@@ -164,6 +175,19 @@ export const VisitsPanel = ({ visitContext }) => {
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>
           </motion.button>
+          {canManageFocused && (
+            <motion.button
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleManageFocused}
+              className="group flex min-h-[68px] items-center justify-center gap-3 rounded-button bg-emerald-500/10 px-3 text-emerald-700 shadow-e2 transition-[background,box-shadow,transform] duration-200 hover:bg-emerald-500/15 dark:text-emerald-200"
+              title="Manage focused scheduled visit"
+            >
+              <CalendarClock className="h-5 w-5 transition-transform duration-200 group-hover:scale-105" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Manage</span>
+            </motion.button>
+          )}
         </div>
         <p className="px-1 text-xs font-medium text-muted-foreground" role="status" aria-live="polite">
           {panelNotice}

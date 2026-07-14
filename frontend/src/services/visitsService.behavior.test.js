@@ -14,6 +14,11 @@ import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 import { applyAuthFilter, getCurrentUser } from './authService';
 import { withRetry } from './supabaseHelpers';
+import {
+  GENERIC_VISIT_SELECT,
+  GENERIC_VISIT_SOURCE_FILTER,
+  GENERIC_VISIT_WITH_PATIENT_SELECT,
+} from './visits/pageProjection';
 
 jest.mock('../lib/supabase', () => ({
   supabase: {
@@ -137,20 +142,18 @@ describe('visits service read and realtime behavior', () => {
       providerIdField: 'doctor_name',
       resourceType: 'visit',
     });
-    expect(query.select).toHaveBeenCalledWith('*', { count: 'exact' });
+    expect(query.select).toHaveBeenCalledWith(GENERIC_VISIT_SELECT, { count: 'exact' });
     expect(query.range).toHaveBeenCalledWith(0, 4999);
+    expect(query.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
     expect(query.in).toHaveBeenCalledWith('type', ['emergency']);
     expect(query.gte).toHaveBeenCalledWith('date', '2020-01-01');
     expect(query.lte).toHaveBeenCalledWith('date', '2020-12-31');
     expect(query.or).toHaveBeenCalledWith([
       'display_id.ilike.%ER urgent%',
       'type.ilike.%ER urgent%',
-      'status.ilike.%ER urgent%',
-      'notes.ilike.%ER urgent%',
       'hospital_name.ilike.%ER urgent%',
       'doctor_name.ilike.%ER urgent%',
       'room_number.ilike.%ER urgent%',
-      'cost.ilike.%ER urgent%',
     ].join(','));
     expect(query.eq).not.toHaveBeenCalledWith('status', expect.anything());
     expect(query.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
@@ -262,6 +265,8 @@ describe('visits service read and realtime behavior', () => {
     })]);
 
     const [query] = getBuildersFor('visits');
+    expect(query.select).toHaveBeenCalledWith(GENERIC_VISIT_WITH_PATIENT_SELECT);
+    expect(query.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
     expect(applyAuthFilter).toHaveBeenCalledWith(query, {
       id: 'provider-1',
       role: 'provider',
@@ -297,6 +302,10 @@ describe('visits service read and realtime behavior', () => {
     await getVisit('VIS-1');
 
     const [uuidQuery, displayQuery] = getBuildersFor('visits');
+    expect(uuidQuery.select).toHaveBeenCalledWith(GENERIC_VISIT_WITH_PATIENT_SELECT);
+    expect(displayQuery.select).toHaveBeenCalledWith(GENERIC_VISIT_WITH_PATIENT_SELECT);
+    expect(uuidQuery.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
+    expect(displayQuery.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
     expect(uuidQuery.eq).toHaveBeenCalledWith('id', visitUuid);
     expect(uuidQuery.eq).not.toHaveBeenCalledWith('display_id', expect.anything());
     expect(displayQuery.eq).toHaveBeenCalledWith('display_id', 'VIS-1');
@@ -327,6 +336,9 @@ describe('visits service read and realtime behavior', () => {
     });
 
     const [requestQuery, fallbackQuery] = getBuildersFor('visits');
+    expect(requestQuery.select).toHaveBeenCalledWith(GENERIC_VISIT_WITH_PATIENT_SELECT);
+    expect(requestQuery.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
+    expect(fallbackQuery.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
     expect(requestQuery.eq).toHaveBeenCalledWith('request_id', 'request-legacy');
     expect(requestQuery.order).toHaveBeenCalledWith('updated_at', { ascending: false });
     expect(requestQuery.limit).toHaveBeenCalledWith(1);
@@ -348,7 +360,10 @@ describe('visits service read and realtime behavior', () => {
       expect.objectContaining({ id: 'visit-1', doctor: 'Doctor One' }),
     ]);
 
-    expect(getBuildersFor('visits')[0].eq).toHaveBeenCalledWith('doctor_name', 'Doctor One');
+    const [doctorQuery] = getBuildersFor('visits');
+    expect(doctorQuery.select).toHaveBeenCalledWith(GENERIC_VISIT_SELECT, undefined);
+    expect(doctorQuery.or).toHaveBeenCalledWith(GENERIC_VISIT_SOURCE_FILTER);
+    expect(doctorQuery.eq).toHaveBeenCalledWith('doctor_name', 'Doctor One');
     expect(isValidUUID).toHaveBeenCalledTimes(2);
   });
 
@@ -375,10 +390,11 @@ describe('visits service read and realtime behavior', () => {
     });
 
     const visitCallback = jest.fn();
-    const allCallback = jest.fn();
     const userCallback = jest.fn();
     const cleanVisit = subscribeToVisit('visit-1', visitCallback);
-    const cleanAll = subscribeToAllVisits(allCallback);
+    expect(() => subscribeToAllVisits(jest.fn())).toThrow(
+      'Unscoped visits realtime is unavailable.',
+    );
     const cleanUser = subscribeToUserVisits('user-1', userCallback);
 
     expect(subscriptions.get('visit_visit-1').config).toEqual({
@@ -387,11 +403,7 @@ describe('visits service read and realtime behavior', () => {
       table: 'visits',
       filter: 'id=eq.visit-1',
     });
-    expect(subscriptions.get('visits_all').config).toEqual({
-      event: '*',
-      schema: 'public',
-      table: 'visits',
-    });
+    expect(subscriptions.has('visits_all')).toBe(false);
     expect(subscriptions.get('user_visits_user-1').config).toEqual({
       event: '*',
       schema: 'public',
@@ -401,30 +413,23 @@ describe('visits service read and realtime behavior', () => {
 
     subscriptions.get('visit_visit-1').handler({ new: null, eventType: 'DELETE' });
     subscriptions.get('visit_visit-1').handler({ new: { id: 'visit-1' }, eventType: 'UPDATE' });
-    subscriptions.get('visits_all').handler({ new: { id: 'visit-2' }, eventType: 'INSERT' });
     subscriptions.get('user_visits_user-1').handler({
       new: { id: 'visit-3' },
       eventType: 'UPDATE',
     });
 
     expect(visitCallback).toHaveBeenCalledWith({ id: 'visit-1' });
-    expect(allCallback).toHaveBeenCalledWith({ id: 'visit-2' }, 'INSERT');
     expect(userCallback).toHaveBeenCalledWith({ id: 'visit-3' }, 'UPDATE');
 
     cleanVisit();
-    cleanAll();
     cleanUser();
-    expect(supabase.removeChannel).toHaveBeenCalledTimes(3);
+    expect(supabase.removeChannel).toHaveBeenCalledTimes(2);
     expect(supabase.removeChannel).toHaveBeenNthCalledWith(
       1,
       subscriptions.get('visit_visit-1').subscribedChannel
     );
     expect(supabase.removeChannel).toHaveBeenNthCalledWith(
       2,
-      subscriptions.get('visits_all').subscribedChannel
-    );
-    expect(supabase.removeChannel).toHaveBeenNthCalledWith(
-      3,
       subscriptions.get('user_visits_user-1').subscribedChannel
     );
   });

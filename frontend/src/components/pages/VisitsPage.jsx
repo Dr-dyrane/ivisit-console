@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getVisit, VISIT_MUTATION_UNAVAILABLE_REASON } from '../../services/visitsService';
+import {
+  getScheduledVisitById,
+  getVisit,
+  VISIT_MUTATION_UNAVAILABLE_REASON,
+} from '../../services/visitsService';
 import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -9,9 +13,13 @@ import { useWayfindingNav } from '../console/WorkspaceStage';
 import { useRowSelection } from '../../hooks/useRowSelection';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
+import { scheduledCareRelease } from '../../config/scheduledCareRelease';
 import {
+  AlertCircle,
   Calendar,
   Filter,
+  LoaderCircle,
+  ShieldAlert,
   Trash2,
 } from 'lucide-react';
 import { toast } from "sonner";
@@ -26,49 +34,75 @@ import { VisitsDesktopWorkspace } from './visits/VisitsDesktopWorkspace';
 import { hasActiveVisitFilters } from './visits/visitPageModel';
 import { useVisitsDataSource } from './visits/useVisitsDataSource';
 import { useVisitsRouteBridge } from './visits/useVisitsRouteBridge';
+import { ScheduledVisitActionSheet } from './visits/ScheduledVisitActionSheet';
+import { canOpenScheduledVisitActions } from './visits/useScheduledVisitActions';
+
+const isVisitAccessDeniedError = (error) => {
+  const code = String(error?.code || '').toLowerCase();
+  const status = Number(error?.status || error?.statusCode);
+  const message = String(error?.message || '').toLowerCase();
+  return ['42501', 'pgrst301'].includes(code)
+    || status === 401
+    || status === 403
+    || message.includes('permission denied')
+    || message.includes('unavailable for this role')
+    || message.includes('no clinician identity');
+};
+
+const VisitDeepLinkNotice = ({ state, onRetry }) => {
+  if (!state || ['idle', 'resolved'].includes(state.status)) return null;
+
+  const loading = state.status === 'loading';
+  const denied = state.status === 'denied';
+  const Icon = loading ? LoaderCircle : denied ? ShieldAlert : AlertCircle;
+  const message = loading
+    ? 'Loading linked visit...'
+    : denied
+      ? 'Scheduled visit access was denied for the current role or care scope.'
+      : state.status === 'not_found'
+        ? 'This visit was not found in the current care scope.'
+        : 'This visit could not load.';
+
+  return (
+    <div
+      className="mx-4 mt-3 flex min-h-11 items-center gap-3 rounded-button bg-muted/55 px-3 py-2 text-sm text-foreground shadow-e1"
+      data-testid="visit-deep-link-status"
+      role={loading ? 'status' : 'alert'}
+      aria-live="polite"
+    >
+      <Icon className={`h-4 w-4 shrink-0 ${loading ? 'animate-spin text-muted-foreground' : denied ? 'text-destructive' : 'text-amber-600'}`} />
+      <span className="min-w-0 flex-1">{message}</span>
+      {!loading && (
+        <Button type="button" variant="ghost" size="sm" onClick={onRetry} className="h-8 shrink-0 px-3">
+          Retry
+        </Button>
+      )}
+    </div>
+  );
+};
 
 export const VisitsPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, isDriver, profile } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
-
-  // Handle URL parameter to open specific visit modal
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    // Preserve the historical ?view= contract and accept Quick Search's canonical ?id= link.
-    const viewVisitId = urlParams.get('view') || urlParams.get('id');
-
-    if (viewVisitId) {
-      // Fetch the specific visit and open modal
-      const fetchAndOpenVisit = async () => {
-        try {
-          const visitData = await getVisit(viewVisitId);
-          if (visitData) {
-            setSelectedVisit(visitData);
-            setModalMode('view');
-          }
-        } catch (error) {
-          console.error('Error fetching visit:', error);
-          toast.error('Failed to load clinical record');
-        }
-      };
-
-      fetchAndOpenVisit();
-    }
-  }, [location.search]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filters, setFilters] = useState({});
+  const [viewMode, setViewMode] = useState('all');
   const [kpiFilter, setKpiFilter] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [actionVisit, setActionVisit] = useState(null);
+  const [deepLinkState, setDeepLinkState] = useState({ status: 'idle', visitId: null });
+  const deepLinkRequestRef = useRef(0);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
   const [emergencyModal, setEmergencyModal] = useState({
     isOpen: false,
     request: null,
   });
   const pagination = usePagination(20);
+  const { resetPagination } = pagination;
   const canEditVisits = false;
   const canCreateVisits = false;
   const {
@@ -79,9 +113,88 @@ export const VisitsPage = () => {
     selectedKpiFilter,
     setFocusedVisitId,
     visitPageError,
+    visitPageSnapshot,
     visitPageStats,
     visits,
-  } = useVisitsDataSource({ filters, kpiFilter, pagination, sortConfig });
+  } = useVisitsDataSource({ filters, kpiFilter, pagination, sortConfig, viewMode });
+  const scheduledActionsEnabled = scheduledCareRelease.scheduledVisitReads
+    && scheduledCareRelease.scheduledVisitActions;
+
+  const loadDeepLinkedVisit = useCallback(async (visitId, { scheduledOnly = false } = {}) => {
+    const requestId = deepLinkRequestRef.current + 1;
+    deepLinkRequestRef.current = requestId;
+    setDeepLinkState({ status: 'loading', visitId, scheduledOnly });
+
+    if (scheduledOnly && !scheduledCareRelease.scheduledVisitReads) {
+      setDeepLinkState({ status: 'error', visitId, scheduledOnly });
+      return;
+    }
+
+    let scheduledVisit = null;
+    if (scheduledCareRelease.scheduledVisitReads) {
+      try {
+        scheduledVisit = await getScheduledVisitById(visitId);
+      } catch (error) {
+        if (deepLinkRequestRef.current !== requestId) return;
+        setDeepLinkState({
+          status: isVisitAccessDeniedError(error) ? 'denied' : 'error',
+          visitId,
+          scheduledOnly,
+        });
+        return;
+      }
+    }
+
+    try {
+      if (deepLinkRequestRef.current !== requestId) return;
+      if (!scheduledVisit && scheduledOnly) {
+        setDeepLinkState({ status: 'not_found', visitId, scheduledOnly });
+        return;
+      }
+
+      // An unmarked genuine miss may continue to the source-excluding generic
+      // projection. Any scheduled read failure returned above cannot reach it.
+      let visitData = scheduledVisit;
+      if (!visitData) visitData = await getVisit(visitId);
+      if (deepLinkRequestRef.current !== requestId) return;
+      if (!visitData) {
+        setDeepLinkState({ status: 'not_found', visitId, scheduledOnly });
+        return;
+      }
+      setSelectedVisit(visitData);
+      setFocusedVisitId(visitData.id || null);
+      setModalMode('view');
+      setDeepLinkState({ status: 'resolved', visitId, scheduledOnly });
+    } catch (error) {
+      if (deepLinkRequestRef.current !== requestId) return;
+      setDeepLinkState({
+        status: isVisitAccessDeniedError(error) ? 'denied' : 'error',
+        visitId,
+        scheduledOnly,
+      });
+    }
+  }, [setFocusedVisitId]);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    // Preserve the historical ?view= contract and accept Quick Search's stable ?id= link.
+    const viewVisitId = urlParams.get('view') || urlParams.get('id');
+    if (!viewVisitId) {
+      setDeepLinkState({ status: 'idle', visitId: null });
+      return undefined;
+    }
+
+    loadDeepLinkedVisit(viewVisitId, { scheduledOnly: urlParams.get('source') === 'scheduled' });
+    return () => {
+      deepLinkRequestRef.current += 1;
+    };
+  }, [loadDeepLinkedVisit, location.search]);
+
+  const retryDeepLinkedVisit = useCallback(() => {
+    if (deepLinkState.visitId) {
+      loadDeepLinkedVisit(deepLinkState.visitId, { scheduledOnly: deepLinkState.scheduledOnly });
+    }
+  }, [deepLinkState.scheduledOnly, deepLinkState.visitId, loadDeepLinkedVisit]);
 
   // Row selection (donor: Requests): admin-only checkboxes + select-all with
   // shift-range. Bulk OUTCOMES stay fail-closed (terminal writes locked until
@@ -99,6 +212,11 @@ export const VisitsPage = () => {
   const actionFeedbackTimerRef = useRef(null);
   const [activeActionFeedback, setActiveActionFeedback] = useState(null);
 
+  useEffect(() => {
+    resetPagination();
+    clearSelection();
+  }, [clearSelection, filters, kpiFilter, resetPagination, sortConfig, viewMode]);
+
   // Wayfinding dock slate mirrors TodayHome's useRoleKind responder fork.
   const roleKind = React.useMemo(() => {
     if (isAdmin()) return 'admin';
@@ -110,6 +228,18 @@ export const VisitsPage = () => {
     () => getConsoleModuleRailItems(roleKind),
     [roleKind]
   );
+
+  const changeViewMode = useCallback((nextMode) => {
+    if (nextMode === 'scheduled' && !scheduledCareRelease.scheduledVisitReads) return;
+    setViewMode(nextMode);
+    setKpiFilter('all');
+    setFilters({});
+    setSortConfig(nextMode === 'scheduled'
+      ? { key: 'scheduled_start_at', direction: 'asc' }
+      : { key: 'date', direction: 'desc' });
+    resetPagination();
+    clearSelection();
+  }, [clearSelection, resetPagination]);
 
   useEffect(() => {
     return () => {
@@ -147,23 +277,6 @@ export const VisitsPage = () => {
     setAnalyticsModalOpen(true);
   }, [markActionFeedback]);
 
-  useVisitsRouteBridge({
-    canCreate: canCreateVisits,
-    canEdit: canEditVisits,
-    count: pagination.totalCount || visits.length,
-    currentState: selectedKpiFilter,
-    errorMessage: visitPageError,
-    focusedVisit,
-    loading,
-    markActionFeedback,
-    onCreate: handleCreate,
-    onOpenAnalytics: handleOpenAnalytics,
-    onOpenFilters: handleOpenFilters,
-    recent: visits,
-    setEmergencyModal,
-    stats: visitPageStats,
-  });
-
   const handleView = useCallback((visit) => {
     markActionFeedback(`view-${visit?.id || 'unknown'}`);
     setFocusedVisitId(visit?.id || null);
@@ -178,6 +291,46 @@ export const VisitsPage = () => {
       description: VISIT_MUTATION_UNAVAILABLE_REASON,
     });
   }, [markActionFeedback, setFocusedVisitId]);
+
+  const handleManageScheduledVisit = useCallback((visit) => {
+    const permitted = canOpenScheduledVisitActions({
+      visit,
+      roleKind,
+      profileId: profile?.id,
+      actionsEnabled: scheduledActionsEnabled,
+    });
+    if (!permitted) return;
+    markActionFeedback(`manage-${visit.id}`);
+    setFocusedVisitId(visit.id);
+    setActionVisit(visit);
+  }, [markActionFeedback, profile?.id, roleKind, scheduledActionsEnabled, setFocusedVisitId]);
+
+  const canManageScheduledVisit = useCallback((visit) => canOpenScheduledVisitActions({
+    visit,
+    roleKind,
+    profileId: profile?.id,
+    actionsEnabled: scheduledActionsEnabled,
+  }), [profile?.id, roleKind, scheduledActionsEnabled]);
+
+  useVisitsRouteBridge({
+    canCreate: canCreateVisits,
+    canEdit: canEditVisits,
+    canManageFocused: canManageScheduledVisit(focusedVisit),
+    count: pagination.totalCount || visits.length,
+    currentState: selectedKpiFilter,
+    errorMessage: visitPageError,
+    focusedVisit,
+    loading,
+    markActionFeedback,
+    onCreate: handleCreate,
+    onManageScheduledVisit: handleManageScheduledVisit,
+    onOpenAnalytics: handleOpenAnalytics,
+    onOpenFilters: handleOpenFilters,
+    recent: visits,
+    setEmergencyModal,
+    stats: visitPageStats,
+    viewMode,
+  });
 
   const handleSort = useCallback((key) => {
     setSortConfig(current => ({
@@ -199,7 +352,9 @@ export const VisitsPage = () => {
       key: 'search',
       type: 'text',
       label: 'Search Visits',
-      placeholder: 'Search by ID, type, facility, practitioner, or room...'
+      placeholder: viewMode === 'scheduled'
+        ? 'Search by ID, facility, clinician, or type...'
+        : 'Search by ID, type, facility, practitioner, or room...'
     },
     {
       key: 'status',
@@ -213,10 +368,13 @@ export const VisitsPage = () => {
       ]
     },
     {
-      key: 'visit_type',
+      key: viewMode === 'scheduled' ? 'care_mode' : 'visit_type',
       type: 'multiselect',
       label: 'Visit Type',
-      options: [
+      options: viewMode === 'scheduled' ? [
+        { value: 'in_person', label: 'In person' },
+        { value: 'telemedicine_async', label: 'Async consult' },
+      ] : [
         { value: 'Regular Checkup', label: 'Regular Checkup' },
         { value: 'Consultation', label: 'Consultation' },
         { value: 'Follow-up', label: 'Follow-up' },
@@ -237,7 +395,7 @@ export const VisitsPage = () => {
         { label: 'This Month', value: 'month' }
       ]
     }
-  ], []);
+  ], [viewMode]);
 
   // Header actions mirror the donor (Requests): the primary command is the dark
   // fg-on-bg pill in the top header, next to the header filter trigger. NOTE: the
@@ -291,6 +449,7 @@ export const VisitsPage = () => {
     return (
       <div className="min-h-screen">
         <SEOHead title="Visits" description="Review visit records in your current scope." />
+        <VisitDeepLinkNotice state={deepLinkState} onRetry={retryDeepLinkedVisit} />
         <MobileVisits
           visits={visits}
           loading={loading}
@@ -303,6 +462,15 @@ export const VisitsPage = () => {
           onKpiChange={setKpiFilter}
           onView={handleView}
           onEdit={handleEdit}
+          onManageScheduledVisit={handleManageScheduledVisit}
+          canManageScheduledVisit={canManageScheduledVisit}
+          scheduledActionsEnabled={scheduledActionsEnabled}
+          roleKind={roleKind}
+          profileId={profile?.id}
+          viewMode={viewMode}
+          onViewModeChange={changeViewMode}
+          scheduledViewEnabled={scheduledCareRelease.scheduledVisitReads}
+          pageSnapshot={visitPageSnapshot}
           onRefresh={fetchVisits}
           errorMessage={visitPageError}
           onRetry={fetchVisits}
@@ -353,6 +521,18 @@ export const VisitsPage = () => {
           analytics={visitPageStats}
           type="visit"
         />
+
+        {actionVisit && (
+          <ScheduledVisitActionSheet
+            isOpen
+            onClose={() => setActionVisit(null)}
+            visit={actionVisit}
+            roleKind={roleKind}
+            profileId={profile?.id}
+            actionsEnabled={scheduledActionsEnabled}
+            onChanged={fetchVisits}
+          />
+        )}
       </div>
     );
   }
@@ -360,6 +540,7 @@ export const VisitsPage = () => {
   return (
     <div className="min-h-screen text-foreground">
       <SEOHead title="Visits" description="Review visit records in your current scope." />
+      <VisitDeepLinkNotice state={deepLinkState} onRetry={retryDeepLinkedVisit} />
 
       <VisitsDesktopWorkspace
         visits={visits}
@@ -376,6 +557,14 @@ export const VisitsPage = () => {
         canCreate={canCreateVisits}
         onView={handleView}
         onEdit={handleEdit}
+        onManageScheduledVisit={handleManageScheduledVisit}
+        canManageScheduledVisit={canManageScheduledVisit}
+        scheduledActionsEnabled={scheduledActionsEnabled}
+        roleKind={roleKind}
+        profileId={profile?.id}
+        viewMode={viewMode}
+        onViewModeChange={changeViewMode}
+        scheduledViewEnabled={scheduledCareRelease.scheduledVisitReads}
         onCreate={handleCreate}
         pagination={pagination}
         openFilters={handleOpenFilters}
@@ -405,8 +594,8 @@ export const VisitsPage = () => {
             size="icon"
             disabled
             className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
-            title="Bulk visit outcomes are locked until backend authority is proved"
-            aria-label="Bulk visit outcomes are locked until backend authority is proved"
+            title="Bulk visit changes are unavailable"
+            aria-label="Bulk visit changes are unavailable"
           >
             <Trash2 className="h-5 w-5" />
           </Button>
@@ -446,6 +635,18 @@ export const VisitsPage = () => {
         viewToggle={null}
         isMobile={isMobile}
       />
+
+      {actionVisit && (
+        <ScheduledVisitActionSheet
+          isOpen
+          onClose={() => setActionVisit(null)}
+          visit={actionVisit}
+          roleKind={roleKind}
+          profileId={profile?.id}
+          actionsEnabled={scheduledActionsEnabled}
+          onChanged={fetchVisits}
+        />
+      )}
     </div >
   );
 };

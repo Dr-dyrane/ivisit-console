@@ -30,9 +30,10 @@ export const hasMobileVisitFilters = (filters = {}) => Boolean(
   filters?.search
   || (filters?.status && filters.status.length > 0)
   || (filters?.visit_type && filters.visit_type.length > 0)
+  || (filters?.care_mode && filters.care_mode.length > 0)
   || filters?.date
 );
 
 export const visitWhen = (visit) => (
-  visit?.date || visit?.scheduled_at || visit?.created_at
+  visit?.scheduled_start_at || visit?.date || visit?.scheduled_at || visit?.created_at
 );

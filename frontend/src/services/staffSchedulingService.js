@@ -6,10 +6,12 @@
 export {
   getStaffScheduleById,
   getStaffSchedules,
+  getScheduleFacilities,
 } from './staff-scheduling/reads';
 export { getAvailableStaff } from './staff-scheduling/rosterReads';
 export {
   createStaffSchedule,
+  confirmHospitalTimezone,
   deleteStaffSchedule,
   updateStaffSchedule,
 } from './staff-scheduling/commands';

@@ -388,7 +388,7 @@ describe('PageDataContext public behavior', () => {
     expect(mockGetProfiles).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps provider failures explicit and visit realtime refetch scoped', async () => {
+  it('keeps provider failures explicit and refreshes visit summaries without broad realtime', async () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'provider-1' },
       profile: { id: 'provider-1', role: 'provider', provider_type: 'doctor' },
@@ -409,14 +409,10 @@ describe('PageDataContext public behavior', () => {
     expect(latestValue.domainFetching).toEqual({ emergency: false, visits: false });
     expect(latestValue.domainLoading).toMatchObject({ emergency: false, visits: false });
 
-    const visitChannel = channels.find(({ name }) => name === 'visit_changes');
-    expect(visitChannel.handlers[0]).toMatchObject({
-      type: 'postgres_changes',
-      filter: { event: '*', schema: 'public', table: 'visits' },
-    });
+    expect(channels.find(({ name }) => name === 'visit_changes')).toBeUndefined();
     mockGetVisitsPageData.mockResolvedValue({ stats: { total: 1 }, visits: [] });
     await act(async () => {
-      await visitChannel.handlers[0].callback();
+      window.dispatchEvent(new Event('focus'));
       await flushPromises();
     });
     expect(mockGetVisitsPageData).toHaveBeenLastCalledWith({

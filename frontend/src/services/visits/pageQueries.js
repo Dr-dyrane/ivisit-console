@@ -12,8 +12,10 @@ import {
 } from './constants';
 import { enrichVisitsForPage } from './pageEnrichment';
 import {
+  applyGenericVisitSourceScope,
   applyResolvedVisitFilters,
   applyVisitPageFilters,
+  GENERIC_VISIT_SELECT,
   getVisitPageStatsFromRows,
   sortVisitsForPage,
 } from './pageProjection';
@@ -28,10 +30,11 @@ const applyVisitPageAuth = (query, user) => applyAuthFilter(query, user, {
 async function getVisitResolutionRows({ filters = {}, user, abortSignal }) {
   let resolutionQuery = supabase
     .from(TABLE_NAME)
-    .select('*', { count: 'exact' })
+    .select(GENERIC_VISIT_SELECT, { count: 'exact' })
     .range(0, VISIT_RESOLUTION_ROW_LIMIT - 1);
 
   resolutionQuery = applyVisitPageAuth(resolutionQuery, user);
+  resolutionQuery = applyGenericVisitSourceScope(resolutionQuery);
   resolutionQuery = applyVisitPageFilters(resolutionQuery, filters);
   resolutionQuery = applyQueryAbortSignal(resolutionQuery, abortSignal);
 
@@ -98,7 +101,7 @@ export async function getVisitsPageData({
     }
   } catch (error) {
     if (!quiet) {
-      console.error('Error fetching visits page data:', error);
+      console.error('Error fetching visits page data.');
     }
     throw error;
   }

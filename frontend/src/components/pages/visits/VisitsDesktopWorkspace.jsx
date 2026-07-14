@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import {
   Calendar,
+  CalendarClock,
   ChevronRight,
   Clock,
   Edit,
@@ -39,6 +40,7 @@ import {
 } from '../../console/primitives';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../../hooks/useListKeyboardNav';
 import { formatDayTime } from '../../../utils/dayTime';
+import { formatVisitInFacilityTimezone } from '../../../services/visits/normalization';
 import {
   formatVisitType,
   getVisitFacilityLabel,
@@ -76,6 +78,11 @@ export const VisitsDesktopWorkspace = ({
   canCreate,
   onView,
   onEdit,
+  onManageScheduledVisit,
+  canManageScheduledVisit,
+  viewMode = 'all',
+  onViewModeChange,
+  scheduledViewEnabled = false,
   onCreate,
   pagination,
   openFilters,
@@ -125,6 +132,8 @@ export const VisitsDesktopWorkspace = ({
           canEdit={canEdit}
           onView={onView}
           onEdit={onEdit}
+          onManageScheduledVisit={onManageScheduledVisit}
+          canManageScheduledVisit={canManageScheduledVisit}
           activeActionFeedback={activeActionFeedback}
         />
       )}
@@ -153,7 +162,9 @@ export const VisitsDesktopWorkspace = ({
           <SheetToolbar
             searchValue={filters.search}
             onSearchCommit={(value) => setFilters(prev => ({ ...prev, search: value }))}
-            searchPlaceholder="Search by ID, type, facility, practitioner, or room..."
+            searchPlaceholder={viewMode === 'scheduled'
+              ? 'Search by ID, facility, clinician, or type...'
+              : 'Search by ID, type, facility, practitioner, or room...'}
             searchTestId="visits-sheet-search"
             onRefresh={onRefresh}
             refreshing={isFetching}
@@ -161,6 +172,9 @@ export const VisitsDesktopWorkspace = ({
             onOpenFilters={openFilters}
             filterSheetOpen={filterSheetOpen}
             filtersActive={hasFilter}
+            primarySlot={scheduledViewEnabled ? (
+              <VisitLaneToggle viewMode={viewMode} onChange={onViewModeChange} />
+            ) : null}
           />
         )}
         errorBanner={loadError && !failedEmpty ? (
@@ -196,6 +210,7 @@ export const VisitsDesktopWorkspace = ({
                 allSelected={allSelected}
                 someSelected={someSelected}
                 onSelectAll={onSelectAll}
+                viewMode={viewMode}
               />
 
               {visits.length === 0 && !loadError && (
@@ -238,6 +253,7 @@ export const VisitsDesktopWorkspace = ({
                   checked={selectedIds.includes(visit.id)}
                   onToggleSelect={onToggleSelect}
                   onSelectClick={onSelectClick}
+                  viewMode={viewMode}
                 />
               ))}
             </>
@@ -248,8 +264,17 @@ export const VisitsDesktopWorkspace = ({
   );
 };
 
-const VISIT_GRID_COLS = 'grid-cols-[minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
-const VISIT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(140px,1.25fr)_minmax(96px,auto)_minmax(96px,0.7fr)_minmax(120px,1fr)_minmax(96px,auto)_72px]';
+const VISIT_GRID_COLS = 'grid-cols-[minmax(130px,1.1fr)_minmax(86px,auto)_minmax(92px,0.7fr)_minmax(110px,0.9fr)_minmax(105px,0.9fr)_minmax(105px,auto)_72px]';
+const VISIT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(130px,1.1fr)_minmax(86px,auto)_minmax(92px,0.7fr)_minmax(110px,0.9fr)_minmax(105px,0.9fr)_minmax(105px,auto)_72px]';
+
+const VisitLaneToggle = ({ viewMode, onChange }) => (
+  <div className="flex h-12 items-center gap-1 rounded-button bg-muted/30 p-1" role="group" aria-label="Visit source view">
+    <button type="button" onClick={() => onChange('all')} aria-pressed={viewMode === 'all'} className={`h-10 rounded-inner px-3 text-xs font-semibold transition-colors ${viewMode === 'all' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>All</button>
+    <button type="button" onClick={() => onChange('scheduled')} aria-pressed={viewMode === 'scheduled'} className={`flex h-10 items-center rounded-inner px-3 text-xs font-semibold transition-colors ${viewMode === 'scheduled' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+      <CalendarClock className="mr-1.5 h-3.5 w-3.5" /> Scheduled
+    </button>
+  </div>
+);
 
 const VisitListHeader = ({
   sortConfig,
@@ -258,6 +283,7 @@ const VisitListHeader = ({
   allSelected = false,
   someSelected = false,
   onSelectAll,
+  viewMode = 'all',
 }) => (
   <div className={`grid ${selectable ? VISIT_GRID_COLS_SELECT : VISIT_GRID_COLS} items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
     {selectable && (
@@ -271,9 +297,10 @@ const VisitListHeader = ({
     )}
     <span>Patient</span>
     <span>Status</span>
-    <span>Type</span>
+    <span>{viewMode === 'scheduled' ? 'Care mode' : 'Type'}</span>
     <span>Facility</span>
-    <SortableColumnHeader label="Time" sortKey="date" sortConfig={sortConfig} onSort={onSort} />
+    <span>Clinician</span>
+    <SortableColumnHeader label="Time" sortKey={viewMode === 'scheduled' ? 'scheduled_start_at' : 'date'} sortConfig={sortConfig} onSort={onSort} />
     <span className="justify-self-end text-right">Action</span>
   </div>
 );
@@ -287,6 +314,7 @@ const VisitRow = ({
   checked = false,
   onToggleSelect,
   onSelectClick,
+  viewMode = 'all',
 }) => {
   const patientName = getVisitPatientLabel(visit);
   const patientEmail = visit?.patient?.email || null;
@@ -333,10 +361,13 @@ const VisitRow = ({
         />
       </span>
 
-      <span className="truncate text-sm text-foreground/85">{formatVisitType(visit)}</span>
+      <span className="truncate text-sm text-foreground/85">{visit.sourceKind === 'scheduled_visit' ? visit.careModeLabel : formatVisitType(visit)}</span>
       <span className="truncate text-sm text-muted-foreground">{facilityName}</span>
+      <span className="truncate text-sm text-muted-foreground">{getVisitDoctorLabel(visit)}</span>
       <span className="text-sm tabular-nums text-muted-foreground">
-        {formatDayTime(visit.date || visit.created_at)}
+        {viewMode === 'scheduled' || visit.sourceKind === 'scheduled_visit'
+          ? formatVisitInFacilityTimezone(visit)
+          : formatDayTime(visit.date || visit.created_at)}
       </span>
 
       <Button
@@ -356,13 +387,23 @@ const VisitRow = ({
 };
 
 const getVisitDoctorLabel = (visit) => (
-  visit?.doctor?.name
+  visit?.assignedDoctor?.name
+  || visit?.doctor?.name
   || visit?.doctor
   || visit?.doctor_name
   || 'Unassigned'
 );
 
-const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {
+const VisitsDetailRail = ({
+  visit,
+  loading,
+  canEdit,
+  onView,
+  onEdit,
+  onManageScheduledVisit,
+  canManageScheduledVisit,
+  activeActionFeedback,
+}) => {
   if (loading) {
     return (
       <DetailRailShell>
@@ -397,8 +438,12 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
   const displayId = visit.display_id || null;
   const patientName = getVisitPatientLabel(visit);
   const patientEmail = visit?.patient?.email || null;
-  const roomLabel = visit.room_number ? `Room ${visit.room_number}` : 'No room';
-  const dateLabel = formatDayTime(visit.date || visit.created_at);
+  const roomLabel = visit.sourceKind === 'scheduled_visit'
+    ? visit.careModeLabel
+    : visit.room_number ? `Room ${visit.room_number}` : 'No room';
+  const dateLabel = visit.sourceKind === 'scheduled_visit'
+    ? formatVisitInFacilityTimezone(visit)
+    : formatDayTime(visit.date || visit.created_at);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
@@ -455,11 +500,14 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
       </RailInsetHero>
 
       <div className="space-y-3">
-        <DetailLine icon={Calendar} label="Type" value={formatVisitType(visit)} />
+        <DetailLine icon={Calendar} label={visit.sourceKind === 'scheduled_visit' ? 'Care mode' : 'Type'} value={visit.sourceKind === 'scheduled_visit' ? visit.careModeLabel : formatVisitType(visit)} />
         <DetailLine icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
         <DetailLine icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
         <DetailLine icon={MapPin} label="Location" value={roomLabel} />
         <DetailLine icon={Clock} label="Scheduled" value={dateLabel} />
+        {visit.asyncConsultAvailability && (
+          <DetailLine icon={CalendarClock} label="Async consult" value={visit.asyncConsultAvailability} />
+        )}
       </div>
 
       <div className="mt-5 space-y-2">
@@ -483,6 +531,16 @@ const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActio
           >
             <Edit className="mr-2 h-4 w-4" />
             {editOpening ? 'Opening...' : 'Edit'}
+          </Button>
+        )}
+        {canManageScheduledVisit?.(visit) && (
+          <Button
+            variant="ghost"
+            onClick={() => onManageScheduledVisit(visit)}
+            className="h-12 w-full rounded-card bg-cyan-500/10 text-sm font-semibold text-cyan-800 transition-all hover:bg-cyan-500/15 active:scale-95 dark:text-cyan-100"
+          >
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Manage scheduled visit
           </Button>
         )}
         <p className="px-2 pt-1 text-center text-[11px] leading-relaxed text-muted-foreground">

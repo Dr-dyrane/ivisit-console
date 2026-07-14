@@ -4,6 +4,11 @@ import * as facade from './visitsService';
 import { VISIT_MUTATION_UNAVAILABLE_REASON } from './visits/constants';
 import { getVisitsPageData } from './visits/pageQueries';
 import {
+  getScheduledVisitById,
+  getScheduledVisitsPageData,
+  SCHEDULED_VISIT_PAGE_SIZE,
+} from './visits/scheduledQueries';
+import {
   getVisit,
   getVisitByRequestId,
   getVisits,
@@ -25,6 +30,11 @@ import {
   updateVisit,
 } from './visits/commands';
 import {
+  SCHEDULED_VISIT_ACTIONS,
+  transitionScheduledVisit,
+  zonedLocalDateTimeToUtc,
+} from './visits/scheduledCommands';
+import {
   subscribeToAllVisits,
   subscribeToUserVisits,
   subscribeToVisit,
@@ -39,6 +49,8 @@ jest.mock('./authService', () => ({
 jest.mock('./supabaseHelpers', () => ({ withRetry: jest.fn() }));
 
 const expectedFacade = {
+  SCHEDULED_VISIT_ACTIONS,
+  SCHEDULED_VISIT_PAGE_SIZE,
   VISIT_MUTATION_UNAVAILABLE_REASON,
   cancelVisit,
   completeVisit,
@@ -46,6 +58,8 @@ const expectedFacade = {
   deleteVisit,
   getDoctorVisits,
   getHospitalVisits,
+  getScheduledVisitById,
+  getScheduledVisitsPageData,
   getUserCompletedVisits,
   getUserUpcomingVisits,
   getUserVisits,
@@ -58,7 +72,9 @@ const expectedFacade = {
   subscribeToAllVisits,
   subscribeToUserVisits,
   subscribeToVisit,
+  transitionScheduledVisit,
   updateVisit,
+  zonedLocalDateTimeToUtc,
 };
 
 const facadePath = 'src/services/visitsService.js';
@@ -83,7 +99,7 @@ describe('visits service modular boundary', () => {
     const modulePaths = productionModulePaths();
 
     expect(lineCount(read(facadePath))).toBeLessThanOrEqual(75);
-    expect(modulePaths).toHaveLength(9);
+    expect(modulePaths).toHaveLength(11);
     modulePaths.forEach((modulePath) => {
       expect(lineCount(read(modulePath))).toBeLessThanOrEqual(300);
     });

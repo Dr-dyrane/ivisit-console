@@ -7,6 +7,7 @@ import {
   Plus,
   Filter,
   BarChart3,
+  CalendarClock,
   Loader2
 } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export const DoctorsPanel = ({ staffContext }) => {
   // route-context event fires, context = {} and the create control stays DISABLED until the
   // page proves authority (DoctorsPage publishes canManage: canManageStaff). Never fail-open.
   const canManage = context.canManage === true;
+  const canManageSchedules = context.canManageSchedules === true;
 
   const handleCreateStaff = () => {
     if (!canManage) {
@@ -48,6 +50,15 @@ export const DoctorsPanel = ({ staffContext }) => {
   const handleFilters = () => {
     setPanelNotice('Opening staff filters.');
     window.dispatchEvent(new CustomEvent('openFilters'));
+  };
+
+  const handleSchedules = () => {
+    if (!canManageSchedules) {
+      setPanelNotice('Staff schedules are unavailable for this role or release.');
+      return;
+    }
+    setPanelNotice('Opening staff schedules.');
+    window.dispatchEvent(new CustomEvent('openStaffSchedules'));
   };
 
   const panelSurface = 'surface-card rounded-card p-4 shadow-[0_4px_12px_rgb(0_0_0/0.07)]';
@@ -106,7 +117,7 @@ export const DoctorsPanel = ({ staffContext }) => {
       <div className="space-y-3">
         <h3 className={eyebrow}>Panel actions</h3>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className={`grid gap-2 ${canManageSchedules ? 'grid-cols-2' : 'grid-cols-3'}`}>
           <motion.button
             type="button"
             whileHover={{ y: -1 }}
@@ -142,6 +153,19 @@ export const DoctorsPanel = ({ staffContext }) => {
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:-translate-y-0.5" aria-hidden="true" />
             <span className="text-xs font-semibold">Filter</span>
           </motion.button>
+          {canManageSchedules && (
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={handleSchedules}
+              className={`${actionBase} bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-200`}
+              title="Open staff schedules"
+            >
+              <CalendarClock className="h-5 w-5 transition-transform duration-200 group-hover:-translate-y-0.5" aria-hidden="true" />
+              <span className="text-xs font-semibold">Schedules</span>
+            </motion.button>
+          )}
         </div>
 
         <div

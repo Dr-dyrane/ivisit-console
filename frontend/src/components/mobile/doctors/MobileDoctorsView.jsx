@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   BadgeCheck,
+  CalendarClock,
   Clock,
   Edit,
   Eye,
@@ -65,6 +66,8 @@ export const MobileDoctorsView = ({
   setFilters,
   onView,
   onEdit,
+  onSchedule,
+  scheduleEnabled = false,
   onRefresh,
   onViewAnalytics,
   onOpenFilters,
@@ -254,6 +257,8 @@ export const MobileDoctorsView = ({
             onClose={() => setActiveDoctor(null)}
             onView={onView}
             onEdit={onEdit}
+            onSchedule={onSchedule}
+            scheduleEnabled={scheduleEnabled}
           />
         )}
       </MobilePageShell>
@@ -261,7 +266,15 @@ export const MobileDoctorsView = ({
   );
 };
 
-const MobileDoctorDetailSheet = ({ doctor, canManage, onClose, onView, onEdit }) => {
+const MobileDoctorDetailSheet = ({
+  doctor,
+  canManage,
+  onClose,
+  onView,
+  onEdit,
+  onSchedule,
+  scheduleEnabled,
+}) => {
   const { name, specialty, facility, phone, status } = getMobileDoctorDetail(doctor);
 
   return (
@@ -289,6 +302,12 @@ const MobileDoctorDetailSheet = ({ doctor, canManage, onClose, onView, onEdit })
       secondary={canManage
         ? { icon: Edit, onClick: () => { onClose(); onEdit?.(doctor); }, 'aria-label': `Edit ${name}` }
         : undefined}
+      extras={scheduleEnabled ? [{
+        label: 'Schedule',
+        icon: CalendarClock,
+        onClick: () => { onClose(); onSchedule?.(doctor); },
+        tone: 'hsl(190 80% 38%)',
+      }] : []}
     />
   );
 };

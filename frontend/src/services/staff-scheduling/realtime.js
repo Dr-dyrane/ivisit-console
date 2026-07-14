@@ -1,49 +1,33 @@
 import { supabase } from '../../lib/supabase';
 
-/**
- * Subscribe to real-time updates (doctors and ambulances).
- */
-export function subscribeToScheduleUpdates(hospitalId, callback) {
-  // Subscribe to doctor changes
-  const doctorChannel = supabase
-    .channel('doctor_schedule_updates')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'doctors'
-      },
-      (payload) => {
-        callback({
-          type: 'doctor_update',
-          payload: payload
-        });
-      }
-    )
-    .subscribe();
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_REALTIME_DOCTORS = 100;
+const noSubscription = () => {};
 
-  // Subscribe to ambulance changes
-  const ambulanceChannel = supabase
-    .channel('ambulance_schedule_updates')
-    .on(
+export function subscribeToScheduleUpdates(hospitalId, doctorIds, callback) {
+  const scopedDoctorIds = [...new Set(Array.isArray(doctorIds) ? doctorIds : [])]
+    .filter((doctorId) => UUID_PATTERN.test(String(doctorId)));
+  if (!hospitalId || scopedDoctorIds.length === 0 || scopedDoctorIds.length > MAX_REALTIME_DOCTORS) {
+    return noSubscription;
+  }
+
+  const channelId = globalThis.crypto?.randomUUID?.() || Date.now();
+  const channel = supabase.channel(`doctor-schedules-${hospitalId}-${channelId}`);
+  scopedDoctorIds.forEach((doctorId) => {
+    channel.on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
-        table: 'ambulances'
+        table: 'doctor_schedules',
+        filter: `doctor_id=eq.${doctorId}`,
       },
-      (payload) => {
-        callback({
-          type: 'ambulance_update',
-          payload: payload
-        });
-      }
-    )
-    .subscribe();
+      (payload) => callback?.({ type: 'doctor_schedule_update', hospitalId, payload }),
+    );
+  });
+  channel.subscribe();
 
   return () => {
-    supabase.removeChannel(doctorChannel);
-    supabase.removeChannel(ambulanceChannel);
+    supabase.removeChannel(channel);
   };
 }

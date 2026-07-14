@@ -2,12 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import * as facade from './staffSchedulingService';
 import {
+  confirmHospitalTimezone,
   createStaffSchedule,
   deleteStaffSchedule,
   updateStaffSchedule,
 } from './staff-scheduling/commands';
 import { checkScheduleConflicts } from './staff-scheduling/conflicts';
 import {
+  getScheduleFacilities,
   getStaffScheduleById,
   getStaffSchedules,
 } from './staff-scheduling/reads';
@@ -23,9 +25,11 @@ jest.mock('./authService', () => ({
 
 const expectedFacade = {
   checkScheduleConflicts,
+  confirmHospitalTimezone,
   createStaffSchedule,
   deleteStaffSchedule,
   getAvailableStaff,
+  getScheduleFacilities,
   getScheduleStats,
   getStaffScheduleById,
   getStaffSchedules,
@@ -53,7 +57,7 @@ describe('staff scheduling service module boundary', () => {
       .map((name) => path.join(modulesDirectory, name));
 
     expect(facadeSource.split(/\r?\n/).length).toBeLessThanOrEqual(40);
-    expect(modulePaths).toHaveLength(6);
+    expect(modulePaths).toHaveLength(7);
     modulePaths.forEach((modulePath) => {
       const lineCount = fs.readFileSync(modulePath, 'utf8').split(/\r?\n/).length;
       expect(lineCount).toBeLessThanOrEqual(240);

@@ -55,7 +55,7 @@ export const buildRequestVisitIdentityProjection = ({
   const requestPatientProfileId = cleanId(linkedRequest?.user_id);
   const visitPatientProfileId = cleanId(visit?.user_id);
   const patientProfileId = requestPatientProfileId || visitPatientProfileId;
-  const doctorId = cleanId(linkedRequest?.assigned_doctor_id);
+  const doctorId = cleanId(linkedRequest?.assigned_doctor_id) || cleanId(visit?.doctor_id);
   const responderProfileId = cleanId(linkedRequest?.responder_id);
   const ambulanceId = cleanId(linkedRequest?.ambulance_id);
   const snapshot = parseSnapshot(linkedRequest?.patient_snapshot);
@@ -77,6 +77,7 @@ export const buildRequestVisitIdentityProjection = ({
         doctorId,
         doctorRecord,
         linkedRequest?.assigned_doctor,
+        visit?.assignedDoctor,
         visit?.assigned_doctor,
         typeof visit?.doctor === 'object' ? visit.doctor : null
       )

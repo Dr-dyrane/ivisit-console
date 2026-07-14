@@ -4,6 +4,19 @@ import { applyAuthFilter, getCurrentUser } from '../authService';
 import { withRetry } from '../supabaseHelpers';
 import { TABLE_NAME } from './constants';
 import { normalizeVisitForUI } from './normalization';
+import {
+  applyGenericVisitSourceScope,
+  GENERIC_VISIT_WITH_PATIENT_SELECT,
+} from './pageProjection';
+
+const applyGenericVisitReadScope = (query, user) => applyGenericVisitSourceScope(
+  applyAuthFilter(query, user, {
+    userIdField: 'user_id',
+    orgIdField: 'hospital_id',
+    providerIdField: 'doctor_name',
+    resourceType: 'visit',
+  })
+);
 
 /**
  * Get all visits with optional filters.
@@ -15,24 +28,9 @@ export async function getVisits(filter = {}) {
 
     // Rebuild the PostgREST builder for every retry attempt.
     const data = await withRetry(async () => {
-      let query = supabase.from(TABLE_NAME).select(`
-      *,
-      profiles!visits_user_id_fkey (
-        id,
-        username,
-        email,
-        full_name,
-        phone,
-        avatar_url
-      )
-    `);
+      let query = supabase.from(TABLE_NAME).select(GENERIC_VISIT_WITH_PATIENT_SELECT);
 
-      query = applyAuthFilter(query, user, {
-        userIdField: 'user_id',
-        orgIdField: 'hospital_id',
-        providerIdField: 'doctor_name',
-        resourceType: 'visit',
-      });
+      query = applyGenericVisitReadScope(query, user);
 
       if (filter.user_id) {
         query = query.eq('user_id', filter.user_id);
@@ -76,14 +74,10 @@ export async function getVisits(filter = {}) {
       return rows;
     });
 
-    return (data || []).map(visit => normalizeVisitForUI({
-      ...visit,
-      patient: visit.profiles,
-      profiles: undefined,
-    }));
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     if (!filter?.quiet) {
-      console.error('Error fetching visits:', error);
+      console.error('Error fetching visits.');
     }
     throw error;
   }
@@ -94,20 +88,13 @@ export async function getVisits(filter = {}) {
  */
 export async function getVisit(visitId) {
   try {
+    const user = await getCurrentUser();
     const data = await withRetry(async () => {
       let query = supabase
         .from(TABLE_NAME)
-        .select(`
-        *,
-        profiles!visits_user_id_fkey (
-          id,
-          username,
-          email,
-          full_name,
-          phone,
-          avatar_url
-        )
-      `);
+        .select(GENERIC_VISIT_WITH_PATIENT_SELECT);
+
+      query = applyGenericVisitReadScope(query, user);
 
       if (isValidUUID(visitId)) {
         query = query.eq('id', visitId);
@@ -120,17 +107,11 @@ export async function getVisit(visitId) {
       return row;
     });
 
-    if (data) {
-      return {
-        ...normalizeVisitForUI(data),
-        patient: data.profiles,
-        profiles: undefined,
-      };
-    }
+    if (data) return normalizeVisitForUI(data);
 
     return null;
   } catch (error) {
-    console.error(`Error fetching visit ${visitId}:`, error);
+    console.error('Error fetching visit.');
     throw error;
   }
 }
@@ -142,40 +123,28 @@ export async function getVisit(visitId) {
 export async function getVisitByRequestId(requestId) {
   try {
     if (!requestId) return null;
+    const user = await getCurrentUser();
 
     const data = await withRetry(async () => {
-      const { data: row, error } = await supabase
+      let query = supabase
         .from(TABLE_NAME)
-        .select(`
-        *,
-        profiles!visits_user_id_fkey (
-          id,
-          username,
-          email,
-          full_name,
-          phone,
-          avatar_url
-        )
-      `)
+        .select(GENERIC_VISIT_WITH_PATIENT_SELECT);
+
+      query = applyGenericVisitReadScope(query, user)
         .eq('request_id', requestId)
         .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      const { data: row, error } = await query.maybeSingle();
       if (error) throw error;
       return row;
     });
 
-    if (data) {
-      return {
-        ...normalizeVisitForUI(data),
-        patient: data.profiles,
-        profiles: undefined,
-      };
-    }
+    if (data) return normalizeVisitForUI(data);
 
     return getVisit(requestId);
   } catch (error) {
-    console.error(`Error fetching visit for request ${requestId}:`, error);
+    console.error('Error fetching visit for request.');
     throw error;
   }
 }

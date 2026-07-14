@@ -15,6 +15,8 @@ export const useDoctorsRouteBridge = ({
   handleCreate,
   handleOpenFilters,
   handleOpenAnalytics,
+  handleSchedule,
+  canManageSchedules,
 }) => {
   const lastInsertToastAtRef = useRef(0);
 
@@ -50,22 +52,27 @@ export const useDoctorsRouteBridge = ({
     window.addEventListener('openDoctorModal', handleCreate);
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
+    window.addEventListener('openStaffSchedules', handleSchedule);
 
     return () => {
       window.removeEventListener('openDoctorModal', handleCreate);
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
+      window.removeEventListener('openStaffSchedules', handleSchedule);
     };
-  }, [handleCreate, handleOpenAnalytics, handleOpenFilters]);
+  }, [handleCreate, handleOpenAnalytics, handleOpenFilters, handleSchedule]);
 
-  const staffPanelContext = useMemo(() => buildStaffPanelContext({
-    stats,
-    staffRows,
-    focusedStaff,
-    loading,
-    count,
-    canManage: canManageStaff,
-  }), [canManageStaff, count, focusedStaff, loading, staffRows, stats]);
+  const staffPanelContext = useMemo(() => ({
+    ...buildStaffPanelContext({
+      stats,
+      staffRows,
+      focusedStaff,
+      loading,
+      count,
+      canManage: canManageStaff,
+    }),
+    canManageSchedules: canManageSchedules === true,
+  }), [canManageSchedules, canManageStaff, count, focusedStaff, loading, staffRows, stats]);
 
   const publishStaffRouteContext = useCallback(() => {
     if (typeof window === 'undefined') return;

@@ -7,6 +7,11 @@
 export { VISIT_MUTATION_UNAVAILABLE_REASON } from './visits/constants';
 export { getVisitsPageData } from './visits/pageQueries';
 export {
+  getScheduledVisitById,
+  getScheduledVisitsPageData,
+  SCHEDULED_VISIT_PAGE_SIZE,
+} from './visits/scheduledQueries';
+export {
   getVisit,
   getVisitByRequestId,
   getVisits,
@@ -27,6 +32,11 @@ export {
   markVisitAsNoShow,
   updateVisit,
 } from './visits/commands';
+export {
+  SCHEDULED_VISIT_ACTIONS,
+  transitionScheduledVisit,
+  zonedLocalDateTimeToUtc,
+} from './visits/scheduledCommands';
 export {
   subscribeToAllVisits,
   subscribeToUserVisits,

@@ -1,111 +1,41 @@
-import { getCurrentUser, applyAuthFilter } from '../authService';
 import { supabase } from '../../lib/supabase';
+import { getCurrentUser } from '../authService';
+import { classifyScheduleError } from './projection';
 
-/**
- * Get available staff from existing profiles and doctors.
- */
+const MAX_DOCTORS = 1000;
+
 export async function getAvailableStaff(hospitalId) {
   try {
     const user = await getCurrentUser();
-    // Get doctors with hospital filtering (doctors have hospital_id field)
-    let doctorQuery = supabase
+    if (!user || !['admin', 'org_admin'].includes(user.role)) {
+      throw new Error('Not authorized to read schedule roster.');
+    }
+    if (!hospitalId) return [];
+
+    const { data, error, count } = await supabase
       .from('doctors')
-      .select(`
-        id,
-        name,
-        profile_id,
-        specialization,
-        status,
-        experience,
-        hospital_id,
-        profiles!inner (
-          id,
-          full_name,
-          username,
-          email,
-          phone,
-          role,
-          provider_type
-        )
-      `)
-      .eq('status', 'available');
-
-    // Apply RBAC
-    doctorQuery = applyAuthFilter(doctorQuery, user, {
-      userIdField: 'profile_id',
-      orgIdField: 'hospital_id'
-    });
-
-    // Apply hospital filter if specified
-    if (hospitalId) {
-      doctorQuery = doctorQuery.eq('hospital_id', hospitalId);
+      .select('id, name, profile_id, specialization, status, hospital_id', { count: 'exact' })
+      .eq('hospital_id', hospitalId)
+      .order('name', { ascending: true })
+      .range(0, MAX_DOCTORS - 1);
+    if (error) throw error;
+    if (Number.isFinite(count) && count > MAX_DOCTORS) {
+      throw new Error('The facility clinician roster exceeds the supported selector window.');
     }
 
-    const { data: doctors, error: doctorError } = await doctorQuery;
-
-    if (doctorError) throw doctorError;
-
-    // Transform doctors to staff format
-    const doctorStaff = (doctors || []).map(doctor => ({
-      id: doctor.profile_id,
-      name: doctor.profiles?.full_name || doctor.name,
+    return (data || []).map((doctor) => ({
+      id: doctor.id,
+      doctor_id: doctor.id,
+      profile_id: doctor.profile_id,
+      name: doctor.name || 'Unknown clinician',
       role: 'Doctor',
       department: doctor.specialization || 'General',
-      email: doctor.profiles?.email,
-      phone: doctor.profiles?.phone,
-      profile_type: 'doctor',
-      doctor_id: doctor.id,
+      specialization: doctor.specialization || 'General',
       hospital_id: doctor.hospital_id,
-      experience: doctor.experience
+      roster_status: doctor.status || 'unknown',
+      profile_type: 'doctor',
     }));
-
-    // Get other providers (drivers, paramedics, etc.)
-    let providerQuery = supabase
-      .from('profiles')
-      .select(`
-        id,
-        full_name,
-        username,
-        email,
-        phone,
-        role,
-        provider_type,
-        organization_id
-      `)
-      .eq('role', 'provider')
-      .in('provider_type', ['driver', 'paramedic', 'ambulance_service']);
-
-    // Apply RBAC
-    providerQuery = applyAuthFilter(providerQuery, user, {
-      orgIdField: 'organization_id'
-    });
-
-    const { data: providers, error: providerError } = await providerQuery;
-
-    if (providerError) throw providerError;
-
-    // Transform providers to staff format
-    const providerStaff = (providers || []).map(provider => ({
-      id: provider.id,
-      name: provider.full_name || provider.username,
-      role: provider.provider_type === 'driver' ? 'Driver' :
-        provider.provider_type === 'paramedic' ? 'Paramedic' : 'Staff',
-      department: 'Emergency Services',
-      email: provider.email,
-      phone: provider.phone,
-      profile_type: provider.provider_type,
-      hospital_id: provider.organization_id
-    }));
-
-    // Combine and filter by hospital if specified
-    const allStaff = [...doctorStaff, ...providerStaff];
-
-    return hospitalId
-      ? allStaff.filter(staffMember => staffMember.hospital_id === hospitalId)
-      : allStaff;
-
   } catch (error) {
-    console.error('Error fetching available staff:', error);
-    throw error;
+    throw classifyScheduleError(error);
   }
 }

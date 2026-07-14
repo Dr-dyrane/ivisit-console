@@ -1,205 +1,128 @@
-import { getCurrentUser, applyAuthFilter } from '../authService';
 import { supabase } from '../../lib/supabase';
+import { isValidUUID } from '../../lib/utils';
+import { getCurrentUser } from '../authService';
+import {
+  addScheduleDateDays,
+  classifyScheduleError,
+  getFacilityDateKey,
+  getFacilityScheduleWindow,
+  normalizeScheduleFacility,
+  normalizeScheduleRows,
+} from './projection';
 
-/**
- * Get all staff schedules from existing crew assignments.
- * Uses ambulances.crew array and doctor availability.
- */
+const MAX_SCHEDULE_DAYS = 180;
+const MAX_FACILITIES = 500;
+const MAX_SCHEDULE_CLINICIANS = 5000;
+
+export const getDefaultScheduleWindow = (timezone, instant = new Date()) => {
+  const { from, to } = getFacilityScheduleWindow(timezone, { instant });
+  return { date_from: from, date_to: to };
+};
+
+export const getScheduleDetailWindow = (instant = new Date()) => {
+  const today = getFacilityDateKey('UTC', instant);
+  const from = addScheduleDateDays(today, -30);
+  return {
+    date_from: from,
+    date_to: addScheduleDateDays(from, MAX_SCHEDULE_DAYS - 1),
+  };
+};
+
+const assertScheduleAuthority = async () => {
+  const user = await getCurrentUser();
+  if (!user || !['admin', 'org_admin'].includes(user.role)) {
+    throw classifyScheduleError(new Error('Not authorized to read doctor schedules.'));
+  }
+  return user;
+};
+
+const assertWindow = (dateFrom, dateTo) => {
+  const from = new Date(`${dateFrom}T00:00:00Z`);
+  const to = new Date(`${dateTo}T00:00:00Z`);
+  const days = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1;
+  if (!Number.isFinite(days) || days < 1 || days > MAX_SCHEDULE_DAYS) {
+    throw new Error(`Schedule windows must contain between 1 and ${MAX_SCHEDULE_DAYS} days.`);
+  }
+};
+
 export async function getStaffSchedules(filter = {}) {
   try {
-    const user = await getCurrentUser();
-    const results = {
-      schedules: [],
-      total: 0
-    };
-
-    // Get schedules from ambulance crew assignments (public read access)
-    let ambulanceQuery = supabase
-      .from('ambulances')
-      .select(`
-        id,
-        call_sign,
-        crew,
-        hospital_id,
-        hospital,
-        status,
-        type,
-        created_at,
-        updated_at
-      `);
-
-    // Apply RBAC
-    ambulanceQuery = applyAuthFilter(ambulanceQuery, user, {
-      orgIdField: 'hospital_id',
-      resourceType: 'ambulance'
-    });
-
-    const { data: ambulances, error: ambulanceError } = await ambulanceQuery;
-
-    if (ambulanceError) throw ambulanceError;
-
-    // Transform crew assignments into schedule format
-    const ambulanceSchedules = (ambulances || []).map(ambulance => {
-      return (ambulance.crew || []).map((crewMember, index) => ({
-        id: `${ambulance.id}_crew_${index}`,
-        profile_id: null, // Crew members are stored as names, not IDs
-        profile_name: crewMember,
-        ambulance_id: ambulance.id,
-        ambulance_call_sign: ambulance.call_sign,
-        hospital_id: ambulance.hospital_id,
-        hospital_name: ambulance.hospital,
-        date: new Date().toISOString().split('T')[0], // Current date as default
-        start_time: '00:00', // Full day shift
-        end_time: '23:59',
-        shift_type: 'day',
-        status: ambulance.status === 'available' ? 'on_duty' : 'scheduled',
-        notes: `Assigned to ${ambulance.call_sign}`,
-        created_at: ambulance.created_at,
-        updated_at: ambulance.updated_at,
-        schedule_type: 'ambulance_crew'
-      }));
-    }).flat();
-
-    // Get doctor schedules from doctors table
-    let doctorQuery = supabase
-      .from('doctors')
-      .select(`
-        id,
-        name,
-        profile_id,
-        specialization,
-        status,
-        experience,
-        hospital_id,
-        created_at,
-        updated_at,
-        profiles!inner (
-          id,
-          full_name,
-          username,
-          email,
-          phone
-        )
-      `);
-
-    // Apply RBAC
-    doctorQuery = applyAuthFilter(doctorQuery, user, {
-      userIdField: 'profile_id',
-      orgIdField: 'hospital_id'
-    });
-
-    const { data: doctors, error: doctorError } = await doctorQuery;
-
-    if (doctorError) throw doctorError;
-
-    // Transform doctors into schedule format
-    const doctorSchedules = (doctors || []).map(doctor => ({
-      id: `doctor_${doctor.id}`,
-      profile_id: doctor.profile_id,
-      profile_name: doctor.profiles?.full_name || doctor.name,
-      doctor_id: doctor.id,
-      hospital_id: doctor.hospital_id,
-      specialization: doctor.specialization,
-      date: new Date().toISOString().split('T')[0], // Current date as default
-      start_time: '09:00', // Standard clinic hours
-      end_time: '17:00',
-      shift_type: 'day',
-      status: doctor.status === 'available' ? 'on_duty' : 'off_duty',
-      notes: `${doctor.specialization} - ${doctor.experience || 0} years experience`,
-      created_at: doctor.created_at,
-      updated_at: doctor.updated_at,
-      schedule_type: 'doctor_shift'
-    }));
-
-    // Combine all schedules
-    results.schedules = [...ambulanceSchedules, ...doctorSchedules];
-    results.total = results.schedules.length;
-
-    // Apply filters
-    if (filter.hospital_id) {
-      results.schedules = results.schedules.filter(s =>
-        s.hospital_id === filter.hospital_id ||
-        s.hospital_name === filter.hospital_id
-      );
+    await assertScheduleAuthority();
+    const hasDateFrom = Boolean(filter.date_from);
+    const hasDateTo = Boolean(filter.date_to);
+    if (hasDateFrom !== hasDateTo) {
+      throw new Error('Schedule reads require both date window boundaries.');
     }
+    const defaults = hasDateFrom
+      ? null
+      : getDefaultScheduleWindow(filter.timezone);
+    const dateFrom = filter.date_from || defaults.date_from;
+    const dateTo = filter.date_to || defaults.date_to;
+    assertWindow(dateFrom, dateTo);
 
-    if (filter.status) {
-      results.schedules = results.schedules.filter(s => s.status === filter.status);
-    }
+    const args = { p_from_date: dateFrom, p_to_date: dateTo };
+    if (filter.hospital_id) args.p_hospital_id = filter.hospital_id;
 
-    if (filter.date_from) {
-      results.schedules = results.schedules.filter(s => s.date >= filter.date_from);
-    }
-
-    if (filter.date_to) {
-      results.schedules = results.schedules.filter(s => s.date <= filter.date_to);
-    }
-
-    results.total = results.schedules.length;
-
-    return results;
-
+    const { data, error } = await supabase.rpc('get_console_doctor_schedules', args);
+    if (error) throw error;
+    const schedules = normalizeScheduleRows(data);
+    return { schedules, total: schedules.length, date_from: dateFrom, date_to: dateTo };
   } catch (error) {
-    console.error('Error fetching staff schedules:', error);
-    throw error;
+    if (error?.name === 'ScheduleContractError') throw error;
+    throw classifyScheduleError(error);
   }
 }
 
-/**
- * Get staff schedule by ID (limited implementation).
- */
-export async function getStaffScheduleById(id) {
+export async function getStaffScheduleById(scheduleId) {
   try {
-    await getCurrentUser();
+    if (!isValidUUID(scheduleId)) return null;
+    const detailWindow = getScheduleDetailWindow();
+    const result = await getStaffSchedules(detailWindow);
+    return result.schedules.find((schedule) => schedule.id === scheduleId) || null;
+  } catch (error) {
+    if (error?.name === 'ScheduleContractError') throw error;
+    throw classifyScheduleError(error);
+  }
+}
 
-    if (id.startsWith('doctor_')) {
-      const doctorId = id.replace('doctor_', '');
+export async function getScheduleFacilities() {
+  try {
+    const user = await assertScheduleAuthority();
+    let facilityIds;
 
-      const { data, error } = await supabase
-        .from('doctors')
-        .select(`
-          *,
-          profiles!inner (
-            id,
-            full_name,
-            username,
-            email,
-            phone,
-            role,
-            provider_type
-          )
-        `)
-        .eq('id', doctorId)
-        .single();
-
-      if (error) throw error;
-
-      // Transform to schedule format
-      return {
-        id: id,
-        profile_id: data.profile_id,
-        profile_name: data.profiles?.full_name || data.name,
-        doctor_id: data.id,
-        hospital_id: data.hospital_id,
-        specialization: data.specialization,
-        date: new Date().toISOString().split('T')[0],
-        start_time: '09:00',
-        end_time: '17:00',
-        shift_type: 'day',
-        status: data.status === 'available' ? 'on_duty' : 'off_duty',
-        notes: `${data.specialization} - ${data.experience || 0} years experience`,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        schedule_type: 'doctor_shift',
-        profiles: data.profiles
-      };
-
+    if (user.role === 'org_admin') {
+      facilityIds = Array.isArray(user.hospital_ids) ? user.hospital_ids.filter(Boolean) : [];
     } else {
-      throw new Error('Schedule ID not found or not supported');
+      const { data: clinicianRows, error: clinicianError, count: clinicianCount } = await supabase
+        .from('doctors')
+        .select('hospital_id', { count: 'exact' })
+        .not('hospital_id', 'is', null)
+        .range(0, MAX_SCHEDULE_CLINICIANS - 1);
+      if (clinicianError) throw clinicianError;
+      if (Number.isFinite(clinicianCount) && clinicianCount > (clinicianRows || []).length) {
+        throw new Error('The clinician directory is too large for the schedule facility selector.');
+      }
+      facilityIds = [...new Set((clinicianRows || []).map((row) => row.hospital_id).filter(Boolean))];
     }
 
+    facilityIds = [...new Set(facilityIds)];
+    if (facilityIds.length === 0) return [];
+    if (facilityIds.length > MAX_FACILITIES) {
+      throw new Error('The clinician facility list is too large for this selector. Narrow server scope first.');
+    }
+
+    let query = supabase
+      .from('hospitals')
+      .select('id, name, timezone, timezone_confirmed_at, timezone_confirmation_source')
+      .in('id', facilityIds)
+      .order('name', { ascending: true })
+      .range(0, MAX_FACILITIES - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(normalizeScheduleFacility).filter(Boolean);
   } catch (error) {
-    console.error('Error fetching staff schedule:', error);
-    throw error;
+    if (error?.name === 'ScheduleContractError') throw error;
+    throw classifyScheduleError(error);
   }
 }

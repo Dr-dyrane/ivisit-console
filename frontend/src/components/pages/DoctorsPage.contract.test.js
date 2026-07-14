@@ -96,7 +96,8 @@ describe('DoctorsPage Staff contract', () => {
       .toBeLessThan(bottomBar.indexOf('const DynamicBottomAction'));
     expect(gateSource()).toContain('Staff right-panel route-context cleanup on 2026-07-06 moved `DoctorsPanel.jsx` off `PageDataContext` staff truth');
     expect(gateSource()).toContain('`ContextPanel.jsx` no longer passes `PageDataContext` `doctorsData` into the `/doctors` right panel.');
-    expect(page).toContain('const staffPanelContext = useMemo(() => buildStaffPanelContext({');
+    expect(page).toContain('const staffPanelContext = useMemo(() => ({');
+    expect(page).toContain('...buildStaffPanelContext({');
     expect(page).toContain("window.dispatchEvent(new CustomEvent('doctorsRouteContextUpdated'");
     expect(page).toContain("window.addEventListener('requestDoctorsRouteContext', publishStaffRouteContext);");
     expect(contextPanel).toContain('const [doctorsRouteContext, setDoctorsRouteContext] = React.useState(null);');
@@ -106,7 +107,7 @@ describe('DoctorsPage Staff contract', () => {
     expect(contextPanel).not.toContain('<DoctorsPanel doctorsData={doctorsData} />');
   });
 
-  it('wires Staff create/edit + selection while excluding destructive and unproved schedule controls', () => {
+  it('wires Staff create/edit, selection, and gated schedule controls without destructive actions', () => {
     const page = pageSource();
     const list = listSource();
     const table = tableSource();
@@ -199,15 +200,20 @@ describe('DoctorsPage Staff contract', () => {
     expect(mobile).toContain("doctor?.is_available === false ? 'unavailable' : status");
     expect(mobile).toContain("statusPill('off_duty', 'Unavailable for assignment')");
 
-    // Scheduling stays unproved for Staff; destructive copy is separately excluded
-    // from the mounted page/mobile source below.
+    expect(page).toContain('const canManageSchedules = canManageStaff && scheduledCareRelease.scheduleReads;');
+    expect(page).toContain('<StaffSchedulingModal');
+    expect(page).toContain('scheduleEnabled={role.canManageSchedules}');
+    expect(page).toContain("new URLSearchParams(location.search).get('schedule')");
+    expect(page).toContain('doctor?.id && doctor?.hospital_id ? doctor : focusedStaff');
+    expect(mobile).toContain('onSchedule,');
+    expect(mobile).toContain('scheduleEnabled = false');
+    expect(mobile).toContain('icon: CalendarClock');
+
+    // Destructive staff actions stay excluded from the mounted page/mobile path.
     [
       'Remove selected',
       'Remove staff',
       'aria-label={`Remove',
-      'onSchedule',
-      'CalendarDays',
-      'aria-label={`Schedule',
     ].forEach((blockedTerm) => {
       expect(activeStaffSource).not.toContain(blockedTerm);
     });

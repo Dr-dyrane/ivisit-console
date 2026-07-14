@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -13,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchVisitContext, fetchEmergencyContext, formatVisitDateTime, isEmergencyVisit } from '../../utils/visitContextUtils';
 import { buildRequestVisitIdentityProjection } from '../../utils/requestVisitIdentityProjection';
 import { ModalShell } from '../ui/ModalShell';
+import { formatVisitInFacilityTimezone } from '../../services/visits/normalization';
 import {
   GlassCard,
   ReadOnlyField,
@@ -20,11 +20,12 @@ import {
   VisitLogisticsCard,
   VisitNotesCard,
 } from './VisitModalSections';
+import { formatVisitLabel, isTerminalVisitStatus } from './visitModalPresentation';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
-
   const isView = mode === 'view';
   const isCreate = mode === 'create';
+  const isScheduledRecord = visit?.sourceKind === 'scheduled_visit';
 
   const [formData, setFormData] = useState({
     user_id: '',
@@ -50,13 +51,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const [visitContext, setVisitContext] = useState(null);
   const [emergencyContext, setEmergencyContext] = useState(null);
   const [loadingContext, setLoadingContext] = useState(false);
-  const terminalStatusValues = new Set(['completed', 'cancelled', 'no-show']);
-  const isTerminalStatus = terminalStatusValues.has(String(formData.status || '').toLowerCase());
-  const formatPlainLabel = (value, fallback = 'Not set') => {
-    const text = String(value || '').trim();
-    if (!text) return fallback;
-    return text.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-  };
+  const isTerminalStatus = isTerminalVisitStatus(formData.status);
   const visitContextIdentity = visitContext?.identity?.keys?.visitId === (formData.id || visit?.id)
     ? visitContext.identity
     : null;
@@ -74,6 +69,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   );
   const facilityLabel = (
     visitContext?.hospital?.name ||
+    formData.facility?.name ||
     formData.hospital?.name ||
     formData.hospital_name ||
     formData.hospital ||
@@ -81,6 +77,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   );
   const facilitySubtext = (
     visitContext?.hospital?.address ||
+    formData.facility?.address ||
     formData.hospital?.address ||
     ''
   );
@@ -92,9 +89,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
     identityProjection.responder.vehiclePlate,
     identityProjection.responder.vehicleType,
   ].filter(Boolean).join(' / ');
-  const visitTypeLabel = formatPlainLabel(formData.visit_type || formData.type, 'Visit');
-  const statusLabel = formatPlainLabel(formData.status || 'scheduled', 'Scheduled');
-  const dateTimeLabel = formData.date ? new Date(formData.date).toLocaleString() : 'Date not set';
+  const visitTypeLabel = isScheduledRecord
+    ? (formData.careModeLabel || formatVisitLabel(formData.care_mode, 'Scheduled visit'))
+    : formatVisitLabel(formData.visit_type || formData.type, 'Visit');
+  const statusLabel = formatVisitLabel(formData.status || 'scheduled', 'Scheduled');
+  const dateTimeLabel = isScheduledRecord
+    ? formatVisitInFacilityTimezone(formData, { includeYear: true })
+    : formData.date ? new Date(formData.date).toLocaleString() : 'Date not set';
   const insuranceLabel = formData.insurance_covered ? 'Covered' : 'Not covered';
 
   useEffect(() => {
@@ -206,7 +207,9 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
     }
   };
 
-  const modalTitle = formData.visit_type
+  const modalTitle = isScheduledRecord
+    ? (formData.careModeLabel || 'Scheduled visit')
+    : formData.visit_type
     ? formData.visit_type.charAt(0).toUpperCase() + formData.visit_type.slice(1)
     : isCreate
       ? 'New visit'
@@ -333,7 +336,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 <GlassCard icon={<FileText className="text-primary" />} title="Details & Schedule">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="visit_type" className="text-xs font-semibold text-muted-foreground uppercase">Visit Type</Label>
+                      <Label htmlFor="visit_type" className="text-xs font-semibold text-muted-foreground uppercase">{isScheduledRecord ? 'Care Mode' : 'Visit Type'}</Label>
                       {isView ? (
                         <ReadOnlyField value={visitTypeLabel} icon={<FileText className="h-4 w-4" />} />
                       ) : (
@@ -359,6 +362,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         </Select>
                       )}
                     </div>
+
+                    {isScheduledRecord && formData.asyncConsultAvailability && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Async Consult</Label>
+                        <ReadOnlyField value={formData.asyncConsultAvailability} icon={<Clock className="h-4 w-4" />} />
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase">Current Status</Label>
@@ -407,7 +417,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       )}
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 space-y-2">
+                    {!isScheduledRecord && <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
                       {/* Read-only until command authority is proved (2026-07-09 arbitration):
                           the visits write whitelist is contract-locked by design and silently
@@ -422,23 +432,23 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           Reason is set by the care flow.
                         </p>
                       )}
-                    </div>
+                    </div>}
                   </div>
                 </GlassCard>
 
-                <VisitLogisticsCard
+                {!isScheduledRecord && <VisitLogisticsCard
                   formData={formData}
                   handleChange={handleChange}
                   insuranceLabel={insuranceLabel}
                   isView={isView}
                   setFormData={setFormData}
-                />
+                />}
 
-                <VisitNotesCard
+                {!isScheduledRecord && <VisitNotesCard
                   formData={formData}
                   handleChange={handleChange}
                   isView={isView}
-                />
+                />}
 
                 <VisitIncidentContextCard
                   emergencyContext={emergencyContext}

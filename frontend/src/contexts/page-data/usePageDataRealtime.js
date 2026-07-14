@@ -42,16 +42,17 @@ export const usePageDataRealtime = ({
   useEffect(() => {
     if (!user || !startupDomains.includes('visits')) return;
 
-    const channel = supabase
-      .channel('visit_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'visits' },
-        fetchVisitsData
-      )
-      .subscribe();
+    const refreshVisibleVisits = () => {
+      if (document.visibilityState === 'visible') fetchVisitsData();
+    };
 
-    return () => supabase.removeChannel(channel);
+    window.addEventListener('focus', refreshVisibleVisits);
+    document.addEventListener('visibilitychange', refreshVisibleVisits);
+
+    return () => {
+      window.removeEventListener('focus', refreshVisibleVisits);
+      document.removeEventListener('visibilitychange', refreshVisibleVisits);
+    };
   }, [user, startupDomains, fetchVisitsData]);
 
   useEffect(() => {

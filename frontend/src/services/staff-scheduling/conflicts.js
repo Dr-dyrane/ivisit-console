@@ -1,32 +1,46 @@
-import { supabase } from '../../lib/supabase';
+import { classifyScheduleError } from './projection';
+import { getStaffSchedules } from './reads';
 
-/**
- * Check for scheduling conflicts (limited implementation with existing schema).
- */
-export async function checkScheduleConflicts(profileId, date, startTime, endTime, _excludeScheduleId = null) {
+const toTimeValue = (value) => {
+  const match = String(value || '').match(/^(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  return (Number(match[1]) * 3600) + (Number(match[2]) * 60) + Number(match[3] || 0);
+};
+
+export async function checkScheduleConflicts(
+  doctorId,
+  date,
+  startTime,
+  endTime,
+  excludeScheduleId = null,
+  hospitalId = null,
+) {
   try {
-    // With current schema, we can only check doctor conflicts
-    const { data: doctor, error } = await supabase
-      .from('doctors')
-      .select('status')
-      .eq('profile_id', profileId)
-      .single();
+    if (!doctorId || !date || !startTime || !endTime) {
+      return { has_conflicts: false, conflicts: [] };
+    }
 
-    if (error) throw error;
-
-    // Simple conflict check based on doctor status
-    const hasConflict = doctor?.status === 'busy' || doctor?.status === 'on_call';
-
-    return {
-      has_conflicts: hasConflict,
-      conflicts: hasConflict ? [{
-        reason: `Doctor is currently ${doctor.status}`,
-        doctor_status: doctor.status
-      }] : []
-    };
-
+    const requestedStart = toTimeValue(startTime);
+    const requestedEnd = toTimeValue(endTime);
+    const { schedules } = await getStaffSchedules({
+      date_from: date,
+      date_to: date,
+      hospital_id: hospitalId || undefined,
+    });
+    const conflicts = schedules.filter((schedule) => {
+      if (schedule.doctor_id !== doctorId || schedule.id === excludeScheduleId) return false;
+      const existingStart = toTimeValue(schedule.start_time);
+      const existingEnd = toTimeValue(schedule.end_time);
+      return existingStart !== null
+        && existingEnd !== null
+        && requestedStart !== null
+        && requestedEnd !== null
+        && existingStart < requestedEnd
+        && existingEnd > requestedStart;
+    });
+    return { has_conflicts: conflicts.length > 0, conflicts };
   } catch (error) {
-    console.error('Error checking schedule conflicts:', error);
-    throw error;
+    if (error?.name === 'ScheduleContractError') throw error;
+    throw classifyScheduleError(error);
   }
 }

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import {
+  CalendarClock,
   ChevronRight,
   Clock,
   Edit,
@@ -82,6 +83,8 @@ export const StaffDesktopWorkspace = ({
   onSelectAll,
   onView,
   onEdit,
+  onSchedule,
+  scheduleEnabled,
   onCreate,
   moduleRailItems,
   routingPath,
@@ -116,6 +119,8 @@ export const StaffDesktopWorkspace = ({
           canManage={canManage}
           onView={onView}
           onEdit={onEdit}
+          onSchedule={onSchedule}
+          scheduleEnabled={scheduleEnabled}
         />
       )}
     >
@@ -340,7 +345,16 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
   </Button>
 );
 
-export const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, onEdit }) => {
+export const StaffDetailRail = ({
+  staff,
+  loading,
+  hasFilter,
+  canManage,
+  onView,
+  onEdit,
+  onSchedule,
+  scheduleEnabled,
+}) => {
   if (loading) {
     return (
       <DetailRailShell>
@@ -444,7 +458,11 @@ export const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, 
         {canManage && (
           <div className="grid grid-cols-2 gap-3">
             <RailActionButton icon={Edit} label="Edit" onClick={() => onEdit(staff)} />
-            <RailActionButton icon={Info} label="Open record" onClick={() => onView(staff)} />
+            {scheduleEnabled ? (
+              <RailActionButton icon={CalendarClock} label="Schedule" onClick={() => onSchedule(staff)} />
+            ) : (
+              <RailActionButton icon={Info} label="Open record" onClick={() => onView(staff)} />
+            )}
           </div>
         )}
 
@@ -454,7 +472,7 @@ export const StaffDetailRail = ({ staff, loading, hasFilter, canManage, onView, 
             className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
           >
             <UserRound className="h-4 w-4 shrink-0" />
-            Staff changes are read-only until manage authority is verified.
+            Staff changes are not available for your account.
           </div>
         )}
       </div>

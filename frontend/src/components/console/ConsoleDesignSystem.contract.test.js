@@ -48,7 +48,9 @@ describe('Console design system contract', () => {
   // be wired to one queue only (the queue-blind seam). One list = both lanes.
   const LIST_WORKSPACE_PAGES = [
     { name: 'requests', page: 'src/components/pages/EmergencyRequestsPage.jsx', ownedDir: 'src/components/pages/requests', modal: 'src/components/modals/EmergencyRequestModal.jsx', modalOwnedDir: 'src/components/modals/emergency-request' },
-    { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx' },
+    // Visits realtime is UUID-scoped for patient privacy; a global INSERT arrival
+    // subscription would reintroduce the protected-data leakage this pass removed.
+    { name: 'visits', page: 'src/components/pages/VisitsPage.jsx', ownedDir: 'src/components/pages/visits', modal: 'src/components/modals/VisitModal.jsx', exclusions: ['arrival-toast'] },
     { name: 'hospitals', page: 'src/components/pages/HospitalsPage.jsx', ownedDir: 'src/components/pages/hospitals', modal: 'src/components/modals/HospitalModal.jsx', modalOwnedDir: 'src/components/modals/hospital' },
     { name: 'ambulances', page: 'src/components/pages/AmbulancesPage.jsx', ownedDir: 'src/components/pages/ambulances', modal: 'src/components/modals/AmbulanceModal.jsx', modalOwnedDir: 'src/components/modals/ambulance', exclusions: ['arrival-toast'] },
     // Approvals: a DUAL-QUEUE list page (providers|facilities) composed single-shared-list

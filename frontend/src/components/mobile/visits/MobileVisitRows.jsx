@@ -1,10 +1,11 @@
 import React from 'react';
-import { Siren, Stethoscope } from 'lucide-react';
+import { CalendarClock, Siren, Stethoscope } from 'lucide-react';
 import { resolveVital } from '../../../constants/vitalTracks';
 import { formatRequestDayTime } from '../../../utils/requestDisplay';
 import { visitRowProjection } from '../../../utils/visitRowProjection';
 import { MobileListRow } from '../canon/GroupedList';
 import { visitWhen } from './mobileVisitsModel';
+import { formatVisitInFacilityTimezone } from '../../../services/visits/normalization';
 
 export const MobileVisitErrorBanner = ({ message, onRetry }) => (
   <div
@@ -37,7 +38,9 @@ export const MobileVisitRow = ({
   const pill = vital?.pill;
   const orbClass = pill?.className || 'bg-muted/34 text-muted-foreground';
   const isEmergency = String(visit?.visit_type || visit?.type || '').includes('emergency');
-  const TypeIcon = isEmergency ? Siren : Stethoscope;
+  const scheduled = visit?.sourceKind === 'scheduled_visit';
+  const TypeIcon = isEmergency ? Siren : scheduled ? CalendarClock : Stethoscope;
+  const clinician = visit?.assignedDoctor?.name || visit?.doctor_name || 'Unassigned';
 
   return (
     <MobileListRow
@@ -48,8 +51,8 @@ export const MobileVisitRow = ({
       orbClass={orbClass}
       icon={TypeIcon}
       title={row.patientName}
-      meta={`${row.serviceType} \u00b7 ${row.primary}`}
-      time={formatRequestDayTime(visitWhen(visit))}
+      meta={`${scheduled ? visit.careModeLabel : row.serviceType} \u00b7 ${row.primary} \u00b7 ${clinician}`}
+      time={scheduled ? formatVisitInFacilityTimezone(visit) : formatRequestDayTime(visitWhen(visit))}
       pill={{ className: orbClass, label: pill?.label || row.statusLabel, dataStatus: row.statusKey }}
       selectable={selectable}
       selected={selected}

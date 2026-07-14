@@ -3,6 +3,7 @@ import React, { useCallback, useEffect } from 'react';
 export const useVisitsRouteBridge = ({
   canCreate,
   canEdit,
+  canManageFocused,
   count,
   currentState,
   errorMessage,
@@ -10,11 +11,13 @@ export const useVisitsRouteBridge = ({
   loading,
   markActionFeedback,
   onCreate,
+  onManageScheduledVisit,
   onOpenAnalytics,
   onOpenFilters,
   recent,
   setEmergencyModal,
   stats,
+  viewMode,
 }) => {
   const visitPanelContext = React.useMemo(() => ({
     stats: stats || {},
@@ -26,9 +29,12 @@ export const useVisitsRouteBridge = ({
     currentState,
     canCreate,
     canEdit,
+    canManageFocused,
+    viewMode,
   }), [
     canCreate,
     canEdit,
+    canManageFocused,
     count,
     currentState,
     errorMessage,
@@ -36,6 +42,7 @@ export const useVisitsRouteBridge = ({
     loading,
     recent,
     stats,
+    viewMode,
   ]);
 
   const publishVisitsRouteContext = useCallback(() => {
@@ -70,11 +77,16 @@ export const useVisitsRouteBridge = ({
       });
     };
 
+    const handleManageFocused = () => {
+      if (canManageFocused && focusedVisit) onManageScheduledVisit(focusedVisit);
+    };
+
     window.addEventListener('openVisitModal', handleOpenModal);
     window.addEventListener('openEmergencyDetails', handleOpenEmergency);
     window.addEventListener('openFilters', onOpenFilters);
     window.addEventListener('openVisitAnalytics', onOpenAnalytics);
     window.addEventListener('openAnalyticsModal', onOpenAnalytics);
+    window.addEventListener('manageFocusedScheduledVisit', handleManageFocused);
 
     return () => {
       window.removeEventListener('openVisitModal', handleOpenModal);
@@ -82,8 +94,9 @@ export const useVisitsRouteBridge = ({
       window.removeEventListener('openFilters', onOpenFilters);
       window.removeEventListener('openVisitAnalytics', onOpenAnalytics);
       window.removeEventListener('openAnalyticsModal', onOpenAnalytics);
+      window.removeEventListener('manageFocusedScheduledVisit', handleManageFocused);
     };
-  }, [markActionFeedback, onCreate, onOpenAnalytics, onOpenFilters, setEmergencyModal]);
+  }, [canManageFocused, focusedVisit, markActionFeedback, onCreate, onManageScheduledVisit, onOpenAnalytics, onOpenFilters, setEmergencyModal]);
 
   return visitPanelContext;
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     AlertCircle,
     Calendar,
+    CalendarClock,
     Clock,
     Edit,
     Eye,
@@ -31,6 +32,12 @@ import { SearchRow } from './canon/SearchRow';
 import { MobileHeading } from './canon/MobileHero';
 import { LOAD_MORE_ROOT_MARGIN } from './canon/constants';
 import { visitRowProjection, getVisitStatusKey } from '../../utils/visitRowProjection';
+import { formatVisitInFacilityTimezone } from '../../services/visits/normalization';
+import {
+    createMobileVisitAccumulator,
+    getVisitQueryScopeKey,
+    mergeMobileVisitPageSnapshot,
+} from '../../services/visits/pageProjection';
 import { formatRequestDayTime } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
 import {
@@ -86,6 +93,12 @@ export const MobileVisits = ({
     onKpiChange,
     onView,
     onEdit,
+    onManageScheduledVisit,
+    canManageScheduledVisit,
+    viewMode = 'all',
+    onViewModeChange,
+    scheduledViewEnabled = false,
+    pageSnapshot = null,
     onDelete,
     onRefresh,
     errorMessage,
@@ -106,7 +119,7 @@ export const MobileVisits = ({
     const observerTarget = useRef(null);
     // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
     // MECHANISM renders but the bulk WRITE stays locked — VisitsPage's only bulk control
-    // is a DISABLED delete ("locked until backend authority is proved"), so mobile shows
+    // is a disabled bulk change, so mobile shows
     // the same disabled bar, never a live mutation. Gated by selectionEnabled (page: isAdmin).
     const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
     const selectionMode = selectionEnabled && selectedIdSet.size > 0;
@@ -116,37 +129,22 @@ export const MobileVisits = ({
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
     const warmingUp = useSkeletonWarmup();
 
-    // LOAD MORE = ACCUMULATE (2026-07-09 user arbitration). The page still swaps pages
-    // through usePagination + onLoadMore — every fetch replaces `visits` with ONE page —
-    // so accumulation lives here: an id-keyed map keeps every row seen since the last
-    // scope change and the list renders the accumulation. The serialized scope signature
-    // (search + sheet filters + KPI) resets the map so a narrowed scope never shows
-    // stale rows from another scope; a same-scope refetch (realtime, pull-to-refresh)
-    // updates rows in place by id. Page-level infinite query is the desktop lane's
-    // later refinement — this local accumulation is the approved interim.
-    const filterSignature = JSON.stringify({
-        search: filters?.search || '',
-        status: filters?.status || null,
-        visitType: filters?.visit_type || null,
-        date: filters?.date || null,
-        kpi: activeKpi || 'all',
+    // Each successful range replaces its previous page snapshot. The server scope
+    // key carries all filters, including care_mode, so rows cannot cross scopes.
+    const filterSignature = pageSnapshot?.scopeKey || getVisitQueryScopeKey({
+        filters,
+        kpiFilter: activeKpi,
+        viewMode,
     });
-    const accumulatorRef = useRef({ signature: null, order: [], byId: new Map() });
+    const accumulatorRef = useRef(createMobileVisitAccumulator());
     const visitRows = useMemo(() => {
-        const store = accumulatorRef.current;
-        if (store.signature !== filterSignature) {
-            store.signature = filterSignature;
-            store.order = [];
-            store.byId = new Map();
-        }
-        (Array.isArray(visits) ? visits : []).forEach((row) => {
-            const id = row?.id;
-            if (id === null || id === undefined) return;
-            if (!store.byId.has(id)) store.order.push(id);
-            store.byId.set(id, row);
+        return mergeMobileVisitPageSnapshot(accumulatorRef.current, {
+            pageStart: pageSnapshot?.start || 0,
+            scopeKey: filterSignature,
+            totalCount: pageSnapshot?.totalCount ?? count,
+            visits,
         });
-        return store.order.map((id) => store.byId.get(id));
-    }, [visits, filterSignature]);
+    }, [count, filterSignature, pageSnapshot?.start, pageSnapshot?.totalCount, visits]);
 
     const { displayItems: displayVisits } = useStableList(visitRows, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
@@ -189,15 +187,11 @@ export const MobileVisits = ({
     // chip to All (the list itself may be non-empty under a different KPI).
     const kpiEmptyCause = Boolean(activeKpi && activeKpi !== 'all') && !filters?.search && !hasMobileVisitFilters(filters);
     const kpiEmptyLabel = mobileVisitStates.find((item) => item.id === activeKpi)?.label || 'selected';
-    // True-empty honest states (2026-07-09 arbitration): with no narrowing cause at all,
-    // a zero list means something specific per persona. Keyed on the flags the page
-    // already passes: admin/org_admin zero = the RLS void (visits reads are pending a
-    // backend access policy for console operators); everyone else on this provider-min
-    // route is the provider/doctor persona, whose zero is the doctor-join void (no
-    // visits rows are linked to their doctor identity yet).
+    // True-empty states distinguish facility operators from clinicians without
+    // exposing access-control implementation details.
     const trueEmpty = !filters?.search && !hasMobileVisitFilters(filters) && !(activeKpi && activeKpi !== 'all');
     const trueEmptyHint = (isAdmin || isOrgAdmin)
-        ? 'Visit records are pending a backend access policy.'
+        ? 'No visits are available for your facilities yet.'
         : 'No visits are linked to your name yet.';
 
     return (
@@ -227,11 +221,17 @@ export const MobileVisits = ({
                     />
 
                     <section className="px-4" data-testid="mobile-visits-activity-sheet">
+                        {scheduledViewEnabled && (
+                            <div className="mb-3 flex h-10 items-center gap-1 rounded-button bg-muted/30 p-1" role="group" aria-label="Visit source view">
+                                <button type="button" onClick={() => onViewModeChange?.('all')} aria-pressed={viewMode === 'all'} className={`h-8 flex-1 rounded-inner text-xs font-semibold ${viewMode === 'all' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}>All</button>
+                                <button type="button" onClick={() => onViewModeChange?.('scheduled')} aria-pressed={viewMode === 'scheduled'} className={`flex h-8 flex-1 items-center justify-center rounded-inner text-xs font-semibold ${viewMode === 'scheduled' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}><CalendarClock className="mr-1.5 h-3.5 w-3.5" />Scheduled</button>
+                            </div>
+                        )}
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
                         <SearchRow
-                            placeholder="Search visits..."
+                            placeholder={viewMode === 'scheduled' ? 'Search ID, facility, clinician, or type...' : 'Search visits...'}
                             search={filters?.search}
                             onSearchCommit={(value) => setFilters?.((prev) => ({ ...prev, search: value }))}
                             searchTestId="mobile-visits-sheet-search"
@@ -260,8 +260,8 @@ export const MobileVisits = ({
                                 <button
                                     type="button"
                                     disabled
-                                    aria-label="Bulk visit outcomes are locked until authorized"
-                                    title="Bulk visit outcomes are locked until authorized"
+                                    aria-label="Bulk visit changes are unavailable"
+                                    title="Bulk visit changes are unavailable"
                                     className="flex h-8 w-8 items-center justify-center rounded-button bg-destructive/12 text-destructive opacity-40"
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -361,7 +361,9 @@ export const MobileVisits = ({
                         ? String(activeVisit.display_id)
                         : `#${String(activeVisit.id || '').slice(0, 12) || 'visit'}`;
                     const referenceCopy = String(activeVisit.display_id || activeVisit.id || '');
-                    const scheduledAt = activeVisit.date || activeVisit.scheduled_at;
+                    const scheduledAt = activeVisit.scheduled_start_at || activeVisit.date || activeVisit.scheduled_at;
+                    const scheduledSource = activeVisit.sourceKind === 'scheduled_visit';
+                    const canManage = canManageScheduledVisit?.(activeVisit) === true;
                     return (
                         <MobileDetailSheet
                             isOpen
@@ -375,10 +377,11 @@ export const MobileVisits = ({
                             islands={[
                                 { icon: Stethoscope, label: 'Practitioner', value: getDoctorName(activeVisit) },
                                 { icon: Hospital, label: 'Facility', value: getFacilityName(activeVisit) },
-                                { icon: MapPin, label: 'Location', value: activeVisit.room_number ? `Room ${activeVisit.room_number}` : 'No room' },
+                                { icon: scheduledSource ? CalendarClock : MapPin, label: scheduledSource ? 'Care mode' : 'Location', value: scheduledSource ? activeVisit.careModeLabel : activeVisit.room_number ? `Room ${activeVisit.room_number}` : 'No room' },
                                 // Day-aware lifecycle stamps (desktop DetailLine parity):
                                 // date-only labels dropped the clock time these facts hinge on.
-                                scheduledAt && { icon: Calendar, label: 'Scheduled', value: formatRequestDayTime(scheduledAt) },
+                                scheduledAt && { icon: Calendar, label: 'Scheduled', value: scheduledSource ? formatVisitInFacilityTimezone(activeVisit) : formatRequestDayTime(scheduledAt) },
+                                activeVisit.asyncConsultAvailability && { icon: CalendarClock, label: 'Async consult', value: activeVisit.asyncConsultAvailability },
                                 activeVisit.created_at && { icon: Clock, label: 'Created', value: formatRequestDayTime(activeVisit.created_at) },
                                 referenceCopy && {
                                     icon: Hash,
@@ -396,6 +399,12 @@ export const MobileVisits = ({
                             secondary={canEdit
                                 ? { label: 'Details', icon: Eye, onClick: () => { setActiveVisit(null); onView?.(activeVisit); } }
                                 : undefined}
+                            extras={canManage ? [{
+                                label: 'Manage visit',
+                                icon: CalendarClock,
+                                onClick: () => { setActiveVisit(null); onManageScheduledVisit?.(activeVisit); },
+                                tone: 'hsl(190 80% 38%)',
+                            }] : []}
                         >
                             {/* Delete stays fail-closed BY DESIGN: the page hardwires
                                 canDelete={false} until a delete receiver/RLS/app consequence is
@@ -419,6 +428,7 @@ export const MobileVisits = ({
 };
 
 const getDoctorName = (visit) => (
+    visit?.assignedDoctor?.name ||
     visit?.doctor?.name ||
     visit?.doctor ||
     visit?.doctor_name ||
@@ -426,6 +436,7 @@ const getDoctorName = (visit) => (
 );
 
 const getFacilityName = (visit) => (
+    visit?.facility?.name ||
     visit?.hospital?.name ||
     visit?.hospital_name ||
     visit?.hospital ||

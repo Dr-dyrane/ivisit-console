@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
  * Grounded in ivisit-app's real CTA groups (components/ui/InputModal.jsx footer +
  * components/emergency/requestModal/AmbulanceServiceDetailSheet.jsx actionRow):
  *   - side-by-side flex row, gap 8, secondary LEFT / primary RIGHT
- *   - PRIMARY is FILLED (brand or a status tone) with a colored "glow" shadow and is
- *     slightly wider (flex 1.2); bold, tracked label
+ *   - PRIMARY is FILLED (neutral ink by default, or an explicit status tone) with
+ *     neutral elevation and is slightly wider (flex 1.2); bold, tracked label
  *   - SECONDARY is a subtle ghost (labelled or icon-only)
  *   - borderless (no border lines, no accent bars); graduated press (scale 0.96)
  *
@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
  * Rollout S7) identically on every stateful sheet.
  *
  * @param {{label:string, icon?:Function, onClick:Function, disabled?:boolean, tone?:string}} [primary]
- *        tone = a css color for the fill (default brand `hsl(var(--primary))`).
+ *        tone = a css color for an intentional state fill (default is neutral foreground).
  * @param {{label?:string, icon?:Function, onClick:Function, ['aria-label']?:string}} [secondary]
  *        labelled (flex 1) or icon-only (fixed width) ghost.
  * @param {Array<{label:string, icon?:Function, onClick:Function, tone?:string}>} [extras]
@@ -28,8 +28,8 @@ import { motion } from 'framer-motion';
 export const MobileSheetActions = ({ primary, secondary, extras = [], className = '' }) => {
   const hasExtras = Array.isArray(extras) && extras.length > 0;
   if (!primary && !secondary && !hasExtras) return null;
-  const tone = primary?.tone || 'hsl(var(--primary))';
-  const glow = tone.replace(/\)$/, ' / 0.30)');
+  const hasExplicitTone = Boolean(primary?.tone);
+  const tone = primary?.tone || 'hsl(var(--foreground))';
 
   const secondaryButton = secondary && (
     <motion.button
@@ -54,9 +54,12 @@ export const MobileSheetActions = ({ primary, secondary, extras = [], className 
       style={{
         WebkitTapHighlightColor: 'transparent',
         background: tone,
-        boxShadow: `0 8px 18px ${glow}`,
+        color: hasExplicitTone
+          ? 'hsl(var(--primary-foreground))'
+          : 'hsl(var(--background))',
+        boxShadow: '0 6px 16px rgb(0 0 0 / 0.12)',
       }}
-      className="flex h-12 flex-[1.2] items-center justify-center gap-2 rounded-button text-sm font-bold tracking-wide text-primary-foreground transition-transform disabled:opacity-50"
+      className="flex h-12 flex-[1.2] items-center justify-center gap-2 rounded-button text-sm font-bold tracking-wide transition-transform disabled:opacity-50"
     >
       {primary.icon && <primary.icon className="h-4 w-4" />}
       {primary.label}

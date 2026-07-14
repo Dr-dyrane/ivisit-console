@@ -6,10 +6,137 @@ import {
 } from '../../utils/visitStatus';
 import { getVisitPatientLabel } from '../../utils/visitRowProjection';
 
+// Generic history reads deliberately omit clinical/consult content. Scheduled
+// care is projected through scheduledQueries.js and is excluded below.
+export const GENERIC_VISIT_SELECT = `
+  id,
+  display_id,
+  request_id,
+  user_id,
+  doctor_id,
+  hospital_id,
+  type,
+  status,
+  date,
+  time,
+  room_number,
+  cost,
+  hospital_name,
+  doctor_name,
+  created_at,
+  updated_at
+`;
+
+export const GENERIC_VISIT_WITH_PATIENT_SELECT = `
+  ${GENERIC_VISIT_SELECT},
+  patient:profiles!visits_user_id_fkey (
+    id,
+    username,
+    email,
+    full_name,
+    phone,
+    avatar_url
+  )
+`;
+
+// Any request-independent row with an admitted scheduled care mode stays out of
+// generic history, even when malformed and missing its scheduled start.
+export const GENERIC_VISIT_SOURCE_FILTER = [
+  'request_id.not.is.null',
+  'care_mode.is.null',
+  'care_mode.not.in.(in_person,telemedicine_async)',
+].join(',');
+
+export const applyGenericVisitSourceScope = (query) => (
+  query.or(GENERIC_VISIT_SOURCE_FILTER)
+);
+
+const normalizeQueryScopeValue = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map(normalizeQueryScopeValue)
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value).sort().reduce((result, key) => {
+      if (value[key] !== undefined) result[key] = normalizeQueryScopeValue(value[key]);
+      return result;
+    }, {});
+  }
+  return value;
+};
+
+export const getVisitQueryScopeKey = ({
+  filters = {},
+  kpiFilter = 'all',
+  sortConfig = {},
+  viewMode = 'all',
+} = {}) => JSON.stringify(normalizeQueryScopeValue({
+  filters,
+  kpiFilter: kpiFilter || 'all',
+  sortConfig,
+  viewMode,
+}));
+
+export const createMobileVisitAccumulator = () => ({
+  pages: new Map(),
+  sequence: 0,
+  signature: null,
+});
+
+export const mergeMobileVisitPageSnapshot = (store, {
+  pageStart = 0,
+  scopeKey,
+  totalCount,
+  visits = [],
+} = {}) => {
+  if (!store || !(store.pages instanceof Map)) return [];
+  if (store.signature !== scopeKey) {
+    store.pages = new Map();
+    store.sequence = 0;
+    store.signature = scopeKey;
+  }
+
+  const start = Number.isFinite(Number(pageStart)) ? Math.max(Number(pageStart), 0) : 0;
+  const rows = (Array.isArray(visits) ? visits : []).filter((row) => (
+    row?.id !== null && row?.id !== undefined
+  ));
+  store.sequence += 1;
+  store.pages.set(start, { rows, sequence: store.sequence });
+
+  const boundedCount = Number(totalCount);
+  if (Number.isFinite(boundedCount) && boundedCount >= 0) {
+    [...store.pages.keys()].forEach((key) => {
+      if (key >= boundedCount) store.pages.delete(key);
+    });
+  }
+
+  const pages = [...store.pages.entries()].sort(([left], [right]) => left - right);
+  const latestRows = new Map();
+  [...pages]
+    .sort(([, left], [, right]) => left.sequence - right.sequence)
+    .forEach(([, page]) => page.rows.forEach((row) => latestRows.set(row.id, row)));
+
+  const seen = new Set();
+  const accumulated = [];
+  pages.forEach(([, page]) => {
+    page.rows.forEach((row) => {
+      if (seen.has(row.id)) return;
+      seen.add(row.id);
+      accumulated.push(latestRows.get(row.id));
+    });
+  });
+
+  return Number.isFinite(boundedCount) && boundedCount >= 0
+    ? accumulated.slice(0, boundedCount)
+    : accumulated;
+};
+
 export const sanitizeVisitSearchTerm = (value) => String(value || '')
   .trim()
   .replace(/[,%]/g, ' ')
   .replace(/\s+/g, ' ')
+  .trim()
   .slice(0, 80);
 
 export const applyVisitPageFilters = (query, filters = {}) => {
@@ -30,12 +157,9 @@ export const applyVisitPageFilters = (query, filters = {}) => {
     nextQuery = nextQuery.or([
       `display_id.ilike.${pattern}`,
       `type.ilike.${pattern}`,
-      `status.ilike.${pattern}`,
-      `notes.ilike.${pattern}`,
       `hospital_name.ilike.${pattern}`,
       `doctor_name.ilike.${pattern}`,
       `room_number.ilike.${pattern}`,
-      `cost.ilike.${pattern}`,
     ].join(','));
   }
 
