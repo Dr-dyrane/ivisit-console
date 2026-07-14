@@ -23,6 +23,7 @@ export function buildToday({
   const role = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
   const requestReviewCount = Number(emergencyReviewCount) || 0;
   const requestActiveCount = Number(emergencyActiveCount) || 0;
+  const isDispatchOperator = ['admin', 'org_admin', 'dispatcher'].includes(roleKind);
 
   if (!live) {
     return {
@@ -52,7 +53,7 @@ export function buildToday({
     };
   }
 
-  if ((roleKind === 'admin' || roleKind === 'org_admin') && requestReviewCount > 0) {
+  if (isDispatchOperator && requestReviewCount > 0) {
     return {
       headline: `${requestReviewCount} ${pluralize(requestReviewCount, 'request')} to review`,
       subhead: 'Open requests and start with the newest item that needs review.',
@@ -85,7 +86,7 @@ export function buildToday({
     };
   }
 
-  if ((roleKind === 'admin' || roleKind === 'org_admin') && requestActiveCount > 0) {
+  if (isDispatchOperator && requestActiveCount > 0) {
     return {
       headline: `${requestActiveCount} active ${pluralize(requestActiveCount, 'request')}`,
       subhead: 'Open Requests to check current care activity.',

@@ -4,8 +4,6 @@
  * Uses navigation config for consistent access control
  */
 
-import { NAV_CONFIG } from './navigation';
-
 /**
  * Route protection configuration
  * Each route specifies how it should be protected
@@ -16,7 +14,8 @@ export const ROUTE_PROTECTION = {
     public: false,
     minRole: 'viewer',
     resource: 'dashboard',
-    title: 'Today'
+    title: 'Today',
+    additionalRoles: ['dispatcher']
   },
   '/login': {
     public: true,
@@ -31,7 +30,8 @@ export const ROUTE_PROTECTION = {
     minRole: 'provider',
     resource: 'map',
     title: 'Live Map',
-    excludedRoles: ['sponsor']
+    excludedRoles: ['sponsor'],
+    additionalRoles: ['dispatcher']
   },
 
   // Protected routes - use navigation config for access control
@@ -52,7 +52,8 @@ export const ROUTE_PROTECTION = {
     minRole: 'provider',
     resource: 'emergency_requests',
     title: 'Requests',
-    excludedRoles: ['sponsor']
+    excludedRoles: ['sponsor'],
+    additionalRoles: ['dispatcher']
   },
   '/hospitals': {
     minRole: 'org_admin',
@@ -115,7 +116,8 @@ export const ROUTE_PROTECTION = {
   '/settings': {
     minRole: 'viewer',
     resource: 'settings',
-    title: 'Settings'
+    title: 'Settings',
+    additionalRoles: ['dispatcher']
   },
 
   '/organizations': {
@@ -157,7 +159,7 @@ export function requiresAuth(path) {
  */
 export function getProtectedRoutesForRole(userRole) {
   return Object.entries(ROUTE_PROTECTION)
-    .filter(([path, config]) => !config.public && isRoleAllowed(userRole, config))
+    .filter(([, config]) => !config.public && isRoleAllowed(userRole, config))
     .map(([path]) => path);
 }
 
@@ -166,6 +168,7 @@ export function getProtectedRoutesForRole(userRole) {
  */
 function isRoleAllowed(userRole, config) {
   if (config.excludedRoles?.includes(userRole)) return false;
+  if (config.additionalRoles?.includes(userRole)) return true;
 
   if (!config.minRole) return true;
 

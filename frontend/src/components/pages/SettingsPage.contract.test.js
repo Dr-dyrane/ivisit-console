@@ -49,6 +49,10 @@ describe('Settings Page 16 intake contract', () => {
     expect(page).toContain('useModalChromeSuppression(isProfileModalOpen || isSecurityModalOpen);');
     expect(profileModal).toContain('fixed inset-0 z-[420]');
     expect(securityModal).toContain('fixed inset-0 z-[420]');
+    expect(profileModal).toContain("import { createPortal } from 'react-dom';");
+    expect(securityModal).toContain("import { createPortal } from 'react-dom';");
+    expect(profileModal).toContain('document.body,');
+    expect(securityModal).toContain('document.body,');
     expect(chromeSuppression).toContain('[data-modal-chrome="true"], #dynamic-bottom-bar');
     expect(chromeSuppression).toContain("node.style.visibility = 'hidden';");
     expect(chromeSuppression).toContain("node.setAttribute('aria-hidden', 'true');");
@@ -71,11 +75,11 @@ describe('Settings Page 16 intake contract', () => {
 
     expect(appRoutes).toContain("settings: lazyNamedPage(() => import('../components/pages/SettingsPage'), 'SettingsPage')");
     expect(appRoutes).toContain('return <ProtectedRoute>{page}</ProtectedRoute>;');
-    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings' }");
+    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings', additionalRoles: ['dispatcher'] }");
     expect(routes).toContain("'/settings': {");
     expect(routes).toContain("minRole: 'viewer'");
     expect(routes).toContain("resource: 'settings'");
-    expect(navigation).toContain("{ id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer' }");
+    expect(navigation).toContain("{ id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer', additionalRoles: ['dispatcher'] }");
     expect(mobileNavigation).toContain("overflowOwner: 'avatar'");
     expect(mobileNavigation).toContain('bottomMenuButton: false');
     expect(mobileNavigation).toContain("{ id: 'settings', path: '/settings', label: 'Settings' }");
@@ -533,7 +537,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(routeOwnsStartupDomains('/settings')).toBe(true);
     expect(appRoutes).toContain("settings: lazyNamedPage(() => import('../components/pages/SettingsPage'), 'SettingsPage')");
     expect(appRoutes).toContain('return <ProtectedRoute>{page}</ProtectedRoute>;');
-    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings' }");
+    expect(routeMetadata).toContain("{ id: 'settings', path: '/settings', additionalRoles: ['dispatcher'] }");
     expect(routes).toContain("'/settings': {");
     expect(routes).toContain("minRole: 'viewer'");
     expect(navigation).toContain("minRole: 'viewer'");
@@ -575,7 +579,7 @@ describe('Settings Page 16 intake contract', () => {
     expect(workspace).toContain('<SignalPanel');
     expect(workspace).toContain('<MetricStrip items={metrics} loading={loading} max={3}');
     expect(workspace).toContain('data-testid="settings-account-sheet"');
-    expect(workspace).toContain('<DetailRailShell>');
+    expect(workspace).toContain('<DetailRailShell embedded={embedded}>');
     expect(workspace).toContain('<RailInsetHero>');
     expect(workspace).toContain('data-testid="settings-sheet-skeleton"');
     expect(workspace).toContain('data-testid="settings-detail-rail-skeleton"');

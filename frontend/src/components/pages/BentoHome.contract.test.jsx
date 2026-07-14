@@ -6,6 +6,7 @@ let mockRoleFlags = {};
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     isAdmin: () => Boolean(mockRoleFlags.admin),
+    isDispatcher: () => Boolean(mockRoleFlags.dispatcher),
     isOrgAdmin: () => Boolean(mockRoleFlags.orgAdmin),
     isProvider: () => Boolean(mockRoleFlags.provider),
     isPatient: () => Boolean(mockRoleFlags.patient),
@@ -37,6 +38,7 @@ describe('BentoHome composition contract', () => {
   it.each([
     ['admin', { admin: true }, 'admin'],
     ['organization admin', { orgAdmin: true }, 'org_admin'],
+    ['dispatcher', { dispatcher: true }, 'dispatcher'],
     ['provider', { provider: true }, 'provider'],
     ['sponsor', { sponsor: true }, 'sponsor'],
     ['viewer', { viewer: true }, 'viewer'],

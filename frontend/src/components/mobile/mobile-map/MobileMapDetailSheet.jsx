@@ -40,7 +40,7 @@ export const MobileMapDetailSheet = ({ controller, setSelectedMarker }) => {
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={mobileMotion.spring}
-          className="fixed left-3 right-3 z-40"
+          className="fixed left-3 right-3 z-40 mx-auto max-w-2xl"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
         >
           <div className="chrome-glass relative max-h-[44dvh] overflow-y-auto rounded-sheet p-0 overscroll-contain">

@@ -6,7 +6,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 
 
 export const ContextPanelShell = () => {
-  const { isMobile, isDesktop } = useNavigation();
+  const { isDesktop, usesCompactNavigation } = useNavigation();
   const { isContextPanelOpen, closeContextPanel } = useLayout();
 
   // Handle escape key and custom events to close panel
@@ -38,8 +38,8 @@ export const ContextPanelShell = () => {
     };
   }, [isContextPanelOpen, closeContextPanel]);
 
-  // Mobile quick actions live in the avatar account sheet.
-  if (isMobile) {
+  // Compact-window quick actions live in the avatar account sheet.
+  if (usesCompactNavigation) {
     return null;
   }
 

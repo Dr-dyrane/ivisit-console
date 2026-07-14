@@ -27,7 +27,10 @@ describe('ModalShell chrome contract', () => {
     expect(modalShell).toContain('aria-label={!title && ariaLabel ? ariaLabel : undefined}');
     expect(modalShell).toContain('data-modal-shell="true"');
     expect(modalShell).toContain("import { useModalChromeSuppression } from '../../hooks/useModalChromeSuppression';");
+    expect(modalShell).toContain("import { createPortal } from 'react-dom';");
     expect(modalShell).toContain('useModalChromeSuppression(isOpen);');
+    expect(modalShell).toContain('return createPortal(');
+    expect(modalShell).toContain('document.body,');
     expect(modalShell).toContain('const modalBackdropTransition = { duration: 0.18');
     expect(modalShell).toContain('const modalShellTransition = { duration: 0.22');
     expect(modalShell).toContain('if (!isOpen) return null;');
@@ -38,6 +41,9 @@ describe('ModalShell chrome contract', () => {
     expect(chromeSuppression).toContain('data-modal-chrome="true"], #dynamic-bottom-bar');
     expect(chromeSuppression).toContain("window.dispatchEvent(new Event('modal-opened'))");
     expect(filterSheet).toContain("window.dispatchEvent(new Event('modal-opened'))");
+    expect(filterSheet).toContain('const isTabletSheet = Boolean(isMobile && isTablet);');
+    expect(filterSheet).toContain('const usesSheetPresentation = Boolean(isMobile && usesCompactNavigation);');
+    expect(filterSheet).toContain('grid max-h-[58dvh] grid-cols-2 items-start gap-5');
     expect(chromeSuppression).toContain("node.setAttribute('aria-hidden', 'true')");
     expect(modalShell).toContain('onClick={() => onClose()}');
     expect(modalShell).toContain('aria-label="Close"');

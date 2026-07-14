@@ -77,4 +77,16 @@ describe('route contract harness', () => {
     receiver.reset();
     expect(receiver.calls).toEqual([]);
   });
+
+  it('provides deterministic portrait and landscape tablet viewports', async () => {
+    const portrait = await renderRouteContract(<ContractProbe />, { viewport: 'tablet' });
+    expect(window.innerWidth).toBe(ROUTE_CONTRACT_VIEWPORTS.tablet.width);
+    expect(window.matchMedia('(min-width: 768px) and (max-width: 1279px)').matches).toBe(true);
+    await portrait.cleanup();
+
+    const landscape = await renderRouteContract(<ContractProbe />, { viewport: 'tabletLandscape' });
+    expect(window.innerWidth).toBe(ROUTE_CONTRACT_VIEWPORTS.tabletLandscape.width);
+    expect(window.matchMedia('(min-width: 768px) and (max-width: 1279px)').matches).toBe(true);
+    await landscape.cleanup();
+  });
 });

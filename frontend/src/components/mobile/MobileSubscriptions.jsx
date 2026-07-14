@@ -24,6 +24,7 @@ import {
   subscriptionOrbClass,
 } from './subscriptions/mobileSubscriptionModel';
 import { useMobileSubscriptionsController } from './subscriptions/useMobileSubscriptionsController';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 export const MobileSubscriptions = ({
   subscribers = [],
@@ -49,7 +50,10 @@ export const MobileSubscriptions = ({
   onSelectAll,
   hasMore = false,
   onLoadMore,
+  onFocusSubscriber,
+  tabletPane,
 }) => {
+  const { isTablet } = useNavigation();
   const warmingUp = useSkeletonWarmup();
   const controller = useMobileSubscriptionsController({
     subscribers,
@@ -65,6 +69,14 @@ export const MobileSubscriptions = ({
     onSelect,
     warmingUp,
   });
+  const hasTabletDetailPane = Boolean(isTablet && tabletPane);
+  const handleOpenSubscriber = (subscriber) => {
+    if (hasTabletDetailPane && onFocusSubscriber) {
+      onFocusSubscriber(subscriber.id);
+      return;
+    }
+    controller.setActiveSubscriber(subscriber);
+  };
 
   const renderSubscriberRow = (subscriber) => {
     const status = normalizeSubscriptionStatus(subscriber);
@@ -76,7 +88,7 @@ export const MobileSubscriptions = ({
       <MobileListRow
         item={subscriber}
         dataAttr="data-mobile-subscription-row"
-        onOpen={controller.setActiveSubscriber}
+        onOpen={handleOpenSubscriber}
         ariaLabel={`${subscriber.email || 'Subscriber'}, ${vital?.pill?.label || status}`}
         orbClass={subscriptionOrbClass(status)}
         icon={paid ? Crown : Mail}
@@ -98,6 +110,7 @@ export const MobileSubscriptions = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
+        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobileSubscriptionsAtlasLayer />
@@ -270,11 +283,13 @@ export const MobileSubscriptions = ({
           </section>
         </div>
 
-        <MobileSubscriptionDetailSheet
-          activeSubscriber={controller.activeSubscriber}
-          onClose={() => controller.setActiveSubscriber(null)}
-          onView={onView}
-        />
+        {!hasTabletDetailPane && (
+          <MobileSubscriptionDetailSheet
+            activeSubscriber={controller.activeSubscriber}
+            onClose={() => controller.setActiveSubscriber(null)}
+            onView={onView}
+          />
+        )}
       </MobilePageShell>
     </PullToRefresh>
   );

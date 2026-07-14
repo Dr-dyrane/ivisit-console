@@ -3,9 +3,9 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
-import { Badge } from '../ui/badge';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 
 const filterInputClassName = 'w-full rounded-inner bg-background/60 px-3 py-2.5 text-sm transition-[background,box-shadow] focus-visible:shadow-[0_0_0_2px_hsl(var(--foreground)/0.22)] dark:bg-white/[0.06]';
 const filterBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
@@ -24,10 +24,13 @@ export const FilterSheet = ({
   viewToggle = null,
   isMobile = false
 }) => {
+  const { isTablet, usesCompactNavigation } = useBreakpoint();
   const [filters, setFilters] = useState(initialValues);
   const prevInitialValuesRef = useRef();
   const titleId = useId();
   const descriptionId = useId();
+  const isTabletSheet = Boolean(isMobile && isTablet);
+  const usesSheetPresentation = Boolean(isMobile && usesCompactNavigation);
 
   useEffect(() => {
     if (JSON.stringify(initialValues) !== JSON.stringify(prevInitialValuesRef.current)) {
@@ -37,7 +40,7 @@ export const FilterSheet = ({
   }, [initialValues]);
 
   useEffect(() => {
-    if (!isMobile) return;
+    if (!usesSheetPresentation) return;
 
     const bottomBar = document.getElementById('dynamic-bottom-bar');
     if (bottomBar) {
@@ -53,7 +56,7 @@ export const FilterSheet = ({
         bottomBar.style.display = '';
       }
     };
-  }, [isOpen, isMobile]);
+  }, [isOpen, usesSheetPresentation]);
 
   useEffect(() => {
     if (!isOpen || typeof window === 'undefined') return;
@@ -233,7 +236,7 @@ export const FilterSheet = ({
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-inner hover:bg-white/3 transition-colors">
             <p className="text-[13px] font-semibold text-muted-foreground">{label}</p>
-            <div className="flex flex-col gap-3">
+            <div className={isTabletSheet ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}>
               <div className="space-y-1.5">
                 <Label htmlFor={startDateId} className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Start date</Label>
                 <input
@@ -256,7 +259,7 @@ export const FilterSheet = ({
               </div>
 
               {/* Smart Date Presets */}
-              <div className="grid grid-cols-3 gap-2 mt-4">
+              <div className={`grid grid-cols-3 gap-2 mt-4 ${isTabletSheet ? 'col-span-2' : ''}`}>
                 {[
                   { label: 'Today', days: 0 },
                   { label: '7 Days', days: 7 },
@@ -307,24 +310,24 @@ export const FilterSheet = ({
 
       <motion.div
         key="filter-sheet-shell"
-        initial={isMobile ? { y: '100%' } : { y: -20, opacity: 0 }}
-        animate={isMobile ? { y: 0 } : { y: 0, opacity: 1 }}
+        initial={usesSheetPresentation ? { y: '100%' } : { y: -20, opacity: 0 }}
+        animate={usesSheetPresentation ? { y: 0 } : { y: 0, opacity: 1 }}
         transition={filterSheetTransition}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         data-filter-sheet-shell="true"
-        data-testid={isMobile ? 'mobile-filter-sheet' : 'filter-sheet'}
-        className={isMobile
-          ? "fixed bottom-0 left-0 right-0 z-[70]"
+        data-testid={usesSheetPresentation ? 'mobile-filter-sheet' : 'filter-sheet'}
+        className={usesSheetPresentation
+          ? "fixed bottom-0 left-0 right-0 z-[70] mx-auto max-w-3xl"
           : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
         }
       >
-        <div className={`bg-card/95 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_12px_32px_rgb(0_0_0/0.10)] px-2 md:px-6 py-6 dark:bg-card/85 ${isMobile ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
+        <div className={`bg-card/95 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_12px_32px_rgb(0_0_0/0.10)] px-2 md:px-6 py-6 dark:bg-card/85 ${usesSheetPresentation ? 'rounded-t-sheet pb-8' : 'rounded-card'}`}>
 
               {/* Mobile Drag Handle */}
-              {isMobile && (
+              {usesSheetPresentation && (
                 <div className="mx-auto mb-6 h-1.5 w-[44px] shrink-0 rounded-pill bg-[hsl(var(--muted-foreground)/0.35)]" />
               )}
               {/* Header */}
@@ -336,7 +339,7 @@ export const FilterSheet = ({
                   <p id={descriptionId} className="sr-only">{description}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  {isMobile && viewToggle && (
+                  {usesSheetPresentation && viewToggle && (
                     <div className="flex-shrink-0 pr-3">
                       {viewToggle}
                     </div>
@@ -356,8 +359,10 @@ export const FilterSheet = ({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={isMobile
-                  ? "space-y-6 max-h-[58dvh] overflow-y-auto scrollbar-hide pb-2"
+                className={usesSheetPresentation
+                  ? isTabletSheet
+                    ? "grid max-h-[58dvh] grid-cols-2 items-start gap-5 overflow-y-auto scrollbar-hide pb-2"
+                    : "space-y-6 max-h-[58dvh] overflow-y-auto scrollbar-hide pb-2"
                   : "grid max-h-[min(68dvh,620px)] grid-cols-2 items-start gap-5 overflow-y-auto scrollbar-hide pb-2"
                 }
               >

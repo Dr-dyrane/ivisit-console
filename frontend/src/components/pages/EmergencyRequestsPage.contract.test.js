@@ -242,7 +242,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // The stage owns the atlas + wayfinding dock now (console DS WorkspaceStage
     // renders ConsoleModuleRail); the page stopped importing the rail directly.
     expect(pageSource).toContain("import { WorkspaceStage } from '../../console/WorkspaceStage';");
-    expect(pageSource).toContain("import { RailInsetHero } from '../../console/WorkspaceStage';");
+    expect(pageSource).toContain("import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';");
     expect(pageSource).toContain("import { useWayfindingNav } from '../../console/WorkspaceStage';");
     expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
     expect(pageSource).not.toContain("import { ModalShell } from '../ui/ModalShell';");
@@ -476,7 +476,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('const selectedKpiFilter = useMemo(');
     expect(pageSource).toContain('kpiFilter || getDefaultRequestKpi(requestStats)');
     expect(pageSource).toContain('useEmergencyMutations({');
-    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'accepted')");
+    expect(pageSource).not.toContain("applyOptimisticStatus(cache, variables.id, 'accepted')");
     expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'completed')");
     expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'cancelled')");
     expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true })');
@@ -605,10 +605,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain("onKpiClick={(id) => setKpiFilter?.(id)}");
     expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
-    // Grouped-list row: taps open the detail sheet directly via setActiveRequest, rendered
-    // inside a frosted recency PANEL with slate hairlines between transparent rows. The
-    // press ladder + row anatomy come from the canon kit (MobileCanonKit.contract.test.js).
-    expect(mobileSource).toContain('onOpen={setActiveRequest}');
+    // Grouped-list row: phone taps retain the detail sheet while tablet taps hand the
+    // selected id to the route-owned desktop rail. The press ladder + row anatomy come
+    // from the canon kit (MobileCanonKit.contract.test.js).
+    expect(mobileSource).toContain('onOpen={handleOpenRequest}');
+    expect(mobileSource).toContain('setActiveRequest(request);');
+    expect(mobileSource).toContain('onFocusRequest(request.id);');
     expect(mobileSource).toContain('<GroupedList');
     expect(mobileSource).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl');
     expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]');
@@ -635,8 +637,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     }
     expect(fabSource).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(fabSource).toContain('const hideFab = Boolean(pageShellConfig?.hideFab)');
-    expect(fabSource).toContain('if (isMobile || isContextPanelOpen || hideFab) return null;');
-    expect(fabSource.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
+    expect(fabSource).toContain('if (usesCompactNavigation || isContextPanelOpen || hideFab) return null;');
+    expect(fabSource.indexOf('if (usesCompactNavigation || isContextPanelOpen || hideFab) return null;'))
       .toBeLessThan(fabSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
     expect(bottomBarSource).toContain("pathname === '/'");
     expect(bottomBarSource).toContain("pathname.startsWith('/emergencies')");
@@ -700,19 +702,22 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     const routeSource = readRequestsRouteSource();
 
     expect(routeSource).toContain("emergencies: lazyNamedPage(() => import('../components/pages/EmergencyRequestsPage'), 'EmergencyRequestsPage')");
-    expect(routeSource).toContain("{ id: 'emergencies', path: '/emergencies', minRole: 'provider' }");
-    expect(routeSource).toContain('if (minRole) return <ProtectedRoute minRole={minRole}>{page}</ProtectedRoute>;');
+    expect(routeSource).toContain("{ id: 'emergencies', path: '/emergencies', minRole: 'provider', additionalRoles: ['dispatcher'] }");
+    expect(routeSource).toContain('if (minRole || additionalRoles) {');
+    expect(routeSource).toContain("<ProtectedRoute minRole={minRole || 'viewer'} additionalRoles={additionalRoles}>");
 
     expect(getRouteProtection('/emergencies')).toEqual({
       minRole: 'provider',
       resource: 'emergency_requests',
       title: 'Requests',
       excludedRoles: ['sponsor'],
+      additionalRoles: ['dispatcher'],
     });
 
     expect(getProtectedRoutesForRole('admin')).toContain('/emergencies');
     expect(getProtectedRoutesForRole('org_admin')).toContain('/emergencies');
     expect(getProtectedRoutesForRole('provider')).toContain('/emergencies');
+    expect(getProtectedRoutesForRole('dispatcher')).toContain('/emergencies');
     expect(getProtectedRoutesForRole('sponsor')).not.toContain('/emergencies');
     expect(getProtectedRoutesForRole('viewer')).not.toContain('/emergencies');
 
@@ -738,12 +743,16 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('completeMutateAsync({ id: request.id, request })');
     expect(pageSource).not.toContain('retryPaymentWithDifferentMethod(');
     expect(pageSource).toContain('canCreate: currentUser.isAdmin() || currentUser.isOrgAdmin(),');
-    expect(pageSource).toContain('const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();');
-    expect(pageSource).toContain('request?.responder_id === currentUser.user.id');
+    expect(pageSource).toContain('const canManage = currentUser.canOperateDispatch();');
+    expect(pageSource).toContain('canOperateDispatch()');
+    expect(pageSource).toContain('request?.responder_id === user.id');
     expect(pageSource).toContain('if (!actionState.canDispatch)');
     expect(pageSource).toContain('This request is not ready to dispatch. Refreshing list...');
-    expect(pageSource).toContain("toast.loading('Dispatching request...', { id: 'dispatch' });");
-    expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
+    expect(pageSource).toContain("'Accepting bed request...' : 'Sending responder offer...'");
+    expect(pageSource).toContain("toast.success('Bed request accepted', { id: 'dispatch' });");
+    expect(pageSource).toContain("toast.success('Responder offer sent', { id: 'dispatch' });");
+    expect(pageSource).toContain("toast.info('Awaiting responder acceptance'");
+    expect(pageSource).not.toContain("toast.success('Request dispatched'");
     expect(pageSource).toContain("toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });");
     expect(pageSource).toContain('setCompleteModal({ open: true, request });');
     expect(pageSource).toContain('await completeMutateAsync({ id: request.id, request });');
@@ -761,7 +770,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('cancelEmergencyRequest(id, reason)');
     expect(pageSource).toContain("cancelMutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
     expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
-    expect(pageSource).toContain('currentUser.isAdmin() && actionState.canCancel');
+    expect(pageSource).toContain('canManage && actionState.canCancel');
     // Desktop bulk cancel: admin-gated multi-select routed through the SAME reused cancel
     // path (cancelMutateAsync in a loop), confirmed via the shared ConfirmationModal.
     // No parallel cancel service call is introduced.
@@ -783,6 +792,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(detailsModalSource).toContain('const formatRequestTitle = (value) =>');
     expect(detailsModalSource).toContain('return `${label.charAt(0).toUpperCase()}${label.slice(1)} request`;');
     expect(detailsModalSource).toContain('onClose={() => onClose(false)}');
+    expect(detailsModalSource).toContain("'Cash approved. Awaiting responder assignment.'");
+    expect(detailsModalSource).toContain("'Cash approved. A responder is assigned.'");
+    expect(detailsModalSource).toContain('Approve cash');
+    expect(detailsModalSource).toContain('Ambulance assigned');
+    expect(detailsModalSource).not.toContain('Approve & Dispatch');
+    expect(detailsModalSource).not.toContain('Auto-dispatched from mobile app');
     expect(detailsModalSource).not.toContain('fixed inset-0');
     expect(detailsModalSource).not.toContain('role="dialog"');
     expect(detailsModalSource).not.toContain('aria-modal="true"');
@@ -819,7 +834,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
 
     expect(responseServiceSource).toContain("supabase.rpc('console_dispatch_emergency'");
     expect(responseServiceSource).toContain("supabase.rpc('nearby_ambulances'");
-    expect(responseServiceSource).toContain("supabase.rpc('console_complete_emergency'");
+    expect(responseServiceSource).toContain("'responder_complete_emergency'");
+    expect(responseServiceSource).toContain("'console_complete_emergency'");
     expect(responseServiceSource).toContain('ambulanceIsWithinActorScope(ambulance, actor)');
     expect(responseServiceSource).toContain("throw new Error('Only the assigned responder can complete this request.')");
     expect(responseServiceSource).not.toContain('Math.random');

@@ -25,6 +25,7 @@ export const useAuthCapabilities = (profile) => {
   const isAdmin = useCallback(() => hasRole('admin'), [hasRole]);
   const isSponsor = useCallback(() => hasRole('sponsor'), [hasRole]);
   const isOrgAdmin = useCallback(() => hasRole('org_admin'), [hasRole]);
+  const isDispatcher = useCallback(() => hasRole('dispatcher'), [hasRole]);
   const isProvider = useCallback(() => hasRole('provider'), [hasRole]);
   const isDriver = useCallback(
     () => hasRole('provider') && ['driver', 'paramedic', 'ambulance', 'ambulance_service'].includes(profile?.provider_type),
@@ -32,6 +33,10 @@ export const useAuthCapabilities = (profile) => {
   );
   const isViewer = useCallback(() => hasRole('viewer'), [hasRole]);
   const isPatient = useCallback(() => hasRole('patient'), [hasRole]);
+  const canOperateDispatch = useCallback(
+    () => isAdmin() || isOrgAdmin() || isDispatcher(),
+    [isAdmin, isOrgAdmin, isDispatcher],
+  );
   const isOnboarding = useCallback(
     () => profile?.onboarding_status === 'pending',
     [profile],
@@ -44,6 +49,15 @@ export const useAuthCapabilities = (profile) => {
   const can = useCallback((action, resource) => {
     if (isAdmin()) return true;
     const normalizedResource = resource === 'emergencies' ? 'emergency_requests' : resource;
+
+    if (isDispatcher()) {
+      return action === 'view' && [
+        'dashboard',
+        'map',
+        'emergency_requests',
+        'settings',
+      ].includes(normalizedResource);
+    }
 
     if (['finance', 'analytics', 'subscriptions'].includes(normalizedResource)) {
       if (isAdmin() || isOrgAdmin() || isSponsor()) {
@@ -77,7 +91,7 @@ export const useAuthCapabilities = (profile) => {
 
     if (isViewer() && action === 'view') return true;
     return false;
-  }, [isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer]);
+  }, [isAdmin, isDispatcher, isOrgAdmin, isProvider, isSponsor, isViewer]);
 
   return {
     hasRole,
@@ -85,10 +99,12 @@ export const useAuthCapabilities = (profile) => {
     isAdmin,
     isSponsor,
     isOrgAdmin,
+    isDispatcher,
     isProvider,
     isDriver,
     isViewer,
     isPatient,
+    canOperateDispatch,
     isOnboarding,
     isSkippedOnboarding,
     can,

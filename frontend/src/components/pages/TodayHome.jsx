@@ -83,6 +83,7 @@ export const TodayHome = ({ role }) => {
   const todayDomainErrors = {
     admin: ['emergency', 'verification', 'doctors', 'users'],
     org_admin: ['emergency', 'verification', 'doctors', 'users'],
+    dispatcher: ['emergency'],
     provider: ['emergency', 'visits'],
     driver: ['emergency'],
     sponsor: ['analytics'],
@@ -112,7 +113,10 @@ export const TodayHome = ({ role }) => {
   );
 
   const emergencyReviewCount = countOrNull(emergencyStats?.pending_approval ?? emergencyStats?.pending, live) ?? 0;
-  const emergencyActiveCount = countOrNull(emergencyStats?.active, live) ?? 0;
+  const emergencyActiveCount = countOrNull(
+    roleKind === 'driver' ? emergencyStats?.mine : emergencyStats?.active,
+    live,
+  ) ?? 0;
   const approvalCount = countOrNull(verificationData?.pending, live) ?? 0;
   const visitCount = countOrNull(visitsStats?.today, live) ?? 0;
   const providerCount = resolveTodayProviderCount({ doctorsStats, userData, live });

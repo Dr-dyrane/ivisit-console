@@ -20,15 +20,18 @@ export function GodModeMapDesktop({ controller, fallbackMap }) {
     allMarkers,
     assignedAmbulance,
     driverAction,
-    driverActiveEmergency,
+    driverAssignment,
+    driverFeedError,
+    driverFeedLoading,
+    driverHospitals,
     driverLocationRecorded,
+    driverTracking,
     filteredRequests,
     focus,
     focusLocation,
     getPriorityColor,
     getStatusColor,
-    handleDriverPingLocation,
-    handleDriverStatusUpdate,
+    handleDriverAssignmentAction,
     handleRailNavigate,
     handleRouteRecenter,
     hasMapPoints,
@@ -119,10 +122,13 @@ export function GodModeMapDesktop({ controller, fallbackMap }) {
             <DriverAssignmentCard
               assignedAmbulance={assignedAmbulance}
               driverAction={driverAction}
-              driverActiveEmergency={driverActiveEmergency}
+              driverAssignment={driverAssignment}
+              driverFeedError={driverFeedError}
+              driverFeedLoading={driverFeedLoading}
               driverLocationRecorded={driverLocationRecorded}
-              onPingLocation={handleDriverPingLocation}
-              onStatusUpdate={handleDriverStatusUpdate}
+              driverTracking={driverTracking}
+              onAssignmentAction={handleDriverAssignmentAction}
+              hospitals={driverHospitals}
             />
           ) : (
             <MapViewportSummary

@@ -3,6 +3,7 @@ import {
   MAP_VIEW_RADIUS_KM,
   buildRoutePreview,
   distanceKm,
+  filterMapEntitiesByRadius,
   getMapFocus,
   getMapLensSummary,
   getRadiusBounds,
@@ -15,6 +16,8 @@ describe('map view model', () => {
       .toEqual(expect.objectContaining({ lat: 6.5, lng: 3.4, isSimulated: false }));
     expect(resolveMapEntityLocation({ id: 'geo', patient_location: { coordinates: [3.5, 6.6] } }))
       .toEqual(expect.objectContaining({ lat: 6.6, lng: 3.5, isSimulated: false }));
+    expect(resolveMapEntityLocation({ id: 'ambulance', location: { coordinates: [3.45, 6.55] } }))
+      .toEqual(expect.objectContaining({ lat: 6.55, lng: 3.45, isSimulated: false }));
     expect(resolveMapEntityLocation({ id: 'missing' })).toBeNull();
   });
 
@@ -41,6 +44,7 @@ describe('map view model', () => {
     expect(MAP_VIEW_RADIUS_KM).toBe(5);
     expect(distanceKm(center, near)).toBeLessThan(5);
     expect(distanceKm(center, far)).toBeGreaterThan(5);
+    expect(filterMapEntitiesByRadius([near, far], center)).toEqual([near]);
     expect(summary).toEqual({ radiusKm: 5, requests: 1, hospitals: 1, ambulances: 0 });
   });
 
@@ -63,6 +67,26 @@ describe('map view model', () => {
     expect(routes).toHaveLength(2);
     expect(routes.map((route) => route.kind)).toEqual(['pickup', 'destination']);
     expect(buildRoutePreview({ emergency: { ...emergency, status: 'completed' } })).toEqual([]);
+  });
+
+  it('uses the recorded request destination when the hospital projection is unavailable', () => {
+    const routes = buildRoutePreview({
+      emergency: {
+        id: 'request-2',
+        status: 'accepted',
+        lat: 6.5,
+        lng: 3.4,
+        destination_location: { coordinates: [3.42, 6.52] },
+      },
+      hospitals: [],
+      color: '#86100E',
+    });
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]).toMatchObject({
+      kind: 'destination',
+      positions: [[6.5, 3.4], [6.52, 3.42]],
+    });
   });
 
   it('returns a stable radius box for both map providers', () => {

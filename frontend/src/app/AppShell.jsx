@@ -9,13 +9,14 @@ import { ContextPanelShell } from '../components/navigation/ResponsiveSidebar';
 import { SmartFooter } from '../components/navigation/SmartFooter';
 import { SmartHeader } from '../components/navigation/SmartHeader';
 import { useLayout } from '../contexts/LayoutContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { shouldHideShellChrome } from './shellVisibility';
 
 export const AppShell = ({ children }) => {
   const location = useLocation();
   const { isScrolledDown, sidebarWidth, pageShellConfig } = useLayout();
+  const { isMobile, usesCompactNavigation } = useNavigation();
   const hideNav = shouldHideShellChrome(location.pathname);
-  const isMobile = window.innerWidth < 768;
   const isBleedPage = !hideNav && pageShellConfig?.bleed;
 
   return (
@@ -30,29 +31,29 @@ export const AppShell = ({ children }) => {
       {!hideNav && <SmartHeader />}
 
       <div className="flex-1 flex relative overflow-hidden">
-        {!hideNav && (
-          <div className="flex-none z-50 hidden md:block">
+        {!hideNav && !usesCompactNavigation && (
+          <div className="flex-none z-50">
             <IslandNavigation />
           </div>
         )}
 
         <main
           id="main-content"
-          className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth ${(isMobile || isBleedPage) ? 'no-scrollbar' : 'custom-scrollbar'} transition-all duration-300 ${!hideNav ? (isMobile ? "pt-12 md:pt-16" : "pt-16") : ""}`}
+          className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth ${(isMobile || isBleedPage) ? 'no-scrollbar' : 'custom-scrollbar'} transition-all duration-300 ${!hideNav ? (usesCompactNavigation ? "pt-12 md:pt-16" : "pt-16") : ""}`}
         >
           <motion.div
             layout
             initial={false}
             animate={{
-              paddingLeft: hideNav ? 0 : (window.innerWidth >= 768 ? sidebarWidth + (isBleedPage ? 20 : 48) : 0),
-              paddingRight: (isMobile || isBleedPage) ? 0 : 48,
-              paddingTop: (hideNav || isMobile) ? 0 : (isBleedPage ? 0 : (isScrolledDown ? 0 : 16)),
+              paddingLeft: hideNav || usesCompactNavigation ? 0 : sidebarWidth + (isBleedPage ? 20 : 48),
+              paddingRight: (usesCompactNavigation || isBleedPage) ? 0 : 48,
+              paddingTop: (hideNav || usesCompactNavigation) ? 0 : (isBleedPage ? 0 : (isScrolledDown ? 0 : 16)),
               paddingBottom: hideNav ? 0 : 'calc(16px + var(--safe-bottom))',
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="relative z-10"
           >
-            <div className={(hideNav || isBleedPage) ? "" : "md:p-6"}>
+            <div className={(hideNav || isBleedPage || usesCompactNavigation) ? "" : "md:p-6"}>
               {children}
             </div>
           </motion.div>

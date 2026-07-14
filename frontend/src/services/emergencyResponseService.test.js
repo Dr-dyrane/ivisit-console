@@ -4,6 +4,7 @@ import { getAmbulance } from './ambulancesService';
 import {
   completeEmergency,
   dispatchEmergency,
+  reportResponderTelemetry,
   updateResponderLocation,
 } from './emergencyResponseService';
 
@@ -52,6 +53,9 @@ describe('emergencyResponseService command guards', () => {
           error: null,
         });
       }
+      if (name === 'get_ambulance_dispatch_readiness') {
+        return Promise.resolve({ data: { ready: true }, error: null });
+      }
       if (name === 'console_dispatch_emergency') {
         return Promise.resolve({ data: { success: true, request: { id: 'request-1' } }, error: null });
       }
@@ -71,7 +75,11 @@ describe('emergencyResponseService command guards', () => {
       user_lng: 3.4,
       radius_km: 50,
     });
-    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'console_dispatch_emergency', expect.objectContaining({
+    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'get_ambulance_dispatch_readiness', {
+      p_ambulance_id: ambulanceB.id,
+      p_request_id: 'request-1',
+    });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(3, 'console_dispatch_emergency', expect.objectContaining({
       p_request_id: 'request-1',
       p_ambulance_id: ambulanceB.id,
     }));
@@ -114,6 +122,9 @@ describe('emergencyResponseService command guards', () => {
           ],
           error: null,
         });
+      }
+      if (name === 'get_ambulance_dispatch_readiness') {
+        return Promise.resolve({ data: { ready: true }, error: null });
       }
       if (name === 'console_dispatch_emergency') {
         return Promise.resolve({ data: { success: true, request: { id: 'request-1' } }, error: null });
@@ -175,6 +186,9 @@ describe('emergencyResponseService command guards', () => {
     supabase.rpc.mockImplementation((name) => {
       if (name === 'nearby_ambulances') {
         return Promise.resolve({ data: [{ id: 'ambulance-direct', distance: 2 }], error: null });
+      }
+      if (name === 'get_ambulance_dispatch_readiness') {
+        return Promise.resolve({ data: { ready: true }, error: null });
       }
       if (name === 'console_dispatch_emergency') {
         return Promise.resolve({ data: { success: true, request: { id: 'request-1' } }, error: null });
@@ -256,41 +270,64 @@ describe('emergencyResponseService command guards', () => {
 
     await expect(completeEmergency('request-1', {
       status: 'accepted',
-      service_type: 'ambulance',
+      service_type: 'bed',
     })).rejects.toThrow('Request completion is temporarily unavailable.');
   });
 
-  it('preserves successful location command evidence when only the projection reload fails', async () => {
+  it('publishes assignment-bound telemetry through the canonical receiver', async () => {
     const commandResult = {
       success: true,
       request_id: 'request-1',
-      status: 'accepted',
-      updated_at: '2026-07-13T10:00:00.000Z',
+      assignment_id: 'assignment-1',
+      sequence: 7,
+      received_at: '2026-07-13T10:00:00.000Z',
     };
-    const requestQuery = {};
-    requestQuery.select = jest.fn(() => requestQuery);
-    requestQuery.eq = jest.fn(() => requestQuery);
-    requestQuery.single = jest.fn().mockRejectedValue(new Error('projection unavailable'));
     supabase.rpc.mockResolvedValue({ data: commandResult, error: null });
-    supabase.from.mockReturnValue(requestQuery);
-    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await expect(updateResponderLocation(
-      'request-1',
-      { lat: 6.5, lng: 3.4 },
-      90
-    )).resolves.toEqual({
+    await expect(reportResponderTelemetry({
+      ambulanceId: 'ambulance-1',
+      requestId: 'request-1',
+      assignmentId: 'assignment-1',
+      sequence: 7,
+      observedAt: '2026-07-13T09:59:59.000Z',
+      location: { lat: 6.5, lng: 3.4 },
+      heading: 90,
+      accuracyMeters: 12,
+    })).resolves.toEqual(commandResult);
+
+    expect(supabase.rpc).toHaveBeenCalledWith('report_responder_telemetry', {
+      p_payload: {
+        ambulance_id: 'ambulance-1',
+        request_id: 'request-1',
+        assignment_id: 'assignment-1',
+        sequence: 7,
+        observed_at: '2026-07-13T09:59:59.000Z',
+        location: { lat: 6.5, lng: 3.4 },
+        heading: 90,
+        accuracy_meters: 12,
+      },
+    });
+  });
+
+  it('keeps the compatibility location export assignment-bound and projection-free', async () => {
+    const commandResult = {
       success: true,
-      commandResult,
-      emergency: null,
-      projectionState: 'unavailable',
-    });
+      request_id: 'request-1',
+      assignment_id: 'assignment-1',
+      sequence: 8,
+      received_at: '2026-07-13T10:00:20.000Z',
+    };
+    supabase.rpc.mockResolvedValue({ data: commandResult, error: null });
 
-    expect(supabase.rpc).toHaveBeenCalledWith('console_update_responder_location', {
-      p_request_id: 'request-1',
-      p_location: { lat: 6.5, lng: 3.4 },
-      p_heading: 90,
-    });
-    consoleWarn.mockRestore();
+    await expect(updateResponderLocation({
+      ambulanceId: 'ambulance-1',
+      requestId: 'request-1',
+      assignmentId: 'assignment-1',
+      sequence: 8,
+      observedAt: '2026-07-13T10:00:19.000Z',
+      location: { lat: 6.5, lng: 3.4 },
+    })).resolves.toEqual(commandResult);
+
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });

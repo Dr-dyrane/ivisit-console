@@ -26,6 +26,12 @@ const roleSlots = {
     { id: 'map', path: '/map', label: 'Map' },
     { id: 'statistics', path: '/analytics', label: 'Statistics' },
   ],
+  dispatcher: [
+    { id: 'today', path: '/', label: 'Today' },
+    { id: 'emergencies', path: '/emergencies', label: 'Requests' },
+    { id: 'map', path: '/map', label: 'Map' },
+    { id: 'settings', path: '/settings', label: 'Settings' },
+  ],
   // No Map slot: routes.jsx excludes sponsor from /map (excludedRoles), so a
   // sponsor tap on Map would dead-end at /unauthorized.
   sponsor: [
@@ -95,7 +101,8 @@ export function getMobileNavigationItems(role = 'viewer', providerType = undefin
   const userLevel = ROLE_LEVELS[userRole] || 0;
 
   let slate = roleSlots.viewer;
-  if (userLevel >= ROLE_LEVELS.admin) slate = roleSlots.admin;
+  if (userRole === 'dispatcher') slate = roleSlots.dispatcher;
+  else if (userLevel >= ROLE_LEVELS.admin) slate = roleSlots.admin;
   else if (userLevel >= ROLE_LEVELS.org_admin) slate = roleSlots.org_admin;
   else if (userRole === 'sponsor') slate = roleSlots.sponsor;
   else if (userLevel >= ROLE_LEVELS.provider) {

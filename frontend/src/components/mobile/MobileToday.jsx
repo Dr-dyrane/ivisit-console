@@ -107,7 +107,8 @@ const MobileTodayAtlasLayer = () => (
 // REPLACES it in place with zero layout jump — no entrance motion, the skeleton holds
 // the layout and content materializes where it already sat. Apple/iOS loading model.
 const MobileTodaySkeleton = ({ rows = 4 }) => (
-    <div className="space-y-8" aria-hidden="true">
+    <div className="space-y-8 md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:space-y-0" aria-hidden="true">
+        <div className="space-y-8 md:space-y-6">
         {/* Hero: status pill row, two headline lines, subcopy, role pill */}
         <div className="px-4">
             <span className="inline-block h-8 w-32 rounded-pill bg-muted/25 shimmer" />
@@ -130,6 +131,8 @@ const MobileTodaySkeleton = ({ rows = 4 }) => (
                     </div>
                 ))}
             </div>
+        </div>
+
         </div>
 
         {/* Action sheet: header, CTA bar, rows separated by the hairline */}
@@ -281,6 +284,8 @@ export const MobileToday = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
+                tabletLayout="wide"
+                tabletVerticalAlign="center"
                 contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
                 <MobileTodayAtlasLayer />
@@ -288,59 +293,61 @@ export const MobileToday = ({
                     {showSkeleton ? (
                         <MobileTodaySkeleton rows={skeletonRows} />
                     ) : (
-                        <div className="space-y-8">
-                            {/* HERO — signal first: status pill as the eyebrow, the model's
-                                headline as the page voice, role pill grounding who this is
-                                for. No entrance motion; content is simply there once mounted. */}
-                            <section className="px-4">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-1.5 text-xs font-semibold ${toneClass[hero.tone] || toneClass.muted}`}>
-                                        <HeroIcon className="h-4 w-4" />
-                                        {hero.status}
+                        <div className="space-y-8 md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:space-y-0">
+                            <div className="space-y-8 md:space-y-6">
+                                {/* HERO — signal first: status pill as the eyebrow, the model's
+                                    headline as the page voice, role pill grounding who this is
+                                    for. No entrance motion; content is simply there once mounted. */}
+                                <section className="px-4">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-1.5 text-xs font-semibold ${toneClass[hero.tone] || toneClass.muted}`}>
+                                            <HeroIcon className="h-4 w-4" />
+                                            {hero.status}
+                                        </div>
+                                        {/* Background-refetch feedback: the parent keeps placeholder
+                                            data on screen while refetching, so `loading` stays false —
+                                            `isFetching` is the only signal. Hidden under the skeleton,
+                                            which already communicates load. Anchored to the status row
+                                            so its appearance never shifts layout. */}
+                                        {isFetching && <UpdatingPill />}
                                     </div>
-                                    {/* Background-refetch feedback: the parent keeps placeholder
-                                        data on screen while refetching, so `loading` stays false —
-                                        `isFetching` is the only signal. Hidden under the skeleton,
-                                        which already communicates load. Anchored to the status row
-                                        so its appearance never shifts layout. */}
-                                    {isFetching && <UpdatingPill />}
-                                </div>
-                                <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]">
-                                    {hero.headline}
-                                </h1>
-                                <p className="mt-2 text-sm leading-6 text-muted-foreground">{hero.subhead}</p>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {role?.label && (
-                                        <span className="surface-card rounded-pill px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                                            {role.label}
-                                        </span>
-                                    )}
-                                    {!live && (
-                                        <span className="surface-card rounded-pill px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                                            Retry needed
-                                        </span>
-                                    )}
-                                </div>
-                            </section>
+                                    <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]">
+                                        {hero.headline}
+                                    </h1>
+                                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{hero.subhead}</p>
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {role?.label && (
+                                            <span className="surface-card rounded-pill px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                                {role.label}
+                                            </span>
+                                        )}
+                                        {!live && (
+                                            <span className="surface-card rounded-pill px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                                Retry needed
+                                            </span>
+                                        )}
+                                    </div>
+                                </section>
 
-                            {/* GLANCE — the 2-3 role-scoped counts as tappable navigation
-                                cards. Tiles NAVIGATE (with opening feedback); they never
-                                filter this page. No section label — the tiles read as the
-                                glance themselves (desktop parity; whitespace does the guiding). */}
-                            <section className="px-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {glanceItems.map((item) => (
-                                        <MobileGlanceTile
-                                            key={item.label}
-                                            item={item}
-                                            onPress={handleNavigate}
-                                            routingPath={routingPath}
-                                            toneClassMap={toneClass}
-                                            dataAttr="data-mobile-today-glance"
-                                        />
-                                    ))}
-                                </div>
-                            </section>
+                                {/* GLANCE — the 2-3 role-scoped counts as tappable navigation
+                                    cards. Tiles NAVIGATE (with opening feedback); they never
+                                    filter this page. No section label — the tiles read as the
+                                    glance themselves (desktop parity; whitespace does the guiding). */}
+                                <section className="px-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {glanceItems.map((item) => (
+                                            <MobileGlanceTile
+                                                key={item.label}
+                                                item={item}
+                                                onPress={handleNavigate}
+                                                routingPath={routingPath}
+                                                toneClassMap={toneClass}
+                                                dataAttr="data-mobile-today-glance"
+                                            />
+                                        ))}
+                                    </div>
+                                </section>
+                            </div>
 
                             {/* ACTION SHEET — one RAISED panel: status + title + hint, the
                                 single primary CTA, then the action rows separated by the

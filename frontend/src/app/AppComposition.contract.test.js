@@ -55,18 +55,18 @@ describe('APP-01 composition contract', () => {
       { id: 'onboarding', path: '/onboarding', public: true },
       { id: 'onboardingSuccess', path: '/onboarding-success', public: true },
       { id: 'unauthorized', path: '/unauthorized', public: true },
-      { id: 'home', path: '/' },
-      { id: 'map', path: '/map', minRole: 'provider' },
+      { id: 'home', path: '/', additionalRoles: ['dispatcher'] },
+      { id: 'map', path: '/map', minRole: 'provider', additionalRoles: ['dispatcher'] },
       { id: 'analytics', path: '/analytics', minRole: 'provider' },
       { id: 'hospitals', path: '/hospitals', minRole: 'org_admin' },
       { id: 'ambulances', path: '/ambulances', minRole: 'org_admin' },
       { id: 'doctors', path: '/doctors', minRole: 'org_admin' },
       { id: 'visits', path: '/visits', minRole: 'provider' },
-      { id: 'emergencies', path: '/emergencies', minRole: 'provider' },
+      { id: 'emergencies', path: '/emergencies', minRole: 'provider', additionalRoles: ['dispatcher'] },
       { id: 'verification', path: '/verification', minRole: 'org_admin' },
       { id: 'users', path: '/users', minRole: 'org_admin' },
       { id: 'organizations', path: '/organizations', minRole: 'admin' },
-      { id: 'settings', path: '/settings' },
+      { id: 'settings', path: '/settings', additionalRoles: ['dispatcher'] },
       { id: 'healthNews', path: '/health-news', minRole: 'org_admin' },
       { id: 'supportTickets', path: '/support-tickets', minRole: 'provider' },
       { id: 'insurance', path: '/insurance', minRole: 'admin' },
@@ -84,7 +84,8 @@ describe('APP-01 composition contract', () => {
     expect((routes.match(/: lazyNamedPage\(/g) || [])).toHaveLength(23);
     expect(routes).toContain('unauthorized: UnauthorizedPage');
     expect(routes).toContain('if (isPublic) return page;');
-    expect(routes).toContain('if (minRole) return <ProtectedRoute minRole={minRole}>{page}</ProtectedRoute>;');
+    expect(routes).toContain('if (minRole || additionalRoles) {');
+    expect(routes).toContain("<ProtectedRoute minRole={minRole || 'viewer'} additionalRoles={additionalRoles}>");
     expect(routes).toContain('<AuthProvider pathname={location.pathname}>');
     expect(routes).toContain('<React.Suspense fallback={<RouteLoadingState />}>');
     expect(routes).toContain('{APP_ROUTE_METADATA.map((route) => (');
@@ -102,7 +103,8 @@ describe('APP-01 composition contract', () => {
       '<AppShell>',
     ]);
     expect(shell).toContain('const hideNav = shouldHideShellChrome(location.pathname);');
-    expect(shell).toContain('const isMobile = window.innerWidth < 768;');
+    expect(shell).toContain('const { isMobile, usesCompactNavigation } = useNavigation();');
+    expect(shell).not.toContain('window.innerWidth');
     expect(shell).toContain('const isBleedPage = !hideNav && pageShellConfig?.bleed;');
     expect(shell).toContain('{!hideNav && <SmartHeader />}');
     expect(shell).toContain('<IslandNavigation />');

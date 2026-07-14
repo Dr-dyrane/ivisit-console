@@ -28,7 +28,8 @@ import { buildMobileRequestDetailModel, getMobileRequestServiceLabel } from './m
 
 export const MobileEmergencyDetailSheet = ({
   controller,
-  isAdmin,
+  canManageRequests,
+  canCompleteRequest,
   onView,
   onDispatch,
   onComplete,
@@ -64,6 +65,7 @@ export const MobileEmergencyDetailSheet = ({
   } = detail;
   const vital = resolveVital('emergency', activeRequest.status);
   const actionState = getEmergencyActionState(activeRequest);
+  const actorCanComplete = Boolean(canCompleteRequest?.(activeRequest));
 
   const closeThen = (callback) => () => {
     setActiveRequest(null);
@@ -85,7 +87,7 @@ export const MobileEmergencyDetailSheet = ({
       tone: 'hsl(var(--destructive))',
       onClick: closeThen(onView),
     };
-  } else if (isAdmin && actionState.canDispatch) {
+  } else if (canManageRequests && actionState.canDispatch) {
     primaryKind = 'dispatch';
     primaryAction = {
       label: 'Dispatch',
@@ -93,7 +95,7 @@ export const MobileEmergencyDetailSheet = ({
       tone: 'hsl(200 98% 39%)',
       onClick: closeThen(onDispatch),
     };
-  } else if (actionState.canComplete) {
+  } else if (actorCanComplete && actionState.canComplete) {
     primaryKind = 'complete';
     primaryAction = {
       label: 'Complete',
@@ -113,13 +115,13 @@ export const MobileEmergencyDetailSheet = ({
 
   const secondaryAction = primaryKind === 'details' ? undefined : detailsAction;
   const extraActions = [
-    isAdmin && actionState.canDispatch && primaryKind !== 'dispatch' && {
+    canManageRequests && actionState.canDispatch && primaryKind !== 'dispatch' && {
       label: 'Dispatch',
       icon: Send,
       tone: 'hsl(200 98% 39%)',
       onClick: closeThen(onDispatch),
     },
-    actionState.canComplete && primaryKind !== 'complete' && {
+    actorCanComplete && actionState.canComplete && primaryKind !== 'complete' && {
       label: 'Complete',
       icon: CheckCheck,
       tone: 'hsl(162 94% 24%)',

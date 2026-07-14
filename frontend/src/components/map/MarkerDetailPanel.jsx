@@ -18,7 +18,8 @@ const statusLabel = (value, fallback = '') => {
 };
 
 export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
-	const { isAdmin, isOrgAdmin } = useAuth();
+	const { canOperateDispatch } = useAuth();
+	const canManageRequests = Boolean(canOperateDispatch?.());
 	const [mapCommand, setMapCommand] = useState(null);
 	const [confirmClose, setConfirmClose] = useState(false);
 
@@ -43,8 +44,8 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 		setMapCommand(command);
 		toast.loading(loadingCopy, { id: toastId });
 		try {
-			await action();
-			toast.success(successCopy, { id: toastId });
+			const result = await action();
+			toast.success(typeof successCopy === 'function' ? successCopy(result) : successCopy, { id: toastId });
 		} catch (error) {
 			toast.error(error?.message || fallbackCopy, { id: toastId });
 		} finally {
@@ -152,21 +153,24 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 
 								<div className="flex gap-2">
 									{/* Send unit for unassigned emergencies */}
-									{(isAdmin() || isOrgAdmin()) && emergencyActionState?.canDispatch && (
+									{canManageRequests && emergencyActionState?.canDispatch && (
 											<Button
 										className="flex-1 rounded-button bg-emerald-600 font-semibold text-white shadow-e2 hover:bg-emerald-500"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "send"}
 												onClick={async () => {
-													await runMapCommand("send", "Sending unit...", "Unit sent", "Could not send unit", async () => {
-														const result = await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
-														if (result?.assignments?.ambulance?.type) {
-															toast.info(`Unit: ${result.assignments.ambulance.type}`);
-														}
-														setSelectedMarker(null);
-														if (onRefresh) await onRefresh();
-													});
+											await runMapCommand("send", "Sending responder offer...", (result) => (
+												result?.outcome === 'bed_accepted' ? 'Bed request accepted' : 'Responder offer sent'
+											), "Could not send responder offer", async () => {
+												const result = await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
+												if (result?.assignments?.ambulance?.type) {
+													toast.info('Awaiting responder acceptance');
+												}
+												setSelectedMarker(null);
+												if (onRefresh) await onRefresh();
+												return result;
+											});
 												}}
 											>
 												{mapCommand === "send" ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
@@ -175,7 +179,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										)}
 
 									{/* Close completed emergencies */}
-									{(isAdmin() || isOrgAdmin()) && emergencyActionState?.canComplete && (
+									{canManageRequests && emergencyActionState?.canComplete && (
 											<Button
 										className="flex-1 rounded-button bg-sky-600 font-semibold text-white shadow-e2 hover:bg-sky-500"
 												size="lg"

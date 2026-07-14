@@ -29,7 +29,6 @@ export const LayoutProvider = ({ children }) => {
 
     // Breakpoints
     const XL_BREAKPOINT = 1280;
-    const LG_BREAKPOINT = 1024;
 
     // Helper to get initial mode
     const getInitialMode = () => {
@@ -61,7 +60,7 @@ export const LayoutProvider = ({ children }) => {
 
 
     const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
-    const [contextMode, setContextMode] = useState('overlay');
+    const contextMode = 'overlay';
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
     const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status', instanceId: null });
     const [pageShellConfig, setPageShellConfig] = useState({ bleed: false, hideFab: false });
@@ -133,14 +132,9 @@ export const LayoutProvider = ({ children }) => {
             let newMode = preference;
 
             // Apply constraints based on breakpoints
-            if (width < LG_BREAKPOINT) {
-                // < 1024px: Force collapsed
+            if (width < XL_BREAKPOINT) {
+                // Compact phone/tablet composition owns navigation below 1280px.
                 newMode = 'collapsed';
-            } else if (width < XL_BREAKPOINT) {
-                // 1024px - 1280px: Max 'smart'
-                if (preference === 'expanded') {
-                    newMode = 'smart';
-                }
             }
             // >= 1280px: Allow preference (Expanded or Smart)
 
@@ -252,7 +246,7 @@ export const usePageFooter = (content, type = 'status', visible = true) => {
                 return prev;
             });
         };
-    }, [content, type, visible, instanceId]); // Remove setFooterConfig from dependencies
+    }, [content, type, visible, instanceId, setFooterConfig]);
 };
 
 // Hook for pages that need the route surface to own spacing instead of the app shell.

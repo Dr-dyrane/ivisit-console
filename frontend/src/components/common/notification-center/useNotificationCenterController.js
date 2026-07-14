@@ -10,7 +10,7 @@ import { readNotificationsForUser } from './notificationData';
 
 export const useNotificationCenterController = () => {
   const { user } = useAuth();
-  const { isMobile } = useNavigation();
+  const { usesCompactNavigation } = useNavigation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -172,7 +172,7 @@ export const useNotificationCenterController = () => {
     handleMarkRead,
     handleOpenNotification,
     handleRetryNotifications,
-    isMobile,
+    isMobile: usesCompactNavigation,
     isOpen,
     loadError,
     loading,

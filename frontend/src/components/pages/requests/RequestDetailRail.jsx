@@ -17,7 +17,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
-import { RailInsetHero } from '../../console/WorkspaceStage';
+import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { CopyChip, DetailLine, Shimmer, StageStrip } from '../../console/primitives';
 import { useReverseGeocode } from '../../../hooks/useReverseGeocode';
 import { canonicalizeEmergencyStatus } from '../../../utils/emergencyStatus';
@@ -37,6 +37,19 @@ import {
   REQUEST_STAGE_ORDER,
 } from './requestPageModel';
 
+const RequestRailShell = ({ children, embedded = false, scroll = false }) => {
+  if (embedded) {
+    return <DetailRailShell embedded>{children}</DetailRailShell>;
+  }
+
+  return (
+    <aside className={`relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px] ${scroll ? 'overflow-y-auto no-scrollbar' : ''}`}>
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      {children}
+    </aside>
+  );
+};
+
 export const RequestDetailRail = ({
   request,
   currentUser,
@@ -49,6 +62,7 @@ export const RequestDetailRail = ({
   onDispatch,
   onComplete,
   onProcessCash,
+  embedded = false,
 }) => {
   const railProjection = request ? getRequestProjection(request) : null;
   const { place: railPlace } = useReverseGeocode(
@@ -57,12 +71,11 @@ export const RequestDetailRail = ({
       : null
   );
 
-  if (loading) return <RequestDetailRailSkeleton />;
+  if (loading) return <RequestDetailRailSkeleton embedded={embedded} />;
 
   if (!request) {
     return (
-      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <RequestRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No request selected</h2>
@@ -72,7 +85,7 @@ export const RequestDetailRail = ({
               : 'Select a request to see its details here.'}
           </p>
         </div>
-      </aside>
+      </RequestRailShell>
     );
   }
 
@@ -106,11 +119,8 @@ export const RequestDetailRail = ({
         request?.specialty ? formatEmergencyServiceToken(request.specialty, '') : null,
       ].filter(Boolean).join(' \u00b7 ')
     : '';
-  const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();
-  const canCompleteAsProvider = currentUser.isProvider()
-    && Boolean(currentUser.user?.id)
-    && request?.responder_id === currentUser.user.id
-    && actionState.canComplete;
+  const canManage = currentUser.canOperateDispatch();
+  const canCompleteAsProvider = currentUser.canCompleteRequest(request) && actionState.canComplete;
   const primaryAction = getPrimaryRailAction({
     request,
     actionState,
@@ -130,8 +140,7 @@ export const RequestDetailRail = ({
   );
 
   return (
-    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+    <RequestRailShell embedded={embedded} scroll>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -263,7 +272,7 @@ export const RequestDetailRail = ({
           </Button>
         )}
 
-        {currentUser.isAdmin() && actionState.canCancel && (
+        {canManage && actionState.canCancel && (
           <Button
             variant="ghost"
             className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
@@ -274,13 +283,12 @@ export const RequestDetailRail = ({
           </Button>
         )}
       </div>
-    </aside>
+    </RequestRailShell>
   );
 };
 
-const RequestDetailRailSkeleton = () => (
-  <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
-    <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+const RequestDetailRailSkeleton = ({ embedded = false }) => (
+  <RequestRailShell embedded={embedded}>
     <div className="mb-5 flex items-start justify-between gap-4">
       <div className="space-y-3">
         <Shimmer className="h-6 w-36 rounded-inner" />
@@ -307,7 +315,7 @@ const RequestDetailRailSkeleton = () => (
         <Shimmer className="h-11 rounded-button" />
       </div>
     </div>
-  </aside>
+  </RequestRailShell>
 );
 
 const RailActionButton = ({ icon: Icon, label, onClick, pending = false }) => (

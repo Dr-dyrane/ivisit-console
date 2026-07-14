@@ -413,7 +413,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).toContain('<SheetToolbar');
     expect(page).toContain('<SortableColumnHeader label="Time"');
     expect(page).toContain('<ListRowShell');
-    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<DetailRailShell embedded={embedded}>');
     expect(page).toContain('<RailInsetHero>');
     expect(page).toContain('dataAttrName="data-payment-row"');
     expect(page).toContain("useListKeyboardNav({");

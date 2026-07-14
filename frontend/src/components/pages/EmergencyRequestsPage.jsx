@@ -11,6 +11,7 @@ import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { RequestsDesktopWorkspace } from './requests/RequestsDesktopWorkspace';
+import { RequestDetailRail } from './requests/RequestDetailRail';
 import { useEmergencyRequestsController } from './requests/useEmergencyRequestsController';
 import { EMPTY_REQUEST_FILTERS } from './requests/requestPageModel';
 
@@ -134,7 +135,8 @@ export const EmergencyRequestsPage = () => {
           onRetryPayment={handleRetryPaymentUnavailable}
           onRefresh={fetchRequests}
           onViewAnalytics={handleOpenAnalytics}
-          isAdmin={currentUser.isAdmin() || currentUser.isOrgAdmin()}
+          canManageRequests={currentUser.canOperateDispatch()}
+          canCompleteRequest={currentUser.canCompleteRequest}
           onOpenFilters={() => setFilterSheetOpen(true)}
           filterSheetOpen={filterSheetOpen}
           analyticsOpen={analyticsModalOpen}
@@ -151,6 +153,23 @@ export const EmergencyRequestsPage = () => {
           onSelectAll={handleSelectAll}
           onBulkCancel={handleBulkCancel}
           cancellableCount={cancellableSelectedCount}
+          onFocusRequest={setFocusedRequestId}
+          tabletPane={(
+            <RequestDetailRail
+              request={focusedRequest}
+              currentUser={currentUser}
+              loading={loading}
+              hasFilter={hasFilter}
+              dispatchPending={dispatchPending}
+              completePending={completePending}
+              onView={handleViewDetails}
+              onDelete={handleDelete}
+              onDispatch={handleDispatch}
+              onComplete={handleComplete}
+              onProcessCash={handleProcessCash}
+              embedded
+            />
+          )}
         />
       ) : (
         <RequestsDesktopWorkspace

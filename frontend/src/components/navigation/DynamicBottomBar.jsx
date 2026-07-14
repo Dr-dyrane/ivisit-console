@@ -43,9 +43,9 @@ import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 // Route and role decisions live in mobileRouteActions so this component only owns
 // dock rendering, navigation, and the small set of locally hosted command modals.
 export const DynamicBottomBar = () => {
-    const { isMobile } = useNavigation();
+    const { usesCompactNavigation } = useNavigation();
 
-    if (!isMobile) return null;
+    if (!usesCompactNavigation) return null;
 
     return <DynamicBottomBarContent />;
 };
@@ -103,7 +103,7 @@ const DynamicBottomBarContent = () => {
                 className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
                 style={{ bottom: 'calc(var(--safe-bottom, 0px) + 14px)' }}
             >
-                <div className={`w-full px-4 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
+                <div className={`w-full max-w-3xl px-4 flex items-center pointer-events-auto ${showAnyAction ? 'justify-between' : 'justify-center'}`}>
                     {/* CORE NAVIGATION PILL - Lucid Design */}
                     <motion.nav
                         initial={{ x: -50, opacity: 0 }}

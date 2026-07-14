@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LocateFixed } from 'lucide-react';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { MobileMap } from '../mobile/MobileMap';
 import { MapFallback } from '../map';
 import { MAP_VIEW_RADIUS_KM } from '../map/mapViewModel';
@@ -13,12 +14,23 @@ const GodModeMapContent = () => {
   const {
     activeRoutes,
     allMarkers,
+    assignedAmbulance,
+    driverAction,
+    driverAssignment,
+    driverFeedError,
+    driverFeedLoading,
+    driverHospitals,
+    driverLocationRecorded,
+    driverTracking,
     filteredRequests,
     focus,
     focusLocation,
     getPriorityColor,
     getStatusColor,
     handleRouteRecenter,
+    handleDriverAssignmentAction,
+    handleEnableAssignmentAlerts,
+    isDriverMode,
     isMobile,
     isSwitchingMap,
     locationStatus,
@@ -26,6 +38,7 @@ const GodModeMapContent = () => {
     mapLens,
     mapProvider,
     mapStyles,
+    notificationPermission,
     processedAmbulances,
     processedHospitals,
     refresh,
@@ -41,7 +54,8 @@ const GodModeMapContent = () => {
     userLocation,
   } = controller;
 
-  const headerActions = useMemo(() => (isMobile ? null : (
+  const { usesCompactNavigation } = useNavigation();
+  const headerActions = useMemo(() => (usesCompactNavigation ? null : (
     <Button
       type="button"
       onClick={handleRouteRecenter}
@@ -51,7 +65,7 @@ const GodModeMapContent = () => {
       <LocateFixed className="mr-2 h-4 w-4" />
       Recenter
     </Button>
-  )), [handleRouteRecenter, isMobile, locationStatus]);
+  )), [handleRouteRecenter, locationStatus, usesCompactNavigation]);
 
   usePageHeader('Live Map', headerActions);
   usePageFooter(null, 'status', false);
@@ -90,6 +104,18 @@ const GodModeMapContent = () => {
         mapStyles={mapStyles}
         allMarkers={allMarkers}
         activeRoutes={activeRoutes}
+        assignedAmbulance={assignedAmbulance}
+        driverAction={driverAction}
+        driverAssignment={driverAssignment}
+        driverFeedError={driverFeedError}
+        driverFeedLoading={driverFeedLoading}
+        driverHospitals={driverHospitals}
+        driverLocationRecorded={driverLocationRecorded}
+        driverTracking={driverTracking}
+        handleDriverAssignmentAction={handleDriverAssignmentAction}
+        handleEnableAssignmentAlerts={handleEnableAssignmentAlerts}
+        isDriverMode={isDriverMode}
+        notificationPermission={notificationPermission}
         processedAmbulances={processedAmbulances}
         processedHospitals={processedHospitals}
         filteredRequests={filteredRequests}

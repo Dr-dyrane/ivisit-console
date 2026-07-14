@@ -17,8 +17,8 @@ export const useMobileMapController = ({
   setSelectedMarker,
 }) => {
   const { selectedMarker, loading, error } = mapData;
-  const { isAdmin, isOrgAdmin } = useAuth();
-  const canManageRequests = Boolean(isAdmin?.() || isOrgAdmin?.());
+  const { canOperateDispatch } = useAuth();
+  const canManageRequests = Boolean(canOperateDispatch?.());
   const [mapCommand, setMapCommand] = useState(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -49,8 +49,8 @@ export const useMobileMapController = ({
     setMapCommand(command);
     toast.loading(loadingCopy, { id: toastId });
     try {
-      await action();
-      toast.success(successCopy, { id: toastId });
+      const result = await action();
+      toast.success(typeof successCopy === 'function' ? successCopy(result) : successCopy, { id: toastId });
     } catch (commandError) {
       toast.error(commandError?.message || fallbackCopy, { id: toastId });
     } finally {
@@ -75,10 +75,14 @@ export const useMobileMapController = ({
   };
 
   const handleDispatch = async () => {
-    await runMapCommand('send', 'Sending unit...', 'Unit sent', 'Could not send unit', async () => {
-      await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
+    await runMapCommand('send', 'Sending responder offer...', (result) => (
+      result?.outcome === 'bed_accepted' ? 'Bed request accepted' : 'Responder offer sent'
+    ), 'Could not send responder offer', async () => {
+      const result = await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
+      if (result?.outcome === 'offer_sent') toast.info('Awaiting responder acceptance');
       setSelectedMarker(null);
       await refresh();
+      return result;
     });
   };
 

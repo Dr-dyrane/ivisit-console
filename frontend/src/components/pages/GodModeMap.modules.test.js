@@ -8,6 +8,8 @@ describe('GodModeMap module ownership', () => {
   const controller = read('src/components/map/god-mode/useGodModeMapController.js');
   const desktop = read('src/components/map/god-mode/GodModeMapDesktop.jsx');
   const driverCard = read('src/components/map/god-mode/DriverAssignmentCard.jsx');
+  const driverModel = read('src/components/map/god-mode/driverAssignmentModel.js');
+  const driverTracking = read('src/components/map/god-mode/useDriverLocationTracking.js');
   const presentation = read('src/components/map/god-mode/mapPresentation.js');
   const googleRenderer = read('src/components/map/MapRenderers/GoogleMapsRenderer.jsx');
   const googleMarkerLayers = read('src/components/map/MapRenderers/google-maps/GoogleMapMarkerLayers.jsx');
@@ -17,6 +19,7 @@ describe('GodModeMap module ownership', () => {
   const mobileMapCanvas = read('src/components/mobile/mobile-map/MobileMapCanvas.jsx');
   const mobileMapChrome = read('src/components/mobile/mobile-map/MobileMapChrome.jsx');
   const mobileMapDetails = read('src/components/mobile/mobile-map/MobileMapDetailSheet.jsx');
+  const mobileDriverAssignment = read('src/components/mobile/mobile-map/MobileDriverAssignmentSheet.jsx');
   const mobileMapController = read('src/components/mobile/mobile-map/useMobileMapController.js');
   const mobileMapPresentation = read('src/components/mobile/mobile-map/mobileMapPresentation.js');
 
@@ -24,7 +27,9 @@ describe('GodModeMap module ownership', () => {
     expect(facade.split(/\r?\n/).length).toBeLessThanOrEqual(140);
     expect(controller.split(/\r?\n/).length).toBeLessThanOrEqual(400);
     expect(desktop.split(/\r?\n/).length).toBeLessThanOrEqual(260);
-    expect(driverCard.split(/\r?\n/).length).toBeLessThanOrEqual(180);
+    expect(driverCard.split(/\r?\n/).length).toBeLessThanOrEqual(220);
+    expect(driverModel.split(/\r?\n/).length).toBeLessThanOrEqual(120);
+    expect(driverTracking.split(/\r?\n/).length).toBeLessThanOrEqual(320);
     expect(presentation.split(/\r?\n/).length).toBeLessThanOrEqual(100);
     expect(googleRenderer.split(/\r?\n/).length).toBeLessThanOrEqual(140);
     expect(googleMarkerLayers.split(/\r?\n/).length).toBeLessThanOrEqual(240);
@@ -34,6 +39,7 @@ describe('GodModeMap module ownership', () => {
     expect(mobileMapCanvas.split(/\r?\n/).length).toBeLessThanOrEqual(160);
     expect(mobileMapChrome.split(/\r?\n/).length).toBeLessThanOrEqual(180);
     expect(mobileMapDetails.split(/\r?\n/).length).toBeLessThanOrEqual(240);
+    expect(mobileDriverAssignment.split(/\r?\n/).length).toBeLessThanOrEqual(320);
     expect(mobileMapController.split(/\r?\n/).length).toBeLessThanOrEqual(160);
     expect(mobileMapPresentation.split(/\r?\n/).length).toBeLessThanOrEqual(80);
   });
@@ -44,8 +50,13 @@ describe('GodModeMap module ownership', () => {
     expect(facade).toContain('<MobileMap');
     expect(facade).toContain('<GodModeMapDesktop');
     expect(controller).toContain('useMapContext()');
-    expect(controller).toContain('updateResponderLocation(');
-    expect(controller).toContain('driverManagementService.updateTripStatus');
+    expect(controller).toContain('useDriverLocationTracking({');
+    expect(controller).not.toContain('updateResponderLocation(');
+    expect(driverTracking).toContain('driverManagementService.reportTelemetry({');
+    expect(driverTracking).not.toContain('updateResponderLocation(');
+    expect(driverTracking).toContain('navigator.geolocation.watchPosition');
+    expect(controller).toContain('driverManagementService.acceptOffer');
+    expect(controller).toContain('driverManagementService.completeAssignment');
     expect(desktop).toContain('<GoogleMapsRenderer');
     expect(desktop).toContain('<LeafletMapRenderer');
     expect(desktop).toContain('<DriverAssignmentCard');
@@ -68,9 +79,11 @@ describe('GodModeMap module ownership', () => {
     expect(mobileMap).toContain("from './mobile-map/MobileMapCanvas'");
     expect(mobileMap).toContain("from './mobile-map/MobileMapChrome'");
     expect(mobileMap).toContain("from './mobile-map/MobileMapDetailSheet'");
+    expect(mobileMap).toContain("from './mobile-map/MobileDriverAssignmentSheet'");
     expect(mobileMap).toContain("from './mobile-map/useMobileMapController'");
     expect(mobileMapCanvas).toContain('<GoogleMapsRenderer');
     expect(mobileMapCanvas).toContain('<LeafletMapRenderer');
+    expect(mobileMapCanvas).toContain("style={{ bottom: usesCompactNavigation ? 'var(--total-bottom-clearance)' : '0px' }}");
     expect(mobileMapChrome).toContain('<MapViewportSummary');
     expect(mobileMapDetails).toContain('emergencyActionState?.canDispatch');
     expect(mobileMapController).toContain('dispatchEmergency(');

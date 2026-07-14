@@ -8,6 +8,14 @@ Execution update, 2026-07-12: the narrowly scoped Pass 4 Auth, complete facility
 
 Source-convergence update, 2026-07-13: the PR-admission catalog has no active source-confirmed failures and no deployment blocker; its 92 resolved findings are being recaptured against the final committed source. Canonical shared-contract repairs are owned by `ivisit-app` main commit `0ef88f51` and synchronized into Console. Exact-source SQL was applied to project `dlwtcmhdzoklveihuhjf`, then the temporary deployment version was marked reverted and removed so migration history again contains only the eleven owner pillars and `db push --dry-run` is clean. The static and live shared-contract guards pass 16/16; payment retry passed cross-user denial, canonical transition, two-session convergence on one pending payment, reflected state, and zero residue; onboarding rollback and live Auth, Storage, RPC, invitation, and reflection E2E also pass with cleanup. The absorbed July fix branches were deleted, while `feature/book-visit-map-sheet-infusion` remains intentionally separate for its unique Book Visit design documents.
 
+Readiness correction, 2026-07-14: the statement above closes the named PR-admission and shared-contract
+verification set; it is not a live Uber-like emergency-operations launch verdict. A new App/Console/source-history
+pass found unresolved P0 contracts for server-owned card dispatch deferral, responder-owned row isolation,
+org-safe staffing, staffed-unit assignment, responder decline/requeue, role-specific lifecycle ownership,
+background telemetry/push/staleness, and patient visit atomicity. Live dispatch is therefore `NO-GO` until the
+Pass 1 and Pass 5 adversarial ledgers pass against the deployed backend. Hospital/clinic onboarding and the
+explicitly labelled simulation lane may continue. No database change is authorized by this correction.
+
 This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, Stage 4 L5 ownership matrix, Stage 5 full service coverage audit, and the service taxonomy in `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`. Each pass must be narrowed into its own implementation checklist before code changes begin.
 
 The pass order below is an implementation sequence, not the console feature taxonomy. A single pass can cover several feature lanes when they share source-of-truth risk. The feature taxonomy remains the coverage gate for ensuring no service or operational surface is skipped.

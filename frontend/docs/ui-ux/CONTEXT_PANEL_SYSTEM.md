@@ -1,4 +1,4 @@
-> ⚠️ **Partially superseded.** The tablet-specific treatments below (icon rail / overlay sidebar) were NOT implemented and are retired — tablet uses the desktop shell. The mobile context panel is `null` on mobile in code. Verify against code before following.
+> **Active tablet correction, updated 2026-07-14.** Tablet pages remain tablet-composed from `768px` through `1279px`. At `768-1023px`, route context stays in bounded sheets and the avatar menu. At `1024-1279px`, the shared overlay context panel and collapsed navigation rail become available while page content remains tablet-composed. A persistent list/detail pane still requires proven route ownership. Use `docs/design-system/MOBILE_DESIGN_SYSTEM.md` section 11 for the active contract; the older proposal below is historical context.
 
 # Context Panel System Documentation
 

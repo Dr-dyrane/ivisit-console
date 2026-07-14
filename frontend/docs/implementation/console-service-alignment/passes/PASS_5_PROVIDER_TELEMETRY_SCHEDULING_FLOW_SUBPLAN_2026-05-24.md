@@ -647,6 +647,81 @@ Acceptance gate:
 
 - Console never represents a suggested or selected doctor as assigned unless persisted assignment truth confirms it.
 
+## Git History Decision Context - 2026-07-14
+
+The maintained migration history makes the following intent explicit:
+
+| History | Established decision | Do not regress to |
+| --- | --- | --- |
+| App `2a5a2ef5` | Dispatcher is an independent `profiles.role`; driver is a provider type; `ambulances.profile_id` and `emergency_requests.responder_id` are canonical staffing/assignment identities; profile reads remain private. | A new responder identity column, dispatcher-as-provider inference, or broad profile-directory RLS. |
+| App `79b0ebc5`, `20e74289`; Console `eb61032c` | Temporary fixes were absorbed into App-owned pillar migrations and mirrored to Console through `sync_to_console.js`. | Reintroducing dated or branch-local fix migrations beside owner pillars. |
+| App `3459c432`; Console `b6d85487` | `console_dispatch_emergency` owns org checks, row locking, ambulance assignment, and responder derivation from `ambulances.profile_id`. | Client-supplied responder identity or direct dispatch table updates. |
+| App `731221d0`, `a44f203f`, `37a3e1f4`; Console `d665f39e` | Lifecycle writes are RPC-owned; reassignment releases old units; failover and responder telemetry have backend consequences. | Treating generic fleet status, direct row writes, or failover as a responder decline command. |
+| App `1197657f`, `55cb8823`, `2ce126ee`, `2e67c66a` | Demo identity, staffing, cash approval, fallback assignment, and synthetic movement form a deliberately isolated simulation lane. | Using demo auto-approval, fallback assignment, or heartbeat as proof of live operations. |
+| Console `190434e6`, `cc3ef311`; App `b3c547df` | Driver derivation from existing provider type was correct. Removing the dead nested dispatcher grant was correct, but declaring dispatcher illegal was not; later maintained RPC work reaffirmed the role. | Restoring the dead grant or continuing to strand a legal dispatcher at route authorization. |
+
+Absorbed branches remain absorbed: `fix/console-operator-select-rls` (`270d1a4b`),
+`fix/revoke-anon-org-financial-fns` (`ed3ffb94`), and `fix/hospital-array-coalesce` (`35c8c969`).
+`feature/book-visit-map-sheet-infusion` (`de6bdebc`) contains separate Book Visit design history and must not
+be merged to solve emergency-provider contracts.
+
+## Adversarial Readiness Decision - 2026-07-14
+
+This update is a read-only cross-repository decision pass over current Console source, App source, generated
+types, maintained migrations, RPCs, RLS, automation, and demo code. It authorizes no database deployment.
+Where it conflicts with the May snapshot above, this section is the current decision record.
+
+Decision classes:
+
+1. `frontend derivation` - use already-authorized data; no backend change.
+2. `client/service scope` - correct acquisition or projection ownership; no schema change.
+3. `narrow backend contract` - add or harden one projection, command, policy, or idempotency guarantee.
+4. `keep unavailable` - do not advertise capability until its receiver is proved.
+5. `launch-blocking lifecycle` - live emergency operations remain disabled until deployed acceptance proof passes.
+
+| Decision | Data evidence | Required resolution | Class |
+| --- | --- | --- | --- |
+| Dispatcher is a legal operational role. | Invitation validation accepts `dispatcher` (`../ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:6392`), and emergency/payment RPCs repeatedly authorize it with org scope. | Admit dispatcher only to Today, Requests, Live Map, and Settings; load emergency data only; use org-resolved hospital scope. The current branch implements this Console correction. | 2 |
+| Driver request identity must prefer positive assignment. | Canonical request identity is `emergency_requests.responder_id`; dispatch derives it from `ambulances.profile_id`. Before this pass, organization-linked driver reads could prefer hospital-wide rows. | Current Console reads prioritize `responder_id = auth.uid()` and driver controls require a positive ambulance/profile link. This prevents accidental UI selection, but it is not a security boundary. | 2 |
+| Driver row isolation is still not backend-proved. | Emergency SELECT RLS includes the organization-hospital policy (`../ivisit-app/supabase/migrations/20260219000700_security.sql:301-327`), so an organization-linked provider can receive hospital-wide rows even when the UI filters them. | Add a responder-owned projection or policy for the driver feed. Keep privileged operator scope separate. Prove cross-driver denial with live RLS tests. | 3, 5 |
+| Driver-to-ambulance staffing stays unavailable. | Canonical linkage is `ambulances.profile_id`, but profiles SELECT permits only owner or admin (`../ivisit-app/supabase/migrations/20260219000700_security.sql:269-273`). That does not prove an organization-safe eligible-driver picker. | Add an org-scoped eligible-responder projection and one atomic staffing command validating organization, provider type, uniqueness, and active-call constraints. Do not broaden profiles RLS or revive a global picker. | 3, 4 |
+| An unstaffed ambulance is not dispatch-ready. | Assignment automation can consume staffed profile identity, while dispatch/reassignment paths can preserve or accept incomplete responder linkage. | One server readiness projection must require organization match, active/available unit, positive responder linkage, usable location, supported type, and no conflicting call. Dispatch must reject unstaffed units atomically. | 3, 5 |
+| Foreground map tracking is useful but not production telemetry. | Console now uses browser `watchPosition`, throttled canonical responder RPC updates, cleanup, and explicit start/stop while the map remains open. App tracking is also foreground-oriented. | Preserve the current honest foreground UX. Live launch additionally requires background telemetry entitlement, heartbeat/lease, stale-state escalation, and push delivery. | 3, 5 |
+| Driver decline cannot reuse patient cancellation. | The existing cancellation receiver cancels the emergency; reassignment can release a prior unit, but no audited responder decline/requeue command exists. | Keep Decline unavailable. Add one atomic release/requeue command with reason, audit evidence, responder ownership, and refreshed assignment truth. | 3, 4, 5 |
+| Driver lifecycle controls need role-specific commands. | Generic emergency status paths admit broader field effects, while patient surfaces can currently participate in operational arrival/completion. | Separate responder accept/arrive/complete from patient acknowledgement; enforce the legal transition graph and exactly-once consequences server-side. | 3, 5 |
+| Schedule/capacity-aware matching is not proved. | Fleet schema has status, type, location, and loose crew data, but no enforced driver schedule or ambulance capacity contract. | Launch matching may use only staffed, available, located, supported-type units. Keep schedule/capacity optimization unavailable until a stored receiver exists. | 4 |
+| Standalone ambulance-service dispatch is not yet coherent. | Onboarding can create an ambulance-service organization without a facility, while current emergencies require a hospital and dispatch expects same-organization ownership. | Exclude standalone ambulance-service organizations from the first live launch, or design and prove an explicit cross-organization dispatch command. | 4, 5 |
+| The map is a radius lens, not an ecosystem dump. | Runtime QA found a 5 km summary paired with hundreds of off-area mounted markers. | The current branch keeps the authorized source projection but mounts only radius-scoped points; route resolution still uses authorized loaded data. Lock this with radius and marker-count tests. | 1 |
+| Tablet is a composition change, not a new authority. | The same route/controller data can support phone, tablet, and desktop; duplicating tablet services would create drift. Apple HIG treats iPad as regular-width and fluidly resizable rather than a stretched phone. | Keep tablet page composition below 1280 px. Bound lists at 768 px; permit 1024 px only for real two-column recomposition; keep map full-bleed with bounded chrome. Use the bounded dock below 1024 px, then reuse the collapsed desktop navigation owner, toolbar, and overlay context panel from 1024-1279 px without switching page components. | 1 |
+
+Current product verdict:
+
+- Hospital/clinic onboarding intake may continue.
+- The curated demo may continue only when labelled as simulation.
+- Live Uber-like emergency dispatch is `NO-GO` until all class 5 rows above and the Pass 1 payment/lifecycle
+  blockers below pass against the deployed backend.
+- No UI fallback, demo automation, or broad client filter counts as backend authorization proof.
+
+## Emergency Responder Production Closure - 2026-07-14
+
+This section supersedes the emergency responder `NO-GO` rows above while preserving their decision history.
+The deployed backend now provides an organization-scoped eligible-responder picker, atomic staffing command,
+ambulance readiness projection, responder-only feed, offer/accept/arrive/complete commands, atomic
+decline/requeue, assignment-bound monotonic telemetry with freshness lease, and standalone ambulance-service
+organization support.
+
+Live isolated proof passed `65/65` with zero residue. In particular, it proved cross-driver and cross-org
+denial, two dispatcher sessions converging on one offer, two driver sessions converging on one acceptance,
+telemetry replay and projection scope, staffing idempotency, stale/unavailable fleet fallback, and service-role
+Console completion delegating to the canonical responder lifecycle. Console focused runtime and contract tests
+passed `43/43`, and the optimized production build passed all UI, mobile grammar, data-contract, and encoding
+hardgates.
+
+The supervised foreground responder lane is `GO`: the map refreshes offers on visibility/focus recovery,
+maintains a 20-second foreground heartbeat, restores a fresh position on resume, and names stale/lost signal
+states honestly. Unattended background dispatch remains `NO-GO` until a new native binary adds and proves
+background location plus APNs/FCM push. EAS OTA alone cannot add those native capabilities.
+
 ## Verification Plan
 
 Static:

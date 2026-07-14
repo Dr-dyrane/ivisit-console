@@ -665,14 +665,14 @@ describe('Today/Requests revamp gate contract', () => {
     expect(APP_ROUTE_METADATA.find((route) => route.path === '/analytics')).toEqual({ id: 'analytics', path: '/analytics', minRole: 'provider' });
     expect(APP_ROUTE_METADATA.find((route) => route.path === '/users')).toEqual({ id: 'users', path: '/users', minRole: 'org_admin' });
     expect(APP_ROUTE_METADATA.find((route) => route.path === '/organizations')).toEqual({ id: 'organizations', path: '/organizations', minRole: 'admin' });
-    expect(APP_ROUTE_METADATA.find((route) => route.path === '/settings')).toEqual({ id: 'settings', path: '/settings' });
+    expect(APP_ROUTE_METADATA.find((route) => route.path === '/settings')).toEqual({ id: 'settings', path: '/settings', additionalRoles: ['dispatcher'] });
     expect(APP_ROUTE_METADATA.find((route) => route.path === '/subscriptions')).toEqual({ id: 'subscriptions', path: '/subscriptions', minRole: 'admin' });
     expect(APP_ROUTE_METADATA.find((route) => route.path === '/pricing')).toEqual({ id: 'pricing', path: '/pricing', minRole: 'org_admin' });
 
     expect(navigation).toContain("{ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' }");
     expect(navigation).toContain("{ id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' }");
     expect(navigation).toContain("{ id: 'organizations', path: '/organizations', icon: Building2, label: 'Organizations', resource: 'organizations', minRole: 'admin' }");
-    expect(navigation).toContain("{ id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer' }");
+    expect(navigation).toContain("{ id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer', additionalRoles: ['dispatcher'] }");
     expect(navigation).toContain("{ id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Email Subscribers', resource: 'subscriptions', minRole: 'admin' }");
     expect(navigation).toContain("{ id: 'pricing', path: '/pricing', icon: DollarSign, label: 'Pricing', resource: 'pricing', minRole: 'org_admin' }");
     expect(mobileNavigation).toContain("{ id: 'statistics', path: '/analytics', label: 'Statistics' }");

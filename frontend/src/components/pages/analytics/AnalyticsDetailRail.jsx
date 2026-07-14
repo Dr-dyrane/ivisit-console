@@ -17,10 +17,11 @@ export const AnalyticsDetailRail = ({
   requestSample,
   sourceReadiness,
   dominantType,
+  embedded = false,
 }) => {
   if (isLoading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <Shimmer className="h-32 rounded-modal" />
         <div className="mt-4 space-y-2">
           {[0, 1, 2].map((item) => <Shimmer key={item} className="h-[58px] rounded-inner" />)}
@@ -39,7 +40,7 @@ export const AnalyticsDetailRail = ({
     : requestsReady ? 'No requests' : SOURCE_UNAVAILABLE;
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

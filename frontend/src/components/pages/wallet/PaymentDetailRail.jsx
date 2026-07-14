@@ -34,10 +34,11 @@ export const PaymentDetailRail = ({
   formatCurrency,
   formatPaymentMethod,
   formatPaymentDescription,
+  embedded = false,
 }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="space-y-3">
           <div className="h-24 animate-pulse rounded-modal bg-muted/30" />
           <div className="h-14 animate-pulse rounded-card bg-muted/25" />
@@ -73,7 +74,7 @@ export const PaymentDetailRail = ({
     : 'Ledger totals unavailable';
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">

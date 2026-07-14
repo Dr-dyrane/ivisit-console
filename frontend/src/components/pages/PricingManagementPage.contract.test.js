@@ -314,11 +314,13 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain('<SkeletonGroupList groups={2} rowsPerGroup={[3, 2]}');
     expect(mobile).toContain('<GroupPanel');
     expect(mobile).toContain('<MobileListRow');
-    // Tap-opens-detail-sheet: the row now opens MobileDetailSheet on tap instead of
-    // expanding an inline dropdown (no MobileDetailIslands/expandedContent composition).
+    // Phone taps still open MobileDetailSheet; tablet taps focus the route-owned rail.
+    // Neither surface revives inline row expansion.
     expect(mobile).toContain("import { MobileDetailSheet } from '../MobileDetailSheet';");
     expect(mobile).toContain('<MobileDetailSheet');
-    expect(mobile).toContain('onOpen={setActiveItem}');
+    expect(mobile).toContain('onOpen={handleOpenItem}');
+    expect(mobile).toContain('setActiveItem(item);');
+    expect(mobile).toContain('onFocusPrice(item.id);');
     expect(mobile).not.toContain('primary={{');
     expect(mobile).not.toContain('expandedContent');
     expect(mobile).not.toContain('MobileDetailIslands');

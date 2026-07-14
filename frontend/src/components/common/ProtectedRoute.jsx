@@ -39,6 +39,7 @@ export const ProtectedRoute = ({
 	children,
 	minRole = "viewer",
 	allowedRoles = null,
+	additionalRoles = null,
 	resource = null,
 	path = null,
 }) => {
@@ -111,7 +112,7 @@ export const ProtectedRoute = ({
 		return <Navigate to="/unauthorized" replace />;
 	}
 
-	if (minRole && !hasMinRole(minRole)) {
+	if (minRole && !hasMinRole(minRole) && !hasRole(additionalRoles || [])) {
 		return <Navigate to="/unauthorized" replace />;
 	}
 

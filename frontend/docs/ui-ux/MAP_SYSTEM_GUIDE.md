@@ -1,6 +1,6 @@
 # Live Map Operating Contract
 
-> **Status:** Active Map-01 contract, 2026-07-13
+> **Status:** Active Map-01 contract, updated 2026-07-14
 > **Scope:** Console Live Map only
 > **Authority:** Shared Supabase truth, role-scoped Console projections, then patient-app interaction lessons
 
@@ -12,7 +12,8 @@ not a patient discovery surface and it must not broaden organization scope to ma
 - Admins monitor authorized active requests, units, facilities, and degraded sources.
 - Organization administrators see their organization-scoped operations.
 - Providers inspect assigned or otherwise authorized request and facility context.
-- Drivers and paramedics focus their positively assigned mission and may share location through the proved RPC.
+- Drivers and paramedics focus their positively assigned mission and may share foreground location through the
+  proved RPC while the map is open. Background tracking is not yet a proved product capability.
 - Sponsor and viewer roles remain excluded by route policy.
 
 The map owns one selected spatial record. List-style multiple selection does not belong here without a proved
@@ -40,8 +41,10 @@ spatial batch command.
 - Google bounds fitting is followed by a deterministic radius-derived zoom because the first bounds call
   can occur before the map div has its final dimensions. Mobile padding preserves the top summary and dock.
 
-The 5 km value is a view lens, not a new data query or authorization rule. Markers outside the initial lens may
-remain available through normal map navigation when they are in the actor's authorized projection.
+The 5 km value is a view lens, not a new data query or authorization rule. The service may retain the full
+authorized projection, but the renderer mounts only points inside the current lens. Recenter or an explicit
+focus change recomputes that rendered set. This prevents hundreds of off-area markers from becoming hidden
+DOM and interaction cost while preserving authorization truth.
 
 ## Routes
 
@@ -61,6 +64,8 @@ remain available through normal map navigation when they are in the actor's auth
 - A failed source remains visible as degraded/error state; it must not become a successful empty state.
 - Google provider failure switches to Leaflet with visible progress. Missing provider configuration uses the
   limited map without manufacturing records.
+- Mobile and compact-tablet map layouts reserve the shared bottom clearance for map-provider attribution and
+  legal controls; the bottom dock must never cover them.
 
 ## Command Boundary
 
@@ -78,5 +83,6 @@ For every Map-01 change, verify:
 4. nearby values say `shown` and use only loaded authorized rows;
 5. only one request's route preview is rendered at a time;
 6. initial load, refresh, partial failure, empty scope, and provider fallback are visible;
-7. desktop rail/panel and mobile sheet/dock remain usable without overlap; and
-8. map contract tests, mobile grammar, UI hardgate, the full suite, and the production build pass.
+7. rendered markers are limited to the current radius lens even when the authorized source projection is larger;
+8. desktop rail/panel and compact sheet/dock remain usable without overlap, including provider attribution; and
+9. map contract tests, mobile grammar, UI hardgate, the full suite, and the production build pass.

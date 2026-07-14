@@ -7,6 +7,7 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { PaymentReceiptDialog } from './wallet/PaymentReceiptDialog';
+import { PaymentDetailRail } from './wallet/PaymentDetailRail';
 import { PaymentsDesktopWorkspace } from './wallet/PaymentsDesktopWorkspace';
 import { createWalletFilters } from './wallet/walletPageModel';
 import { useWalletPageController } from './wallet/useWalletPageController';
@@ -98,6 +99,25 @@ export const WalletManagementPage = () => {
           onLoadMore={controller.handleMobileLoadMore}
           onOpenPayment={controller.setSelectedPayment}
           formatCurrency={controller.formatCurrency}
+          renderTabletPane={(activeEntry) => (
+            <PaymentDetailRail
+              entry={activeEntry?.item || null}
+              entryKind={activeEntry?.kind || controller.activeTab}
+              loading={controller.loading}
+              wallet={controller.wallet}
+              paymentMethods={controller.paymentMethods}
+              readState={controller.readState}
+              financeMetrics={controller.financeMetrics}
+              financeMetricsStale={controller.financeMetricsStale}
+              ledgerCount={controller.ledger.length}
+              paymentsCount={controller.payments.length}
+              onOpenReceipt={controller.setSelectedPayment}
+              formatCurrency={controller.formatCurrency}
+              formatPaymentMethod={controller.formatPaymentMethod}
+              formatPaymentDescription={controller.formatPaymentDescription}
+              embedded
+            />
+          )}
         />
         {sharedDialogs}
       </>

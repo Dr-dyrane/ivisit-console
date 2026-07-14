@@ -18,6 +18,7 @@ import {
   WalletSkeleton,
 } from './wallet/MobileWalletHeader';
 import { useMobileWalletController } from './wallet/useMobileWalletController';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 // HYBRID grammar: the shared list-page heading leads into read-only finance KPIs,
 // source tabs, and a Requests-shaped grouped activity feed. Money-moving commands
@@ -53,7 +54,9 @@ export const MobileWallet = ({
   onLoadMore,
   onOpenPayment,
   formatCurrency,
+  renderTabletPane,
 }) => {
+  const { isTablet } = useNavigation();
   const warmingUp = useSkeletonWarmup();
   const showSkeleton = warmingUp || (loading && !hasLoaded);
   const controller = useMobileWalletController({
@@ -81,6 +84,10 @@ export const MobileWallet = ({
     formatCurrency,
     onOpenPayment,
   });
+  const tabletPane = isTablet && renderTabletPane
+    ? renderTabletPane(controller.activeEntry)
+    : null;
+  const hasTabletDetailPane = Boolean(tabletPane);
 
   const tabs = (
     <div
@@ -108,6 +115,7 @@ export const MobileWallet = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
+        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobileWalletAtlasLayer />
@@ -198,7 +206,7 @@ export const MobileWallet = ({
           )}
         </div>
 
-        {detailProps && <MobileDetailSheet {...detailProps} />}
+        {detailProps && !hasTabletDetailPane && <MobileDetailSheet {...detailProps} />}
       </MobilePageShell>
     </PullToRefresh>
   );

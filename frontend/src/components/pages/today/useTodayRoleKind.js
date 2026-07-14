@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export function useTodayRoleKind(explicitRole) {
-  const { isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile } = useAuth();
+  const { isAdmin, isDispatcher, isOrgAdmin, isProvider, isSponsor, isViewer, profile } = useAuth();
 
   return useMemo(() => {
     // Driver lens: the profile-level identity rule GodModeMap already uses
@@ -16,9 +16,10 @@ export function useTodayRoleKind(explicitRole) {
     if (explicitRole) return explicitRole;
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
+    if (isDispatcher()) return 'dispatcher';
     if (isProvider()) return 'provider';
     if (isSponsor()) return 'sponsor';
     if (isViewer()) return 'viewer';
     return 'viewer';
-  }, [explicitRole, isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile]);
+  }, [explicitRole, isAdmin, isDispatcher, isOrgAdmin, isProvider, isSponsor, isViewer, profile]);
 }

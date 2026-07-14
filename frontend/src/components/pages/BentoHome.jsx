@@ -9,6 +9,7 @@ export { resolveBentoHomeRole } from './bento/bentoHomeModel';
 export const BentoHome = () => {
   const {
     isAdmin,
+    isDispatcher,
     isOrgAdmin,
     isProvider,
     isPatient,
@@ -18,6 +19,7 @@ export const BentoHome = () => {
 
   const roleHomeKind = resolveBentoHomeRole({
     admin: isAdmin(),
+    dispatcher: isDispatcher(),
     orgAdmin: isOrgAdmin(),
     provider: isProvider(),
     patient: isPatient(),

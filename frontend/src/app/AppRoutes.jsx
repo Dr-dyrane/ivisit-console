@@ -37,12 +37,18 @@ const ROUTE_COMPONENTS = Object.freeze({
   notFound: lazyNamedPage(() => import('../components/pages/NotFoundPage'), 'NotFoundPage'),
 });
 
-const createRouteElement = ({ id, public: isPublic, minRole }) => {
+const createRouteElement = ({ id, public: isPublic, minRole, additionalRoles }) => {
   const Component = ROUTE_COMPONENTS[id];
   const page = <Component />;
 
   if (isPublic) return page;
-  if (minRole) return <ProtectedRoute minRole={minRole}>{page}</ProtectedRoute>;
+  if (minRole || additionalRoles) {
+    return (
+      <ProtectedRoute minRole={minRole || 'viewer'} additionalRoles={additionalRoles}>
+        {page}
+      </ProtectedRoute>
+    );
+  }
   return <ProtectedRoute>{page}</ProtectedRoute>;
 };
 

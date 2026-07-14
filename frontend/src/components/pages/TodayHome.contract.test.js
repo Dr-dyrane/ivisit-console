@@ -162,6 +162,7 @@ describe('TodayHome role contract', () => {
       minRole: 'viewer',
       resource: 'dashboard',
       title: 'Today',
+      additionalRoles: ['dispatcher'],
     });
     expect(getRouteTitle('/verification')).toBe('Approvals');
     expect(NAV_CONFIG.mgmt.items.find((item) => item.id === 'verification')?.label).toBe('Approvals');
@@ -170,6 +171,7 @@ describe('TodayHome role contract', () => {
   it('keeps Bento composition role precedence identical before mounting either home', () => {
     expect(resolveBentoHomeRole({ admin: true, orgAdmin: true })).toBe('admin');
     expect(resolveBentoHomeRole({ admin: false, orgAdmin: true })).toBe('org_admin');
+    expect(resolveBentoHomeRole({ dispatcher: true })).toBe('dispatcher');
     expect(resolveBentoHomeRole({ provider: true })).toBe('provider');
     expect(resolveBentoHomeRole({ sponsor: true })).toBe('sponsor');
     expect(resolveBentoHomeRole({ viewer: true })).toBe('viewer');
@@ -195,6 +197,7 @@ describe('TodayHome role contract', () => {
       resource: 'emergency_requests',
       title: 'Requests',
       excludedRoles: ['sponsor'],
+      additionalRoles: ['dispatcher'],
     });
 
     expect(NAV_CONFIG.ops.items.find((item) => item.id === 'emergencies')).toMatchObject({
@@ -202,6 +205,7 @@ describe('TodayHome role contract', () => {
       resource: 'emergency_requests',
       minRole: 'provider',
       excludedRoles: ['sponsor'],
+      additionalRoles: ['dispatcher'],
     });
 
     expect(getProtectedRoutesForRole('viewer')).toEqual(expect.arrayContaining(['/', '/settings']));
@@ -212,6 +216,9 @@ describe('TodayHome role contract', () => {
 
     expect(getProtectedRoutesForRole('org_admin')).toEqual(expect.arrayContaining(['/', '/verification', '/doctors', '/wallet']));
     expect(getProtectedRoutesForRole('org_admin')).not.toEqual(expect.arrayContaining(['/organizations']));
+
+    expect(getProtectedRoutesForRole('dispatcher')).toEqual(expect.arrayContaining(['/', '/emergencies', '/map', '/settings']));
+    expect(getProtectedRoutesForRole('dispatcher')).not.toEqual(expect.arrayContaining(['/analytics', '/visits', '/verification']));
 
     expect(getProtectedRoutesForRole('sponsor')).toEqual(expect.arrayContaining(['/', '/analytics', '/settings']));
     expect(getProtectedRoutesForRole('sponsor')).not.toEqual(expect.arrayContaining([

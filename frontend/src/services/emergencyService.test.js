@@ -270,6 +270,7 @@ describe('emergencyService compatibility facade', () => {
   it('preserves the complete public export manifest', () => {
     expect(Object.keys(emergencyService).sort()).toEqual([
       'EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON',
+      'acceptBedEmergencyRequest',
       'acceptEmergencyRequest',
       'approveCashPayment',
       'cancelEmergencyRequest',
@@ -286,8 +287,10 @@ describe('emergencyService compatibility facade', () => {
       'getEmergencyStats',
       'getHospitalEmergencyRequests',
       'getLatestEmergencyPayment',
+      'getResponderLocationState',
       'getUserActivePaymentMethods',
       'getUserEmergencyRequests',
+      'releaseResponderAssignment',
       'retryPaymentWithDifferentMethod',
       'subscribeToEmergencyDetail',
       'updateEmergencyRequest',
@@ -321,15 +324,15 @@ describe('emergencyService compatibility facade', () => {
 
     expect(receivers).toEqual([
       'approve_cash_payment',
+      'console_accept_bed_emergency',
       'console_cancel_emergency',
       'console_complete_emergency',
       'console_create_emergency_request',
       'console_dispatch_emergency',
       'console_update_emergency_request',
-      'console_update_emergency_request',
-      'console_update_responder_location',
       'create_emergency_v4',
       'decline_cash_payment',
+      'dispatcher_release_responder_assignment',
     ].sort());
     expect(source).not.toContain("supabase.rpc('retry_payment_with_different_method'");
   });

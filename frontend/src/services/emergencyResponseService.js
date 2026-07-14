@@ -55,6 +55,15 @@ const getDispatchErrorMessage = (result, fallback) => {
   if (code === 'NO_AMBULANCE_AVAILABLE' || code === 'AMBULANCE_UNAVAILABLE') {
     return 'No eligible ambulance is currently available.';
   }
+  if (code === 'AMBULANCE_NOT_READY' || code === 'RESPONDER_NOT_READY') {
+    return 'No staffed ambulance with fresh location is ready for this request.';
+  }
+  if (code === 'PAYMENT_NOT_CONFIRMED') {
+    return 'Payment must be confirmed before a responder offer can be sent.';
+  }
+  if (code === 'RESPONDER_PREVIOUSLY_RELEASED') {
+    return 'That responder has already been released from this request.';
+  }
   if (code === 'REQUEST_TERMINAL' || code === 'INVALID_TRANSITION') {
     return 'This request changed state and is no longer ready for that action.';
   }
@@ -67,6 +76,9 @@ const DISPATCH_PUBLIC_MESSAGES = [
   /^This request changed state/,
   /^Assign a facility/,
   /^No eligible ambulance/,
+  /^No staffed ambulance/,
+  /^Payment must be confirmed/,
+  /^That responder has already been released/,
   /^A valid request location/,
   /^Ambulance matching is temporarily unavailable\.$/,
   /^The request could not be dispatched\.$/,
@@ -117,15 +129,12 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
     // Dispatch through the canonical RPC boundary.
     let dispatchedEmergency = null;
     let assignedAmbulance = null;
+    let assignment = null;
     if (isBedFlow) {
-      const { data: updateResult, error } = await supabase.rpc('console_update_emergency_request', {
+      const { data: updateResult, error } = await supabase.rpc('console_accept_bed_emergency', {
         p_request_id: emergencyId,
-        p_payload: {
-          status: 'accepted',
-          hospital_id: targetHospital?.id || null,
-          hospital_name: targetHospital?.name || null,
-          bed_number: emergencyDetails?.bed_number || null,
-        },
+        p_hospital_id: targetHospital?.id || null,
+        p_bed_number: emergencyDetails?.bed_number || null,
       });
       if (error) throw error;
       if (!updateResult?.success || !updateResult?.request) {
@@ -134,6 +143,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       dispatchedEmergency = updateResult.request;
     } else {
       assignedAmbulance = await findNearestAvailableAmbulance(
+        emergencyId,
         emergencyDetails,
         emergencyDetails?.ambulance_type,
         user
@@ -145,10 +155,6 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
         p_hospital_id: targetHospital?.id || null,
         p_hospital_name: targetHospital?.name || null,
         p_bed_number: emergencyDetails?.bed_number || null,
-        p_responder_name: assignedAmbulance?.crew?.[0]?.name || null,
-        p_responder_phone: assignedAmbulance?.phone || null,
-        p_responder_vehicle_type: assignedAmbulance?.type || null,
-        p_responder_vehicle_plate: assignedAmbulance?.vehicle_number || null,
       });
 
       if (error) throw error;
@@ -156,11 +162,21 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
         throw new Error(getDispatchErrorMessage(dispatchResult, 'The request could not be dispatched.'));
       }
       dispatchedEmergency = dispatchResult.request || null;
+      assignment = {
+        id: dispatchResult.assignment_id || null,
+        status: dispatchResult.assignment_status || 'offered',
+        responderId: dispatchResult.responder_id || null,
+        ambulanceId: dispatchResult.ambulance_id || assignedAmbulance.id,
+        offerExpiresAt: dispatchResult.offer_expires_at || null,
+      };
     }
 
     return {
       success: true,
+      outcome: isBedFlow ? 'bed_accepted' : 'offer_sent',
+      awaitingResponder: !isBedFlow && assignment?.status === 'offered',
       emergency: dispatchedEmergency,
+      assignment,
       assignments: {
         ambulance: assignedAmbulance,
         hospital: targetHospital,
@@ -177,7 +193,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
   }
 }
 
-async function findNearestAvailableAmbulance(emergencyDetails, requiredType, actor) {
+async function findNearestAvailableAmbulance(emergencyId, emergencyDetails, requiredType, actor) {
   const coordinates = extractCoordinatePair(
     emergencyDetails?.patient_location,
     emergencyDetails?.pickup_location,
@@ -204,8 +220,22 @@ async function findNearestAvailableAmbulance(emergencyDetails, requiredType, act
     if (!ambulanceIsWithinActorScope(ambulance, actor)) continue;
     if (!matchesRequiredType(ambulance, requiredType)) continue;
 
+    const { data: readiness, error: readinessError } = await supabase.rpc(
+      'get_ambulance_dispatch_readiness',
+      {
+        p_ambulance_id: ambulance.id,
+        p_request_id: emergencyId,
+      },
+    );
+    if (readinessError) {
+      console.warn('Ambulance readiness check failed:', readinessError);
+      continue;
+    }
+    if (!readiness?.ready) continue;
+
     return {
       ...ambulance,
+      dispatch_readiness: readiness,
       distance_km: Number.isFinite(Number(candidate.distance)) ? Number(candidate.distance) : null,
     };
   }
@@ -214,14 +244,37 @@ async function findNearestAvailableAmbulance(emergencyDetails, requiredType, act
 }
 
 /**
- * Update responder location in real-time
+ * Publish assignment-bound telemetry through the canonical responder command.
  */
-export async function updateResponderLocation(emergencyId, location, heading) {
+export async function reportResponderTelemetry({
+  ambulanceId,
+  requestId = null,
+  assignmentId = null,
+  sequence,
+  observedAt,
+  location,
+  heading = null,
+  accuracyMeters = null,
+} = {}) {
   try {
-    const { data: commandResult, error } = await supabase.rpc('console_update_responder_location', {
-      p_request_id: emergencyId,
-      p_location: location,
-      p_heading: heading ?? null
+    if (!ambulanceId || !Number.isInteger(sequence) || sequence <= 0 || !observedAt || !location) {
+      throw new Error('Complete responder telemetry context is required.');
+    }
+    if (Boolean(requestId) !== Boolean(assignmentId)) {
+      throw new Error('Request and assignment must be reported together.');
+    }
+
+    const { data: commandResult, error } = await supabase.rpc('report_responder_telemetry', {
+      p_payload: {
+        ambulance_id: ambulanceId,
+        request_id: requestId,
+        assignment_id: assignmentId,
+        sequence,
+        observed_at: observedAt,
+        location,
+        heading,
+        accuracy_meters: accuracyMeters,
+      },
     });
 
     if (error) throw error;
@@ -229,33 +282,27 @@ export async function updateResponderLocation(emergencyId, location, heading) {
       throw new Error(commandResult?.error || 'Responder location update failed');
     }
 
-    try {
-      const { data: emergency, error: emergencyError } = await supabase
-        .from('emergency_requests')
-        .select('*')
-        .eq('id', emergencyId)
-        .single();
-      if (emergencyError) throw emergencyError;
-
-      return {
-        success: true,
-        commandResult,
-        emergency,
-        projectionState: 'loaded',
-      };
-    } catch (projectionError) {
-      console.warn('Responder location updated, but its projection could not be reloaded:', projectionError);
-      return {
-        success: true,
-        commandResult,
-        emergency: null,
-        projectionState: 'unavailable',
-      };
-    }
+    return commandResult;
   } catch (error) {
-    console.error('Failed to update responder location:', error);
+    console.error('Failed to report responder telemetry:', error);
     throw error;
   }
+}
+
+export async function getResponderTelemetryState(requestId) {
+  const { data, error } = await supabase.rpc('get_responder_telemetry_state', {
+    p_request_id: requestId,
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || 'Responder telemetry is unavailable');
+  return data;
+}
+
+export async function updateResponderLocation(context) {
+  if (!context || typeof context !== 'object' || Array.isArray(context)) {
+    throw new Error('Responder location now requires ambulance, request, assignment, and sequence context.');
+  }
+  return reportResponderTelemetry(context);
 }
 
 /**
@@ -268,14 +315,21 @@ export async function completeEmergency(emergencyId, emergencyDetails = null) {
     if (emergencyDetails && !getEmergencyActionState(emergencyDetails).canComplete) {
       throw new Error('This request changed state and is not ready to complete.');
     }
+    const serviceType = normalizeType(emergencyDetails?.service_type);
+    if (serviceType === 'ambulance' && user.role !== 'provider') {
+      throw new Error('The assigned responder must complete an ambulance request.');
+    }
     if (
-      user.role === 'provider' &&
-      (!emergencyDetails?.responder_id || emergencyDetails.responder_id !== user.id)
+      serviceType === 'ambulance'
+      && (!emergencyDetails?.responder_id || emergencyDetails.responder_id !== user.id)
     ) {
       throw new Error('Only the assigned responder can complete this request.');
     }
 
-    const { data, error } = await supabase.rpc('console_complete_emergency', {
+    const receiver = serviceType === 'ambulance'
+      ? 'responder_complete_emergency'
+      : 'console_complete_emergency';
+    const { data, error } = await supabase.rpc(receiver, {
       p_request_id: emergencyId
     });
     if (error) throw error;
@@ -286,6 +340,7 @@ export async function completeEmergency(emergencyId, emergencyDetails = null) {
     console.error('Failed to complete emergency:', error);
     const message = String(error?.message || '');
     if (/^This request changed state/.test(message)) throw error;
+    if (/^The assigned responder/.test(message)) throw error;
     if (/^Only the assigned responder/.test(message)) throw error;
     throw new Error('Request completion is temporarily unavailable.');
   }

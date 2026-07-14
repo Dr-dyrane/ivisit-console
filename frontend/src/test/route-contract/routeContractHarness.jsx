@@ -9,6 +9,8 @@ import {
 
 export const ROUTE_CONTRACT_VIEWPORTS = {
   mobile: { width: 390, height: 844 },
+  tablet: { width: 834, height: 1194 },
+  tabletLandscape: { width: 1194, height: 834 },
   desktop: { width: 1280, height: 720 },
 };
 
@@ -39,16 +41,23 @@ const installViewport = ({ width, height }) => {
 
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
-  window.matchMedia = (query) => ({
-    matches: query.includes('max-width') ? width <= 768 : width >= 769,
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  });
+  window.matchMedia = (query) => {
+    const minWidth = query.match(/min-width\s*:\s*(\d+)px/i)?.[1];
+    const maxWidth = query.match(/max-width\s*:\s*(\d+)px/i)?.[1];
+    const matches = (minWidth === undefined || width >= Number(minWidth))
+      && (maxWidth === undefined || width <= Number(maxWidth));
+
+    return ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    });
+  };
   window.dispatchEvent(new Event('resize'));
 
   return () => {

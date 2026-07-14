@@ -4,7 +4,11 @@ import { SEOHead } from '../../common/SEOHead';
 import { MobileAnalytics } from '../../mobile/MobileAnalytics';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { Button } from '../../ui/button';
-import { AnalyticsDesktopWorkspace } from './AnalyticsDesktopWorkspace';
+import {
+  AnalyticsDesktopWorkspace,
+  getAnalyticsDetailRailProps,
+} from './AnalyticsDesktopWorkspace';
+import { AnalyticsDetailRail } from './AnalyticsDetailRail';
 import { ANALYTICS_LOAD_ERROR_MESSAGE } from './analyticsPageModel';
 
 const AnalyticsLoadErrorBanner = ({ onRetry }) => (
@@ -125,6 +129,21 @@ export const AnalyticsPageView = ({ controller }) => {
           snapshotReady={state.snapshotReady}
           isLoading={state.loading && !state.snapshotReady}
           isFetching={state.analyticsIsFetching}
+          tabletPane={(
+            <AnalyticsDetailRail
+              {...getAnalyticsDetailRailProps({
+                stats: data.stats,
+                requestSample: data.requestSample,
+                dataWindow: state.snapshotTimeRange || state.timeRange,
+                roleContext: role.roleContext,
+                sourceReadiness: data.sourceReadiness,
+                dominantType: data.dominantType,
+                isLoading: state.loading && !state.snapshotReady,
+                isFetching: state.analyticsIsFetching,
+              })}
+              embedded
+            />
+          )}
         />
         {detailsModal}
       </>

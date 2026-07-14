@@ -159,16 +159,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
     setIsProcessingApproval(true);
     try {
-      await approveCashPayment(paymentData.id, activeRequest.id);
-      const projection = await refreshProjection();
-      const nextStatus = canonicalizeEmergencyStatus(
-        projection?.request?.status,
-        projection?.request?.status
-      );
+      const approvalResult = await approveCashPayment(paymentData.id, activeRequest.id);
+      await refreshProjection();
       toast.success(
-        nextStatus === 'in_progress'
-          ? 'Cash approval recorded. Dispatch is released.'
-          : 'Cash approval recorded. Request is refreshing.'
+        approvalResult?.ambulance_id || approvalResult?.responder_name
+          ? 'Cash approved. A responder is assigned.'
+          : 'Cash approved. Awaiting responder assignment.'
       );
       onClose(true); // Close and refresh
     } catch (e) {
@@ -325,7 +321,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-[15px] font-semibold leading-tight text-foreground">Cash Payment Approval Required</h4>
-                  <p className="mt-1 text-sm text-muted-foreground">The patient has requested a cash payment. Please verify and approve to start the trip.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Verify the cash payment so responder assignment can continue.</p>
                 </div>
               </div>
 
@@ -350,7 +346,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   disabled={isProcessingApproval || !paymentData}
                   className="h-12 w-full rounded-button font-semibold sm:flex-1"
                 >
-                  {isProcessingApproval ? 'Processing...' : 'Approve & Dispatch'}
+                  {isProcessingApproval ? 'Processing...' : 'Approve cash'}
                 </Button>
               </div>
 
@@ -392,7 +388,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
           {activeRequest.ambulance_id && (
             <div className="flex items-center justify-center gap-2 rounded-card bg-foreground/[0.05] p-3 dark:bg-white/[0.07]">
               <Ambulance className="h-4 w-4 text-sky-500" />
-              <span className="text-sm font-medium text-sky-600 dark:text-sky-300">Auto-dispatched from mobile app</span>
+              <span className="text-sm font-medium text-sky-600 dark:text-sky-300">Ambulance assigned</span>
             </div>
           )}
 

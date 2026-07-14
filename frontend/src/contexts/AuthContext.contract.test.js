@@ -51,7 +51,7 @@ describe('AuthContext startup disclosure contract', () => {
     expect(authServiceSource).toContain('let currentUserPromise = null');
     expect(authServiceSource).toContain('export function clearCurrentUserCache()');
     expect(authServiceSource).toContain('export function primeCurrentUserCache(sessionUser, profile)');
-    expect(authServiceSource).toContain("profile.role === 'org_admin'");
+    expect(authServiceSource).toContain("['org_admin', 'dispatcher'].includes(profile.role)");
     expect(authServiceSource).toContain('Array.isArray(profile.hospital_ids) ? profile.hospital_ids : []');
     expect(authSource).toContain('Array.isArray(scope.facilityIds)');
     expect(authSource).toContain('hospital_ids: facilityIds');

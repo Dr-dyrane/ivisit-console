@@ -76,8 +76,13 @@ export const WorkspaceStage = ({ moduleRailItems, activePath, routingPath, onRai
 
 // Fixed-width frosted detail rail aside (donor spec). Pages compose the inset
 // hero, film rows, and actions inside; loading/empty variants are children too.
-export const DetailRailShell = ({ children }) => (
-  <aside className="relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+export const DetailRailShell = ({ children, embedded = false }) => (
+  <aside
+    data-detail-rail-layout={embedded ? 'embedded' : 'workspace'}
+    className={embedded
+      ? 'relative z-20 max-h-[calc(100dvh-10rem-var(--safe-bottom))] w-full overflow-y-auto rounded-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 lg:max-h-[calc(100dvh-6rem)]'
+      : 'relative z-20 mt-auto overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-e3 backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]'}
+  >
     <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
     {children}
   </aside>

@@ -13,10 +13,10 @@ import {
   isGlobalPricingRule,
 } from './pricingPageModel';
 
-export const PricingDetailRail = ({ price, loading, hasFilter }) => {
+export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false }) => {
   if (loading && !price) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <Shimmer className="h-32 rounded-modal" />
         <div className="mt-4 space-y-2">
           {[0, 1, 2, 3].map((index) => (
@@ -29,7 +29,7 @@ export const PricingDetailRail = ({ price, loading, hasFilter }) => {
 
   if (!price) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <BadgeDollarSign className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No rule selected</h2>
@@ -46,7 +46,7 @@ export const PricingDetailRail = ({ price, loading, hasFilter }) => {
   const globalRule = isGlobalPricingRule(price);
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="min-w-0">
           <h2 className="text-xl font-semibold">Pricing details</h2>

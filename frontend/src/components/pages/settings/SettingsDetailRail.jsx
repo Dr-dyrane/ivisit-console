@@ -32,10 +32,11 @@ export const SettingsDetailRail = ({
   onAvatarError,
   onOpenSecurity,
   onOpenDoctor,
+  embedded = false,
 }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div data-testid="settings-detail-rail-skeleton">
           <Shimmer className="h-5 w-28 rounded-pill" />
           <Shimmer className="mt-5 h-40 rounded-modal" />
@@ -55,7 +56,7 @@ export const SettingsDetailRail = ({
   const accountName = formatSettingsAccountName(profile);
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <div data-testid="settings-detail-rail">
         <RailInsetHero>
           <div className="flex items-start gap-4">

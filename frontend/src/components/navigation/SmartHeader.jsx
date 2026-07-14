@@ -19,7 +19,7 @@ const HeaderDivider = () => (
 export const SmartHeader = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { isMobile } = useNavigation();
+    const { usesCompactNavigation } = useNavigation();
     const { isScrolledDown, headerConfig, sidebarWidth, isContextPanelOpen, openContextPanel, closeContextPanel } = useLayout();
     const { user, profile } = useAuth();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -134,7 +134,7 @@ export const SmartHeader = () => {
                     opacity: isScrolledDown ? 0 : 1,
                     // Desktop offsets for the sidebar; mobile bar carries NO padding
                     // (alignment comes purely from left-4/right-4 = the px-4 content gutter).
-                    paddingLeft: isMobile ? 0 : sidebarWidth,
+                    paddingLeft: usesCompactNavigation ? 0 : sidebarWidth,
                 }}
                 transition={{
                     type: "spring",
@@ -143,17 +143,17 @@ export const SmartHeader = () => {
                     mass: 0.8
                 }}
                 // Shared header chrome for route title, shell actions, and mobile account access.
-                className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
+                className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${usesCompactNavigation
                     ? 'top-2 left-4 right-4 h-11 pointer-events-auto bg-transparent'
                     : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
-                    paddingRight: isMobile ? '0px' : '32px',
-                    paddingTop: isMobile ? '0' : '0',
+                    paddingRight: usesCompactNavigation ? '0px' : '32px',
+                    paddingTop: '0',
                 }}
             >
                 {/* MOBILE: 3-column flex - left / center / right */}
-                {isMobile ? (
+                {usesCompactNavigation ? (
                     <>
                         {/* LEFT - back button on subpages (flat: no wrapper container);
                             on home the account trigger owns this slot (no history to render). */}

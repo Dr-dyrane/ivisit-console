@@ -25,8 +25,8 @@ export const ROLE_LEVELS = {
  */
 export const NAV_CONFIG = {
     main: [
-        { id: 'home', path: '/', icon: Home, label: 'Today', resource: 'dashboard', minRole: 'viewer' },
-        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map', minRole: 'provider', excludedRoles: ['sponsor'] },
+        { id: 'home', path: '/', icon: Home, label: 'Today', resource: 'dashboard', minRole: 'viewer', additionalRoles: ['dispatcher'] },
+        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map', minRole: 'provider', excludedRoles: ['sponsor'], additionalRoles: ['dispatcher'] },
         { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' },
     ],
     ops: {
@@ -39,7 +39,7 @@ export const NAV_CONFIG = {
             // dead-end for them, so the responder set is excluded here exactly like
             // the mobile dock's driver slate (persona canon, PERSONA_MATRIX S3.3).
             { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider', excludedRoles: ['sponsor'], excludedProviderTypes: ['driver', 'paramedic', 'ambulance', 'ambulance_service'] },
-            { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Requests', resource: 'emergency_requests', minRole: 'provider', excludedRoles: ['sponsor'] },
+            { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Requests', resource: 'emergency_requests', minRole: 'provider', excludedRoles: ['sponsor'], additionalRoles: ['dispatcher'] },
 
             // Org Admin+ items (fleet/network management)
             { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals', resource: 'hospitals', minRole: 'org_admin' },
@@ -78,7 +78,7 @@ export const NAV_CONFIG = {
         label: 'Account',
         icon: Settings,
         items: [
-            { id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer' },
+            { id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer', additionalRoles: ['dispatcher'] },
         ]
     }
 };
@@ -93,6 +93,10 @@ export const getAccessibleNav = (userProfile, canHelper) => {
     const isItemAccessible = (item) => {
         if (item.excludedRoles?.includes(role)) {
             return false;
+        }
+
+        if (item.additionalRoles?.includes(role)) {
+            return true;
         }
 
         // Sub-persona exclusion from the existing profiles.provider_type signal
@@ -112,8 +116,8 @@ export const getAccessibleNav = (userProfile, canHelper) => {
         // 2. Fine-grained permissions are optional - only check if canHelper exists and resource is defined
         // But don't block if canHelper returns false - role level is the primary determinant
         if (canHelper && item.resource) {
-            const canAccess = canHelper('view', item.resource);
-            // Note: We don't block based on canAccess - role level is sufficient for navigation visibility
+            canHelper('view', item.resource);
+            // The capability result does not narrow navigation; route and receiver checks remain authoritative.
         }
 
         return true;

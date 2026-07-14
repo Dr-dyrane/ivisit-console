@@ -45,6 +45,7 @@ export const IslandNavigationView = ({
       className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       aria-label="Primary desktop"
       data-desktop-nav-shell="true"
+      data-modal-chrome="true"
     >
       <IslandNavigationHeader
         isBroad={isBroad}

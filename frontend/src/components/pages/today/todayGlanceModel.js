@@ -65,6 +65,14 @@ export function buildGlanceItems({
     ];
   }
 
+  if (roleKind === 'dispatcher') {
+    return [
+      { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
+      { label: 'Live map', value: 'Open', path: '/map', tone: 'primary' },
+      { label: 'Role', value: role.label, path: '/settings', tone: 'muted' },
+    ];
+  }
+
   if (roleKind === 'provider') {
     return [
       { label: 'Visits', value: visitCount > 0 ? `${visitCount} today` : 'Clear', path: '/visits', tone: visitCount > 0 ? 'primary' : 'muted' },

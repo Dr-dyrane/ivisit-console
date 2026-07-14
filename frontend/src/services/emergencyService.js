@@ -22,8 +22,10 @@ export {
 } from './emergency/requestCommands';
 export {
   acceptEmergencyRequest,
+  acceptBedEmergencyRequest,
   completeEmergencyRequest,
   cancelEmergencyRequest,
+  releaseResponderAssignment,
 } from './emergency/lifecycleCommands';
 export {
   approveCashPayment,
@@ -32,6 +34,7 @@ export {
   retryPaymentWithDifferentMethod,
 } from './emergency/paymentCommands';
 export {
+  getResponderLocationState,
   updateResponderLocation,
   updatePatientLocation,
 } from './emergency/trackingCommands';

@@ -19,7 +19,8 @@ export const MobileKPIStrip = ({
     ariaLabel = 'Key performance indicators',
     animateOnMount = true,
     loading = false,
-    loadingCount = 4
+    loadingCount = 4,
+    preserveActiveKpiIds = [],
 }) => {
     const reduceMotion = useReducedMotion();
     const { isScrolling, bind } = useScrollCooldown(180);
@@ -31,7 +32,7 @@ export const MobileKPIStrip = ({
         const isReapply = activeKpi === kpi.id;
         const hasHandler = typeof onKpiClick === 'function';
         if (hasHandler) {
-            if (isReapply && hasAllOption && kpi.id !== 'all') onKpiClick('all');
+            if (isReapply && hasAllOption && kpi.id !== 'all' && !preserveActiveKpiIds.includes(kpi.id)) onKpiClick('all');
             else onKpiClick(kpi.id);
         }
         if (!hasHandler) return;

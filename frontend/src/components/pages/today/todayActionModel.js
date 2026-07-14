@@ -184,6 +184,23 @@ export function buildActionRows({
     ];
   }
 
+  if (roleKind === 'dispatcher') {
+    return [
+      requestsRow,
+      {
+        id: 'live-map',
+        label: 'Open the live map',
+        meta: 'Dispatch view',
+        detail: 'Review active requests and available response units on the map.',
+        actionLabel: 'Open map',
+        path: '/map',
+        done: true,
+        tone: 'primary',
+      },
+      settingsRow,
+    ];
+  }
+
   if (roleKind === 'provider') {
     return [visitsRow, requestsRow, supportRow, settingsRow];
   }

@@ -245,7 +245,7 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(modal).toContain('Published feed record');
     expect(filterSheet).toContain('role="dialog"');
     expect(filterSheet).toContain('aria-modal="true"');
-    expect(filterSheet).toContain("data-testid={isMobile ? 'mobile-filter-sheet' : 'filter-sheet'}");
+    expect(filterSheet).toContain("data-testid={usesSheetPresentation ? 'mobile-filter-sheet' : 'filter-sheet'}");
 
     [
       'src/components/pages/HealthNewsManagementPage.jsx',

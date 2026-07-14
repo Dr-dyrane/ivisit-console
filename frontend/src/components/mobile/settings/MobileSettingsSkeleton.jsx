@@ -18,7 +18,7 @@ export const MobileSettingsSkeleton = () => (
       </div>
     </section>
 
-    {[2, 1, 2].map((rows, sectionIndex) => (
+    {[3, 1, 3, 1].map((rows, sectionIndex) => (
       <section key={sectionIndex} className="px-4">
         <span className="mb-2 block h-3 w-20 rounded-pill bg-muted/20 shimmer" />
         <div className="rounded-inner bg-foreground/[0.06] px-3 py-1.5 dark:bg-white/[0.08]">

@@ -2,6 +2,7 @@ import React from 'react';
 import { MobileMapCanvas } from './mobile-map/MobileMapCanvas';
 import { MobileMapChrome } from './mobile-map/MobileMapChrome';
 import { MobileMapDetailSheet } from './mobile-map/MobileMapDetailSheet';
+import { MobileDriverAssignmentSheet } from './mobile-map/MobileDriverAssignmentSheet';
 import { useMobileMapController } from './mobile-map/useMobileMapController';
 
 export const MobileMap = ({
@@ -20,6 +21,18 @@ export const MobileMap = ({
   mapStyles,
   allMarkers,
   activeRoutes,
+  assignedAmbulance,
+  driverAction,
+  driverAssignment,
+  driverFeedError,
+  driverFeedLoading,
+  driverHospitals,
+  driverLocationRecorded,
+  driverTracking,
+  handleDriverAssignmentAction,
+  handleEnableAssignmentAlerts,
+  isDriverMode,
+  notificationPermission,
   processedAmbulances,
   processedHospitals,
   filteredRequests,
@@ -76,12 +89,29 @@ export const MobileMap = ({
         mapData={mapData}
         mapLens={mapLens}
         toggleLayer={toggleLayer}
+        driverMode={isDriverMode}
       />
 
-      <MobileMapDetailSheet
-        controller={controller}
-        setSelectedMarker={setSelectedMarker}
-      />
+      {isDriverMode ? (
+        <MobileDriverAssignmentSheet
+          assignedAmbulance={assignedAmbulance}
+          driverAction={driverAction}
+          driverAssignment={driverAssignment}
+          driverFeedError={driverFeedError}
+          driverFeedLoading={driverFeedLoading}
+          driverLocationRecorded={driverLocationRecorded}
+          driverTracking={driverTracking}
+          notificationPermission={notificationPermission}
+          onAssignmentAction={handleDriverAssignmentAction}
+          onEnableAlerts={handleEnableAssignmentAlerts}
+          hospitals={driverHospitals}
+        />
+      ) : (
+        <MobileMapDetailSheet
+          controller={controller}
+          setSelectedMarker={setSelectedMarker}
+        />
+      )}
     </div>
   );
 };

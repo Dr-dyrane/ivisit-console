@@ -6,6 +6,7 @@ import { BulkActionBar } from '../../common/BulkActionBar';
 import { SEOHead } from '../../common/SEOHead';
 import { Button } from '../../ui/button';
 import { PricingDesktopWorkspace } from './PricingDesktopWorkspace';
+import { PricingDetailRail } from './PricingDetailRail';
 
 export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
   const {
@@ -73,6 +74,19 @@ export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+          onFocusPrice={setFocused}
+          tabletPane={(
+            <PricingDetailRail
+              price={focusedPrice}
+              loading={initialLoading}
+              hasFilter={Boolean(
+                desktopFilters.search
+                || (desktopFilters.kpiFilter || 'all') !== 'all'
+                || desktopFilters.family !== 'all'
+              )}
+              embedded
+            />
+          )}
         />
         <AnalyticsModal
           open={analyticsModalOpen}

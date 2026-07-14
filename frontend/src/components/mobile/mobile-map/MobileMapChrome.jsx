@@ -17,6 +17,7 @@ export const MobileMapChrome = ({
   mapData,
   mapLens,
   toggleLayer,
+  driverMode = false,
 }) => {
   const {
     error,
@@ -32,41 +33,44 @@ export const MobileMapChrome = ({
     showRefreshState,
   } = controller;
   const { showLayers } = mapData;
+  const hasStatusBanner = Boolean(showRefreshState || error || (!loading && !hasMapPoints));
 
   return (
     <>
       {showInitialLoading && <MapLoadingState mobile />}
 
-      <div className="absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+3.5rem)] z-[80] pointer-events-auto">
-        <div className="chrome-glass rounded-card p-2">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {mapKPIs.map((item) => {
-              const isActive = (mapData?.filter || 'all') === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleFilter(item)}
-                  disabled={isSwitchingMap}
-                  aria-pressed={isActive}
-                  aria-label={`${item.label} requests, ${item.value}`}
-                  className={`min-h-12 min-w-[5.2rem] rounded-button px-3 py-2 text-left transition-all active:scale-[0.96] disabled:opacity-50 ${isActive ? 'bg-foreground text-background shadow-e2' : 'bg-foreground/[0.05] text-foreground/78'}`}
-                >
-                  <span className="block text-[11px] font-medium opacity-70">{item.label}</span>
-                  <span className="block text-lg font-semibold leading-none">{item.value}</span>
-                </button>
-              );
-            })}
+      {!driverMode && (
+        <div className="absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+3.5rem)] z-[80] mx-auto max-w-2xl pointer-events-auto">
+          <div className="chrome-glass rounded-card p-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {mapKPIs.map((item) => {
+                const isActive = (mapData?.filter || 'all') === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleFilter(item)}
+                    disabled={isSwitchingMap}
+                    aria-pressed={isActive}
+                    aria-label={`${item.label} requests, ${item.value}`}
+                    className={`min-h-12 min-w-[5.2rem] rounded-button px-3 py-2 text-left transition-all active:scale-[0.96] disabled:opacity-50 ${isActive ? 'bg-foreground text-background shadow-e2' : 'bg-foreground/[0.05] text-foreground/78'}`}
+                  >
+                    <span className="block text-[11px] font-medium opacity-70">{item.label}</span>
+                    <span className="block text-lg font-semibold leading-none">{item.value}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <MapViewportSummary
+              compact
+              lens={mapLens}
+              locationStatus={locationStatus}
+              focusSource={focusSource}
+              routeCount={activeRoutes.length}
+            />
           </div>
-          <MapViewportSummary
-            compact
-            lens={mapLens}
-            locationStatus={locationStatus}
-            focusSource={focusSource}
-            routeCount={activeRoutes.length}
-          />
         </div>
-      </div>
+      )}
 
       <AnimatePresence mode="wait">
         {(showRefreshState || error || (!loading && !hasMapPoints)) && (
@@ -76,7 +80,7 @@ export const MobileMapChrome = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.16 }}
-            className="pointer-events-auto absolute left-3 right-3 top-[calc(env(safe-area-inset-top)+10.75rem)] z-[75]"
+            className={`pointer-events-auto absolute left-3 right-3 z-[75] mx-auto max-w-2xl ${driverMode ? 'top-[calc(env(safe-area-inset-top)+3.5rem)]' : 'top-[calc(env(safe-area-inset-top)+10.75rem)]'}`}
           >
             <div className="chrome-glass flex min-h-12 items-center gap-3 rounded-card px-4 py-3 shadow-e3">
               {!error && showRefreshState && (
@@ -116,9 +120,14 @@ export const MobileMapChrome = ({
       <div
         className="absolute right-4 z-[100] flex flex-col items-end gap-3 transition-[bottom] duration-200"
         style={{
-          bottom: selectedMarker
-            ? 'calc(env(safe-area-inset-bottom) + 44dvh + 6.25rem)'
-            : 'calc(env(safe-area-inset-bottom) + 6rem)',
+          bottom: driverMode
+            ? 'auto'
+            : selectedMarker
+              ? 'calc(env(safe-area-inset-bottom) + 44dvh + 6.25rem)'
+              : 'calc(env(safe-area-inset-bottom) + 6rem)',
+          top: driverMode
+            ? `calc(env(safe-area-inset-top) + ${hasStatusBanner ? '7.5rem' : '4rem'})`
+            : 'auto',
         }}
       >
         <motion.button

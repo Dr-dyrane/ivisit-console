@@ -8,6 +8,11 @@ of record, and the role/provider-type vocabulary bugs found (fixed and remaining
 starting point for any persona-scoped work; the page-level authority remains
 `docs/planning/PAGE_REVAMP_GATE.md`.
 
+**2026-07-14 correction:** `dispatcher` is a legal `profiles.role` in maintained Supabase RPC and
+security code. The 2026-07-09 conclusion that it was not a persona was based on the provider-type
+CHECK vocabulary rather than the independent role vocabulary. Section 7 supersedes every earlier
+dispatcher statement in this document.
+
 Scope note: `role` lives on `profiles.role`; sub-personas derive from `profiles.provider_type`
 (no schema change — see Arbitrations). The legal `profiles.provider_type` CHECK vocabulary is:
 `hospital`, `ambulance_service`, `ambulance`, `doctor`, `driver`, `paramedic`, `pharmacy`, `clinic`.
@@ -25,7 +30,7 @@ Scope note: `role` lives on `profiles.role`; sub-personas derive from `profiles.
 | Admin | `role='admin'` | 2 |
 | Viewer | `role='viewer'` | 1 |
 | Sponsor | `role='sponsor'` | 0 |
-| Dispatcher | not a legal role or provider_type | 0 |
+| Dispatcher | legal `profiles.role`; 2026-07-09 census value | 0 |
 | **Total** | | **812** |
 
 The population is effectively two masses (doctors and drivers, 735 of 812) plus an operator layer
@@ -43,7 +48,7 @@ The population is effectively two masses (doctors and drivers, 735 of 812) plus 
 | Org Admin | ✅ Reframed; ⚠️ authority open | Approvals honesty reframe applied: the surface now says what org_admin can actually do instead of implying approval power it does not have. Whether org_admin SHOULD hold approval authority is queued as a command-authority decision (same decision class as `docs/implementation/console-service-alignment/contracts/INSURANCE_COMMAND_AUTHORITY_DECISION_2026-07-07.md`), not a UI fix. |
 | Viewer | ✅ Activation lens; ⚠️ product decision open | Activation/orientation lens is in place. Request-access follow-through (what happens after a viewer asks for a role) is an open product decision. Population: 1 live user — keep investment proportional. |
 | Sponsor | ⏸️ Deferred until populated | 0 live users. Read-only grants exist in `AuthContext.can()`; no persona pass until real sponsors exist. |
-| Dispatcher | ⏸️ Deferred (not a persona) | 0 users; `dispatcher` is not a legal `profiles.role` or `provider_type` value. Its dead permission grant was deleted from `AuthContext.can()` on 2026-07-09 (see Arbitrations). |
+| Dispatcher | Active narrow operations lens, corrected 2026-07-14 | Legal `profiles.role`. Console admits Today, Requests, Live Map, and Settings with emergency-only startup; responder and command authority still follow backend org scope. |
 | Patient | ⏸️ Deferred to ivisit-app | 17 live users, but the patient product is `ivisit-app` (canonical). The console never becomes a patient surface ("no parallel truth"). |
 
 ---
@@ -53,10 +58,9 @@ The population is effectively two masses (doctors and drivers, 735 of 812) plus 
 1. **Reframe, not grant.** The org_admin approvals gap is an honesty problem first: the UI was
    reframed to describe real capability. Granting new approval authority is a command-authority
    decision that must be argued against backend truth, not patched in the console.
-2. **Delete the dispatcher dead code.** The `AuthContext.can()` block granting extra control when
-   `provider_type === 'dispatcher'` or `role === 'dispatcher'` was provably dead: `dispatcher` is
-   not a legal `provider_type`, and inside the `isProvider()` branch the role is `provider` by
-   definition. Deleted 2026-07-09 rather than "activated".
+2. **Dispatcher conclusion superseded 2026-07-14.** It remains correct that dispatcher is not a
+   legal `provider_type`; it is instead a legal, independent `profiles.role`. The maintained RPC
+   and RLS vocabulary proves that dispatcher must receive a narrow operational Console lens.
 3. **Widen the responder set into the driver lens.** Responder-shaped provider types
    (`driver`, `paramedic`, `ambulance_service`) share one dispatch-first lens instead of gaining
    per-type lenses. One lens, derived from existing data, covering the whole responder population.
@@ -90,11 +94,10 @@ The population is effectively two masses (doctors and drivers, 735 of 812) plus 
 - **Stale `ProviderType` TS type.** `src/types/index.ts:13` declares
   `'hospital' | 'ambulance_service' | 'doctor' | 'driver' | 'paramedic'` — it omits the legal
   `ambulance`, `pharmacy`, `clinic` values, so the type lies about the database.
-- **Three parallel role ladders.** `src/contexts/AuthContext.jsx` `ROLE_HIERARCHY` (1–5, omits
-  `patient`), `src/config/routes.jsx` `ROLE_LEVELS` (10–100, includes `patient`), and
-  `src/config/navigation.js` `ROLE_LEVELS` (20–100, omits `patient`). None lists `dispatcher`
-  (correct — it is not a role), but the `patient` omissions drop patients to level 0 in two of the
-  three ladders. One ladder should own the ordering.
+- **Three parallel role ladders.** `src/contexts/AuthContext.jsx` `ROLE_HIERARCHY`,
+  `src/config/routes.jsx` `ROLE_LEVELS`, and `src/config/navigation.js` `ROLE_LEVELS` have drifted
+  independently. Dispatcher is a legal role and must be represented consistently; patient remains
+  an App persona rather than a Console surface. One ladder should own ordering and route admission.
 - **Unused `user_roles` table.** Present in generated types (`src/types/database.ts:2520`) with
   zero service/hook/UI consumers; `profiles.role` is the live authority. Decide: adopt or retire —
   do not let a second role source appear by accident.
@@ -122,8 +125,9 @@ The population is effectively two masses (doctors and drivers, 735 of 812) plus 
 ## 6. Desktop-lane six-agent audit addenda (2026-07-09)
 
 A second, six-agent persona walk (desktop lane) ran the same day; findings below are the residuals
-that survive this document's arbitrations and population weighting (dispatcher/sponsor findings
-dropped as deferred personas). Ordered by population served. **None are fixed yet — queue entries.**
+that survived the original arbitrations and population weighting. Dispatcher findings were
+incorrectly dropped and are restored by the 2026-07-14 correction. Ordered by population served.
+The status section below remains the fix record for the original queue.
 
 | # | Finding | Population | Evidence | Fix direction (no schema) |
 |---|---|---|---|---|
@@ -181,3 +185,32 @@ Full raw findings: desktop-lane session workflow `wf_36b9e5db-1e7` (66 findings,
   now strip the sheet status — the chips ARE the status dimension (contract comment at the strip
   site); raw Postgres text no longer reaches the UI (console-only); search placeholder now names
   exactly what is searchable (ID / facility / responder / type).
+
+---
+
+## 7. Dispatcher And Responder Correction (2026-07-14)
+
+Verified source evidence:
+
+- `ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:6392` accepts `dispatcher` in the
+  canonical invitation role vocabulary.
+- Emergency creation, dispatch, completion, cash, and organization guards repeatedly authorize
+  `dispatcher` alongside `org_admin` under organization scope.
+- `ivisit-app/supabase/migrations/20260219000700_security.sql:301-327` permits organization-hospital
+  emergency reads. Client filtering therefore improves presentation but cannot be treated as PHI isolation.
+- `ambulances.profile_id` is the canonical responder link, while profile SELECT currently allows only
+  owner or admin. That does not prove an organization-safe staffing picker.
+- Console commit `cc3ef311` correctly removed a dead dispatcher grant nested inside provider logic, but its
+  conclusion that dispatcher was illegal was wrong. App commit `b3c547df` later reaffirmed dispatcher in
+  maintained invitation/fleet RPCs and security hardening.
+
+Current Console decisions:
+
+1. Dispatcher receives a narrow operational lens: Today, Requests, Live Map, and Settings.
+2. Dispatcher startup acquires emergency operations only; it does not inherit broad admin modules.
+3. Driver request projection prioritizes `responder_id = auth.uid()` and controls require positive
+   assignment identity. Hospital-wide fallback selection is removed.
+4. Driver-to-ambulance staffing remains unavailable until an org-scoped responder projection and atomic
+   staffing command exist. Broadening profile RLS is not an acceptable shortcut.
+5. Responder-owned backend read isolation, atomic staffed-unit dispatch, decline/requeue, and role-specific
+   lifecycle commands remain live-launch blockers even though the Console contradiction is repaired.

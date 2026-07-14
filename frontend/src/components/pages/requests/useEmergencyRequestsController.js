@@ -12,16 +12,32 @@ import { useEmergencyRequestsQueryState } from './useEmergencyRequestsQueryState
 import { useEmergencyRequestsRealtime } from './useEmergencyRequestsRealtime';
 
 export const useEmergencyRequestsController = () => {
-  const { isAdmin, isOrgAdmin, isProvider, isDriver, profile, user, loading: authLoading } = useAuth();
+  const {
+    canOperateDispatch,
+    isAdmin,
+    isDispatcher,
+    isOrgAdmin,
+    isProvider,
+    isDriver,
+    profile,
+    user,
+    loading: authLoading,
+  } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
   const currentUser = useMemo(() => ({
     isAdmin: () => isAdmin(),
     isOrgAdmin: () => isOrgAdmin(),
+    isDispatcher: () => isDispatcher(),
+    canOperateDispatch: () => canOperateDispatch(),
     isProvider: () => isProvider(),
+    canCompleteRequest: (request) => (
+      canOperateDispatch()
+      || (isProvider() && Boolean(user?.id) && request?.responder_id === user.id)
+    ),
     user,
     profile,
-  }), [isAdmin, isOrgAdmin, isProvider, profile, user]);
+  }), [canOperateDispatch, isAdmin, isDispatcher, isOrgAdmin, isProvider, profile, user]);
   const authReady = Boolean(user?.id && profile?.role) && !authLoading;
 
   const {
@@ -87,6 +103,7 @@ export const useEmergencyRequestsController = () => {
     isOrgAdmin,
     isProvider,
     isDriver,
+    isDispatcher,
     currentUser,
     requestStats,
     requests,
@@ -126,9 +143,8 @@ export const useEmergencyRequestsController = () => {
     requests,
     queryFilter,
     fetchRequests,
-    isAdmin,
-    isOrgAdmin,
     isProvider,
+    canOperateDispatch,
     user,
   });
 

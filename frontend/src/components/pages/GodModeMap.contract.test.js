@@ -11,14 +11,14 @@ describe('GodModeMap Live Map contract', () => {
   const pageSource = () => [
     fs.readFileSync('src/components/pages/GodModeMap.jsx', 'utf8'),
     ...fs.readdirSync('src/components/map/god-mode')
-      .filter((name) => /\.(js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .filter((name) => /\.(js|jsx)$/.test(name) && !name.includes('.test.'))
       .sort()
       .map((name) => fs.readFileSync(`src/components/map/god-mode/${name}`, 'utf8')),
   ].join('\n');
   const mobileSource = () => [
     fs.readFileSync('src/components/mobile/MobileMap.jsx', 'utf8'),
     ...fs.readdirSync('src/components/mobile/mobile-map')
-      .filter((name) => /\.(js|jsx)$/.test(name) && !name.endsWith('.test.js'))
+      .filter((name) => /\.(js|jsx)$/.test(name) && !name.includes('.test.'))
       .sort()
       .map((name) => fs.readFileSync(`src/components/mobile/mobile-map/${name}`, 'utf8')),
   ].join('\n');
@@ -59,11 +59,13 @@ describe('GodModeMap Live Map contract', () => {
       resource: 'map',
       title: 'Live Map',
       excludedRoles: ['sponsor'],
+      additionalRoles: ['dispatcher'],
     });
 
     expect(getProtectedRoutesForRole('provider')).toContain('/map');
     expect(getProtectedRoutesForRole('org_admin')).toContain('/map');
     expect(getProtectedRoutesForRole('admin')).toContain('/map');
+    expect(getProtectedRoutesForRole('dispatcher')).toContain('/map');
     expect(getProtectedRoutesForRole('sponsor')).not.toContain('/map');
     expect(getProtectedRoutesForRole('viewer')).not.toContain('/map');
 
@@ -196,6 +198,10 @@ describe('GodModeMap Live Map contract', () => {
     expect(viewModel).toContain("{ source: 'selection', value: selectedMarker?.data }");
     expect(viewModel).toContain('getMapLensSummary');
     expect(viewModel).toContain('isWithinMapRadius');
+    expect(viewModel).toContain('filterMapEntitiesByRadius');
+    expect(page).toContain('filterMapEntitiesByRadius(serviceFilteredRequests, focusLocation)');
+    expect(page).toContain('filterMapEntitiesByRadius(mappedHospitals, focusLocation)');
+    expect(page).toContain('filterMapEntitiesByRadius(mappedAmbulances, focusLocation)');
     expect(page).toContain('radiusKm: MAP_VIEW_RADIUS_KM');
     expect(page).toContain('focusLocation={focusLocation}');
     expect(page).toContain('viewRadiusKm={MAP_VIEW_RADIUS_KM}');
@@ -219,7 +225,7 @@ describe('GodModeMap Live Map contract', () => {
     const leafletRenderer = leafletRendererSource();
 
     expect(page).toContain("const routeEmergency = selectedMarker?.type === 'emergency'");
-    expect(page).toContain(': driverActiveEmergency');
+    expect(page).toContain(': driverMapEmergency');
     expect(page).toContain('buildRoutePreview({');
     expect(viewModel).toContain("const TERMINAL_REQUEST_STATUSES = new Set(['completed', 'cancelled', 'canceled'])");
     expect(viewModel).toContain("kind: 'pickup'");
@@ -246,19 +252,27 @@ describe('GodModeMap Live Map contract', () => {
     expect(marker).toContain('getEmergencyActionState(selectedMarker.data)');
     expect(mobile).toContain('emergencyActionState?.canDispatch');
     expect(marker).toContain('emergencyActionState?.canComplete');
-    expect(page).toContain('updateResponderLocation(');
-    expect(page).toContain('driverManagementService.updateTripStatus');
+    expect(page).toContain('driverManagementService.reportTelemetry({');
+    expect(page).toContain('driverManagementService.acceptOffer');
+    expect(page).toContain('driverManagementService.arriveAtPatient');
+    expect(page).toContain('driverManagementService.completeAssignment');
     expect(page).not.toContain('processedAmbulances[0]');
-    expect(page).toContain('(request) => request?.responder_id === user.id');
-    expect(page).toContain('driverActiveEmergency?.responder_id !== user?.id');
+    expect(page).toContain('const driverAssignment = driverFeed.currentAssignment');
+    expect(page).toContain('!driverAssignment?.request_id || !driverAssignment?.assignment_id');
     expect(page).not.toContain('const ambulanceMatch =');
 
     expect(responseService).toContain("supabase.rpc('console_dispatch_emergency'");
     expect(responseService).toContain("supabase.rpc('nearby_ambulances'");
-    expect(responseService).toContain("supabase.rpc('console_complete_emergency'");
-    expect(responseService).toContain("supabase.rpc('console_update_responder_location'");
+    expect(responseService).toContain("'get_ambulance_dispatch_readiness'");
+    expect(responseService).toContain("'console_complete_emergency'");
+    expect(responseService).toContain("supabase.rpc('report_responder_telemetry'");
+    expect(responseService).toContain("supabase.rpc('get_responder_telemetry_state'");
+    expect(responseService).not.toContain("supabase.rpc('console_update_responder_location'");
     expect(responseService).toContain('ambulanceIsWithinActorScope(ambulance, actor)');
-    expect(driverService).toContain('async updateTripStatus(requestId, newStatus)');
+    expect(driverService).toContain("'get_driver_dispatch_feed'");
+    expect(driverService).toContain("'responder_accept_emergency'");
+    expect(driverService).toContain("'responder_arrive_emergency'");
+    expect(driverService).toContain("'responder_complete_emergency'");
     expect(responseService).not.toContain('Math.random');
   });
 
@@ -271,12 +285,15 @@ describe('GodModeMap Live Map contract', () => {
 
     expect(activeCommands).not.toContain('confirm(');
     expect(page).toContain('DRIVER_STATUS_COPY');
-    expect(page).toContain("toast.loading('Sharing location...'");
-    expect(page).toContain('const updatedRequest = await driverManagementService.updateTripStatus');
-    expect(page).toContain('if (!updatedRequest) {');
+    expect(page).toContain('navigator.geolocation.watchPosition');
+    expect(page).toContain("setStatus('starting')");
+    expect(page).toContain("toast.info('Live location stopped')");
+    expect(page).toContain('await driverManagementService.acceptOffer');
+    expect(page).toContain('await driverManagementService.completeAssignment');
     expect(page).toContain('toast.success(copy.success');
-    expect(page.indexOf('if (!updatedRequest) {')).toBeLessThan(page.indexOf('toast.success(copy.success'));
-    expect(page).toContain("aria-busy={driverAction === 'completed'}");
+    expect(page.indexOf('await driverManagementService.acceptOffer')).toBeLessThan(page.indexOf('toast.success(copy.success'));
+    expect(page).toContain('aria-busy={driverAction === nextAction.action}');
+    expect(page).toContain("'Confirm complete'");
     expect(page).toContain("toast.loading('Requesting location...'");
     expect(page).toContain("toast.info('Using the operational area'");
     expect(locationHookSource()).toContain("status: 'locating'");
@@ -349,7 +366,10 @@ describe('GodModeMap Live Map contract', () => {
     const marker = markerSource();
     const activeCopy = `${page}\n${mobile}\n${marker}`;
 
-    expect(activeCopy).toContain('Current request');
+    expect(activeCopy).toContain('New offer');
+    expect(activeCopy).toContain('Ready for offers');
+    expect(activeCopy).toContain('Pickup');
+    expect(activeCopy).toContain('Destination');
     expect(activeCopy).toContain('Assigned');
     expect(activeCopy).toContain('Not recorded');
     expect(activeCopy).toContain('Send unit');

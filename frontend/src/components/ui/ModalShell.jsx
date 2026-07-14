@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from './button';
@@ -81,7 +82,6 @@ export const useFocusTrap = (containerRef, active, onEscape) => {
 
         restoreRef.current = document.activeElement;
 
-        const container = containerRef.current;
         // Autofocus after the container has mounted/painted.
         const raf = window.requestAnimationFrame(() => {
             const target = containerRef.current;
@@ -163,7 +163,7 @@ export const ModalShell = ({
     const containerRef = useRef(null);
 
     // Mobile (< 768px) gets a bottom-anchored sheet; desktop keeps the centered dialog.
-    const { isMobile } = useBreakpoint();
+    const { isMobile, isTablet } = useBreakpoint();
     // Respect prefers-reduced-motion: fade only, no slide / scale.
     const reduceMotion = useReducedMotion();
 
@@ -183,6 +183,7 @@ export const ModalShell = ({
     }[size] ?? 'max-w-5xl';
 
     if (!isOpen) return null;
+    if (typeof document === 'undefined') return null;
 
     // --- Responsive presentation -------------------------------------------------
     // Desktop: centered dialog (unchanged) — fade + gentle scale/y settle.
@@ -216,9 +217,9 @@ export const ModalShell = ({
         }
         : {};
 
-    return (
+    return createPortal(
         <div
-            className={`fixed inset-0 z-[420] flex ${isMobile ? 'items-end justify-center p-0' : 'items-center justify-center p-3 sm:p-4'}`}
+            className={`fixed inset-0 z-[420] flex ${isMobile ? `items-end justify-center ${isTablet ? 'px-4' : 'p-0'}` : 'items-center justify-center p-3 sm:p-4'}`}
             style={{
                 paddingTop:    isMobile ? '0px' : 'max(12px, var(--safe-top, 0px))',
                 paddingBottom: isMobile ? '0px' : 'max(12px, calc(var(--safe-bottom, 0px) + 12px))',
@@ -250,7 +251,7 @@ export const ModalShell = ({
                 {...dragProps}
                 className={`relative z-10 flex flex-col overflow-hidden bg-card/90 backdrop-blur-2xl backdrop-saturate-150 dark:bg-card/85 shadow-[0_12px_32px_rgb(0_0_0/0.10)] ${
                     isMobile
-                        ? 'w-full rounded-t-sheet'
+                        ? `w-full rounded-t-sheet ${isTablet ? 'max-w-3xl' : ''}`
                         : `w-full ${maxWidthClass} rounded-modal`
                 } ${className}`}
                 style={{
@@ -335,7 +336,8 @@ export const ModalShell = ({
                     </>
                 )}
             </motion.div>
-        </div>
+        </div>,
+        document.body,
     );
 };
 

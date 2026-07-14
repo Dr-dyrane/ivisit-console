@@ -404,9 +404,12 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain("meta={`${planLabel(subscriber.type)} plan`}");
     expect(mobile).toContain("markerChip={welcomed ? 'Welcome' : null}");
 
-    // Tap opens one detail sheet; no inline row expansion or live write command survives.
+    // Phone taps open one detail sheet; tablet taps focus the route-owned rail. No inline
+    // row expansion or live write command survives.
     expect(mobile).toContain('const [activeSubscriber, setActiveSubscriber] = useState(null);');
-    expect(mobile).toContain('onOpen={controller.setActiveSubscriber}');
+    expect(mobile).toContain('onOpen={handleOpenSubscriber}');
+    expect(mobile).toContain('controller.setActiveSubscriber(subscriber);');
+    expect(mobile).toContain('onFocusSubscriber(subscriber.id);');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen={!!activeSubscriber}');
     expect(mobile).toContain('onClose={() => controller.setActiveSubscriber(null)}');

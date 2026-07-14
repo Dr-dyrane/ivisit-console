@@ -132,14 +132,14 @@ describe('ProfileEditModal avatar persistence', () => {
 
   it('keeps selection local and revokes the preview when cancelled', async () => {
     const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
-    await selectFile(container.querySelector('#avatar-upload'), file);
+    await selectFile(document.querySelector('#avatar-upload'), file);
 
     expect(URL.createObjectURL).toHaveBeenCalledWith(file);
-    expect(container.querySelector('img[alt="Profile"]').getAttribute('src'))
+    expect(document.querySelector('img[alt="Profile"]').getAttribute('src'))
       .toBe('blob:local-avatar-preview');
     expect(uploadAvatar).not.toHaveBeenCalled();
 
-    const cancelButton = Array.from(container.querySelectorAll('button'))
+    const cancelButton = Array.from(document.querySelectorAll('[role="dialog"] button'))
       .find((button) => button.textContent === 'Cancel');
     await click(cancelButton);
 
@@ -156,10 +156,10 @@ describe('ProfileEditModal avatar persistence', () => {
       publicUrl: 'https://cdn.test/new-avatar.png',
     };
     uploadAvatar.mockResolvedValue(upload);
-    await selectFile(container.querySelector('#avatar-upload'), file);
+    await selectFile(document.querySelector('#avatar-upload'), file);
 
     await act(async () => {
-      container.querySelector('#profile-edit-form').dispatchEvent(new Event('submit', {
+      document.querySelector('#profile-edit-form').dispatchEvent(new Event('submit', {
         bubbles: true,
         cancelable: true,
       }));
@@ -185,10 +185,10 @@ describe('ProfileEditModal avatar persistence', () => {
     const saveError = new Error('profile update failed');
     uploadAvatar.mockResolvedValue(upload);
     updateProfile.mockRejectedValue(saveError);
-    await selectFile(container.querySelector('#avatar-upload'), file);
+    await selectFile(document.querySelector('#avatar-upload'), file);
 
     await act(async () => {
-      container.querySelector('#profile-edit-form').dispatchEvent(new Event('submit', {
+      document.querySelector('#profile-edit-form').dispatchEvent(new Event('submit', {
         bubbles: true,
         cancelable: true,
       }));
@@ -197,7 +197,7 @@ describe('ProfileEditModal avatar persistence', () => {
 
     expect(discardAvatarUpload).toHaveBeenCalledWith(upload);
     expect(mockHandleApiError).toHaveBeenCalledWith(saveError, 'update');
-    expect(container.querySelector('img[alt="Profile"]').getAttribute('src'))
+    expect(document.querySelector('img[alt="Profile"]').getAttribute('src'))
       .toBe(profile.image_uri);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local-avatar-preview');
     expect(onClose).not.toHaveBeenCalled();

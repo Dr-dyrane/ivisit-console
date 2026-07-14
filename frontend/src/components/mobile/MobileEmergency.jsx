@@ -5,6 +5,7 @@ import { GroupedList } from './canon/GroupedList';
 import { UpdatingPillRow, useSkeletonWarmup } from './canon/Loading';
 import { MobileHeading } from './canon/MobileHero';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { MobileEmergencyList, MobileRequestRow } from './requests/MobileEmergencyList';
 import { MobileEmergencyDetailSheet } from './requests/MobileEmergencyDetailSheet';
 import { useMobileEmergencyController } from './requests/useMobileEmergencyController';
@@ -28,7 +29,8 @@ export const MobileEmergency = ({
   onRetryPayment,
   onRefresh,
   onViewAnalytics,
-  isAdmin,
+  canManageRequests,
+  canCompleteRequest,
   onOpenFilters,
   filterSheetOpen = false,
   analyticsOpen = false,
@@ -45,7 +47,10 @@ export const MobileEmergency = ({
   onSelectAll,
   onBulkCancel,
   cancellableCount = 0,
+  onFocusRequest,
+  tabletPane,
 }) => {
+  const { isTablet } = useNavigation();
   const warmingUp = useSkeletonWarmup();
   const controller = useMobileEmergencyController({
     emergencies,
@@ -72,11 +77,20 @@ export const MobileEmergency = ({
     showSkeleton,
     totalRequests,
   } = controller;
+  const hasTabletDetailPane = Boolean(isTablet && tabletPane);
+  const handleOpenRequest = (request) => {
+    if (hasTabletDetailPane && onFocusRequest) {
+      onFocusRequest(request.id);
+      return;
+    }
+    setActiveRequest(request);
+  };
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
+        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobileEmergencyList
@@ -87,7 +101,8 @@ export const MobileEmergency = ({
           setFilters={setFilters}
           kpiFilter={kpiFilter}
           setKpiFilter={setKpiFilter}
-          isAdmin={isAdmin}
+          canManageRequests={canManageRequests}
+          canCompleteRequest={canCompleteRequest}
           onOpenFilters={onOpenFilters}
           onViewAnalytics={onViewAnalytics}
           filterSheetOpen={filterSheetOpen}
@@ -117,7 +132,7 @@ export const MobileEmergency = ({
               renderRow={(request) => (
                 <MobileRequestRow
                   request={request}
-                  onOpen={setActiveRequest}
+                  onOpen={handleOpenRequest}
                   selectable={selectionEnabled}
                   selected={selectedIdSet.has(request.id)}
                   selectionMode={selectionMode}
@@ -128,15 +143,18 @@ export const MobileEmergency = ({
             />
           )}
         />
-        <MobileEmergencyDetailSheet
-          controller={controller}
-          isAdmin={isAdmin}
-          onView={onView}
-          onDispatch={onDispatch}
-          onComplete={onComplete}
-          onProcessCash={onProcessCash}
-          onRetryPayment={onRetryPayment}
-        />
+        {!hasTabletDetailPane && (
+          <MobileEmergencyDetailSheet
+            controller={controller}
+            canManageRequests={canManageRequests}
+            canCompleteRequest={canCompleteRequest}
+            onView={onView}
+            onDispatch={onDispatch}
+            onComplete={onComplete}
+            onProcessCash={onProcessCash}
+            onRetryPayment={onRetryPayment}
+          />
+        )}
       </MobilePageShell>
     </PullToRefresh>
   );

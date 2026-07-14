@@ -9,10 +9,10 @@ import {
 } from './insurancePageModel';
 import { getInsurancePolicyPill } from './insurancePresentation';
 
-export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView }) => {
+export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView, embedded = false }) => {
   if (loading && !policy) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <Shimmer className="h-32 rounded-modal" />
         <div className="mt-4 space-y-2">
           {[0, 1, 2, 3].map((index) => (
@@ -25,7 +25,7 @@ export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView
 
   if (denied) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Shield className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">Insurance access unavailable</h2>
@@ -39,7 +39,7 @@ export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView
 
   if (!policy) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Shield className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No policy selected</h2>
@@ -55,7 +55,7 @@ export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView
 
   const pill = getInsurancePolicyPill(policy.status);
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

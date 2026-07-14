@@ -21,7 +21,7 @@ export const toMapPoint = (value) => {
 export const resolveMapEntityLocation = (item) => {
   if (!item) return null;
 
-  for (const field of ['patient_location', 'pickup_location', 'responder_location']) {
+  for (const field of ['patient_location', 'pickup_location', 'responder_location', 'location']) {
     const decoded = decodePostGISGeometry(item[field]);
     const point = toMapPoint(decoded);
     if (point) return { ...item, ...point, isSimulated: false };
@@ -54,6 +54,12 @@ export const isWithinMapRadius = (point, center, radiusKm = MAP_VIEW_RADIUS_KM) 
   const distance = distanceKm(center, point);
   return distance !== null && distance <= radiusKm;
 };
+
+export const filterMapEntitiesByRadius = (
+  items = [],
+  center,
+  radiusKm = MAP_VIEW_RADIUS_KM,
+) => items.filter((item) => isWithinMapRadius(item, center, radiusKm));
 
 const firstPoint = (items = []) => items.find((item) => toMapPoint(item)) || null;
 
@@ -89,12 +95,11 @@ export const getMapLensSummary = ({
   hospitals = [],
   ambulances = [],
 } = {}) => {
-  const withinLens = (item) => isWithinMapRadius(item, center, radiusKm);
   return {
     radiusKm,
-    requests: emergencies.filter(withinLens).length,
-    hospitals: hospitals.filter(withinLens).length,
-    ambulances: ambulances.filter(withinLens).length,
+    requests: filterMapEntitiesByRadius(emergencies, center, radiusKm).length,
+    hospitals: filterMapEntitiesByRadius(hospitals, center, radiusKm).length,
+    ambulances: filterMapEntitiesByRadius(ambulances, center, radiusKm).length,
   };
 };
 
@@ -140,7 +145,8 @@ export const buildRoutePreview = ({
   }
 
   const hospital = hospitals.find((item) => item?.id === emergency?.hospital_id);
-  const hospitalPoint = toMapPoint(hospital);
+  const hospitalPoint = toMapPoint(hospital)
+    || toMapPoint(decodePostGISGeometry(emergency?.destination_location));
   if (hospitalPoint) {
     routes.push({
       id: `route-hosp-${emergency.id}`,

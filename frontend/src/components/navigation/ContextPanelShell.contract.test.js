@@ -8,13 +8,13 @@ describe('ContextPanel shell contract', () => {
   ].join('\n');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
 
-  it('keeps the right context panel as shared desktop shell chrome', () => {
+  it('keeps the right context panel as shared wide-tablet and desktop shell chrome', () => {
     const shell = shellSource();
     const hardgate = hardgateSource();
 
     expect(shell).toContain("window.addEventListener('closeContextPanel', handleCloseEvent)");
     expect(shell).toContain("if (e.key === 'Escape' && isContextPanelOpen)");
-    expect(shell).toContain('if (isMobile) {');
+    expect(shell).toContain('if (usesCompactNavigation) {');
     expect(shell).toContain('return null;');
     expect(shell).toContain('<motion.aside');
     expect(shell).toContain('id="quick-actions-panel"');

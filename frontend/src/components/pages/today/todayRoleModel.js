@@ -19,6 +19,12 @@ export const ROLE_COPY = {
     path: '/verification',
     icon: ShieldCheck,
   },
+  dispatcher: {
+    label: 'Dispatcher',
+    primaryAction: 'Review requests',
+    path: '/emergencies',
+    icon: Ambulance,
+  },
   provider: {
     label: 'Care provider',
     primaryAction: 'Open visits',

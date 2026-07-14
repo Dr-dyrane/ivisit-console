@@ -30,7 +30,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
-import { VisitsDesktopWorkspace } from './visits/VisitsDesktopWorkspace';
+import { VisitsDesktopWorkspace, VisitsDetailRail } from './visits/VisitsDesktopWorkspace';
 import { hasActiveVisitFilters } from './visits/visitPageModel';
 import { useVisitsDataSource } from './visits/useVisitsDataSource';
 import { useVisitsRouteBridge } from './visits/useVisitsRouteBridge';
@@ -470,6 +470,20 @@ export const VisitsPage = () => {
           viewMode={viewMode}
           onViewModeChange={changeViewMode}
           scheduledViewEnabled={scheduledCareRelease.scheduledVisitReads}
+          tabletPane={(
+            <VisitsDetailRail
+              visit={focusedVisit}
+              loading={loading}
+              canEdit={canEditVisits}
+              onView={handleView}
+              onEdit={handleEdit}
+              onManageScheduledVisit={handleManageScheduledVisit}
+              canManageScheduledVisit={canManageScheduledVisit}
+              activeActionFeedback={activeActionFeedback}
+              embedded
+            />
+          )}
+          onFocusVisit={setFocusedVisitId}
           pageSnapshot={visitPageSnapshot}
           onRefresh={fetchVisits}
           errorMessage={visitPageError}

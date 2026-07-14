@@ -18,7 +18,7 @@ import { ArrowUpRight, ChevronRight } from 'lucide-react';
  *        falsy entries are skipped, so callers can inline conditional rows.
  * @param {string} [className]
  */
-const TILE_CLASS = 'flex items-center gap-3 rounded-button bg-background/30 p-3';
+const TILE_CLASS = 'flex h-full items-center gap-3 rounded-button bg-background/30 p-3';
 const PRESS_CLASS = 'w-full text-left transition-transform duration-200 active:scale-[0.96]';
 
 const islandAriaLabel = (item) => {
@@ -31,7 +31,7 @@ export const MobileDetailIslands = ({ items = [], className = '' }) => {
   if (!rows.length) return null;
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 md:grid md:grid-cols-2 md:items-stretch md:gap-2 md:space-y-0 ${className}`}>
       {rows.map((item, idx) => {
         const Icon = item.icon;
         const key = item.label ? `${item.label}-${idx}` : idx;

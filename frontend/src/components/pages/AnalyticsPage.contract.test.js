@@ -156,7 +156,7 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(desktop).toContain('<SignalPanel');
     expect(desktop).toContain('<MetricStrip');
     expect(desktop).toContain('<ActivitySheet');
-    expect(desktop).toContain('<DetailRailShell>');
+    expect(desktop).toContain('<DetailRailShell embedded={embedded}>');
     expect(desktop.indexOf('<SignalPanel')).toBeLessThan(desktop.indexOf('<ActivitySheet'));
     expect(desktop).toContain('activePath="/analytics"');
     expect(desktop).toContain('max={3}');
@@ -183,7 +183,7 @@ describe('Analytics Page 13 workspace contract', () => {
     expect(desktop).not.toContain('bg-background/35');
     expect(desktop).not.toContain('dark:bg-black/[0.08]');
     expect(desktop).toContain('loading={loadingWorkspace}');
-    expect(desktop).toContain('isLoading={loadingWorkspace}');
+    expect(desktop).toContain('isLoading: Boolean(isLoading) && !snapshotReady');
     expect(desktop).not.toContain('<Card');
     expect(desktop).not.toContain('Search Analytics');
     expect(desktop).not.toContain('analytics-pinned-section');

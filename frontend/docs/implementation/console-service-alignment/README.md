@@ -70,6 +70,27 @@ Use this loop for every pass:
 
 Implementation may begin when the current slice has a known receiver or an explicit unavailable/disabled disposition. Implementation must pause when the receiver, reflected read, authorization rule, ID semantics or app consequence is unknown.
 
+## Shared Supabase History Rule
+
+Current SQL proves the maintained contract; file and branch history explains which invariants are deliberate,
+which temporary fixes were absorbed, and which gaps are still residue. For any shared schema, RLS, RPC, Edge,
+Storage, trigger, generated-type, or demo decision:
+
+1. Start from the maintained owner pillar in `ivisit-app/supabase`, not the Console mirror.
+2. Read the affected file history and the commits that introduced, hardened, consolidated, or reverted the path.
+3. Check `ivisit-app/supabase/scripts/sync_to_console.js`; it is the canonical copy path for shared migrations,
+   docs, Edge Functions, scripts, and generated database types.
+4. Classify old fix branches and dated migrations as `absorbed`, `superseded`, `still unique`, or `unresolved`.
+   Never restore an absorbed fix migration beside its owner pillar.
+5. Preserve deliberate identity, privacy, lifecycle, idempotency, and demo/live separation. Close a remaining gap
+   with the narrowest projection or command rather than a parallel identity, client mutation, or broad RLS grant.
+6. Treat git history as design evidence, not deployment proof. Current maintained source remains authoritative,
+   and deployed behavior still requires read-only introspection or an explicitly approved test lane.
+
+History checkpoints that established this rule include App pillar consolidation (`79b0ebc5`, `20e74289`) and
+the Console mirror update (`eb61032c`). Temporary emergency or policy fixes already present in those pillars
+must not be recreated as new migrations.
+
 ## UI-To-DB Contract Standard
 
 The central question is whether Console UI matches the database and backend workflow contract. For each field/control, document and test:

@@ -159,8 +159,12 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('onOpenFilters');
     expect(mobile).toContain('onLoadMore');
     expect(mobile).toContain("id: 'in_progress'");
-    expect(mobile).toContain("activeKpi || 'all'");
-    expect(mobile).toContain('onKpiClick={onKpiChange}');
+    expect(mobile).toContain("effectiveActiveKpi || 'all'");
+    expect(mobile).toContain('onKpiClick={handleKpiChange}');
+    expect(mobile).toContain('getCompactVisitKpiTransition({');
+    expect(mobile).toContain('onViewModeChange?.(transition.nextViewMode)');
+    expect(mobile).toContain('onKpiChange?.(transition.nextKpi)');
+    expect(mobile).not.toContain('aria-label="Visit source view"');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('canDelete = false');
     expect(list).toContain('onView(visit)');
@@ -297,7 +301,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('canManageScheduledVisit,');
     // Rail anatomy composes the console DS: shell + inset hero + film rows + copy
     // affordance + lifecycle stage strip (specs locked in the DS contract).
-    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<DetailRailShell embedded={embedded}>');
     expect(page).toContain('<RailInsetHero>');
     expect(page).toContain('<DetailLine');
     expect(page).toContain('<CopyChip value={displayId} label="Copy record ID" />');
@@ -659,7 +663,7 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('pageSnapshot?.totalCount ?? count');
     expect(mobile).not.toContain('byId: new Map()');
     expect(mobile).toContain("id: 'in_progress'");
-    expect(mobile).toContain('onKpiClick={onKpiChange}');
+    expect(mobile).toContain('onKpiClick={handleKpiChange}');
 
     expect(service).toContain('const sanitizeVisitSearchTerm');
     expect(service).toContain('const search = sanitizeVisitSearchTerm(filters.search)');
@@ -743,7 +747,7 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<WorkspaceStage');
     expect(page).toContain('activePath="/visits"');
     expect(page).toContain('moduleRailItems={moduleRailItems}');
-    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<DetailRailShell embedded={embedded}>');
     expect(page).toContain('itemNoun="visits"');
     expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
     expect(mobile).toContain('entityLabel="visits"');

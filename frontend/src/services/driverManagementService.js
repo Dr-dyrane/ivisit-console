@@ -1,234 +1,231 @@
 import { supabase } from '../lib/supabase';
-import { toast } from 'sonner';
+import {
+  getResponderTelemetryState,
+  reportResponderTelemetry,
+} from './emergencyResponseService';
 
-/**
- * Smart Driver Management Service
- * Uses database triggers and views for efficient driver assignment
- * Follows the same pattern as bed management service
- */
+const ACTIVE_REQUEST_STATUSES = ['in_progress', 'accepted', 'arrived'];
+
+const requireRpcSuccess = async (name, args, fallback) => {
+  const { data, error } = await supabase.rpc(name, args);
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || fallback);
+  return data;
+};
+
+export const normalizeDriverDispatchItem = (item) => {
+  if (!item?.assignment_id || !item?.request_id || !item?.ambulance_id) return null;
+  return {
+    ...item,
+    id: item.request_id,
+    display_id: item.request_display_id || null,
+    status: item.request_status || null,
+    assignment_status: String(item.assignment_status || '').toLowerCase(),
+  };
+};
 
 export const driverManagementService = {
-  /**
-   * Get active driver assignments for a hospital
-   * Manual joins since foreign key relationships don't exist
-   */
-  async getActiveAssignments(hospitalId = null) {
-    try {
-      // Get emergency requests first
-      let requestsQuery = supabase
-        .from('emergency_requests')
-        .select('*')
-        .eq('service_type', 'ambulance')
-        .in('status', ['in_progress', 'accepted', 'arrived'])
-        .order('created_at', { ascending: false });
-
-      if (hospitalId) {
-        requestsQuery = requestsQuery.eq('hospital_id', hospitalId);
-      }
-
-      const { data: requests, error: requestsError } = await requestsQuery;
-
-      if (requestsError) throw requestsError;
-
-      if (!requests || requests.length === 0) {
-        return [];
-      }
-
-      // Get hospital information
-      const hospitalIds = [...new Set(requests.map(r => r.hospital_id).filter(Boolean))];
-      const { data: hospitals, error: hospitalsError } = await supabase
-        .from('hospitals')
-        .select('id, name')
-        .in('id', hospitalIds);
-
-      if (hospitalsError) throw hospitalsError;
-
-      // Get patient information
-      const userIds = [...new Set(requests.map(r => r.user_id).filter(Boolean))];
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Get ambulance information
-      const ambulanceIds = [...new Set(requests.map(r => r.ambulance_id).filter(Boolean))];
-      const { data: ambulances, error: ambulancesError } = await supabase
-        .from('ambulances')
-        .select('id, call_sign, type, vehicle_number')
-        .in('id', ambulanceIds);
-
-      if (ambulancesError) throw ambulancesError;
-
-      // Combine the data
-      return requests.map(request => ({
-        ...request,
-        hospital_name: hospitals?.find(h => h.id === request.hospital_id)?.name || 'Unknown Hospital',
-        patient_name: profiles?.find(p => p.id === request.user_id)?.full_name || 'Unknown Patient',
-        patient_email: profiles?.find(p => p.id === request.user_id)?.email,
-        assigned_at: request.created_at,
-        status_display: request.status === 'in_progress' ? 'Dispatched' :
-                      request.status === 'accepted' ? 'En Route' :
-                      request.status === 'arrived' ? 'Patient Picked Up' : request.status,
-        ambulance_info: ambulances?.find(a => a.id === request.ambulance_id) || null
-      }));
-    } catch (error) {
-      console.error('Error fetching active assignments:', error);
-      toast.error('Failed to load driver assignments');
-      return [];
-    }
+  async getDispatchFeed() {
+    const result = await requireRpcSuccess(
+      'get_driver_dispatch_feed',
+      {},
+      'Driver assignments could not be loaded',
+    );
+    return (Array.isArray(result.items) ? result.items : [])
+      .map(normalizeDriverDispatchItem)
+      .filter(Boolean);
   },
 
-  /**
-   * Get driver utilization statistics for a hospital
-   * Calculate manually since complex function isn't deployed
-   */
-  async getDriverUtilization(hospitalId) {
-    try {
-      // Get all ambulances for this hospital
-      const { data: ambulances, error: ambulancesError } = await supabase
-        .from('ambulances')
-        .select('*')
-        .eq('hospital_id', hospitalId);
-
-      if (ambulancesError) throw ambulancesError;
-
-      // Get active ambulance requests for this hospital
-      const { data: requests, error: requestsError } = await supabase
-        .from('emergency_requests')
-        .select('*')
-        .eq('hospital_id', hospitalId)
-        .eq('service_type', 'ambulance');
-
-      if (requestsError) throw requestsError;
-
-      // Calculate statistics
-      const totalDrivers = ambulances?.length || 0;
-      const availableDrivers = ambulances?.filter(a => a.status === 'available').length || 0;
-      const busyDrivers = ambulances?.filter(a => a.status === 'busy').length || 0;
-      const onTripDrivers = requests?.filter(r => ['in_progress', 'accepted', 'arrived'].includes(r.status)).length || 0;
-      const utilization = totalDrivers > 0 
-        ? (onTripDrivers / totalDrivers) * 100 
-        : 0;
-
-      return {
-        total_drivers: totalDrivers,
-        available_drivers: availableDrivers,
-        busy_drivers: busyDrivers,
-        on_trip_drivers: onTripDrivers,
-        utilization_percentage: Math.round(utilization * 100) / 100
-      };
-    } catch (error) {
-      console.error('Error fetching driver utilization:', error);
-      toast.error('Failed to load driver statistics');
-      return null;
-    }
+  subscribeToDispatchFeed(responderId, callback) {
+    if (!responderId || typeof callback !== 'function') return () => {};
+    const channel = supabase
+      .channel(`driver_dispatch_feed_${responderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'emergency_responder_assignments',
+          filter: `responder_id=eq.${responderId}`,
+        },
+        callback,
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   },
 
-  /**
-   * Complete trip - Enhanced with automatic ambulance status update
-   */
+  acceptOffer(requestId) {
+    return requireRpcSuccess(
+      'responder_accept_emergency',
+      { p_request_id: requestId },
+      'The responder offer could not be accepted',
+    );
+  },
+
+  declineOffer(requestId, reason) {
+    const declineReason = String(reason || '').trim();
+    if (!declineReason) throw new Error('A decline reason is required.');
+    return requireRpcSuccess(
+      'responder_decline_emergency',
+      { p_request_id: requestId, p_reason: declineReason },
+      'The responder offer could not be declined',
+    );
+  },
+
+  arriveAtPatient(requestId) {
+    return requireRpcSuccess(
+      'responder_arrive_emergency',
+      { p_request_id: requestId },
+      'Arrival could not be confirmed',
+    );
+  },
+
+  completeAssignment(requestId) {
+    return requireRpcSuccess(
+      'responder_complete_emergency',
+      { p_request_id: requestId },
+      'The trip could not be completed',
+    );
+  },
+
+  releaseAssignment(requestId, reason) {
+    const releaseReason = String(reason || '').trim();
+    if (!releaseReason) throw new Error('A release reason is required.');
+    return requireRpcSuccess(
+      'dispatcher_release_responder_assignment',
+      { p_request_id: requestId, p_reason: releaseReason },
+      'The responder assignment could not be released',
+    );
+  },
+
+  getTelemetryState(requestId) {
+    return getResponderTelemetryState(requestId);
+  },
+
+  reportTelemetry(payload) {
+    return reportResponderTelemetry(payload);
+  },
+
+  async getDispatchReadiness(ambulanceId, requestId = null) {
+    const { data, error } = await supabase.rpc('get_ambulance_dispatch_readiness', {
+      p_ambulance_id: ambulanceId,
+      p_request_id: requestId,
+    });
+    if (error) throw error;
+    if (!data || typeof data.ready !== 'boolean') {
+      throw new Error('Ambulance readiness could not be checked');
+    }
+    return data;
+  },
+
+  async getEligibleResponders(organizationId = null) {
+    const { data, error } = await supabase.rpc('get_eligible_ambulance_responders', {
+      p_organization_id: organizationId,
+    });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  staffResponder(ambulanceId, responderId) {
+    return requireRpcSuccess(
+      'staff_ambulance_responder',
+      { p_ambulance_id: ambulanceId, p_responder_id: responderId },
+      'The responder could not be assigned to this ambulance',
+    );
+  },
+
+  async updateTripStatus(requestId, nextStatus, { reason } = {}) {
+    const status = String(nextStatus || '').toLowerCase();
+    let result;
+    if (status === 'accepted') result = await this.acceptOffer(requestId);
+    else if (status === 'arrived') result = await this.arriveAtPatient(requestId);
+    else if (status === 'completed') result = await this.completeAssignment(requestId);
+    else if (status === 'declined') result = await this.declineOffer(requestId, reason);
+    else throw new Error(`Unsupported responder lifecycle action: ${nextStatus}`);
+    return result.request || result;
+  },
+
   async completeTrip(requestId) {
-    try {
-      const { data, error } = await supabase.rpc('console_complete_emergency', {
-        p_request_id: requestId
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to complete trip');
-
-      toast.success('Trip completed - Driver marked as available');
-      return data;
-    } catch (error) {
-      console.error('Error completing trip:', error);
-      toast.error('Failed to complete trip');
-      throw error;
-    }
+    const result = await this.completeAssignment(requestId);
+    return result.request || result;
   },
 
-  /**
-   * Cancel trip - Enhanced with automatic ambulance status update
-   */
-  async cancelTrip(requestId, reason = null) {
-    try {
-      const { data, error } = await supabase.rpc('console_cancel_emergency', {
-        p_request_id: requestId,
-        p_reason: reason
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to cancel trip');
-
-      toast.success('Trip cancelled - Driver marked as available');
-      return data;
-    } catch (error) {
-      console.error('Error cancelling trip:', error);
-      toast.error('Failed to cancel trip');
-      throw error;
-    }
+  async cancelTrip(requestId, reason = 'Released by dispatcher') {
+    return this.releaseAssignment(requestId, reason);
   },
 
-  /**
-   * Update trip status (for manual status changes)
-   */
-  async updateTripStatus(requestId, newStatus) {
-    try {
-      const normalizedStatus = String(newStatus || '').toLowerCase();
-      const allowedStatuses = ['accepted', 'arrived', 'completed', 'cancelled'];
-      if (!allowedStatuses.includes(normalizedStatus)) {
-        throw new Error(`Unsupported trip status: ${newStatus}`);
-      }
-      let data;
+  async getActiveAssignments(hospitalId = null) {
+    let query = supabase
+      .from('emergency_requests')
+      .select('*')
+      .eq('service_type', 'ambulance')
+      .in('status', ACTIVE_REQUEST_STATUSES);
+    if (hospitalId) query = query.eq('hospital_id', hospitalId);
 
-      if (normalizedStatus === 'completed') {
-        const { data: rpcResult, error } = await supabase.rpc('console_complete_emergency', {
-          p_request_id: requestId
-        });
-        if (error) throw error;
-        if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Trip completion failed');
-        data = rpcResult?.request || null;
-      } else if (normalizedStatus === 'cancelled') {
-        const { data: rpcResult, error } = await supabase.rpc('console_cancel_emergency', {
-          p_request_id: requestId,
-          p_reason: null
-        });
-        if (error) throw error;
-        if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Trip cancellation failed');
-        data = rpcResult?.request || null;
-      } else {
-        const { data: rpcResult, error } = await supabase.rpc('console_update_emergency_request', {
-          p_request_id: requestId,
-          p_payload: {
-            status: normalizedStatus
-          }
-        });
-        if (error) throw error;
-        if (!rpcResult?.success || !rpcResult?.request) {
-          throw new Error(rpcResult?.error || 'Trip status update failed');
-        }
-        data = rpcResult.request;
-      }
-      
-      const statusMessages = {
-        'accepted': 'Ambulance en route',
-        'arrived': 'Patient picked up',
-        'completed': 'Trip completed',
-        'cancelled': 'Trip cancelled'
-      };
-      
-      toast.success(statusMessages[newStatus] || 'Status updated');
-      return data;
-    } catch (error) {
-      console.error('Error updating trip status:', error);
-      toast.error('Failed to update trip status');
-      return null;
-    }
+    const { data: requests, error: requestsError } = await query;
+    if (requestsError) throw requestsError;
+    if (!requests?.length) return [];
+
+    const hospitalIds = [...new Set(requests.map((row) => row.hospital_id).filter(Boolean))];
+    const patientIds = [...new Set(requests.map((row) => row.user_id).filter(Boolean))];
+    const ambulanceIds = [...new Set(requests.map((row) => row.ambulance_id).filter(Boolean))];
+    const [hospitalResult, patientResult, ambulanceResult] = await Promise.all([
+      hospitalIds.length
+        ? supabase.from('hospitals').select('id,name').in('id', hospitalIds)
+        : Promise.resolve({ data: [], error: null }),
+      patientIds.length
+        ? supabase.from('profiles').select('id,full_name,email').in('id', patientIds)
+        : Promise.resolve({ data: [], error: null }),
+      ambulanceIds.length
+        ? supabase.from('ambulances').select('id,call_sign,type,vehicle_number').in('id', ambulanceIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const projectionError = hospitalResult.error || patientResult.error || ambulanceResult.error;
+    if (projectionError) throw projectionError;
+
+    return requests.map((request) => ({
+      ...request,
+      hospital_name: hospitalResult.data?.find((row) => row.id === request.hospital_id)?.name || null,
+      patient_name: patientResult.data?.find((row) => row.id === request.user_id)?.full_name || null,
+      patient_email: patientResult.data?.find((row) => row.id === request.user_id)?.email || null,
+      ambulance_info: ambulanceResult.data?.find((row) => row.id === request.ambulance_id) || null,
+      status_display: request.status === 'in_progress'
+        ? 'Awaiting responder'
+        : request.status === 'accepted'
+          ? 'En route'
+          : request.status === 'arrived'
+            ? 'At pickup'
+            : request.status,
+    }));
   },
 
-  /**
-   * Subscribe to real-time driver assignment updates
-   */
+  async getDriverUtilization(hospitalId) {
+    const [ambulanceResult, requestResult] = await Promise.all([
+      supabase.from('ambulances').select('id,status').eq('hospital_id', hospitalId),
+      supabase
+        .from('emergency_requests')
+        .select('id,status')
+        .eq('hospital_id', hospitalId)
+        .eq('service_type', 'ambulance'),
+    ]);
+    if (ambulanceResult.error) throw ambulanceResult.error;
+    if (requestResult.error) throw requestResult.error;
+
+    const ambulances = ambulanceResult.data || [];
+    const requests = requestResult.data || [];
+    const totalDrivers = ambulances.length;
+    const onTripDrivers = requests.filter((row) => ACTIVE_REQUEST_STATUSES.includes(row.status)).length;
+    return {
+      total_drivers: totalDrivers,
+      available_drivers: ambulances.filter((row) => row.status === 'available').length,
+      busy_drivers: ambulances.filter((row) => ['dispatched', 'on_trip'].includes(row.status)).length,
+      on_trip_drivers: onTripDrivers,
+      utilization_percentage: totalDrivers > 0
+        ? Math.round((onTripDrivers / totalDrivers) * 10000) / 100
+        : 0,
+    };
+  },
+
   subscribeToAssignments(hospitalId, callback) {
     const channel = supabase
       .channel(`driver_assignments_${hospitalId}`)
@@ -238,22 +235,14 @@ export const driverManagementService = {
           event: '*',
           schema: 'public',
           table: 'emergency_requests',
-          filter: `hospital_id=eq.${hospitalId}`
+          filter: `hospital_id=eq.${hospitalId}`,
         },
-        (payload) => {
-          if (payload.new?.service_type === 'ambulance' || payload.old?.service_type === 'ambulance') {
-            callback(payload);
-          }
-        }
+        callback,
       )
       .subscribe();
-
     return () => supabase.removeChannel(channel);
   },
 
-  /**
-   * Subscribe to ambulance status changes
-   */
   subscribeToAmbulanceStatus(hospitalId, callback) {
     const channel = supabase
       .channel(`ambulance_status_${hospitalId}`)
@@ -263,12 +252,11 @@ export const driverManagementService = {
           event: 'UPDATE',
           schema: 'public',
           table: 'ambulances',
-          filter: `hospital_id=eq.${hospitalId}`
+          filter: `hospital_id=eq.${hospitalId}`,
         },
-        callback
+        callback,
       )
       .subscribe();
-
     return () => supabase.removeChannel(channel);
-  }
+  },
 };

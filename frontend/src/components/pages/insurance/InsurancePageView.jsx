@@ -4,6 +4,8 @@ import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { FilterSheet } from '../../common/FilterSheet';
 import { MobileInsurance } from '../../mobile/MobileInsurance';
 import { InsuranceDesktopWorkspace } from './InsuranceDesktopWorkspace';
+import { InsuranceDetailRail } from './InsuranceDetailRail';
+import { hasInsuranceWorkspaceFilter } from './insurancePresentation';
 import {
   EMPTY_INSURANCE_FILTERS,
   INSURANCE_FILTER_SCHEMA,
@@ -120,6 +122,17 @@ export const InsurancePageView = ({
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+          onFocusPolicy={setFocused}
+          tabletPane={(
+            <InsuranceDetailRail
+              policy={focusedPolicy}
+              denied={data.insurancePage.denied}
+              loading={data.loading && !rows.hasMobileRows}
+              hasFilter={hasInsuranceWorkspaceFilter(filters)}
+              onView={onView}
+              embedded
+            />
+          )}
         />
         {overlays}
       </div>

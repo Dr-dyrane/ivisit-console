@@ -394,7 +394,7 @@ const getVisitDoctorLabel = (visit) => (
   || 'Unassigned'
 );
 
-const VisitsDetailRail = ({
+export const VisitsDetailRail = ({
   visit,
   loading,
   canEdit,
@@ -403,10 +403,11 @@ const VisitsDetailRail = ({
   onManageScheduledVisit,
   canManageScheduledVisit,
   activeActionFeedback,
+  embedded = false,
 }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <Shimmer className="h-5 w-28 rounded-pill" />
         <Shimmer className="mt-6 h-24 rounded-card" />
         <div className="mt-4 space-y-3">
@@ -420,7 +421,7 @@ const VisitsDetailRail = ({
 
   if (!visit) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No visit selected</h2>
@@ -448,7 +449,7 @@ const VisitsDetailRail = ({
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">

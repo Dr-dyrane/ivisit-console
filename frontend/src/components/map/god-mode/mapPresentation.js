@@ -1,17 +1,22 @@
 export const ACTIVE_AMBULANCE_STATUSES = new Set(['in_progress', 'accepted', 'arrived']);
 
 export const DRIVER_STATUS_COPY = {
-  accepted: {
-    loading: 'Marking on way...',
-    success: 'On way saved',
-    error: 'Could not mark on way',
+  accept: {
+    loading: 'Accepting offer...',
+    success: 'Call accepted',
+    error: 'Could not accept this offer',
   },
-  arrived: {
-    loading: 'Marking arrived...',
-    success: 'Arrived saved',
+  decline: {
+    loading: 'Declining offer...',
+    success: 'Offer declined',
+    error: 'Could not decline this offer',
+  },
+  arrive: {
+    loading: 'Confirming arrival...',
+    success: 'Arrival confirmed',
     error: 'Could not mark arrived',
   },
-  completed: {
+  complete: {
     loading: 'Closing request...',
     success: 'Request closed',
     error: 'Could not close request',

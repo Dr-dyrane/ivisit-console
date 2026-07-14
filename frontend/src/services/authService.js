@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 
 const CURRENT_USER_CACHE_MS = 60000;
+const RESPONDER_PROVIDER_TYPES = new Set(['driver', 'paramedic', 'ambulance', 'ambulance_service']);
 let currentUserCache = { userId: null, value: null, expiresAt: 0 };
 let currentUserPromise = null;
 
@@ -46,7 +47,8 @@ export function primeCurrentUserCache(sessionUser, profile) {
       role: profile.role || 'viewer',
       organization_id: profile.organization_id || null,
       full_name: profile.full_name || profile.username || null,
-      hospital_ids: profile.role === 'org_admin'
+      provider_type: profile.provider_type || null,
+      hospital_ids: ['org_admin', 'dispatcher'].includes(profile.role)
         ? (Array.isArray(profile.hospital_ids) ? profile.hospital_ids : [])
         : null
     },
@@ -58,7 +60,7 @@ export function primeCurrentUserCache(sessionUser, profile) {
 async function loadCurrentUserWithProfile(sessionUser) {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, organization_id, full_name, username')
+    .select('role, organization_id, full_name, username, provider_type')
     .eq('id', sessionUser.id)
     .single();
 
@@ -67,10 +69,11 @@ async function loadCurrentUserWithProfile(sessionUser) {
     role: profile?.role || 'viewer',
     organization_id: profile?.organization_id || null,
     full_name: profile?.full_name || profile?.username || null,
-    hospital_ids: null // Will be populated for org_admin
+    provider_type: profile?.provider_type || null,
+    hospital_ids: null
   };
 
-  if (result.role === 'org_admin' && result.organization_id) {
+  if (['org_admin', 'dispatcher'].includes(result.role) && result.organization_id) {
     try {
       const { data: orgHospitals } = await supabase
         .from('hospitals')
@@ -225,6 +228,19 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
       // orgIdField is 'organization_id' or similar - orgId matches directly
       query = query.eq(orgIdField, orgId);
     }
+  } else if (role === 'dispatcher') {
+    const hospitalIds = user?.hospital_ids;
+    const isHospitalScoped = orgIdField === 'hospital_id';
+
+    if (isHospitalScoped && hospitalIds?.length) {
+      query = hospitalIds.length > 1
+        ? query.in(orgIdField, hospitalIds)
+        : query.eq(orgIdField, hospitalIds[0]);
+    } else if (isHospitalScoped && Array.isArray(hospitalIds)) {
+      query = query.in(orgIdField, ['00000000-0000-0000-0000-000000000000']);
+    } else if (!isHospitalScoped && orgId) {
+      query = query.eq(orgIdField, orgId);
+    }
   } else if (role === 'provider') {
     // Provider sees only records assigned to them
     const hospitalIds = user?.hospital_ids;
@@ -256,8 +272,12 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
         query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'emergency') {
-      // Emergencies: scope by hospital_ids when available, otherwise assigned responder.
-      if (isHospitalScoped && hospitalIds?.length) {
+      const isResponderProvider = RESPONDER_PROVIDER_TYPES.has(user?.provider_type);
+      // Responder providers see only runs assigned to their UUID. Clinicians keep
+      // their facility projection for non-driver emergency review.
+      if (isResponderProvider && providerIdField && userId) {
+        query = query.eq(providerIdField, userId);
+      } else if (isHospitalScoped && hospitalIds?.length) {
         query = hospitalIds.length > 1 ? query.in(orgIdField, hospitalIds) : query.eq(orgIdField, hospitalIds[0]);
       } else if (providerIdField && userId) {
         // For emergencies, providerIdField should be 'responder_id' and userId is the provider's UUID

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { DESKTOP_BREAKPOINT, getViewportState } from '../config/breakpoints';
 
 const NavigationContext = createContext({});
 
@@ -15,23 +16,22 @@ export const NavigationProvider = ({ children }) => {
   // useState(false) + measure-in-effect gave every mobile mount one desktop-tree
   // frame (desktop entrances started, then the isMobile fork replaced them — the
   // "stacking/skew on mount" defect). typeof window guard keeps tests/SSR safe.
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
-  const [isTablet, setIsTablet] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024);
-  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
-  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 768); // Open on desktop, closed on mobile from frame one
+  const [viewport, setViewport] = useState(() => getViewportState(
+    typeof window === 'undefined' ? null : window.innerWidth,
+  ));
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window === 'undefined' || window.innerWidth >= DESKTOP_BREAKPOINT
+  ));
   const [currentPage, setCurrentPage] = useState('');
 
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
-      setIsDesktop(width >= 1024);
-      
-      // Auto-open sidebar on desktop, auto-close on mobile
-      if (width >= 1024) {
+      const nextViewport = getViewportState(window.innerWidth);
+      setViewport(nextViewport);
+
+      if (nextViewport.isDesktop) {
         setSidebarOpen(true);
-      } else if (width < 768) {
+      } else {
         setSidebarOpen(false);
       }
     };
@@ -42,9 +42,7 @@ export const NavigationProvider = ({ children }) => {
   }, []);
 
   const value = {
-    isMobile,
-    isTablet,
-    isDesktop,
+    ...viewport,
     sidebarOpen,
     setSidebarOpen,
     currentPage,

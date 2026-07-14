@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 
 const isMobileViewport = () => {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-  return window.matchMedia("(max-width: 1024px)").matches;
+  return window.matchMedia("(max-width: 1279px)").matches;
 };
 
 export const Skeleton = ({ className, ...props }) => {

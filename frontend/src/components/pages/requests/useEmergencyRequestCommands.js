@@ -26,16 +26,14 @@ export const useEmergencyRequestCommands = ({
   requests,
   queryFilter,
   fetchRequests,
-  isAdmin,
-  isOrgAdmin,
   isProvider,
+  canOperateDispatch,
   user,
 }) => {
   const [confirmationModal, setConfirmationModal] = useState(DEFAULT_CONFIRMATION_MODAL);
   const [completeModal, setCompleteModal] = useState(DEFAULT_COMPLETE_MODAL);
   const dispatchMutation = useEmergencyMutations({
     mutationFn: ({ id, request }) => dispatchEmergency(id, request),
-    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'accepted'),
     filter: queryFilter,
   });
   const completeMutation = useEmergencyMutations({
@@ -166,10 +164,15 @@ export const useEmergencyRequestCommands = ({
     }
 
     try {
-      toast.loading('Dispatching request...', { id: 'dispatch' });
+      const isBedRequest = actionState.isBedFlow;
+      toast.loading(isBedRequest ? 'Accepting bed request...' : 'Sending responder offer...', { id: 'dispatch' });
       const result = await dispatchMutateAsync({ id: request.id, request });
-      toast.success('Request dispatched', { id: 'dispatch' });
-      toast.info(`Responder: ${result.assignments.ambulance?.type || 'Assigned'}`, { duration: 3000 });
+      if (result.outcome === 'bed_accepted') {
+        toast.success('Bed request accepted', { id: 'dispatch' });
+      } else {
+        toast.success('Responder offer sent', { id: 'dispatch' });
+        toast.info('Awaiting responder acceptance', { duration: 3000 });
+      }
     } catch (error) {
       console.error('Dispatch failed:', error);
       const message = String(error?.message || '');
@@ -188,9 +191,12 @@ export const useEmergencyRequestCommands = ({
   const canCurrentActorCompleteRequest = useCallback((request) => {
     const actionState = getEmergencyActionState(request);
     if (!actionState.canComplete) return false;
-    if (isAdmin() || isOrgAdmin()) return true;
-    return isProvider() && Boolean(user?.id) && request?.responder_id === user.id;
-  }, [isAdmin, isOrgAdmin, isProvider, user?.id]);
+    if (actionState.isBedFlow) return canOperateDispatch();
+    return String(request?.status || '').toLowerCase() === 'arrived'
+      && isProvider()
+      && Boolean(user?.id)
+      && request?.responder_id === user.id;
+  }, [canOperateDispatch, isProvider, user?.id]);
 
   const handleComplete = useCallback((request) => {
     if (!canCurrentActorCompleteRequest(request)) {

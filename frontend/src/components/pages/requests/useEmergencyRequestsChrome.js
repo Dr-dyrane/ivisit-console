@@ -7,6 +7,7 @@ export const useEmergencyRequestsChrome = ({
   isOrgAdmin,
   isProvider,
   isDriver,
+  isDispatcher,
   currentUser,
   requestStats,
   requests,
@@ -24,9 +25,10 @@ export const useEmergencyRequestsChrome = ({
   const roleKind = useMemo(() => {
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
+    if (isDispatcher()) return 'dispatcher';
     if (isProvider()) return isDriver() ? 'driver' : 'provider';
     return 'viewer';
-  }, [isAdmin, isDriver, isOrgAdmin, isProvider]);
+  }, [isAdmin, isDispatcher, isDriver, isOrgAdmin, isProvider]);
   const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
 
   useEffect(() => {

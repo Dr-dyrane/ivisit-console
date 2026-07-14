@@ -21,6 +21,7 @@ import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileSelectionBar } from './MobileSelectionBar';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 // Mobile canon kit: the grouped-list grammar, loading truth, search row, and
@@ -42,6 +43,7 @@ import { formatRequestDayTime } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
 import {
     countNumber,
+    getCompactVisitKpiTransition,
     getMobileVisitStateCount,
     hasMobileVisitFilters,
     mobileVisitStates,
@@ -98,6 +100,8 @@ export const MobileVisits = ({
     viewMode = 'all',
     onViewModeChange,
     scheduledViewEnabled = false,
+    tabletPane = null,
+    onFocusVisit,
     pageSnapshot = null,
     onDelete,
     onRefresh,
@@ -117,6 +121,7 @@ export const MobileVisits = ({
     onLoadMore,
 }) => {
     const observerTarget = useRef(null);
+    const { isTablet } = useNavigation();
     // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
     // MECHANISM renders but the bulk WRITE stays locked — VisitsPage's only bulk control
     // is a disabled bulk change, so mobile shows
@@ -171,12 +176,16 @@ export const MobileVisits = ({
         value: getMobileVisitStateCount({ item, statistics, visits: visitRows }),
         color: item.color,
     })), [statistics, visitRows]);
+    const usesKpiSourceLanes = Boolean(scheduledViewEnabled);
+    const effectiveActiveKpi = usesKpiSourceLanes && viewMode === 'scheduled' && activeKpi === 'all'
+        ? 'scheduled'
+        : activeKpi;
 
     const totalCount = countNumber(statistics?.total, visitRows.length);
     // Header count tracks the ACTIVE scope, not the raw total — "62 visits" must not sit
     // above a 3-row Cancelled-filtered list. The `count` prop is the page's real
     // visible-scope total; the per-KPI stat is the fallback honest scope count.
-    const activeStateItem = mobileVisitStates.find((item) => item.id === (activeKpi || 'all')) || mobileVisitStates[0];
+    const activeStateItem = mobileVisitStates.find((item) => item.id === (effectiveActiveKpi || 'all')) || mobileVisitStates[0];
     const scopedCount = activeStateItem.id === 'all'
         ? totalCount
         : getMobileVisitStateCount({ item: activeStateItem, statistics, visits: visitRows });
@@ -185,19 +194,37 @@ export const MobileVisits = ({
     // Empty-state cause priority mirrors desktop: search > sheet filters > KPI > true-empty.
     // The KPI cause only fires when it is the sole narrowing scope, and recovery resets the
     // chip to All (the list itself may be non-empty under a different KPI).
-    const kpiEmptyCause = Boolean(activeKpi && activeKpi !== 'all') && !filters?.search && !hasMobileVisitFilters(filters);
-    const kpiEmptyLabel = mobileVisitStates.find((item) => item.id === activeKpi)?.label || 'selected';
+    const kpiEmptyCause = Boolean(effectiveActiveKpi && effectiveActiveKpi !== 'all') && !filters?.search && !hasMobileVisitFilters(filters);
+    const kpiEmptyLabel = mobileVisitStates.find((item) => item.id === effectiveActiveKpi)?.label || 'selected';
     // True-empty states distinguish facility operators from clinicians without
     // exposing access-control implementation details.
-    const trueEmpty = !filters?.search && !hasMobileVisitFilters(filters) && !(activeKpi && activeKpi !== 'all');
+    const trueEmpty = !filters?.search && !hasMobileVisitFilters(filters) && !(effectiveActiveKpi && effectiveActiveKpi !== 'all');
     const trueEmptyHint = (isAdmin || isOrgAdmin)
         ? 'No visits are available for your facilities yet.'
         : 'No visits are linked to your name yet.';
+    const hasTabletDetailPane = Boolean(isTablet && tabletPane);
+    const handleKpiChange = (nextKpi) => {
+        const transition = getCompactVisitKpiTransition({
+            nextKpi,
+            viewMode,
+            scheduledViewEnabled: usesKpiSourceLanes,
+        });
+        if (transition.nextViewMode) onViewModeChange?.(transition.nextViewMode);
+        if (transition.nextKpi) onKpiChange?.(transition.nextKpi);
+    };
+    const handleOpenVisit = (visit) => {
+        if (hasTabletDetailPane) {
+            onFocusVisit?.(visit.id);
+            return;
+        }
+        setActiveVisit(visit);
+    };
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
+                tabletPane={tabletPane}
                 contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
                 <MobileVisitsAtlasLayer />
@@ -215,18 +242,13 @@ export const MobileVisits = ({
 
                     <MobileKPIStrip
                         kpis={kpis}
-                        activeKpi={activeKpi || 'all'}
-                        onKpiClick={onKpiChange}
+                        activeKpi={effectiveActiveKpi || 'all'}
+                        onKpiClick={handleKpiChange}
+                        preserveActiveKpiIds={usesKpiSourceLanes ? ['scheduled'] : undefined}
                         loading={showSkeleton}
                     />
 
                     <section className="px-4" data-testid="mobile-visits-activity-sheet">
-                        {scheduledViewEnabled && (
-                            <div className="mb-3 flex h-10 items-center gap-1 rounded-button bg-muted/30 p-1" role="group" aria-label="Visit source view">
-                                <button type="button" onClick={() => onViewModeChange?.('all')} aria-pressed={viewMode === 'all'} className={`h-8 flex-1 rounded-inner text-xs font-semibold ${viewMode === 'all' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}>All</button>
-                                <button type="button" onClick={() => onViewModeChange?.('scheduled')} aria-pressed={viewMode === 'scheduled'} className={`flex h-8 flex-1 items-center justify-center rounded-inner text-xs font-semibold ${viewMode === 'scheduled' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}><CalendarClock className="mr-1.5 h-3.5 w-3.5" />Scheduled</button>
-                            </div>
-                        )}
                         {/* Flat search row (canon Apple search bar): no wrapping surface,
                             no drag-handle. The input + filter + stats controls sit directly
                             on the page over the atlas; the grouped list follows below. */}
@@ -287,7 +309,7 @@ export const MobileVisits = ({
                                 renderRow={(visit) => (
                                     <MobileVisitRow
                                         visit={visit}
-                                        onOpen={setActiveVisit}
+                                        onOpen={handleOpenVisit}
                                         selectable={selectionEnabled}
                                         selected={selectedIdSet.has(visit.id)}
                                         selectionMode={selectionMode}
@@ -338,7 +360,7 @@ export const MobileVisits = ({
                                         : hasMobileVisitFilters(filters)
                                             ? () => onOpenFilters?.()
                                             : kpiEmptyCause
-                                                ? () => onKpiChange?.('all')
+                                                ? () => handleKpiChange('all')
                                                 : undefined
                                 }
                                 recoverLabel={filters?.search ? 'Clear search' : hasMobileVisitFilters(filters) ? 'Adjust filters' : kpiEmptyCause ? 'Show all visits' : undefined}

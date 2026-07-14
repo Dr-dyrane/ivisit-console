@@ -43,6 +43,78 @@ const signalToneClass = {
   muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
 };
 
+export const getAnalyticsDetailRailProps = ({
+  stats,
+  requestSample,
+  dataWindow,
+  roleContext,
+  sourceReadiness,
+  dominantType,
+  isLoading,
+  isFetching,
+}) => {
+  const requestSourceReady = Boolean(sourceReadiness?.requests);
+  const totalRequests = Number(stats?.totalEmergencies) || 0;
+  const completedRequests = Number(stats?.completedEmergencies) || 0;
+  const responseSampleSize = Number(stats?.responseSampleSize) || 0;
+  const requestSampleComplete = requestSample?.complete === true;
+  const returnedRequestCount = Number.isFinite(Number(requestSample?.returnedCount))
+    ? Number(requestSample.returnedCount)
+    : totalRequests;
+  const requestMetricLabel = requestSampleComplete
+    ? 'Requests'
+    : `Latest ${formatMetricNumber(returnedRequestCount)} requests`;
+
+  return {
+    isLoading,
+    isFetching,
+    windowLabel: formatAnalyticsWindow(dataWindow),
+    audienceLabel: getAnalyticsAudienceLabel(roleContext),
+    metricItems: [
+      {
+        id: 'requests',
+        icon: Activity,
+        label: requestMetricLabel,
+        value: formatMetricNumber(totalRequests),
+        available: requestSourceReady,
+        priority: 0,
+        toneClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+      },
+      {
+        id: 'completed',
+        icon: CheckCircle2,
+        label: 'Completed',
+        value: formatMetricNumber(completedRequests),
+        available: requestSourceReady,
+        priority: 1,
+        toneClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+      },
+      {
+        id: 'average-response',
+        icon: Clock3,
+        label: 'Average response',
+        value: formatResponseMinutes(stats?.avgResponseTime, responseSampleSize),
+        available: requestSourceReady && responseSampleSize > 0,
+        priority: 2,
+        toneClass: 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
+      },
+      {
+        id: 'facilities',
+        icon: Hospital,
+        label: 'Facilities',
+        value: formatMetricNumber(stats?.totalHospitals),
+        available: responseSampleSize === 0 && Boolean(sourceReadiness?.hospitals),
+        priority: 3,
+        toneClass: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+      },
+    ],
+    stats,
+    requestSample,
+    sourceReadiness,
+    dominantType,
+  };
+};
+
 export const AnalyticsDesktopWorkspace = ({
   stats,
   requestSample,
@@ -70,62 +142,29 @@ export const AnalyticsDesktopWorkspace = ({
   statusBanners,
 }) => {
   const dataWindow = dataTimeRange || timeRange;
-  const windowLabel = formatAnalyticsWindow(dataWindow);
-  const audienceLabel = getAnalyticsAudienceLabel(roleContext);
+  const detailRailProps = getAnalyticsDetailRailProps({
+    stats,
+    requestSample,
+    dataWindow,
+    roleContext,
+    sourceReadiness,
+    dominantType,
+    isLoading: Boolean(isLoading) && !snapshotReady,
+    isFetching,
+  });
+  const { windowLabel, audienceLabel, metricItems } = detailRailProps;
   const requestSourceReady = Boolean(sourceReadiness?.requests);
   const totalRequests = Number(stats?.totalEmergencies) || 0;
   const completedRequests = Number(stats?.completedEmergencies) || 0;
-  const responseSampleSize = Number(stats?.responseSampleSize) || 0;
   const requestSampleComplete = requestSample?.complete === true;
   const returnedRequestCount = Number.isFinite(Number(requestSample?.returnedCount))
     ? Number(requestSample.returnedCount)
     : totalRequests;
-  const requestMetricLabel = requestSampleComplete
-    ? 'Requests'
-    : `Latest ${formatMetricNumber(returnedRequestCount)} requests`;
   const failedEmpty = Boolean(loadError) && !snapshotReady;
   const loadingWorkspace = Boolean(isLoading) && !snapshotReady;
   const volumeComparison = useMemo(() => getVolumeComparison(requestsByDay), [requestsByDay]);
   const analyticsPagination = useMemo(() => getAnalyticsPagination(dataWindow), [dataWindow]);
 
-  const metricItems = [
-    {
-      id: 'requests',
-      icon: Activity,
-      label: requestMetricLabel,
-      value: formatMetricNumber(totalRequests),
-      available: requestSourceReady,
-      priority: 0,
-      toneClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
-    },
-    {
-      id: 'completed',
-      icon: CheckCircle2,
-      label: 'Completed',
-      value: formatMetricNumber(completedRequests),
-      available: requestSourceReady,
-      priority: 1,
-      toneClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-    },
-    {
-      id: 'average-response',
-      icon: Clock3,
-      label: 'Average response',
-      value: formatResponseMinutes(stats?.avgResponseTime, responseSampleSize),
-      available: requestSourceReady && responseSampleSize > 0,
-      priority: 2,
-      toneClass: 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
-    },
-    {
-      id: 'facilities',
-      icon: Hospital,
-      label: 'Facilities',
-      value: formatMetricNumber(stats?.totalHospitals),
-      available: responseSampleSize === 0 && Boolean(sourceReadiness?.hospitals),
-      priority: 3,
-      toneClass: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
-    },
-  ];
   const signal = getAnalyticsSignal({
     failedEmpty,
     requestSourceReady,
@@ -154,17 +193,7 @@ export const AnalyticsDesktopWorkspace = ({
       routingPath={routingPath}
       onRailNavigate={onRailNavigate}
       rail={(
-        <AnalyticsDetailRail
-          isLoading={loadingWorkspace}
-          isFetching={isFetching}
-          windowLabel={windowLabel}
-          audienceLabel={audienceLabel}
-          metricItems={metricItems}
-          stats={stats}
-          requestSample={requestSample}
-          sourceReadiness={sourceReadiness}
-          dominantType={dominantType}
-        />
+        <AnalyticsDetailRail {...detailRailProps} />
       )}
     >
       <SignalPanel signal={signal} loading={loadingWorkspace} toneClassMap={signalToneClass}>

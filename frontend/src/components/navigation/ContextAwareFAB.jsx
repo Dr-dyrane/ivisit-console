@@ -15,14 +15,14 @@ import { SubscriptionModal } from '../modals/SubscriptionModal';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 
 export const ContextAwareFAB = () => {
-  const { isMobile } = useNavigation();
+  const { usesCompactNavigation } = useNavigation();
   const { isContextPanelOpen, pageShellConfig } = useLayout();
   const location = useLocation();
   const routeOwnsAction = routeOwnsShellAction(location.pathname);
   const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
 
   // Keep route-owned surfaces free of global FAB side effects.
-  if (isMobile || isContextPanelOpen || hideFab) return null;
+  if (usesCompactNavigation || isContextPanelOpen || hideFab) return null;
 
   return <ContextAwareFABContent />;
 };

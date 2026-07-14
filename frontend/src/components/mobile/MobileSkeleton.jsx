@@ -58,7 +58,7 @@ export const MobileSecondaryMetricSkeleton = () => (
  * `delay` is accepted for backward compatibility but ignored — skeletons
  * render at once instead of staggering in.
  */
-export const MobileMetricRowSkeleton = ({ delay = 0 }) => (
+export const MobileMetricRowSkeleton = ({ delay: _delay = 0 }) => (
     <div className="mx-2 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
             <SkeletonPulse className="w-10 h-10 rounded-pill" />

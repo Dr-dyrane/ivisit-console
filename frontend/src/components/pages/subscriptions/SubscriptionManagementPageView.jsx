@@ -8,7 +8,10 @@ import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { ConfirmationModal } from '../../modals/ConfirmationModal';
 import { SubscriptionModal } from '../../modals/SubscriptionModal';
 import { MobileSubscriptions } from '../../mobile/MobileSubscriptions';
-import { SubscriptionsDesktopWorkspace } from './SubscriptionsDesktopWorkspace';
+import {
+  SubscriberDetailRail,
+  SubscriptionsDesktopWorkspace,
+} from './SubscriptionsDesktopWorkspace';
 
 const ProjectionStatsNotice = () => (
   <p
@@ -65,6 +68,20 @@ export const SubscriptionManagementPageView = ({ controller }) => {
           onSelectAll={selection.handleSelectAll}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
+          onFocusSubscriber={actions.setFocused}
+          tabletPane={(
+            <SubscriberDetailRail
+              subscriber={state.focusedSubscriber}
+              denied={data.subscriptionDenied}
+              loading={data.loading || (
+                data.subscriptionIsFetching
+                && data.mobileVisibleSubscribers.length === 0
+              )}
+              hasFilter={state.hasSubscriberFilters}
+              onView={actions.handleView}
+              embedded
+            />
+          )}
         />
 
         <SubscriptionModal

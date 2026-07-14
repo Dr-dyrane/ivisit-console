@@ -148,3 +148,58 @@ Pass 1 fixes detail visibility and command refresh. These payment issues belong 
 - `walletService.processCashPayment` uses the manual cash path and must be compared against `process_cash_payment_v2` and `approve_cash_payment`.
 - Ledger entries from cash approval and manual cash processing must be checked for duplicate platform fee credits.
 - Wallet eligibility must resolve organization id from the canonical hospital/org relationship, not from a UUID-shaped fallback.
+
+## Git History Decision Context - 2026-07-14
+
+- App commit `29d39219` deliberately expanded `sync_emergency_to_visit` across lifecycle states while keeping
+  it update-only to avoid duplicate visits. Do not add client-side visit synchronization or casually turn the
+  trigger into an insert path.
+- App commit `f907a29b` introduced optional card deferral plus service-role-only, idempotent card completion and
+  failure RPCs invoked by the Stripe webhook. Commits `8d717951` and `09d9195c` improved tracking and settlement
+  recovery without closing the missing client deferral producer.
+- Console commits `c7e71738`, `a48ca9f2`, and `2bf6a87c` deliberately moved emergency/finance authority away
+  from visible CRUD, hardened render evidence, and downgraded unsupported cash settlement.
+- App commit `b3c547df` made Console emergency creation atomically create its visit. The patient creation path
+  still catches visit-insert failure, so the residual is App creation atomicity or a server-owned idempotent
+  repair path, not a reason to reintroduce page-owned visit writes.
+
+History consequence: preserve webhook finalizers, RPC-owned lifecycle, and the update-only visit-sync trigger.
+Close the remaining gaps inside App-owned migration pillars, then synchronize the maintained source to Console.
+
+## Adversarial Launch Gate - 2026-07-14
+
+This is the current cross-repository decision record from Console, App, migrations, RPCs, RLS, automations,
+and demo code. It does not authorize deployment. It narrows the remaining emergency blockers so a frontend
+improvement cannot be mistaken for live operational readiness.
+
+| Contract | Evidence | Decision | Launch class |
+| --- | --- | --- | --- |
+| Card payment release | `create_emergency_v4` defaults `defer_dispatch_until_payment` to false and marks a supplied non-deferred card payment completed with the request in progress (`../ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:464-554`). App request construction does not establish a server-owned guarantee that this flag is true. | Preserve the existing service-role card finalizers and webhook delegation. Make card dispatch deferral server-owned and pending by default until signed webhook confirmation; the client must not choose whether dispatch waits. | P0 backend lifecycle |
+| Cash approval | The approval receiver locks request/payment, checks actor and organization scope, settles the fee, updates payment/request/visit, and releases the request (`../ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:838-1050`). | Preserve this receiver. Prove idempotency, insufficient-wallet behavior, notification reflection, and duplicate-ledger resistance against the deployed backend before launch. | P0 deployed proof |
+| Operational lifecycle ownership | Patient and generic status paths can currently participate in accepted/arrived/completed state, while provider commands have broader field effects than a narrow status transition. | Add role-specific responder commands and patient acknowledgement. Enforce accepted -> arrived -> completed with responder ownership and exactly-once automation effects. | P0 backend lifecycle |
+| Responder decline | Existing cancellation cancels the patient's emergency; no proved receiver means only release and requeue. | Keep driver decline unavailable until an atomic decline/release/requeue command exists with reason and audit evidence. | P0 backend command |
+| Visit creation and synchronization | `create_emergency_v4` catches and suppresses visit insert failure, while `sync_emergency_to_visit` intentionally updates existing rows and does not create a missing row (`../ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:576-593`; `../ivisit-app/supabase/migrations/20260219000900_automations.sql:202-280`). | Keep the update-only trigger. Make patient creation atomic like the newer Console path, or add one server-owned idempotent repair command with exactly-one request ownership. Never sync visits from the client. | P0 data consequence |
+| Patient arrival and ETA | App presentation can derive elapsed countdown arrival and enable arrival/completion interaction without authoritative backend arrival telemetry. | Remove clock-manufactured arrival. Render backend lifecycle plus telemetry freshness; patient action may acknowledge, not own responder arrival/completion. | P0 client and lifecycle |
+| Demo automation | Demo uses real linked profiles but also service-role cash approval and synthetic movement. | Keep it as a separately labelled simulation lane. Demo success is never accepted as production payment, telemetry, push, or lifecycle proof. | Intentional separation |
+
+Go-live decision: onboarding and demo testing may continue, but live emergency dispatch remains `NO-GO` until
+every P0 row above and the Pass 5 responder/RLS/telemetry gates pass against the deployed backend with zero
+cross-organization residue.
+
+## Production Closure - 2026-07-14
+
+This section supersedes the launch verdict above without erasing the audit trail. The additive dispatch pack
+is deployed through `20260714203000_emergency_cash_notification_authority_hotfix.sql`, generated App and
+Console types are synchronized, and linked migration history is exact.
+
+The isolated production run passed `65/65` checks with `cleanup_passed=true` and
+`zero_residue_passed=true`. It proved card payment deferral and webhook release, cash notification and decline
+without settlement residue, responder-owned accept/arrive/complete commands, decline/requeue, exactly-one
+visit consequences, two-session dispatcher and responder convergence, role and organization RLS, Realtime,
+Storage, fallback, and idempotent retries. The static production contract passed `251/251`; cash-fee and all
+sixteen Console shared-contract guards are green.
+
+Pass 1 payment and lifecycle blockers are therefore closed for a supervised foreground dispatch pilot. The
+remaining `NO-GO` is narrower: unattended background dispatch still lacks a native background-location task
+and APNs/FCM delivery in the current binary. Browser alerts and telemetry recovery are honest foreground
+capabilities and must not be marketed as background readiness.

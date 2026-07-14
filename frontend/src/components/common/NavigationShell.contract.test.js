@@ -22,7 +22,7 @@ describe('Navigation shell contract', () => {
   const supportHookSource = () => fs.readFileSync('src/hooks/useSupportTickets.js', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
 
-  it('keeps the desktop app shell owning one left navigation surface', () => {
+  it('keeps wide tablet and desktop shells owning one left navigation surface', () => {
     const app = appSource();
     const island = islandSource();
     const hardgate = hardgateSource();
@@ -38,11 +38,13 @@ describe('Navigation shell contract', () => {
     expect(app).not.toContain('<GlobalFinancialModals />');
     expect(app).not.toContain('import { GlobalFinancialModals }');
     expect(app).toContain('const isBleedPage = !hideNav && pageShellConfig?.bleed;');
-    expect(app).toContain('className={(hideNav || isBleedPage) ? "" : "md:p-6"}');
-    expect(app).toContain('paddingTop: (hideNav || isMobile) ? 0');
+    expect(app).toContain('className={(hideNav || isBleedPage || usesCompactNavigation) ? "" : "md:p-6"}');
+    expect(app).toContain('paddingTop: (hideNav || usesCompactNavigation) ? 0');
     expect(app).toContain("paddingBottom: hideNav ? 0 : 'calc(16px + var(--safe-bottom))'");
-    expect(app).toContain('hidden md:block');
+    expect(app).toContain('{!hideNav && !usesCompactNavigation && (');
+    expect(app).toContain('<div className="flex-none z-50">');
     expect(island).toContain('data-desktop-nav-shell="true"');
+    expect(island).toContain('data-modal-chrome="true"');
     expect(island).toContain('aria-label="Primary desktop"');
     expect(island).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(island).toContain('data-desktop-nav-item={item.id}');
@@ -204,7 +206,7 @@ describe('Navigation shell contract', () => {
     expect(routeOwnership).toContain("'/emergencies'");
     expect(fab).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname)');
     expect(fab).toContain('const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction');
-    expect(fab).toContain('if (isMobile || isContextPanelOpen || hideFab) return null;');
+    expect(fab).toContain('if (usesCompactNavigation || isContextPanelOpen || hideFab) return null;');
 
     expect(bottomBar).toContain('const routeOwnsAction = routeOwnsShellAction(location.pathname);');
     expect(bottomBar).toContain('const hideContextFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;');

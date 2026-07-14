@@ -23,6 +23,7 @@ import { MobileInsuranceAtlasLayer } from './insurance/MobileInsuranceAtlasLayer
 import { MobileInsuranceRow } from './insurance/MobileInsuranceRow';
 import { MobileInsuranceDetailSheet } from './insurance/MobileInsuranceDetailSheet';
 import { useMobileInsuranceController } from './insurance/useMobileInsuranceController';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 // LIST grammar: the page owns a growing server window, while this surface owns only
 // presentation state. Policy commands remain unavailable; selection is review-only.
@@ -52,7 +53,10 @@ export const MobileInsurance = ({
   selectedIds = [],
   onSelect,
   onSelectAll,
+  onFocusPolicy,
+  tabletPane,
 }) => {
+  const { isTablet } = useNavigation();
   const warmingUp = useSkeletonWarmup();
   const controller = useMobileInsuranceController({
     policies,
@@ -71,11 +75,20 @@ export const MobileInsurance = ({
     onSelect,
     warmingUp,
   });
+  const hasTabletDetailPane = Boolean(isTablet && tabletPane);
+  const handleOpenPolicy = (policy) => {
+    if (hasTabletDetailPane && onFocusPolicy) {
+      onFocusPolicy(policy.id);
+      return;
+    }
+    controller.setActivePolicy(policy);
+  };
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
+        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobileInsuranceAtlasLayer />
@@ -163,7 +176,7 @@ export const MobileInsurance = ({
                         <React.Fragment key={policy.id}>
                           <MobileInsuranceRow
                             policy={policy}
-                            onOpen={controller.setActivePolicy}
+                            onOpen={handleOpenPolicy}
                             selectionActive={controller.selectionActive}
                             selected={controller.selectedIdSet.has(policy.id)}
                             selectionMode={controller.selectionMode}
@@ -274,12 +287,14 @@ export const MobileInsurance = ({
           </section>
         </div>
 
-        <MobileInsuranceDetailSheet
-          denied={denied}
-          activePolicy={controller.activePolicy}
-          setActivePolicy={controller.setActivePolicy}
-          onView={onView}
-        />
+        {!hasTabletDetailPane && (
+          <MobileInsuranceDetailSheet
+            denied={denied}
+            activePolicy={controller.activePolicy}
+            setActivePolicy={controller.setActivePolicy}
+            onView={onView}
+          />
+        )}
       </MobilePageShell>
     </PullToRefresh>
   );
