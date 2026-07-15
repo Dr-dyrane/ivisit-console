@@ -320,7 +320,7 @@ describe('Pricing Page 18 intake contract', () => {
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('onOpen={handleOpenItem}');
     expect(mobile).toContain('setActiveItem(item);');
-    expect(mobile).toContain('onFocusPrice(item.id);');
+    expect(mobile).not.toContain('onFocusPrice');
     expect(mobile).not.toContain('primary={{');
     expect(mobile).not.toContain('expandedContent');
     expect(mobile).not.toContain('MobileDetailIslands');

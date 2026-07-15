@@ -54,7 +54,7 @@ const getWalletPaymentsPreview = async ({ organizationId = null, isOrgAdmin = fa
                 phone,
                 email
             ),
-            emergency_requests (
+            emergency_requests!payments_emergency_request_id_fkey (
                 id,
                 service_type,
                 created_at,
@@ -141,7 +141,7 @@ export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin =
             ledger: readState.ledger === 'ready' && ledgerProjection?.totalCount !== null
                 ? ledgerProjection.totalCount > safeLimit
                 : ledgerRows.length > safeLimit,
-            payments: paymentsProjection?.totalCount !== null
+            payments: readState.payments === 'ready' && paymentsProjection?.totalCount !== null
                 ? paymentsProjection.totalCount > safeLimit
                 : paymentRows.length > safeLimit,
         },

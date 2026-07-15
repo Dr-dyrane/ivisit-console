@@ -1,10 +1,13 @@
 import React from 'react';
+import { useNavigation } from '../../../contexts/NavigationContext';
 import { SEOHead } from '../../common/SEOHead';
 import { FilterSheet } from '../../common/FilterSheet';
 import { MobileHealthNews } from '../../mobile/MobileHealthNews';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { HealthNewsModal } from '../../modals/HealthNewsModal';
+import { TabletHealthNews } from '../../tablet/TabletHealthNews';
 import { HealthNewsDesktopWorkspace } from './HealthNewsDesktopWorkspace';
+import { HealthNewsDetailRail } from './HealthNewsDetailRail';
 import { HealthNewsProjectionStatsNotice } from './HealthNewsProjectionStatsNotice';
 import { HEALTH_NEWS_FILTER_SCHEMA } from './healthNewsPageModel';
 
@@ -37,7 +40,9 @@ const HealthNewsPageDialogs = ({ controller }) => (
 );
 
 export const HealthNewsPageView = ({ controller }) => {
-  if (controller.isMobile) {
+  const { isPhone, isTablet } = useNavigation();
+
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
@@ -61,6 +66,46 @@ export const HealthNewsPageView = ({ controller }) => {
           analyticsOpen={controller.analyticsModalOpen}
           hasMore={controller.pagination.hasNextPage}
           onLoadMore={controller.pagination.nextPage}
+        />
+        <HealthNewsPageDialogs controller={controller} />
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div className="min-h-screen text-foreground">
+        <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
+        <TabletHealthNews
+          articles={controller.newsRows}
+          stats={controller.stats}
+          statsUnavailable={controller.statsUnavailable}
+          loading={controller.loading}
+          isFetching={controller.isFetching}
+          errorMessage={controller.healthNewsError}
+          filters={controller.filters}
+          kpiFilter={controller.kpiFilter}
+          setKpiFilter={controller.handleKpiFilterChange}
+          focusedNews={controller.focusedNews}
+          onFocus={controller.setFocused}
+          onView={controller.handleView}
+          onRefresh={controller.fetchHealthNews}
+          onRetry={controller.fetchHealthNews}
+          onSearchCommit={controller.setSearchFilter}
+          onOpenFilters={controller.handleOpenFilters}
+          onViewAnalytics={controller.handleOpenAnalytics}
+          filterSheetOpen={controller.filterSheetOpen}
+          pagination={controller.pagination}
+          detail={(
+            <HealthNewsDetailRail
+              news={controller.focusedNews}
+              loading={controller.loading}
+              hasFilter={controller.hasFilter}
+              onView={controller.handleView}
+              activeActionFeedback={controller.activeActionFeedback}
+              embedded
+            />
+          )}
         />
         <HealthNewsPageDialogs controller={controller} />
       </div>

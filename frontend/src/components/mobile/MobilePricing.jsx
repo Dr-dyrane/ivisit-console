@@ -12,7 +12,6 @@ import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { useNavigation } from '../../contexts/NavigationContext';
 import { MobilePricingAtlasLayer } from './pricing/MobilePricingAtlasLayer';
 import { MobilePricingDetailSheet } from './pricing/MobilePricingDetailSheet';
 import { MobilePricingList } from './pricing/MobilePricingList';
@@ -52,10 +51,7 @@ export const MobilePricing = ({
   selectedIds = [],
   onSelect,
   onSelectAll,
-  onFocusPrice,
-  tabletPane,
 }) => {
-  const { isTablet } = useNavigation();
   const observerTarget = useRef(null);
   const [activeItem, setActiveItem] = useState(null);
   const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
@@ -76,14 +72,7 @@ export const MobilePricing = ({
     loading: loading || isLoadingMore,
     onLoadMore,
   });
-  const hasTabletDetailPane = Boolean(isTablet && tabletPane);
-  const handleOpenItem = (item) => {
-    if (hasTabletDetailPane && onFocusPrice) {
-      onFocusPrice(item.id);
-      return;
-    }
-    setActiveItem(item);
-  };
+  const handleOpenItem = (item) => setActiveItem(item);
 
   useEffect(() => {
     if (!hasMore) return undefined;
@@ -109,7 +98,6 @@ export const MobilePricing = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobilePricingAtlasLayer />
@@ -213,12 +201,10 @@ export const MobilePricing = ({
           </section>
         </div>
 
-        {!hasTabletDetailPane && (
-          <MobilePricingDetailSheet
-            activeItem={activeItem}
-            onClose={() => setActiveItem(null)}
-          />
-        )}
+        <MobilePricingDetailSheet
+          activeItem={activeItem}
+          onClose={() => setActiveItem(null)}
+        />
       </MobilePageShell>
     </PullToRefresh>
   );

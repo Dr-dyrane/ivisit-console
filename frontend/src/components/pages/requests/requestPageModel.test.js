@@ -1,7 +1,6 @@
 import {
   buildRequestsServiceFilter,
   getDefaultRequestKpi,
-  getPrimaryRailAction,
   getRequestKpiCount,
   getRequestSignal,
   hasActiveRequestFilters,
@@ -76,51 +75,6 @@ describe('Requests page model', () => {
     });
   });
 
-  it('keeps detail-rail command precedence aligned with lifecycle authority', () => {
-    const onView = jest.fn();
-    const onDispatch = jest.fn();
-    const onComplete = jest.fn();
-
-    expect(getPrimaryRailAction({
-      request: { status: 'pending_approval' },
-      actionState: { canDispatch: true, canComplete: true },
-      canManage: true,
-      canCompleteAsProvider: true,
-      onView,
-      onDispatch,
-      onComplete,
-    })).toMatchObject({ kind: 'review', label: 'Review', onClick: onView });
-
-    expect(getPrimaryRailAction({
-      request: { status: 'accepted' },
-      actionState: { canDispatch: true, canComplete: false },
-      canManage: true,
-      canCompleteAsProvider: false,
-      onView,
-      onDispatch,
-      onComplete,
-    })).toMatchObject({ kind: 'dispatch', label: 'Dispatch', onClick: onDispatch });
-
-    expect(getPrimaryRailAction({
-      request: { status: 'in_progress' },
-      actionState: { canDispatch: false, canComplete: true },
-      canManage: false,
-      canCompleteAsProvider: true,
-      onView,
-      onDispatch,
-      onComplete,
-    })).toMatchObject({ kind: 'complete', label: 'Complete', onClick: onComplete });
-
-    expect(getPrimaryRailAction({
-      request: { status: 'completed' },
-      actionState: { canDispatch: false, canComplete: false },
-      canManage: false,
-      canCompleteAsProvider: false,
-      onView,
-      onDispatch,
-      onComplete,
-    })).toMatchObject({ kind: 'details', label: 'Details', onClick: onView });
-  });
 });
 
 describe('Requests mobile model', () => {

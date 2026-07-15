@@ -394,7 +394,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('<ListRowShell');
     expect(page).toContain('selected={isFocused(hospital.id)}');
     expect(page).toContain('setFocused(hospital.id)');
-    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<DetailRailShell embedded={embedded}>');
     expect(page).toContain('<RailInsetHero>');
     expect(page).toContain('<DetailLine');
     expect(page).toContain('<CopyChip value={model.displayId} label="Copy record ID" />');

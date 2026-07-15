@@ -15,7 +15,9 @@ import { updateProfile } from '../../services/profilesService';
 import { useWayfindingNav } from '../console/WorkspaceStage';
 import { SEOHead } from '../common/SEOHead';
 import { MobileUsers } from '../mobile/MobileUsers';
+import { TabletUsers } from '../tablet/TabletUsers';
 import { Button } from '../ui/button';
+import { UsersDetailRail } from './users/UsersDetailRail';
 import { UsersDesktopWorkspace } from './users/UsersDesktopWorkspace';
 import { UsersBulkActionBar, UsersPageDialogs } from './users/UsersPageOverlays';
 import {
@@ -28,7 +30,7 @@ import {
 
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isMobile, isPhone, isTablet } = useNavigation();
   const location = useLocation();
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalMode, setModalMode] = useState(null);
@@ -328,7 +330,7 @@ export const UsersPage = () => {
     />
   ) : null;
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Users" description="User Management Mission Control" />
@@ -362,6 +364,40 @@ export const UsersPage = () => {
         />
         {dialogs}
         {bulkActions}
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div className="min-h-screen text-foreground">
+        <SEOHead title="Users" description="Manage user profiles, roles, and verifications." />
+        <TabletUsers
+          users={userRows} statistics={derivedStats} statisticsError={statisticsError}
+          loading={loading} isFetching={isFetching} errorMessage={loadError}
+          filters={filters} kpiFilter={activeUsersFilter} setKpiFilter={setKpiFilter}
+          focusedUser={focusedUser} onFocus={setFocused} onView={handleView}
+          onRefresh={fetchUsers} onRetry={fetchUsers} onSearchCommit={setSearchFilter}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={handleViewAnalytics} filterSheetOpen={filterSheetOpen}
+          selectable={selectable} selectedIds={selectedIds}
+          allSelected={allSelected} someSelected={someSelected}
+          onToggleSelect={handleToggleSelect} onSelectAll={handleSelectAll}
+          pagination={pagination}
+          detail={(
+            <UsersDetailRail
+              user={focusedUser}
+              loading={loading}
+              hasFilter={hasFilter}
+              canManage={canManage}
+              onView={handleView}
+              onEdit={handleEdit}
+              embedded
+            />
+          )}
+        />
+        {bulkActions}
+        {dialogs}
       </div>
     );
   }

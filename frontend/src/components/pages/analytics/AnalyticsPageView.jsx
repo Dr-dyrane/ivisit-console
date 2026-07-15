@@ -2,8 +2,10 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { SEOHead } from '../../common/SEOHead';
 import { MobileAnalytics } from '../../mobile/MobileAnalytics';
+import { TabletAnalytics } from '../../tablet/TabletAnalytics';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { Button } from '../../ui/button';
+import { useNavigation } from '../../../contexts/NavigationContext';
 import {
   AnalyticsDesktopWorkspace,
   getAnalyticsDetailRailProps,
@@ -83,7 +85,8 @@ const AnalyticsStatusBanners = ({ loadError, issueSummary, commandNotice, onRetr
 );
 
 export const AnalyticsPageView = ({ controller }) => {
-  const { isMobile, role, data, state, actions, wayfinding } = controller;
+  const { isPhone, isTablet } = useNavigation();
+  const { role, data, state, actions, wayfinding } = controller;
   const pageMetadata = (
     <SEOHead
       title="Statistics"
@@ -98,8 +101,18 @@ export const AnalyticsPageView = ({ controller }) => {
       type="emergency"
     />
   );
+  const detailRailProps = getAnalyticsDetailRailProps({
+    stats: data.stats,
+    requestSample: data.requestSample,
+    dataWindow: state.snapshotTimeRange || state.timeRange,
+    roleContext: role.roleContext,
+    sourceReadiness: data.sourceReadiness,
+    dominantType: data.dominantType,
+    isLoading: state.loading && !state.snapshotReady,
+    isFetching: state.analyticsIsFetching,
+  });
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <>
         {pageMetadata}
@@ -129,19 +142,44 @@ export const AnalyticsPageView = ({ controller }) => {
           snapshotReady={state.snapshotReady}
           isLoading={state.loading && !state.snapshotReady}
           isFetching={state.analyticsIsFetching}
-          tabletPane={(
-            <AnalyticsDetailRail
-              {...getAnalyticsDetailRailProps({
-                stats: data.stats,
-                requestSample: data.requestSample,
-                dataWindow: state.snapshotTimeRange || state.timeRange,
-                roleContext: role.roleContext,
-                sourceReadiness: data.sourceReadiness,
-                dominantType: data.dominantType,
-                isLoading: state.loading && !state.snapshotReady,
-                isFetching: state.analyticsIsFetching,
-              })}
-              embedded
+        />
+        {detailsModal}
+      </>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <>
+        {pageMetadata}
+        <TabletAnalytics
+          detail={<AnalyticsDetailRail {...detailRailProps} embedded />}
+          detailMetrics={detailRailProps.metricItems}
+          stats={data.stats}
+          requestSample={data.requestSample}
+          timeRange={state.timeRange}
+          windowLabel={detailRailProps.windowLabel}
+          onTimeRangeChange={actions.handleTimeRangeChange}
+          onRefresh={actions.fetchAnalytics}
+          requestsByDay={data.requestsByDay}
+          requestsByStatus={data.requestsByStatus}
+          emergencyTypes={data.emergencyTypes}
+          hospitalCapacity={data.resolvedHospitalCapacity}
+          subscriptionStats={data.resolvedSubscriptionStats}
+          financeSummary={data.financeSummary}
+          sourceReadiness={data.sourceReadiness}
+          canReadSubscriptionAnalytics={role.canReadSubscriptionAnalytics}
+          canReadFinanceAnalytics={role.canReadFinanceAnalytics}
+          isLoading={state.loading && !state.snapshotReady}
+          isFetching={state.analyticsIsFetching}
+          snapshotReady={state.snapshotReady}
+          loadError={state.analyticsLoadError}
+          statusBanners={(
+            <AnalyticsStatusBanners
+              loadError={state.analyticsLoadError}
+              issueSummary={state.visibleAnalyticsSourceIssueSummary}
+              commandNotice={state.commandNotice}
+              onRetry={actions.fetchAnalytics}
             />
           )}
         />

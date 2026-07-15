@@ -29,6 +29,20 @@ export const createWalletPageDataState = () => ({
   financeMetricsStale: false,
 });
 
+export const getWalletActivityLoadError = (readState = {}) => {
+  const failedActivityReads = [
+    ['ledger', 'Transactions'],
+    ['payments', 'Patient payments'],
+    ['financeMetrics', 'Payment totals'],
+  ].filter(([key]) => readState[key] === 'failed');
+
+  if (failedActivityReads.length === 0) return '';
+  if (failedActivityReads.length === 1) {
+    return `${failedActivityReads[0][1]} could not refresh.`;
+  }
+  return 'Some payment activity could not refresh.';
+};
+
 export const reconcileWalletPageData = (current, data) => {
   const incomingReadState = data?.readState || createWalletReadState();
   let financeMetrics = null;

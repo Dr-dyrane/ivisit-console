@@ -33,10 +33,10 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
   </Button>
 );
 
-export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit }) => {
+export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, onEdit, embedded = false }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="space-y-3">
             <Shimmer className="h-6 w-36 rounded-inner" />
@@ -62,7 +62,7 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
 
   if (!user) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Users className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No user selected</h2>
@@ -79,7 +79,7 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
   const TypeIcon = getProviderTypeIcon(projection.providerType);
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { applyOptimisticStatus, useEmergencyMutations } from '../../../hooks/useEmergencyMutations';
+import { useEmergencyMutations } from '../../../hooks/useEmergencyMutations';
 import { useRowSelection } from '../../../hooks/useRowSelection';
 import { createNotification, NotificationActions, NotificationTypes } from '../../../services/notificationService';
 import {
@@ -8,8 +8,11 @@ import {
   EMERGENCY_PAYMENT_RETRY_UNAVAILABLE_REASON,
 } from '../../../services/emergencyService';
 import { completeEmergency, dispatchEmergency } from '../../../services/emergencyResponseService';
-import { getEmergencyActionState } from '../../../utils/emergencyActions';
 import { isCashPaymentMethod } from '../../../utils/emergencyRequestMapper';
+import {
+  buildEmergencyLifecyclePresentation,
+  canActorCompleteEmergency,
+} from './emergencyLifecyclePresentation';
 
 const DEFAULT_CONFIRMATION_MODAL = {
   isOpen: false,
@@ -38,12 +41,10 @@ export const useEmergencyRequestCommands = ({
   });
   const completeMutation = useEmergencyMutations({
     mutationFn: ({ id, request }) => completeEmergency(id, request),
-    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'completed'),
     filter: queryFilter,
   });
   const cancelMutation = useEmergencyMutations({
     mutationFn: ({ id, reason }) => cancelEmergencyRequest(id, reason),
-    applyOptimistic: (cache, variables) => applyOptimisticStatus(cache, variables.id, 'cancelled'),
     filter: queryFilter,
   });
   const dispatchMutateAsync = dispatchMutation.mutateAsync;
@@ -54,8 +55,26 @@ export const useEmergencyRequestCommands = ({
     request?.display_id || request?.hospital_name || request?.service_type || 'selected request'
   ), []);
 
+  const getLifecyclePresentation = useCallback((request, receivers = {}) => {
+    const canManage = Boolean(canOperateDispatch?.());
+    const canComplete = canActorCompleteEmergency(request, {
+      canManage,
+      isProvider: Boolean(isProvider?.()),
+      userId: user?.id,
+    });
+    return buildEmergencyLifecyclePresentation(request, {
+      canManage,
+      canComplete,
+      receivers,
+    });
+  }, [canOperateDispatch, isProvider, user?.id]);
+
+  const canCancelRequest = useCallback((request) => (
+    getLifecyclePresentation(request, { cancel: true }).actionState.canCancel
+  ), [getLifecyclePresentation]);
+
   const handleDelete = useCallback(async (request) => {
-    if (!getEmergencyActionState(request).canCancel) {
+    if (!canCancelRequest(request)) {
       toast.info('This request is already closed.');
       await fetchRequests();
       return;
@@ -89,7 +108,7 @@ export const useEmergencyRequestCommands = ({
       variant: 'destructive',
       confirmLabel: 'Cancel request',
     });
-  }, [cancelMutateAsync, fetchRequests, getEmergencyLabel]);
+  }, [canCancelRequest, cancelMutateAsync, fetchRequests, getEmergencyLabel]);
 
   const {
     selectedIds,
@@ -102,7 +121,7 @@ export const useEmergencyRequestCommands = ({
   const executeBulkCancel = useCallback(async () => {
     setConfirmationModal((previous) => ({ ...previous, isOpen: false }));
     const targets = requests.filter(
-      (row) => selectedIds.includes(row.id) && getEmergencyActionState(row).canCancel
+      (row) => selectedIds.includes(row.id) && canCancelRequest(row)
     );
     if (targets.length === 0) {
       clearSelection();
@@ -136,11 +155,11 @@ export const useEmergencyRequestCommands = ({
     } else {
       toast.success(`${targets.length} request${targets.length === 1 ? '' : 's'} cancelled`, { id: 'bulk-cancel' });
     }
-  }, [cancelMutateAsync, clearSelection, requests, selectedIds]);
+  }, [canCancelRequest, cancelMutateAsync, clearSelection, requests, selectedIds]);
 
   const cancellableSelectedCount = useMemo(
-    () => requests.filter((row) => selectedIds.includes(row.id) && getEmergencyActionState(row).canCancel).length,
-    [requests, selectedIds]
+    () => requests.filter((row) => selectedIds.includes(row.id) && canCancelRequest(row)).length,
+    [canCancelRequest, requests, selectedIds]
   );
 
   const handleBulkCancel = useCallback(() => {
@@ -156,7 +175,8 @@ export const useEmergencyRequestCommands = ({
   }, [cancellableSelectedCount, executeBulkCancel]);
 
   const handleDispatch = useCallback(async (request) => {
-    const actionState = getEmergencyActionState(request);
+    const lifecycle = getLifecyclePresentation(request, { dispatch: true });
+    const actionState = lifecycle.actionState;
     if (!actionState.canDispatch) {
       toast.info('This request is not ready to dispatch. Refreshing list...');
       await fetchRequests();
@@ -164,7 +184,7 @@ export const useEmergencyRequestCommands = ({
     }
 
     try {
-      const isBedRequest = actionState.isBedFlow;
+      const isBedRequest = lifecycle.service.isBed;
       toast.loading(isBedRequest ? 'Accepting bed request...' : 'Sending responder offer...', { id: 'dispatch' });
       const result = await dispatchMutateAsync({ id: request.id, request });
       if (result.outcome === 'bed_accepted') {
@@ -186,17 +206,12 @@ export const useEmergencyRequestCommands = ({
       }
       toast.error(message || 'Failed to dispatch request', { id: 'dispatch' });
     }
-  }, [dispatchMutateAsync, fetchRequests]);
+  }, [dispatchMutateAsync, fetchRequests, getLifecyclePresentation]);
 
   const canCurrentActorCompleteRequest = useCallback((request) => {
-    const actionState = getEmergencyActionState(request);
-    if (!actionState.canComplete) return false;
-    if (actionState.isBedFlow) return canOperateDispatch();
-    return String(request?.status || '').toLowerCase() === 'arrived'
-      && isProvider()
-      && Boolean(user?.id)
-      && request?.responder_id === user.id;
-  }, [canOperateDispatch, isProvider, user?.id]);
+    const lifecycle = getLifecyclePresentation(request, { complete: true });
+    return lifecycle.actionState.canComplete;
+  }, [getLifecyclePresentation]);
 
   const handleComplete = useCallback((request) => {
     if (!canCurrentActorCompleteRequest(request)) {

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getHealthNewsPage } from '../services/healthNewsService';
 
+const EMPTY_HEALTH_NEWS_ROWS = Object.freeze([]);
+
 /**
  * useHealthNewsQuery - real-data Health News list via React Query
  * (TanStack Query v5).
@@ -32,7 +34,7 @@ export function useHealthNewsQuery(filter = {}) {
   });
 
   return {
-    data: query.data?.data ?? [],
+    data: query.data?.data ?? EMPTY_HEALTH_NEWS_ROWS,
     count: query.data?.count ?? 0,
     stats: query.data?.stats ?? null,
     loading: query.isLoading,

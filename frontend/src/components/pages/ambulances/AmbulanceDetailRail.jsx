@@ -29,10 +29,11 @@ export const AmbulanceDetailRail = ({
   onView,
   onEdit,
   activeActionFeedback,
+  embedded = false,
 }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="mb-4 h-5 w-28 rounded-pill bg-muted/40" />
         <Shimmer className="h-28 rounded-card" />
         <div className="mt-4 space-y-3">
@@ -46,7 +47,7 @@ export const AmbulanceDetailRail = ({
 
   if (!ambulance) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Ambulance className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No unit selected</h2>
@@ -64,7 +65,7 @@ export const AmbulanceDetailRail = ({
   const StatusIcon = getAmbulanceStatusIcon(model.status);
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <div data-testid="ambulances-detail-rail">
         <RailInsetHero>
           <div className="mb-4 flex items-start justify-between gap-4">

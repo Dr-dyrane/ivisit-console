@@ -65,6 +65,17 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(routeMetadata).toContain("{ id: 'healthNews', path: '/health-news', minRole: 'org_admin' }");
   });
 
+  it('keeps the phone accumulator out of tablet renders and stabilizes the empty query result', () => {
+    const controller = fs.readFileSync('src/components/pages/health-news/useHealthNewsPageController.js', 'utf8');
+    const hook = fs.readFileSync('src/hooks/useHealthNewsQuery.js', 'utf8');
+
+    expect(controller).toContain('const { isPhone, isMobile } = useNavigation();');
+    expect(controller).toContain('if (!isPhone) return;');
+    expect(controller).toContain('[currentPage, isPhone, newsRows]');
+    expect(hook).toContain('const EMPTY_HEALTH_NEWS_ROWS = Object.freeze([]);');
+    expect(hook).toContain('data: query.data?.data ?? EMPTY_HEALTH_NEWS_ROWS');
+  });
+
   it('anchors the Health News ledger to old Git-backed behavior', () => {
     const oldPage = headSource('frontend/src/components/pages/HealthNewsManagementPage.jsx');
     const oldService = headSource('frontend/src/services/healthNewsService.js');

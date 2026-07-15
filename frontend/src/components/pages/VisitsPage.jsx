@@ -30,6 +30,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileVisits } from '../mobile/MobileVisits';
+import { TabletVisits } from '../tablet/TabletVisits';
 import { VisitsDesktopWorkspace, VisitsDetailRail } from './visits/VisitsDesktopWorkspace';
 import { hasActiveVisitFilters } from './visits/visitPageModel';
 import { useVisitsDataSource } from './visits/useVisitsDataSource';
@@ -83,7 +84,7 @@ const VisitDeepLinkNotice = ({ state, onRetry }) => {
 
 export const VisitsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver, profile } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet, isMobile } = useNavigation();
   const location = useLocation();
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
@@ -445,11 +446,12 @@ export const VisitsPage = () => {
   usePageFooter(null, 'status', false);
   usePageShell({ bleed: true, hideFab: true });
 
-  if (isMobile) {
+  if (isPhone || isTablet) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Visits" description="Review visit records in your current scope." />
         <VisitDeepLinkNotice state={deepLinkState} onRetry={retryDeepLinkedVisit} />
+        {isPhone ? (
         <MobileVisits
           visits={visits}
           loading={loading}
@@ -470,20 +472,6 @@ export const VisitsPage = () => {
           viewMode={viewMode}
           onViewModeChange={changeViewMode}
           scheduledViewEnabled={scheduledCareRelease.scheduledVisitReads}
-          tabletPane={(
-            <VisitsDetailRail
-              visit={focusedVisit}
-              loading={loading}
-              canEdit={canEditVisits}
-              onView={handleView}
-              onEdit={handleEdit}
-              onManageScheduledVisit={handleManageScheduledVisit}
-              canManageScheduledVisit={canManageScheduledVisit}
-              activeActionFeedback={activeActionFeedback}
-              embedded
-            />
-          )}
-          onFocusVisit={setFocusedVisitId}
           pageSnapshot={visitPageSnapshot}
           onRefresh={fetchVisits}
           errorMessage={visitPageError}
@@ -502,6 +490,48 @@ export const VisitsPage = () => {
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
+        ) : (
+        <TabletVisits
+          visits={visits}
+          loading={loading}
+          isFetching={isFetching}
+          count={pagination.totalCount || visits.length}
+          statistics={visitPageStats}
+          filters={filters}
+          setFilters={setFilters}
+          activeKpi={selectedKpiFilter}
+          onKpiChange={setKpiFilter}
+          onView={handleView}
+          focusedVisit={focusedVisit}
+          onFocusVisit={setFocusedVisitId}
+          onRefresh={fetchVisits}
+          errorMessage={visitPageError}
+          onRetry={fetchVisits}
+          onViewAnalytics={handleOpenAnalytics}
+          onOpenFilters={handleOpenFilters}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          selectionEnabled={isAdmin()}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          detail={(
+            <VisitsDetailRail
+              visit={focusedVisit}
+              loading={loading}
+              canEdit={canEditVisits}
+              onView={handleView}
+              onEdit={handleEdit}
+              onManageScheduledVisit={handleManageScheduledVisit}
+              canManageScheduledVisit={canManageScheduledVisit}
+              activeActionFeedback={activeActionFeedback}
+              embedded
+            />
+          )}
+        />
+        )}
 
         {/* Modals & Sheets */}
         {modalMode && (

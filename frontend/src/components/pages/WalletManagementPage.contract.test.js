@@ -567,6 +567,7 @@ describe('WalletManagementPage Payments contract', () => {
     expect(page).not.toContain('setLedger([])');
     expect(page).not.toContain('setPayments([])');
     expect(page).not.toContain('error?.message');
+    expect(page).toContain('getWalletActivityLoadError(data.readState)');
     expect(page).toContain("setLoadError('Payments could not load. Please try again.');");
     expect(page).toContain("key === 'financeMetrics' && hasConfirmedMetrics");
     expect(page).toContain("value === 'ready'");

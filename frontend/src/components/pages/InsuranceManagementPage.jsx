@@ -33,7 +33,7 @@ import {
 
 export const InsuranceManagementPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet, isMobile } = useNavigation();
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
@@ -219,6 +219,8 @@ export const InsuranceManagementPage = () => {
 
   return (
     <InsurancePageView
+      isPhone={isPhone}
+      isTablet={isTablet}
       isMobile={isMobile}
       seoHead={seoHead}
       bulkActionBar={bulkActionBar}

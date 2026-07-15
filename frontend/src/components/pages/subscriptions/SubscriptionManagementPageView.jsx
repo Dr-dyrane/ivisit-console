@@ -8,6 +8,7 @@ import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { ConfirmationModal } from '../../modals/ConfirmationModal';
 import { SubscriptionModal } from '../../modals/SubscriptionModal';
 import { MobileSubscriptions } from '../../mobile/MobileSubscriptions';
+import { TabletSubscriptions } from '../../tablet/TabletSubscriptions';
 import {
   SubscriberDetailRail,
   SubscriptionsDesktopWorkspace,
@@ -24,9 +25,8 @@ const ProjectionStatsNotice = () => (
   </p>
 );
 
-export const SubscriptionManagementPageView = ({ controller }) => {
+export const SubscriptionManagementPageView = ({ controller, isPhone, isTablet, isMobile }) => {
   const {
-    isMobile,
     role,
     data,
     state,
@@ -38,7 +38,7 @@ export const SubscriptionManagementPageView = ({ controller }) => {
     wayfinding,
   } = controller;
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Email Subscribers" description="Review subscriber lifecycle and welcome evidence." />
@@ -68,20 +68,6 @@ export const SubscriptionManagementPageView = ({ controller }) => {
           onSelectAll={selection.handleSelectAll}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
-          onFocusSubscriber={actions.setFocused}
-          tabletPane={(
-            <SubscriberDetailRail
-              subscriber={state.focusedSubscriber}
-              denied={data.subscriptionDenied}
-              loading={data.loading || (
-                data.subscriptionIsFetching
-                && data.mobileVisibleSubscribers.length === 0
-              )}
-              hasFilter={state.hasSubscriberFilters}
-              onView={actions.handleView}
-              embedded
-            />
-          )}
         />
 
         <SubscriptionModal
@@ -119,6 +105,109 @@ export const SubscriptionManagementPageView = ({ controller }) => {
           confirmLabel={state.confirmationModal.confirmLabel}
         />
       </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <>
+        <SEOHead title="Email Subscribers" description="Review subscriber lifecycle and welcome evidence." />
+        <TabletSubscriptions
+          subscribers={data.mobileVisibleSubscribers}
+          stats={data.subscriptionDisplayStats}
+          subscriberCount={data.subscriberCount}
+          statsUnavailable={data.subscriptionStatsUnavailable}
+          denied={data.subscriptionDenied}
+          filters={state.filters}
+          setFilters={setters.setFilters}
+          loading={data.loading || (
+            data.subscriptionIsFetching
+            && data.mobileVisibleSubscribers.length === 0
+          )}
+          isFetching={data.subscriptionIsFetching}
+          errorMessage={data.error ? String(data.error?.message || data.error) : null}
+          onRetry={data.fetchSubscribers}
+          onRefresh={data.fetchSubscribers}
+          onOpenFilters={actions.handleOpenFilters}
+          onViewAnalytics={actions.handleViewAnalytics}
+          actionNotice={state.subscriptionCommandNotice}
+          focusedSubscriber={state.focusedSubscriber}
+          onFocusSubscriber={actions.setFocused}
+          onView={actions.handleView}
+          selectionEnabled={role.canManageSubscribers}
+          selectedIds={selection.selectedIds}
+          onSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          detail={(
+            <SubscriberDetailRail
+              subscriber={state.focusedSubscriber}
+              denied={data.subscriptionDenied}
+              loading={data.loading || (
+                data.subscriptionIsFetching
+                && data.mobileVisibleSubscribers.length === 0
+              )}
+              hasFilter={state.hasSubscriberFilters}
+              onView={actions.handleView}
+              embedded
+            />
+          )}
+        />
+
+        {role.canManageSubscribers && (
+          <BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled
+              data-state="unavailable"
+              title="Bulk subscriber changes unavailable"
+              aria-label="Bulk subscriber changes unavailable"
+              className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-40"
+            >
+              <MailX className="h-5 w-5" />
+            </Button>
+          </BulkActionBar>
+        )}
+
+        <SubscriptionModal
+          isOpen={!!state.modalMode}
+          onClose={() => setters.setModalMode(null)}
+          subscriber={state.selectedSubscriber}
+          mode={state.modalMode}
+          onSave={actions.handleSave}
+        />
+
+        <AnalyticsModal
+          open={state.analyticsModalOpen}
+          onClose={() => setters.setAnalyticsModalOpen(false)}
+          type="subscription"
+          analytics={data.subscriptionAnalytics}
+        />
+
+        <FilterSheet
+          isOpen={state.filterSheetOpen}
+          onOpenChange={setters.setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setters.setFilters}
+          initialValues={state.filters}
+          viewToggle={null}
+          isMobile={isMobile}
+        />
+
+        <ConfirmationModal
+          isOpen={state.confirmationModal.isOpen}
+          onClose={() => setters.setConfirmationModal((previous) => ({ ...previous, isOpen: false }))}
+          onConfirm={state.confirmationModal.onConfirm}
+          title={state.confirmationModal.title}
+          description={state.confirmationModal.description}
+          variant={state.confirmationModal.variant}
+          confirmLabel={state.confirmationModal.confirmLabel}
+        />
+      </>
     );
   }
 

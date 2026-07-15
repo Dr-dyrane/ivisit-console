@@ -19,7 +19,7 @@ const HeaderDivider = () => (
 export const SmartHeader = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { usesCompactNavigation } = useNavigation();
+    const { isTablet, usesCompactNavigation } = useNavigation();
     const { isScrolledDown, headerConfig, sidebarWidth, isContextPanelOpen, openContextPanel, closeContextPanel } = useLayout();
     const { user, profile } = useAuth();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -171,7 +171,7 @@ export const SmartHeader = () => {
                             accountButton
                         )}
 
-                        {/* CENTER - logo or page title */}
+                        {/* CENTER - home identity on phones/tablets; route title on compact tablets. */}
                         {isHome ? (
                             <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-pill backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] pointer-events-none select-none">
                                 <img src="/logo.png" alt="iVisit" className="h-4 w-4 object-contain opacity-90" />
@@ -180,6 +180,15 @@ export const SmartHeader = () => {
                                     <span className="text-primary leading-none">.</span>
                                 </span>
                             </div>
+                        ) : isTablet && headerConfig.title ? (
+                            <motion.h1
+                                key={headerConfig.title}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="pointer-events-none absolute left-1/2 max-w-[14rem] -translate-x-1/2 truncate text-sm font-semibold text-foreground"
+                            >
+                                {headerConfig.title}
+                            </motion.h1>
                         ) : (
                             null
                         )}

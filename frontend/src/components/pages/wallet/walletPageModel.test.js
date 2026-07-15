@@ -2,6 +2,7 @@ import {
   buildLoadedPaymentAnalytics,
   createWalletPageDataState,
   getLedgerTotalsProjection,
+  getWalletActivityLoadError,
   getWalletFilterSchema,
   matchesMobileWalletActivity,
   matchesWalletActivity,
@@ -17,6 +18,19 @@ describe('walletPageModel', () => {
     debits: 45,
     scopeLabel: 'All recorded ledger entries',
   };
+
+  it('keeps optional saved-card failures out of the activity warning', () => {
+    expect(getWalletActivityLoadError({
+      ledger: 'ready',
+      payments: 'ready',
+      paymentMethods: 'failed',
+      financeMetrics: 'ready',
+    })).toBe('');
+    expect(getWalletActivityLoadError({ payments: 'failed' }))
+      .toBe('Patient payments could not refresh.');
+    expect(getWalletActivityLoadError({ ledger: 'failed', financeMetrics: 'failed' }))
+      .toBe('Some payment activity could not refresh.');
+  });
 
   it('preserves only failed slices and keeps last confirmed finance totals stale', () => {
     const current = {

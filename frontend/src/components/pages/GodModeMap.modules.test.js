@@ -86,8 +86,10 @@ describe('GodModeMap module ownership', () => {
     expect(mobileMapCanvas).toContain("style={{ bottom: usesCompactNavigation ? 'var(--total-bottom-clearance)' : '0px' }}");
     expect(mobileMapChrome).toContain('<MapViewportSummary');
     expect(mobileMapDetails).toContain('emergencyActionState?.canDispatch');
+    expect(mobileMapDetails).toContain('canCompleteFromMap');
     expect(mobileMapController).toContain('dispatchEmergency(');
     expect(mobileMapController).toContain('completeEmergency(');
+    expect(mobileMapController).toContain('emergencyActionState?.isBedFlow');
     expect(mobileMapPresentation).toContain('export const getMobileMapKpis');
   });
 

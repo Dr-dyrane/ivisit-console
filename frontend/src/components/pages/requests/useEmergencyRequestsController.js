@@ -5,6 +5,7 @@ import { useNavigation } from '../../../contexts/NavigationContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getEmergencyRequest } from '../../../services/emergencyService';
 import { getFilterTriggerState } from '../../console/ActivitySheet';
+import { canActorCompleteEmergency } from './emergencyLifecyclePresentation';
 import { hasActiveRequestFilters, REQUEST_FILTER_SCHEMA } from './requestPageModel';
 import { useEmergencyRequestCommands } from './useEmergencyRequestCommands';
 import { useEmergencyRequestsChrome } from './useEmergencyRequestsChrome';
@@ -23,7 +24,7 @@ export const useEmergencyRequestsController = () => {
     user,
     loading: authLoading,
   } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet, isMobile } = useNavigation();
   const location = useLocation();
   const currentUser = useMemo(() => ({
     isAdmin: () => isAdmin(),
@@ -31,10 +32,11 @@ export const useEmergencyRequestsController = () => {
     isDispatcher: () => isDispatcher(),
     canOperateDispatch: () => canOperateDispatch(),
     isProvider: () => isProvider(),
-    canCompleteRequest: (request) => (
-      canOperateDispatch()
-      || (isProvider() && Boolean(user?.id) && request?.responder_id === user.id)
-    ),
+    canCompleteRequest: (request) => canActorCompleteEmergency(request, {
+      canManage: canOperateDispatch(),
+      isProvider: isProvider(),
+      userId: user?.id,
+    }),
     user,
     profile,
   }), [canOperateDispatch, isAdmin, isDispatcher, isOrgAdmin, isProvider, profile, user]);
@@ -200,6 +202,8 @@ export const useEmergencyRequestsController = () => {
   }, [fetchRequests]);
 
   return {
+    isPhone,
+    isTablet,
     isMobile,
     includeMine: isDriver(),
     currentUser,

@@ -409,7 +409,7 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(mobile).toContain('const [activeSubscriber, setActiveSubscriber] = useState(null);');
     expect(mobile).toContain('onOpen={handleOpenSubscriber}');
     expect(mobile).toContain('controller.setActiveSubscriber(subscriber);');
-    expect(mobile).toContain('onFocusSubscriber(subscriber.id);');
+    expect(mobile).not.toContain('onFocusSubscriber');
     expect(mobile).toContain('<MobileDetailSheet');
     expect(mobile).toContain('isOpen={!!activeSubscriber}');
     expect(mobile).toContain('onClose={() => controller.setActiveSubscriber(null)}');

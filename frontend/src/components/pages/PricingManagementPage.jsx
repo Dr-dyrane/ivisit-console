@@ -8,7 +8,7 @@ import { usePricingRouteBridge } from './pricing/usePricingRouteBridge';
 
 export const PricingManagementPage = () => {
   const { profile, isAdmin, isOrgAdmin, isProvider, isDriver } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet, isMobile } = useNavigation();
   const controller = usePricingPageController({
     profile,
     admin: isAdmin(),
@@ -34,6 +34,8 @@ export const PricingManagementPage = () => {
     <PricingManagementPageView
       controller={controller}
       chrome={chrome}
+      isPhone={isPhone}
+      isTablet={isTablet}
       isMobile={isMobile}
     />
   );

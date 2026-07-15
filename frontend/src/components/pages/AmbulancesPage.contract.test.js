@@ -208,7 +208,7 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain('<SignalPanel signal={signal} loading={loading} toneClassMap={ambulanceToneClass}>');
     expect(page).toContain('<KpiStrip');
     expect(page).toContain('<ActivitySheet');
-    expect(page).toContain('<DetailRailShell>');
+    expect(page).toContain('<DetailRailShell embedded={embedded}>');
     expect(page).not.toContain('const AmbulanceSignalPanel');
     expect(page).not.toContain('const AmbulanceStateStrip');
     expect(page).not.toContain('const AmbulanceActivitySheet');

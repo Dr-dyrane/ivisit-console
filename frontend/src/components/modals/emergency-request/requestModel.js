@@ -1,28 +1,11 @@
-export const STATUS_STEPS = ['pending_approval', 'in_progress', 'accepted', 'arrived', 'completed'];
-
-export const STATUS_LABELS = {
-  pending_approval: 'pending',
-  in_progress: 'in progress',
-  accepted: 'en route',
-  arrived: 'arrived',
-  completed: 'completed',
-};
+import { canonicalizeEmergencyStatus } from '../../../utils/emergencyStatus';
 
 export const STATUS_SHORT_LABELS = {
   pending_approval: 'new',
   in_progress: 'active',
-  accepted: 'sent',
+  accepted: 'response',
   arrived: 'arrived',
   completed: 'done',
-};
-
-const STATUS_ALIAS_TO_DB = {
-  pending: 'pending_approval',
-  dispatched: 'in_progress',
-  en_route: 'accepted',
-  assigned: 'accepted',
-  responding: 'accepted',
-  canceled: 'cancelled',
 };
 
 const SUPPORTED_SERVICE_TYPES = new Set(['ambulance', 'bed', 'booking']);
@@ -30,11 +13,9 @@ const SUPPORTED_SERVICE_TYPES = new Set(['ambulance', 'bed', 'booking']);
 export const requestFieldClassName = 'h-11 rounded-inner bg-background/60 transition-[background,box-shadow] focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]';
 export const requestSelectContentClassName = 'rounded-inner bg-background/95 shadow-2xl backdrop-blur-xl';
 
-export const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => {
-  const status = String(value || '').toLowerCase();
-  if (!status) return fallback;
-  return STATUS_ALIAS_TO_DB[status] || status;
-};
+export const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => (
+  canonicalizeEmergencyStatus(value, fallback)
+);
 
 export const normalizeServiceType = (value, fallback = 'ambulance') => {
   const serviceType = String(value || '').trim().toLowerCase();

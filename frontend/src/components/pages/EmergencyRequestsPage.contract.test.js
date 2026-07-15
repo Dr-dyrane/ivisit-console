@@ -14,6 +14,7 @@ const readSourceFiles = (paths) => paths
 const REQUESTS_PAGE_FILES = [
   'src/components/pages/EmergencyRequestsPage.jsx',
   'src/components/pages/requests/requestPageModel.js',
+  'src/components/pages/requests/emergencyLifecyclePresentation.js',
   'src/components/pages/requests/useEmergencyRequestsController.js',
   'src/components/pages/requests/useEmergencyRequestsQueryState.js',
   'src/components/pages/requests/useEmergencyRequestsRealtime.js',
@@ -29,7 +30,6 @@ const REQUESTS_MOBILE_FILES = [
   'src/components/mobile/requests/mobileEmergencyModel.js',
   'src/components/mobile/requests/useMobileEmergencyController.js',
   'src/components/mobile/requests/MobileEmergencyList.jsx',
-  'src/components/mobile/requests/MobileEmergencyDetailSheet.jsx',
 ];
 
 const readRequestsPageSource = () => readSourceFiles(REQUESTS_PAGE_FILES);
@@ -477,8 +477,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('kpiFilter || getDefaultRequestKpi(requestStats)');
     expect(pageSource).toContain('useEmergencyMutations({');
     expect(pageSource).not.toContain("applyOptimisticStatus(cache, variables.id, 'accepted')");
-    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'completed')");
-    expect(pageSource).toContain("applyOptimisticStatus(cache, variables.id, 'cancelled')");
+    expect(pageSource).not.toContain("applyOptimisticStatus(cache, variables.id, 'completed')");
+    expect(pageSource).not.toContain("applyOptimisticStatus(cache, variables.id, 'cancelled')");
     expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true })');
     expect(pageSource).toContain("usePageFooter(null, 'status', false)");
     // The atlas layer + module rail render inside the DS WorkspaceStage
@@ -563,16 +563,15 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(activeRequestsSource).not.toContain('opacity-0 group-hover:opacity-100');
     expect(activeRequestsSource).not.toContain('group-hover:opacity-100');
     expect(activeRequestsSource).not.toContain('hover:opacity');
-    expect(pageSource).toContain('const primaryAction = getPrimaryRailAction({');
+    expect(pageSource).toContain('const lifecycle = buildEmergencyLifecyclePresentation(request, {');
     expect(pageSource).toContain('const primaryClass = REQUEST_RAIL_PRIMARY_ACTION_CLASS[primaryAction.kind]');
     expect(pageSource).toContain('|| REQUEST_RAIL_PRIMARY_ACTION_CLASS.details;');
-    expect(pageSource).toContain('onClick={() => primaryAction.onClick(request)}');
+    expect(pageSource).toContain('onClick={() => primaryHandler?.(request)}');
     expect(pageSource).toContain('{primaryAction.label}');
-    expect(pageSource).toContain("primaryAction.kind !== 'dispatch'");
-    expect(pageSource).toContain("primaryAction.kind !== 'complete'");
-    expect(pageSource).not.toContain("primaryAction.kind !== 'retry'");
-    expect(pageSource).not.toContain("kind: 'retry'");
-    expect(pageSource).toContain('<RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />');
+    expect(pageSource).toContain('lifecycle.actions.secondary.map((action) =>');
+    expect(pageSource).toContain('lifecycle.actions.cancel.available');
+    expect(pageSource).not.toContain('<RailActionButton icon={Send} label="Dispatch"');
+    expect(pageSource).not.toContain('<RailActionButton icon={CheckCheck} label="Complete"');
     expect(pageSource).toContain("aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}");
     expect(pageSource).not.toContain('aria-label={`Select ${patientName}`}');
     expect(pageSource).not.toContain('container mx-auto');
@@ -605,12 +604,12 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain("onKpiClick={(id) => setKpiFilter?.(id)}");
     expect(mobileSource).toContain('dataAttr="data-mobile-request-row"');
-    // Grouped-list row: phone taps retain the detail sheet while tablet taps hand the
-    // selected id to the route-owned desktop rail. The press ladder + row anatomy come
-    // from the canon kit (MobileCanonKit.contract.test.js).
+    // Grouped-list row: phone taps retain the phone-owned detail sheet. Tablet focus
+    // belongs to TabletEmergency and never crosses this presentation boundary.
     expect(mobileSource).toContain('onOpen={handleOpenRequest}');
-    expect(mobileSource).toContain('setActiveRequest(request);');
-    expect(mobileSource).toContain('onFocusRequest(request.id);');
+    expect(mobileSource).toContain('const handleOpenRequest = (request) => setActiveRequest(request);');
+    expect(mobileSource).not.toContain('onFocusRequest');
+    expect(pageSource).toContain('<TabletEmergency');
     expect(mobileSource).toContain('<GroupedList');
     expect(mobileSource).toContain('rounded-inner bg-foreground/[0.06] dark:bg-white/[0.08] backdrop-blur-xl');
     expect(mobileSource).toContain('h-px bg-[hsl(var(--muted-foreground)/0.08)] ml-[62px]');
@@ -745,7 +744,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('canCreate: currentUser.isAdmin() || currentUser.isOrgAdmin(),');
     expect(pageSource).toContain('const canManage = currentUser.canOperateDispatch();');
     expect(pageSource).toContain('canOperateDispatch()');
-    expect(pageSource).toContain('request?.responder_id === user.id');
+    expect(pageSource).toContain('assignment.responderId === clean(userId)');
     expect(pageSource).toContain('if (!actionState.canDispatch)');
     expect(pageSource).toContain('This request is not ready to dispatch. Refreshing list...');
     expect(pageSource).toContain("'Accepting bed request...' : 'Sending responder offer...'");
@@ -769,8 +768,8 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('onRetryPayment={handleRetryPayment}');
     expect(pageSource).toContain('cancelEmergencyRequest(id, reason)');
     expect(pageSource).toContain("cancelMutateAsync({ id: request.id, reason: 'cancelled_from_console' })");
-    expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
-    expect(pageSource).toContain('canManage && actionState.canCancel');
+    expect(pageSource).toContain('getLifecyclePresentation(request, { cancel: true })');
+    expect(pageSource).toContain('lifecycle.actions.cancel.available');
     // Desktop bulk cancel: admin-gated multi-select routed through the SAME reused cancel
     // path (cancelMutateAsync in a loop), confirmed via the shared ConfirmationModal.
     // No parallel cancel service call is introduced.
@@ -808,7 +807,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(requestModalSource).toContain('title={modalTitle}');
     expect(requestModalSource).toContain('subtitle={modalSubtitle}');
     expect(requestModalSource).toContain('const STATUS_SHORT_LABELS = {');
-    expect(requestModalSource).toContain('sm:hidden');
+    expect(requestModalSource).toContain('<RequestStatusBar presentation={lifecyclePresentation} />');
+    expect(requestModalSource).toContain('aria-label="Request lifecycle"');
+    expect(requestModalSource).not.toContain('onClick={isEdit ? () => setFormData');
     expect(requestModalSource).toContain('form={formId}');
     expect(requestModalSource).toContain("'New request'");
     expect(requestModalSource).toContain("'Create request'");
@@ -854,10 +855,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(actionSource).toContain('canCancel,');
 
     expect(mobileSource).not.toContain('Cancel request');
-    // Mobile dispatch is restored (non-destructive): the detail sheet exposes a Dispatch
-    // CTA wired to onDispatch -> the desktop handleDispatch mutation path. Destructive
-    // shortcuts (cancel/delete) stay off mobile.
-    expect(mobileSource).toContain("label: 'Dispatch'");
+    // Mobile actions use the shared lifecycle model and the desktop command receivers.
+    // Destructive shortcuts (cancel/delete) stay off mobile.
+    expect(mobileSource).toContain('buildEmergencyLifecyclePresentation(activeRequest, {');
+    expect(mobileSource).toContain("dispatch: typeof onDispatch === 'function'");
     expect(mobileSource).toContain('onDispatch');
     expect(mobileSource).not.toContain('Trash2');
   });
@@ -902,7 +903,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     }
   });
 
-  it('reads Requests via useEmergencyQuery and writes via reused-RPC optimistic mutations', () => {
+  it('reads Requests via useEmergencyQuery and keeps terminal writes server-confirmed', () => {
     const pageSource = readRequestsPageSource();
     const queryHookSource = fs.readFileSync('src/hooks/useEmergencyQuery.js', 'utf8');
     const mutationsHookSource = fs.readFileSync('src/hooks/useEmergencyMutations.js', 'utf8');
@@ -917,9 +918,10 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(queryHookSource).toContain('getEmergencyRequestsPage({ ...filter, abortSignal: signal })');
     expect(queryHookSource).toContain("queryClient.invalidateQueries({ queryKey: ['emergency'] }, options)");
 
-    // Write path: mutations wrap the EXISTING reused RPC service fns; onMutate
-    // snapshot -> optimistic status -> onError rollback -> onSettled invalidate(['emergency']).
-    expect(pageSource).toContain("import { applyOptimisticStatus, useEmergencyMutations } from '../../../hooks/useEmergencyMutations';");
+    // Write path: mutations wrap the existing RPC services. Terminal states remain
+    // pending until backend confirmation, then onSettled invalidates ['emergency'].
+    expect(pageSource).toContain("import { useEmergencyMutations } from '../../../hooks/useEmergencyMutations';");
+    expect(pageSource).not.toContain('applyOptimistic:');
     expect(pageSource).toContain('dispatchMutateAsync(');
     expect(pageSource).toContain('completeMutateAsync(');
     expect(pageSource).toContain('cancelMutateAsync(');

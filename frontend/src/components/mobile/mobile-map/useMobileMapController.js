@@ -34,6 +34,11 @@ export const useMobileMapController = ({
   const emergencyActionState = selectedMarker?.type === 'emergency'
     ? getEmergencyActionState(selectedMarker.data)
     : null;
+  const canCompleteFromMap = Boolean(
+    canManageRequests &&
+    emergencyActionState?.canComplete &&
+    emergencyActionState?.isBedFlow
+  );
   const commandBusy = mapCommand !== null;
   const hasMapPoints = allMarkers.length > 0;
   const showInitialLoading = loading && !hasMapPoints;
@@ -87,6 +92,10 @@ export const useMobileMapController = ({
   };
 
   const handleComplete = async () => {
+    if (!canCompleteFromMap) {
+      toast.info('Assigned responders complete ambulance requests.');
+      return;
+    }
     if (!confirmClose) {
       setConfirmClose(true);
       toast.info('Confirm close to finish');
@@ -101,6 +110,7 @@ export const useMobileMapController = ({
   };
 
   return {
+    canCompleteFromMap,
     canManageRequests,
     commandBusy,
     confirmClose,

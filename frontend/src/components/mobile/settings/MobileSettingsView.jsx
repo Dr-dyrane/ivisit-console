@@ -28,7 +28,6 @@ export const MobileSettings = ({
   hasDoctorProfile = false,
   doctorProfileLoading = false,
   onOpenDoctor,
-  tabletPane,
 }) => {
   // grammar:hero=account-identity-card-is-the-settings-signal-hero
   const warmingUp = useSkeletonWarmup();
@@ -47,7 +46,6 @@ export const MobileSettings = ({
   return (
     <MobilePageShell
       animatePageLoad={false}
-      tabletPane={tabletPane}
       contentClassName="min-h-[calc(100dvh-3rem)] bg-background px-0 pb-32 pt-6 text-foreground"
     >
       {showSkeleton ? (

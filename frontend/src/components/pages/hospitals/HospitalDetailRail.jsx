@@ -37,10 +37,11 @@ export const HospitalDetailRail = ({
   onView,
   onEdit,
   activeActionFeedback,
+  embedded = false,
 }) => {
   if (loading) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <Shimmer className="h-5 w-28 rounded-pill" />
         <Shimmer className="mt-6 h-24 rounded-card" />
         <div className="mt-4 space-y-3">
@@ -54,7 +55,7 @@ export const HospitalDetailRail = ({
 
   if (!hospital) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Hospital className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-lg font-semibold">No facility selected</h2>
@@ -74,7 +75,7 @@ export const HospitalDetailRail = ({
   const railStageFill = HOSPITAL_VERIFICATION_FILL[model.verificationKey] || 'bg-foreground/60';
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <div data-testid="hospitals-detail-rail">
         <RailInsetHero>
           <div className="mb-4 flex items-start justify-between gap-4">

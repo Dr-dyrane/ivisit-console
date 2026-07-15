@@ -512,19 +512,19 @@ Console implementation rules:
 3. Today is the finite dashboard exception: its balanced two-column composition vertically centers within the
    available page height. Its loading scaffold uses the same centered geometry, so content does not begin at the
    top and leave a large dead region below it.
-4. Backgrounds and maps may fill the window. A normal list/feed uses `MobilePageShell tabletLayout="readable"`
-   and never exceeds `max-w-lg` (`512px`) when no right pane is available. Phone rows and cards do not stretch
-   into tablet-width strips.
-5. `tabletLayout="wide"` may reach `max-w-5xl` (`1024px`) only for a balanced dashboard composition. Today is
-   the implemented example. Operational lists use the split contract instead of widening their mobile content.
-6. A route with an already-owned desktop context or detail rail passes that projection through `tabletPane`.
-   `MobilePageShell` then keeps mobile chrome and list content in a left track capped at `32rem` and embeds the
-   existing desktop pane in the remaining right column. The pane must reuse the route's focused record, loading truth, actions,
-   and role gates; it must not add a fetch, subscription, event bridge, or command owner. The left workspace remains
-   the page scroll owner. The right rail is a sticky, independent viewport-bounded scroll owner, so list movement does
-   not displace its context and long rail content remains reachable without moving the left list.
-7. A top-to-bottom fallback is allowed only when the route has no proved right pane. In that fallback, content
-   remains phone-like and bounded rather than expanding to fill tablet width.
+4. Tablet presentation lives under `src/components/tablet/**`. Tablet files may reuse route controllers, page
+   models, permissions, normalized projections, and existing desktop detail rails, but they must not import or render
+   `src/components/mobile/**`, `MobilePageShell`, or any `Mobile*` page component.
+5. `MobilePageShell` and every file under `src/components/mobile/**` are phone-only. They accept no tablet layout,
+   pane, focus, or navigation props. A route decides `isPhone`, `isTablet`, and desktop presentation before rendering
+   one of those files.
+6. Operational tablet pages use `TabletPageShell` with a bounded primary list column and the route's existing detail
+   projection in the right column. The left list and right rail are independent, viewport-bounded scroll owners; moving
+   the list must not move the detail rail. The shared rail must use `embedded` layout so desktop width and height rules
+   cannot leak into the tablet grid.
+7. A tablet route with no proved detail projection may use a tablet-owned centered or full-width composition. It must
+   not fall back to a stretched phone page. Tablet list rows remain succinct, KPI strips show at most the three most
+   useful scoped signals, and the shared header remains the sole route-title owner.
 8. The Live Map remains full-bleed. Its summaries, alerts, controls, sheets, attribution, and navigation chrome are bounded
    independently and must not cover one another.
 9. Shared compact-tablet sheets remain at most `max-w-3xl`. Wide-tablet filters use the centered dialog
@@ -532,13 +532,12 @@ Console implementation rules:
 10. The role-aware dock remains the Console continuity exception to native iPad top-tab placement at widths below
    `1024px`. It is capped at `max-w-3xl`, keeps the same four stable destinations, and must not stretch actions
    to window edges. The wide-tablet rail reuses the role-filtered desktop navigation owner.
-11. Visits is the first operational split implementation. Its existing KPI row owns the All/Scheduled state on
-    every compact surface, so no duplicate source selector renders on phone or tablet. Phone retains its mobile
-    chrome and detail sheet; tablet replaces only that detail-sheet disclosure with the route-owned right pane.
-12. The same rail-backed split now covers Requests, Payments, Pricing, Insurance, Subscribers, Statistics, and
-    Settings. Each compact route passes its existing desktop detail/context owner into `tabletPane`; list routes
-    hand tablet row focus to that owner while retaining their existing detail sheet on phone. Statistics and
-    Settings keep their mobile content stack in the constrained left track rather than adding inner tablet grids.
+11. Visits establishes the operational split: the tablet-owned KPI/search/list column focuses the selected record,
+    while the existing Visits detail rail stays fixed on the right. Phone retains its own detail sheet and source rhythm;
+    no duplicate source selector or route title appears on tablet.
+12. Every authenticated route must have an explicit presentation fork and a tablet-owned module. Today uses the
+    centered two-column dashboard; Map uses a full-bleed tablet map; list/detail routes use the split shell; Statistics
+    and Settings use tablet-owned summary/list compositions paired with their existing context rail.
 13. Do not scale type with viewport width. Recomposition uses columns, max widths, spacing, and disclosure.
 14. Verify at `834x1194`, `1024x768`, and `1194x834`, including loading, detail, filter, modal, dock/rail/FAB,
    no-overflow, and no-overlap states. Also verify the `1280px` desktop handoff.

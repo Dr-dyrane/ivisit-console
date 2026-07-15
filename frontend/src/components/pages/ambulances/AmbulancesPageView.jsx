@@ -7,9 +7,13 @@ import { SEOHead } from '../../common/SEOHead';
 import { AmbulanceModal } from '../../modals/AmbulanceModal';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { MobileAmbulances } from '../../mobile/MobileAmbulances';
+import { TabletAmbulances } from '../../tablet/TabletAmbulances';
+import { useNavigation } from '../../../contexts/NavigationContext';
+import { AmbulanceDetailRail } from './AmbulanceDetailRail';
 import { AmbulancesDesktopWorkspace } from './AmbulancesDesktopWorkspace';
 
 export const AmbulancesPageView = ({ controller }) => {
+  const { isPhone, isTablet } = useNavigation();
   const {
     isMobile,
     role,
@@ -25,10 +29,10 @@ export const AmbulancesPageView = ({ controller }) => {
   } = controller;
 
   return (
-    <div className={isMobile ? 'min-h-screen' : 'min-h-screen text-foreground'}>
+    <div className={isPhone || isTablet ? 'min-h-screen' : 'min-h-screen text-foreground'}>
       <SEOHead title="Ambulances" description="Manage ambulance units, status, and tracking." />
 
-      {isMobile ? (
+      {isPhone ? (
         <MobileAmbulances
           ambulances={data.ambulances}
           loading={data.loading}
@@ -55,6 +59,45 @@ export const AmbulancesPageView = ({ controller }) => {
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+        />
+      ) : isTablet ? (
+        <TabletAmbulances
+          ambulances={data.ambulances}
+          loading={data.loading}
+          isFetching={data.isFetching}
+          statistics={data.ambulancePageStats}
+          filters={state.filters}
+          setFilters={actions.handleApplyFilters}
+          kpiFilter={state.kpiFilter}
+          setKpiFilter={actions.handleKpiFilterChange}
+          focusedAmbulance={state.focusedAmbulance}
+          onFocus={actions.setFocused}
+          onView={actions.handleView}
+          onRefresh={data.fetchAmbulances}
+          onRetry={data.fetchAmbulances}
+          errorMessage={data.loadError}
+          onOpenFilters={actions.handleOpenFilters}
+          onViewAnalytics={actions.handleOpenAnalytics}
+          selectionEnabled={role.canManageFleet}
+          selectedIds={selection.selectedIds}
+          onSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          detail={(
+            <AmbulanceDetailRail
+              ambulance={state.focusedAmbulance}
+              loading={data.loading}
+              hasFilter={state.hasFilter}
+              canEdit={role.canManageFleet}
+              onView={actions.handleView}
+              onEdit={actions.handleEdit}
+              activeActionFeedback={state.activeActionFeedback}
+              embedded
+            />
+          )}
         />
       ) : (
         <AmbulancesDesktopWorkspace
@@ -98,7 +141,7 @@ export const AmbulancesPageView = ({ controller }) => {
         />
       )}
 
-      {!isMobile && role.canManageFleet && (
+      {!isPhone && role.canManageFleet && (
         <BulkActionBar
           selectedCount={selection.selectedIds.length}
           onClear={selection.clearSelection}

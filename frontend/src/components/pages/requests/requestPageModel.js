@@ -5,13 +5,12 @@ import {
   CheckCheck,
   ClipboardCheck,
   Clock,
-  Info,
   LayoutGrid,
-  Send,
   UserRound,
 } from 'lucide-react';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../../utils/emergencyStatus';
 import { buildEmergencyRenderProjection } from '../../../utils/emergencyRequestMapper';
+import { buildEmergencyLifecyclePresentation } from './emergencyLifecyclePresentation';
 
 export const EMPTY_REQUEST_FILTERS = Object.freeze({
   search: '',
@@ -180,8 +179,6 @@ export const REQUEST_SERVICE_ICON_MAP = {
   booking: ClipboardCheck,
 };
 
-export const REQUEST_STAGE_ORDER = ['pending_approval', 'accepted', 'arrived', 'in_progress', 'completed'];
-
 export const REQUEST_STAGE_FILL = {
   pending_approval: 'bg-destructive',
   payment_declined: 'bg-destructive',
@@ -213,6 +210,7 @@ export const REQUEST_RAIL_PRIMARY_ACTION_CLASS = {
   review: 'bg-destructive text-white shadow-e2-strong hover:bg-destructive/90',
   dispatch: 'bg-sky-600 text-white shadow-e2-strong hover:bg-sky-500',
   complete: 'bg-emerald-600 text-white shadow-e2-strong hover:bg-emerald-500',
+  retry: 'bg-amber-600 text-white shadow-e2-strong hover:bg-amber-500',
   details: 'bg-foreground text-background shadow-e2-strong hover:bg-foreground/90',
 };
 
@@ -235,11 +233,16 @@ export const formatRequestTime = (value) => {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 };
 
-export const getRequestStatusMeta = (request) => {
-  const canonical = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
-  return REQUEST_STATUS_STYLES[canonical] || {
-    label: 'New',
+export const getRequestStatusMeta = (request, lifecyclePresentation = null) => {
+  const lifecycle = lifecyclePresentation || buildEmergencyLifecyclePresentation(request);
+  const style = REQUEST_STATUS_STYLES[lifecycle.status.styleKey] || {
     className: 'bg-muted/40 text-muted-foreground',
+  };
+  return {
+    ...style,
+    label: lifecycle.status.label,
+    status: lifecycle.status.key,
+    pill: lifecycle.status.pill,
   };
 };
 
@@ -403,46 +406,4 @@ export const getDefaultRequestKpi = (stats) => {
   if (pending > 0) return 'pending';
   if (active > 0) return 'active';
   return 'all';
-};
-
-export const getPrimaryRailAction = ({
-  request,
-  actionState,
-  canManage,
-  canCompleteAsProvider,
-  onView,
-  onDispatch,
-  onComplete,
-}) => {
-  const status = canonicalizeEmergencyStatus(request?.status, null);
-  if (status === 'pending_approval') {
-    return {
-      kind: 'review',
-      label: 'Review',
-      icon: ClipboardCheck,
-      onClick: onView,
-    };
-  }
-  if (canManage && actionState.canDispatch) {
-    return {
-      kind: 'dispatch',
-      label: 'Dispatch',
-      icon: Send,
-      onClick: onDispatch,
-    };
-  }
-  if ((canManage || canCompleteAsProvider) && actionState.canComplete) {
-    return {
-      kind: 'complete',
-      label: 'Complete',
-      icon: CheckCheck,
-      onClick: onComplete,
-    };
-  }
-  return {
-    kind: 'details',
-    label: 'Details',
-    icon: Info,
-    onClick: onView,
-  };
 };

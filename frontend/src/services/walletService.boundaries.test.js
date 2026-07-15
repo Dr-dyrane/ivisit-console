@@ -59,6 +59,8 @@ describe('wallet service authority boundaries', () => {
     expect(ledgerSource).toContain("basis: 'complete_wallet_ledger_scan'");
     expect(ledgerSource).toContain("throw new Error('Wallet ledger changed before totals could be confirmed.')");
     expect(pageDataSource).toContain("ledgerResult.status === 'fulfilled' ? 'ready' : 'failed'");
+    expect(pageDataSource).toContain('emergency_requests!payments_emergency_request_id_fkey');
+    expect(pageDataSource).toContain("payments: readState.payments === 'ready'");
     expect(pageDataSource).toContain("financeMetricsResult.status === 'fulfilled' ? 'ready' : 'failed'");
     expect(pageDataSource).toContain("partialFailure: Object.values(readState).some((state) => state === 'failed')");
   });

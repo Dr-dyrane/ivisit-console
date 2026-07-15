@@ -7,6 +7,9 @@ import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { OrganizationModal } from '../../modals/OrganizationModal';
 import { Button } from '../../ui/button';
 import { MobileOrganizations } from '../../mobile/MobileOrganizations';
+import { TabletOrganizations } from '../../tablet/TabletOrganizations';
+import { useNavigation } from '../../../contexts/NavigationContext';
+import { OrganizationDetailRail } from './OrganizationDetailRail';
 import { OrganizationsDesktopWorkspace } from './OrganizationsDesktopWorkspace';
 
 const OrganizationCommandNotice = ({ message, mobile = false }) => {
@@ -61,7 +64,8 @@ const OrganizationsPageOverlays = ({ controller, mobile }) => {
 };
 
 export const OrganizationsPageView = ({ controller }) => {
-  const { isMobile, role, data, state, actions, selection, pagination, wayfinding } = controller;
+  const { isPhone, isTablet } = useNavigation();
+  const { role, data, state, actions, selection, pagination, wayfinding } = controller;
   const { selectable } = role;
   const {
     organizations,
@@ -97,7 +101,7 @@ export const OrganizationsPageView = ({ controller }) => {
     setFocused,
   } = actions;
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Organizations" description="Review the organization registry and payout readiness." />
@@ -125,6 +129,72 @@ export const OrganizationsPageView = ({ controller }) => {
           onLoadMore={pagination.nextPage}
           page={pagination.currentPage}
         />
+
+        <OrganizationsPageOverlays controller={controller} mobile />
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Organizations" description="Review the organization registry and payout readiness." />
+
+        <OrganizationCommandNotice message={organizationCommandNotice} mobile />
+
+        <TabletOrganizations
+          organizations={organizations}
+          loading={loading}
+          isFetching={isFetching}
+          stats={orgStats}
+          filters={filters}
+          setFilters={actions.handleApplyFilters}
+          kpiFilter={kpiFilter}
+          setKpiFilter={handleKpiFilterChange}
+          focusedOrganization={focusedOrg}
+          onFocus={setFocused}
+          onView={handleView}
+          onRefresh={fetchOrganizations}
+          onRetry={fetchOrganizations}
+          loadError={loadError}
+          onOpenFilters={handleOpenFilters}
+          onViewAnalytics={handleOpenAnalytics}
+          selectable={selectable}
+          selectedIds={selection.selectedIds}
+          onToggleSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          detail={(
+            <OrganizationDetailRail
+              organization={focusedOrg}
+              loading={loading}
+              hasFilter={hasFilter}
+              onView={handleView}
+              activeActionFeedback={activeActionFeedback}
+              embedded
+            />
+          )}
+        />
+
+        {selectable && (
+          <BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
+              title="Bulk organization changes are not available"
+              aria-label="Bulk organization changes are not available"
+              data-state="unavailable"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          </BulkActionBar>
+        )}
 
         <OrganizationsPageOverlays controller={controller} mobile />
       </div>

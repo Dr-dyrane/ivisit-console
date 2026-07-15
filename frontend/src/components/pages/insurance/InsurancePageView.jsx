@@ -3,6 +3,7 @@ import { InsuranceModal } from '../../modals/InsuranceModal';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { FilterSheet } from '../../common/FilterSheet';
 import { MobileInsurance } from '../../mobile/MobileInsurance';
+import { TabletInsurance } from '../../tablet/TabletInsurance';
 import { InsuranceDesktopWorkspace } from './InsuranceDesktopWorkspace';
 import { InsuranceDetailRail } from './InsuranceDetailRail';
 import { hasInsuranceWorkspaceFilter } from './insurancePresentation';
@@ -52,6 +53,8 @@ const InsuranceOverlays = ({
 );
 
 export const InsurancePageView = ({
+  isPhone,
+  isTablet,
   isMobile,
   seoHead,
   bulkActionBar,
@@ -94,7 +97,7 @@ export const InsurancePageView = ({
     />
   );
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         {seoHead}
@@ -122,8 +125,43 @@ export const InsurancePageView = ({
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+        />
+        {overlays}
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <>
+        {seoHead}
+        <TabletInsurance
+          policies={rows.mobile}
+          stats={data.insuranceStats}
+          count={data.insurancePage.count}
+          filters={filters}
+          setFilters={setFilters}
+          loading={data.loading && !rows.hasMobileRows}
+          isFetching={data.loading && rows.hasMobileRows && !data.mobileLoadingMore}
+          denied={data.insurancePage.denied}
+          error={data.error}
+          onRetry={data.fetchInsurancePage}
+          onRefresh={data.fetchInsurancePage}
+          onOpenFilters={onOpenFilters}
+          onViewAnalytics={onViewAnalytics}
+          focusedPolicy={focusedPolicy}
           onFocusPolicy={setFocused}
-          tabletPane={(
+          onView={onView}
+          selectionEnabled={selection.canSelectPolicies}
+          selectedIds={selection.selectedIds}
+          onSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={data.handleMobileLoadMore}
+          isLoadingMore={data.mobileLoadingMore}
+          detail={(
             <InsuranceDetailRail
               policy={focusedPolicy}
               denied={data.insurancePage.denied}
@@ -134,8 +172,9 @@ export const InsurancePageView = ({
             />
           )}
         />
+        {bulkActionBar}
         {overlays}
-      </div>
+      </>
     );
   }
 

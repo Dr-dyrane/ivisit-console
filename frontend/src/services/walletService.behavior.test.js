@@ -91,6 +91,10 @@ describe('wallet service preserved behavior', () => {
     expect(organizationWalletBuilder.eq).toHaveBeenCalledWith('organization_id', ORGANIZATION_ID);
     expect(paymentsBuilder.eq).toHaveBeenCalledWith('organization_id', ORGANIZATION_ID);
     expect(paymentsBuilder.limit).toHaveBeenCalledWith(2);
+    expect(paymentsBuilder.select).toHaveBeenCalledWith(
+      expect.stringContaining('emergency_requests!payments_emergency_request_id_fkey'),
+      { count: 'exact' },
+    );
     expect(supabase.functions.invoke).toHaveBeenCalledWith('manage-payment-methods', {
       body: { action: 'list-payment-methods', organization_id: ORGANIZATION_ID },
     });
@@ -111,6 +115,46 @@ describe('wallet service preserved behavior', () => {
       },
       partialFailure: false,
       limit: 1,
+    });
+  });
+
+  it('keeps wallet data available when the independent payments projection fails', async () => {
+    const denied = { code: '42501', message: 'payments read denied' };
+    const wallet = {
+      id: WALLET_ID,
+      organization_id: ORGANIZATION_ID,
+      balance: '42.50',
+      currency: 'USD',
+    };
+    supabase.from.mockImplementation((table) => {
+      if (table === 'organization_wallets') return makeBuilder({ data: wallet, error: null });
+      if (table === 'payments') return makeBuilder({ data: null, error: denied, count: null });
+      throw new Error(`Unexpected table: ${table}`);
+    });
+    supabase.functions.invoke.mockResolvedValue({ data: { data: [] }, error: null });
+
+    await expect(getWalletPageData({
+      profile: { organization_id: ORGANIZATION_ID },
+      isAdmin: false,
+      isOrgAdmin: true,
+      limit: 5,
+    })).resolves.toEqual({
+      wallet,
+      ledger: [],
+      paymentMethods: [],
+      payments: [],
+      financeMetrics: null,
+      hasMore: { ledger: false, payments: false },
+      totalCounts: { ledger: null, payments: null },
+      readState: {
+        wallet: 'ready',
+        ledger: 'unavailable',
+        payments: 'failed',
+        paymentMethods: 'ready',
+        financeMetrics: 'unavailable',
+      },
+      partialFailure: true,
+      limit: 5,
     });
   });
 

@@ -106,15 +106,12 @@ export const buildRequestVisitIdentityProjection = ({
   );
   const doctorName = firstText(doctor?.name, doctor?.full_name, doctorSnapshotName)
     || (doctorId ? 'Assigned doctor' : 'Unassigned');
-  const responderSnapshotName = firstText(
-    linkedRequest?.responder_name,
-    linkedRequest?.responder_vehicle_plate
-  );
+  const responderSnapshotName = firstText(linkedRequest?.responder_name);
   const responderName = firstText(
     responder?.full_name,
     responder?.username,
     responderSnapshotName
-  ) || (responderProfileId || ambulanceId ? 'Assigned responder' : 'Unassigned');
+  ) || (responderProfileId ? 'Assigned responder' : 'Unassigned');
 
   return {
     keys: {
@@ -183,14 +180,13 @@ export const buildRequestVisitIdentityProjection = ({
       vehiclePlate: firstText(linkedRequest?.responder_vehicle_plate) || null,
       hasResponder: Boolean(
         responderProfileId ||
-        ambulanceId ||
         firstText(linkedRequest?.responder_name)
       ),
       source: responder
         ? 'profile_relation'
         : responderSnapshotName
           ? 'request_snapshot'
-          : responderProfileId || ambulanceId
+          : responderProfileId
             ? 'linked_identity'
             : 'unassigned',
     },

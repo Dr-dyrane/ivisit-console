@@ -1,14 +1,252 @@
 import React from 'react';
+import {
+  Ambulance,
+  BedDouble,
+  Calendar,
+  CheckCheck,
+  ClipboardCheck,
+  Clock,
+  CreditCard,
+  Eye,
+  Hash,
+  Hospital,
+  Mail,
+  MapPin,
+  Phone,
+  Send,
+  User,
+  X,
+} from 'lucide-react';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { GroupedList } from './canon/GroupedList';
+import { GroupedList, MobileListRow } from './canon/GroupedList';
 import { UpdatingPillRow, useSkeletonWarmup } from './canon/Loading';
 import { MobileHeading } from './canon/MobileHero';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
-import { useNavigation } from '../../contexts/NavigationContext';
-import { MobileEmergencyList, MobileRequestRow } from './requests/MobileEmergencyList';
-import { MobileEmergencyDetailSheet } from './requests/MobileEmergencyDetailSheet';
+import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
+import { formatRequestDayTime, isUnsettledCashRequest } from '../../utils/requestDisplay';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { buildEmergencyLifecyclePresentation } from '../pages/requests/emergencyLifecyclePresentation';
+import { MobileDetailSheet } from './MobileDetailSheet';
+import { MobileEmergencyList } from './requests/MobileEmergencyList';
+import {
+  buildMobileRequestDetailModel,
+  getMobileRequestAvatarClass,
+  getMobileRequestCreatedDateLabel,
+  getMobileRequestServiceLabel,
+  getMobileRequestTypeIcon,
+} from './requests/mobileEmergencyModel';
 import { useMobileEmergencyController } from './requests/useMobileEmergencyController';
+
+const MOBILE_ACTION_META = {
+  review: { icon: ClipboardCheck, tone: 'hsl(var(--destructive))' },
+  dispatch: { icon: Send, tone: 'hsl(200 98% 39%)' },
+  complete: { icon: CheckCheck, tone: 'hsl(162 94% 24%)' },
+  details: { icon: Eye },
+};
+
+const LifecycleRequestRow = ({
+  request,
+  onOpen,
+  selectable,
+  selected,
+  selectionMode,
+  onToggleSelect,
+  onLongPress,
+}) => {
+  const projection = buildEmergencyRenderProjection(request);
+  const lifecycle = buildEmergencyLifecyclePresentation(request);
+  const name = projection.patientDisplay.name;
+  const TypeIcon = getMobileRequestTypeIcon(request);
+
+  return (
+    <MobileListRow
+      item={request}
+      dataAttr="data-mobile-request-row"
+      onOpen={() => onOpen(request)}
+      ariaLabel={`Open ${name}`}
+      orbClass={getMobileRequestAvatarClass(request)}
+      icon={TypeIcon}
+      title={name}
+      meta={`${getMobileRequestServiceLabel(request)} \u00b7 ${getMobileRequestCreatedDateLabel(request.created_at)}`}
+      time={formatRequestDayTime(request.created_at)}
+      markerChip={isUnsettledCashRequest(request) ? 'Cash' : null}
+      pill={lifecycle.status.pill}
+      selectable={selectable}
+      selected={selected}
+      selectionMode={selectionMode}
+      onToggleSelect={onToggleSelect}
+      onLongPress={onLongPress}
+    />
+  );
+};
+
+const LifecycleRequestDetailSheet = ({
+  controller,
+  canManageRequests,
+  canCompleteRequest,
+  onView,
+  onDispatch,
+  onComplete,
+  onProcessCash,
+}) => {
+  const {
+    activeRequest,
+    setActiveRequest,
+    activePlace,
+    triggerFromEvent,
+  } = controller;
+
+  if (!activeRequest) return null;
+
+  const detail = buildMobileRequestDetailModel(activeRequest);
+  const lifecycle = buildEmergencyLifecyclePresentation(activeRequest, {
+    canManage: Boolean(canManageRequests),
+    canComplete: Boolean(canCompleteRequest?.(activeRequest)),
+    receivers: {
+      details: typeof onView === 'function',
+      dispatch: typeof onDispatch === 'function',
+      complete: typeof onComplete === 'function',
+      retryPayment: false,
+      cancel: false,
+    },
+  });
+  const {
+    projection,
+    name,
+    facility,
+    location,
+    responder,
+    phone,
+    patientEmail,
+    coordinates,
+    displayId,
+    isAmbulanceService,
+    paymentParts,
+    hasPayment,
+    vehicleParts,
+    bedParts,
+  } = detail;
+  const callbacks = {
+    review: onView,
+    details: onView,
+    dispatch: onDispatch,
+    complete: onComplete,
+  };
+  const closeThen = (callback) => () => {
+    setActiveRequest(null);
+    callback?.(activeRequest);
+  };
+  const toMobileAction = (action) => {
+    const callback = callbacks[action?.kind];
+    if (!action?.available || typeof callback !== 'function') return undefined;
+    const meta = MOBILE_ACTION_META[action.kind] || {};
+    return {
+      label: action.label,
+      icon: meta.icon,
+      tone: meta.tone,
+      onClick: closeThen(callback),
+    };
+  };
+  const primaryAction = toMobileAction(lifecycle.actions.primary);
+  const secondaryAction = toMobileAction(lifecycle.actions.secondary[0]);
+
+  return (
+    <MobileDetailSheet
+      isOpen
+      onClose={() => setActiveRequest(null)}
+      icon={ClipboardCheck}
+      iconTone={lifecycle.progress.tone}
+      avatarUrl={projection.patientDisplay.avatar}
+      avatarInitials={projection.patientDisplay.initials}
+      eyebrow={getMobileRequestServiceLabel(activeRequest)}
+      title={name}
+      statusPill={lifecycle.status.pill}
+      vital={{ ...lifecycle.progress, label: 'Request status' }}
+      islands={[
+        { icon: User, label: 'Patient', value: name },
+        phone && { icon: Phone, label: 'Phone', value: phone, href: `tel:${String(phone).replace(/[\s-]/g, '')}` },
+        patientEmail && { icon: Mail, label: 'Email', value: patientEmail, href: `mailto:${patientEmail}` },
+        { icon: ClipboardCheck, label: 'Service type', value: getMobileRequestServiceLabel(activeRequest) },
+        { icon: Hospital, label: 'Facility', value: facility },
+        { icon: Ambulance, label: 'Responder', value: responder },
+        (lifecycle.status.key === 'arrived' || lifecycle.arrival.acknowledged) && {
+          icon: CheckCheck,
+          label: 'Patient arrival',
+          value: lifecycle.arrival.acknowledged
+            ? `Confirmed ${formatRequestDayTime(lifecycle.arrival.patientAcknowledgedAt)}`
+            : 'Awaiting patient confirmation',
+        },
+        !lifecycle.status.terminal && projection.responderDisplay.hasResponder && {
+          icon: Clock,
+          label: 'ETA',
+          value: projection.responderDisplay.etaLabel,
+        },
+        isAmbulanceService && projection.serviceDisplay.hasAmbulanceType && {
+          icon: Ambulance,
+          label: 'Ambulance type',
+          value: projection.serviceDisplay.ambulanceTypeLabel,
+        },
+        isAmbulanceService && vehicleParts.length > 0 && {
+          icon: Ambulance,
+          label: 'Vehicle',
+          value: vehicleParts.join(' \u00b7 '),
+        },
+        lifecycle.service.isBed && bedParts.length > 0 && {
+          icon: BedDouble,
+          label: 'Bed',
+          value: bedParts.join(' \u00b7 '),
+        },
+        {
+          icon: MapPin,
+          label: 'Location',
+          value: activePlace?.shortLabel || location,
+          href: projection.locationDisplay.canOpenExternalMap && coordinates
+            ? `https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
+            : undefined,
+        },
+        hasPayment && { icon: CreditCard, label: 'Payment', value: paymentParts.join(' \u00b7 ') },
+        displayId && {
+          icon: Hash,
+          label: 'Reference',
+          value: displayId,
+          onPress: (event) => {
+            navigator.clipboard?.writeText(String(displayId))?.catch(() => {});
+            triggerFromEvent(event, {
+              variant: FEEDBACK_TYPES.SUCCESS,
+              color: 'hsl(var(--spark))',
+              haptic: true,
+              sound: true,
+            });
+          },
+        },
+        { icon: Calendar, label: 'Created', value: formatRequestDayTime(activeRequest.created_at) },
+        lifecycle.status.terminal && activeRequest.completed_at && {
+          icon: CheckCheck,
+          label: 'Completed',
+          value: formatRequestDayTime(activeRequest.completed_at),
+        },
+        lifecycle.status.terminal && activeRequest.cancelled_at && {
+          icon: X,
+          label: 'Cancelled',
+          value: formatRequestDayTime(activeRequest.cancelled_at),
+        },
+      ]}
+      primary={primaryAction}
+      secondary={secondaryAction}
+    >
+      {lifecycle.actionState.canProcessCash && typeof onProcessCash === 'function' && (
+        <button
+          type="button"
+          onClick={() => onProcessCash(activeRequest)}
+          className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.96]"
+        >
+          Cash settlement handled in Finance
+        </button>
+      )}
+    </MobileDetailSheet>
+  );
+};
 
 // Compatibility facade for existing imports. Requests-only state and presentation
 // live under ./requests so this entry retains the public component contract.
@@ -26,7 +264,6 @@ export const MobileEmergency = ({
   onDispatch,
   onComplete,
   onProcessCash,
-  onRetryPayment,
   onRefresh,
   onViewAnalytics,
   canManageRequests,
@@ -47,10 +284,7 @@ export const MobileEmergency = ({
   onSelectAll,
   onBulkCancel,
   cancellableCount = 0,
-  onFocusRequest,
-  tabletPane,
 }) => {
-  const { isTablet } = useNavigation();
   const warmingUp = useSkeletonWarmup();
   const controller = useMobileEmergencyController({
     emergencies,
@@ -77,20 +311,12 @@ export const MobileEmergency = ({
     showSkeleton,
     totalRequests,
   } = controller;
-  const hasTabletDetailPane = Boolean(isTablet && tabletPane);
-  const handleOpenRequest = (request) => {
-    if (hasTabletDetailPane && onFocusRequest) {
-      onFocusRequest(request.id);
-      return;
-    }
-    setActiveRequest(request);
-  };
+  const handleOpenRequest = (request) => setActiveRequest(request);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        tabletPane={tabletPane}
         contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
       >
         <MobileEmergencyList
@@ -130,7 +356,7 @@ export const MobileEmergency = ({
               getDate={(request) => request.created_at}
               getStatus={(request) => canonicalizeEmergencyStatus(request.status, null)}
               renderRow={(request) => (
-                <MobileRequestRow
+                <LifecycleRequestRow
                   request={request}
                   onOpen={handleOpenRequest}
                   selectable={selectionEnabled}
@@ -143,18 +369,15 @@ export const MobileEmergency = ({
             />
           )}
         />
-        {!hasTabletDetailPane && (
-          <MobileEmergencyDetailSheet
-            controller={controller}
-            canManageRequests={canManageRequests}
-            canCompleteRequest={canCompleteRequest}
-            onView={onView}
-            onDispatch={onDispatch}
-            onComplete={onComplete}
-            onProcessCash={onProcessCash}
-            onRetryPayment={onRetryPayment}
-          />
-        )}
+        <LifecycleRequestDetailSheet
+          controller={controller}
+          canManageRequests={canManageRequests}
+          canCompleteRequest={canCompleteRequest}
+          onView={onView}
+          onDispatch={onDispatch}
+          onComplete={onComplete}
+          onProcessCash={onProcessCash}
+        />
       </MobilePageShell>
     </PullToRefresh>
   );

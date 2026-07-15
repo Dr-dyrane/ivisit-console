@@ -17,6 +17,9 @@ describe('SmartHeader shell chrome contract', () => {
     expect(header).toContain('<SheetTitle className="sr-only">Navigation</SheetTitle>');
     expect(header).toContain('<SheetDescription className="sr-only">');
     expect(header).toContain('MobileNavMenu onClose={() => setMenuOpen(false)}');
+    expect(header).toContain('const { isTablet, usesCompactNavigation } = useNavigation();');
+    expect(header).toContain('isTablet && headerConfig.title');
+    expect(header).toContain('{headerConfig.title}');
     expect(header).not.toContain("import { Search, Menu");
     expect(header).not.toContain('bottomMenuButton');
   });

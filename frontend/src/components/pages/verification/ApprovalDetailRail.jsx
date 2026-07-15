@@ -43,8 +43,8 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
   </Button>
 );
 
-const ApprovalRailSkeleton = () => (
-  <DetailRailShell>
+const ApprovalRailSkeleton = ({ embedded = false }) => (
+  <DetailRailShell embedded={embedded}>
     <div className="mb-5 flex items-start justify-between gap-4">
       <div className="space-y-3">
         <Shimmer className="h-6 w-36 rounded-inner" />
@@ -67,8 +67,8 @@ const ApprovalRailSkeleton = () => (
   </DetailRailShell>
 );
 
-const ApprovalRailEmpty = ({ hasFilter }) => (
-  <DetailRailShell>
+const ApprovalRailEmpty = ({ hasFilter, embedded = false }) => (
+  <DetailRailShell embedded={embedded}>
     <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
       <FileCheck className="mb-4 h-10 w-10 text-muted-foreground/60" />
       <h2 className="text-xl font-semibold">No application selected</h2>
@@ -91,9 +91,10 @@ export const ApprovalDetailRail = ({
   onOpen,
   onApprove,
   onReject,
+  embedded = false,
 }) => {
-  if (loading) return <ApprovalRailSkeleton />;
-  if (!item) return <ApprovalRailEmpty hasFilter={hasFilter} />;
+  if (loading) return <ApprovalRailSkeleton embedded={embedded} />;
+  if (!item) return <ApprovalRailEmpty hasFilter={hasFilter} embedded={embedded} />;
 
   const projection = getApprovalProjection(item, queueType);
   const isProviders = queueType === 'providers';
@@ -105,7 +106,7 @@ export const ApprovalDetailRail = ({
   const canReject = queueType === 'organizations' && typeof onReject === 'function';
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">

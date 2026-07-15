@@ -38,6 +38,11 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 		? getEmergencyActionState(selectedMarker.data)
 		: null;
 	const commandBusy = mapCommand !== null;
+	const canCompleteFromMap = Boolean(
+		canManageRequests &&
+		emergencyActionState?.canComplete &&
+		emergencyActionState?.isBedFlow
+	);
 
 	const runMapCommand = async (command, loadingCopy, successCopy, fallbackCopy, action) => {
 		const toastId = `map-marker-${command}`;
@@ -179,15 +184,19 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 										)}
 
 									{/* Close completed emergencies */}
-									{canManageRequests && emergencyActionState?.canComplete && (
+									{canCompleteFromMap && (
 											<Button
 										className="flex-1 rounded-button bg-sky-600 font-semibold text-white shadow-e2 hover:bg-sky-500"
 												size="lg"
 												disabled={commandBusy}
 												aria-busy={mapCommand === "close"}
 												data-confirming={confirmClose ? "true" : "false"}
-												onClick={async () => {
-													if (!confirmClose) {
+											onClick={async () => {
+												if (!canCompleteFromMap) {
+													toast.info("Assigned responders complete ambulance requests.");
+													return;
+												}
+												if (!confirmClose) {
 														setConfirmClose(true);
 														toast.info("Confirm close to finish");
 														return;

@@ -111,4 +111,24 @@ describe('request-to-visit identity projection', () => {
     });
     expect(projection.mismatches.patientProfileId).toBe(true);
   });
+
+  it('keeps an offered ambulance separate from an accepted responder', () => {
+    const projection = buildRequestVisitIdentityProjection({
+      request: {
+        id: requestId,
+        user_id: patientId,
+        ambulance_id: '66666666-6666-4666-8666-666666666666',
+        responder_vehicle_plate: 'AMB-42',
+      },
+    });
+
+    expect(projection.responder).toMatchObject({
+      profileId: null,
+      ambulanceId: '66666666-6666-4666-8666-666666666666',
+      name: 'Unassigned',
+      vehiclePlate: 'AMB-42',
+      hasResponder: false,
+      source: 'unassigned',
+    });
+  });
 });

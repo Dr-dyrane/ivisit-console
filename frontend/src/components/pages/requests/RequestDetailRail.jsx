@@ -12,6 +12,7 @@ import {
   Info,
   Loader2,
   MapPin,
+  RefreshCw,
   Send,
   Trash2,
   Wallet,
@@ -20,13 +21,11 @@ import { Button } from '../../ui/button';
 import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { CopyChip, DetailLine, Shimmer, StageStrip } from '../../console/primitives';
 import { useReverseGeocode } from '../../../hooks/useReverseGeocode';
-import { canonicalizeEmergencyStatus } from '../../../utils/emergencyStatus';
-import { getEmergencyActionState } from '../../../utils/emergencyActions';
 import { formatEmergencyServiceToken } from '../../../utils/emergencyRequestMapper';
 import { formatRequestDayTime } from '../../../utils/requestDisplay';
+import { buildEmergencyLifecyclePresentation } from './emergencyLifecyclePresentation';
 import {
   formatRequestTime,
-  getPrimaryRailAction,
   getRequestAvatarClass,
   getRequestInitials,
   getRequestProjection,
@@ -34,8 +33,15 @@ import {
   getRequestStatusMeta,
   REQUEST_RAIL_PRIMARY_ACTION_CLASS,
   REQUEST_STAGE_FILL,
-  REQUEST_STAGE_ORDER,
 } from './requestPageModel';
+
+const REQUEST_ACTION_ICON = {
+  review: ClipboardCheck,
+  dispatch: Send,
+  complete: CheckCheck,
+  retry: RefreshCw,
+  details: Info,
+};
 
 const RequestRailShell = ({ children, embedded = false, scroll = false }) => {
   if (embedded) {
@@ -90,13 +96,26 @@ export const RequestDetailRail = ({
   }
 
   const projection = railProjection;
-  const status = getRequestStatusMeta(request);
+  const canManage = currentUser.canOperateDispatch();
+  const canCompleteRequest = currentUser.canCompleteRequest(request);
+  const lifecycle = buildEmergencyLifecyclePresentation(request, {
+    canManage,
+    canComplete: canCompleteRequest,
+    receivers: {
+      details: typeof onView === 'function',
+      dispatch: typeof onDispatch === 'function',
+      complete: typeof onComplete === 'function',
+      cancel: typeof onDelete === 'function',
+      retryPayment: false,
+    },
+  });
+  const actionState = lifecycle.actionState;
+  const status = getRequestStatusMeta(request, lifecycle);
   const avatarClass = getRequestAvatarClass(request);
-  const actionState = getEmergencyActionState(request);
-  const railStatus = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
-  const railCancelled = railStatus === 'cancelled';
-  const railStageIndex = Math.max(0, REQUEST_STAGE_ORDER.indexOf(railStatus));
-  const railStageFill = REQUEST_STAGE_FILL[railStatus] || 'bg-foreground/60';
+  const railStatus = lifecycle.status.key;
+  const railCancelled = lifecycle.progress.cancelled;
+  const railStageIndex = lifecycle.progress.activeIndex;
+  const railStageFill = REQUEST_STAGE_FILL[lifecycle.status.styleKey] || 'bg-foreground/60';
   const displayId = projection.identity.displayId;
   const patientEmail = projection.patientDisplay.email;
   const hasEmail = Boolean(patientEmail) && patientEmail !== 'No email';
@@ -108,6 +127,11 @@ export const RequestDetailRail = ({
   const paymentAmount = payment.amountLabel && payment.amountLabel !== 'Unavailable' ? payment.amountLabel : '';
   const hasPaymentInfo = Boolean(payment.method || payment.status || paymentAmount);
   const paymentValue = [payment.methodLabel, paymentAmount, payment.status].filter(Boolean).join(' \u00b7 ');
+  const arrivalConfirmation = lifecycle.arrival.acknowledged
+    ? `Confirmed ${formatRequestDayTime(lifecycle.arrival.patientAcknowledgedAt)}`
+    : railStatus === 'arrived'
+      ? 'Awaiting patient confirmation'
+      : null;
   const railCost = request?.confirmed_cost ?? request?.total_cost;
   const showAmount = railStatus === 'completed' && railCost !== null && railCost !== undefined && Boolean(paymentAmount);
   const bedDetail = request?.service_type === 'bed'
@@ -119,18 +143,15 @@ export const RequestDetailRail = ({
         request?.specialty ? formatEmergencyServiceToken(request.specialty, '') : null,
       ].filter(Boolean).join(' \u00b7 ')
     : '';
-  const canManage = currentUser.canOperateDispatch();
-  const canCompleteAsProvider = currentUser.canCompleteRequest(request) && actionState.canComplete;
-  const primaryAction = getPrimaryRailAction({
-    request,
-    actionState,
-    canManage,
-    canCompleteAsProvider,
-    onView,
-    onDispatch,
-    onComplete,
-  });
-  const PrimaryIcon = primaryAction.icon;
+  const primaryAction = lifecycle.actions.primary;
+  const actionHandlers = {
+    review: onView,
+    details: onView,
+    dispatch: onDispatch,
+    complete: onComplete,
+  };
+  const primaryHandler = actionHandlers[primaryAction.kind];
+  const PrimaryIcon = REQUEST_ACTION_ICON[primaryAction.kind] || Info;
   const StatusIcon = status.icon || AlertCircle;
   const primaryClass = REQUEST_RAIL_PRIMARY_ACTION_CLASS[primaryAction.kind]
     || REQUEST_RAIL_PRIMARY_ACTION_CLASS.details;
@@ -156,7 +177,7 @@ export const RequestDetailRail = ({
               {status.label}
             </div>
             <StageStrip
-              order={REQUEST_STAGE_ORDER}
+              order={lifecycle.progress.keys}
               fillClass={railStageFill}
               activeIndex={railStageIndex}
               muted={railCancelled}
@@ -166,7 +187,9 @@ export const RequestDetailRail = ({
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
-            onClick={() => onView(request)}
+            onClick={() => onView?.(request)}
+            disabled={!lifecycle.actions.details.available}
+            title={lifecycle.actions.details.available ? undefined : lifecycle.actions.details.reason}
             aria-label="Open full request details"
           >
             <Info className="h-4 w-4" />
@@ -224,6 +247,9 @@ export const RequestDetailRail = ({
             value={`${responder.label}${responder.etaLabel ? ` \u00b7 ${responder.etaLabel}` : ''}`}
           />
         )}
+        {arrivalConfirmation && (
+          <DetailLine icon={CheckCheck} label="Patient arrival" value={arrivalConfirmation} />
+        )}
         {hasPaymentInfo && <DetailLine icon={Wallet} label="Payment" value={paymentValue} />}
         {showAmount && <DetailLine icon={CreditCard} label="Amount" value={paymentAmount} />}
         <DetailLine icon={Clock} label="Requested" value={formatRequestDayTime(request.created_at)} />
@@ -238,8 +264,9 @@ export const RequestDetailRail = ({
       <div className="mt-5 space-y-2.5">
         <Button
           className={`h-12 w-full rounded-button text-base font-semibold transition-all active:scale-[0.99] ${primaryClass}`}
-          onClick={() => primaryAction.onClick(request)}
-          disabled={primaryAction.disabled || primaryPending}
+          onClick={() => primaryHandler?.(request)}
+          disabled={!primaryAction.available || primaryPending}
+          title={primaryAction.available ? undefined : primaryAction.reason}
         >
           {primaryPending ? (
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -251,18 +278,26 @@ export const RequestDetailRail = ({
         </Button>
 
         <div className="grid grid-cols-2 gap-3">
-          {canManage && actionState.canDispatch && primaryAction.kind !== 'dispatch' && (
-            <RailActionButton icon={Send} label="Dispatch" onClick={() => onDispatch(request)} pending={dispatchPending} />
-          )}
-          {(canManage || canCompleteAsProvider) && actionState.canComplete && primaryAction.kind !== 'complete' && (
-            <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} pending={completePending} />
-          )}
-          {primaryAction.kind !== 'details' && (
-            <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
-          )}
+          {lifecycle.actions.secondary.map((action) => {
+            const SecondaryIcon = REQUEST_ACTION_ICON[action.kind] || Info;
+            const handler = actionHandlers[action.kind];
+            const pending = (
+              (action.kind === 'dispatch' && dispatchPending) ||
+              (action.kind === 'complete' && completePending)
+            );
+            return (
+              <RailActionButton
+                key={action.kind}
+                icon={SecondaryIcon}
+                label={action.label}
+                onClick={() => handler?.(request)}
+                pending={pending}
+              />
+            );
+          })}
         </div>
 
-        {actionState.canProcessCash && (
+        {actionState.canProcessCash && typeof onProcessCash === 'function' && (
           <Button
             variant="ghost"
             className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.99]"
@@ -272,14 +307,14 @@ export const RequestDetailRail = ({
           </Button>
         )}
 
-        {canManage && actionState.canCancel && (
+        {lifecycle.actions.cancel.available && (
           <Button
             variant="ghost"
             className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
             onClick={() => onDelete(request)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Cancel request
+            {lifecycle.actions.cancel.label}
           </Button>
         )}
       </div>

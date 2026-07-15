@@ -1,6 +1,7 @@
 import React from 'react';
 import { LockKeyhole } from 'lucide-react';
 import { MobilePricing } from '../../mobile/MobilePricing';
+import { TabletPricing } from '../../tablet/TabletPricing';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { BulkActionBar } from '../../common/BulkActionBar';
 import { SEOHead } from '../../common/SEOHead';
@@ -8,7 +9,7 @@ import { Button } from '../../ui/button';
 import { PricingDesktopWorkspace } from './PricingDesktopWorkspace';
 import { PricingDetailRail } from './PricingDetailRail';
 
-export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
+export const PricingManagementPageView = ({ controller, chrome, isPhone, isTablet }) => {
   const {
     actionNotice,
     activeTab,
@@ -44,7 +45,7 @@ export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
     sortConfig,
   } = controller;
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead
@@ -74,8 +75,53 @@ export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+        />
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          type="generic"
+          analytics={{ ...pricingAnalytics }}
+        />
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <>
+        <SEOHead
+          title="Pricing"
+          description="Review platform fallback and facility pricing evidence."
+        />
+        <TabletPricing
+          pricing={paginatedPricing}
+          summary={pricingSummary}
+          totalCount={pricingTotalCount}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          loading={initialLoading}
+          isFetching={mobileIsFetching}
+          isLoadingMore={mobileLoadingMore}
+          errorMessage={loadError}
+          onRetry={fetchPricing}
+          onRefresh={fetchPricing}
+          onViewAnalytics={handleOpenPricingStats}
+          actionNotice={actionNotice}
+          focusedPrice={focusedPrice}
           onFocusPrice={setFocused}
-          tabletPane={(
+          selectionEnabled={canSelectPricing}
+          selectedIds={selection.selectedIds}
+          onSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={handleMobileLoadMore}
+          detail={(
             <PricingDetailRail
               price={focusedPrice}
               loading={initialLoading}
@@ -88,13 +134,31 @@ export const PricingManagementPageView = ({ controller, chrome, isMobile }) => {
             />
           )}
         />
+        {canSelectPricing && (
+          <BulkActionBar
+            selectedCount={selection.selectedIds.length}
+            onClear={selection.clearSelection}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled
+              data-state="unavailable"
+              title="Bulk price changes are unavailable"
+              aria-label="Bulk price changes are unavailable"
+              className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-40"
+            >
+              <LockKeyhole className="h-5 w-5" />
+            </Button>
+          </BulkActionBar>
+        )}
         <AnalyticsModal
           open={analyticsModalOpen}
           onClose={() => setAnalyticsModalOpen(false)}
           type="generic"
           analytics={{ ...pricingAnalytics }}
         />
-      </div>
+      </>
     );
   }
 

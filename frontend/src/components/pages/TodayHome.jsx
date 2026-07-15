@@ -9,6 +9,7 @@ import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/Layou
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { routeFeedbackMs } from '../console/WorkspaceStage';
 import { MobileToday } from '../mobile/MobileToday';
+import { TabletToday } from '../tablet/TabletToday';
 import { TodayDesktopView } from './today/TodayDesktopView';
 import {
   ROLE_COPY,
@@ -64,7 +65,7 @@ export const TodayHome = ({ role }) => {
   }), [refreshAllData, registerPageAction]);
   // Presentation fork only: no provider (contract test's bare render) resolves to the
   // context default {} -> isMobile undefined -> desktop render.
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet } = useNavigation();
   const [expandedRow, setExpandedRow] = useState(null);
   const [routingPath, setRoutingPath] = useState(null);
   // Manual refresh state: navigation-only stays intact - refreshAllData is the
@@ -303,9 +304,26 @@ export const TodayHome = ({ role }) => {
   // publisher) so mobile and desktop share one identical model and effect surface.
   // MobileToday is pure presentation; handleRefresh is async, so PullToRefresh can
   // await it (a re-entrant pull while pageRefreshing resolves immediately and settles).
-  if (isMobile) {
+  if (isPhone) {
     return (
       <MobileToday
+        today={today}
+        glanceItems={glanceItems}
+        rows={rows}
+        live={live}
+        role={roleCopy}
+        loading={hasTodayInitialLoading}
+        isFetching={isFetching}
+        routingPath={routingPath}
+        onAction={handleAction}
+        onRefresh={handleRefresh}
+      />
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <TabletToday
         today={today}
         glanceItems={glanceItems}
         rows={rows}

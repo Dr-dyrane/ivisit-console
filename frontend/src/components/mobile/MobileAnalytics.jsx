@@ -142,7 +142,6 @@ export const MobileAnalytics = ({
   snapshotReady = false,
   isLoading = false,
   isFetching = false,
-  tabletPane,
 }) => {
   const warmingUp = useSkeletonWarmup();
   const totalRequests = Number(stats?.totalEmergencies) || 0;
@@ -275,7 +274,6 @@ export const MobileAnalytics = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={showSkeleton ? null : summaryHeader}
-        tabletPane={tabletPane}
         contentClassName="min-h-[calc(100dvh-3rem)] px-0 pb-32 pt-2 text-foreground"
         animatePageLoad={false}
       >

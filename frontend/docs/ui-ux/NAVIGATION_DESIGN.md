@@ -1,4 +1,4 @@
-> **Active tablet correction, updated 2026-07-14.** Tablet page composition remains active from `768px` through `1279px`. Navigation adapts by available width: `768-1023px` uses the bounded role-aware dock and avatar sheet; `1024-1279px` uses the collapsed leading rail, toolbar, and overlay context panel without switching to desktop page layouts. Desktop page composition begins at `1280px`. The historical proposal below is context only; use `docs/design-system/MOBILE_DESIGN_SYSTEM.md` section 11 for the active contract.
+> **Active tablet correction, updated 2026-07-14.** Tablet page composition remains active from `768px` through `1279px` and is owned by `src/components/tablet/**`, never by phone presentation files. Navigation adapts by available width: `768-1023px` uses the bounded role-aware dock and avatar sheet; `1024-1279px` uses the collapsed leading rail, toolbar, and overlay context panel without switching to desktop page layouts. Desktop page composition begins at `1280px`. The historical proposal below is context only; use `docs/design-system/MOBILE_DESIGN_SYSTEM.md` section 11 for the active contract.
 
 # iVisit Navigation & UI Architecture Design
 

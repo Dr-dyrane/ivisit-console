@@ -28,12 +28,14 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain('role="alert"');
     expect(centerSource).toContain('Notifications unavailable');
     expect(serviceSource).toContain('export const getNotifications = async (userId, limit = 50, read = null, options = {})');
+    expect(serviceSource).toContain(".is('dismissed_at', null)");
     expect(serviceSource).toContain('if (!options?.quiet) {');
     expect(serviceSource).toMatch(/if \(!options\?\.quiet\) \{[\s\S]*?throw error;\s*\}\s*\};/);
   });
 
   it('keeps notifications as shared shell chrome with immediate feedback', () => {
     const centerSource = readNotificationCenterSource();
+    const serviceSource = fs.readFileSync('src/services/notificationService.js', 'utf8');
     const cardSource = fs.readFileSync('src/components/common/NotificationCard.jsx', 'utf8');
     const routeSource = fs.readFileSync('src/components/common/notificationRoutes.js', 'utf8');
     const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
@@ -58,6 +60,13 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain("data-state={markingAll ? 'pending' : 'ready'}");
     expect(centerSource).toContain("markingAll ? 'Marking as read...' : unreadCount === 0 ? 'All caught up' : 'Mark all as read'");
     expect(centerSource).toContain('onClick={handleMarkAllRead}');
+    expect(centerSource).toContain('const handleDismiss = useCallback(async (notificationIds) =>');
+    expect(centerSource).toContain('const cleared = await dismissNotifications(ids, user.id);');
+    expect(centerSource).toContain("setMutationError('Notifications could not be cleared. Try again.')");
+    expect(centerSource).toContain('onDismiss(group.items.map((notification) => notification.id))');
+    expect(serviceSource).toContain('export const dismissNotifications = async (notificationIds, userId) =>');
+    expect(serviceSource).toContain('dismissed_at: now');
+    expect(serviceSource).not.toMatch(/\.from\('notifications'\)[\s\S]{0,180}?\.delete\s*\(/);
     expect(centerSource).not.toContain("import { Card } from '../ui/card';");
     expect(centerSource).not.toContain('border-b');
     expect(centerSource).not.toContain('border-t');

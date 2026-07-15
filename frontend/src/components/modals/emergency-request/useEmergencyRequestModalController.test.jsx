@@ -103,6 +103,10 @@ describe('useEmergencyRequestModalController', () => {
     await renderController();
     const preventDefault = await submit();
 
+    expect(latestController.lifecyclePresentation).toMatchObject({
+      status: { key: 'pending_approval', label: 'Needs attention' },
+      actions: { dispatch: { available: false }, complete: { available: false } },
+    });
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith(
       'Select a facility in your organization before creating this request.'

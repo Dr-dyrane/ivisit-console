@@ -7,9 +7,8 @@ import {
   createEmergencyRequestDraft,
   getRequestCoordinates,
   mergeEmergencyRequestDraft,
-  normalizeEmergencyStatus,
-  STATUS_STEPS,
 } from './requestModel';
+import { buildEmergencyLifecyclePresentation } from '../../pages/requests/emergencyLifecyclePresentation';
 import { saveEmergencyRequest } from './requestCommands';
 import { useEmergencyRequestOptions } from './useEmergencyRequestOptions';
 
@@ -86,8 +85,7 @@ export const useEmergencyRequestModalController = ({
     || request?.profiles
     || request?.profile
     || null;
-  const currentStatus = normalizeEmergencyStatus(formData.status);
-  const currentStepIndex = STATUS_STEPS.indexOf(currentStatus);
+  const lifecyclePresentation = buildEmergencyLifecyclePresentation(formData);
   const modalTitle = isCreate ? 'New request' : isEdit ? 'Edit request' : 'Request details';
   const modalSubtitle = isCreate
     ? 'Create a request and send it to the care queue.'
@@ -115,8 +113,7 @@ export const useEmergencyRequestModalController = ({
     isEdit,
     isCreate,
     selectedUser,
-    currentStatus,
-    currentStepIndex,
+    lifecyclePresentation,
     modalTitle,
     modalSubtitle,
     submitLabel,

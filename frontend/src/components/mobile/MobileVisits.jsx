@@ -21,7 +21,6 @@ import { MobileDetailSheet } from './MobileDetailSheet';
 import { MobileSelectionBar } from './MobileSelectionBar';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
-import { useNavigation } from '../../contexts/NavigationContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 // Mobile canon kit: the grouped-list grammar, loading truth, search row, and
@@ -100,8 +99,6 @@ export const MobileVisits = ({
     viewMode = 'all',
     onViewModeChange,
     scheduledViewEnabled = false,
-    tabletPane = null,
-    onFocusVisit,
     pageSnapshot = null,
     onDelete,
     onRefresh,
@@ -121,7 +118,6 @@ export const MobileVisits = ({
     onLoadMore,
 }) => {
     const observerTarget = useRef(null);
-    const { isTablet } = useNavigation();
     // Multi-select restored 2026-07-10 as a fail-closed MIRROR of desktop: the selection
     // MECHANISM renders but the bulk WRITE stays locked — VisitsPage's only bulk control
     // is a disabled bulk change, so mobile shows
@@ -202,7 +198,6 @@ export const MobileVisits = ({
     const trueEmptyHint = (isAdmin || isOrgAdmin)
         ? 'No visits are available for your facilities yet.'
         : 'No visits are linked to your name yet.';
-    const hasTabletDetailPane = Boolean(isTablet && tabletPane);
     const handleKpiChange = (nextKpi) => {
         const transition = getCompactVisitKpiTransition({
             nextKpi,
@@ -212,19 +207,12 @@ export const MobileVisits = ({
         if (transition.nextViewMode) onViewModeChange?.(transition.nextViewMode);
         if (transition.nextKpi) onKpiChange?.(transition.nextKpi);
     };
-    const handleOpenVisit = (visit) => {
-        if (hasTabletDetailPane) {
-            onFocusVisit?.(visit.id);
-            return;
-        }
-        setActiveVisit(visit);
-    };
+    const handleOpenVisit = (visit) => setActiveVisit(visit);
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                tabletPane={tabletPane}
                 contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
                 <MobileVisitsAtlasLayer />

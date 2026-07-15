@@ -21,7 +21,7 @@ export const NotificationGroupList = ({
             <h4 className="text-sm font-semibold text-foreground">{group.label}</h4>
             <button
               type="button"
-              onClick={() => group.items.forEach((notification) => onDismiss(notification.id))}
+              onClick={() => onDismiss(group.items.map((notification) => notification.id))}
               className="rounded-pill px-1 text-xs font-semibold text-destructive transition-opacity hover:opacity-70"
             >
               Clear

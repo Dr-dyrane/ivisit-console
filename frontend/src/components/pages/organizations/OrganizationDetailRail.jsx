@@ -25,10 +25,11 @@ export const OrganizationDetailRail = ({
   hasFilter,
   onView,
   activeActionFeedback,
+  embedded = false,
 }) => {
   if (loading && !organization) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="space-y-3">
             <Shimmer className="h-6 w-36 rounded-inner" />
@@ -51,7 +52,7 @@ export const OrganizationDetailRail = ({
 
   if (!organization) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Building2 className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No organization selected</h2>
@@ -74,7 +75,7 @@ export const OrganizationDetailRail = ({
   const viewOpening = activeActionFeedback === `view-${organization.id}`;
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">

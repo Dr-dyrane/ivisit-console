@@ -27,10 +27,11 @@ export const HealthNewsDetailRail = ({
   hasFilter,
   onView,
   activeActionFeedback,
+  embedded = false,
 }) => {
   if (loading && !news) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="space-y-3">
             <Shimmer className="h-6 w-36 rounded-inner" />
@@ -53,7 +54,7 @@ export const HealthNewsDetailRail = ({
 
   if (!news) {
     return (
-      <DetailRailShell>
+      <DetailRailShell embedded={embedded}>
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <Newspaper className="mb-4 h-10 w-10 text-muted-foreground/60" />
           <h2 className="text-xl font-semibold">No article selected</h2>
@@ -71,7 +72,7 @@ export const HealthNewsDetailRail = ({
   const viewOpening = activeActionFeedback === `view-${news.id}`;
 
   return (
-    <DetailRailShell>
+    <DetailRailShell embedded={embedded}>
       <RailInsetHero>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">

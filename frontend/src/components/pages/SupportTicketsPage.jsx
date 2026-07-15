@@ -2,10 +2,13 @@ import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Filter, Plus, Trash2 } from 'lucide-react';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { SEOHead } from '../common/SEOHead';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { MobileSupportTickets } from '../mobile/MobileSupportTickets';
+import { TabletSupport, TabletSupportBulkActions } from '../tablet/TabletSupport';
 import { Button } from '../ui/button';
+import { SupportDetailRail } from './support/SupportDetailRail';
 import { SupportDesktopWorkspace } from './support/SupportDesktopWorkspace';
 import { SupportPageModals } from './support/SupportPageModals';
 import { SUPPORT_FILTER_SCHEMA } from './support/supportTicketsModel';
@@ -14,6 +17,7 @@ import { useSupportTicketsPageController } from './support/useSupportTicketsPage
 export const SupportTicketsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isPhone, isTablet } = useNavigation();
   const controller = useSupportTicketsPageController({
     locationPathname: location.pathname,
     locationSearch: location.search,
@@ -152,7 +156,7 @@ export const SupportTicketsPage = () => {
     />
   );
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Support" description="Track support requests and issue follow-up." />
@@ -183,6 +187,71 @@ export const SupportTicketsPage = () => {
           currentPage={pagination.currentPage}
           confirmedDeletedTicketIds={confirmedDeletedTicketIds}
         />
+        {modals}
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div>
+        <SEOHead title="Support" description="Track support requests and issue follow-up." />
+        <TabletSupport
+          tickets={ticketRows}
+          stats={supportStats}
+          loading={loading}
+          isFetching={isFetching}
+          errorMessage={supportError}
+          convergenceMessage={createConvergenceNotice?.message || null}
+          filters={filters}
+          kpiFilter={kpiFilter}
+          setKpiFilter={handleKpiFilterChange}
+          focusedTicket={focusedTicket}
+          onFocus={setFocused}
+          onView={handleView}
+          onRefresh={fetchSupportTickets}
+          onRetry={fetchSupportTickets}
+          onSearchCommit={setSearchFilter}
+          onOpenFilters={handleOpenFilters}
+          onViewAnalytics={canManageSupport ? handleOpenAnalytics : null}
+          filterSheetOpen={filterSheetOpen}
+          selectable={selectable}
+          selectedIds={selectedIds}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          pagination={pagination}
+          detail={(
+            <SupportDetailRail
+              ticket={focusedTicket}
+              loading={loading}
+              hasFilter={hasFilter}
+              canEdit={focusedTicket ? canEditTicket(focusedTicket) : false}
+              canManage={canManageSupport}
+              canAssign={canAssign}
+              canCreate={canCreate}
+              assignPending={assignPending}
+              deletePending={deletePending}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAssign={handleAssign}
+              onCreate={handleCreate}
+              embedded
+            />
+          )}
+        />
+
+        <TabletSupportBulkActions
+          selectable={selectable}
+          selectedIds={selectedIds}
+          onClear={clearSelection}
+          canManage={canManageSupport}
+          onDelete={handleBulkDelete}
+          deletePending={deletePending}
+        />
+
         {modals}
       </div>
     );

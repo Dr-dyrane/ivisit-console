@@ -7,9 +7,13 @@ import { SEOHead } from '../../common/SEOHead';
 import { HospitalModal } from '../../modals/HospitalModal';
 import { AnalyticsModal } from '../../modals/AnalyticsModal';
 import { MobileHospitals } from '../../mobile/MobileHospitals';
+import { TabletHospitals } from '../../tablet/TabletHospitals';
+import { useNavigation } from '../../../contexts/NavigationContext';
+import { HospitalDetailRail } from './HospitalDetailRail';
 import { HospitalsDesktopWorkspace } from './HospitalsDesktopWorkspace';
 
 export const HospitalsPageView = ({ controller }) => {
+  const { isPhone, isTablet } = useNavigation();
   const {
     isMobile,
     role,
@@ -24,10 +28,10 @@ export const HospitalsPageView = ({ controller }) => {
   } = controller;
 
   return (
-    <div className={isMobile ? 'min-h-screen' : 'min-h-screen text-foreground'}>
+    <div className={isPhone || isTablet ? 'min-h-screen' : 'min-h-screen text-foreground'}>
       <SEOHead title="Hospitals" description="Manage network hospitals, bed capacity, and facility status." />
 
-      {isMobile ? (
+      {isPhone ? (
         <MobileHospitals
           hospitals={data.hospitals}
           loading={data.loading}
@@ -53,6 +57,45 @@ export const HospitalsPageView = ({ controller }) => {
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
           onSelectAll={selection.handleSelectAll}
+        />
+      ) : isTablet ? (
+        <TabletHospitals
+          hospitals={data.hospitals}
+          loading={data.loading}
+          isFetching={data.isFetching}
+          statistics={data.hospitalPageStats}
+          filters={state.filters}
+          setFilters={actions.handleApplyFilters}
+          kpiFilter={state.kpiFilter}
+          setKpiFilter={actions.handleKpiFilterChange}
+          focusedHospital={state.focusedHospital}
+          onFocus={actions.setFocused}
+          onView={actions.handleView}
+          onRefresh={data.fetchHospitals}
+          onRetry={data.fetchHospitals}
+          errorMessage={data.hospitalPageError}
+          onOpenFilters={actions.handleOpenFilters}
+          onViewAnalytics={actions.handleOpenAnalytics}
+          selectionEnabled={role.admin}
+          selectedIds={selection.selectedIds}
+          onSelect={selection.handleToggleSelect}
+          onSelectAll={selection.handleSelectAll}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          detail={(
+            <HospitalDetailRail
+              hospital={state.focusedHospital}
+              loading={data.loading}
+              hasFilter={state.kpiFilter !== 'all' || Object.values(state.filters || {}).some(Boolean)}
+              canEdit={state.focusedHospital ? role.canEditHospital(state.focusedHospital) : false}
+              onView={actions.handleView}
+              onEdit={actions.handleEdit}
+              activeActionFeedback={state.activeActionFeedback}
+              embedded
+            />
+          )}
         />
       ) : (
         <HospitalsDesktopWorkspace
@@ -94,7 +137,7 @@ export const HospitalsPageView = ({ controller }) => {
         />
       )}
 
-      {!isMobile && role.admin && (
+      {!isPhone && role.admin && (
         <BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>
           <Button
             variant="ghost"

@@ -17,6 +17,8 @@ import { FilterSheet } from '../common/FilterSheet';
 import { PaginationControls } from '../ui/PaginationControls';
 import { SEOHead } from '../common/SEOHead';
 import { MobileVerification } from '../mobile/MobileVerification';
+import { TabletApprovals } from '../tablet/TabletApprovals';
+import { ApprovalDetailRail } from './verification/ApprovalDetailRail';
 import { ApprovalsDesktopWorkspace } from './verification/ApprovalsDesktopWorkspace';
 import { useVerificationQueueController } from './verification/useVerificationQueueController';
 import {
@@ -36,7 +38,7 @@ import {
  */
 export const VerificationQueue = () => {
   const { isAdmin, isOrgAdmin } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isMobile, isPhone, isTablet } = useNavigation();
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
@@ -199,7 +201,7 @@ export const VerificationQueue = () => {
     pagination.resetPagination();
   }, [pagination, setFilters]);
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <div className="min-h-screen">
         <SEOHead title="Approvals" description="Review provider and facility approvals in iVisit Console." />
@@ -261,6 +263,113 @@ export const VerificationQueue = () => {
           mode="view"
           onClose={() => setSelectedProvider(null)}
           onVerify={canApprove ? handleVerify : null}
+        />
+      </div>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <div className="min-h-screen text-foreground">
+        <SEOHead title="Approvals" description="Review provider and facility approvals in iVisit Console." />
+        <TabletApprovals
+          queueType={queueType}
+          setQueueType={setQueueType}
+          items={sortedItems}
+          activeStats={activeStats}
+          loading={loading}
+          isFetching={isFetching}
+          errorMessage={loadError}
+          filters={filters}
+          setStatusFilter={setStatusFilter}
+          focusedItem={focusedItem}
+          onFocus={setFocused}
+          onOpenRecord={setSelectedProvider}
+          onRefresh={refetchActive}
+          onRetry={refetchActive}
+          onSearchCommit={setSearchFilter}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          filterSheetOpen={filterSheetOpen}
+          selectable={selectable}
+          selectedIds={selectedIds}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          pagination={pagination}
+          emptyState={emptyState}
+          detail={(
+            <ApprovalDetailRail
+              item={focusedItem}
+              queueType={queueType}
+              canApprove={canApprove}
+              actionLoading={actionLoading}
+              loading={loading}
+              hasFilter={hasFilter}
+              onOpen={setSelectedProvider}
+              onApprove={(item) => (queueType === 'providers'
+                ? handleVerify(item.id, true)
+                : handleVerifyOrg(item.id, true))}
+              onReject={queueType === 'organizations'
+                ? (item) => handleVerifyOrg(item.id, false)
+                : undefined}
+              embedded
+            />
+          )}
+        />
+
+        {selectable && (
+          <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
+            {queueType === 'organizations' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleBulkAction(false)}
+                disabled={actionLoading || selectedIds.length === 0}
+                className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-white active:scale-[0.96] disabled:opacity-40"
+                title="Reject Selected"
+                aria-label={`Reject ${selectedIds.length} selected`}
+              >
+                <Ban className="h-5 w-5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleBulkAction(true)}
+              disabled={actionLoading || selectedIds.length === 0}
+              className="h-10 w-10 rounded-pill bg-emerald-500/15 text-emerald-600 transition-all hover:bg-emerald-500 hover:text-white active:scale-[0.96] disabled:opacity-40 dark:text-emerald-300"
+              title="Approve Selected"
+              aria-label={`Approve ${selectedIds.length} selected`}
+            >
+              <CheckCircle className="h-5 w-5" />
+            </Button>
+          </BulkActionBar>
+        )}
+
+        <VerificationModal
+          isOpen={Boolean(selectedProvider)}
+          provider={selectedProvider}
+          mode="view"
+          onClose={() => setSelectedProvider(null)}
+          onVerify={canApprove ? handleVerify : null}
+        />
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          initialValues={filters}
+          onApply={handleApplyFilters}
+          filterSchema={filterSchema}
+          isMobile={isMobile}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={queueType === 'providers' ? stats : orgStats}
+          type="verification"
         />
       </div>
     );

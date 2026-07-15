@@ -284,8 +284,6 @@ export const MobileToday = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                tabletLayout="wide"
-                tabletVerticalAlign="center"
                 contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-8 text-foreground"
             >
                 <MobileTodayAtlasLayer />

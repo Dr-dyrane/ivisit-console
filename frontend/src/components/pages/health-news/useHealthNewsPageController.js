@@ -18,7 +18,7 @@ import {
 } from './healthNewsPageModel';
 
 export const useHealthNewsPageController = () => {
-  const { isMobile } = useNavigation();
+  const { isPhone, isMobile } = useNavigation();
   const { isAdmin, isOrgAdmin } = useAuth();
   const [mobileNewsFeed, setMobileNewsFeed] = useState([]);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -80,7 +80,7 @@ export const useHealthNewsPageController = () => {
   const loadError = healthNewsError;
   const fetchHealthNews = refetch;
   const newsRows = useMemo(() => (Array.isArray(healthNews) ? healthNews : []), [healthNews]);
-  const visibleStatsRows = isMobile && mobileNewsFeed.length > 0 ? mobileNewsFeed : newsRows;
+  const visibleStatsRows = isPhone && mobileNewsFeed.length > 0 ? mobileNewsFeed : newsRows;
   const statsUnavailable = projectionStats.available === false;
   const stats = useMemo(() => (
     statsUnavailable
@@ -108,13 +108,13 @@ export const useHealthNewsPageController = () => {
   }, [count, setTotalCount]);
 
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isPhone) return;
     setMobileNewsFeed((previousRows) => mergeMobileNewsFeed({
       previousRows,
       pageRows: newsRows,
       currentPage,
     }));
-  }, [currentPage, isMobile, newsRows]);
+  }, [currentPage, isPhone, newsRows]);
 
   const markActionFeedback = useCallback((actionId) => {
     if (!actionId) return;

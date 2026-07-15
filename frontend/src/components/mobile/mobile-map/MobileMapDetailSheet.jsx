@@ -21,6 +21,7 @@ import {
 
 export const MobileMapDetailSheet = ({ controller, setSelectedMarker }) => {
   const {
+    canCompleteFromMap,
     canManageRequests,
     commandBusy,
     confirmClose,
@@ -124,7 +125,7 @@ export const MobileMapDetailSheet = ({ controller, setSelectedMarker }) => {
                           {mapCommand === 'send' ? 'Sending' : 'Send unit'}
                         </Button>
                       )}
-                      {canManageRequests && emergencyActionState?.canComplete && (
+                      {canCompleteFromMap && (
                         <Button
                           className="h-14 flex-1 rounded-button bg-sky-500/15 font-semibold text-sky-700 dark:text-sky-200"
                           disabled={commandBusy}

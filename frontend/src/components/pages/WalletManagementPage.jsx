@@ -3,11 +3,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { MobileWallet } from '../mobile/MobileWallet';
+import { TabletWallet } from '../tablet/TabletWallet';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { PaymentReceiptDialog } from './wallet/PaymentReceiptDialog';
-import { PaymentDetailRail } from './wallet/PaymentDetailRail';
 import { PaymentsDesktopWorkspace } from './wallet/PaymentsDesktopWorkspace';
 import { createWalletFilters } from './wallet/walletPageModel';
 import { useWalletPageController } from './wallet/useWalletPageController';
@@ -16,7 +16,7 @@ import { useWalletPageController } from './wallet/useWalletPageController';
 // and BulkActionBar while this route remains the public WalletManagementPage export.
 export const WalletManagementPage = () => {
   const { profile, isAdmin, isOrgAdmin } = useAuth();
-  const { isMobile } = useNavigation();
+  const { isPhone, isTablet, isMobile } = useNavigation();
   const admin = isAdmin();
   const orgAdmin = isOrgAdmin();
   const controller = useWalletPageController({
@@ -68,7 +68,7 @@ export const WalletManagementPage = () => {
     </>
   );
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <>
         <SEOHead title="Payments" description="Review balance and payment activity." />
@@ -99,26 +99,17 @@ export const WalletManagementPage = () => {
           onLoadMore={controller.handleMobileLoadMore}
           onOpenPayment={controller.setSelectedPayment}
           formatCurrency={controller.formatCurrency}
-          renderTabletPane={(activeEntry) => (
-            <PaymentDetailRail
-              entry={activeEntry?.item || null}
-              entryKind={activeEntry?.kind || controller.activeTab}
-              loading={controller.loading}
-              wallet={controller.wallet}
-              paymentMethods={controller.paymentMethods}
-              readState={controller.readState}
-              financeMetrics={controller.financeMetrics}
-              financeMetricsStale={controller.financeMetricsStale}
-              ledgerCount={controller.ledger.length}
-              paymentsCount={controller.payments.length}
-              onOpenReceipt={controller.setSelectedPayment}
-              formatCurrency={controller.formatCurrency}
-              formatPaymentMethod={controller.formatPaymentMethod}
-              formatPaymentDescription={controller.formatPaymentDescription}
-              embedded
-            />
-          )}
         />
+        {sharedDialogs}
+      </>
+    );
+  }
+
+  if (isTablet) {
+    return (
+      <>
+        <SEOHead title="Payments" description="Review balance, cards, and payment activity." />
+        <TabletWallet controller={controller} />
         {sharedDialogs}
       </>
     );

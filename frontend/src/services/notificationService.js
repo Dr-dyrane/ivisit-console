@@ -73,68 +73,10 @@ export const ActionConfig = {
 };
 
 export const createNotification = async (type, action, targetId, metadata = {}) => {
-  try {
-    const config = ActionConfig[type]?.[action];
-    if (!config) {
-      console.warn(`No config found for ${type}/${action}`);
-      return null;
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const now = new Date().toISOString();
-    const basePayload = {
-      user_id: user.id,
-      type,
-      action_type: action,
-      title: config.label,
-      message: metadata.message || `${config.label} - ${targetId}`,
-      icon: config.icon,
-      color: config.color,
-      priority: metadata.priority || 'normal',
-      action_data: metadata.actionData || null,
-      metadata: {
-        ...metadata,
-        ...(targetId ? { targetId } : null)
-      },
-      read: false,
-      created_at: now,
-    };
-
-    const richPayload = {
-      ...basePayload,
-      ...(targetId ? { target_id: targetId } : null),
-      timestamp: now
-    };
-
-    let { data, error } = await supabase
-      .from('notifications')
-      .insert([richPayload])
-      .select();
-
-    // Backward/forward compatibility: if some environments still expect
-    // optional columns, retry once with a smaller payload.
-    if (error && error.code === 'PGRST204') {
-      const fallbackPayload = { ...basePayload };
-      delete fallbackPayload.action_data;
-      ({ data, error } = await supabase.from('notifications').insert([fallbackPayload]).select());
-    }
-
-    if (error) {
-      console.error('Error creating notification:', error);
-      return null;
-    }
-
-    const created = data?.[0] || null;
-    if (created && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('notifications:changed', { detail: { type: 'insert', notification: created } }));
-    }
-    return created;
-  } catch (error) {
-    console.error('Error in createNotification:', error);
-    return null;
-  }
+  if (!ActionConfig[type]?.[action]) return null;
+  // Workflow RPCs and database hooks own canonical notification creation.
+  // Console clients retain read and read-state access only.
+  return null;
 };
 
 export const subscribeToNotifications = (userId, callback) => {
@@ -172,6 +114,30 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
+export const dismissNotifications = async (notificationIds, userId) => {
+  try {
+    const ids = [...new Set(
+      (Array.isArray(notificationIds) ? notificationIds : [notificationIds])
+        .filter(isValidUUID)
+    )];
+    if (!isValidUUID(userId) || ids.length === 0) return false;
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('notifications')
+      .update({ dismissed_at: now, updated_at: now })
+      .eq('user_id', userId)
+      .in('id', ids)
+      .is('dismissed_at', null);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+    return false;
+  }
+};
+
 export const getNotifications = async (userId, limit = 50, read = null, options = {}) => {
   try {
     if (!isValidUUID(userId)) return [];
@@ -180,6 +146,7 @@ export const getNotifications = async (userId, limit = 50, read = null, options 
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
+      .is('dismissed_at', null)
       .order('created_at', { ascending: false })
       .limit(limit);
 

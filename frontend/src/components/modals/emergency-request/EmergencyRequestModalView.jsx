@@ -9,16 +9,13 @@ import { getPriorityBg, getPriorityColor } from './requestModel';
 
 export const EmergencyRequestModalView = ({ isOpen, onClose, controller }) => {
   const {
-    currentStatus,
-    currentStepIndex,
     formData,
     formId,
     handleSubmit,
-    isEdit,
     isView,
+    lifecyclePresentation,
     modalSubtitle,
     modalTitle,
-    setFormData,
     submitDisabled,
     submitLabel,
   } = controller;
@@ -60,12 +57,7 @@ export const EmergencyRequestModalView = ({ isOpen, onClose, controller }) => {
       )}
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-4 pb-4 pt-1 sm:px-8 sm:pb-8 sm:pt-2">
-        <RequestStatusBar
-          currentStatus={currentStatus}
-          currentStepIndex={currentStepIndex}
-          isEdit={isEdit}
-          setFormData={setFormData}
-        />
+        <RequestStatusBar presentation={lifecyclePresentation} />
         <EmergencyRequestFields controller={controller} />
       </form>
     </ModalShell>

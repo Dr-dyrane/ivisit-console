@@ -496,18 +496,16 @@ describe('VisitsPage admission contract', () => {
     const modalShell = modalShellSource();
     const modalSuppression = modalSuppressionSource();
     const gate = gateSource();
-    const mobileBranchStart = page.indexOf('if (isMobile) {');
-    const desktopBranchStart = page.indexOf('\n  return (', mobileBranchStart);
-    const mobileBranch = page.slice(mobileBranchStart, desktopBranchStart);
-
     expect(page).toContain('<VisitModal');
     expect(page).toContain('<FilterSheet');
     expect(page).toContain('isMobile={isMobile}');
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
     expect(modal).toContain("new CustomEvent('openEmergencyDetails'");
-    expect(mobileBranch).toContain('<EmergencyDetailsModal');
-    expect(mobileBranch).toContain('request={emergencyModal.request}');
+    expect(page).toContain('if (isPhone || isTablet) {');
+    expect(page).toContain('<MobileVisits');
+    expect(page).toContain('<TabletVisits');
+    expect(page).toContain('request={emergencyModal.request}');
     expect(emergencyDetailsModal).toContain("const canRetryPayment = typeof onRetryPayment === 'function';");
     expect(emergencyDetailsModal).toContain('{isPaymentDeclined && canRetryPayment && (');
 

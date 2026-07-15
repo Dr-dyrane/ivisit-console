@@ -3,12 +3,12 @@ import { LocateFixed } from 'lucide-react';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { MobileMap } from '../mobile/MobileMap';
+import { TabletMap } from '../tablet/TabletMap';
 import { MapFallback } from '../map';
 import { MAP_VIEW_RADIUS_KM } from '../map/mapViewModel';
 import { GodModeMapDesktop } from '../map/god-mode/GodModeMapDesktop';
 import { useGodModeMapController } from '../map/god-mode/useGodModeMapController';
 import { Button } from '../ui/button';
-
 const GodModeMapContent = () => {
   const controller = useGodModeMapController();
   const {
@@ -31,7 +31,6 @@ const GodModeMapContent = () => {
     handleDriverAssignmentAction,
     handleEnableAssignmentAlerts,
     isDriverMode,
-    isMobile,
     isSwitchingMap,
     locationStatus,
     mapData,
@@ -53,9 +52,8 @@ const GodModeMapContent = () => {
     toggleLayer,
     userLocation,
   } = controller;
-
-  const { usesCompactNavigation } = useNavigation();
-  const headerActions = useMemo(() => (usesCompactNavigation ? null : (
+  const { isPhone, isTablet, usesCompactNavigation } = useNavigation();
+  const headerActions = useMemo(() => (usesCompactNavigation || isTablet ? null : (
     <Button
       type="button"
       onClick={handleRouteRecenter}
@@ -65,7 +63,7 @@ const GodModeMapContent = () => {
       <LocateFixed className="mr-2 h-4 w-4" />
       Recenter
     </Button>
-  )), [handleRouteRecenter, locationStatus, usesCompactNavigation]);
+  )), [handleRouteRecenter, isTablet, locationStatus, usesCompactNavigation]);
 
   usePageHeader('Live Map', headerActions);
   usePageFooter(null, 'status', false);
@@ -86,7 +84,7 @@ const GodModeMapContent = () => {
     />
   );
 
-  if (isMobile) {
+  if (isPhone) {
     return (
       <MobileMap
         mapData={mapData}
@@ -129,6 +127,10 @@ const GodModeMapContent = () => {
         fallbackMap={fallbackMap}
       />
     );
+  }
+
+  if (isTablet) {
+    return <TabletMap controller={controller} fallbackMap={fallbackMap} />;
   }
 
   return <GodModeMapDesktop controller={controller} fallbackMap={fallbackMap} />;

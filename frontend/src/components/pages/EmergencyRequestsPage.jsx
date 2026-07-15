@@ -6,6 +6,7 @@ import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { SEOHead } from '../common/SEOHead';
 import { MobileEmergency } from '../mobile/MobileEmergency';
+import { TabletEmergency } from '../tablet/TabletEmergency';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
@@ -20,6 +21,8 @@ import { EMPTY_REQUEST_FILTERS } from './requests/requestPageModel';
 export const EmergencyRequestsPage = () => {
   const controller = useEmergencyRequestsController();
   const {
+    isPhone,
+    isTablet,
     isMobile,
     includeMine,
     currentUser,
@@ -120,7 +123,7 @@ export const EmergencyRequestsPage = () => {
     <div className="min-h-screen text-foreground">
       <SEOHead title="Requests" description="Review requests and route care from one place." />
 
-      {isMobile ? (
+      {isPhone ? (
         <MobileEmergency
           emergencies={requests}
           loading={loading}
@@ -153,8 +156,33 @@ export const EmergencyRequestsPage = () => {
           onSelectAll={handleSelectAll}
           onBulkCancel={handleBulkCancel}
           cancellableCount={cancellableSelectedCount}
+        />
+      ) : isTablet ? (
+        <TabletEmergency
+          emergencies={requests}
+          loading={loading}
+          isFetching={isFetching}
+          statistics={requestStats}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleViewDetails}
+          onRefresh={fetchRequests}
+          onViewAnalytics={handleOpenAnalytics}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          loadError={loadError}
+          onRetry={fetchRequests}
+          kpiFilter={selectedKpiFilter}
+          setKpiFilter={setKpiFilter}
+          selectionEnabled={currentUser.isAdmin()}
+          selectedIds={selectedIds}
+          onSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
           onFocusRequest={setFocusedRequestId}
-          tabletPane={(
+          focusedRequest={focusedRequest}
+          includeMine={includeMine}
+          detail={(
             <RequestDetailRail
               request={focusedRequest}
               currentUser={currentUser}
@@ -211,7 +239,7 @@ export const EmergencyRequestsPage = () => {
         />
       )}
 
-      {!isMobile && currentUser.isAdmin() && (
+      {!isPhone && currentUser.isAdmin() && (
         <BulkActionBar selectedCount={selectedIds.length} onClear={clearSelection}>
           <Button
             variant="ghost"

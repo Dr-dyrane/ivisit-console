@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigation } from '../../../contexts/NavigationContext';
 import {
+  dismissNotifications,
   markNotificationAsRead,
   subscribeToNotifications,
 } from '../../../services/notificationService';
@@ -79,9 +80,26 @@ export const useNotificationCenterController = () => {
     return () => window.removeEventListener('notifications:changed', handleNotificationsChanged);
   }, [fetchNotifications]);
 
-  const handleDismiss = useCallback((notificationId) => {
-    setNotifications((previous) => previous.filter((notification) => notification.id !== notificationId));
-  }, []);
+  const handleDismiss = useCallback(async (notificationIds) => {
+    if (!user?.id) return;
+    const ids = [...new Set(
+      (Array.isArray(notificationIds) ? notificationIds : [notificationIds])
+        .filter(Boolean)
+    )];
+    if (ids.length === 0) return;
+
+    const idSet = new Set(ids);
+    setMutationError(null);
+    setNotifications((previous) => previous.filter(
+      (notification) => !idSet.has(notification.id)
+    ));
+
+    const cleared = await dismissNotifications(ids, user.id);
+    if (cleared) return;
+
+    setMutationError('Notifications could not be cleared. Try again.');
+    fetchNotifications({ force: true });
+  }, [fetchNotifications, user?.id]);
 
   const markNotificationsReadOptimistically = useCallback(async (notificationIds) => {
     const ids = [...new Set(notificationIds)].filter(Boolean);

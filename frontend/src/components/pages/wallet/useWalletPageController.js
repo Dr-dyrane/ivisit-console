@@ -6,6 +6,7 @@ import {
   createWalletFilters,
   createWalletPageDataState,
   formatCurrency as formatCurrencyValue,
+  getWalletActivityLoadError,
   getPaymentDescription,
   getPaymentMethod,
   getWalletFilterSchema,
@@ -62,7 +63,7 @@ export const useWalletPageController = ({ profile, isAdmin, isOrgAdmin, isMobile
 
       if (!canUpdateRouteState()) return;
       setPageData((current) => reconcileWalletPageData(current, data));
-      setLoadError(data.partialFailure ? 'Some payment information could not refresh.' : '');
+      setLoadError(getWalletActivityLoadError(data.readState));
       hasLoadedRef.current = true;
       setHasLoaded(true);
     } catch (error) {
@@ -214,6 +215,8 @@ export const useWalletPageController = ({ profile, isAdmin, isOrgAdmin, isMobile
     filterSchema,
     applyFilters,
     clearFilters,
+    loadingMore: mobileLoadingMore,
+    handleLoadMore: handleMobileLoadMore,
     mobileLoadingMore,
     handleMobileLoadMore,
     fetchData,
