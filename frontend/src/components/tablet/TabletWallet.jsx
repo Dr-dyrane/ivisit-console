@@ -22,7 +22,7 @@ import {
   getPaymentOrbTone,
   getPaymentStatusTone,
 } from '../pages/wallet/walletPresentation';
-import { TabletCollectionPage } from './TabletCollectionPage';
+import { TABLET_FOCUS_RING, TabletCollectionPage } from './TabletCollectionPage';
 
 const TabletWalletMetrics = ({ totals, formatCurrency, showBalance, onToggleBalance }) => {
   const metrics = [
@@ -69,10 +69,12 @@ const TabletWalletMetrics = ({ totals, formatCurrency, showBalance, onToggleBala
                 <button
                   type="button"
                   onClick={onToggleBalance}
-                  className="flex h-7 w-7 items-center justify-center rounded-icon text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+                  className={`-m-2 flex h-11 w-11 items-center justify-center rounded-icon text-muted-foreground hover:text-foreground ${TABLET_FOCUS_RING}`}
                   aria-label={showBalance ? 'Hide balance' : 'Show balance'}
                 >
-                  {showBalance ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  <span className="flex h-7 w-7 items-center justify-center rounded-icon hover:bg-foreground/[0.06]">
+                    {showBalance ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </span>
                 </button>
               )}
             </div>
@@ -97,7 +99,7 @@ const TabletWalletTabs = ({ activeTab, onChange }) => (
         role="tab"
         onClick={() => onChange(tab.id)}
         aria-selected={activeTab === tab.id}
-        className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.97] ${activeTab === tab.id
+        className={`h-11 rounded-button text-xs font-semibold transition-all active:scale-[0.97] ${TABLET_FOCUS_RING} ${activeTab === tab.id
           ? 'bg-card text-foreground shadow-e1'
           : 'text-muted-foreground hover:text-foreground'
         }`}
@@ -168,12 +170,13 @@ export const TabletWallet = ({ controller }) => {
   });
 
   const hasMore = Boolean(controller.hasMore[controller.activeTab]);
+  // This feed genuinely accumulates (grow-window limit), so "Load more" is honest.
   const footer = hasMore ? (
     <button
       type="button"
       onClick={controller.handleLoadMore}
       disabled={controller.loading || controller.isFetching || controller.loadingMore}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+      className={`h-11 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50 ${TABLET_FOCUS_RING}`}
     >
       {controller.loadingMore ? 'Loading activity...' : 'Load more'}
     </button>
@@ -214,6 +217,7 @@ export const TabletWallet = ({ controller }) => {
         searchPlaceholder={controller.activeTab === 'ledger' ? 'Search transactions...' : 'Search patient payments...'}
         onOpenFilters={() => controller.setFilterSheetOpen(true)}
         filtersActive={workspace.filtersActive}
+        filterSheetOpen={controller.filterSheetOpen}
         onOpenAnalytics={() => controller.setAnalyticsModalOpen(true)}
         focusedId={workspace.focusedEntry?.id}
         onFocus={workspace.setFocusedId}
@@ -221,6 +225,7 @@ export const TabletWallet = ({ controller }) => {
         selectable
         selectedIds={workspace.selectedIds}
         onToggleSelect={workspace.handleToggleSelect}
+        onSelectClick={workspace.handleSelectClick}
         onSelectAll={workspace.handleSelectAll}
         allSelected={workspace.allSelected}
         someSelected={workspace.someSelected}
@@ -255,7 +260,7 @@ export const TabletWallet = ({ controller }) => {
           variant="ghost"
           size="icon"
           disabled
-          className="h-10 w-10 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-50"
+          className="h-11 w-11 rounded-pill bg-muted/30 text-muted-foreground disabled:opacity-50"
           title="Bulk payment actions are unavailable"
           aria-label="Bulk payment actions are unavailable"
         >

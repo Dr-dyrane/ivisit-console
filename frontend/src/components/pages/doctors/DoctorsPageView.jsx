@@ -123,15 +123,16 @@ export const DoctorsPageView = ({ controller }) => {
           onRetry={data.fetchDoctors}
           loadError={data.loadError}
           onOpenFilters={actions.handleOpenFilters}
+          filterSheetOpen={state.filterSheetOpen}
           onViewAnalytics={actions.handleOpenAnalytics}
           selectable={selection.selectable}
           selectedIds={selection.selectedIds}
           onToggleSelect={selection.handleToggleSelect}
+          onSelectClick={selection.handleSelectClick}
           onSelectAll={selection.handleSelectAll}
           allSelected={selection.allSelected}
           someSelected={selection.someSelected}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          pagination={pagination}
           detail={(
             <StaffDetailRail
               staff={state.focusedStaff}

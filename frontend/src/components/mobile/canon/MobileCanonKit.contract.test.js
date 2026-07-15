@@ -13,12 +13,16 @@ describe('Mobile canon kit contract', () => {
   const loading = () => read('src/components/mobile/canon/Loading.jsx');
   const groupedList = () => read('src/components/mobile/canon/GroupedList.jsx');
   const searchRow = () => read('src/components/mobile/canon/SearchRow.jsx');
+  const searchDraftHook = () => read('src/hooks/useSearchDraft.js');
   const hero = () => read('src/components/mobile/canon/MobileHero.jsx');
 
   it('centralizes the behavioral constants', () => {
     const src = constants();
     expect(src).toContain('SKELETON_WARMUP_MS = 400');
-    expect(src).toContain('SEARCH_DEBOUNCE_MS = 300');
+    // The debounce constant lives with the lane-neutral hook (tablet composes
+    // the same mechanism); canon re-exports it so pages keep one import home.
+    expect(src).toContain("export { SEARCH_DEBOUNCE_MS } from '../../../hooks/useSearchDraft'");
+    expect(searchDraftHook()).toContain('SEARCH_DEBOUNCE_MS = 300');
     expect(src).toContain('ROUTE_FEEDBACK_MS = 320');
     expect(src).toContain('SCROLL_COOLDOWN_MS = 180');
     expect(src).toContain("LOAD_MORE_ROOT_MARGIN = '120px'");
@@ -102,9 +106,13 @@ describe('Mobile canon kit contract', () => {
 
   it('locks the search row: debounce, immediate clear-x, context-aware triggers', () => {
     const src = searchRow();
-    expect(src).toContain('}, SEARCH_DEBOUNCE_MS)');
+    // The debounce mechanism is composed from the lane-neutral hook (byte-pins
+    // over the hook body live below so the behavior cannot silently change).
+    expect(src).toContain("from '../../../hooks/useSearchDraft'");
+    const hook = searchDraftHook();
+    expect(hook).toContain('}, SEARCH_DEBOUNCE_MS)');
     // External writes sync back into the draft.
-    expect(src).toContain("useEffect(() => { setSearchDraft(search || ''); }, [search])");
+    expect(hook).toContain("useEffect(() => { setSearchDraft(search || ''); }, [search])");
     // The exact input recipe (mobile focus ring is the sanctioned primary/0.18).
     expect(src).toContain('h-9 w-full rounded-inner bg-background/60 pl-10 pr-10 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]');
     // Clear-x commits immediately (no debounce on clearing).

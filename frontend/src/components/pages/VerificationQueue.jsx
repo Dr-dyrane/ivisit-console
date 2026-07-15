@@ -296,6 +296,7 @@ export const VerificationQueue = () => {
           allSelected={allSelected}
           someSelected={someSelected}
           onToggleSelect={handleToggleSelect}
+          onSelectClick={handleSelectClick}
           onSelectAll={handleSelectAll}
           pagination={pagination}
           emptyState={emptyState}

@@ -18,6 +18,7 @@ import {
   AnalyticsTrendSection,
   AnalyticsWorkSkeleton,
 } from '../pages/analytics/AnalyticsDesktopSections';
+import { TABLET_FOCUS_RING } from './TabletCollectionPage';
 import { getAnalyticsCapacityPresentation } from '../pages/analytics/analyticsCapacityModel';
 import { TabletPageShell } from './TabletPageShell';
 
@@ -87,7 +88,7 @@ export const TabletAnalytics = ({
             type="button"
             onClick={onRefresh}
             disabled={isFetching}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-card/72 text-muted-foreground shadow-e1 active:scale-95 disabled:opacity-50"
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-card/72 text-muted-foreground shadow-e1 active:scale-95 disabled:opacity-50 ${TABLET_FOCUS_RING}`}
             aria-label={isFetching ? 'Refreshing statistics' : 'Refresh statistics'}
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -116,7 +117,7 @@ export const TabletAnalytics = ({
               <div className="flex min-h-[260px] flex-col items-center justify-center px-8 text-center">
                 <AlertTriangle className="h-8 w-8 text-destructive/70" />
                 <p className="mt-3 text-sm font-semibold text-foreground">Statistics did not load</p>
-                <button type="button" onClick={onRefresh} className="mt-4 h-10 rounded-button bg-foreground px-4 text-xs font-semibold text-background active:scale-95">
+                <button type="button" onClick={onRefresh} className={`mt-4 h-11 rounded-button bg-foreground px-4 text-xs font-semibold text-background active:scale-95 ${TABLET_FOCUS_RING}`}>
                   Retry
                 </button>
               </div>

@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Hospital } from 'lucide-react';
 import {
+  HOSPITAL_KPI_IMPORTANCE,
+  PINNED_HOSPITAL_STATE_IDS,
   getHospitalStateCount,
   hasActiveHospitalFilters,
 } from '../pages/hospitals/hospitalPageModel';
@@ -10,15 +12,16 @@ import {
   hospitalStatusPillClass,
 } from '../pages/hospitals/hospitalPresentation';
 import { TabletCollectionPage } from './TabletCollectionPage';
+import { TabletPaginationFooter } from './TabletCollectionControls';
 
 export const TabletHospitals = ({
   hospitals = [], loading, isFetching, statistics, filters = {}, setFilters,
   kpiFilter = 'all', setKpiFilter, focusedHospital, onFocus, onView,
-  onRefresh, onRetry, errorMessage, onOpenFilters, onViewAnalytics,
-  selectionEnabled, selectedIds, onSelect, onSelectAll, allSelected, someSelected,
-  hasMore, onLoadMore, detail,
+  onRefresh, onRetry, errorMessage, onOpenFilters, filterSheetOpen = false, onViewAnalytics,
+  selectionEnabled, selectedIds, onSelect, onSelectClick, onSelectAll, allSelected, someSelected,
+  pagination, detail,
 }) => {
-  const kpis = useMemo(() => hospitalStateOptions.slice(0, 3).map((option) => ({
+  const kpis = useMemo(() => hospitalStateOptions.map((option) => ({
     ...option,
     value: getHospitalStateCount({ id: option.id, stats: statistics, hospitals }),
   })), [hospitals, statistics]);
@@ -43,18 +46,25 @@ export const TabletHospitals = ({
   return (
     <TabletCollectionPage
       detail={detail} records={records} kpis={kpis} activeKpi={kpiFilter}
-      onKpiChange={setKpiFilter} loading={loading} isFetching={isFetching}
+      onKpiChange={setKpiFilter}
+      kpiPinnedIds={PINNED_HOSPITAL_STATE_IDS} kpiImportance={HOSPITAL_KPI_IMPORTANCE}
+      loading={loading} isFetching={isFetching}
       error={errorMessage} onRetry={onRetry} onRefresh={onRefresh}
       searchValue={filters.search || ''}
       onSearchCommit={(value) => setFilters?.({ ...filters, search: value })}
       searchPlaceholder="Search facility, address, ID..." onOpenFilters={onOpenFilters}
-      filtersActive={hasActiveHospitalFilters(filters)} onOpenAnalytics={onViewAnalytics}
+      filtersActive={hasActiveHospitalFilters(filters)} filterSheetOpen={filterSheetOpen}
+      onOpenAnalytics={onViewAnalytics}
       focusedId={focusedHospital?.id} onFocus={onFocus} onOpen={onView}
       selectable={selectionEnabled} selectedIds={selectedIds} onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll} allSelected={allSelected} someSelected={someSelected}
       emptyTitle="No hospitals found" emptyBody="Facilities in this scope will appear here."
       countLabel={`${statistics?.total ?? hospitals.length} hospitals`}
-      footer={hasMore ? <button type="button" onClick={onLoadMore} className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold">Load more</button> : null}
+      scrollResetKey={pagination?.currentPage}
+      footer={pagination?.totalPages > 1
+        ? <TabletPaginationFooter pagination={pagination} loading={loading || isFetching} />
+        : null}
     />
   );
 };

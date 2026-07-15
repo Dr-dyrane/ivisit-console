@@ -9,7 +9,7 @@ import {
   isGlobalPricingRule,
   PRICING_KPI_DEFINITIONS,
 } from '../pages/pricing/pricingPageModel';
-import { TabletCollectionPage } from './TabletCollectionPage';
+import { TABLET_FOCUS_RING, TabletCollectionPage } from './TabletCollectionPage';
 
 const pricingFamilyTabs = [
   { id: 'all', label: 'All' },
@@ -39,7 +39,7 @@ const TabletPricingTabs = ({ activeTab, onChange, actionNotice }) => (
             role="tab"
             onClick={() => onChange?.(tab.id)}
             aria-selected={selected}
-            className={`h-9 rounded-button text-xs font-semibold transition-all active:scale-[0.97] ${selected
+            className={`h-11 rounded-button text-xs font-semibold transition-all active:scale-[0.97] ${TABLET_FOCUS_RING} ${selected
               ? 'bg-card text-foreground shadow-e1'
               : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -80,6 +80,7 @@ export const TabletPricing = ({
   selectionEnabled = false,
   selectedIds = [],
   onSelect,
+  onSelectClick,
   onSelectAll,
   allSelected,
   someSelected,
@@ -111,12 +112,13 @@ export const TabletPricing = ({
     };
   }), [pricing]);
 
+  // This feed genuinely accumulates (grow-window fetch), so "Load more" is honest.
   const footer = hasMore ? (
     <button
       type="button"
       onClick={onLoadMore}
       disabled={loading || isFetching || isLoadingMore}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+      className={`h-11 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50 ${TABLET_FOCUS_RING}`}
     >
       {isLoadingMore ? 'Loading pricing...' : 'Load more'}
     </button>
@@ -129,6 +131,8 @@ export const TabletPricing = ({
       kpis={kpis}
       activeKpi={kpiFilter}
       onKpiChange={setKpiFilter}
+      kpiPinnedIds={['override', 'global']}
+      kpiImportance={{ all: 0, override: 1, global: 2 }}
       loading={loading}
       isFetching={isFetching || isLoadingMore}
       error={errorMessage}
@@ -145,6 +149,7 @@ export const TabletPricing = ({
       selectable={selectionEnabled}
       selectedIds={selectedIds}
       onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
       allSelected={allSelected}
       someSelected={someSelected}

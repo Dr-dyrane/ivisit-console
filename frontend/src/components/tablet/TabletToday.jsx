@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { TabletPageShell } from './TabletPageShell';
+import { TABLET_FOCUS_RING } from './TabletCollectionPage';
 
 const toneClass = {
   danger: 'bg-destructive/14 text-destructive',
@@ -40,7 +41,7 @@ const TodayGlance = ({ item, opening, onAction }) => (
     onClick={() => onAction?.(item.path)}
     disabled={!item.path || opening}
     data-state={opening ? 'opening' : 'idle'}
-    className="surface-card flex min-h-[78px] min-w-0 items-start justify-between gap-3 rounded-card px-4 py-3 text-left shadow-e1 transition-all hover:bg-card active:scale-[0.98] disabled:opacity-60"
+    className={`surface-card flex min-h-[78px] min-w-0 items-start justify-between gap-3 rounded-card px-4 py-3 text-left shadow-e1 transition-all hover:bg-card active:scale-[0.98] disabled:opacity-60 ${TABLET_FOCUS_RING}`}
   >
     <span className="min-w-0">
       <span className="block text-[11px] font-medium text-muted-foreground">{item.label}</span>
@@ -62,7 +63,7 @@ const TodayActionRow = ({ row, expanded, opening, onToggle, onAction }) => {
         onClick={() => onToggle(row.id)}
         aria-expanded={expanded}
         disabled={row.loading}
-        className="flex w-full items-center gap-3 rounded-inner px-2 py-3 text-left transition-colors hover:bg-foreground/[0.035] active:scale-[0.99] disabled:opacity-60"
+        className={`flex min-h-11 w-full items-center gap-3 rounded-inner px-2 py-3 text-left transition-colors hover:bg-foreground/[0.035] active:scale-[0.99] disabled:opacity-60 ${TABLET_FOCUS_RING}`}
       >
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-icon ${toneClass[row.tone] || toneClass.muted}`}>
           <Icon className={`h-4 w-4 ${row.loading ? 'animate-spin' : ''}`} />
@@ -82,7 +83,7 @@ const TodayActionRow = ({ row, expanded, opening, onToggle, onAction }) => {
               type="button"
               onClick={() => onAction?.(row.path)}
               disabled={opening}
-              className="mt-3 inline-flex h-9 items-center gap-2 rounded-pill bg-foreground/[0.07] px-3 text-xs font-semibold text-foreground transition-all active:scale-95 disabled:opacity-60"
+              className={`mt-3 inline-flex h-11 items-center gap-2 rounded-pill bg-foreground/[0.07] px-3 text-xs font-semibold text-foreground transition-all active:scale-95 disabled:opacity-60 ${TABLET_FOCUS_RING}`}
             >
               {opening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
               {opening ? 'Opening...' : row.actionLabel}
@@ -137,7 +138,7 @@ export const TabletToday = ({
                 type="button"
                 onClick={onRefresh}
                 disabled={isFetching}
-                className="flex h-9 w-9 items-center justify-center rounded-icon bg-card/70 text-muted-foreground shadow-e1 transition-all active:scale-95 disabled:opacity-60"
+                className={`flex h-11 w-11 items-center justify-center rounded-icon bg-card/70 text-muted-foreground shadow-e1 transition-all active:scale-95 disabled:opacity-60 ${TABLET_FOCUS_RING}`}
                 aria-label={isFetching ? 'Refreshing today' : 'Refresh today'}
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -169,7 +170,7 @@ export const TabletToday = ({
             type="button"
             onClick={() => onAction?.(today.path)}
             disabled={!today.path || primaryOpening}
-            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2-strong transition-all hover:bg-foreground/90 active:scale-[0.98] disabled:opacity-50"
+            className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-button bg-foreground text-sm font-semibold text-background shadow-e2-strong transition-all hover:bg-foreground/90 active:scale-[0.98] disabled:opacity-50 ${TABLET_FOCUS_RING}`}
           >
             {primaryOpening ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             {primaryOpening ? 'Opening...' : today.primaryAction}

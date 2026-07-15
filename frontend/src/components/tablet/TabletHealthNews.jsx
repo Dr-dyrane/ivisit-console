@@ -7,7 +7,9 @@ import {
   getStateCount,
   getStatusMeta,
   hasAppliedFilters,
+  NEWS_KPI_IMPORTANCE,
   NEWS_KPI_OPTIONS,
+  PINNED_NEWS_KPI_IDS,
 } from '../pages/health-news/healthNewsPageModel';
 import { TabletCollectionPage } from './TabletCollectionPage';
 import { TabletPaginationFooter } from './TabletCollectionControls';
@@ -73,6 +75,8 @@ export const TabletHealthNews = ({
       kpis={kpis}
       activeKpi={kpiFilter}
       onKpiChange={setKpiFilter}
+      kpiPinnedIds={PINNED_NEWS_KPI_IDS}
+      kpiImportance={NEWS_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={errorMessage}
@@ -82,11 +86,13 @@ export const TabletHealthNews = ({
       onSearchCommit={onSearchCommit}
       searchPlaceholder="Search title, source, or category..."
       onOpenFilters={onOpenFilters}
-      filtersActive={filterSheetOpen || hasAppliedFilters(filters, kpiFilter)}
+      filtersActive={hasAppliedFilters(filters, kpiFilter)}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedNews?.id}
       onFocus={onFocus}
       onOpen={onView}
+      scrollResetKey={pagination?.currentPage}
       emptyTitle={hasAppliedFilters(filters, kpiFilter) ? 'No matching articles' : 'No published articles'}
       emptyBody={hasAppliedFilters(filters, kpiFilter)
         ? 'Change the current filters or search a different source.'

@@ -220,6 +220,7 @@ export const SupportTicketsPage = () => {
           allSelected={allSelected}
           someSelected={someSelected}
           onToggleSelect={handleToggleSelect}
+          onSelectClick={handleSelectClick}
           onSelectAll={handleSelectAll}
           pagination={pagination}
           detail={(

@@ -299,6 +299,8 @@ const webpackConfig = {
       ],
       moduleNameMapper: {
         ...jestConfig.moduleNameMapper,
+        // Mirror the webpack '@' -> src alias for render-level tests.
+        '^@/(.*)$': '<rootDir>/src/$1',
         '^react-router-dom$': path.resolve(
           __dirname,
           'node_modules/react-router-dom/dist/index.js'

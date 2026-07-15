@@ -20,6 +20,9 @@ export const useListKeyboardNav = ({ items, focusedItem, setFocusedId, onOpen, s
   }
   if (items.length === 0) return;
   if (event.key === 'Enter') {
+    // Native activation wins on real controls: Enter while a row button/link has
+    // focus must click IT, never hijack to opening the focused row (WCAG 2.1.1).
+    if (target instanceof HTMLElement && target.closest('button, a')) return;
     if (focusedItem) {
       event.preventDefault();
       onOpen(focusedItem);

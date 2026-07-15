@@ -7,6 +7,8 @@ import {
   getSupportStateCount,
   getSupportStatusMeta,
   hasActiveSupportFilters,
+  PINNED_SUPPORT_KPI_IDS,
+  SUPPORT_KPI_IMPORTANCE,
   SUPPORT_KPI_OPTIONS,
 } from '../pages/support/supportTicketsModel';
 import { TabletCollectionPage } from './TabletCollectionPage';
@@ -37,6 +39,7 @@ export const TabletSupport = ({
   allSelected = false,
   someSelected = false,
   onToggleSelect,
+  onSelectClick,
   onSelectAll,
   pagination,
   detail,
@@ -74,6 +77,8 @@ export const TabletSupport = ({
       kpis={kpis}
       activeKpi={kpiFilter}
       onKpiChange={setKpiFilter}
+      kpiPinnedIds={PINNED_SUPPORT_KPI_IDS}
+      kpiImportance={SUPPORT_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={errorMessage}
@@ -83,7 +88,8 @@ export const TabletSupport = ({
       onSearchCommit={onSearchCommit}
       searchPlaceholder="Search requests, messages, or category..."
       onOpenFilters={onOpenFilters}
-      filtersActive={filterSheetOpen || hasFilter}
+      filtersActive={hasFilter}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedTicket?.id}
       onFocus={onFocus}
@@ -91,7 +97,9 @@ export const TabletSupport = ({
       selectable={selectable}
       selectedIds={selectedIds}
       onToggleSelect={onToggleSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
+      scrollResetKey={pagination?.currentPage}
       allSelected={allSelected}
       someSelected={someSelected}
       emptyTitle={hasFilter ? 'No matching requests' : 'No support requests'}
@@ -131,7 +139,7 @@ export const TabletSupportBulkActions = ({
           onClick={onDelete}
           disabled={selectedIds.length === 0 || deletePending}
           aria-busy={deletePending}
-          className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96] disabled:opacity-40"
+          className="h-11 w-11 rounded-pill bg-destructive/15 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-[0.96] disabled:opacity-40"
           title="Delete selected"
           aria-label={`Delete ${selectedIds.length} selected ticket${selectedIds.length === 1 ? '' : 's'}`}
         >

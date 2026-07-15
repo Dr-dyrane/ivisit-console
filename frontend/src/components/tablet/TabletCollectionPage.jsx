@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   Check,
@@ -8,20 +8,39 @@ import {
   Minus,
   RefreshCw,
   Search,
+  X,
 } from 'lucide-react';
+import { selectPrimaryKpis } from '../console/KpiStrip';
+import { useSearchDraft } from '../../hooks/useSearchDraft';
+import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { TabletPageShell } from './TabletPageShell';
 
 const defaultStatusClass = 'bg-muted/38 text-muted-foreground';
 
-const TabletIconButton = ({ label, onClick, active = false, disabled = false, children }) => (
+// Shared focus token for the tablet lane's raw buttons (ui/button bakes its own
+// ring in; raw tablet controls compose this so keyboard focus is never invisible).
+export const TABLET_FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/25';
+
+const TabletIconButton = ({
+  label,
+  onClick,
+  active = false,
+  disabled = false,
+  dataState,
+  haspopup,
+  expanded,
+  children,
+}) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
     aria-label={label}
     title={label}
-    data-state={active ? 'active' : 'idle'}
-    className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-icon transition-all active:scale-95 disabled:opacity-40 ${active
+    aria-haspopup={haspopup}
+    aria-expanded={expanded}
+    data-state={dataState || (active ? 'active' : 'idle')}
+    className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-icon transition-all active:scale-95 disabled:opacity-40 ${TABLET_FOCUS_RING} ${active
       ? 'bg-foreground text-background shadow-e2'
       : 'bg-card/72 text-muted-foreground shadow-e1 hover:bg-foreground/[0.07] hover:text-foreground'
     }`}
@@ -30,7 +49,11 @@ const TabletIconButton = ({ label, onClick, active = false, disabled = false, ch
   </button>
 );
 
-export const TabletCheckbox = ({ checked = false, onCheckedChange, label, disabled = false }) => {
+// 44px hit area around the 16px visual box (the before: inset pseudo-element
+// extends the tap target without changing the row layout); the click handler
+// forwards the MouseEvent through onSelectClick so shift-range selection
+// (useRowSelection) works on tablet.
+export const TabletCheckbox = ({ checked = false, onCheckedChange, onSelectClick, label, disabled = false }) => {
   const indeterminate = checked === 'indeterminate';
   const selected = checked === true;
   const active = selected || indeterminate;
@@ -44,8 +67,11 @@ export const TabletCheckbox = ({ checked = false, onCheckedChange, label, disabl
       aria-label={label}
       disabled={disabled}
       data-state={indeterminate ? 'indeterminate' : (selected ? 'checked' : 'unchecked')}
-      onClick={() => onCheckedChange?.(!selected)}
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-icon shadow-e1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${active
+      onClick={(event) => {
+        onSelectClick?.(event);
+        onCheckedChange?.(!selected);
+      }}
+      className={`relative z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-icon shadow-e1 transition-colors before:absolute before:-inset-3.5 before:content-[''] ${TABLET_FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${active
         ? 'bg-foreground text-background dark:bg-white dark:text-background'
         : 'bg-foreground/[0.08] text-transparent dark:bg-white/[0.10]'
       }`}
@@ -55,16 +81,29 @@ export const TabletCheckbox = ({ checked = false, onCheckedChange, label, disabl
   );
 };
 
-const getVisibleTabletKpis = (options, activeId) => {
-  const visible = options.slice(0, 3);
-  const active = options.find((option) => option.id === activeId);
-
-  if (!active || visible.some((option) => option.id === activeId)) return visible;
-  return [...visible.slice(0, 2), active];
-};
-
-export const TabletKpiStrip = ({ options = [], activeId, onChange, loading = false }) => {
-  const visibleOptions = getVisibleTabletKpis(options, activeId);
+export const TabletKpiStrip = ({
+  options = [],
+  activeId,
+  onChange,
+  loading = false,
+  pinnedIds = [],
+  importance = {},
+}) => {
+  // Same smart-context selection as the desktop KpiStrip (donor: Requests):
+  // pinned ids hold a slot only while their count > 0, the active chip always
+  // stays visible, remaining slots fill count-desc then importance.
+  const getCount = (id) => {
+    const value = options.find((option) => option.id === id)?.value;
+    return typeof value === 'number' ? value : Number(value) || 0;
+  };
+  const visibleOptions = selectPrimaryKpis({
+    options,
+    getCount,
+    kpiFilter: activeId,
+    pinnedIds,
+    importance,
+    max: 3,
+  });
 
   return (
     <div
@@ -75,14 +114,15 @@ export const TabletKpiStrip = ({ options = [], activeId, onChange, loading = fal
     >
       {visibleOptions.map((option) => {
         const Icon = option.icon;
-        const active = option.id === activeId;
+        // Desktop parity: an unset filter means the default scope is active.
+        const active = option.id === (activeId || 'all');
         return (
           <button
             key={option.id}
             type="button"
-            onClick={() => onChange?.(option.id)}
+            onClick={() => onChange?.(active && option.id !== 'all' ? 'all' : option.id)}
             aria-pressed={active}
-            className={`flex h-10 shrink-0 items-center gap-2 rounded-pill px-3 text-xs font-semibold transition-all active:scale-[0.97] ${active
+            className={`flex h-11 shrink-0 items-center gap-2 rounded-pill px-3 text-xs font-semibold transition-all active:scale-[0.97] ${TABLET_FOCUS_RING} ${active
               ? option.activeClass || 'bg-foreground text-background shadow-e2'
               : 'bg-card/68 text-muted-foreground shadow-e1 hover:bg-foreground/[0.06] hover:text-foreground'
             }`}
@@ -103,17 +143,18 @@ const TabletSearchToolbar = ({
   placeholder,
   onOpenFilters,
   filtersActive = false,
+  filterSheetOpen = false,
   onOpenAnalytics,
   onRefresh,
   refreshing = false,
 }) => {
-  const [draft, setDraft] = useState(searchValue || '');
-
-  useEffect(() => setDraft(searchValue || ''), [searchValue]);
-
+  // Same 300ms draft-debounce as desktop SheetToolbar / mobile SearchRow;
+  // Enter commits immediately, the clear-x commits '' immediately.
+  const [draft, setDraft] = useSearchDraft(searchValue || '', onSearchCommit || (() => {}));
   const commit = () => {
     if (draft !== (searchValue || '')) onSearchCommit?.(draft);
   };
+  const filterTriggerState = filterSheetOpen ? 'open' : (filtersActive ? 'filtered' : 'idle');
 
   return (
     <form
@@ -130,10 +171,24 @@ const TabletSearchToolbar = ({
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
           placeholder={placeholder}
           className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70"
         />
+        {draft && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => {
+              setDraft('');
+              onSearchCommit?.('');
+            }}
+            className={`-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-icon text-muted-foreground transition-colors hover:text-foreground active:scale-95 ${TABLET_FOCUS_RING}`}
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-pill bg-foreground/10">
+              <X className="h-3 w-3" />
+            </span>
+          </button>
+        )}
       </label>
       {onRefresh && (
         <TabletIconButton label={refreshing ? 'Refreshing' : 'Refresh'} onClick={onRefresh} disabled={refreshing}>
@@ -141,9 +196,16 @@ const TabletSearchToolbar = ({
         </TabletIconButton>
       )}
       {onOpenFilters && (
-        <TabletIconButton label="Filters" onClick={onOpenFilters} active={filtersActive}>
+        <TabletIconButton
+          label="Filters"
+          onClick={onOpenFilters}
+          active={filterSheetOpen || filtersActive}
+          dataState={filterTriggerState}
+          haspopup="dialog"
+          expanded={filterSheetOpen}
+        >
           <Filter className="h-4 w-4" />
-          {filtersActive && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-pill bg-current" />}
+          {filtersActive && <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-pill bg-current" />}
         </TabletIconButton>
       )}
       {onOpenAnalytics && (
@@ -163,6 +225,7 @@ const TabletRecordRow = ({
   selectable,
   selected,
   onToggleSelect,
+  onSelectClick,
 }) => {
   const Icon = record.icon;
   const statusClass = record.statusClass || defaultStatusClass;
@@ -180,6 +243,7 @@ const TabletRecordRow = ({
         <TabletCheckbox
           checked={selected}
           onCheckedChange={(checked) => onToggleSelect?.(record.id, checked)}
+          onSelectClick={onSelectClick}
           label={selected ? `Deselect ${record.title}` : `Select ${record.title}`}
         />
       )}
@@ -187,7 +251,7 @@ const TabletRecordRow = ({
         type="button"
         onClick={() => onFocus?.(record.id)}
         onDoubleClick={() => onOpen?.(record.source)}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        className={`flex min-w-0 flex-1 items-center gap-3 rounded-inner text-left ${TABLET_FOCUS_RING}`}
         aria-label={`Focus ${record.title}`}
       >
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-icon ${record.iconClass || 'bg-muted/38 text-muted-foreground'}`}>
@@ -209,7 +273,7 @@ const TabletRecordRow = ({
         <button
           type="button"
           onClick={() => onOpen(record.source)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground active:scale-95"
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground active:scale-95 ${TABLET_FOCUS_RING}`}
           aria-label={`Open ${record.title}`}
         >
           <ChevronRight className="h-4 w-4" />
@@ -240,6 +304,8 @@ export const TabletCollectionPage = ({
   kpis = [],
   activeKpi,
   onKpiChange,
+  kpiPinnedIds = [],
+  kpiImportance = {},
   loading = false,
   isFetching = false,
   error = null,
@@ -250,6 +316,7 @@ export const TabletCollectionPage = ({
   searchPlaceholder = 'Search...',
   onOpenFilters,
   filtersActive = false,
+  filterSheetOpen = false,
   onOpenAnalytics,
   focusedId,
   onFocus,
@@ -257,12 +324,15 @@ export const TabletCollectionPage = ({
   selectable = false,
   selectedIds = [],
   onToggleSelect,
+  onSelectClick,
   onSelectAll,
   allSelected,
   someSelected,
   emptyTitle = 'Nothing here yet',
   emptyBody = 'Records will appear here when they are available.',
+  emptyAction = null,
   countLabel,
+  scrollResetKey,
   footer = null,
   toolbarSlot = null,
 }) => {
@@ -274,11 +344,61 @@ export const TabletCollectionPage = ({
   const pageAllSelected = allSelected ?? (records.length > 0 && visibleSelectedCount === records.length);
   const pageSomeSelected = someSelected ?? (visibleSelectedCount > 0 && !pageAllSelected);
 
+  // Keyboard equivalence (donor: Requests desktop list): ArrowUp/ArrowDown move
+  // row focus, Enter opens, Escape clears; a page change resets the viewport.
+  const scrollRef = useRef(null);
+  const focusedRecord = useMemo(
+    () => records.find((record) => record.id === focusedId) || null,
+    [records, focusedId],
+  );
+  const handleListKeyDown = useListKeyboardNav({
+    items: records,
+    focusedItem: focusedRecord,
+    setFocusedId: (id) => onFocus?.(id),
+    onOpen: (record) => onOpen?.(record.source),
+    scrollRef,
+    rowAttr: 'data-tablet-record-row',
+  });
+  useScrollResetOnPage(scrollRef, scrollResetKey);
+
+  // Refresh outcome announcement: the transient "Updating" spinner announces the
+  // start; this polite live region announces the RESULT when the refetch lands.
+  const [refreshOutcome, setRefreshOutcome] = useState('');
+  const wasFetchingRef = useRef(isFetching);
+  const refreshTickRef = useRef(0);
+  useEffect(() => {
+    if (wasFetchingRef.current && !isFetching) {
+      // Alternate a zero-width suffix so back-to-back identical outcomes still
+      // mutate the DOM -- otherwise repeat refreshes announce nothing to AT.
+      refreshTickRef.current += 1;
+      const nudge = refreshTickRef.current % 2 ? '​' : '';
+      setRefreshOutcome((error
+        ? 'Refresh failed. Showing the last loaded records.'
+        : `List updated. ${records.length} records shown.`) + nudge);
+    }
+    wasFetchingRef.current = isFetching;
+  }, [isFetching, error, records.length]);
+
+  // Filtered-empty and true-empty states must offer a way out: pages can wire
+  // an explicit emptyAction; otherwise the page derives an honest recovery from
+  // what it knows (clear the committed search, or reopen the filter sheet).
+  const fallbackEmptyAction = searchValue && onSearchCommit
+    ? { label: 'Clear search', onClick: () => onSearchCommit('') }
+    : (filtersActive && onOpenFilters ? { label: 'Adjust filters', onClick: onOpenFilters } : null);
+  const resolvedEmptyAction = emptyAction || fallbackEmptyAction;
+
   return (
     <TabletPageShell detail={detail}>
       <div className="flex h-full min-h-0 flex-col gap-3">
         {kpis.length > 0 && (
-          <TabletKpiStrip options={kpis} activeId={activeKpi} onChange={onKpiChange} loading={loading} />
+          <TabletKpiStrip
+            options={kpis}
+            activeId={activeKpi}
+            onChange={onKpiChange}
+            loading={loading}
+            pinnedIds={kpiPinnedIds}
+            importance={kpiImportance}
+          />
         )}
         {toolbarSlot}
         <TabletSearchToolbar
@@ -287,12 +407,14 @@ export const TabletCollectionPage = ({
           placeholder={searchPlaceholder}
           onOpenFilters={onOpenFilters}
           filtersActive={filtersActive}
+          filterSheetOpen={filterSheetOpen}
           onOpenAnalytics={onOpenAnalytics}
           onRefresh={onRefresh}
           refreshing={isFetching}
         />
+        <span className="sr-only" role="status" aria-live="polite">{refreshOutcome}</span>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card bg-card/68 shadow-e2 backdrop-blur-xl">
-          <div className="flex h-9 shrink-0 items-center justify-between gap-3 px-3 text-[11px] font-medium text-muted-foreground">
+          <div className="flex h-11 shrink-0 items-center justify-between gap-3 px-3 text-[11px] font-medium text-muted-foreground">
             <div className="flex min-w-0 items-center gap-2">
               {selectable && onSelectAll && (
                 <TabletCheckbox
@@ -312,7 +434,34 @@ export const TabletCollectionPage = ({
             )}
           </div>
           <div className="mx-3 h-px shrink-0 bg-[hsl(var(--muted-foreground)/0.08)]" />
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">
+          {error && records.length > 0 && (
+            <div
+              data-tablet-degraded
+              role="alert"
+              className="flex shrink-0 items-center justify-between gap-3 bg-amber-500/10 px-3 py-1.5"
+            >
+              <p className="min-w-0 truncate text-xs font-medium text-amber-800 dark:text-amber-100">
+                Refresh failed. Rows shown may be out of date.
+              </p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className={`h-11 shrink-0 rounded-button px-3 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-500/15 dark:text-amber-100 ${TABLET_FOCUS_RING}`}
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
+          <div
+            ref={scrollRef}
+            role="region"
+            tabIndex={0}
+            onKeyDown={handleListKeyDown}
+            aria-label={countLabel || 'Records'}
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar ${TABLET_FOCUS_RING}`}
+          >
             {loading && records.length === 0 ? (
               <TabletRowsSkeleton />
             ) : error && records.length === 0 ? (
@@ -320,7 +469,7 @@ export const TabletCollectionPage = ({
                 <p className="text-sm font-semibold text-foreground">Records did not load</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{error}</p>
                 {onRetry && (
-                  <button type="button" onClick={onRetry} className="mt-4 h-10 rounded-button bg-foreground px-4 text-xs font-semibold text-background active:scale-95">
+                  <button type="button" onClick={onRetry} className={`mt-4 h-11 rounded-button bg-foreground px-4 text-xs font-semibold text-background active:scale-95 ${TABLET_FOCUS_RING}`}>
                     Retry
                   </button>
                 )}
@@ -329,6 +478,15 @@ export const TabletCollectionPage = ({
               <div className="flex min-h-[260px] flex-col items-center justify-center px-8 text-center">
                 <p className="text-sm font-semibold text-foreground">{emptyTitle}</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{emptyBody}</p>
+                {resolvedEmptyAction && (
+                  <button
+                    type="button"
+                    onClick={resolvedEmptyAction.onClick}
+                    className={`mt-4 h-11 rounded-button bg-foreground px-4 text-xs font-semibold text-background active:scale-95 ${TABLET_FOCUS_RING}`}
+                  >
+                    {resolvedEmptyAction.label}
+                  </button>
+                )}
               </div>
             ) : (
               records.map((record, index) => (
@@ -341,6 +499,7 @@ export const TabletCollectionPage = ({
                     selectable={selectable}
                     selected={selectedSet.has(record.id)}
                     onToggleSelect={onToggleSelect}
+                    onSelectClick={onSelectClick}
                   />
                   {index < records.length - 1 && (
                     <div className="ml-[64px] h-px bg-[hsl(var(--muted-foreground)/0.08)]" />

@@ -169,8 +169,8 @@ export const EmergencyRequestsPage = () => {
           onRefresh={fetchRequests}
           onViewAnalytics={handleOpenAnalytics}
           onOpenFilters={() => setFilterSheetOpen(true)}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          filterSheetOpen={filterSheetOpen}
+          pagination={pagination}
           loadError={loadError}
           onRetry={fetchRequests}
           kpiFilter={selectedKpiFilter}
@@ -178,6 +178,7 @@ export const EmergencyRequestsPage = () => {
           selectionEnabled={currentUser.isAdmin()}
           selectedIds={selectedIds}
           onSelect={handleToggleSelect}
+          onSelectClick={handleSelectClick}
           onSelectAll={handleSelectAll}
           onFocusRequest={setFocusedRequestId}
           focusedRequest={focusedRequest}

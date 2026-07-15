@@ -4,7 +4,7 @@ import {
   getSubscriberStatusTone,
   hasActiveSubscriberFilters,
 } from '../pages/subscriptions/subscriptionPageModel';
-import { TabletCollectionPage } from './TabletCollectionPage';
+import { TABLET_FOCUS_RING, TabletCollectionPage } from './TabletCollectionPage';
 import { formatTabletDateTime, titleCase } from './tabletFormatters';
 
 const subscriptionKpiOptions = [
@@ -67,6 +67,7 @@ export const TabletSubscriptions = ({
   onRetry,
   onRefresh,
   onOpenFilters,
+  filterSheetOpen = false,
   onViewAnalytics,
   actionNotice = '',
   focusedSubscriber,
@@ -75,6 +76,7 @@ export const TabletSubscriptions = ({
   selectionEnabled = false,
   selectedIds = [],
   onSelect,
+  onSelectClick,
   onSelectAll,
   allSelected,
   someSelected,
@@ -105,12 +107,13 @@ export const TabletSubscriptions = ({
     };
   }), [subscribers]);
 
+  // This feed genuinely accumulates (id-keyed page map), so "Load more" is honest.
   const footer = hasMore ? (
     <button
       type="button"
       onClick={onLoadMore}
       disabled={loading || isFetching}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+      className={`h-11 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50 ${TABLET_FOCUS_RING}`}
     >
       {isFetching ? 'Loading subscribers...' : 'Load more'}
     </button>
@@ -123,6 +126,8 @@ export const TabletSubscriptions = ({
       kpis={kpis}
       activeKpi={activeKpi}
       onKpiChange={(id) => setFilters?.((current) => ({ ...current, kpiFilter: id }))}
+      kpiPinnedIds={['pending', 'new']}
+      kpiImportance={{ all: 0, pending: 1, new: 2 }}
       loading={loading}
       isFetching={isFetching}
       error={denied ? null : errorMessage}
@@ -133,6 +138,7 @@ export const TabletSubscriptions = ({
       searchPlaceholder="Search subscriber email..."
       onOpenFilters={onOpenFilters}
       filtersActive={hasActiveSubscriberFilters(filters)}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedSubscriber?.id}
       onFocus={onFocusSubscriber}
@@ -140,6 +146,7 @@ export const TabletSubscriptions = ({
       selectable={selectionEnabled}
       selectedIds={selectedIds}
       onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
       allSelected={allSelected}
       someSelected={someSelected}

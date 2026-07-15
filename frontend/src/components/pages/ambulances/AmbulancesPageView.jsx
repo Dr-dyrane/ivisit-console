@@ -77,15 +77,16 @@ export const AmbulancesPageView = ({ controller }) => {
           onRetry={data.fetchAmbulances}
           errorMessage={data.loadError}
           onOpenFilters={actions.handleOpenFilters}
+          filterSheetOpen={state.filterSheetOpen}
           onViewAnalytics={actions.handleOpenAnalytics}
           selectionEnabled={role.canManageFleet}
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
+          onSelectClick={selection.handleSelectClick}
           onSelectAll={selection.handleSelectAll}
           allSelected={selection.allSelected}
           someSelected={selection.someSelected}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          pagination={pagination}
           detail={(
             <AmbulanceDetailRail
               ambulance={state.focusedAmbulance}

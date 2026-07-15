@@ -8,18 +8,11 @@ import {
   getInsurancePolicyPill,
   getInsuranceStateCount,
   hasInsuranceWorkspaceFilter,
+  INSURANCE_STATE_IMPORTANCE,
   INSURANCE_STATE_OPTIONS,
 } from '../pages/insurance/insurancePresentation';
-import { TabletCollectionPage } from './TabletCollectionPage';
+import { TABLET_FOCUS_RING, TabletCollectionPage } from './TabletCollectionPage';
 import { formatTabletDateTime } from './tabletFormatters';
-
-const getTabletInsuranceKpis = (activeId) => {
-  const ids = ['all', 'active', 'pending'];
-  if (activeId && !ids.includes(activeId)) ids[2] = activeId;
-  return ids
-    .map((id) => INSURANCE_STATE_OPTIONS.find((option) => option.id === id))
-    .filter(Boolean);
-};
 
 export const TabletInsurance = ({
   policies = [],
@@ -34,6 +27,7 @@ export const TabletInsurance = ({
   onRetry,
   onRefresh,
   onOpenFilters,
+  filterSheetOpen = false,
   onViewAnalytics,
   focusedPolicy,
   onFocusPolicy,
@@ -41,6 +35,7 @@ export const TabletInsurance = ({
   selectionEnabled = false,
   selectedIds = [],
   onSelect,
+  onSelectClick,
   onSelectAll,
   allSelected,
   someSelected,
@@ -50,10 +45,10 @@ export const TabletInsurance = ({
   detail,
 }) => {
   const activeKpi = filters.kpiFilter || 'all';
-  const kpis = useMemo(() => getTabletInsuranceKpis(activeKpi).map((option) => ({
+  const kpis = useMemo(() => INSURANCE_STATE_OPTIONS.map((option) => ({
     ...option,
     value: getInsuranceStateCount(stats, policies, option.id),
-  })), [activeKpi, policies, stats]);
+  })), [policies, stats]);
 
   const records = useMemo(() => policies.map((policy) => {
     const status = getInsurancePolicyPill(policy.status);
@@ -73,12 +68,13 @@ export const TabletInsurance = ({
     };
   }), [policies]);
 
+  // This feed genuinely accumulates (grow-window fetch), so "Load more" is honest.
   const footer = hasMore ? (
     <button
       type="button"
       onClick={onLoadMore}
       disabled={loading || isFetching || isLoadingMore}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+      className={`h-11 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50 ${TABLET_FOCUS_RING}`}
     >
       {isLoadingMore ? 'Loading policies...' : 'Load more'}
     </button>
@@ -91,6 +87,8 @@ export const TabletInsurance = ({
       kpis={kpis}
       activeKpi={activeKpi}
       onKpiChange={(id) => setFilters?.((current) => ({ ...current, kpiFilter: id }))}
+      kpiPinnedIds={['pending', 'unverified']}
+      kpiImportance={INSURANCE_STATE_IMPORTANCE}
       loading={loading}
       isFetching={isFetching || isLoadingMore}
       error={denied ? null : error}
@@ -101,6 +99,7 @@ export const TabletInsurance = ({
       searchPlaceholder="Search policy, provider, or plan..."
       onOpenFilters={onOpenFilters}
       filtersActive={hasInsuranceWorkspaceFilter(filters)}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedPolicy?.id}
       onFocus={onFocusPolicy}
@@ -108,6 +107,7 @@ export const TabletInsurance = ({
       selectable={selectionEnabled}
       selectedIds={selectedIds}
       onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
       allSelected={allSelected}
       someSelected={someSelected}

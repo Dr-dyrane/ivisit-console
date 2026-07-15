@@ -509,11 +509,12 @@ export const VisitsPage = () => {
           onRetry={fetchVisits}
           onViewAnalytics={handleOpenAnalytics}
           onOpenFilters={handleOpenFilters}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          filterSheetOpen={filterSheetOpen}
+          pagination={pagination}
           selectionEnabled={isAdmin()}
           selectedIds={selectedIds}
           onSelect={handleToggleSelect}
+          onSelectClick={handleSelectClick}
           onSelectAll={handleSelectAll}
           allSelected={allSelected}
           someSelected={someSelected}

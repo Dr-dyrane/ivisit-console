@@ -158,15 +158,16 @@ export const OrganizationsPageView = ({ controller }) => {
           onRetry={fetchOrganizations}
           loadError={loadError}
           onOpenFilters={handleOpenFilters}
+          filterSheetOpen={filterSheetOpen}
           onViewAnalytics={handleOpenAnalytics}
           selectable={selectable}
           selectedIds={selection.selectedIds}
           onToggleSelect={selection.handleToggleSelect}
+          onSelectClick={selection.handleSelectClick}
           onSelectAll={selection.handleSelectAll}
           allSelected={selection.allSelected}
           someSelected={selection.someSelected}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          pagination={pagination}
           detail={(
             <OrganizationDetailRail
               organization={focusedOrg}

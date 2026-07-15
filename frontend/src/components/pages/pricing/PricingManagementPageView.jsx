@@ -116,6 +116,7 @@ export const PricingManagementPageView = ({ controller, chrome, isPhone, isTable
           selectionEnabled={canSelectPricing}
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
+          onSelectClick={selection.handleSelectClick}
           onSelectAll={selection.handleSelectAll}
           allSelected={selection.allSelected}
           someSelected={selection.someSelected}

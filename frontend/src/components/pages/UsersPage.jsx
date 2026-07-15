@@ -382,7 +382,8 @@ export const UsersPage = () => {
           onViewAnalytics={handleViewAnalytics} filterSheetOpen={filterSheetOpen}
           selectable={selectable} selectedIds={selectedIds}
           allSelected={allSelected} someSelected={someSelected}
-          onToggleSelect={handleToggleSelect} onSelectAll={handleSelectAll}
+          onToggleSelect={handleToggleSelect} onSelectClick={handleSelectClick}
+          onSelectAll={handleSelectAll}
           pagination={pagination}
           detail={(
             <UsersDetailRail

@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { CalendarClock, Stethoscope } from 'lucide-react';
 import {
+  PINNED_VISIT_STATE_IDS,
+  VISIT_KPI_IMPORTANCE,
   getVisitAvatarClass,
   getVisitStateCount,
   hasActiveVisitFilters,
@@ -9,12 +11,7 @@ import {
 } from '../pages/visits/visitPageModel';
 import { visitRowProjection } from '../../utils/visitRowProjection';
 import { TabletCollectionPage } from './TabletCollectionPage';
-
-const chooseTabletVisitKpis = (activeId) => {
-  const preferred = ['all', 'scheduled', 'in_progress'];
-  if (activeId && !preferred.includes(activeId)) preferred[2] = activeId;
-  return preferred.map((id) => visitStateOptions.find((option) => option.id === id)).filter(Boolean);
-};
+import { TabletPaginationFooter } from './TabletCollectionControls';
 
 export const TabletVisits = ({
   visits = [],
@@ -32,11 +29,12 @@ export const TabletVisits = ({
   onRetry,
   onViewAnalytics,
   onOpenFilters,
-  hasMore = false,
-  onLoadMore,
+  filterSheetOpen = false,
+  pagination,
   selectionEnabled = false,
   selectedIds = [],
   onSelect,
+  onSelectClick,
   onSelectAll,
   allSelected,
   someSelected,
@@ -44,10 +42,10 @@ export const TabletVisits = ({
   onFocusVisit,
   detail,
 }) => {
-  const kpis = useMemo(() => chooseTabletVisitKpis(activeKpi).map((option) => ({
+  const kpis = useMemo(() => visitStateOptions.map((option) => ({
     ...option,
     value: getVisitStateCount({ id: option.id, stats: statistics, visits }),
-  })), [activeKpi, statistics, visits]);
+  })), [statistics, visits]);
 
   const records = useMemo(() => visits.map((visit) => {
     const row = visitRowProjection(visit);
@@ -65,16 +63,10 @@ export const TabletVisits = ({
     };
   }), [visits]);
 
-  const footer = hasMore ? (
-    <button
-      type="button"
-      onClick={onLoadMore}
-      disabled={loading || isFetching}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
-    >
-      Load more
-    </button>
-  ) : null;
+  // Honest windowed pagination (fetch = Supabase range window; see TabletEmergency).
+  const footer = pagination?.totalPages > 1
+    ? <TabletPaginationFooter pagination={pagination} loading={loading || isFetching} />
+    : null;
 
   return (
     <TabletCollectionPage
@@ -83,6 +75,8 @@ export const TabletVisits = ({
       kpis={kpis}
       activeKpi={activeKpi}
       onKpiChange={onKpiChange}
+      kpiPinnedIds={PINNED_VISIT_STATE_IDS}
+      kpiImportance={VISIT_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={errorMessage}
@@ -93,6 +87,7 @@ export const TabletVisits = ({
       searchPlaceholder="Search patient, facility, clinician..."
       onOpenFilters={onOpenFilters}
       filtersActive={hasActiveVisitFilters(filters)}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedVisit?.id}
       onFocus={onFocusVisit}
@@ -100,7 +95,9 @@ export const TabletVisits = ({
       selectable={selectionEnabled}
       selectedIds={selectedIds}
       onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
+      scrollResetKey={pagination?.currentPage}
       allSelected={allSelected}
       someSelected={someSelected}
       emptyTitle={activeKpi === 'scheduled' ? 'No scheduled visits' : 'No visits found'}

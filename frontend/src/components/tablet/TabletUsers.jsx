@@ -6,6 +6,8 @@ import {
   getUsersKpiCount,
   getUsersProjection,
   hasActiveUserFilters,
+  PINNED_USERS_KPI_IDS,
+  USERS_KPI_IMPORTANCE,
   USERS_KPI_OPTIONS,
 } from '../pages/users/usersPageModel';
 import { TabletCollectionPage } from './TabletCollectionPage';
@@ -35,6 +37,7 @@ export const TabletUsers = ({
   allSelected = false,
   someSelected = false,
   onToggleSelect,
+  onSelectClick,
   onSelectAll,
   pagination,
   detail,
@@ -76,6 +79,8 @@ export const TabletUsers = ({
       kpis={kpis}
       activeKpi={kpiFilter}
       onKpiChange={setKpiFilter}
+      kpiPinnedIds={PINNED_USERS_KPI_IDS}
+      kpiImportance={USERS_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={errorMessage}
@@ -85,7 +90,8 @@ export const TabletUsers = ({
       onSearchCommit={onSearchCommit}
       searchPlaceholder="Search name, email, or role..."
       onOpenFilters={onOpenFilters}
-      filtersActive={filterSheetOpen || hasFilter}
+      filtersActive={hasFilter}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedUser?.id}
       onFocus={onFocus}
@@ -93,7 +99,9 @@ export const TabletUsers = ({
       selectable={selectable}
       selectedIds={selectedIds}
       onToggleSelect={onToggleSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
+      scrollResetKey={pagination?.currentPage}
       allSelected={allSelected}
       someSelected={someSelected}
       emptyTitle={hasFilter ? 'No matching users' : 'No users yet'}

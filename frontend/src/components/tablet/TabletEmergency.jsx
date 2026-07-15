@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { AlertCircle, UserRound } from 'lucide-react';
 import {
+  REQUEST_KPI_IMPORTANCE,
   REQUEST_KPI_OPTIONS,
+  REQUEST_PINNED_KPI_IDS,
   REQUEST_SERVICE_ICON_MAP,
   formatRequestTime,
   getRequestAvatarClass,
@@ -12,15 +14,7 @@ import {
 } from '../pages/requests/requestPageModel';
 import { buildEmergencyLifecyclePresentation } from '../pages/requests/emergencyLifecyclePresentation';
 import { TabletCollectionPage } from './TabletCollectionPage';
-
-const chooseTabletKpis = (activeId, includeMine) => {
-  const allowed = REQUEST_KPI_OPTIONS.filter((option) => includeMine || option.id !== 'mine');
-  const preferred = ['all', 'pending', 'active'];
-  if (activeId && !preferred.includes(activeId)) preferred[2] = activeId;
-  return preferred
-    .map((id) => allowed.find((option) => option.id === id))
-    .filter(Boolean);
-};
+import { TabletPaginationFooter } from './TabletCollectionControls';
 
 export const TabletEmergency = ({
   emergencies = [],
@@ -33,8 +27,8 @@ export const TabletEmergency = ({
   onRefresh,
   onViewAnalytics,
   onOpenFilters,
-  hasMore = false,
-  onLoadMore,
+  filterSheetOpen = false,
+  pagination,
   loadError,
   onRetry,
   kpiFilter = 'all',
@@ -42,16 +36,19 @@ export const TabletEmergency = ({
   selectionEnabled = false,
   selectedIds = [],
   onSelect,
+  onSelectClick,
   onSelectAll,
   onFocusRequest,
   focusedRequest,
   includeMine = false,
   detail,
 }) => {
-  const kpis = useMemo(() => chooseTabletKpis(kpiFilter, includeMine).map((option) => ({
-    ...option,
-    value: getRequestKpiCount({ id: option.id, stats: statistics, requests: emergencies }),
-  })), [emergencies, includeMine, kpiFilter, statistics]);
+  const kpis = useMemo(() => REQUEST_KPI_OPTIONS
+    .filter((option) => includeMine || option.id !== 'mine')
+    .map((option) => ({
+      ...option,
+      value: getRequestKpiCount({ id: option.id, stats: statistics, requests: emergencies }),
+    })), [emergencies, includeMine, statistics]);
 
   const records = useMemo(() => emergencies.map((request) => {
     const projection = getRequestProjection(request);
@@ -73,16 +70,11 @@ export const TabletEmergency = ({
     };
   }), [emergencies]);
 
-  const footer = hasMore ? (
-    <button
-      type="button"
-      onClick={onLoadMore}
-      disabled={loading || isFetching}
-      className="h-10 w-full rounded-button bg-foreground/[0.06] text-xs font-semibold text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
-    >
-      Load more
-    </button>
-  ) : null;
+  // Honest windowed pagination: the fetch is a Supabase range window, so the
+  // footer says "Page X of Y" instead of a row-replacing grow control.
+  const footer = pagination?.totalPages > 1
+    ? <TabletPaginationFooter pagination={pagination} loading={loading || isFetching} />
+    : null;
 
   return (
     <TabletCollectionPage
@@ -91,6 +83,8 @@ export const TabletEmergency = ({
       kpis={kpis}
       activeKpi={kpiFilter}
       onKpiChange={setKpiFilter}
+      kpiPinnedIds={REQUEST_PINNED_KPI_IDS}
+      kpiImportance={REQUEST_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={loadError}
@@ -101,6 +95,7 @@ export const TabletEmergency = ({
       searchPlaceholder="Search request, patient, facility..."
       onOpenFilters={onOpenFilters}
       filtersActive={hasActiveRequestFilters(filters)}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedRequest?.id}
       onFocus={onFocusRequest}
@@ -108,7 +103,9 @@ export const TabletEmergency = ({
       selectable={selectionEnabled}
       selectedIds={selectedIds}
       onToggleSelect={onSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
+      scrollResetKey={pagination?.currentPage}
       emptyTitle={kpiFilter === 'pending' ? 'Nothing needs attention' : 'No requests found'}
       emptyBody="New requests in this scope will appear here."
       countLabel={`${statistics?.total ?? emergencies.length} requests`}

@@ -3,10 +3,10 @@
 // context-aware: data-state open/filtered/idle. Both triggers render only when the
 // page wires a surface for them -- a trigger with no sheet is a dead tap (found by
 // the MobilePricing Wave-2 pass: tabs + KPI chips are its only filter grammar).
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Search, X, Filter, BarChart3 } from 'lucide-react';
 import { FEEDBACK_TYPES } from '../../../contexts/FeedbackContext';
-import { SEARCH_DEBOUNCE_MS } from './constants';
+import { useSearchDraft } from '../../../hooks/useSearchDraft';
 import { TapButton } from './Tap';
 
 export const getFilterTriggerState = ({ isOpen, hasFilter }) => {
@@ -15,21 +15,9 @@ export const getFilterTriggerState = ({ isOpen, hasFilter }) => {
   return 'idle';
 };
 
-// The 300ms draft-debounce pattern; external writes sync back into the draft.
-export const useSearchDraft = (search, commit) => {
-  const [searchDraft, setSearchDraft] = useState(search || '');
-
-  useEffect(() => { setSearchDraft(search || ''); }, [search]);
-
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if ((search || '') !== searchDraft) commit(searchDraft);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(handle);
-  }, [searchDraft, search, commit]);
-
-  return [searchDraft, setSearchDraft];
-};
+// The 300ms draft-debounce pattern lives lane-neutral in hooks/useSearchDraft
+// (tablet composes the same mechanism); re-exported here for canon consumers.
+export { useSearchDraft } from '../../../hooks/useSearchDraft';
 
 const TRIGGER_CLASS = 'flex h-9 w-9 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-[0.96] dark:bg-white/[0.06]';
 

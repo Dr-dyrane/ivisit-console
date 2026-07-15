@@ -12,6 +12,7 @@ import {
 import { DEFAULT_MAP_CENTER, MAP_VIEW_RADIUS_KM } from '../map/mapViewModel';
 import { DriverAssignmentCard } from '../map/god-mode/DriverAssignmentCard';
 import { TabletPageShell } from './TabletPageShell';
+import { TABLET_FOCUS_RING } from './TabletCollectionPage';
 
 const TabletMapButton = ({ label, busy = false, onClick, children }) => (
   <button
@@ -21,7 +22,7 @@ const TabletMapButton = ({ label, busy = false, onClick, children }) => (
     aria-label={label}
     aria-busy={busy}
     title={label}
-    className="flex h-11 w-11 items-center justify-center rounded-button bg-card/76 text-foreground shadow-e3 backdrop-blur-2xl transition-all active:scale-95 disabled:opacity-60"
+    className={`flex h-11 w-11 items-center justify-center rounded-button bg-card/76 text-foreground shadow-e3 backdrop-blur-2xl transition-all active:scale-95 disabled:opacity-60 ${TABLET_FOCUS_RING}`}
   >
     {children}
   </button>

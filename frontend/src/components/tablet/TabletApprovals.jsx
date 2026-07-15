@@ -5,7 +5,9 @@ import {
   getApprovalToneClass,
 } from '../../constants/verificationStatus';
 import {
+  APPROVAL_KPI_IMPORTANCE,
   APPROVAL_KPI_OPTIONS,
+  APPROVAL_PINNED_KPI_IDS,
   getApprovalKpiCount,
   getProviderTypeIcon,
 } from '../pages/verification/approvalPresentation';
@@ -14,7 +16,7 @@ import {
   getApprovalProjection,
   hasVerificationFilter,
 } from '../pages/verification/verificationQueueModel';
-import { TabletCollectionPage } from './TabletCollectionPage';
+import { TABLET_FOCUS_RING, TabletCollectionPage } from './TabletCollectionPage';
 import { TabletPaginationFooter } from './TabletCollectionControls';
 
 export const TabletApprovals = ({
@@ -41,6 +43,7 @@ export const TabletApprovals = ({
   allSelected = false,
   someSelected = false,
   onToggleSelect,
+  onSelectClick,
   onSelectAll,
   pagination,
   emptyState,
@@ -82,6 +85,8 @@ export const TabletApprovals = ({
       kpis={kpis}
       activeKpi={activeFilter}
       onKpiChange={setStatusFilter}
+      kpiPinnedIds={APPROVAL_PINNED_KPI_IDS}
+      kpiImportance={APPROVAL_KPI_IMPORTANCE}
       loading={loading}
       isFetching={isFetching}
       error={errorMessage}
@@ -91,7 +96,8 @@ export const TabletApprovals = ({
       onSearchCommit={onSearchCommit}
       searchPlaceholder="Search applicant, email, or facility..."
       onOpenFilters={onOpenFilters}
-      filtersActive={filterSheetOpen || hasFilter}
+      filtersActive={hasFilter}
+      filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
       focusedId={focusedItem?.id}
       onFocus={onFocus}
@@ -99,7 +105,9 @@ export const TabletApprovals = ({
       selectable={selectable}
       selectedIds={selectedIds}
       onToggleSelect={onToggleSelect}
+      onSelectClick={onSelectClick}
       onSelectAll={onSelectAll}
+      scrollResetKey={pagination?.currentPage}
       allSelected={allSelected}
       someSelected={someSelected}
       emptyTitle={emptyState?.heading || 'No applications'}
@@ -107,7 +115,7 @@ export const TabletApprovals = ({
       countLabel={`${Number.isFinite(totalCount) ? totalCount : (activeStats.total || items.length)} applications`}
       toolbarSlot={(
         <div className="flex items-center justify-between gap-3">
-          <div className="flex h-10 items-center rounded-button bg-card/68 p-1 shadow-e1" role="group" aria-label="Approval queue">
+          <div className="flex h-11 items-center rounded-button bg-card/68 p-1 shadow-e1" role="group" aria-label="Approval queue">
             {[
               { id: 'providers', label: 'Providers' },
               { id: 'organizations', label: 'Facilities' },
@@ -117,7 +125,7 @@ export const TabletApprovals = ({
                 type="button"
                 onClick={() => setQueueType?.(option.id)}
                 aria-pressed={queueType === option.id}
-                className={`h-8 rounded-inner px-3 text-xs font-semibold transition-all ${queueType === option.id
+                className={`relative h-9 rounded-inner px-3 text-xs font-semibold transition-all before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] ${TABLET_FOCUS_RING} ${queueType === option.id
                   ? 'bg-foreground text-background shadow-e1'
                   : 'text-muted-foreground hover:text-foreground'
                 }`}

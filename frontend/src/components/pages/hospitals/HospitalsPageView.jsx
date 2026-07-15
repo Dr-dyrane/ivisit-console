@@ -75,15 +75,16 @@ export const HospitalsPageView = ({ controller }) => {
           onRetry={data.fetchHospitals}
           errorMessage={data.hospitalPageError}
           onOpenFilters={actions.handleOpenFilters}
+          filterSheetOpen={state.filterSheetOpen}
           onViewAnalytics={actions.handleOpenAnalytics}
           selectionEnabled={role.admin}
           selectedIds={selection.selectedIds}
           onSelect={selection.handleToggleSelect}
+          onSelectClick={selection.handleSelectClick}
           onSelectAll={selection.handleSelectAll}
           allSelected={selection.allSelected}
           someSelected={selection.someSelected}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
+          pagination={pagination}
           detail={(
             <HospitalDetailRail
               hospital={state.focusedHospital}
