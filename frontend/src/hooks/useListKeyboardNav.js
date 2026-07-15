@@ -1,5 +1,10 @@
 import { useCallback, useEffect } from 'react';
 
+// Open dialogs own the keyboard: the list shortcuts below and the tablet
+// pushed-detail Escape (TabletPageShell) both yield to any modal or filter
+// sheet layered above them by sharing this ONE guard selector.
+export const OPEN_DIALOG_GUARD_SELECTOR = '[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]';
+
 // Keyboard list navigation for the canonical rows viewport (donor: Requests):
 // ArrowDown/ArrowUp move row focus (clamped to the current page), Enter opens the
 // focused row, Escape returns focus to the default. Typing surfaces and open
@@ -12,7 +17,7 @@ export const useListKeyboardNav = ({ items, focusedItem, setFocusedId, onOpen, s
     const tag = target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
   }
-  if (typeof document !== 'undefined' && document.querySelector('[role="dialog"], [role="alertdialog"], [data-modal-shell="true"], [data-filter-sheet-shell="true"]')) return;
+  if (typeof document !== 'undefined' && document.querySelector(OPEN_DIALOG_GUARD_SELECTOR)) return;
 
   if (event.key === 'Escape') {
     setFocusedId(null);

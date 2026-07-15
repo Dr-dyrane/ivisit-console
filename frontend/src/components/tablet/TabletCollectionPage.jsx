@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   Check,
@@ -14,6 +14,7 @@ import { selectPrimaryKpis } from '../console/KpiStrip';
 import { useSearchDraft } from '../../hooks/useSearchDraft';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../hooks/useListKeyboardNav';
 import { TabletPageShell } from './TabletPageShell';
+import { useTabletLayoutMode } from './useTabletLayoutMode';
 
 const defaultStatusClass = 'bg-muted/38 text-muted-foreground';
 
@@ -249,6 +250,7 @@ const TabletRecordRow = ({
       )}
       <button
         type="button"
+        data-tablet-row-trigger
         onClick={() => onFocus?.(record.id)}
         onDoubleClick={() => onOpen?.(record.source)}
         className={`flex min-w-0 flex-1 items-center gap-3 rounded-inner text-left ${TABLET_FOCUS_RING}`}
@@ -361,6 +363,58 @@ export const TabletCollectionPage = ({
   });
   useScrollResetOnPage(scrollRef, scrollResetKey);
 
+  // Narrow-tablet master-detail push (HIG). The page OWNS the pushed state and
+  // it is EDGE-TRIGGERED by row activation -- never derived from focusedId,
+  // because controllers (e.g. wallet) auto-focus the first row on load and
+  // must not auto-push the detail on every mount.
+  const layoutMode = useTabletLayoutMode();
+  const [detailPushed, setDetailPushed] = useState(false);
+  const pushedRowIdRef = useRef(null);
+  const restoreFocusRef = useRef(false);
+
+  const handleRowActivate = useCallback((id) => {
+    onFocus?.(id);
+    if (layoutMode === 'stacked' && detail) {
+      pushedRowIdRef.current = id;
+      setDetailPushed(true);
+    }
+  }, [detail, layoutMode, onFocus]);
+
+  // User-initiated closes (back button, Escape on the layer) restore focus.
+  const closeDetail = useCallback(() => {
+    restoreFocusRef.current = true;
+    setDetailPushed(false);
+  }, []);
+
+  // Programmatic closes never yank focus: growing past the split floor keeps
+  // the detail as the rail, and a page change replaces the rows underneath.
+  useEffect(() => {
+    if (layoutMode !== 'stacked') {
+      restoreFocusRef.current = false;
+      setDetailPushed(false);
+    }
+  }, [layoutMode]);
+  const prevScrollResetKeyRef = useRef(scrollResetKey);
+  useEffect(() => {
+    if (prevScrollResetKeyRef.current !== scrollResetKey) {
+      prevScrollResetKeyRef.current = scrollResetKey;
+      restoreFocusRef.current = false;
+      setDetailPushed(false);
+    }
+  }, [scrollResetKey]);
+
+  // Back returns focus to the activated row; if that row left the page while
+  // the detail was pushed, fall back to the rows viewport (it has tabIndex=0).
+  useEffect(() => {
+    if (detailPushed || !restoreFocusRef.current) return;
+    restoreFocusRef.current = false;
+    const rowId = pushedRowIdRef.current;
+    const rowTrigger = rowId == null
+      ? null
+      : scrollRef.current?.querySelector(`[data-tablet-record-row="${rowId}"] [data-tablet-row-trigger]`);
+    (rowTrigger || scrollRef.current)?.focus();
+  }, [detailPushed]);
+
   // Refresh outcome announcement: the transient "Updating" spinner announces the
   // start; this polite live region announces the RESULT when the refetch lands.
   const [refreshOutcome, setRefreshOutcome] = useState('');
@@ -388,7 +442,11 @@ export const TabletCollectionPage = ({
   const resolvedEmptyAction = emptyAction || fallbackEmptyAction;
 
   return (
-    <TabletPageShell detail={detail}>
+    <TabletPageShell
+      detail={detail}
+      detailOpen={layoutMode === 'stacked' && detailPushed}
+      onDetailClose={closeDetail}
+    >
       <div className="flex h-full min-h-0 flex-col gap-3">
         {kpis.length > 0 && (
           <TabletKpiStrip
@@ -494,7 +552,7 @@ export const TabletCollectionPage = ({
                   <TabletRecordRow
                     record={record}
                     focused={focusedId === record.id}
-                    onFocus={onFocus}
+                    onFocus={handleRowActivate}
                     onOpen={onOpen}
                     selectable={selectable}
                     selected={selectedSet.has(record.id)}

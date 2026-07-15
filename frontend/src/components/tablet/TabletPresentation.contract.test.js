@@ -69,6 +69,66 @@ describe('dedicated tablet presentation ownership', () => {
     expect(shell).toContain('overflow-y-auto');
   });
 
+  it('measures the split from effective content width through one shared signal (p4/p8)', () => {
+    const shell = read('./TabletPageShell.jsx');
+    const collection = read('./TabletCollectionPage.jsx');
+    const hook = read('./useTabletLayoutMode.js');
+    const breakpoints = read('../../config/breakpoints.js');
+    const appShell = read('../../app/AppShell.jsx');
+
+    // Shell AND collection derive the mode from the SAME hook -- they can
+    // never disagree about split vs stacked.
+    expect(shell).toContain("from './useTabletLayoutMode'");
+    expect(collection).toContain("from './useTabletLayoutMode'");
+    expect(hook).toContain('useNavigation');
+    expect(hook).toContain('useLayout');
+    expect(hook).toContain('getTabletSplitMode({ width, usesCompactNavigation, sidebarWidth })');
+
+    // The chrome deduction mirrors AppShell's bleed padding formula. The
+    // NavigationShell contract pins the AppShell side; this pin reds if either
+    // side of the mirrored formula drifts.
+    expect(appShell).toContain('sidebarWidth + (isBleedPage ? 20 : 48)');
+    expect(breakpoints).toContain('(Number(sidebarWidth) || 0) + 20');
+    expect(breakpoints).toContain('TABLET_SPLIT_MIN_EFFECTIVE_WIDTH = 896');
+
+    // Hierarchy correction: the LIST is the flexible primary column, the
+    // detail a capped secondary rail -- the old inverted ratio is banned.
+    expect(shell).toContain('grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]');
+    expect(shell).not.toContain('minmax(22rem,29rem)_minmax(18rem,1fr)');
+
+    // Layout state is observable for gates and live checks.
+    expect(shell).toContain('data-tablet-layout="split"');
+    expect(shell).toContain('data-tablet-layout="stacked"');
+    expect(shell).toContain('data-tablet-detail-open');
+  });
+
+  it('pushes the stacked detail with a back affordance and shared Escape arbitration (p4/p8)', () => {
+    const shell = read('./TabletPageShell.jsx');
+    const collection = read('./TabletCollectionPage.jsx');
+    const keyboardNav = read('../../hooks/useListKeyboardNav.js');
+
+    // Back affordance: 44px, labeled, focus-ringed (e1/e2 sweeps cover size/ring).
+    expect(shell).toContain("detailBackLabel = 'Back to list'");
+    expect(shell).toContain('aria-label={detailBackLabel}');
+    expect(shell).toContain('data-tablet-detail-layer');
+    // The covered list is inert while the detail layer is pushed.
+    expect(shell).toContain('inert={Boolean(detailOpen)}');
+    // Escape on the layer yields to open dialogs via the SAME guard selector
+    // as the list keyboard nav -- one arbitration mechanism, two consumers.
+    expect(shell).toContain('OPEN_DIALOG_GUARD_SELECTOR');
+    expect(keyboardNav).toContain('export const OPEN_DIALOG_GUARD_SELECTOR');
+
+    // The push is EDGE-TRIGGERED by row activation, never derived from
+    // focusedId (wallet-style controllers auto-focus the first row on load).
+    expect(collection).toContain('const [detailPushed, setDetailPushed] = useState(false)');
+    expect(collection).toContain("detailOpen={layoutMode === 'stacked' && detailPushed}");
+    expect(collection).toContain('onDetailClose={closeDetail}');
+    // Focus restore targets the activated row's trigger, with the rows
+    // viewport as the row-gone fallback.
+    expect(collection).toContain('data-tablet-row-trigger');
+    expect(collection).toContain('(rowTrigger || scrollRef.current)?.focus()');
+  });
+
   it('keeps tablet KPI and selection grammar inside the tablet collection', () => {
     const collection = read('./TabletCollectionPage.jsx');
 

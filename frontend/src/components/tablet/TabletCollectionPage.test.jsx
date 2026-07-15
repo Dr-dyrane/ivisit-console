@@ -1,10 +1,30 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { TabletCheckbox, TabletKpiStrip, TabletCollectionPage } from './TabletCollectionPage';
+import { TabletPageShell } from './TabletPageShell';
+
+// Mutable viewport/layout so tests can flip between a wide tablet (split) and
+// a narrow tablet (stacked master-detail) without remocking modules.
+const mockViewport = { isWideTablet: true, width: 1194, usesCompactNavigation: false };
+const mockLayout = { sidebarWidth: 72 };
 
 jest.mock('../../contexts/NavigationContext', () => ({
-  useNavigation: () => ({ isWideTablet: true }),
+  useNavigation: () => ({ ...mockViewport }),
 }));
+jest.mock('../../contexts/LayoutContext', () => ({
+  useLayout: () => ({ ...mockLayout }),
+}));
+
+// Wide tablet, collapsed rail: effective 1194 - 92 = 1102 >= 896 -> split.
+const setWideTablet = () => {
+  Object.assign(mockViewport, { isWideTablet: true, width: 1194, usesCompactNavigation: false });
+  mockLayout.sidebarWidth = 72;
+};
+// Portrait tablet, compact navigation: effective 810 < 896 -> stacked.
+const setNarrowTablet = () => {
+  Object.assign(mockViewport, { isWideTablet: false, width: 810, usesCompactNavigation: true });
+  mockLayout.sidebarWidth = 72;
+};
 
 describe('TabletCheckbox', () => {
   let container;
@@ -158,6 +178,7 @@ describe('TabletCollectionPage behavior', () => {
   });
 
   beforeEach(() => {
+    setWideTablet();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -272,5 +293,151 @@ describe('TabletCollectionPage behavior', () => {
     const openTrigger = container.querySelector('[aria-label="Filters"]');
     expect(openTrigger.getAttribute('aria-expanded')).toBe('true');
     expect(openTrigger.getAttribute('data-state')).toBe('open');
+  });
+});
+
+describe('TabletCollectionPage stacked master-detail (narrow tablet)', () => {
+  let container;
+  let root;
+
+  beforeAll(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+  });
+
+  beforeEach(() => {
+    setNarrowTablet();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  const RECORDS = [
+    { id: 'r1', title: 'Row one', source: { id: 'r1' } },
+    { id: 'r2', title: 'Row two', source: { id: 'r2' } },
+  ];
+
+  const render = (props = {}) => {
+    act(() => {
+      root.render(
+        <TabletCollectionPage
+          records={RECORDS}
+          detail={<div data-testid="detail-body">Detail body</div>}
+          onFocus={jest.fn()}
+          {...props}
+        />,
+      );
+    });
+  };
+
+  const rowTrigger = (id) => container.querySelector(`[data-tablet-record-row="${id}"] [data-tablet-row-trigger]`);
+  const detailLayer = () => container.querySelector('[data-tablet-detail-layer]');
+  const backButton = () => container.querySelector('[aria-label="Back to list"]');
+  const pushRow = (id) => act(() => rowTrigger(id).click());
+
+  it('does not auto-push the detail when a controller auto-focuses the first row', () => {
+    // Wallet-style controllers focus activeItems[0] on load; a focusedId-derived
+    // model would false-open the detail on every narrow-tablet mount.
+    render({ focusedId: 'r1' });
+    const shell = container.querySelector('[data-tablet-page-shell]');
+    expect(shell.getAttribute('data-tablet-layout')).toBe('stacked');
+    expect(shell.getAttribute('data-tablet-detail-open')).toBe('false');
+    expect(detailLayer()).toBeNull();
+    expect(container.querySelector('[data-testid="detail-body"]')).toBeNull();
+  });
+
+  it('pushes the detail on row activation and moves focus to the back affordance', () => {
+    const onFocus = jest.fn();
+    render({ onFocus });
+    pushRow('r1');
+
+    expect(onFocus).toHaveBeenCalledWith('r1');
+    expect(detailLayer()).not.toBeNull();
+    expect(container.querySelector('[data-testid="detail-body"]')).not.toBeNull();
+    const shell = container.querySelector('[data-tablet-page-shell]');
+    expect(shell.getAttribute('data-tablet-detail-open')).toBe('true');
+    // The covered list is inert while pushed.
+    expect(container.querySelector('[data-tablet-primary-pane]').hasAttribute('inert')).toBe(true);
+    // AT entry point: focus lands on the labeled 44px back button.
+    expect(document.activeElement).toBe(backButton());
+  });
+
+  it('returns focus to the activated row when the back affordance closes the detail', () => {
+    render({});
+    pushRow('r1');
+    act(() => backButton().click());
+
+    expect(detailLayer()).toBeNull();
+    expect(container.querySelector('[data-tablet-primary-pane]').hasAttribute('inert')).toBe(false);
+    expect(document.activeElement).toBe(rowTrigger('r1'));
+  });
+
+  it('closes on Escape inside the layer but yields to open dialogs', () => {
+    render({});
+    pushRow('r1');
+
+    // An open dialog above the layer owns Escape -- the layer must stay.
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.appendChild(dialog);
+    act(() => {
+      backButton().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(detailLayer()).not.toBeNull();
+    dialog.remove();
+
+    act(() => {
+      backButton().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(detailLayer()).toBeNull();
+    expect(document.activeElement).toBe(rowTrigger('r1'));
+  });
+
+  it('falls back to the rows viewport when the pushed row left the page before back', () => {
+    render({});
+    pushRow('r1');
+    // The row disappears while the detail is pushed (filter/refetch/pagination).
+    render({ records: [RECORDS[1]] });
+    act(() => backButton().click());
+
+    expect(detailLayer()).toBeNull();
+    expect(document.activeElement).toBe(container.querySelector('[role="region"]'));
+  });
+
+  it('keeps the two-pane split with both surfaces and no back affordance on a wide tablet', () => {
+    setWideTablet();
+    render({ focusedId: 'r1' });
+
+    const shell = container.querySelector('[data-tablet-page-shell]');
+    expect(shell.getAttribute('data-tablet-layout')).toBe('split');
+    expect(container.querySelector('[data-tablet-primary-pane]')).not.toBeNull();
+    expect(container.querySelector('[data-tablet-detail-pane]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="detail-body"]')).not.toBeNull();
+    expect(backButton()).toBeNull();
+    expect(detailLayer()).toBeNull();
+  });
+
+  it('stacks uncontrolled shell callers into one column with both surfaces reachable', () => {
+    // TabletSettings/TabletAnalytics shape: no detailOpen prop at all.
+    act(() => {
+      root.render(
+        <TabletPageShell detail={<div data-testid="rail-body">Rail</div>}>
+          <div data-testid="page-body">Page</div>
+        </TabletPageShell>,
+      );
+    });
+
+    const shell = container.querySelector('[data-tablet-page-shell]');
+    expect(shell.getAttribute('data-tablet-layout')).toBe('stacked');
+    expect(shell.hasAttribute('data-tablet-detail-open')).toBe(false);
+    expect(container.querySelector('[data-testid="page-body"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="rail-body"]')).not.toBeNull();
+    expect(backButton()).toBeNull();
   });
 });
