@@ -42,13 +42,13 @@ import { formatRequestDayTime } from '../../utils/requestDisplay';
 import { resolveVital } from '../../constants/vitalTracks';
 import {
     countNumber,
-    getCompactVisitKpiTransition,
     getMobileVisitStateCount,
     hasMobileVisitFilters,
     mobileVisitStates,
     visitWhen,
 } from './visits/mobileVisitsModel';
 import { MobileVisitErrorBanner, MobileVisitRow } from './visits/MobileVisitRows';
+import { VisitSourceToggle } from '../pages/visits/VisitSourceToggle';
 
 // The map-like backdrop stays local to this presentation; visit state projection
 // and row anatomy live in the adjacent mobile Visits modules.
@@ -172,10 +172,7 @@ export const MobileVisits = ({
         value: getMobileVisitStateCount({ item, statistics, visits: visitRows }),
         color: item.color,
     })), [statistics, visitRows]);
-    const usesKpiSourceLanes = Boolean(scheduledViewEnabled);
-    const effectiveActiveKpi = usesKpiSourceLanes && viewMode === 'scheduled' && activeKpi === 'all'
-        ? 'scheduled'
-        : activeKpi;
+    const effectiveActiveKpi = activeKpi || 'all';
 
     const totalCount = countNumber(statistics?.total, visitRows.length);
     // Header count tracks the ACTIVE scope, not the raw total — "62 visits" must not sit
@@ -198,15 +195,7 @@ export const MobileVisits = ({
     const trueEmptyHint = (isAdmin || isOrgAdmin)
         ? 'No visits are available for your facilities yet.'
         : 'No visits are linked to your name yet.';
-    const handleKpiChange = (nextKpi) => {
-        const transition = getCompactVisitKpiTransition({
-            nextKpi,
-            viewMode,
-            scheduledViewEnabled: usesKpiSourceLanes,
-        });
-        if (transition.nextViewMode) onViewModeChange?.(transition.nextViewMode);
-        if (transition.nextKpi) onKpiChange?.(transition.nextKpi);
-    };
+    const handleKpiChange = (nextKpi) => onKpiChange?.(nextKpi);
     const handleOpenVisit = (visit) => setActiveVisit(visit);
 
     return (
@@ -232,7 +221,6 @@ export const MobileVisits = ({
                         kpis={kpis}
                         activeKpi={effectiveActiveKpi || 'all'}
                         onKpiClick={handleKpiChange}
-                        preserveActiveKpiIds={usesKpiSourceLanes ? ['scheduled'] : undefined}
                         loading={showSkeleton}
                     />
 
@@ -250,6 +238,13 @@ export const MobileVisits = ({
                             hasFilter={hasFilter}
                             onOpenStats={(isAdmin || isOrgAdmin) ? onViewAnalytics : null}
                             statsLabel="Open visit statistics"
+                            scopeControl={scheduledViewEnabled ? (
+                                <VisitSourceToggle
+                                    viewMode={viewMode}
+                                    onChange={onViewModeChange}
+                                    surface="mobile"
+                                />
+                            ) : null}
                         />
 
                         {/* Background-refetch feedback: placeholder data stays on screen while
@@ -373,6 +368,7 @@ export const MobileVisits = ({
                     const referenceCopy = String(activeVisit.display_id || activeVisit.id || '');
                     const scheduledAt = activeVisit.scheduled_start_at || activeVisit.date || activeVisit.scheduled_at;
                     const scheduledSource = activeVisit.sourceKind === 'scheduled_visit';
+                    const careTeam = row.careTeam;
                     const canManage = canManageScheduledVisit?.(activeVisit) === true;
                     return (
                         <MobileDetailSheet
@@ -385,7 +381,7 @@ export const MobileVisits = ({
                             statusPill={vital?.pill}
                             vital={vital ? { ...vital, label: 'Visit status' } : null}
                             islands={[
-                                { icon: Stethoscope, label: 'Practitioner', value: getDoctorName(activeVisit) },
+                                { icon: careTeam.kind === 'responder' ? Siren : Stethoscope, label: careTeam.detailLabel, value: careTeam.name },
                                 { icon: Hospital, label: 'Facility', value: getFacilityName(activeVisit) },
                                 { icon: scheduledSource ? CalendarClock : MapPin, label: scheduledSource ? 'Care mode' : 'Location', value: scheduledSource ? activeVisit.careModeLabel : activeVisit.room_number ? `Room ${activeVisit.room_number}` : 'No room' },
                                 // Day-aware lifecycle stamps (desktop DetailLine parity):
@@ -436,14 +432,6 @@ export const MobileVisits = ({
         </PullToRefresh>
     );
 };
-
-const getDoctorName = (visit) => (
-    visit?.assignedDoctor?.name ||
-    visit?.doctor?.name ||
-    visit?.doctor ||
-    visit?.doctor_name ||
-    'Unassigned'
-);
 
 const getFacilityName = (visit) => (
     visit?.facility?.name ||

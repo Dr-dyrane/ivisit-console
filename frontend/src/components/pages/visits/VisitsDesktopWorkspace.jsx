@@ -9,6 +9,7 @@ import {
   Info,
   MapPin,
   Plus,
+  Siren,
   Stethoscope,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -43,6 +44,7 @@ import { formatDayTime } from '../../../utils/dayTime';
 import { formatVisitInFacilityTimezone } from '../../../services/visits/normalization';
 import {
   formatVisitType,
+  getVisitCareTeamDisplay,
   getVisitFacilityLabel,
   getVisitPatientLabel,
 } from '../../../utils/visitRowProjection';
@@ -445,6 +447,7 @@ export const VisitsDetailRail = ({
   const dateLabel = visit.sourceKind === 'scheduled_visit'
     ? formatVisitInFacilityTimezone(visit)
     : formatDayTime(visit.date || visit.created_at);
+  const careTeam = getVisitCareTeamDisplay(visit);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
@@ -502,7 +505,7 @@ export const VisitsDetailRail = ({
 
       <div className="space-y-3">
         <DetailLine icon={Calendar} label={visit.sourceKind === 'scheduled_visit' ? 'Care mode' : 'Type'} value={visit.sourceKind === 'scheduled_visit' ? visit.careModeLabel : formatVisitType(visit)} />
-        <DetailLine icon={Stethoscope} label="Practitioner" value={getVisitDoctorLabel(visit)} />
+        <DetailLine icon={careTeam.kind === 'responder' ? Siren : Stethoscope} label={careTeam.detailLabel} value={careTeam.name} />
         <DetailLine icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
         <DetailLine icon={MapPin} label="Location" value={roomLabel} />
         <DetailLine icon={Clock} label="Scheduled" value={dateLabel} />

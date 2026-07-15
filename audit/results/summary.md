@@ -1,8 +1,8 @@
 # iVisit Console Runtime CRUD And Interaction Audit
 
-Generated: 2026-07-13T23:09:28.357Z
-Run: audit-20260713230137-22c0a46e
-Input fingerprint: a13135fbe46334d7837e9011c1f99cfa663111c9ab0150f0d9797a8d323d9d90
+Generated: 2026-07-15T12:32:55.957Z
+Run: audit-20260715122419-667ee89f
+Input fingerprint: 2519f307cdabea714213da777ca711eabebc3035994b45855a5556436ee48492
 
 ## Exact totals
 
@@ -12,15 +12,15 @@ Input fingerprint: a13135fbe46334d7837e9011c1f99cfa663111c9ab0150f0d9797a8d323d9
 - Receiver-only failure cases: **0** across **0** backend receivers
 - Findings resolved by the current worktree: **92**
 - Runtime-blocked candidates retained separately: **0**
-- Static JSX candidates (upper bound, not visible total): **844**
-- Runtime-visible semantic definitions captured: **1341** across **42** role/viewport/route surfaces
+- Static JSX candidates (upper bound, not visible total): **905**
+- Runtime-visible semantic definitions captured: **1344** across **42** role/viewport/route surfaces
 
 ## PR scope
 
-- Local base/head: `main` -> `codex/console-modularization-wave-2`
-- Commits ahead/behind: 59/0
-- Committed diff: 613 files, 69409 insertions, 44385 deletions
-- Worktree: 1 tracked files changed and 0 untracked files
+- Local base/head: `main` -> `codex/tablet-production-pass`
+- Commits ahead/behind: 2/0
+- Committed diff: 43 files, 1405 insertions, 195 deletions
+- Worktree: 57 tracked files changed and 11 untracked files
 - Product worktree unchanged during audit: true
 - Audit harness unchanged during audit: true
 - Audit files already tracked at capture: 32

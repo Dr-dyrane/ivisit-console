@@ -1,34 +1,6 @@
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { SUPPORTED_CONSOLE_SERVICE_TYPES } from './constants';
 
-// Full parity with the database emergency_requests writable field inventory.
-export const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
-  'user_id',
-  'service_type',
-  'specialty',
-  'status',
-  'hospital_id',
-  'hospital_name',
-  'ambulance_type',
-  'bed_number',
-  'total_cost',
-  'payment_status',
-  'patient_snapshot',
-  'patient_location',
-  'pickup_location',
-  'destination_location',
-  'base_cost',
-  'distance_surcharge',
-  'urgency_surcharge',
-  'cost_breakdown',
-  'confirmed_cost',
-  'bed_count',
-  'patient_heading',
-  'shared_data_snapshot',
-  'payment_method_id',
-  'payment_id',
-]);
-
 const CONSOLE_CREATE_EMERGENCY_PAYLOAD_FIELDS = [
   'user_id',
   'hospital_id',
@@ -108,6 +80,14 @@ export function parsePointInput(input) {
   }
 
   return null;
+}
+
+export function normalizeEmergencyPaymentInput(input = {}) {
+  const method = input.payment_method || input.payment_method_id || null;
+  return {
+    method,
+    methodId: input.payment_method_id || null,
+  };
 }
 
 export function buildLegacyEmergencyPayload(input) {

@@ -52,11 +52,69 @@ export const getVisitPatientLabel = (visit) => {
   const standardized = getStandardizedPatient(visit);
   const standardizedName = standardized?.name !== 'Unknown Patient' ? standardized?.name : '';
   return firstNonEmpty(
+    visit.identity?.patient?.name,
     standardizedName,
     visit.patient?.full_name,
     visit.patient?.username,
     visit.patient_name,
   ) || (visit.user_id ? 'Linked patient' : 'No patient');
+};
+
+export const isAmbulanceEmergencyVisit = (visit) => {
+  const sourceKind = firstNonEmpty(visit?.sourceKind, visit?.source_kind).toLowerCase();
+  const serviceType = firstNonEmpty(
+    visit?.service_type,
+    visit?.visit_type,
+    visit?.type,
+  ).toLowerCase();
+  const requestLinked = sourceKind === 'emergency_visit' || Boolean(visit?.request_id);
+  const responderIdentity = visit?.identity?.responder;
+  const hasAmbulanceIdentity = Boolean(
+    visit?.identity?.keys?.ambulanceId
+    || responderIdentity?.ambulanceId
+    || responderIdentity?.hasResponder
+    || visit?.ambulance_id
+    || visit?.responder_id
+  );
+
+  return requestLinked && (serviceType === 'ambulance' || hasAmbulanceIdentity);
+};
+
+export const getVisitCareTeamDisplay = (visit) => {
+  if (isAmbulanceEmergencyVisit(visit)) {
+    const canonicalResponder = visit?.identity?.responder;
+    const responderName = canonicalResponder
+      ? firstNonEmpty(canonicalResponder.name)
+      : firstNonEmpty(
+        visit?.responder?.name,
+        visit?.responder?.full_name,
+        visit?.responder_name,
+      );
+
+    return {
+      kind: 'responder',
+      rowLabel: 'Driver',
+      detailLabel: 'Responder',
+      name: responderName || 'Unassigned',
+    };
+  }
+
+  const canonicalDoctor = visit?.identity?.doctor;
+  const doctorName = canonicalDoctor
+    ? firstNonEmpty(canonicalDoctor.name)
+    : firstNonEmpty(
+      visit?.assignedDoctor?.name,
+      visit?.doctor?.name,
+      typeof visit?.doctor === 'string' ? visit.doctor : '',
+      visit?.doctor_name,
+    );
+
+  return {
+    kind: 'doctor',
+    rowLabel: 'Doctor',
+    detailLabel: 'Practitioner',
+    name: doctorName || 'Unassigned',
+  };
 };
 
 const formatLegacyWhen = (visit) => {
@@ -72,6 +130,7 @@ const formatLegacyWhen = (visit) => {
 export const visitRowProjection = (visit) => {
   const serviceType = formatVisitType(visit);
   const patientName = getVisitPatientLabel(visit);
+  const careTeam = getVisitCareTeamDisplay(visit);
   const statusKey = getVisitStatusKey(visit?.status);
   const when = visit?.sourceKind === 'scheduled_visit'
     ? formatVisitInFacilityTimezone(visit)
@@ -88,6 +147,7 @@ export const visitRowProjection = (visit) => {
     caption: serviceType,
     secondary: `${patientName} \u00b7 ${serviceType}`,
     patientName,
+    careTeam,
     serviceType,
     statusKey,
     statusLabel: getStatusLabel(visit?.status),

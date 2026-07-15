@@ -9,7 +9,15 @@ export const OPEN_DIALOG_GUARD_SELECTOR = '[role="dialog"], [role="alertdialog"]
 // ArrowDown/ArrowUp move row focus (clamped to the current page), Enter opens the
 // focused row, Escape returns focus to the default. Typing surfaces and open
 // dialogs are ignored so the shortcuts never steal keys from inputs or modals.
-export const useListKeyboardNav = ({ items, focusedItem, setFocusedId, onOpen, scrollRef, rowAttr }) => useCallback((event) => {
+export const useListKeyboardNav = ({
+  items,
+  focusedItem,
+  setFocusedId,
+  onOpen,
+  scrollRef,
+  rowAttr,
+  focusSelector,
+}) => useCallback((event) => {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== 'Escape') return;
   if (event.defaultPrevented) return;
   const target = event.target;
@@ -21,6 +29,7 @@ export const useListKeyboardNav = ({ items, focusedItem, setFocusedId, onOpen, s
 
   if (event.key === 'Escape') {
     setFocusedId(null);
+    if (focusSelector) scrollRef.current?.focus();
     return;
   }
   if (items.length === 0) return;
@@ -44,8 +53,10 @@ export const useListKeyboardNav = ({ items, focusedItem, setFocusedId, onOpen, s
   const next = items[nextIndex];
   if (!next) return;
   setFocusedId(next.id);
-  scrollRef.current?.querySelector(`[${rowAttr}="${next.id}"]`)?.scrollIntoView({ block: 'nearest' });
-}, [items, focusedItem, setFocusedId, onOpen, scrollRef, rowAttr]);
+  const nextRow = scrollRef.current?.querySelector(`[${rowAttr}="${next.id}"]`);
+  nextRow?.scrollIntoView({ block: 'nearest' });
+  if (focusSelector) nextRow?.querySelector(focusSelector)?.focus();
+}, [items, focusedItem, setFocusedId, onOpen, scrollRef, rowAttr, focusSelector]);
 
 // A page change resets the rows viewport to the top; otherwise the next page
 // opens mid-scroll wherever the last one left off.

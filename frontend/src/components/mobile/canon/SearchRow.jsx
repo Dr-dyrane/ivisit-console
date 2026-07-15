@@ -32,6 +32,7 @@ export const SearchRow = ({
   hasFilter = false,
   onOpenStats = null,
   statsLabel = 'Open statistics',
+  scopeControl = null,
   // Stats trigger context state (kit gap closed after the MobileEmergency
   // re-composition): pages with an open analytics sheet wire statsOpen so the
   // trigger tells the truth (data-state open/idle + aria-expanded).
@@ -63,6 +64,7 @@ export const SearchRow = ({
           </button>
         )}
       </div>
+      {scopeControl}
       {onOpenFilters && (
         <TapButton
           feedbackVariant={FEEDBACK_TYPES.INFO}

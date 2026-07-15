@@ -3,6 +3,33 @@ import { getNotifications } from '../../../services/notificationService';
 export const NOTIFICATION_CACHE_MS = 60000;
 export const notificationCacheByUserId = new Map();
 
+export function invalidateNotificationsForUser(userId) {
+  if (userId) notificationCacheByUserId.delete(userId);
+}
+
+export function reduceNotificationRealtimeEvent(notifications, payload) {
+  const previous = Array.isArray(notifications) ? notifications : [];
+  const eventType = String(payload?.eventType || '').toUpperCase();
+  const next = payload?.new || null;
+  const id = next?.id || payload?.old?.id || null;
+
+  if (!id) return previous;
+  if (eventType === 'DELETE' || next?.dismissed_at) {
+    return previous.filter((notification) => notification.id !== id);
+  }
+  if (!next) return previous;
+
+  const withoutCurrent = previous.filter((notification) => notification.id !== id);
+  if (eventType === 'INSERT') return [next, ...withoutCurrent];
+
+  const currentIndex = previous.findIndex((notification) => notification.id === id);
+  if (currentIndex < 0) return [next, ...withoutCurrent];
+
+  const updated = [...previous];
+  updated[currentIndex] = { ...previous[currentIndex], ...next };
+  return updated;
+}
+
 export async function readNotificationsForUser(userId, options = {}) {
   const cached = notificationCacheByUserId.get(userId);
   const now = Date.now();

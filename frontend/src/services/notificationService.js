@@ -7,7 +7,7 @@ export const NotificationTypes = {
   HOSPITAL: 'hospital',
   USER: 'user',
   VISIT: 'visit',
-  EMERGENCY: 'emergency_request',
+  EMERGENCY: 'emergency',
   VERIFICATION: 'verification',
   NEWS: 'news',
 };
@@ -85,12 +85,12 @@ export const subscribeToNotifications = (userId, callback) => {
     .on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${userId}`,
       },
-      (payload) => callback(payload.new)
+      callback
     )
     .subscribe();
 

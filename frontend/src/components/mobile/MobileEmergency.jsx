@@ -14,6 +14,7 @@ import {
   MapPin,
   Phone,
   Send,
+  Trash2,
   User,
   X,
 } from 'lucide-react';
@@ -89,10 +90,11 @@ const LifecycleRequestDetailSheet = ({
   onDispatch,
   onComplete,
   onProcessCash,
+  onCancel,
 }) => {
   const {
     activeRequest,
-    setActiveRequest,
+    setActiveRequestId,
     activePlace,
     triggerFromEvent,
   } = controller;
@@ -108,7 +110,7 @@ const LifecycleRequestDetailSheet = ({
       dispatch: typeof onDispatch === 'function',
       complete: typeof onComplete === 'function',
       retryPayment: false,
-      cancel: false,
+      cancel: typeof onCancel === 'function',
     },
   });
   const {
@@ -134,7 +136,7 @@ const LifecycleRequestDetailSheet = ({
     complete: onComplete,
   };
   const closeThen = (callback) => () => {
-    setActiveRequest(null);
+    setActiveRequestId(null);
     callback?.(activeRequest);
   };
   const toMobileAction = (action) => {
@@ -154,7 +156,7 @@ const LifecycleRequestDetailSheet = ({
   return (
     <MobileDetailSheet
       isOpen
-      onClose={() => setActiveRequest(null)}
+      onClose={() => setActiveRequestId(null)}
       icon={ClipboardCheck}
       iconTone={lifecycle.progress.tone}
       avatarUrl={projection.patientDisplay.avatar}
@@ -244,6 +246,16 @@ const LifecycleRequestDetailSheet = ({
           Cash settlement handled in Finance
         </button>
       )}
+      {lifecycle.actions.cancel.available && (
+        <button
+          type="button"
+          onClick={closeThen(onCancel)}
+          className="flex h-12 w-full items-center justify-center rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.96]"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {lifecycle.actions.cancel.label}
+        </button>
+      )}
     </MobileDetailSheet>
   );
 };
@@ -264,6 +276,7 @@ export const MobileEmergency = ({
   onDispatch,
   onComplete,
   onProcessCash,
+  onCancel,
   onRefresh,
   onViewAnalytics,
   canManageRequests,
@@ -307,11 +320,11 @@ export const MobileEmergency = ({
     displayItems,
     selectedIdSet,
     selectionMode,
-    setActiveRequest,
+    setActiveRequestId,
     showSkeleton,
     totalRequests,
   } = controller;
-  const handleOpenRequest = (request) => setActiveRequest(request);
+  const handleOpenRequest = (request) => setActiveRequestId(request.id);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -377,6 +390,7 @@ export const MobileEmergency = ({
           onDispatch={onDispatch}
           onComplete={onComplete}
           onProcessCash={onProcessCash}
+          onCancel={onCancel}
         />
       </MobilePageShell>
     </PullToRefresh>

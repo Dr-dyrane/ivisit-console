@@ -12,6 +12,41 @@ describe('notification route resolution', () => {
       .toBe(destination);
   });
 
+  it.each([
+    'acknowledge_responder_arrival',
+    'approve_cash_payment',
+    'respond_emergency_offer',
+    'track_emergency',
+    'view_emergency',
+    'view_emergency_assignment',
+    'view_emergency_request',
+    'view_emergency_visit',
+  ])('routes canonical emergency action %s to the Request surface', (actionType) => {
+    expect(resolveNotificationDestination({
+      type: 'emergency',
+      action_type: actionType,
+      action_data: { requestId: 'request-1' },
+    })).toBe('/emergencies?id=request-1');
+  });
+
+  it('prefers canonical action routing and action_data identity over compatibility fields', () => {
+    expect(resolveNotificationDestination({
+      type: 'hospital',
+      action_type: 'view_emergency',
+      action_data: { requestId: 'REQ 10/2' },
+      target_id: 'legacy-hospital-id',
+      metadata: { targetId: 'metadata-hospital-id' },
+    })).toBe('/emergencies?id=REQ%2010%2F2');
+  });
+
+  it('falls back to legacy target identity for a canonical emergency action', () => {
+    expect(resolveNotificationDestination({
+      type: 'emergency',
+      action_type: 'view_emergency',
+      target_id: 'legacy-request-id',
+    })).toBe('/emergencies?id=legacy-request-id');
+  });
+
   it('uses the compatibility metadata target and safely encodes it', () => {
     expect(resolveNotificationDestination({
       type: 'hospital',

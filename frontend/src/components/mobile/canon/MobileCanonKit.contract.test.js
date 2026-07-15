@@ -126,6 +126,7 @@ describe('Mobile canon kit contract', () => {
     // with no sheet is a dead tap (MobilePricing Wave-2 pass: tabs + KPI chips are
     // its only filter grammar, so it composes SearchRow without onOpenFilters).
     expect(src).toContain('{onOpenFilters && (');
+    expect(src).toContain('{scopeControl}');
     // Stats trigger is context-aware too (gap found by the MobileEmergency pass).
     expect(src).toContain("data-state={statsOpen ? 'open' : 'idle'}");
     expect(src).toContain('aria-expanded={statsOpen}');

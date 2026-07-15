@@ -267,10 +267,19 @@ describe('TabletCollectionPage behavior', () => {
       region.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     });
     expect(onFocus).toHaveBeenCalledWith('r2');
+    expect(document.activeElement).toBe(
+      container.querySelector('[data-tablet-record-row="r2"] [data-tablet-row-trigger]'),
+    );
     act(() => {
       region.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
     expect(onOpen).toHaveBeenCalledWith(RECORDS[0].source);
+
+    act(() => {
+      document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(onFocus).toHaveBeenCalledWith(null);
+    expect(document.activeElement).toBe(region);
   });
 
   it('announces the refresh result through a polite live region', () => {

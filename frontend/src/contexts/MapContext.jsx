@@ -5,6 +5,26 @@ import { toast } from 'sonner';
 
 const MapContext = createContext();
 const isMapPath = (pathname = '') => pathname === '/map' || pathname.startsWith('/map/');
+const MARKER_COLLECTION_BY_TYPE = {
+  emergency: 'emergencyRequests',
+  ambulance: 'ambulances',
+  hospital: 'hospitals',
+};
+
+const getMarkerIdentity = (marker) => {
+  const id = marker?.id || marker?.data?.id;
+  return marker?.type && id ? { type: marker.type, id } : null;
+};
+
+const resolveSelectedMarker = (selection, data) => {
+  const collectionKey = MARKER_COLLECTION_BY_TYPE[selection?.type];
+  const collection = collectionKey ? data?.[collectionKey] : null;
+  const currentRecord = Array.isArray(collection)
+    ? collection.find((record) => record?.id === selection.id)
+    : null;
+
+  return currentRecord ? { type: selection.type, data: currentRecord } : null;
+};
 
 export const useMapContext = () => {
   const context = useContext(MapContext);
@@ -122,17 +142,28 @@ export const MapProvider = ({ children }) => {
     return initializeMapData();
   }, [initializeMapData, mapRouteActive]);
 
+  const selectedMarker = React.useMemo(() => (
+    resolveSelectedMarker(mapData.selectedMarker, mapData)
+  ), [mapData]);
+  const currentMapData = React.useMemo(() => ({
+    ...mapData,
+    selectedMarker,
+  }), [mapData, selectedMarker]);
+
   const value = {
     mapData: mapRouteActive && !hasAttemptedRouteLoad
-      ? { ...mapData, loading: true }
-      : mapData,
+      ? { ...currentMapData, loading: true }
+      : currentMapData,
     setMapData, // Expose setter if needed for manual overrides
     toggleLayer: (layer) => setMapData(prev => ({
       ...prev,
       showLayers: { ...prev.showLayers, [layer]: !prev.showLayers[layer] }
     })),
     setFilter: (filter) => setMapData(prev => ({ ...prev, filter })),
-    setSelectedMarker: (marker) => setMapData(prev => ({ ...prev, selectedMarker: marker })),
+    setSelectedMarker: (marker) => setMapData(prev => ({
+      ...prev,
+      selectedMarker: getMarkerIdentity(marker),
+    })),
     refresh: refreshMapData,
     recenterMap: () => {
       window.dispatchEvent(new CustomEvent('recenter-map'));

@@ -339,7 +339,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
     expect(mobileSource).toContain("activeKpi={kpiFilter || 'pending'}");
     expect(mobileSource).toContain('<MobileDetailSheet');
-    expect(mobileSource).toContain('onClose={() => setActiveRequest(null)}');
+    expect(mobileSource).toContain('onClose={() => setActiveRequestId(null)}');
   });
 
   it('keeps Requests UI language simple and interaction-safe', () => {
@@ -607,7 +607,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     // Grouped-list row: phone taps retain the phone-owned detail sheet. Tablet focus
     // belongs to TabletEmergency and never crosses this presentation boundary.
     expect(mobileSource).toContain('onOpen={handleOpenRequest}');
-    expect(mobileSource).toContain('const handleOpenRequest = (request) => setActiveRequest(request);');
+    expect(mobileSource).toContain('const handleOpenRequest = (request) => setActiveRequestId(request.id);');
     expect(mobileSource).not.toContain('onFocusRequest');
     expect(pageSource).toContain('<TabletEmergency');
     expect(mobileSource).toContain('<GroupedList');
@@ -724,7 +724,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(getAccessibleNav({ role: 'sponsor' }).ops).toBeNull();
   });
 
-  it('keeps Requests actions tied to explicit receivers and removes mobile destructive shortcuts', () => {
+  it('keeps Requests actions tied to explicit receivers, including phone cancellation', () => {
     const pageSource = readRequestsPageSource();
     const mobileSource = readRequestsMobileSource();
     const detailsModalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
@@ -854,13 +854,26 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(actionSource).toContain('canProcessCash: false');
     expect(actionSource).toContain('canCancel,');
 
-    expect(mobileSource).not.toContain('Cancel request');
-    // Mobile actions use the shared lifecycle model and the desktop command receivers.
-    // Destructive shortcuts (cancel/delete) stay off mobile.
+    // Phone cancellation uses the shared lifecycle gate and hands the current row to
+    // the page-owned handleDelete/ConfirmationModal flow. It owns no write path.
     expect(mobileSource).toContain('buildEmergencyLifecyclePresentation(activeRequest, {');
     expect(mobileSource).toContain("dispatch: typeof onDispatch === 'function'");
-    expect(mobileSource).toContain('onDispatch');
-    expect(mobileSource).not.toContain('Trash2');
+    expect(mobileSource).toContain("cancel: typeof onCancel === 'function'");
+    expect(mobileSource).toContain('lifecycle.actions.cancel.available');
+    expect(mobileSource).toContain('onClick={closeThen(onCancel)}');
+    expect(mobileSource).toContain('<Trash2');
+    expect(mobileSource).not.toContain('cancelEmergencyRequest(');
+    expect(pageSource).toContain('onCancel={handleDelete}');
+    expect(pageSource).toContain('isLoading={cancelPending}');
+  });
+
+  it('keeps the open phone request as an id resolved from the current collection', () => {
+    const mobileSource = readRequestsMobileSource();
+
+    expect(mobileSource).toContain('const [activeRequestId, setActiveRequestId] = useState(null);');
+    expect(mobileSource).toContain('accumulatorRef.current.find((request) => request.id === activeRequestId)');
+    expect(mobileSource).toContain('setActiveRequestId(request.id)');
+    expect(mobileSource).not.toContain('const [activeRequest, setActiveRequest] = useState(null);');
   });
 
   it('keeps closed request modals from preloading requester profiles', () => {

@@ -135,6 +135,7 @@ export const EmergencyRequestsPage = () => {
           onDispatch={handleDispatch}
           onComplete={handleComplete}
           onProcessCash={handleProcessCash}
+          onCancel={handleDelete}
           onRetryPayment={handleRetryPaymentUnavailable}
           onRefresh={fetchRequests}
           onViewAnalytics={handleOpenAnalytics}

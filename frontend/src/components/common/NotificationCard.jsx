@@ -71,7 +71,11 @@ export const formatNotificationTime = (value) => {
 // The "New" pill leans on tone: emergency/danger -> destructive red, the
 // approval / access-request lane -> amber, everything else the tone tile.
 const resolveNewPillTone = (notification, tone) => {
-  if (notification.color === 'destructive' || notification.type === 'emergency_request') {
+  if (
+    notification.color === 'destructive'
+    || notification.type === 'emergency'
+    || notification.type === 'emergency_request'
+  ) {
     return 'bg-destructive/15 text-destructive';
   }
   if (notification.type === 'verification' || notification.action_type === 'assigned') {

@@ -148,6 +148,7 @@ const TabletSearchToolbar = ({
   onOpenAnalytics,
   onRefresh,
   refreshing = false,
+  scopeControl = null,
 }) => {
   // Same 300ms draft-debounce as desktop SheetToolbar / mobile SearchRow;
   // Enter commits immediately, the clear-x commits '' immediately.
@@ -191,6 +192,7 @@ const TabletSearchToolbar = ({
           </button>
         )}
       </label>
+      {scopeControl}
       {onRefresh && (
         <TabletIconButton label={refreshing ? 'Refreshing' : 'Refresh'} onClick={onRefresh} disabled={refreshing}>
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -337,6 +339,7 @@ export const TabletCollectionPage = ({
   scrollResetKey,
   footer = null,
   toolbarSlot = null,
+  scopeControl = null,
 }) => {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const visibleSelectedCount = useMemo(
@@ -360,6 +363,7 @@ export const TabletCollectionPage = ({
     onOpen: (record) => onOpen?.(record.source),
     scrollRef,
     rowAttr: 'data-tablet-record-row',
+    focusSelector: '[data-tablet-row-trigger]',
   });
   useScrollResetOnPage(scrollRef, scrollResetKey);
 
@@ -425,7 +429,7 @@ export const TabletCollectionPage = ({
       // Alternate a zero-width suffix so back-to-back identical outcomes still
       // mutate the DOM -- otherwise repeat refreshes announce nothing to AT.
       refreshTickRef.current += 1;
-      const nudge = refreshTickRef.current % 2 ? '​' : '';
+      const nudge = refreshTickRef.current % 2 ? '\u200B' : '';
       setRefreshOutcome((error
         ? 'Refresh failed. Showing the last loaded records.'
         : `List updated. ${records.length} records shown.`) + nudge);
@@ -469,6 +473,7 @@ export const TabletCollectionPage = ({
           onOpenAnalytics={onOpenAnalytics}
           onRefresh={onRefresh}
           refreshing={isFetching}
+          scopeControl={scopeControl}
         />
         <span className="sr-only" role="status" aria-live="polite">{refreshOutcome}</span>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card bg-card/68 shadow-e2 backdrop-blur-xl">

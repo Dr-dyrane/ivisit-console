@@ -66,6 +66,16 @@ describe('scheduled visit action capabilities', () => {
     })).toEqual([{ id: 'complete', label: 'Complete visit', tone: 'default', enabled: true }]);
   });
 
+  it.each(['cancelled', 'completed'])('keeps %s visits read-only', (status) => {
+    expect(getScheduledVisitActionCapabilities({
+      visit: { ...visit, status },
+      roleKind: 'admin',
+      profileId: PROFILE_ID,
+      actionsEnabled: true,
+      now: duringClinicalWindow,
+    })).toEqual([]);
+  });
+
   it('never exposes scheduled commands for emergency or legacy records', () => {
     expect(getScheduledVisitActionCapabilities({
       visit: { ...visit, sourceKind: 'emergency_visit' },

@@ -15,15 +15,6 @@ const DISPATCH_CANDIDATE_LIMIT = 50;
 
 const normalizeType = (value) => String(value || '').trim().toLowerCase();
 
-const matchesRequiredType = (ambulance, requiredType) => {
-  const requested = normalizeType(requiredType);
-  if (!requested || requested === 'any' || requested === 'standard') return true;
-
-  return [ambulance?.type, ambulance?.call_sign]
-    .map(normalizeType)
-    .some((value) => value && (value === requested || value.includes(requested)));
-};
-
 const getActorHospitalIds = (actor) => new Set(
   Array.isArray(actor?.hospital_ids) ? actor.hospital_ids.filter(Boolean) : []
 );
@@ -34,8 +25,15 @@ const assertDispatchRequestScope = (actor, emergencyDetails) => {
     throw new Error('This role cannot dispatch emergency requests.');
   }
   const hospitalIds = getActorHospitalIds(actor);
-  if (!emergencyDetails?.hospital_id || !hospitalIds.has(emergencyDetails.hospital_id)) {
-    throw new Error('Assign a facility in your organization before dispatching this request.');
+  const ownsFacility = Boolean(
+    emergencyDetails?.hospital_id && hospitalIds.has(emergencyDetails.hospital_id)
+  );
+  const ownsDispatch = Boolean(
+    actor?.organization_id
+    && emergencyDetails?.dispatch_organization_id === actor.organization_id
+  );
+  if (!ownsFacility && !ownsDispatch) {
+    throw new Error('This request is outside your dispatch organization.');
   }
 };
 
@@ -74,7 +72,7 @@ const DISPATCH_PUBLIC_MESSAGES = [
   /^Authentication required$/,
   /^This role cannot dispatch/,
   /^This request changed state/,
-  /^Assign a facility/,
+  /^This request is outside your dispatch organization\.$/,
   /^No eligible ambulance/,
   /^No staffed ambulance/,
   /^Payment must be confirmed/,
@@ -145,7 +143,6 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       assignedAmbulance = await findNearestAvailableAmbulance(
         emergencyId,
         emergencyDetails,
-        emergencyDetails?.ambulance_type,
         user
       );
 
@@ -193,7 +190,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
   }
 }
 
-async function findNearestAvailableAmbulance(emergencyId, emergencyDetails, requiredType, actor) {
+async function findNearestAvailableAmbulance(emergencyId, emergencyDetails, actor) {
   const coordinates = extractCoordinatePair(
     emergencyDetails?.patient_location,
     emergencyDetails?.pickup_location,
@@ -218,7 +215,6 @@ async function findNearestAvailableAmbulance(emergencyId, emergencyDetails, requ
     const ambulance = await getAmbulance(candidate.id);
     if (!ambulance || normalizeType(ambulance.status) !== 'available') continue;
     if (!ambulanceIsWithinActorScope(ambulance, actor)) continue;
-    if (!matchesRequiredType(ambulance, requiredType)) continue;
 
     const { data: readiness, error: readinessError } = await supabase.rpc(
       'get_ambulance_dispatch_readiness',
@@ -231,6 +227,8 @@ async function findNearestAvailableAmbulance(emergencyId, emergencyDetails, requ
       console.warn('Ambulance readiness check failed:', readinessError);
       continue;
     }
+    // Type aliases are part of the server readiness contract (for example,
+    // advanced/ALS and critical/CCT). Do not maintain a second client matcher.
     if (!readiness?.ready) continue;
 
     return {

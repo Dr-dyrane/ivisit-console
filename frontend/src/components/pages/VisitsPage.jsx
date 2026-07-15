@@ -501,6 +501,9 @@ export const VisitsPage = () => {
           setFilters={setFilters}
           activeKpi={selectedKpiFilter}
           onKpiChange={setKpiFilter}
+          viewMode={viewMode}
+          onViewModeChange={changeViewMode}
+          scheduledViewEnabled={scheduledCareRelease.scheduledVisitReads}
           onView={handleView}
           focusedVisit={focusedVisit}
           onFocusVisit={setFocusedVisitId}

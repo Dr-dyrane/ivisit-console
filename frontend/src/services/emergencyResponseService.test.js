@@ -89,6 +89,49 @@ describe('emergencyResponseService command guards', () => {
     }));
   });
 
+  it('defers ambulance equipment aliases to the canonical readiness snapshot', async () => {
+    getAmbulance.mockResolvedValue({
+      id: 'ambulance-bls',
+      type: 'BLS',
+      status: 'available',
+    });
+    supabase.rpc.mockImplementation((name) => {
+      if (name === 'nearby_ambulances') {
+        return Promise.resolve({
+          data: [{ id: 'ambulance-bls', distance: 2 }],
+          error: null,
+        });
+      }
+      if (name === 'get_ambulance_dispatch_readiness') {
+        return Promise.resolve({
+          data: { ready: true, type_supported: true },
+          error: null,
+        });
+      }
+      if (name === 'console_dispatch_emergency') {
+        return Promise.resolve({
+          data: { success: true, request: { id: 'request-generic' } },
+          error: null,
+        });
+      }
+      throw new Error(`Unexpected RPC: ${name}`);
+    });
+
+    const result = await dispatchEmergency('request-generic', {
+      id: 'request-generic',
+      status: 'in_progress',
+      service_type: 'ambulance',
+      ambulance_type: 'ambulance',
+      patient_location: { lat: 6.5, lng: 3.4 },
+    });
+
+    expect(result.assignments.ambulance.id).toBe('ambulance-bls');
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      'get_ambulance_dispatch_readiness',
+      { p_ambulance_id: 'ambulance-bls', p_request_id: 'request-generic' },
+    );
+  });
+
   it('skips a nearer foreign ambulance and dispatches the first same-organization facility candidate', async () => {
     getCurrentUser.mockResolvedValue({
       id: 'org-operator-1',
@@ -163,7 +206,7 @@ describe('emergencyResponseService command guards', () => {
       service_type: 'ambulance',
       hospital_id: 'hospital-foreign',
       patient_location: { lat: 6.5, lng: 3.4 },
-    })).rejects.toThrow('Assign a facility in your organization before dispatching this request.');
+    })).rejects.toThrow('This request is outside your dispatch organization.');
 
     expect(getAmbulance).not.toHaveBeenCalled();
     expect(supabase.rpc).not.toHaveBeenCalled();
@@ -199,7 +242,8 @@ describe('emergencyResponseService command guards', () => {
     await expect(dispatchEmergency('request-1', {
       status: 'in_progress',
       service_type: 'ambulance',
-      hospital_id: 'hospital-local',
+      hospital_id: 'hospital-foreign',
+      dispatch_organization_id: 'organization-local',
       patient_location: { lat: 6.5, lng: 3.4 },
     })).resolves.toEqual(expect.objectContaining({ success: true }));
 

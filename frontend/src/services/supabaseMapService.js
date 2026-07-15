@@ -1,10 +1,23 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const MAP_REQUEST_LIMIT = 100;
 const MAP_ENTITY_LIMIT = 1000;
 const MAP_REQUEST_TYPES = ['ambulance', 'bed'];
 const MAP_ACTIVE_ROUTE_STATUSES = ['in_progress', 'accepted', 'arrived'];
+const ORGANIZATION_OPERATOR_ROLES = new Set(['org_admin', 'dispatcher']);
+const EMERGENCY_AUTH_SCOPE = {
+  userIdField: 'user_id',
+  orgIdField: 'hospital_id',
+  providerIdField: 'responder_id',
+  resourceType: 'emergency',
+};
+const AMBULANCE_AUTH_SCOPE = {
+  userIdField: 'profile_id',
+  orgIdField: 'hospital_id',
+  resourceType: 'ambulance',
+};
 
 const getSourceState = (error, rows, count, limit) => ({
   ready: !error,
@@ -12,6 +25,48 @@ const getSourceState = (error, rows, count, limit) => ({
   limit,
   total: Number.isFinite(count) ? count : null,
 });
+
+const applyEmergencyRequestScope = (query, user) => {
+  const organizationId = user?.organization_id;
+  const hasResolvedHospitalScope = Array.isArray(user?.hospital_ids);
+
+  if (
+    ORGANIZATION_OPERATOR_ROLES.has(user?.role)
+    && isValidUUID(organizationId)
+    && hasResolvedHospitalScope
+  ) {
+    const hospitalIds = user.hospital_ids.filter(isValidUUID);
+
+    if (hospitalIds.length === 0) {
+      return query.eq('dispatch_organization_id', organizationId);
+    }
+
+    return query.or(
+      `hospital_id.in.(${hospitalIds.join(',')}),dispatch_organization_id.eq.${organizationId}`
+    );
+  }
+
+  return applyAuthFilter(query, user, EMERGENCY_AUTH_SCOPE);
+};
+
+const applyAmbulanceScope = (query, user) => {
+  const organizationId = user?.organization_id;
+  const hasResolvedHospitalScope = Array.isArray(user?.hospital_ids);
+
+  if (
+    ORGANIZATION_OPERATOR_ROLES.has(user?.role)
+    && isValidUUID(organizationId)
+    && hasResolvedHospitalScope
+  ) {
+    const hospitalIds = user.hospital_ids.filter(isValidUUID);
+    if (hospitalIds.length === 0) return query.eq('organization_id', organizationId);
+    return query.or(
+      `hospital_id.in.(${hospitalIds.join(',')}),organization_id.eq.${organizationId}`
+    );
+  }
+
+  return applyAuthFilter(query, user, AMBULANCE_AUTH_SCOPE);
+};
 
 /**
  * Supabase Map Service
@@ -31,12 +86,6 @@ export const supabaseMapService = {
     try {
       const user = await getCurrentUser();
 
-      const emergencyScope = {
-        userIdField: 'user_id',
-        orgIdField: 'hospital_id',
-        providerIdField: 'responder_id',
-        resourceType: 'emergency'
-      };
       // 1. Emergencies with RBAC
       let emergenciesQuery = supabase
         .from('emergency_requests')
@@ -44,22 +93,20 @@ export const supabaseMapService = {
         .order('created_at', { ascending: false })
         .limit(MAP_REQUEST_LIMIT);
 
-      emergenciesQuery = applyAuthFilter(emergenciesQuery, user, emergencyScope);
+      emergenciesQuery = applyEmergencyRequestScope(emergenciesQuery, user);
       const emergencyFacetQueries = MAP_REQUEST_TYPES.map((serviceType) => (
-        applyAuthFilter(
+        applyEmergencyRequestScope(
           supabase
             .from('emergency_requests')
             .select('id', { count: 'exact', head: true }),
-          user,
-          emergencyScope
+          user
         ).eq('service_type', serviceType)
       ));
-      const activeRoutesQuery = applyAuthFilter(
+      const activeRoutesQuery = applyEmergencyRequestScope(
         supabase
           .from('emergency_requests')
           .select('id', { count: 'exact', head: true }),
-        user,
-        emergencyScope
+        user
       )
         .eq('service_type', 'ambulance')
         .in('status', MAP_ACTIVE_ROUTE_STATUSES);
@@ -72,11 +119,7 @@ export const supabaseMapService = {
         .limit(MAP_ENTITY_LIMIT);
 
       // Apply RBAC for ambulances
-      ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
-        userIdField: 'profile_id',
-        orgIdField: 'hospital_id',
-        resourceType: 'ambulance'
-      });
+      ambulancesQuery = applyAmbulanceScope(ambulancesQuery, user);
 
       // 3. Hospitals with RBAC
       let hospitalsQuery = supabase

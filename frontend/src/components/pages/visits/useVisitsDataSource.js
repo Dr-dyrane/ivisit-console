@@ -120,27 +120,34 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
   }, [visits, focusedVisitId]);
 
   useEffect(() => {
-    if (!focusedVisitId) return undefined;
-
     let active = true;
     let refreshTimer = null;
+    const scheduleProjectionRefresh = () => {
+      if (!active || !isMountedRef.current) return;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        if (active && isMountedRef.current) fetchVisits();
+      }, VISIT_REALTIME_REFRESH_DEBOUNCE_MS);
+    };
     const channel = supabase
-      .channel(`visits_page_focus_${focusedVisitId}`)
+      .channel('visits_page_projection')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'visits',
-          filter: `id=eq.${focusedVisitId}`,
         },
-        () => {
-          if (!active || !isMountedRef.current) return;
-          if (refreshTimer) window.clearTimeout(refreshTimer);
-          refreshTimer = window.setTimeout(() => {
-            if (active && isMountedRef.current) fetchVisits();
-          }, VISIT_REALTIME_REFRESH_DEBOUNCE_MS);
+        scheduleProjectionRefresh,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'emergency_requests',
         },
+        scheduleProjectionRefresh,
       )
       .subscribe();
 
@@ -149,7 +156,7 @@ export const useVisitsDataSource = ({ filters, kpiFilter, pagination, sortConfig
       if (refreshTimer) window.clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
-  }, [fetchVisits, focusedVisitId]);
+  }, [fetchVisits]);
 
   return {
     fetchVisits,

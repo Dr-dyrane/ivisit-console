@@ -132,7 +132,8 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('<AnalyticsModal');
     expect(page).toContain('<EmergencyDetailsModal');
     expect(page).toContain("const viewVisitId = urlParams.get('view') || urlParams.get('id')");
-    expect(page).toContain('.channel(`visits_page_focus_${focusedVisitId}`)');
+    expect(page).toContain(".channel('visits_page_projection')");
+    expect(page).toContain("table: 'emergency_requests'");
     expect(page).toContain('setTotalCount(totalCount)');
     expect(page).not.toContain('createVisit({');
     expect(page).not.toContain('updateVisit(selectedVisit.id, formData)');
@@ -159,11 +160,11 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('onOpenFilters');
     expect(mobile).toContain('onLoadMore');
     expect(mobile).toContain("id: 'in_progress'");
-    expect(mobile).toContain("effectiveActiveKpi || 'all'");
+    expect(mobile).toContain("const effectiveActiveKpi = activeKpi || 'all'");
     expect(mobile).toContain('onKpiClick={handleKpiChange}');
-    expect(mobile).toContain('getCompactVisitKpiTransition({');
-    expect(mobile).toContain('onViewModeChange?.(transition.nextViewMode)');
-    expect(mobile).toContain('onKpiChange?.(transition.nextKpi)');
+    expect(mobile).toContain('const handleKpiChange = (nextKpi) => onKpiChange?.(nextKpi)');
+    expect(mobile).toContain('<VisitSourceToggle');
+    expect(mobile).toContain('scopeControl={scheduledViewEnabled ? (');
     expect(mobile).not.toContain('aria-label="Visit source view"');
     expect(mobile).toContain('selectionEnabled = false');
     expect(mobile).toContain('canDelete = false');
@@ -568,7 +569,10 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('fetchRequestRef.current += 1');
     expect(page).toContain('if (!isMountedRef.current || fetchRequestRef.current !== requestId)');
     expect(page).toContain('let active = true');
-    expect(page).toContain('filter: `id=eq.${focusedVisitId}`');
+    expect(page).toContain(".channel('visits_page_projection')");
+    expect(page).toContain("table: 'visits'");
+    expect(page).toContain("table: 'emergency_requests'");
+    expect(page).not.toContain('filter: `id=eq.${focusedVisitId}`');
     expect(page).toContain('VISIT_REALTIME_REFRESH_DEBOUNCE_MS');
     expect(page).toContain('window.clearTimeout(refreshTimer)');
     expect(page).toContain('active = false');

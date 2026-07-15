@@ -52,7 +52,7 @@ const getAssignmentEvidence = (request) => {
 const getPaymentEvidence = (request) => {
   const paymentId = clean(request?.payment_id);
   const status = normalized(request?.payment_status);
-  const method = normalized(request?.payment_method || request?.payment_method_id);
+  const method = normalized(request?.payment_method);
   return {
     paymentId: paymentId || null,
     status: status || null,

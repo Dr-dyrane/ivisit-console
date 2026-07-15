@@ -43,7 +43,10 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain('<Sheet open={isOpen} onOpenChange={setIsOpen}>');
     expect(centerSource).toContain('<AnimatePresence>');
     expect(centerSource).toContain('className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"');
-    expect(centerSource).toContain("subscribeToNotifications(user.id, (newNotification) =>");
+    expect(centerSource).toContain("subscribeToNotifications(user.id, (payload) =>");
+    expect(centerSource).toContain('invalidateNotificationsForUser(user.id)');
+    expect(centerSource).toContain('reduceNotificationRealtimeEvent(previous, payload)');
+    expect(serviceSource).toContain("event: '*'");
     expect(centerSource).toContain("window.addEventListener('notifications:changed', handleNotificationsChanged)");
     expect(centerSource).toContain("aria-label={isOpen ? 'Close notifications' : 'Open notifications'}");
     expect(centerSource).toContain('aria-expanded={isOpen}');
@@ -85,6 +88,7 @@ describe('NotificationCenter quiet startup contract', () => {
     expect(centerSource).toContain('setIsOpen(false);');
     expect(centerSource).toContain('navigate(destination);');
     expect(routeSource).toContain("notification.action_type === 'deleted'");
+    expect(routeSource).toContain("emergency: EMERGENCY_ROUTE");
     expect(routeSource).toContain("emergency_request: '/emergencies'");
     expect(routeSource).not.toContain("news: '/health-news'");
     expect(cardSource).not.toContain('border-');

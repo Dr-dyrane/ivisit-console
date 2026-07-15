@@ -7,6 +7,15 @@ import {
 } from '../../utils/emergencyRequestMapper';
 import { applyQueryAbortSignal, throwIfQueryAborted } from '../queryAbort';
 import { TABLE_NAME } from './constants';
+import { isValidUUID } from '../../lib/utils';
+
+const ORGANIZATION_OPERATOR_ROLES = new Set(['org_admin', 'dispatcher']);
+const EMERGENCY_AUTH_SCOPE = {
+  userIdField: 'user_id',
+  orgIdField: 'hospital_id',
+  providerIdField: 'responder_id',
+  resourceType: 'emergency',
+};
 
 const EMERGENCY_REQUEST_SORT_FIELDS = new Set([
   'created_at',
@@ -68,12 +77,26 @@ function applyEmergencyKpiFilter(query, kpiFilter) {
 }
 
 function applyEmergencyRequestScope(query, user) {
-  return applyAuthFilter(query, user, {
-    userIdField: 'user_id',
-    orgIdField: 'hospital_id',
-    providerIdField: 'responder_id',
-    resourceType: 'emergency'
-  });
+  const organizationId = user?.organization_id;
+  const hasResolvedHospitalScope = Array.isArray(user?.hospital_ids);
+
+  if (
+    ORGANIZATION_OPERATOR_ROLES.has(user?.role)
+    && isValidUUID(organizationId)
+    && hasResolvedHospitalScope
+  ) {
+    const hospitalIds = user.hospital_ids.filter(isValidUUID);
+
+    if (hospitalIds.length === 0) {
+      return query.eq('dispatch_organization_id', organizationId);
+    }
+
+    return query.or(
+      `hospital_id.in.(${hospitalIds.join(',')}),dispatch_organization_id.eq.${organizationId}`
+    );
+  }
+
+  return applyAuthFilter(query, user, EMERGENCY_AUTH_SCOPE);
 }
 
 async function getEmergencyPageExactCount(filter = {}, user, abortSignal) {

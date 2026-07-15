@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFeedback } from '../../../hooks/useFeedback';
+import { useEmergencyRequestQuery } from '../../../hooks/useEmergencyQuery';
 import { useReverseGeocode } from '../../../hooks/useReverseGeocode';
 import { FEEDBACK_TYPES } from '../../../contexts/FeedbackContext';
 import { buildEmergencyRenderProjection } from '../../../utils/emergencyRequestMapper';
@@ -11,6 +12,27 @@ import {
   hasMobileRequestFilters,
   MOBILE_REQUEST_KPIS,
 } from './mobileEmergencyModel';
+
+const mergeEmergencyPage = (accumulated, incoming) => {
+  const indexById = new Map(accumulated.map((request, index) => [request.id, index]));
+  let next = accumulated;
+
+  incoming.forEach((request) => {
+    const index = indexById.get(request.id);
+    if (index === undefined) {
+      if (next === accumulated) next = [...accumulated];
+      indexById.set(request.id, next.length);
+      next.push(request);
+      return;
+    }
+    if (next[index] !== request) {
+      if (next === accumulated) next = [...accumulated];
+      next[index] = request;
+    }
+  });
+
+  return next;
+};
 
 export const useMobileEmergencyController = ({
   emergencies,
@@ -29,7 +51,7 @@ export const useMobileEmergencyController = ({
   warmingUp,
 }) => {
   const observerTarget = useRef(null);
-  const [activeRequest, setActiveRequest] = useState(null);
+  const [activeRequestId, setActiveRequestId] = useState(null);
   const { triggerFromEvent } = useFeedback();
   const selectedIdSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
   const selectionMode = selectionEnabled && selectedIdSet.size > 0;
@@ -38,13 +60,48 @@ export const useMobileEmergencyController = ({
     if (currentPage <= 1) {
       accumulatorRef.current = emergencies;
     } else {
-      const byId = new Map(accumulatorRef.current.map((item) => [item.id, item]));
-      emergencies.forEach((item) => byId.set(item.id, item));
-      accumulatorRef.current = Array.from(byId.values());
+      accumulatorRef.current = mergeEmergencyPage(accumulatorRef.current, emergencies);
     }
   }
+  const accumulatedActiveRequest = activeRequestId
+    ? accumulatorRef.current.find((request) => request.id === activeRequestId) || null
+    : null;
+  const activeRequestQuery = useEmergencyRequestQuery(activeRequestId);
+  const serverActiveRequest = activeRequestQuery.request?.id === activeRequestId
+    ? activeRequestQuery.request
+    : null;
+  const activeRequest = activeRequestQuery.isSuccess
+    ? serverActiveRequest
+    : accumulatedActiveRequest;
+  const accumulatedRequests = accumulatorRef.current;
+  const requestItems = useMemo(() => {
+    if (!activeRequestId || !activeRequestQuery.isSuccess) return accumulatedRequests;
+    const activeIndex = accumulatedRequests.findIndex((request) => request.id === activeRequestId);
+    if (activeIndex < 0) return accumulatedRequests;
+    if (!serverActiveRequest) {
+      return accumulatedRequests.filter((request) => request.id !== activeRequestId);
+    }
+    if (accumulatedRequests[activeIndex] === serverActiveRequest) return accumulatedRequests;
+    const nextRequests = [...accumulatedRequests];
+    nextRequests[activeIndex] = serverActiveRequest;
+    return nextRequests;
+  }, [
+    accumulatedRequests,
+    activeRequestId,
+    activeRequestQuery.isSuccess,
+    serverActiveRequest,
+  ]);
 
-  const { displayItems } = useStableList(accumulatorRef.current, loading);
+  useEffect(() => {
+    if (activeRequestId && activeRequestQuery.isSuccess && !serverActiveRequest) {
+      accumulatorRef.current = accumulatorRef.current.filter(
+        (request) => request.id !== activeRequestId
+      );
+      setActiveRequestId(null);
+    }
+  }, [activeRequestId, activeRequestQuery.isSuccess, serverActiveRequest]);
+
+  const { displayItems } = useStableList(requestItems, loading);
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
   const showSkeleton = warmingUp || (loading && displayItems.length === 0);
   const filterTriggerState = filterSheetOpen
@@ -125,8 +182,9 @@ export const useMobileEmergencyController = ({
 
   return {
     observerTarget,
+    activeRequestId,
     activeRequest,
-    setActiveRequest,
+    setActiveRequestId,
     activePlace,
     triggerFromEvent,
     selectedIdSet,

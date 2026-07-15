@@ -12,6 +12,7 @@ import {
 import { visitRowProjection } from '../../utils/visitRowProjection';
 import { TabletCollectionPage } from './TabletCollectionPage';
 import { TabletPaginationFooter } from './TabletCollectionControls';
+import { VisitSourceToggle } from '../pages/visits/VisitSourceToggle';
 
 export const TabletVisits = ({
   visits = [],
@@ -23,6 +24,9 @@ export const TabletVisits = ({
   setFilters,
   activeKpi = 'all',
   onKpiChange,
+  viewMode = 'all',
+  onViewModeChange,
+  scheduledViewEnabled = false,
   onView,
   onRefresh,
   errorMessage,
@@ -54,7 +58,7 @@ export const TabletVisits = ({
       source: visit,
       title: row.patientName,
       subtitle: `${row.serviceType} - ${row.primary}`,
-      meta: row.meta,
+      meta: `${row.careTeam.rowLabel}: ${row.careTeam.name} \u00b7 ${row.meta}`,
       trailing: visit.sourceKind === 'scheduled_visit' ? visit.careModeLabel : undefined,
       statusLabel: row.statusLabel,
       statusClass: visitStatusPillClass[row.statusKey],
@@ -89,6 +93,13 @@ export const TabletVisits = ({
       filtersActive={hasActiveVisitFilters(filters)}
       filterSheetOpen={filterSheetOpen}
       onOpenAnalytics={onViewAnalytics}
+      scopeControl={scheduledViewEnabled ? (
+        <VisitSourceToggle
+          viewMode={viewMode}
+          onChange={onViewModeChange}
+          surface="tablet"
+        />
+      ) : null}
       focusedId={focusedVisit?.id}
       onFocus={onFocusVisit}
       onOpen={onView}

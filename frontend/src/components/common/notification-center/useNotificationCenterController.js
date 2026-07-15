@@ -7,7 +7,11 @@ import {
   markNotificationAsRead,
   subscribeToNotifications,
 } from '../../../services/notificationService';
-import { readNotificationsForUser } from './notificationData';
+import {
+  invalidateNotificationsForUser,
+  readNotificationsForUser,
+  reduceNotificationRealtimeEvent,
+} from './notificationData';
 
 export const useNotificationCenterController = () => {
   const { user } = useAuth();
@@ -64,9 +68,10 @@ export const useNotificationCenterController = () => {
 
   useEffect(() => {
     if (!user?.id) return undefined;
-    const unsubscribe = subscribeToNotifications(user.id, (newNotification) => {
+    const unsubscribe = subscribeToNotifications(user.id, (payload) => {
+      invalidateNotificationsForUser(user.id);
       setLoadError(null);
-      setNotifications((previous) => [newNotification, ...previous]);
+      setNotifications((previous) => reduceNotificationRealtimeEvent(previous, payload));
     });
 
     return () => unsubscribe();

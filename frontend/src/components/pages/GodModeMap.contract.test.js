@@ -152,8 +152,8 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain(".from('emergency_requests')");
     expect(service).toContain(".from('ambulances')");
     expect(service).toContain(".from('hospitals')");
-    expect(service).toContain('applyAuthFilter(emergenciesQuery');
-    expect(service).toContain('applyAuthFilter(ambulancesQuery');
+    expect(service).toContain('applyEmergencyRequestScope(emergenciesQuery');
+    expect(service).toContain('applyAmbulanceScope(ambulancesQuery');
     expect(service).toContain('subscribeToEmergencies(onChange)');
     expect(service).toContain('subscribeToAmbulances(onChange)');
     expect(service).toContain('subscribeToHospitals(onChange)');
@@ -166,7 +166,7 @@ describe('GodModeMap Live Map contract', () => {
     expect(service).toContain(".select('id', { count: 'exact', head: true })");
     expect(service).toContain('facets: emergencyFacets');
     expect(service).toContain("const MAP_ACTIVE_ROUTE_STATUSES = ['in_progress', 'accepted', 'arrived'];");
-    expect(service).toContain('const activeRoutesQuery = applyAuthFilter(');
+    expect(service).toContain('const activeRoutesQuery = applyEmergencyRequestScope(');
     expect(service).toContain(".eq('service_type', 'ambulance')");
     expect(service).toContain(".in('status', MAP_ACTIVE_ROUTE_STATUSES)");
     expect(service).toContain('activeRoutes: {');

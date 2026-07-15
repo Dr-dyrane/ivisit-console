@@ -1,358 +1,358 @@
 {
   "schemaVersion": 2,
-  "runId": "audit-20260713230137-22c0a46e",
-  "generatedAt": "2026-07-13T23:09:28.357Z",
+  "runId": "audit-20260715122419-667ee89f",
+  "generatedAt": "2026-07-15T12:32:55.957Z",
   "inputProvenance": {
-    "sha256": "a13135fbe46334d7837e9011c1f99cfa663111c9ab0150f0d9797a8d323d9d90",
+    "sha256": "2519f307cdabea714213da777ca711eabebc3035994b45855a5556436ee48492",
     "fileCount": 60,
     "files": [
       {
         "path": "cleanup-ledger.json",
         "bytes": 578,
-        "sha256": "a9bf5963cb649a9d2e649ce7b40ea9644ab2bb197f0bf30ff567dde04e019ecf",
-        "modifiedAt": "2026-07-13T23:09:24.877Z"
+        "sha256": "b1679536344a715707a808bcc1c08d2a9fd0ff9d9ac4e0badc01e8856e11901b",
+        "modifiedAt": "2026-07-15T12:32:51.888Z"
       },
       {
         "path": "results/pr-scope.json",
-        "bytes": 13668,
-        "sha256": "6950f2732d1496bfc0a08366170e9863dbe1fe88f16f902be13e2078a3b04e04",
-        "modifiedAt": "2026-07-13T23:09:26.674Z"
+        "bytes": 13661,
+        "sha256": "60bf49c3d2ec2373ee14b07f0618ea539c1b6e0f30c1da84b242d33023603c3e",
+        "modifiedAt": "2026-07-15T12:32:54.037Z"
       },
       {
         "path": "results/role-state-availability.json",
         "bytes": 912,
-        "sha256": "d3e8824ffeb033d8ce4121a0f7bc95248638abcb2bed28ede52cf523fd2d66ae",
-        "modifiedAt": "2026-07-13T23:09:19.099Z"
+        "sha256": "94fa561e4666c7ca04fd36314d43d12168e905cbe3223bff8da7a908a97bd225",
+        "modifiedAt": "2026-07-15T12:32:44.454Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/ambulances.json",
-        "bytes": 703085,
-        "sha256": "31a188ba7dae5fa295e5bcdda5b5fed6a98f2a588944b0ba76d5615f72569abe",
-        "modifiedAt": "2026-07-13T23:09:23.339Z"
+        "bytes": 701098,
+        "sha256": "cac0d0bbbb9b855ea795f4d9add2816faa67bce802bfea45a75be63176465961",
+        "modifiedAt": "2026-07-15T12:32:50.038Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/analytics.json",
-        "bytes": 176763,
-        "sha256": "8949bd0ded5c6c9c894daa592c66c39887f3b8179a2a32e1ae38289f97c64545",
-        "modifiedAt": "2026-07-13T23:09:23.354Z"
+        "bytes": 189213,
+        "sha256": "5713baa4d8fcd4f0d5a079843604a30588068e5d11c2ce09ff09d4a9db82b204",
+        "modifiedAt": "2026-07-15T12:32:50.063Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/audit-not-found.json",
         "bytes": 2234,
         "sha256": "a8f05d7e18870c5e04700f13c766d732de0856c26dd559dfbbf6c24e96fc8673",
-        "modifiedAt": "2026-07-13T23:09:23.363Z"
+        "modifiedAt": "2026-07-15T12:32:50.075Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/doctors.json",
-        "bytes": 707365,
-        "sha256": "d54011c2cbffc1f580412fb3a59c6383c06dfa549f5741dcb26699fbf8089357",
-        "modifiedAt": "2026-07-13T23:09:23.394Z"
+        "bytes": 709752,
+        "sha256": "e64b0e5a4475efd2fb81ed29b004699a61b7743f7b7ded3f9c3a805b3201314c",
+        "modifiedAt": "2026-07-15T12:32:50.122Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/emergencies.json",
-        "bytes": 720363,
-        "sha256": "915ef09256e8afd169d70a349ffc79fe58456c8b49a906aa732668c0be9a57ee",
-        "modifiedAt": "2026-07-13T23:09:23.428Z"
+        "bytes": 406886,
+        "sha256": "43273c90c7c349de2962e253356e931d23e35da53b23c537fccb38f14380a2fd",
+        "modifiedAt": "2026-07-15T12:32:50.154Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/health-news.json",
-        "bytes": 351832,
-        "sha256": "04f7e7975f78a05735779d7e69472f155040d0523c88cbfd0c5a751740fc577c",
-        "modifiedAt": "2026-07-13T23:09:23.447Z"
+        "bytes": 349836,
+        "sha256": "663f57469facfce27e94a95c5201dfa82e8965d987d5d9787cd4b23b9d9157cb",
+        "modifiedAt": "2026-07-15T12:32:50.183Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/hospitals.json",
-        "bytes": 612923,
-        "sha256": "ea6f1b3e401d56835ec972814cfeff52db7f6103ca434a4dad4d6700ffaaa83b",
-        "modifiedAt": "2026-07-13T23:09:23.479Z"
+        "bytes": 606509,
+        "sha256": "0eb1e6bc1e586bf362b158111582a5457b871849001d2a6e89da4fbb56f582ce",
+        "modifiedAt": "2026-07-15T12:32:50.216Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/insurance.json",
-        "bytes": 326399,
-        "sha256": "355a9b4e0edd2eb0d78b4428f6bb1703cadb9b0c2eab5167a5ca4feb2f987028",
-        "modifiedAt": "2026-07-13T23:09:23.502Z"
+        "bytes": 310122,
+        "sha256": "c1e6d8ff01a36583f059146e10c3a1f218af15d14db02cdcc18c41046bc67e45",
+        "modifiedAt": "2026-07-15T12:32:50.238Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/login.json",
         "bytes": 4920,
         "sha256": "af0efe316c8fbe9eb2b961b614ead31d674bf54bd79a2256e94112c390307850",
-        "modifiedAt": "2026-07-13T23:09:23.512Z"
+        "modifiedAt": "2026-07-15T12:32:50.250Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/map.json",
-        "bytes": 2599870,
-        "sha256": "3f95ca2356dde50b6ef9f5a1eafa40902bbcc9f2c12c8f506ae106491853c238",
-        "modifiedAt": "2026-07-13T23:09:23.596Z"
+        "bytes": 683869,
+        "sha256": "16c592a82e5871f488cbaf1866eca039558c139924025277e889f3878d2dab14",
+        "modifiedAt": "2026-07-15T12:32:50.291Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding-success.json",
         "bytes": 5219,
         "sha256": "e924c9afb30ad2e7e7bdce21ea5f39845026390ffdff1153e65ef97e42bb4c7b",
-        "modifiedAt": "2026-07-13T23:09:23.606Z"
+        "modifiedAt": "2026-07-15T12:32:50.302Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/onboarding.json",
         "bytes": 8584,
         "sha256": "2b035c75e95880931b8c2e33f1ada0a472989660015d038bf20082fd9f1185fa",
-        "modifiedAt": "2026-07-13T23:09:23.616Z"
+        "modifiedAt": "2026-07-15T12:32:50.313Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/organizations.json",
-        "bytes": 604862,
-        "sha256": "c8b827280729113171d2eec5fb955b0e11ea7233ba6694227ff7e130f86ad843",
-        "modifiedAt": "2026-07-13T23:09:23.649Z"
+        "bytes": 615036,
+        "sha256": "bda90d4d41b2e473e941bc51d6b88c3e6cc1f9f31916046693fce6ea10ae552a",
+        "modifiedAt": "2026-07-15T12:32:50.349Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/pricing.json",
-        "bytes": 465922,
-        "sha256": "8ada33731e49ef1b447d34db2ee5c14df2598c0ee5f73388c5044398cea0d657",
-        "modifiedAt": "2026-07-13T23:09:23.684Z"
+        "bytes": 437475,
+        "sha256": "80fa0799b13022f7e1d2fdcea90853a1d83b311136519d781e82ef7b6fb8a962",
+        "modifiedAt": "2026-07-15T12:32:50.384Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/set-password.json",
         "bytes": 3573,
         "sha256": "7141b194323eb1e1c9a5b1bd20fa7a02311d044357142adc57f136a218f1b144",
-        "modifiedAt": "2026-07-13T23:09:23.696Z"
+        "modifiedAt": "2026-07-15T12:32:50.398Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/settings.json",
-        "bytes": 39628,
-        "sha256": "ee087ffb1f6279b05c26a994057ecd767d0192285d6f096594880851414282ab",
-        "modifiedAt": "2026-07-13T23:09:23.710Z"
+        "bytes": 34171,
+        "sha256": "52679896d71a9218339cc81341d355e31beb91aa95177519fc8ce1acdb8e01eb",
+        "modifiedAt": "2026-07-15T12:32:50.415Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/subscriptions.json",
-        "bytes": 622728,
-        "sha256": "85996f70ed4e8866fa308dc470e4234099e9ca27ef641195f61af4d04b4c268e",
-        "modifiedAt": "2026-07-13T23:09:23.744Z"
+        "bytes": 605404,
+        "sha256": "1ce8b7d7a49ecd458e4bcff9e525bbf407dab371eb1a55112e6a66b739534ea3",
+        "modifiedAt": "2026-07-15T12:32:50.460Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/support-tickets.json",
-        "bytes": 362477,
-        "sha256": "13f119ae387739a9f81dbe5d8c86a5148185943ffb778502ca5c23ef0ef53fda",
-        "modifiedAt": "2026-07-13T23:09:23.773Z"
+        "bytes": 348224,
+        "sha256": "80981ad70c6867b9ccca6835201c3586c1e7a1a6d711788a6f95255a946b3fc1",
+        "modifiedAt": "2026-07-15T12:32:50.490Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unauthorized.json",
         "bytes": 2857,
         "sha256": "5861d09a60c0358c8fadf40aae969e2e491538c01598fc608e30e27756324d43",
-        "modifiedAt": "2026-07-13T23:09:23.784Z"
+        "modifiedAt": "2026-07-15T12:32:50.502Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/unnamed.json",
-        "bytes": 177030,
-        "sha256": "d2b167741c107447feb2d77d450c4fbdeca0bed8a7e45731f4aa0bfc3df85670",
-        "modifiedAt": "2026-07-13T23:09:23.801Z"
+        "bytes": 177048,
+        "sha256": "775b2bfdf9901d071d147912435b1c051aa66e92276b2a1f9ee9374b7aa12390",
+        "modifiedAt": "2026-07-15T12:32:50.523Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/users.json",
-        "bytes": 697105,
-        "sha256": "ab9891fcb0bfaae75e4a35acdd4ee30237ec91d2c3434d24e168ff23216db411",
-        "modifiedAt": "2026-07-13T23:09:23.838Z"
+        "bytes": 706972,
+        "sha256": "51dd24188302ef115802802ed4358ff6c368c936e8b8cc456d8822fc1befdafc",
+        "modifiedAt": "2026-07-15T12:32:50.565Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/verification.json",
-        "bytes": 523713,
-        "sha256": "44cfc6e9d794701a02aa989b109fa0790e873c8ca3d0ef3f7085e7f24d212003",
-        "modifiedAt": "2026-07-13T23:09:23.872Z"
+        "bytes": 521711,
+        "sha256": "6944d1405f3faa1bb6d786da70c652fd22a4d3073364724a01c995265d9b8098",
+        "modifiedAt": "2026-07-15T12:32:50.599Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/visits.json",
-        "bytes": 422525,
-        "sha256": "02488fc60a90b9791c3b6bdae2bef1b505eb9aa824ea8ad07407766d57dab144",
-        "modifiedAt": "2026-07-13T23:09:23.898Z"
+        "bytes": 445804,
+        "sha256": "8a5e44c78781c3aaf511d60db7686d4283d78f648df9c3ee556c322db8ea6380",
+        "modifiedAt": "2026-07-15T12:32:50.629Z"
       },
       {
         "path": "results/runtime-inventory/admin-desktop/wallet.json",
-        "bytes": 574949,
-        "sha256": "7100ef885dba80e0c0c6af7deb099513e1bff036587bc0c281c9e58f65ff5483",
-        "modifiedAt": "2026-07-13T23:09:23.923Z"
+        "bytes": 641054,
+        "sha256": "153364cfdb741c0932f7dd396362f246ef700557ddca7b1d754d2b8756c543b7",
+        "modifiedAt": "2026-07-15T12:32:50.677Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/ambulances.json",
-        "bytes": 713782,
-        "sha256": "0b28108d976974e8d4e45f3b6a2562e09eaa43637957d710bec0e5bcb9d48eb5",
-        "modifiedAt": "2026-07-13T23:09:23.956Z"
+        "bytes": 217221,
+        "sha256": "43760398ff3e7fddc9ce5ac8dc04ff924ac979cdaaf6c22551b513307a48c3d4",
+        "modifiedAt": "2026-07-15T12:32:50.701Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/analytics.json",
-        "bytes": 129132,
-        "sha256": "5fabd68de2531d20d9858e4f2d0509c93aaaf89983dcf0703ac1232442f8906a",
-        "modifiedAt": "2026-07-13T23:09:23.969Z"
+        "bytes": 116701,
+        "sha256": "d43dc88f2ab5911bd8e96a23283ba3be642304ed8bfed5c6b4444bddb211b686",
+        "modifiedAt": "2026-07-15T12:32:50.718Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/audit-not-found.json",
         "bytes": 2232,
         "sha256": "5bad0d741a2535400b72b5bdb37f233059ba897f8524ee5d8834851f75ee0680",
-        "modifiedAt": "2026-07-13T23:09:23.981Z"
+        "modifiedAt": "2026-07-15T12:32:50.731Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/doctors.json",
-        "bytes": 722314,
-        "sha256": "9da57cb1362ec5a850972d369d58928a12f104cdc2ecdf6de3d2691b6cabc2dd",
-        "modifiedAt": "2026-07-13T23:09:24.010Z"
+        "bytes": 736586,
+        "sha256": "b70edfb35288f89a7f144a235d04aa1583cd8b05236824f487b2a8607ed2e128",
+        "modifiedAt": "2026-07-15T12:32:50.777Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/emergencies.json",
-        "bytes": 774698,
-        "sha256": "ac48273f90a2ac76c7a0ef518777d37644fcd9f638e3b409cd22496513ddb085",
-        "modifiedAt": "2026-07-13T23:09:24.044Z"
+        "bytes": 156160,
+        "sha256": "c5e1ca9bf322549a0f67c84305134393d468084e944989cecbdafa34bb62b070",
+        "modifiedAt": "2026-07-15T12:32:50.791Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/health-news.json",
-        "bytes": 175595,
-        "sha256": "b727a8b0c494c0744d1e0d8f684bc9044a05dfbddf92ad380f23b274ce18dc68",
-        "modifiedAt": "2026-07-13T23:09:24.051Z"
+        "bytes": 166032,
+        "sha256": "a48730836d3cf3185b6e79b2d7989e79aa57b92a34d6e654022299bf2e40dc5e",
+        "modifiedAt": "2026-07-15T12:32:50.806Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/hospitals.json",
-        "bytes": 742923,
-        "sha256": "f112ddaccd48d55e67365550302eeccaaaa4d14ed5ea8731d56b0c19db3a943b",
-        "modifiedAt": "2026-07-13T23:09:24.086Z"
+        "bytes": 747625,
+        "sha256": "4310bf4a1f9b3f263a7630aabd35ee3cc1095b12a5dc836adc851536e7df6e9f",
+        "modifiedAt": "2026-07-15T12:32:50.856Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/insurance.json",
-        "bytes": 137548,
-        "sha256": "7e427a5174097ad8733fe97e5ad0f28568b3004e77d0c00768944f191535c2aa",
-        "modifiedAt": "2026-07-13T23:09:24.092Z"
+        "bytes": 148771,
+        "sha256": "91997925ab4a5631a3a4b8f8eba74e460bfdf1f604361e50c5fe9b3cc2a2ebce",
+        "modifiedAt": "2026-07-15T12:32:50.869Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/login.json",
         "bytes": 2122,
         "sha256": "fe969d7df24e3d70693066426406cef853bb5a8c716afadfcc598212c13b3d71",
-        "modifiedAt": "2026-07-13T23:09:24.101Z"
+        "modifiedAt": "2026-07-15T12:32:50.882Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/map.json",
-        "bytes": 3235124,
-        "sha256": "c93aaa12a8484c86ae8892e34e04a695f76d7c03a6bd1ff4aed68df7f4f3dfad",
-        "modifiedAt": "2026-07-13T23:09:24.216Z"
+        "bytes": 252946,
+        "sha256": "60ec4c74bedb97833fd0e61d81b54ec5b816aa3ea1cc128fe03e1ef20d20710a",
+        "modifiedAt": "2026-07-15T12:32:50.905Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding-success.json",
         "bytes": 2265,
         "sha256": "de09d72a536ccd77439258105f8f6b9e874fb77e59e0a097b891e5059e6565ff",
-        "modifiedAt": "2026-07-13T23:09:24.227Z"
+        "modifiedAt": "2026-07-15T12:32:50.918Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/onboarding.json",
         "bytes": 2177,
         "sha256": "6ba4de2eb44d52416a301712761f3c2e48291c1e05e87bcd36af29642007b602",
-        "modifiedAt": "2026-07-13T23:09:24.236Z"
+        "modifiedAt": "2026-07-15T12:32:50.932Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/organizations.json",
-        "bytes": 723387,
-        "sha256": "4db58957b4c83a7d2db380ed0d16a95f15534923b993558a82b6d42180d0aa00",
-        "modifiedAt": "2026-07-13T23:09:24.260Z"
+        "bytes": 702424,
+        "sha256": "02fecb50becd130c4f2d8ee409a3acb3ff90905e64fa613e79d7e7c67841dda5",
+        "modifiedAt": "2026-07-15T12:32:50.966Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/pricing.json",
-        "bytes": 372812,
-        "sha256": "fbbe52eb88daa7a03576c4c67f7c53ae241a62f140d57db15682f378e17fa283",
-        "modifiedAt": "2026-07-13T23:09:24.272Z"
+        "bytes": 155650,
+        "sha256": "efdb7d4ad077b77cba65aca30e06bb6b41cfe5dc2d352d84bbd8e05c8b848963",
+        "modifiedAt": "2026-07-15T12:32:50.979Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/set-password.json",
         "bytes": 2199,
         "sha256": "27b70b1c75f4bb1957978a70c83cbe9aa2f4d0bbf1f29c910d3577f12ba27050",
-        "modifiedAt": "2026-07-13T23:09:24.280Z"
+        "modifiedAt": "2026-07-15T12:32:50.995Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/settings.json",
-        "bytes": 108800,
-        "sha256": "0df4bd2c6de728a32a9f41979994976587add2853aedb76bc69a38ef5c60ea49",
-        "modifiedAt": "2026-07-13T23:09:24.285Z"
+        "bytes": 121179,
+        "sha256": "d3e447e1c18589b8cbe3825d53e8c4f1f18909104fd729672af658a50e51e38c",
+        "modifiedAt": "2026-07-15T12:32:51.005Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/subscriptions.json",
-        "bytes": 533916,
-        "sha256": "9af6337cbc469997b921f30dba8046815d9fbdbba2da885f79e599fe49a8aa76",
-        "modifiedAt": "2026-07-13T23:09:24.304Z"
+        "bytes": 523874,
+        "sha256": "c9f289c794f7ec71d152a46ce8c9cf0e767c4136d450837c6433682ebc925c70",
+        "modifiedAt": "2026-07-15T12:32:51.031Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/support-tickets.json",
-        "bytes": 157217,
-        "sha256": "5d67e0a757f9a3b774c74b41357c47a36cb35fd9f9b891d2ce0cb3ebe10b1440",
-        "modifiedAt": "2026-07-13T23:09:24.310Z"
+        "bytes": 156517,
+        "sha256": "5ddd5bb7fc36fdb923cad11052d1325dacdec3ccc1a6aabcec1dc0b66b8949da",
+        "modifiedAt": "2026-07-15T12:32:51.042Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unauthorized.json",
         "bytes": 2199,
         "sha256": "d600fdcca995e8cf7abae9f1b2b8e6eecd5d00e45074acf543fd34ce4a1d8e93",
-        "modifiedAt": "2026-07-13T23:09:24.318Z"
+        "modifiedAt": "2026-07-15T12:32:51.054Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/unnamed.json",
-        "bytes": 105568,
-        "sha256": "1d10ad580cd496b3ded71318407b69a5de40ee4838d3e3b16120037c57def36f",
-        "modifiedAt": "2026-07-13T23:09:24.329Z"
+        "bytes": 105460,
+        "sha256": "48bb305b60ba45ab7e8b4ebd4b556370e8b99ee2d421be77962d36f534111b38",
+        "modifiedAt": "2026-07-15T12:32:51.070Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/users.json",
-        "bytes": 706764,
-        "sha256": "1049dc16e1bc04c9fa8952146f20874f979415bad4039ead5540b2e5680fc093",
-        "modifiedAt": "2026-07-13T23:09:24.351Z"
+        "bytes": 737384,
+        "sha256": "3a76f14b1ee4d0e4180c2930604a1345eda956e20d25fd1c03332a9bf8f48a9b",
+        "modifiedAt": "2026-07-15T12:32:51.104Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/verification.json",
-        "bytes": 464522,
-        "sha256": "85d6fa15a104e49aec296a7ca1520020ecd21191f716113312a4bea7ac94c7c7",
-        "modifiedAt": "2026-07-13T23:09:24.368Z"
+        "bytes": 436288,
+        "sha256": "7696491fe4518f31891e98bd8a1478360cd6f753a1d04a73f15b0b8db9dad3b7",
+        "modifiedAt": "2026-07-15T12:32:51.127Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/visits.json",
-        "bytes": 817148,
-        "sha256": "283e601004b5a27ff2cc435b5b8df67e471389c3798ea8e04641da7d3a245d90",
-        "modifiedAt": "2026-07-13T23:09:24.406Z"
+        "bytes": 177189,
+        "sha256": "8e80b9602c78e6337a088a4f169c37fd0bc50e318efb81c4589eba5e49f453ae",
+        "modifiedAt": "2026-07-15T12:32:51.139Z"
       },
       {
         "path": "results/runtime-inventory/admin-mobile/wallet.json",
-        "bytes": 160678,
-        "sha256": "84ac2c366b78ff9f5ceed030a7f089ad708cb83a5fc449956c98083d6781f126",
-        "modifiedAt": "2026-07-13T23:09:24.412Z"
+        "bytes": 148281,
+        "sha256": "62efb76280077cc928aaf814fcdf3c02ebb3dd08497f614e356952b89201f6ae",
+        "modifiedAt": "2026-07-15T12:32:51.148Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/audit-not-found.json",
         "bytes": 2334,
-        "sha256": "b7561fdbe5da44cd11c62dcebf5df0fae11de464cc33d66dd605f70ac8b1ec95",
-        "modifiedAt": "2026-07-13T23:09:24.414Z"
+        "sha256": "22d4f00c236607b286c62d18a323fbe84298e7ca6b805604b213a102dfa63505",
+        "modifiedAt": "2026-07-15T12:32:51.150Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/login.json",
         "bytes": 5140,
-        "sha256": "1bddb0752264e7128d4430ae125225ce2ffc04f2be9622770b67d6b07d43bb9b",
-        "modifiedAt": "2026-07-13T23:09:24.415Z"
+        "sha256": "87f945fb15152d75cd492e7d3f19f4d4c9f20384503b11901f9b42b15d7539d9",
+        "modifiedAt": "2026-07-15T12:32:51.153Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding-success.json",
         "bytes": 3156,
-        "sha256": "6307c9d044385dd22d802107924e6a69a86e7d00ee676f61bb1c4e797b09f903",
-        "modifiedAt": "2026-07-13T23:09:24.417Z"
+        "sha256": "31e6cab10cc21cf5bddce042ea618b54443a6a7219e038e5cc111588a6c69a16",
+        "modifiedAt": "2026-07-15T12:32:51.158Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/onboarding.json",
         "bytes": 8954,
-        "sha256": "c143b0b6d7dec02e3b1ad4961a3be2de38cfa7b66e7c66e30a7fb8b70b36b314",
-        "modifiedAt": "2026-07-13T23:09:24.420Z"
+        "sha256": "c5d8f3c1ad1330161eb8d82a6401e52274f468a02963cbd393dd10e7b357e914",
+        "modifiedAt": "2026-07-15T12:32:51.164Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/set-password.json",
         "bytes": 3733,
-        "sha256": "4f31978a308cae663ecfa79a1a35bb604a3e2f52500bd14c2a8cf9c7b60be3ec",
-        "modifiedAt": "2026-07-13T23:09:24.422Z"
+        "sha256": "adafcf25be60915af1b2c88a31aaac933c77ae1613d5c3eb678123c96dd5c0d1",
+        "modifiedAt": "2026-07-15T12:32:51.168Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unauthorized.json",
         "bytes": 2292,
-        "sha256": "35bd6ffc7f9c9838db5cc57fe32620389d6bf9570a089619633efdab760a670c",
-        "modifiedAt": "2026-07-13T23:09:24.424Z"
+        "sha256": "51f4a8a4ddbcd3f90acb6ee900c1aa407991239e563ba10a875fab338660a78e",
+        "modifiedAt": "2026-07-15T12:32:51.171Z"
       },
       {
         "path": "results/runtime-inventory/unauthenticated-desktop/unnamed.json",
         "bytes": 2175,
         "sha256": "a424fa4a33bed7ddae6a3e70d701f728382737b4f15ae83dcfb8217780a449cb",
-        "modifiedAt": "2026-07-13T23:09:24.433Z"
+        "modifiedAt": "2026-07-15T12:32:51.185Z"
       },
       {
         "path": "results/source-findings.cjs",
@@ -362,9 +362,9 @@
       },
       {
         "path": "results/static-actions.json",
-        "bytes": 423478,
-        "sha256": "d44c3bc9b03520ea0e4212d768c599c2bc43bdbcf7ccefde169a58e80b929474",
-        "modifiedAt": "2026-07-13T23:01:42.008Z"
+        "bytes": 454334,
+        "sha256": "a4e1a4c34c12b8fdd51b1cf26589851fe13d85cfbdc96b8edeefe1e1b0cded55",
+        "modifiedAt": "2026-07-15T12:24:48.246Z"
       }
     ]
   },
@@ -426,8 +426,8 @@
     "auditHarnessUnchangedDuringAudit": true
   },
   "counts": {
-    "staticCandidates": 844,
-    "runtimeVisibleDefinitions": 1341,
+    "staticCandidates": 905,
+    "runtimeVisibleDefinitions": 1344,
     "runtimeSurfaces": 42,
     "confirmedFailureCases": 0,
     "confirmedAffectedActions": 0,
@@ -454,38 +454,38 @@
   },
   "prScope": {
     "schemaVersion": 2,
-    "generatedAt": "2026-07-13T23:09:26.485Z",
-    "runId": "audit-20260713230137-22c0a46e",
+    "generatedAt": "2026-07-15T12:32:53.919Z",
+    "runId": "audit-20260715122419-667ee89f",
     "localRefSnapshot": true,
     "baseRef": "main",
-    "branch": "codex/console-modularization-wave-2",
-    "head": "22c0a46e33aaee99c62ae6a46fa6a53e05e5ed5a",
-    "mergeBase": "4d1de70a79e78d0e85416ab8e5aef6d8df7fc946",
+    "branch": "codex/tablet-production-pass",
+    "head": "667ee89f2280276b7618d09eba96b3a8d51fbdeb",
+    "mergeBase": "220f3a08e112a2536dec32e50e1025f146f151bd",
     "commits": {
-      "ahead": 59,
+      "ahead": 2,
       "behind": 0
     },
     "committedDiff": {
-      "files": 613,
-      "insertions": 69409,
-      "deletions": 44385,
-      "namedFiles": 613
+      "files": 43,
+      "insertions": 1405,
+      "deletions": 195,
+      "namedFiles": 43
     },
     "worktree": {
-      "trackedChangedFiles": 1,
-      "untrackedFiles": 0,
+      "trackedChangedFiles": 57,
+      "untrackedFiles": 11,
       "clean": false
     },
     "runIntegrity": {
       "productWorktreeStart": {
-        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "trackedChangedFiles": 0,
-        "untrackedFiles": 0
+        "sha256": "9ffd2460c70c56e2040c67c60879ffa90dd22d444e93642a4495989629566b93",
+        "trackedChangedFiles": 52,
+        "untrackedFiles": 11
       },
       "productWorktreeEnd": {
-        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "trackedChangedFiles": 0,
-        "untrackedFiles": 0
+        "sha256": "9ffd2460c70c56e2040c67c60879ffa90dd22d444e93642a4495989629566b93",
+        "trackedChangedFiles": 52,
+        "untrackedFiles": 11
       },
       "productUnchangedDuringAudit": true,
       "auditHarnessStart": {
@@ -849,8 +849,8 @@
   },
   "cleanup": {
     "schemaVersion": 2,
-    "generatedAt": "2026-07-13T23:09:24.865Z",
-    "runId": "audit-20260713230137-22c0a46e",
+    "generatedAt": "2026-07-15T12:32:51.872Z",
+    "runId": "audit-20260715122419-667ee89f",
     "discoveryOnly": true,
     "records": [],
     "evidenceChecks": [],
@@ -3573,7 +3573,7 @@
   "blockedCandidates": [],
   "runtimeInventory": {
     "surfaces": 42,
-    "visibleDefinitions": 1341,
-    "staticCandidates": 844
+    "visibleDefinitions": 1344,
+    "staticCandidates": 905
   }
 }

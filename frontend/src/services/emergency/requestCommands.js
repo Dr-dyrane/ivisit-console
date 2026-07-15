@@ -10,6 +10,7 @@ import {
   buildLegacyEmergencyPayload,
   calculateResponseTime,
   normalizeConsoleServiceType,
+  normalizeEmergencyPaymentInput,
   parsePointInput,
 } from './payloadNormalization';
 
@@ -106,10 +107,10 @@ export async function createEmergencyRequest(input) {
         patient_location: normalizedPatientLocation
       };
 
-      const paymentMethod = createInput.payment_method || createInput.payment_method_id || null;
-      const paymentData = paymentMethod ? {
-        method: paymentMethod,
-        method_id: createInput.payment_method_id || null,
+      const paymentInput = normalizeEmergencyPaymentInput(createInput);
+      const paymentData = paymentInput.method ? {
+        method: paymentInput.method,
+        method_id: paymentInput.methodId,
         total_amount: createInput.total_cost ?? createInput.amount ?? 0,
         fee_amount: createInput.ivisit_fee_amount ?? null,
         currency: createInput.currency || 'USD'

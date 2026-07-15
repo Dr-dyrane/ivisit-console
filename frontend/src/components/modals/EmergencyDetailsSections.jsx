@@ -85,7 +85,7 @@ export const EmergencyIdentitySections = ({ request, projection }) => {
       {request.service_type === 'bed' && (
         <SectionCard title="Bed Details" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
           <DetailRow label="Bed Number" value={request.bed_number || 'N/A'} />
-          <DetailRow label="Bed Type" value={request.bed_category || request.bed_type || 'N/A'} valueClassName="capitalize" />
+          <DetailRow label="Bed Type" value={projection.serviceDisplay.bedCategoryLabel} valueClassName="capitalize" />
           <DetailRow label="Specialty" value={projection.serviceDisplay.specialtyLabel} />
         </SectionCard>
       )}

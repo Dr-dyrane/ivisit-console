@@ -40,7 +40,6 @@ export const MobileVisitRow = ({
   const isEmergency = String(visit?.visit_type || visit?.type || '').includes('emergency');
   const scheduled = visit?.sourceKind === 'scheduled_visit';
   const TypeIcon = isEmergency ? Siren : scheduled ? CalendarClock : Stethoscope;
-  const clinician = visit?.assignedDoctor?.name || visit?.doctor_name || 'Unassigned';
 
   return (
     <MobileListRow
@@ -51,7 +50,7 @@ export const MobileVisitRow = ({
       orbClass={orbClass}
       icon={TypeIcon}
       title={row.patientName}
-      meta={`${scheduled ? visit.careModeLabel : row.serviceType} \u00b7 ${row.primary} \u00b7 ${clinician}`}
+      meta={`${scheduled ? visit.careModeLabel : row.serviceType} \u00b7 ${row.primary} \u00b7 ${row.careTeam.rowLabel}: ${row.careTeam.name}`}
       time={scheduled ? formatVisitInFacilityTimezone(visit) : formatRequestDayTime(visitWhen(visit))}
       pill={{ className: orbClass, label: pill?.label || row.statusLabel, dataStatus: row.statusKey }}
       selectable={selectable}

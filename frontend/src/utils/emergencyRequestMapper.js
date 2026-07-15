@@ -195,6 +195,7 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       label: formatEmergencyServiceToken(row?.service_type, 'Emergency Request'),
       ambulanceTypeLabel: formatEmergencyServiceToken(row?.ambulance_type, 'Standard'),
       hasAmbulanceType: Boolean(row?.ambulance_type),
+      bedCategoryLabel: formatEmergencyServiceToken(row?.bed_category || row?.bed_type, 'N/A'),
       specialtyLabel: formatEmergencyServiceToken(row?.specialty || row?.bed_category || row?.bed_type, 'N/A'),
     },
     statusDisplay: {

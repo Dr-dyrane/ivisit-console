@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { buildRequestVisitIdentityProjection } from '../../utils/requestVisitIdentityProjection';
 import { resolveVisitStatus } from '../../utils/visitStatus';
 import {
   applyQueryAbortSignal,
@@ -30,7 +31,7 @@ async function fetchChunkedRows(ids, buildChunkQuery, abortSignal) {
 export async function enrichVisitsForPage(visits = [], abortSignal) {
   if (!visits.length) return [];
 
-  const userIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))];
+  const visitUserIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))];
   // Only request-linked visits join emergency rows; visit UUIDs are not request UUIDs.
   const emergencyLookupIds = [
     ...new Set(visits.map((visit) => visit.request_id).filter(Boolean)),
@@ -39,14 +40,56 @@ export async function enrichVisitsForPage(visits = [], abortSignal) {
     ...new Set(visits.map(visit => visit.hospital_id).filter(Boolean)),
   ];
 
-  const [profiles, emergencyRows] = await Promise.all([
-    fetchChunkedRows(userIds, (chunk) => supabase
+  const emergencyRows = await fetchChunkedRows(emergencyLookupIds, (chunk) => supabase
+    .from('emergency_requests')
+    .select([
+      'id',
+      'user_id',
+      'hospital_id',
+      'hospital_name',
+      'status',
+      'service_type',
+      'assigned_doctor_id',
+      'responder_id',
+      'responder_name',
+      'responder_phone',
+      'responder_vehicle_type',
+      'responder_vehicle_plate',
+      'ambulance_id',
+      'patient_snapshot',
+    ].join(', '))
+    .in('id', chunk), abortSignal);
+  throwIfQueryAborted(abortSignal);
+
+  const profileIds = [
+    ...new Set([
+      ...visitUserIds,
+      ...(emergencyRows || []).map(row => row.user_id).filter(Boolean),
+      ...(emergencyRows || []).map(row => row.responder_id).filter(Boolean),
+    ]),
+  ];
+  const doctorIds = [
+    ...new Set((emergencyRows || []).map(row => row.assigned_doctor_id).filter(Boolean)),
+  ];
+  const hospitalIds = [
+    ...new Set([
+      ...directHospitalIds,
+      ...(emergencyRows || []).map(row => row.hospital_id).filter(Boolean),
+    ]),
+  ];
+
+  const [profiles, doctors, hospitalRows] = await Promise.all([
+    fetchChunkedRows(profileIds, (chunk) => supabase
       .from('profiles')
-      .select('id, username, email, full_name')
+      .select('id, username, email, full_name, phone, image_uri, avatar_url')
       .in('id', chunk), abortSignal),
-    fetchChunkedRows(emergencyLookupIds, (chunk) => supabase
-      .from('emergency_requests')
-      .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
+    fetchChunkedRows(doctorIds, (chunk) => supabase
+      .from('doctors')
+      .select('id, name, specialization, phone, image')
+      .in('id', chunk), abortSignal),
+    fetchChunkedRows(hospitalIds, (chunk) => supabase
+      .from('hospitals')
+      .select('id, name, address')
       .in('id', chunk), abortSignal),
   ]);
   throwIfQueryAborted(abortSignal);
@@ -59,45 +102,30 @@ export async function enrichVisitsForPage(visits = [], abortSignal) {
     ...acc,
     [row.id]: row,
   }), {});
-
-  const doctorIds = [
-    ...new Set((emergencyRows || []).map(row => row.assigned_doctor_id).filter(Boolean)),
-  ];
-
-  let doctorsMap = {};
-  if (doctorIds.length > 0) {
-    const doctors = await fetchChunkedRows(doctorIds, (chunk) => supabase
-      .from('doctors')
-      .select('id, name')
-      .in('id', chunk), abortSignal);
-    doctorsMap = (doctors || []).reduce((acc, doctor) => ({
-      ...acc,
-      [doctor.id]: doctor,
-    }), {});
-  }
-
-  const hospitalIds = [
-    ...new Set([
-      ...directHospitalIds,
-      ...(emergencyRows || []).map(row => row.hospital_id).filter(Boolean),
-    ]),
-  ];
-
-  let hospitalsMap = {};
-  if (hospitalIds.length > 0) {
-    const hospitalRows = await fetchChunkedRows(hospitalIds, (chunk) => supabase
-      .from('hospitals')
-      .select('id, name, address')
-      .in('id', chunk), abortSignal);
-    hospitalsMap = (hospitalRows || []).reduce((acc, hospital) => ({
-      ...acc,
-      [hospital.id]: hospital,
-    }), {});
-  }
+  const doctorsMap = (doctors || []).reduce((acc, doctor) => ({
+    ...acc,
+    [doctor.id]: doctor,
+  }), {});
+  const hospitalsMap = (hospitalRows || []).reduce((acc, hospital) => ({
+    ...acc,
+    [hospital.id]: hospital,
+  }), {});
 
   return visits.map((visit) => {
     const emergency =
       (visit.request_id ? emergencyByRequest[visit.request_id] : null) || null;
+    const doctorRecord = emergency?.assigned_doctor_id
+      ? doctorsMap[emergency.assigned_doctor_id] || null
+      : null;
+    const identity = emergency ? buildRequestVisitIdentityProjection({
+      request: emergency,
+      visit,
+      patientProfile: profilesMap[emergency.user_id || visit.user_id] || null,
+      doctorRecord,
+      responderProfile: emergency.responder_id
+        ? profilesMap[emergency.responder_id] || null
+        : null,
+    }) : null;
     const linkedHospitalId = visit.hospital_id || emergency?.hospital_id || null;
     const linkedHospitalName =
       visit.hospital_name ||
@@ -108,13 +136,12 @@ export async function enrichVisitsForPage(visits = [], abortSignal) {
       visitStatus: visit.status,
       emergencyStatus: emergency?.status,
     });
-    const emergencyDoctorName = emergency?.assigned_doctor_id
-      ? doctorsMap[emergency.assigned_doctor_id]?.name || null
-      : null;
-    const doctorName = visit.doctor_name || emergencyDoctorName || null;
+    const doctorName = identity?.doctor.hasDoctor
+      ? identity.doctor.name
+      : visit.doctor_name || null;
     const visitType = visit.visit_type || visit.type || emergency?.service_type || null;
 
-    return normalizeVisitForUI({
+    const normalizedVisit = normalizeVisitForUI({
       ...visit,
       request_id: visit.request_id || emergency?.id || null,
       hospital_id: linkedHospitalId,
@@ -124,9 +151,33 @@ export async function enrichVisitsForPage(visits = [], abortSignal) {
       status: normalizedStatus,
       type: visitType,
       visit_type: visitType,
+      doctor_id: identity?.doctor.doctorId || visit.doctor_id || null,
       doctor_name: doctorName,
-      patient: profilesMap[visit.user_id] || null,
+      patient: identity
+        ? profilesMap[identity.patient.profileId] || null
+        : profilesMap[visit.user_id] || null,
+      doctor_record: doctorRecord,
       doctor: visit.doctor || doctorName || null,
     });
+
+    if (!identity) return normalizedVisit;
+
+    const responder = identity.responder;
+    return {
+      ...normalizedVisit,
+      identity,
+      ambulance_id: responder.ambulanceId,
+      responder_id: responder.profileId,
+      responder_name: responder.hasResponder ? responder.name : null,
+      responder: responder.hasResponder ? {
+        id: responder.profileId,
+        name: responder.name,
+        phone: responder.phone,
+        avatar: responder.avatar,
+        ambulanceId: responder.ambulanceId,
+        vehicleType: responder.vehicleType,
+        vehiclePlate: responder.vehiclePlate,
+      } : null,
+    };
   });
 }

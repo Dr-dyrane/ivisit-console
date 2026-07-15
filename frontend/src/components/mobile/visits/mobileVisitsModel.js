@@ -34,26 +34,6 @@ export const hasMobileVisitFilters = (filters = {}) => Boolean(
   || filters?.date
 );
 
-export const getCompactVisitKpiTransition = ({ nextKpi, viewMode, scheduledViewEnabled }) => {
-  if (!scheduledViewEnabled) return { nextKpi, nextViewMode: null };
-
-  if (nextKpi === 'scheduled') {
-    return {
-      nextKpi: null,
-      nextViewMode: viewMode === 'scheduled' ? 'all' : 'scheduled',
-    };
-  }
-
-  if (viewMode === 'scheduled') {
-    return {
-      nextKpi: nextKpi === 'all' ? null : nextKpi,
-      nextViewMode: 'all',
-    };
-  }
-
-  return { nextKpi, nextViewMode: null };
-};
-
 export const visitWhen = (visit) => (
   visit?.scheduled_start_at || visit?.date || visit?.scheduled_at || visit?.created_at
 );
