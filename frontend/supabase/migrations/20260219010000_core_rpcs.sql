@@ -4,7 +4,7 @@
 -- 1. Nearby Hospitals (PostGIS Enabled)
 -- PULLBACK NOTE: EXP-3/EXP-4 (Explore Care Refactor) — absorbed from 20260601000000_provider_taxonomy.sql
 -- OLD: returned any available row regardless of provider_type; return type had no taxonomy fields
--- NEW: filters provider_type='hospital' AND emergency_eligible=true; returns taxonomy fields
+-- NEW: filters commit-eligible hospitals to active, verified organizations; returns taxonomy fields
 -- DROP required because return type gains new columns (PostgreSQL constraint).
 DROP FUNCTION IF EXISTS public.nearby_hospitals(DOUBLE PRECISION, DOUBLE PRECISION, INTEGER);
 
@@ -42,12 +42,16 @@ BEGIN
     h.provider_type, h.emergency_eligible, h.dispatch_eligible,
     h.verification_status, h.provider_source, h.category_confidence
   FROM public.hospitals h
+  JOIN public.organizations organization
+    ON organization.id = h.organization_id
   WHERE
     h.coordinates IS NOT NULL
     AND h.status = 'available'
     AND h.provider_type = 'hospital'
     AND h.emergency_eligible = true
     AND h.dispatch_eligible = true
+    AND organization.is_active = true
+    AND organization.verification_status = 'verified'
     AND ST_DWithin(
       h.coordinates::geography,
       ST_SetSRID(ST_MakePoint(user_lng, user_lat), 4326)::geography,
