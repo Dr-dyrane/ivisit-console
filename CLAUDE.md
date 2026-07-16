@@ -19,7 +19,7 @@ See `AGENTS.md` (root) and `frontend/AGENTS.md` for full agent rules and authori
 
 ## Tech Stack
 
-- **React 18** (CRA + CRACO), JavaScript + TypeScript types
+- **React 19** (CRA + CRACO), JavaScript + TypeScript types
 - **Supabase** — Postgres, Auth, RLS, RPCs, Edge Functions, Realtime, Storage
 - **Radix UI** primitives + **shadcn/ui** component layer
 - **Tailwind CSS**
