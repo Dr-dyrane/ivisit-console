@@ -170,6 +170,27 @@ export const normalizeUsersStats = (stats) => {
   return Object.values(normalized).every(Number.isFinite) ? normalized : null;
 };
 
+// AnalyticsModal (type="user") reads totalUsers/verifiedUsers/totalProfiles/
+// roleDistribution, not the KPI-strip keys. Map the exact usersPageRead counts
+// at the call site instead of widening the shared modal contract. The page
+// read counts profiles rows, so users and profiles are the same scoped total;
+// counts the read does not measure (e.g. new signups) stay absent.
+export const toUsersAnalyticsShape = (stats) => {
+  const normalized = normalizeUsersStats(stats);
+  if (!normalized) return null;
+  return {
+    total: normalized.total,
+    totalUsers: normalized.total,
+    totalProfiles: normalized.total,
+    verifiedUsers: normalized.verified,
+    roleDistribution: {
+      provider: normalized.provider,
+      org_admin: normalized.org_admin,
+      patient: normalized.patient,
+    },
+  };
+};
+
 export const getUsersSignal = ({ stats, kpiFilter, loadError, statisticsError, hasAny }) => {
   const activeId = kpiFilter || 'all';
   const option = USERS_KPI_OPTIONS.find((item) => item.id === activeId) || USERS_KPI_OPTIONS[0];

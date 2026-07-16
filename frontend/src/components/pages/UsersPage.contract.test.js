@@ -170,6 +170,25 @@ describe('Users Page 14 identity contract', () => {
     expect(mobile).toContain('const statisticsUnavailable = Boolean(statisticsError || errorMessage);');
   });
 
+  it('feeds the analytics modal the exact-count keys it renders, not the raw KPI shape', () => {
+    const overlays = read('src/components/pages/users/UsersPageOverlays.jsx');
+    const model = read('src/components/pages/users/usersPageModel.js');
+    const modalModel = read('src/components/modals/analytics/analyticsModalModel.js');
+
+    // Both sides of the key contract: the shared modal reads these keys for
+    // type="user", and the call site maps the exact usersPageRead counts to them.
+    expect(modalModel).toContain('getCount(analytics.totalUsers)');
+    expect(modalModel).toContain('getCount(analytics.verifiedUsers)');
+    expect(overlays).toContain('analytics={toUsersAnalyticsShape(statistics)}');
+    expect(overlays).not.toContain('analytics={statistics');
+    expect(model).toContain('totalUsers: normalized.total');
+    expect(model).toContain('totalProfiles: normalized.total');
+    expect(model).toContain('verifiedUsers: normalized.verified');
+    expect(model).toContain('org_admin: normalized.org_admin');
+    // No source measures signup recency in the page read; never fabricate it.
+    expect(model).not.toContain('recentSignups');
+  });
+
   it('keeps data acquisition route-owned and deletion unavailable on both layouts', () => {
     const pageDataAccess = read('src/config/pageDataAccess.js');
     const page = pageSource();

@@ -105,6 +105,14 @@ export const formatOrganizationDate = (value) => {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// organizations.organization_type is the real column (types/database.ts); the old
+// row.type / row.org_type reads were dead. Honest null: absent value reads Unknown.
+export const formatOrganizationType = (value) => {
+  const text = String(value ?? '').trim();
+  if (!text) return 'Unknown';
+  return text.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+};
+
 export const formatOrganizationWallet = (value) => {
   if (value == null || value === '') return 'Not available';
   const numeric = Number(value);

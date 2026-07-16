@@ -3,10 +3,13 @@ import {
   canActorEditHospital,
   buildHospitalPanelContext,
   formatHospitalWait,
+  getHospitalProvenance,
   getHospitalRailModel,
+  getHospitalRowMarker,
   getHospitalSignal,
   getHospitalStateCount,
   hasActiveHospitalFilters,
+  isDemoHospitalRow,
 } from './hospitalPageModel';
 
 describe('hospital page model characterization', () => {
@@ -151,6 +154,49 @@ describe('hospital page model characterization', () => {
       viewOpening: true,
       editOpening: false,
     });
+  });
+
+  it('classifies provenance from the database-derived demo and import encodings', () => {
+    expect(isDemoHospitalRow({ provider_source: 'demo_bootstrap' })).toBe(true);
+    expect(isDemoHospitalRow({ place_id: 'demo:hospital-1' })).toBe(true);
+    expect(isDemoHospitalRow({ place_id: 'ChIJ123', provider_source: 'google_places' })).toBe(false);
+    expect(isDemoHospitalRow({})).toBe(false);
+
+    expect(getHospitalProvenance({ provider_type: 'hospital', provider_source: 'demo_bootstrap' }))
+      .toEqual({ demo: true, imported: false, kindKey: 'hospital', sourceKey: 'demo_bootstrap' });
+    expect(getHospitalProvenance({ provider_type: 'clinic', place_id: 'demo:hospital-2' }))
+      .toEqual({ demo: true, imported: false, kindKey: 'clinic', sourceKey: 'demo_bootstrap' });
+    expect(getHospitalProvenance({ provider_type: 'hospital', provider_source: 'google_places', place_id: 'ChIJ123' }))
+      .toEqual({ demo: false, imported: true, kindKey: 'hospital', sourceKey: 'google_places' });
+    expect(getHospitalProvenance({ provider_type: 'hospital', place_id: 'ChIJ123' }))
+      .toEqual({ demo: false, imported: true, kindKey: 'hospital', sourceKey: 'places_import' });
+    expect(getHospitalProvenance({ provider_type: 'hospital', provider_source: 'verified_provider' }))
+      .toEqual({ demo: false, imported: false, kindKey: 'hospital', sourceKey: 'verified_provider' });
+    expect(getHospitalProvenance({}))
+      .toEqual({ demo: false, imported: false, kindKey: null, sourceKey: null });
+  });
+
+  it('marks list rows only when provenance carries dispatch signal', () => {
+    expect(getHospitalRowMarker({ provider_type: 'hospital', provider_source: 'demo_bootstrap' }))
+      .toEqual({ key: 'demo' });
+    expect(getHospitalRowMarker({ provider_type: 'pharmacy', provider_source: 'verified_provider' }))
+      .toEqual({ key: 'kind', kindKey: 'pharmacy' });
+    expect(getHospitalRowMarker({ provider_type: 'hospital', provider_source: 'mapbox_places' }))
+      .toEqual({ key: 'imported' });
+    expect(getHospitalRowMarker({ provider_type: 'hospital', provider_source: 'verified_provider' })).toBeNull();
+    expect(getHospitalRowMarker({ provider_type: 'hospital', provider_source: 'manual_seed' })).toBeNull();
+    expect(getHospitalRowMarker({ provider_type: 'hospital' })).toBeNull();
+  });
+
+  it('carries kind and source keys into the rail without fabricating unknowns', () => {
+    expect(getHospitalRailModel({
+      id: 'h-demo',
+      provider_type: 'urgent_care',
+      provider_source: 'demo_bootstrap',
+    }, null)).toMatchObject({ demo: true, kindKey: 'urgent_care', sourceKey: 'demo_bootstrap' });
+
+    expect(getHospitalRailModel({ id: 'h-bare' }, null))
+      .toMatchObject({ demo: false, kindKey: null, sourceKey: null });
   });
 
   it('keeps missing wait and filter state honest', () => {

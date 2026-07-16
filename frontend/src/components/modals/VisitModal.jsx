@@ -34,11 +34,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
     status: 'scheduled',
     date: '', // Replaced scheduled_at
     notes: '',
-    reason: '',
     room_number: '',
     cost: '',
     estimated_duration: '',
-    insurance_covered: true,
+    // Boolean column with honest null: no fetched value means Unknown, not Covered.
+    insurance_covered: null,
     preparation: '',
     hospitals: null,
     profiles: null,
@@ -96,7 +96,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const dateTimeLabel = isScheduledRecord
     ? formatVisitInFacilityTimezone(formData, { includeYear: true })
     : formData.date ? new Date(formData.date).toLocaleString() : 'Date not set';
-  const insuranceLabel = formData.insurance_covered ? 'Covered' : 'Not covered';
+  const insuranceLabel = formData.insurance_covered === true
+    ? 'Covered'
+    : formData.insurance_covered === false
+      ? 'Not covered'
+      : 'Unknown';
 
   useEffect(() => {
     let active = true;
@@ -122,7 +126,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
         room_number: visit.room_number || prev.room_number || '',
         cost: visit.cost || prev.cost || '',
         estimated_duration: visit.estimated_duration || prev.estimated_duration || '',
-        insurance_covered: visit.insurance_covered ?? prev.insurance_covered ?? true,
+        insurance_covered: visit.insurance_covered ?? null,
         preparation: Array.isArray(visit.preparation) ? visit.preparation.join('\n') : (visit.preparation || prev.preparation || '')
       }));
 
@@ -417,22 +421,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       )}
                     </div>
 
-                    {!isScheduledRecord && <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
-                      {/* Read-only until command authority is proved (2026-07-09 arbitration):
-                          the visits write whitelist is contract-locked by design and silently
-                          drops `reason`, so an editable field here would lie about what saving
-                          does. Reason is owned by the care flow that created the visit. */}
-                      <ReadOnlyField
-                        value={formData.reason || (isCreate ? 'Not set' : 'No reason recorded')}
-                        icon={<FileText className="h-4 w-4" />}
-                      />
-                      {!isView && (
-                        <p className="text-xs text-muted-foreground">
-                          Reason is set by the care flow.
-                        </p>
-                      )}
-                    </div>}
+                    {/* The visits table has no reason column (types/database.ts),
+                        so the old reason field could only ever render a fabricated
+                        blank. Incident narrative for emergency visits lives in the
+                        Incident Context card below. */}
                   </div>
                 </GlassCard>
 

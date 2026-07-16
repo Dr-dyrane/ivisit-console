@@ -476,6 +476,21 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(gate).toContain('The active Ambulances page, mobile, list, and table surfaces are in the default UI hardgate.');
   });
 
+  it('surfaces fetched fleet telemetry freshness read-only in the detail rail (ADOPT-06)', () => {
+    const page = pageSource();
+
+    // Binding proof: the already-fetched telemetry columns reach the rail render
+    // through the rail model -- observed_at first, received_at as fallback, and
+    // accuracy meters only when present. This is read-surfacing only; no write
+    // path touches these columns from the console.
+    expect(page).toContain('ambulance.location_observed_at || ambulance.location_received_at');
+    expect(page).toContain('ambulance.location_accuracy_meters');
+    expect(page).toContain('positionLabel,');
+    expect(page).toContain('<DetailLine icon={Navigation} label="Position" value={model.positionLabel} />');
+    // Honest null: absent telemetry renders as absence, never fabricated freshness.
+    expect(page).toContain("'No recent telemetry'");
+  });
+
   it('puts active Ambulances visual-start and modal surfaces in the hardgate', () => {
     const hardgate = hardgateSource();
     const gate = gateSource();

@@ -23,6 +23,7 @@ import { useListKeyboardNav, useScrollResetOnPage } from '../../../hooks/useList
 import { formatDayTime } from '../../../utils/dayTime';
 import {
   formatHospitalWait,
+  getHospitalRowMarker,
   getHospitalSignal,
   getHospitalStateCount,
   hasActiveHospitalFilters,
@@ -34,6 +35,9 @@ import {
 import {
   HOSPITAL_GRID_COLS,
   HOSPITAL_GRID_COLS_SELECT,
+  HOSPITAL_PROVIDER_KIND_LABEL,
+  HOSPITAL_ROW_MARKER_CLASS,
+  HOSPITAL_ROW_MARKER_LABEL,
   hospitalSignalIcon,
   hospitalStateOptions,
   hospitalStatusLabel,
@@ -296,6 +300,14 @@ const HospitalRow = ({
   const statusKey = String(hospital?.status || 'available').toLowerCase();
   const statusLabel = hospitalStatusLabel[statusKey] || statusKey.replace(/_/g, ' ');
   const facilityName = hospital.name || 'Unnamed hospital';
+  // Provenance chip only when it carries dispatch signal (demo, non-hospital
+  // kind, unreviewed import); unknown provenance renders nothing.
+  const rowMarker = getHospitalRowMarker(hospital);
+  const rowMarkerLabel = rowMarker
+    ? (rowMarker.key === 'kind'
+      ? (HOSPITAL_PROVIDER_KIND_LABEL[rowMarker.kindKey] || rowMarker.kindKey.replace(/_/g, ' '))
+      : HOSPITAL_ROW_MARKER_LABEL[rowMarker.key])
+    : null;
 
   return (
     <ListRowShell
@@ -331,12 +343,17 @@ const HospitalRow = ({
         </span>
       </span>
 
-      <span>
+      <span className="flex min-w-0 flex-wrap items-center gap-1.5">
         <StatusPill
           compact
           label={statusLabel}
           className={hospitalStatusPillClass[statusKey] || 'bg-muted/40 text-muted-foreground'}
         />
+        {rowMarker && (
+          <span className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${HOSPITAL_ROW_MARKER_CLASS[rowMarker.key]}`}>
+            {rowMarkerLabel}
+          </span>
+        )}
       </span>
 
       <span className="text-sm tabular-nums text-foreground/85">

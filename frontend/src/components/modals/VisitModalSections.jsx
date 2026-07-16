@@ -105,7 +105,7 @@ export const VisitLogisticsCard = ({
           <div className="flex items-center gap-2 rounded-inner bg-muted/30 p-3 transition-colors hover:bg-primary/5">
             <input
               type="checkbox"
-              checked={formData.insurance_covered}
+              checked={formData.insurance_covered === true}
               onChange={(event) => setFormData((current) => ({
                 ...current,
                 insurance_covered: event.target.checked,

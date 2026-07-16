@@ -216,4 +216,20 @@ describe('Organizations Page 15 revamp contract', () => {
       'src/components/modals/OrganizationModal.jsx',
     ].forEach((file) => expect(hardgate).toContain(file));
   });
+
+  // ADOPT-02: the rail Type line reads the real organizations.organization_type column
+  // (types/database.ts); the old row.type / row.org_type reads were dead and rendered a
+  // fabricated 'Not set' on every row. Honest null: absent value reads Unknown.
+  it('binds the rail Type line to the real organization_type column with honest nulls', () => {
+    const rail = read('src/components/pages/organizations/OrganizationDetailRail.jsx');
+    const model = read('src/components/pages/organizations/organizationPageModel.js');
+
+    expect(rail).toContain('const typeValue = formatOrganizationType(organization.organization_type);');
+    expect(rail).toContain('<DetailLine icon={Globe} label="Type" value={typeValue} />');
+    expect(rail).not.toContain('organization.org_type');
+    expect(rail).not.toMatch(/organization\.type\b/);
+
+    expect(model).toContain('export const formatOrganizationType');
+    expect(model).toContain("if (!text) return 'Unknown';");
+  });
 });

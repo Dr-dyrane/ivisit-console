@@ -114,6 +114,30 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(color).not.toContain('bg-warning');
   });
 
+  it('surfaces adopted schema truth on the detail rail: identity, facility claims, provenance', () => {
+    const source = pageSource();
+    // ADOPT-07: the provider lane binds the fetched profile identity columns to
+    // the rail render -- full_name was searchable but invisible before this pass.
+    expect(source).toContain('label="Legal name" value={item.full_name}');
+    expect(source).toContain('label="Organization" value={item.organization_name}');
+    expect(source).toContain('value={formatOnboardingStatus(item.onboarding_status)}');
+    // ADOPT-08: the facility lane renders the claims approval unlocks, parsed
+    // defensively at the projection boundary (arrays may arrive as Json strings).
+    expect(source).toContain('const facilityClaims = isProviders ? null : getFacilityClaims(item);');
+    expect(source).toContain('toFacilityClaimList(item?.specialties)');
+    expect(source).toContain('toFacilityClaimList(item?.service_types)');
+    expect(source).toContain('label="Beds" value={facilityClaims.beds}');
+    expect(source).toContain('label="Eligibility" value={facilityClaims.eligibility}');
+    expect(source).toContain('{facilityClaims.specialties.length > 0 && (');
+    expect(source).toContain('{facilityClaims.serviceTypes.length > 0 && (');
+    // ADOPT-09: provenance is presence-only and renders NOTHING when both columns
+    // are null (the pill is gated on the projection's honest null).
+    expect(source).toContain('const provenance = isProviders ? null : getFacilityProvenance(item);');
+    expect(source).toContain('{provenance && (');
+    expect(source).toContain("if (source) return 'Self-registered';");
+    expect(source).toContain("return 'Demo seed';");
+  });
+
   it('gives BOTH lanes multi-select + bulk, routed per queue (providers approve-only, facilities tri-state)', () => {
     const source = pageSource();
     const bottomBarSource = [

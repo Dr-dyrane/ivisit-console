@@ -39,6 +39,12 @@ export const normalizeVisitForUI = (visit) => {
   const statusInput = sourceKind === 'scheduled_visit' ? sourceStatus : (visit.status ?? sourceStatus);
   const status = canonicalizeVisitStatus(statusInput, sourceKind === 'scheduled_visit' ? 'scheduled' : null);
   const careMode = visit.care_mode ?? null;
+  // Adopted evidence columns (schema: estimated_duration text, insurance_covered
+  // boolean, preparation text[]). Shape is normalized here; missing truth stays
+  // null so the UI can render an honest Unknown instead of a fabricated default.
+  const preparationSteps = (Array.isArray(visit.preparation) ? visit.preparation : [visit.preparation])
+    .map((step) => firstText(step))
+    .filter(Boolean);
 
   return {
     ...visit,
@@ -77,6 +83,9 @@ export const normalizeVisitForUI = (visit) => {
     hospital_name: hospitalName,
     visit_type: visit.visit_type ?? visit.type ?? null,
     room_number: visit.room_number ?? null,
+    estimated_duration: firstText(visit.estimated_duration),
+    insurance_covered: typeof visit.insurance_covered === 'boolean' ? visit.insurance_covered : null,
+    preparation: preparationSteps.length > 0 ? preparationSteps : null,
     source_status: sourceStatus,
     status: status || sourceStatus,
     sourceKind,

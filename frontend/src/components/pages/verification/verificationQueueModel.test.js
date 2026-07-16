@@ -2,11 +2,15 @@ import {
   createVerificationFilterSchema,
   createVerificationPanelContext,
   executeVerificationBulkAction,
+  formatOnboardingStatus,
   getApprovalProjection,
+  getFacilityClaims,
+  getFacilityProvenance,
   getVerificationRouteScope,
   isTransientVerificationRefreshError,
   normalizeActiveStats,
   sortVerificationItems,
+  toFacilityClaimList,
   toVerificationServiceStatus,
 } from './verificationQueueModel';
 
@@ -156,5 +160,79 @@ describe('verification queue model', () => {
   it('keeps transient refresh failures fail-soft while retaining hard failures', () => {
     expect(isTransientVerificationRefreshError(new Error('Failed to fetch'))).toBe(true);
     expect(isTransientVerificationRefreshError(new Error('permission denied'))).toBe(false);
+  });
+
+  it('normalizes claim arrays across every serialization the driver can hand back', () => {
+    expect(toFacilityClaimList(['Cardiology', ' Trauma ', ''])).toEqual(['Cardiology', 'Trauma']);
+    expect(toFacilityClaimList('["emergency","icu"]')).toEqual(['emergency', 'icu']);
+    expect(toFacilityClaimList('{"General Care",Surgery}')).toEqual(['General Care', 'Surgery']);
+    expect(toFacilityClaimList('Surgery')).toEqual(['Surgery']);
+    expect(toFacilityClaimList('[broken json')).toEqual([]);
+    expect(toFacilityClaimList(null)).toEqual([]);
+    expect(toFacilityClaimList(undefined)).toEqual([]);
+    expect(toFacilityClaimList(7)).toEqual([]);
+  });
+
+  it('projects facility claims with honest nulls -- absent columns never fabricate values', () => {
+    expect(getFacilityClaims({
+      specialties: ['Cardiology'],
+      service_types: '["emergency"]',
+      total_beds: 120,
+      available_beds: 30,
+      icu_beds_available: 8,
+      emergency_eligible: true,
+      dispatch_eligible: false,
+      booking_eligible: true,
+    })).toEqual({
+      specialties: ['Cardiology'],
+      serviceTypes: ['emergency'],
+      beds: '30 of 120 available \u00b7 ICU 8',
+      eligibility: 'Emergency \u00b7 Booking',
+    });
+
+    // Flags present but ALL false is real data ('None'); null bed columns stay null.
+    expect(getFacilityClaims({
+      specialties: null,
+      service_types: null,
+      total_beds: null,
+      available_beds: null,
+      icu_beds_available: null,
+      emergency_eligible: false,
+      dispatch_eligible: false,
+      booking_eligible: false,
+    })).toEqual({
+      specialties: [],
+      serviceTypes: [],
+      beds: null,
+      eligibility: 'None',
+    });
+
+    // A row without the columns at all stays fully absent -- no invented 'None'.
+    expect(getFacilityClaims({})).toEqual({
+      specialties: [],
+      serviceTypes: [],
+      beds: null,
+      eligibility: null,
+    });
+  });
+
+  it('derives provenance from presence only and never fabricates an origin', () => {
+    expect(getFacilityProvenance({ provider_source: 'google_places' })).toBe('Imported \u00b7 Places');
+    expect(getFacilityProvenance({ provider_source: 'mapbox_places' })).toBe('Imported \u00b7 Places');
+    expect(getFacilityProvenance({ provider_source: null, place_id: 'ChIJabc123' })).toBe('Imported \u00b7 Places');
+    expect(getFacilityProvenance({ provider_source: 'demo_bootstrap' })).toBe('Demo seed');
+    expect(getFacilityProvenance({ provider_source: null, place_id: 'demo:lagos-1' })).toBe('Demo seed');
+    expect(getFacilityProvenance({ provider_source: 'manual_seed' })).toBe('Self-registered');
+    expect(getFacilityProvenance({ provider_source: 'verified_provider' })).toBe('Self-registered');
+    expect(getFacilityProvenance({ provider_source: null, place_id: null })).toBeNull();
+    expect(getFacilityProvenance({})).toBeNull();
+  });
+
+  it('humanizes onboarding status without inventing one', () => {
+    expect(formatOnboardingStatus('pending_payment')).toBe('pending payment');
+    expect(formatOnboardingStatus('completed')).toBe('completed');
+    expect(formatOnboardingStatus('')).toBeNull();
+    expect(formatOnboardingStatus(null)).toBeNull();
+    expect(formatOnboardingStatus(undefined)).toBeNull();
   });
 });

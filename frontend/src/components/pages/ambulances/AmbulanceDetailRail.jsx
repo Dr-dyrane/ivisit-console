@@ -6,6 +6,7 @@ import {
   Edit,
   Eye,
   MapPin,
+  Navigation,
   Tag,
   Truck,
   Wrench,
@@ -120,6 +121,7 @@ export const AmbulanceDetailRail = ({
           />
           <DetailLine icon={Activity} label="Crew" value={model.crewLabel} />
           <DetailLine icon={Tag} label="Base price" value={model.basePriceLabel} />
+          <DetailLine icon={Navigation} label="Position" value={model.positionLabel} />
           <DetailLine
             icon={Clock}
             label="Updated"

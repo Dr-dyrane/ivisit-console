@@ -74,6 +74,43 @@ export const hospitalSignalIcon = {
   busy: Ambulance,
 };
 
+// Facility-kind labels: keys mirror the hospitals.provider_type CHECK domain
+// (ivisit-app constants/providerTypes.js PROVIDER_TYPES).
+export const HOSPITAL_PROVIDER_KIND_LABEL = {
+  hospital: 'Hospital',
+  pharmacy: 'Pharmacy',
+  lab: 'Lab',
+  radiology: 'Radiology',
+  urgent_care: 'Urgent care',
+  clinic: 'Clinic',
+  mental_health: 'Mental health',
+  womens_care: "Women's care",
+  pediatrics: 'Pediatrics',
+};
+
+// Provenance labels: keys mirror the hospitals.provider_source CHECK domain
+// (org_structure.sql) plus the derived places_import key for rows that carry
+// a place_id but predate the provider_source backfill.
+export const HOSPITAL_PROVIDER_SOURCE_LABEL = {
+  google_places: 'Imported \u00b7 Google Places',
+  mapbox_places: 'Imported \u00b7 Mapbox Places',
+  places_import: 'Imported \u00b7 Places',
+  manual_seed: 'Manually seeded',
+  verified_provider: 'Verified provider',
+  demo_bootstrap: 'Demo bootstrap',
+};
+
+export const HOSPITAL_ROW_MARKER_LABEL = {
+  demo: 'Demo',
+  imported: 'Imported',
+};
+
+export const HOSPITAL_ROW_MARKER_CLASS = {
+  demo: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  kind: 'bg-muted/40 text-muted-foreground',
+  imported: 'bg-muted/40 text-muted-foreground',
+};
+
 export const HOSPITAL_VERIFICATION_ORDER = ['pending', 'verified'];
 
 export const HOSPITAL_VERIFICATION_FILL = {

@@ -150,4 +150,32 @@ describe('ambulance page model characterization', () => {
       editOpening: false,
     });
   });
+
+  it('derives telemetry freshness from observed_at with received_at fallback and honest nulls', () => {
+    const PLUS_MINUS = String.fromCharCode(0xB1);
+    const observed = new Date(Date.now() - 4 * 60000).toISOString();
+    const received = new Date(Date.now() - 9 * 60000).toISOString();
+
+    expect(getAmbulanceRailModel({
+      ...rows[0],
+      location_observed_at: observed,
+      location_received_at: received,
+      location_accuracy_meters: 12.4,
+    }, null).positionLabel).toBe(`4m ago (${PLUS_MINUS}12m)`);
+
+    expect(getAmbulanceRailModel({
+      ...rows[0],
+      location_observed_at: null,
+      location_received_at: received,
+      location_accuracy_meters: null,
+    }, null).positionLabel).toBe('9m ago');
+
+    // No telemetry at all: never fabricate freshness (accuracy alone does not count).
+    expect(getAmbulanceRailModel({
+      ...rows[0],
+      location_observed_at: null,
+      location_received_at: null,
+      location_accuracy_meters: 5,
+    }, null).positionLabel).toBe('No recent telemetry');
+  });
 });

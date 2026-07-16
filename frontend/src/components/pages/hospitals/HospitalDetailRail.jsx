@@ -9,10 +9,12 @@ import {
   Clock,
   Edit,
   Eye,
+  Globe,
   Hospital,
   MapPin,
   Phone,
   Star,
+  Stethoscope,
   Tag,
   Timer,
 } from 'lucide-react';
@@ -22,6 +24,8 @@ import { CopyChip, DetailLine, Shimmer, StageStrip, StatusPill } from '../../con
 import { getHospitalRailModel } from './hospitalPageModel';
 import { HospitalAvatar } from './HospitalAvatar';
 import {
+  HOSPITAL_PROVIDER_KIND_LABEL,
+  HOSPITAL_PROVIDER_SOURCE_LABEL,
   HOSPITAL_VERIFICATION_FILL,
   HOSPITAL_VERIFICATION_ORDER,
   hospitalStatusIcon,
@@ -73,6 +77,12 @@ export const HospitalDetailRail = ({
   const StatusIcon = hospitalStatusIcon[model.statusKey] || Hospital;
   const railStageIndex = Math.max(0, HOSPITAL_VERIFICATION_ORDER.indexOf(model.verificationKey));
   const railStageFill = HOSPITAL_VERIFICATION_FILL[model.verificationKey] || 'bg-foreground/60';
+  const kindValue = model.kindKey
+    ? (HOSPITAL_PROVIDER_KIND_LABEL[model.kindKey] || model.kindKey.replace(/_/g, ' '))
+    : 'Unknown';
+  const sourceValue = model.sourceKey
+    ? (HOSPITAL_PROVIDER_SOURCE_LABEL[model.sourceKey] || model.sourceKey.replace(/_/g, ' '))
+    : 'Unknown';
 
   return (
     <DetailRailShell embedded={embedded}>
@@ -101,10 +111,19 @@ export const HospitalDetailRail = ({
                 muted={model.rejected}
               />
             </div>
-            {hospital.verified && (
-              <span className="shrink-0 rounded-pill bg-sky-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-200">
-                Verified
-              </span>
+            {(model.demo || hospital.verified) && (
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                {model.demo && (
+                  <span className="rounded-pill bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200">
+                    Demo data
+                  </span>
+                )}
+                {hospital.verified && (
+                  <span className="rounded-pill bg-sky-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-200">
+                    Verified
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -138,6 +157,8 @@ export const HospitalDetailRail = ({
             ) : 'No phone'}
           />
           <DetailLine icon={Building2} label="Tier" value={hospital.type || 'Not set'} />
+          <DetailLine icon={Stethoscope} label="Kind" value={kindValue} />
+          <DetailLine icon={Globe} label="Source" value={sourceValue} />
           <DetailLine icon={Tag} label="Price" value={hospital.price_range || 'Not set'} />
           <DetailLine icon={Clock} label="Updated" value={hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'} />
           <DetailLine

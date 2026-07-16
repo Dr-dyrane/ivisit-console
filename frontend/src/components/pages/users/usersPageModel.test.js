@@ -8,6 +8,7 @@ import {
   hasActiveUserFilters,
   normalizeUsersStats,
   resolveUsersRoleFilter,
+  toUsersAnalyticsShape,
 } from './usersPageModel';
 
 describe('usersPageModel', () => {
@@ -71,6 +72,24 @@ describe('usersPageModel', () => {
     })).toEqual({ total: 12, provider: 4, org_admin: 2, patient: 6, verified: 8 });
     expect(normalizeUsersStats({ total: 12, provider: undefined })).toBeNull();
     expect(normalizeUsersStats(null)).toBeNull();
+  });
+
+  it('maps the exact directory counts to the analytics modal user keys', () => {
+    expect(toUsersAnalyticsShape({
+      total: 12,
+      provider: 4,
+      org_admin: 2,
+      patient: 6,
+      verified: 8,
+    })).toEqual({
+      total: 12,
+      totalUsers: 12,
+      totalProfiles: 12,
+      verifiedUsers: 8,
+      roleDistribution: { provider: 4, org_admin: 2, patient: 6 },
+    });
+    expect(toUsersAnalyticsShape(null)).toBeNull();
+    expect(toUsersAnalyticsShape({ total: 12 })).toBeNull();
   });
 
   it('keeps degraded and scoped signal copy deterministic', () => {

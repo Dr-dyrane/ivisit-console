@@ -7,6 +7,8 @@ import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../..
 import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
 import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
 import { readPageDataImplementation, readSourceEstate } from '../../test/sourceEstates';
+import { GENERIC_VISIT_SELECT, GENERIC_VISIT_WITH_PATIENT_SELECT } from '../../services/visits/pageProjection';
+import { normalizeVisitForUI } from '../../services/visits/normalization';
 
 describe('VisitsPage admission contract', () => {
   const pageSource = () => [
@@ -528,6 +530,55 @@ describe('VisitsPage admission contract', () => {
 
     expect(gate).toContain('Modal and secondary reveal proof, 2026-06-30');
     expect(gate).toContain('view-mode `VisitModal` renders read-only evidence fields');
+  });
+
+  it('fetches and renders adopted visit evidence without fabricated defaults', () => {
+    const modal = modalSource();
+
+    // ADOPT-01: the shared read allowlist carries the adopted schema columns
+    // (visits.estimated_duration text, insurance_covered boolean, preparation
+    // text[]), so both the page list rows and the deep-link detail read feed
+    // the modal with real values instead of initial-state defaults.
+    ['estimated_duration', 'insurance_covered', 'preparation'].forEach((column) => {
+      expect(GENERIC_VISIT_SELECT).toMatch(new RegExp(`\\b${column}\\b`));
+      expect(GENERIC_VISIT_WITH_PATIENT_SELECT).toMatch(new RegExp(`\\b${column}\\b`));
+    });
+
+    // Boundary parser discipline: shapes normalize at the service edge and
+    // missing truth stays null -- never a fabricated default.
+    const normalized = normalizeVisitForUI({
+      id: 'visit-1',
+      estimated_duration: ' 30 mins ',
+      insurance_covered: false,
+      preparation: ['Fast for 8 hours', '  ', null],
+    });
+    expect(normalized.estimated_duration).toBe('30 mins');
+    expect(normalized.insurance_covered).toBe(false);
+    expect(normalized.preparation).toEqual(['Fast for 8 hours']);
+    const empty = normalizeVisitForUI({ id: 'visit-2' });
+    expect(empty.estimated_duration).toBeNull();
+    expect(empty.insurance_covered).toBeNull();
+    expect(empty.preparation).toBeNull();
+
+    // The fetched keys reach the modal's read-only view fields, and the
+    // section cards actually receive them (prop link, not just derivation).
+    expect(modal).toContain("value={formData.estimated_duration || 'Not set'}");
+    expect(modal).toContain('<ReadOnlyField value={insuranceLabel}');
+    expect(modal).toContain("value={formData.preparation || 'No preparation notes'}");
+    expect(modal).toContain('insuranceLabel={insuranceLabel}');
+    expect(modal).toContain('formData={formData}');
+
+    // insurance_covered renders true/false/Unknown from the fetched value only.
+    expect(modal).toContain('const insuranceLabel = formData.insurance_covered === true');
+    expect(modal).toContain(": 'Unknown';");
+    expect(modal).toContain('insurance_covered: visit.insurance_covered ?? null');
+    expect(modal).not.toContain('?? true');
+    expect(modal).not.toContain('insurance_covered: true');
+
+    // The visits table has no reason column (types/database.ts); the phantom
+    // field stays dead rather than rendering fabricated blanks.
+    expect(modal).not.toContain('formData.reason');
+    expect(modal).not.toContain('Reason for Visit');
   });
 
   it('keeps delete and bulk delete excluded from the active Visits UI until authority is proved', () => {

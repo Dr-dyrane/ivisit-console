@@ -3,6 +3,7 @@ import {
   getFleetStatus,
   getAmbulanceStatusLabel,
 } from '../../../constants/ambulanceStatus';
+import { formatRelativeTime } from '../../../utils/activityUtils';
 
 export const AMBULANCE_PAGE_SIZE = 20;
 export const AMBULANCE_DEFAULT_SORT = { key: '', direction: 'asc' };
@@ -266,6 +267,15 @@ export const getAmbulanceRailModel = (ambulance, activeActionFeedback) => {
   const crewCount = Array.isArray(ambulance.crew)
     ? ambulance.crew.filter(Boolean).length
     : 0;
+  // Telemetry freshness (ADOPT-06): device observation time first, server
+  // receipt time as fallback; absent telemetry stays an honest null label.
+  const positionAt = ambulance.location_observed_at || ambulance.location_received_at;
+  const accuracyMeters = ambulance.location_accuracy_meters == null
+    ? NaN
+    : Number(ambulance.location_accuracy_meters);
+  const positionLabel = positionAt
+    ? `${formatRelativeTime(positionAt)}${Number.isFinite(accuracyMeters) ? ` (\u00B1${Math.round(accuracyMeters)}m)` : ''}`
+    : 'No recent telemetry';
 
   return {
     status,
@@ -274,6 +284,7 @@ export const getAmbulanceRailModel = (ambulance, activeActionFeedback) => {
     displayId: ambulance.display_id || null,
     callSign: ambulance.call_sign || 'Unknown unit',
     crewLabel: crewCount > 0 ? `${crewCount} listed` : 'Not listed',
+    positionLabel,
     basePriceLabel: Number.isFinite(basePriceValue) && basePriceValue > 0
       ? basePriceValue.toLocaleString()
       : 'Not set',

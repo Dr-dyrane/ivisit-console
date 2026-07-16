@@ -117,6 +117,87 @@ export const formatAppliedDate = (value) => {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// Humanize the profiles.onboarding_status enum for display; null stays null so
+// the rail can render an honest absence instead of inventing a stage.
+export const formatOnboardingStatus = (value) => {
+  const text = String(value || '').trim();
+  return text ? text.replace(/_/g, ' ') : null;
+};
+
+// hospitals.specialties/service_types are string[] in the generated types but can
+// reach the client as JSON strings or Postgres array literals depending on the
+// driver path -- normalize at the projection boundary, never assume the shape.
+export const toFacilityClaimList = (value) => {
+  let raw = value;
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text) return [];
+    if (text.startsWith('[')) {
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        return [];
+      }
+    } else if (text.startsWith('{') && text.endsWith('}')) {
+      raw = text.slice(1, -1).split(',').map((entry) => entry.trim().replace(/^"(.*)"$/, '$1'));
+    } else {
+      raw = [text];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+  return raw.map((entry) => String(entry ?? '').trim()).filter(Boolean);
+};
+
+const toFiniteCount = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+// The claims a facility application carries -- the substance approval unlocks.
+// Every member is null/empty when the row does not carry it (honest nulls).
+export const getFacilityClaims = (item) => {
+  const specialties = toFacilityClaimList(item?.specialties);
+  const serviceTypes = toFacilityClaimList(item?.service_types);
+
+  const totalBeds = toFiniteCount(item?.total_beds);
+  const availableBeds = toFiniteCount(item?.available_beds);
+  const icuBeds = toFiniteCount(item?.icu_beds_available);
+  let beds = null;
+  if (totalBeds !== null && totalBeds > 0) {
+    beds = availableBeds !== null ? `${availableBeds} of ${totalBeds} available` : `${totalBeds} total`;
+  } else if (availableBeds !== null) {
+    beds = `${availableBeds} available`;
+  }
+  if (beds !== null && icuBeds !== null) beds += ` \u00b7 ICU ${icuBeds}`;
+
+  const eligibilityFlags = [
+    [item?.emergency_eligible, 'Emergency'],
+    [item?.dispatch_eligible, 'Dispatch'],
+    [item?.booking_eligible, 'Booking'],
+  ];
+  const flagsPresent = eligibilityFlags.some(([flag]) => typeof flag === 'boolean');
+  const eligibility = flagsPresent
+    ? (eligibilityFlags.filter(([flag]) => flag === true).map(([, label]) => label).join(' \u00b7 ') || 'None')
+    : null;
+
+  return { specialties, serviceTypes, beds, eligibility };
+};
+
+// Provenance is presence-only: Places sources (google_places/mapbox_places, or a
+// real place_id) mean discovery imported the row; demo seeds stay labelled demo;
+// any other named provider_source registered through console/app writes. With
+// neither column present the origin is unknown -- return null, never a guess.
+export const getFacilityProvenance = (item) => {
+  const source = typeof item?.provider_source === 'string' ? item.provider_source.trim().toLowerCase() : '';
+  const placeId = typeof item?.place_id === 'string' ? item.place_id.trim() : '';
+  if (source === 'demo_bootstrap' || placeId.startsWith('demo:')) return 'Demo seed';
+  if (source === 'google_places' || source === 'mapbox_places') return 'Imported \u00b7 Places';
+  if (!source && placeId) return 'Imported \u00b7 Places';
+  if (source) return 'Self-registered';
+  return null;
+};
+
 export const getProviderPersonaKind = (providerType) => {
   const type = String(providerType || '').toLowerCase();
   if (type.includes('driver') || type.includes('ambulance') || type.includes('paramedic')) return 'responder';

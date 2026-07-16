@@ -15,6 +15,7 @@ import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { CopyChip, DetailLine, Shimmer } from '../../console/primitives';
 import {
   formatOrganizationDate,
+  formatOrganizationType,
   formatOrganizationWallet,
   getOrganizationStatusMeta,
 } from './organizationPageModel';
@@ -67,7 +68,7 @@ export const OrganizationDetailRail = ({
   }
 
   const statusMeta = getOrganizationStatusMeta(!!organization.is_active);
-  const typeValue = organization.type || organization.org_type || 'Not set';
+  const typeValue = formatOrganizationType(organization.organization_type);
   const walletValue = formatOrganizationWallet(organization.wallet_balance);
   const locationValue = organization.city || organization.address || 'Not set';
   const displayId = organization.display_id

@@ -7,6 +7,7 @@ import { UserModal } from '../../modals/UserModal';
 import { FilterSheet } from '../../common/FilterSheet';
 import { BulkActionBar } from '../../common/BulkActionBar';
 import { Button } from '../../ui/button';
+import { toUsersAnalyticsShape } from './usersPageModel';
 
 const Confirmation = ({ confirmationModal, setConfirmationModal }) => (
   <ConfirmationModal
@@ -66,7 +67,7 @@ export const UsersPageDialogs = ({
     <AnalyticsModal
       open={analyticsModalOpen}
       onClose={() => setAnalyticsModalOpen(false)}
-      analytics={statistics || {}}
+      analytics={toUsersAnalyticsShape(statistics)}
       type="user"
     />
     {!isMobile && (

@@ -2,6 +2,7 @@ import {
   buildOrganizationAnalytics,
   buildOrganizationQueryFilter,
   buildOrganizationsPanelContext,
+  formatOrganizationType,
   formatOrganizationWallet,
   getOrganizationStateCount,
   hasActiveOrganizationFilters,
@@ -79,6 +80,14 @@ describe('organization page model characterization', () => {
       canManage: false,
     });
     expect(context.recent).toEqual(organizations.slice(0, 4));
+  });
+
+  it('humanizes the real organization_type column and never fabricates a type', () => {
+    expect(formatOrganizationType('hospital')).toBe('Hospital');
+    expect(formatOrganizationType('ambulance_service')).toBe('Ambulance Service');
+    expect(formatOrganizationType(null)).toBe('Unknown');
+    expect(formatOrganizationType(undefined)).toBe('Unknown');
+    expect(formatOrganizationType('   ')).toBe('Unknown');
   });
 
   it('keeps failed empty reads distinct from a reassuring zero registry', () => {

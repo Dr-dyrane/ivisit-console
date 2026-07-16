@@ -185,6 +185,50 @@ export const formatHospitalWait = (minutes) => {
   return Number.isFinite(numericMinutes) ? `${numericMinutes}m` : 'Unknown';
 };
 
+// Demo encoding is database-derived (org_structure.sql provider_source
+// backfill): place_id 'demo:%' or provider_source 'demo_bootstrap'. The same
+// predicate splits the analytics capacity population; the page contract pins
+// both lanes to this one rule so neither drifts alone.
+export const isDemoHospitalRow = (hospital) => (
+  String(hospital?.place_id || '').startsWith('demo:')
+  || hospital?.provider_source === 'demo_bootstrap'
+);
+
+const IMPORTED_HOSPITAL_SOURCES = new Set(['google_places', 'mapbox_places', 'places_import']);
+
+export const getHospitalProvenance = (hospital) => {
+  const kindKey = hospital?.provider_type
+    ? String(hospital.provider_type).trim().toLowerCase()
+    : null;
+  const rawSource = hospital?.provider_source
+    ? String(hospital.provider_source).trim().toLowerCase()
+    : null;
+  const demo = isDemoHospitalRow(hospital);
+  // provider_source was backfilled FROM place_id prefixes, so a bare place_id
+  // with no source still proves a Places import, never a self-entered record.
+  const sourceKey = rawSource || (hospital?.place_id ? (demo ? 'demo_bootstrap' : 'places_import') : null);
+
+  return {
+    demo,
+    imported: !demo && IMPORTED_HOSPITAL_SOURCES.has(sourceKey),
+    kindKey,
+    sourceKey,
+  };
+};
+
+// List-row marker: only provenance that changes a dispatch read gets a chip
+// (demo rows, non-hospital kinds, unreviewed imports); verified/manual rows
+// and unknown provenance stay unmarked.
+export const getHospitalRowMarker = (hospital) => {
+  const provenance = getHospitalProvenance(hospital);
+  if (provenance.demo) return { key: 'demo' };
+  if (provenance.kindKey && provenance.kindKey !== 'hospital') {
+    return { key: 'kind', kindKey: provenance.kindKey };
+  }
+  if (provenance.imported) return { key: 'imported' };
+  return null;
+};
+
 export const getHospitalRoleKind = ({ admin, orgAdmin, provider, driver }) => {
   if (admin) return 'admin';
   if (orgAdmin) return 'org_admin';
@@ -238,10 +282,14 @@ export const getHospitalRailModel = (hospital, activeActionFeedback) => {
     hospital.dispatch_eligible && 'Dispatch',
     hospital.booking_eligible && 'Booking',
   ].filter(Boolean).join(' \u00b7 ');
+  const provenance = getHospitalProvenance(hospital);
 
   return {
     statusKey,
     verificationKey,
+    demo: provenance.demo,
+    kindKey: provenance.kindKey,
+    sourceKey: provenance.sourceKey,
     rejected: verificationKey === 'rejected' || verificationKey === 'suspended',
     displayId: hospital.display_id || null,
     facilityName: hospital.name || 'Unnamed hospital',

@@ -788,6 +788,57 @@ describe('HospitalsPage admission audit contract', () => {
     expect(viewMode).toContain('if (!allowedViewModes.has(newMode))');
   });
 
+  it('surfaces demo, facility-kind, and import provenance from the fetched taxonomy columns (ADOPT-10)', () => {
+    const page = pageSource();
+    const model = readSource('src/components/pages/hospitals/hospitalPageModel.js');
+    const workspace = readSource('src/components/pages/hospitals/HospitalsDesktopWorkspace.jsx');
+    const rail = readSource('src/components/pages/hospitals/HospitalDetailRail.jsx');
+    const analyticsModel = readSource('src/components/pages/analytics/analyticsPageModel.js');
+
+    // Read path: the page list/detail reads stay select('*') so provider_type,
+    // provider_source, and place_id arrive without a new query shape.
+    expect(serviceSource()).toContain("supabase.from(TABLE_NAME).select('*')");
+
+    // One database-derived demo rule (org_structure.sql backfill), pinned in
+    // BOTH lanes that consume it so neither drifts alone.
+    expect(model).toContain("String(hospital?.place_id || '').startsWith('demo:')");
+    expect(model).toContain("hospital?.provider_source === 'demo_bootstrap'");
+    expect(analyticsModel).toContain("String(hospital?.place_id || '').startsWith('demo:')");
+    expect(analyticsModel).toContain("hospital?.provider_source === 'demo_bootstrap'");
+
+    // The model binds the fetched columns into provenance keys.
+    expect(model).toContain('String(hospital.provider_type).trim().toLowerCase()');
+    expect(model).toContain('export const getHospitalProvenance');
+    expect(model).toContain('export const getHospitalRowMarker');
+    expect(model).toContain('kindKey: provenance.kindKey');
+    expect(model).toContain('sourceKey: provenance.sourceKey');
+
+    // The list row renders the marker chip ONLY when provenance carries signal
+    // (demo, non-hospital kind, unreviewed import); no chip for unknowns.
+    expect(workspace).toContain('const rowMarker = getHospitalRowMarker(hospital)');
+    expect(workspace).toContain('HOSPITAL_ROW_MARKER_CLASS[rowMarker.key]');
+    expect(workspace).toContain('{rowMarker && (');
+    expect(workspace).toContain('{rowMarkerLabel}');
+
+    // The rail renders explicit kind/source lines with honest unknowns plus
+    // the demo hero marker beside Verified.
+    expect(rail).toContain('HOSPITAL_PROVIDER_KIND_LABEL[model.kindKey]');
+    expect(rail).toContain('HOSPITAL_PROVIDER_SOURCE_LABEL[model.sourceKey]');
+    expect(rail).toContain("? (HOSPITAL_PROVIDER_SOURCE_LABEL[model.sourceKey] || model.sourceKey.replace(/_/g, ' '))");
+    expect(rail).toContain(": 'Unknown';");
+    expect(rail).toContain('label="Kind" value={kindValue}');
+    expect(rail).toContain('label="Source" value={sourceValue}');
+    expect(rail).toContain('{model.demo && (');
+    expect(rail).toContain('Demo data');
+
+    // Label maps mirror the verified CHECK domains, never invented values.
+    expect(page).toContain("verified_provider: 'Verified provider'");
+    expect(page).toContain("demo_bootstrap: 'Demo bootstrap'");
+    expect(page).toContain("urgent_care: 'Urgent care'");
+    expect(page).toContain("womens_care: \"Women's care\"");
+    expect(page).toContain("places_import: 'Imported");
+  });
+
   it('names the required Hospitals repair before admission can start', () => {
     const gate = gateSource();
 

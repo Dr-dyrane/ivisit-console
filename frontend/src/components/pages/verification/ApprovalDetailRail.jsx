@@ -1,6 +1,8 @@
 import React from 'react';
 import {
+  BadgeCheck,
   Ban,
+  Bed,
   Building2,
   CheckCircle,
   ChevronRight,
@@ -8,12 +10,14 @@ import {
   Eye,
   FileCheck,
   Info,
+  ListChecks,
   Loader2,
   Mail,
   MapPin,
   Phone,
   Shield,
   User,
+  UserCheck,
 } from 'lucide-react';
 import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { DetailLine, Shimmer } from '../../console/primitives';
@@ -27,8 +31,11 @@ import {
 } from '../../../constants/verificationStatus';
 import {
   formatAppliedDate,
+  formatOnboardingStatus,
   getApprovalProjection,
+  getFacilityClaims,
   getFacilityInitials,
+  getFacilityProvenance,
 } from './verificationQueueModel';
 import { getProviderTypeIcon } from './approvalPresentation';
 
@@ -41,6 +48,24 @@ const RailActionButton = ({ icon: Icon, label, onClick }) => (
     <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
     {label}
   </Button>
+);
+
+// What a facility CLAIMS to offer -- the substance approval unlocks. Same
+// fill-film row recipe as DetailLine; entries render as quiet chips.
+const FacilityClaimChips = ({ label, entries }) => (
+  <div className="rounded-inner bg-foreground/[0.045] p-2.5 dark:bg-white/[0.055]">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {entries.map((entry) => (
+        <span
+          key={entry}
+          className="rounded-pill bg-background/45 px-2.5 py-1 text-[11px] font-medium text-foreground/80"
+        >
+          {entry}
+        </span>
+      ))}
+    </div>
+  </div>
 );
 
 const ApprovalRailSkeleton = ({ embedded = false }) => (
@@ -104,6 +129,8 @@ export const ApprovalDetailRail = ({
   const statusLabel = getApprovalLabel(projection.statusKey);
   const MetaIcon = isProviders ? getProviderTypeIcon(projection.meta) : Building2;
   const canReject = queueType === 'organizations' && typeof onReject === 'function';
+  const facilityClaims = isProviders ? null : getFacilityClaims(item);
+  const provenance = isProviders ? null : getFacilityProvenance(item);
 
   return (
     <DetailRailShell embedded={embedded}>
@@ -119,9 +146,16 @@ export const ApprovalDetailRail = ({
                 {projection.displayId}
               </p>
             )}
-            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${toneClass}`}>
-              <StatusIcon className="h-3.5 w-3.5" />
-              {statusLabel}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${toneClass}`}>
+                <StatusIcon className="h-3.5 w-3.5" />
+                {statusLabel}
+              </span>
+              {provenance && (
+                <span className="inline-flex items-center rounded-pill bg-foreground/[0.055] px-3 py-1 text-xs font-semibold text-muted-foreground dark:bg-white/[0.06]">
+                  {provenance}
+                </span>
+              )}
             </div>
           </div>
           <Button
@@ -159,10 +193,15 @@ export const ApprovalDetailRail = ({
         {isProviders ? (
           <>
             <DetailLine icon={User} label="Applicant" value={item.username || item.email} />
+            <DetailLine icon={UserCheck} label="Legal name" value={item.full_name} />
             <DetailLine icon={MetaIcon} label="Provider type" value={projection.meta} />
+            {item.organization_name && (
+              <DetailLine icon={Building2} label="Organization" value={item.organization_name} />
+            )}
             <DetailLine icon={Shield} label="Role" value={item.role} />
             <DetailLine icon={Mail} label="Contact" value={item.email} />
             {item.phone && <DetailLine icon={Phone} label="Phone" value={item.phone} />}
+            <DetailLine icon={ListChecks} label="Onboarding" value={formatOnboardingStatus(item.onboarding_status)} />
             <DetailLine icon={Clock} label="Applied" value={formatAppliedDate(item.created_at)} />
           </>
         ) : (
@@ -171,7 +210,15 @@ export const ApprovalDetailRail = ({
             <DetailLine icon={MetaIcon} label="Type" value={projection.meta} />
             <DetailLine icon={MapPin} label="Address" value={item.address} />
             {item.phone && <DetailLine icon={Phone} label="Phone" value={item.phone} />}
+            <DetailLine icon={Bed} label="Beds" value={facilityClaims.beds} />
+            <DetailLine icon={BadgeCheck} label="Eligibility" value={facilityClaims.eligibility} />
             <DetailLine icon={Clock} label="Applied" value={formatAppliedDate(item.created_at)} />
+            {facilityClaims.specialties.length > 0 && (
+              <FacilityClaimChips label="Specialties" entries={facilityClaims.specialties} />
+            )}
+            {facilityClaims.serviceTypes.length > 0 && (
+              <FacilityClaimChips label="Services" entries={facilityClaims.serviceTypes} />
+            )}
           </>
         )}
       </div>
