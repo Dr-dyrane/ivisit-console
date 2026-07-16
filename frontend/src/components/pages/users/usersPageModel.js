@@ -61,11 +61,54 @@ export const formatLastSignIn = (value) => {
   return formatRelativeTime(value);
 };
 
+// ADOPT-46: the driver persona vocabulary the fleet chip and the provider-type
+// icon share. Mirrors the existing icon predicate (driver/ambulance/paramedic
+// substring family) so the chip never claims a fleet persona the icon denies.
+export const isFleetProviderType = (providerType) => {
+  const type = String(providerType || '').toLowerCase();
+  return type.includes('driver') || type.includes('ambulance') || type.includes('paramedic');
+};
+
 export const getProviderTypeIcon = (providerType) => {
   const type = String(providerType || '').toLowerCase();
-  if (type.includes('driver') || type.includes('ambulance') || type.includes('paramedic')) return Ambulance;
+  if (isFleetProviderType(providerType)) return Ambulance;
   if (type.includes('doctor') || type.includes('physician') || type.includes('nurse') || type.includes('specialist')) return Stethoscope;
   return UserRound;
+};
+
+// ADOPT-45: provider payout readiness is presence-only Stripe display metadata
+// (verification ADOPT-40 idiom) -- the brand + last4 tokens ONLY
+// ("Visa \u00b7\u00b7\u00b7\u00b7 4242"). The same profiles row also carries a
+// raw payment-method id and Stripe account/customer ids; those raw identifiers
+// must NEVER reach a users surface, so this formatter reads exactly the two
+// display columns and nothing else. Production population is sparse: both
+// columns null is the norm today, which returns null so the rail hides the
+// line entirely instead of fabricating an unfunded state.
+export const formatPayoutMethod = (user) => {
+  const brand = typeof user?.payout_method_brand === 'string' ? user.payout_method_brand.trim() : '';
+  const last4 = typeof user?.payout_method_last4 === 'string' ? user.payout_method_last4.trim() : '';
+  const parts = [];
+  if (brand) parts.push(brand.charAt(0).toUpperCase() + brand.slice(1));
+  if (last4) parts.push(`\u00b7\u00b7\u00b7\u00b7 ${last4}`);
+  return parts.length > 0 ? parts.join(' ') : null;
+};
+
+// ADOPT-46: fleet assignment is presence-only truth from
+// profiles.assigned_ambulance_id (the identity trigger treats a non-null
+// assignment as field-operative readiness). The chip renders only for
+// driver-type profiles with a non-null assignment; when the read-only batched
+// ambulances lookup resolved a human vehicle label it names the unit,
+// otherwise the wording stays presence-only. The raw assignment id is
+// mutation identity and never renders.
+export const getFleetAssignmentMeta = (user) => {
+  if (!isFleetProviderType(user?.provider_type)) return null;
+  const assignmentId = typeof user?.assigned_ambulance_id === 'string' ? user.assigned_ambulance_id.trim() : '';
+  if (!assignmentId) return null;
+  const label = typeof user?.assigned_ambulance_label === 'string' ? user.assigned_ambulance_label.trim() : '';
+  return {
+    label: label ? `Assigned ${label}` : 'Fleet assigned',
+    tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  };
 };
 
 export const getUserInitials = (name = 'User') => {
@@ -180,6 +223,10 @@ export const getUsersProjection = (user, organizationsMap = {}) => {
     joined: user?.created_at,
     onboardingMeta: getOnboardingStatusMeta(user?.onboarding_status),
     lastSignIn: formatLastSignIn(user?.last_sign_in_at),
+    // ADOPT-45: finance readiness is a provider surface; non-provider rows
+    // stay null even when legacy columns are populated.
+    payoutMethod: user?.role === 'provider' ? formatPayoutMethod(user) : null,
+    fleetAssignment: getFleetAssignmentMeta(user),
   };
 };
 

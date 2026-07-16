@@ -12,6 +12,7 @@ import {
   Globe,
   History,
   Hospital,
+  Landmark,
   MapPin,
   Phone,
   Star,
@@ -160,6 +161,18 @@ export const HospitalDetailRail = ({
           <DetailLine icon={Building2} label="Tier" value={hospital.type || 'Not set'} />
           <DetailLine icon={Stethoscope} label="Kind" value={kindValue} />
           <DetailLine icon={Globe} label="Source" value={sourceValue} />
+          {/* ADOPT-60: owning organization resolved read-only at the page
+              projection (support donor idiom): no line when the facility has
+              no organization; an RLS-blocked or failed resolution renders the
+              honest unknown label. Landmark, not Building2 -- Tier owns
+              Building2 on this rail. */}
+          {model.organizationId && (
+            <DetailLine
+              icon={Landmark}
+              label="Organization"
+              value={model.organizationName || 'Unknown organization'}
+            />
+          )}
           <DetailLine icon={Tag} label="Price" value={hospital.price_range || 'Not set'} />
           {/* ADOPT-36: availability freshness and record recency are separate
               truths; both ride the shared relative-time formatter. */}

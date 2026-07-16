@@ -240,6 +240,54 @@ describe('Users Page 14 identity contract', () => {
     expect(readSource).toContain("query.eq('onboarding_status', filter.onboarding_status);");
   });
 
+  it('surfaces provider payout readiness presence-only, never a raw Stripe identifier', () => {
+    const model = read('src/components/pages/users/usersPageModel.js');
+    const detailRail = read('src/components/pages/users/UsersDetailRail.jsx');
+
+    // ADOPT-45: the rail binds profiles.payout_method_brand/_last4 (the
+    // verification ADOPT-40 idiom) -- presence-only display tokens, provider
+    // rows only, hidden when unpopulated (production norm today).
+    expect(model).toContain("typeof user?.payout_method_brand === 'string'");
+    expect(model).toContain("typeof user?.payout_method_last4 === 'string'");
+    expect(model).toContain("payoutMethod: user?.role === 'provider' ? formatPayoutMethod(user) : null,");
+    expect(model).toContain("return parts.length > 0 ? parts.join(' ') : null;");
+    expect(detailRail).toContain('{projection.payoutMethod && (');
+    expect(detailRail).toContain('<DetailLine icon={CreditCard} label="Payout method" value={projection.payoutMethod} />');
+
+    // The same profiles row carries raw Stripe identifiers; none of them may
+    // reach any users surface.
+    const surfaces = pageSource();
+    expect(surfaces).not.toContain('payout_method_id');
+    expect(surfaces).not.toContain('stripe_account_id');
+    expect(surfaces).not.toContain('stripe_customer_id');
+  });
+
+  it('renders the driver fleet assignment presence-only with non-fatal label resolution', () => {
+    const model = read('src/components/pages/users/usersPageModel.js');
+    const detailRail = read('src/components/pages/users/UsersDetailRail.jsx');
+    const readSource = read('src/services/profiles/usersPageRead.js');
+
+    // ADOPT-46: the chip exists only for driver-type profiles with a non-null
+    // assigned_ambulance_id; an unresolved vehicle label degrades the wording
+    // to presence-only instead of fabricating a unit name.
+    expect(model).toContain('if (!isFleetProviderType(user?.provider_type)) return null;');
+    expect(model).toContain('label: label ? `Assigned ${label}` : \'Fleet assigned\',');
+    expect(model).toContain('fleetAssignment: getFleetAssignmentMeta(user),');
+    expect(detailRail).toContain('{projection.fleetAssignment && (');
+    expect(detailRail).toContain('label={projection.fleetAssignment.label}');
+    expect(detailRail).toContain('className={projection.fleetAssignment.tone}');
+
+    // ONE read-only batched ambulances lookup on the landed page window,
+    // UUID-shaped ids only, non-fatal on refusal (support donor pattern).
+    expect(readSource).toContain(".select('id, call_sign, vehicle_number, license_plate')");
+    expect(readSource).toContain(".in('id', ids);");
+    expect(readSource).toContain('UUID_SHAPE.test(id)');
+    expect(readSource).toContain('enriched = await attachAssignedAmbulanceLabels(enriched, filter.quiet);');
+
+    // The raw assignment UUID is mutation identity and never renders.
+    expect(detailRail).not.toContain('assigned_ambulance_id');
+  });
+
   it('keeps data acquisition route-owned and deletion unavailable on both layouts', () => {
     const pageDataAccess = read('src/config/pageDataAccess.js');
     const page = pageSource();

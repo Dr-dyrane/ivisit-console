@@ -537,6 +537,49 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain('<DetailLine icon={CalendarDays} label="Commissioned" value={model.commissionedLabel} />');
   });
 
+  it('resolves driver identity and active-call context as READ-ONLY schema adoption (ADOPT-22/23)', () => {
+    const page = pageSource();
+    const service = serviceSource();
+    const modal = modalSource();
+
+    // Projection boundary: ONE batched profiles read (driver identity) and ONE
+    // batched emergency_requests read (current_call is pinned in
+    // supabase/docs/SCHEMA_SNAPSHOT.md as the active emergency_request UUID)
+    // for the landed page window -- the support-tickets donor pattern.
+    expect(service).toContain("supabase.from('profiles').select('id, full_name, first_name, last_name, email, phone').in('id', profileIds)");
+    expect(service).toContain("supabase.from('emergency_requests').select('id, display_id, status').in('id', callIds)");
+    // NON-FATAL resolution: an RLS-blocked read logs and leaves the labels
+    // null; it can never kill the page read.
+    expect(service).toContain('Error resolving ambulance driver/call context:');
+    expect(service).toContain('driver_name: driver?.name || null');
+    expect(service).toContain('driver_phone: driver?.phone || null');
+    expect(service).toContain('active_call_display_id: activeCall?.display_id || null');
+    expect(service).toContain('active_call_status: activeCall?.status || null');
+
+    // ADOPT-22 honest states reach the rail render: Unassigned when no
+    // profile_id, resolved name + phone, or the truncated UUID with a CopyChip
+    // carrying the full id (mobile detail-sheet truncation idiom).
+    expect(page).toContain("label: 'Unassigned'");
+    expect(page).toContain('label="Driver"');
+    expect(page).toContain('CopyChip value={model.driver.copyValue} label="Copy driver ID"');
+    expect(page).toContain('label="Driver phone"');
+    expect(page).toContain('truncateAmbulanceReference');
+    // Row subline carries ONLY a resolved name -- no UUID leakage in the list.
+    expect(page).toContain('ambulance.driver_name ?');
+
+    // ADOPT-23: the active-call line renders only when current_call exists,
+    // as the emergency display id + status; idle units carry NO linkage.
+    expect(page).toContain('model.activeCall && (');
+    expect(page).toContain('label="Active call"');
+    expect(page).toContain('CopyChip value={model.activeCall.copyValue} label="Copy call reference"');
+    expect(page).toContain('getAmbulanceActiveCallModel');
+
+    // Fail-closed write pins stay intact: current_call remains dispatch-owned
+    // (AMB-6) and the driver write path is untouched -- resolution is a read.
+    expect(modal).not.toContain('name="current_call"');
+    expect(service).not.toContain('update({ current_call');
+  });
+
   it('puts active Ambulances visual-start and modal surfaces in the hardgate', () => {
     const hardgate = hardgateSource();
     const gate = gateSource();

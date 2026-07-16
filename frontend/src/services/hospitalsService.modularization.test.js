@@ -48,6 +48,7 @@ const implementationFiles = [
   ['src/services/hospitals/commands.js', 160],
   ['src/services/hospitals/constants.js', 160],
   ['src/services/hospitals/filters.js', 160],
+  ['src/services/hospitals/organizationNames.js', 160],
   ['src/services/hospitals/pageQueries.js', 160],
   ['src/services/hospitals/payload.js', 160],
   ['src/services/hospitals/queries.js', 160],

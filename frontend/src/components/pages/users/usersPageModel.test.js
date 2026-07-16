@@ -1,6 +1,8 @@
 import { Ambulance, Stethoscope, UserRound } from 'lucide-react';
 import {
   formatLastSignIn,
+  formatPayoutMethod,
+  getFleetAssignmentMeta,
   getOnboardingStatusMeta,
   getProviderTypeIcon,
   getRoleMeta,
@@ -8,11 +10,15 @@ import {
   getUsersProjection,
   getUsersSignal,
   hasActiveUserFilters,
+  isFleetProviderType,
   normalizeUsersStats,
   resolveUsersRoleFilter,
   resolveUsersVerifiedFilter,
   toUsersAnalyticsShape,
 } from './usersPageModel';
+
+// U+00B7 masked-digit separator the payout formatter renders (ASCII-only source).
+const PAYOUT_MASK = String.fromCharCode(183).repeat(4);
 
 describe('usersPageModel', () => {
   it('keeps role and provider persona vocabulary stable', () => {
@@ -106,6 +112,73 @@ describe('usersPageModel', () => {
     const absent = getUsersProjection({ full_name: 'No Auth Data' });
     expect(absent.onboardingMeta).toBeNull();
     expect(absent.lastSignIn).toBeNull();
+  });
+
+  it('renders payout readiness presence-only: brand + last4, hidden when unpopulated', () => {
+    expect(formatPayoutMethod({ payout_method_brand: 'visa', payout_method_last4: '4242' }))
+      .toBe(`Visa ${PAYOUT_MASK} 4242`);
+    // Partial presence renders only what exists -- nothing is fabricated.
+    expect(formatPayoutMethod({ payout_method_brand: 'visa', payout_method_last4: null })).toBe('Visa');
+    expect(formatPayoutMethod({ payout_method_brand: null, payout_method_last4: '4242' }))
+      .toBe(`${PAYOUT_MASK} 4242`);
+    // Production norm today: both columns null -> null, the rail hides the line.
+    expect(formatPayoutMethod({ payout_method_brand: '', payout_method_last4: '   ' })).toBeNull();
+    expect(formatPayoutMethod({})).toBeNull();
+    expect(formatPayoutMethod(null)).toBeNull();
+  });
+
+  it('projects payout readiness for providers only and never a raw Stripe identifier', () => {
+    const row = {
+      role: 'provider',
+      payout_method_brand: 'visa',
+      payout_method_last4: '4242',
+      payout_method_id: 'pm_1RawSecret',
+      stripe_account_id: 'acct_1RawSecret',
+      stripe_customer_id: 'cus_1RawSecret',
+    };
+    const projected = getUsersProjection(row);
+    expect(projected.payoutMethod).toBe(`Visa ${PAYOUT_MASK} 4242`);
+    expect(projected.payoutMethod).not.toContain('RawSecret');
+    expect(JSON.stringify(projected)).not.toContain('RawSecret');
+    // Unpopulated provider rows and non-provider rows stay honestly absent.
+    expect(getUsersProjection({ role: 'provider' }).payoutMethod).toBeNull();
+    expect(getUsersProjection({ ...row, role: 'patient' }).payoutMethod).toBeNull();
+  });
+
+  it('keeps the fleet persona predicate aligned with the provider-type icon', () => {
+    expect(isFleetProviderType('driver')).toBe(true);
+    expect(isFleetProviderType('paramedic')).toBe(true);
+    expect(isFleetProviderType('ambulance_service')).toBe(true);
+    expect(isFleetProviderType('doctor')).toBe(false);
+    expect(isFleetProviderType(null)).toBe(false);
+  });
+
+  it('shows the fleet chip only for assigned driver-type profiles, presence-first', () => {
+    const assigned = getFleetAssignmentMeta({
+      provider_type: 'driver',
+      assigned_ambulance_id: '11111111-1111-4111-8111-111111111111',
+      assigned_ambulance_label: 'Alpha 1',
+    });
+    expect(assigned).toMatchObject({ label: 'Assigned Alpha 1' });
+    // Unresolved label (RLS-blocked lookup) degrades to presence-only wording
+    // -- never the raw assignment UUID.
+    const presenceOnly = getFleetAssignmentMeta({
+      provider_type: 'paramedic',
+      assigned_ambulance_id: '11111111-1111-4111-8111-111111111111',
+    });
+    expect(presenceOnly.label).toBe('Fleet assigned');
+    expect(presenceOnly.label).not.toContain('1111');
+    // No assignment, blank assignment, or non-driver persona -> no chip.
+    expect(getFleetAssignmentMeta({ provider_type: 'driver' })).toBeNull();
+    expect(getFleetAssignmentMeta({ provider_type: 'driver', assigned_ambulance_id: '   ' })).toBeNull();
+    expect(getFleetAssignmentMeta({ provider_type: 'doctor', assigned_ambulance_id: 'amb-1' })).toBeNull();
+    expect(getFleetAssignmentMeta(null)).toBeNull();
+    // The projection carries the same meta for the rail.
+    expect(getUsersProjection({
+      provider_type: 'driver',
+      assigned_ambulance_id: 'amb-1',
+    }).fleetAssignment).toMatchObject({ label: 'Fleet assigned' });
+    expect(getUsersProjection({ provider_type: 'doctor' }).fleetAssignment).toBeNull();
   });
 
   it('rejects partial or malformed statistics instead of presenting zero', () => {

@@ -1,11 +1,13 @@
 import {
   AlertCircle,
   Calendar,
+  CalendarDays,
   CheckCircle,
   Clock,
   LayoutGrid,
   PlayCircle,
 } from 'lucide-react';
+import { visitOccursToday } from '../../../services/visits/pageProjection';
 
 const normalizeVisitCount = (value, fallback = 0) => {
   const numeric = Number(value);
@@ -18,6 +20,19 @@ export const visitStateOptions = [
     label: 'All',
     icon: LayoutGrid,
     countKey: 'total',
+    tone: 'primary',
+    colorClass: 'text-foreground',
+    activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]',
+  },
+  {
+    // ADOPT-65: calendar-day scope over truth both lanes already count
+    // (generic stats.today derives from the resolved rows; the scheduled lane
+    // adds a server-exact today count). Neutral tone: a time scope, not a
+    // lifecycle state.
+    id: 'today',
+    label: 'Today',
+    icon: CalendarDays,
+    countKey: 'today',
     tone: 'primary',
     colorClass: 'text-foreground',
     activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]',
@@ -62,19 +77,24 @@ export const visitStateOptions = [
 
 export const VISIT_KPI_IMPORTANCE = {
   all: 0,
-  scheduled: 1,
-  in_progress: 2,
-  completed: 3,
-  cancelled: 4,
+  today: 1,
+  scheduled: 2,
+  in_progress: 3,
+  completed: 4,
+  cancelled: 5,
 };
 
 export const PINNED_VISIT_STATE_IDS = ['scheduled', 'in_progress'];
 
 export const getVisitStateCount = ({ id, stats, visits }) => {
   const option = visitStateOptions.find((item) => item.id === id) || visitStateOptions[0];
+  // ADOPT-65: 'today' falls back to the same calendar-day predicate the stats
+  // derivation uses -- matching on status === 'today' would always be zero.
   const fallback = id === 'all'
     ? visits.length
-    : visits.filter((visit) => visit.status === id).length;
+    : id === 'today'
+      ? visits.filter((visit) => visitOccursToday(visit)).length
+      : visits.filter((visit) => visit.status === id).length;
 
   return normalizeVisitCount(stats?.[option.countKey], fallback);
 };
@@ -147,6 +167,16 @@ export const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {
     };
   }
 
+  if (option.id === 'today') {
+    return {
+      icon: CalendarDays,
+      tone: 'primary',
+      label: 'Today',
+      headline: count > 0 ? `${count} visit${count === 1 ? '' : 's'} today` : 'No visits today',
+      subhead: count > 0 ? 'Pick one record, then review its details.' : "Today's visits will appear here.",
+    };
+  }
+
   if (option.id === 'scheduled') {
     return {
       icon: Clock,
@@ -197,6 +227,7 @@ export const getVisitSignal = ({ stats, visits, kpiFilter, loadError }) => {
 };
 
 export const VISIT_EMPTY_HEADINGS = {
+  today: 'No visits today',
   scheduled: 'No scheduled visits',
   in_progress: 'No active visits',
   completed: 'No completed visits',

@@ -327,6 +327,50 @@ export const getAmbulanceRoleKind = ({ admin, orgAdmin }) => {
   return 'viewer';
 };
 
+// Truncated-reference idiom (mobile detail sheet donor): a bare UUID renders
+// as its first 8 characters uppercased, never as a fake human label.
+export const truncateAmbulanceReference = (value) => (
+  String(value).slice(0, 8).toUpperCase()
+);
+
+const humanizeCallStatus = (status) => String(status)
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+// Driver identity (ADOPT-22): profile_id resolved read-only at the projection
+// boundary. Honest states -- no profile_id is 'Unassigned'; an unresolved id
+// (RLS-blocked read) is the truncated UUID with the full value as copyValue
+// for a CopyChip; phone only exists when resolution produced one.
+export const getAmbulanceDriverModel = (ambulance = {}) => {
+  const profileId = ambulance.profile_id || null;
+  if (!profileId) {
+    return { assigned: false, label: 'Unassigned', copyValue: null, phone: null };
+  }
+  const resolvedName = ambulance.driver_name || null;
+  return {
+    assigned: true,
+    label: resolvedName || truncateAmbulanceReference(profileId),
+    copyValue: resolvedName ? null : profileId,
+    phone: ambulance.driver_phone || null,
+  };
+};
+
+// Active-call context (ADOPT-23): current_call is the active emergency_request
+// UUID; the projection resolves its display id + status read-only. Absent
+// (null) when the unit carries no call -- never a fabricated linkage.
+export const getAmbulanceActiveCallModel = (ambulance = {}) => {
+  const currentCall = ambulance.current_call || null;
+  if (!currentCall) return null;
+  const displayId = ambulance.active_call_display_id || null;
+  return {
+    reference: displayId || truncateAmbulanceReference(currentCall),
+    statusLabel: ambulance.active_call_status
+      ? humanizeCallStatus(ambulance.active_call_status)
+      : null,
+    copyValue: displayId || currentCall,
+  };
+};
+
 export const getAmbulanceRailModel = (ambulance, activeActionFeedback) => {
   if (!ambulance) return null;
 
@@ -351,6 +395,8 @@ export const getAmbulanceRailModel = (ambulance, activeActionFeedback) => {
     vehicle: getAmbulanceVehicle(ambulance),
     displayId: ambulance.display_id || null,
     callSign: ambulance.call_sign || 'Unknown unit',
+    driver: getAmbulanceDriverModel(ambulance),
+    activeCall: getAmbulanceActiveCallModel(ambulance),
     crewLabel: crewCount > 0 ? `${crewCount} listed` : 'Not listed',
     positionLabel,
     // Commissioned date (ADOPT-39): created_at already drives the Commission

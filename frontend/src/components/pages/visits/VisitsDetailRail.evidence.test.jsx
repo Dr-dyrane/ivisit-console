@@ -111,6 +111,21 @@ describe('VisitsDetailRail adopted evidence bindings', () => {
     expect(container.querySelector('[data-testid="visit-lifecycle-chip"]')).toBeNull();
   });
 
+  // ADOPT-65: record-level updated_at renders as a DISPLAY-ONLY relative line
+  // (the sortable Time header stays date/scheduled_start_at); missing truth
+  // renders honest absence, never 'Unknown time'.
+  it('renders the record Updated line only when updated_at is fetched', () => {
+    renderRail({
+      ...emergencyVisit,
+      updated_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    });
+    expect(container.textContent).toContain('Updated');
+    expect(container.textContent).toContain('3h ago');
+
+    renderRail(emergencyVisit);
+    expect(container.textContent).not.toContain('Updated');
+  });
+
   it('renders honest absence when the adopted truth is missing', () => {
     renderRail({
       id: 'visit-scheduled-bare',

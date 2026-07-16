@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   BarChart3,
   CheckCircle,
+  ChevronDown,
   Filter,
   Headphones,
   Loader2,
@@ -69,7 +70,12 @@ export const SupportTicketsPanel = ({ supportContext }) => {
   // page proves authority (SupportTicketsPage publishes canCreate). Never fail-open.
   const canCreate = context.canCreate === true;
   const canViewStats = context.canManage === true;
+  // ADOPT-61: route-owned FAQ reference tile. The route controller fetches the
+  // previously dormant support_faqs read; this panel only renders what arrives
+  // in the published context -- no second fetch path and no FAQ authoring.
+  const faqTile = context.faqs || null;
   const [panelNotice, setPanelNotice] = React.useState('Support actions ready.');
+  const [openFaqId, setOpenFaqId] = React.useState(null);
 
   const handleCreateTicket = () => {
     if (!canCreate) {
@@ -265,6 +271,63 @@ export const SupportTicketsPanel = ({ supportContext }) => {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="space-y-2" aria-label="FAQ reference">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          FAQ reference
+        </p>
+
+        {(!faqTile || faqTile.loading) ? (
+          <div className="h-12 animate-pulse rounded-inner bg-muted/24" />
+        ) : faqTile.errorMessage ? (
+          <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            {faqTile.errorMessage}
+          </div>
+        ) : faqTile.count === 0 ? (
+          <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+            No FAQs published yet.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {faqTile.faqs.map((faq) => {
+              const expanded = openFaqId === faq.id;
+
+              return (
+                <div
+                  key={faq.id}
+                  className="rounded-inner bg-background/46 shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow] duration-200 hover:bg-muted/36"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqId(expanded ? null : faq.id)}
+                    aria-expanded={expanded}
+                    className="flex w-full items-start justify-between gap-2 p-3 text-left"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-foreground">
+                        {faq.question}
+                      </span>
+                      {faq.category && (
+                        <span className="mt-1 inline-flex rounded-pill bg-muted/40 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          {faq.category}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown
+                      className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {expanded && (
+                    <p className="whitespace-pre-wrap px-3 pb-3 text-xs font-medium text-muted-foreground">
+                      {faq.answer || 'No answer recorded.'}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

@@ -1,5 +1,6 @@
 import {
   buildSupportAnalytics,
+  buildSupportFaqTile,
   buildSupportQueryFilter,
   getSupportAssigneeLabel,
   getSupportOpenAge,
@@ -203,6 +204,34 @@ describe('Support page projection model', () => {
       averageResolutionTime: null,
       visibleCount: 0,
     });
+  });
+
+  it('projects rank-ordered FAQ rows with honest nulls for the panel tile (ADOPT-61)', () => {
+    expect(buildSupportFaqTile([
+      { id: 'faq-1', question: '  How do I request an ambulance?  ', answer: '  Open a request from the Requests page.  ', category: ' dispatch ', rank: 1 },
+      { id: 'faq-2', question: 'Where is billing history?', answer: '', category: null, rank: 2 },
+    ])).toEqual({
+      faqs: [
+        { id: 'faq-1', question: 'How do I request an ambulance?', answer: 'Open a request from the Requests page.', category: 'dispatch' },
+        { id: 'faq-2', question: 'Where is billing history?', answer: null, category: null },
+      ],
+      count: 2,
+    });
+  });
+
+  it('drops FAQ rows without a usable question and returns the honest empty tile (ADOPT-61)', () => {
+    // Rows missing a real question can never render a fabricated entry.
+    expect(buildSupportFaqTile([
+      null,
+      { id: 'faq-3', question: '   ', answer: 'orphan answer' },
+      { id: 'faq-4', answer: 'no question at all' },
+      { id: 'faq-5', question: 42 },
+    ])).toEqual({ faqs: [], count: 0 });
+
+    // Non-array read results (undefined while loading, error shapes) are the
+    // same honest empty tile -- never a crash, never invented rows.
+    expect(buildSupportFaqTile(undefined)).toEqual({ faqs: [], count: 0 });
+    expect(buildSupportFaqTile('rows')).toEqual({ faqs: [], count: 0 });
   });
 
   it('preserves KPI fallbacks, active-filter truth, and the cold-load error signal', () => {

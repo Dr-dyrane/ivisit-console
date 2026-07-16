@@ -317,6 +317,12 @@ export const getHospitalRailModel = (hospital, activeActionFeedback) => {
     sourceKey: provenance.sourceKey,
     rejected: verificationKey === 'rejected' || verificationKey === 'suspended',
     displayId: hospital.display_id || null,
+    // ADOPT-60: organization_name is the page projection's read-only batched
+    // resolution of organization_id -> organizations.name (non-fatal). A null
+    // id hides the rail line entirely; an unresolved name stays null so the
+    // rail renders its honest unknown label, never a fabricated default.
+    organizationId: hospital.organization_id || null,
+    organizationName: String(hospital.organization_name || '').trim() || null,
     facilityName: hospital.name || 'Unnamed hospital',
     bedsValue: Number.isFinite(totalBeds) && totalBeds > 0
       ? `${availableBeds} of ${totalBeds} available${Number.isFinite(icuBeds) ? ` \u00b7 ICU ${icuBeds}` : ''}`

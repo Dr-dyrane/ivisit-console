@@ -524,6 +524,55 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect((list.match(/<SortableColumnHeader/g) || []).length).toBe(1);
   });
 
+  it('renders a route-owned FAQ reference tile from the dormant support_faqs read (ADOPT-61)', () => {
+    const controller = controllerSource();
+    const model = modelSource();
+    const panel = panelSource();
+    const faqService = fs.readFileSync('src/services/supportFaqsService.js', 'utf8');
+
+    // The previously dormant read-only service is now called by the route
+    // controller -- and ONLY the read. The FAQ read is its own isolated query
+    // (non-fatal enrichment): an RLS-blocked support_faqs read renders the
+    // tile's unavailable state and can never kill the ticket queue read.
+    expect(controller).toContain("import { getSupportFAQs } from '../../../services/supportFaqsService';");
+    expect(controller).toContain("queryKey: ['supportFaqs', 'reference', SUPPORT_FAQ_TILE_LIMIT]");
+    expect(controller).toContain('getSupportFAQs({ limit: SUPPORT_FAQ_TILE_LIMIT })');
+    expect(controller).toContain('buildSupportFaqTile(supportFaqsQuery.data)');
+    expect(controller).toContain("errorMessage: supportFaqsQuery.error ? 'FAQs could not load.' : null");
+    expect(controller).toContain('useSupportTicketsQuery(queryFilter)');
+    // Whole-object pass-through canon: the tile rides the page's published
+    // panel context; ContextPanel already forwards the WHOLE object.
+    expect(controller).toContain('faqs: supportFaqContext,');
+    // FAQ authoring stays absent from every console surface (fail-closed).
+    ['createSupportFAQ', 'updateSupportFAQ', 'deleteSupportFAQ'].forEach((writeFn) => {
+      expect(controller).not.toContain(writeFn);
+      expect(panel).not.toContain(writeFn);
+    });
+
+    // Honest-null projection at the model boundary: rows without a usable
+    // question drop; empty answer/category strings become null, never ''.
+    expect(model).toContain('export const buildSupportFaqTile');
+    expect(model).toContain("typeof row.question === 'string' && row.question.trim()");
+    expect(model).toContain("typeof row.answer === 'string' && row.answer.trim() ? row.answer.trim() : null");
+
+    // The panel renders the tile from the published context ONLY -- no second
+    // fetch path -- as question rows with collapsed answers, an honest empty
+    // state, and the load-failure state.
+    expect(panel).toContain('const faqTile = context.faqs || null;');
+    expect(panel).toContain('FAQ reference');
+    expect(panel).toContain('No FAQs published yet.');
+    expect(panel).toContain('No answer recorded.');
+    expect(panel).toContain('aria-expanded={expanded}');
+    expect(panel).toContain('setOpenFaqId(expanded ? null : faq.id)');
+    expect(panel).not.toContain('getSupportFAQs');
+    expect(panel).not.toContain('supportFaqsService');
+    expect(panel).not.toContain("from('support_faqs')");
+
+    // The consumed read stays the rank-ordered support_faqs projection.
+    expect(faqService).toContain("const TABLE_NAME = 'support_faqs'");
+    expect(faqService).toContain(".order('rank', { ascending: true })");
+  });
+
   it('labels Support analytics as a visible-page projection without fake high or timing values', () => {
     const page = pageEstateSource();
     const analyticsModal = readAnalyticsModalImplementation();

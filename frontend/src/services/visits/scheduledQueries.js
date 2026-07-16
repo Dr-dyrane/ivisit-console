@@ -105,7 +105,10 @@ const applyScheduledFilters = (query, filters = {}, kpiFilter = 'all') => {
       : [];
   if (careModes.length) next = next.in('care_mode', careModes);
 
-  const statusFilters = kpiFilter && kpiFilter !== 'all'
+  // ADOPT-65: 'today' is a calendar-day scope, never a lifecycle status; it
+  // must not fall into the STATUS_TO_SOURCE mapping (that would query
+  // status='today' and return a dishonest empty list).
+  const statusFilters = kpiFilter && kpiFilter !== 'all' && kpiFilter !== 'today'
     ? [kpiFilter]
     : Array.isArray(filters.status)
       ? filters.status
@@ -115,6 +118,14 @@ const applyScheduledFilters = (query, filters = {}, kpiFilter = 'all') => {
 
   if (filters.date?.start) next = next.gte('scheduled_start_at', `${filters.date.start}T00:00:00.000Z`);
   if (filters.date?.end) next = next.lt('scheduled_start_at', `${filters.date.end}T23:59:59.999Z`);
+
+  if (kpiFilter === 'today') {
+    // Same UTC day-bound convention as the filters.date branch above, applied
+    // on top of any user date range rather than replacing it.
+    const todayIso = new Date().toISOString().split('T')[0];
+    next = next.gte('scheduled_start_at', `${todayIso}T00:00:00.000Z`);
+    next = next.lt('scheduled_start_at', `${todayIso}T23:59:59.999Z`);
+  }
 
   const search = sanitizeScheduledVisitSearch(filters.search);
   if (search) {
@@ -137,10 +148,10 @@ const applyScheduledOrder = (query, sortConfig = {}) => {
   return query.order(key, { ascending, nullsFirst: false }).order('id', { ascending: true });
 };
 
-const countScheduledRows = async ({ scope, filters, status, abortSignal }) => {
+const countScheduledRows = async ({ scope, filters, status, kpi = 'all', abortSignal }) => {
   let query = supabase.from('visits').select('id', { count: 'exact', head: true });
   query = applySourceScope(query, scope);
-  query = applyScheduledFilters(query, { ...filters, status: status ? [status] : undefined }, 'all');
+  query = applyScheduledFilters(query, { ...filters, status: status ? [status] : undefined }, kpi);
   query = applyQueryAbortSignal(query, abortSignal);
   const { count, error } = await query;
   throwIfQueryAborted(abortSignal);
@@ -169,13 +180,17 @@ export async function getScheduledVisitsPageData({
   pageQuery = applyQueryAbortSignal(pageQuery, abortSignal);
 
   const statsFilters = { ...filters, status: undefined };
-  const [page, total, scheduled, inProgress, completed, cancelled] = await Promise.all([
+  // ADOPT-65: today is one extra exact-count HEAD read (read path only) so the
+  // scheduled lane's Today chip carries the same server-exact truth as the
+  // status chips instead of a fabricated client zero.
+  const [page, total, scheduled, inProgress, completed, cancelled, today] = await Promise.all([
     pageQuery,
     countScheduledRows({ scope, filters: statsFilters, abortSignal }),
     countScheduledRows({ scope, filters: statsFilters, status: 'scheduled', abortSignal }),
     countScheduledRows({ scope, filters: statsFilters, status: 'in_progress', abortSignal }),
     countScheduledRows({ scope, filters: statsFilters, status: 'completed', abortSignal }),
     countScheduledRows({ scope, filters: statsFilters, status: 'cancelled', abortSignal }),
+    countScheduledRows({ scope, filters: statsFilters, kpi: 'today', abortSignal }),
   ]);
   throwIfQueryAborted(abortSignal);
   if (page.error) throw page.error;
@@ -183,7 +198,7 @@ export async function getScheduledVisitsPageData({
   return {
     visits: (page.data || []).map(normalizeVisitForUI),
     count: page.count || 0,
-    stats: { total, scheduled, inProgress, completed, cancelled },
+    stats: { total, scheduled, inProgress, completed, cancelled, today },
     countBasis: 'server_exact',
     pageSize: SCHEDULED_VISIT_PAGE_SIZE,
   };

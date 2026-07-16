@@ -6,6 +6,7 @@ import {
   Clock,
   Edit,
   GraduationCap,
+  History,
   Hospital,
   Info,
   MapPin,
@@ -55,6 +56,7 @@ import {
   getScheduledLifecycleChip,
   getVisitCareTeamMeta,
   getVisitPatientContact,
+  getVisitRecordUpdatedRelative,
 } from './visitEvidencePresentation';
 import {
   PINNED_VISIT_STATE_IDS,
@@ -462,6 +464,9 @@ export const VisitsDetailRail = ({
   const clinicalWindow = getScheduledClinicalWindow(visit);
   const patientContact = getVisitPatientContact(visit);
   const careTeamMeta = getVisitCareTeamMeta(visit);
+  // ADOPT-65: display-only last-updated line; the sortable Time header stays
+  // date/scheduled_start_at (one sortable Time header per page, estate law).
+  const recordUpdated = getVisitRecordUpdatedRelative(visit);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
@@ -546,6 +551,9 @@ export const VisitsDetailRail = ({
         )}
         {visit.asyncConsultAvailability && (
           <DetailLine icon={CalendarClock} label="Async consult" value={visit.asyncConsultAvailability} />
+        )}
+        {recordUpdated && (
+          <DetailLine icon={History} label="Updated" value={recordUpdated} />
         )}
       </div>
 

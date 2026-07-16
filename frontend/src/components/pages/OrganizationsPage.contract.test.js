@@ -279,4 +279,55 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(rail).toContain('<DetailLine icon={History} label="Wallet updated" value={formatOrganizationDate(organization.wallet_updated_at)} />');
     expect(workspace).toContain('formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)');
   });
+
+  // ADOPT-51: contact_phone and the raw stripe_account_id (types/database.ts,
+  // organizations Row) render copyable via the shared CopyChip in the read-only
+  // modal. The org-level acct_ id was audit-accepted for this admin surface but
+  // stays modal-only: the desktop row and rail never render it. Honest-absent:
+  // a null acct_ id renders the connection state, never a fabricated id, and the
+  // old boolean-only 'Connected' rendering is retired in favor of the raw value.
+  it('renders copyable contact phone and raw Stripe account id in the read-only modal only', () => {
+    const modal = read('src/components/modals/OrganizationModal.jsx');
+    const workspace = read('src/components/pages/organizations/OrganizationsDesktopWorkspace.jsx');
+    const rail = read('src/components/pages/organizations/OrganizationDetailRail.jsx');
+
+    expect(modal).toContain("import { CopyChip } from '../console/primitives';");
+    expect(modal).toContain('{value && copyLabel ? <CopyChip value={value} label={copyLabel} /> : null}');
+    expect(modal).toContain('copyLabel="Copy contact phone"');
+    expect(modal).toContain('copyLabel="Copy Stripe account ID"');
+    expect(modal).toContain('const contactPhone = toDisplayText(organization?.contact_phone);');
+    expect(modal).toContain('const stripeAccountId = toDisplayText(organization?.stripe_account_id);');
+    expect(modal).toContain('value={contactPhone}');
+    expect(modal).toContain('value={stripeAccountId}');
+    expect(modal).toContain('fallback="Not connected"');
+    expect(modal).not.toContain("formData.stripe_account_id ? 'Connected'");
+
+    expect(workspace).not.toContain('stripe_account_id');
+    expect(rail).not.toContain('stripe_account_id');
+    expect(workspace).not.toContain('contact_phone');
+    expect(rail).not.toContain('contact_phone');
+  });
+
+  // ADOPT-52: registration_number, state, fee_tier exist on organizations
+  // (types/database.ts) but population is unverified, so the modal's registry
+  // identity section renders them hide-when-null -- no placeholder rows for
+  // absent values, and empty/whitespace-only strings count as absent.
+  it('surfaces registry identity columns in the modal hide-when-null', () => {
+    const modal = read('src/components/modals/OrganizationModal.jsx');
+
+    expect(modal).toContain('const toDisplayText = (value) => {');
+    expect(modal).toContain('return text.length > 0 ? text : null;');
+    expect(modal).toContain('if (!text) return null;');
+    expect(modal).toContain('const registrationNumber = toDisplayText(organization?.registration_number);');
+    expect(modal).toContain('const stateValue = toDisplayText(organization?.state);');
+    expect(modal).toContain('const feeTierLabel = formatTierLabel(organization?.fee_tier);');
+    expect(modal).toContain('{registrationNumber && (');
+    expect(modal).toContain('{stateValue && (');
+    expect(modal).toContain('{feeTierLabel && (');
+    expect(modal).toContain('value={registrationNumber}');
+    expect(modal).toContain('value={stateValue}');
+    expect(modal).toContain('value={feeTierLabel}');
+    expect(modal).toContain('label="Registration number"');
+    expect(modal).toContain('label="Fee tier"');
+  });
 });

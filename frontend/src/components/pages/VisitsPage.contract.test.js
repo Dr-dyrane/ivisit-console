@@ -630,6 +630,41 @@ describe('VisitsPage admission contract', () => {
     });
   });
 
+  it('surfaces the Today KPI chip and the display-only updated_at line (ADOPT-65)', () => {
+    const page = pageSource();
+    const service = serviceSource();
+
+    // The Today chip joins the shared state options and competes under the
+    // S1.2 grammar (max-3 smart context); the count key is the stats key both
+    // lanes now carry.
+    expect(page).toContain("id: 'today'");
+    expect(page).toContain("countKey: 'today'");
+    expect(page).toContain("today: 'No visits today'");
+
+    // One calendar-day predicate is shared by the stats count, the chip
+    // fallback, and the Today filter -- the chip number and the filtered list
+    // cannot disagree by construction.
+    expect(service).toContain('export const visitOccursToday = (visit, todayStart = getTodayIsoDate()) => (');
+    expect(service).toContain("const todayScoped = kpiFilter === 'today';");
+    expect(service).toContain('if (todayScoped && !visitOccursToday(visit, todayStart)) {');
+    expect(page).toContain('visits.filter((visit) => visitOccursToday(visit)).length');
+
+    // Scheduled lane: 'today' never becomes a status predicate; it is a
+    // server-exact HEAD count plus scheduled_start_at day bounds (read only).
+    expect(service).toContain("kpiFilter !== 'all' && kpiFilter !== 'today'");
+    expect(service).toContain("countScheduledRows({ scope, filters: statsFilters, kpi: 'today', abortSignal })");
+    expect(service).toContain('stats: { total, scheduled, inProgress, completed, cancelled, today }');
+
+    // updated_at is fetched by both lane selects and surfaces as a
+    // DISPLAY-ONLY relative rail line; the single sortable Time header stays
+    // date/scheduled_start_at (one sortable Time header per page, estate law).
+    expect(GENERIC_VISIT_SELECT).toMatch(/\bupdated_at\b/);
+    expect(page).toContain('const recordUpdated = getVisitRecordUpdatedRelative(visit);');
+    expect(page).toContain('label="Updated" value={recordUpdated}');
+    expect(page).not.toContain('sortKey="updated_at"');
+    expect(page).not.toContain("sortKey === 'updated_at'");
+  });
+
   it('keeps delete and bulk delete excluded from the active Visits UI until authority is proved', () => {
     const page = pageSource();
     const list = listSource();

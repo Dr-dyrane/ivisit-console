@@ -56,14 +56,15 @@ describe('scheduled visit query contract', () => {
 
   it('uses exact server paging, source predicates, counts, and allowlisted search fields', async () => {
     const page = createQueryBuilder({ data: [scheduledRow], error: null, count: 1 });
-    const counts = [1, 1, 0, 0, 0].map((count) => createQueryBuilder({ count, error: null }));
+    const counts = [1, 1, 0, 0, 0, 1].map((count) => createQueryBuilder({ count, error: null }));
     supabase.from
       .mockReturnValueOnce(page)
       .mockReturnValueOnce(counts[0])
       .mockReturnValueOnce(counts[1])
       .mockReturnValueOnce(counts[2])
       .mockReturnValueOnce(counts[3])
-      .mockReturnValueOnce(counts[4]);
+      .mockReturnValueOnce(counts[4])
+      .mockReturnValueOnce(counts[5]);
 
     const result = await getScheduledVisitsPageData({
       filters: { search: 'VIS-1024,%', care_mode: ['telemedicine_async'] },
@@ -87,7 +88,7 @@ describe('scheduled visit query contract', () => {
       count: 1,
       countBasis: 'server_exact',
       pageSize: 20,
-      stats: { total: 1, scheduled: 1, inProgress: 0, completed: 0, cancelled: 0 },
+      stats: { total: 1, scheduled: 1, inProgress: 0, completed: 0, cancelled: 0, today: 1 },
     });
     expect(result.visits[0]).toMatchObject({
       id: VISIT_ID,
@@ -96,6 +97,37 @@ describe('scheduled visit query contract', () => {
       careModeLabel: 'Async consult',
       asyncConsultAvailability: 'Active',
     });
+  });
+
+  // ADOPT-65: the Today KPI is a calendar-day scope. It must never be
+  // translated into a status predicate (status='today' matches nothing), and
+  // the dedicated today count read must carry the same UTC day bounds so the
+  // chip number and the filtered page agree.
+  it("scopes the Today KPI by scheduled_start_at day bounds, never status='today'", async () => {
+    const page = createQueryBuilder({ data: [], error: null, count: 0 });
+    const counts = [0, 0, 0, 0, 0, 0].map((count) => createQueryBuilder({ count, error: null }));
+    supabase.from
+      .mockReturnValueOnce(page)
+      .mockReturnValueOnce(counts[0])
+      .mockReturnValueOnce(counts[1])
+      .mockReturnValueOnce(counts[2])
+      .mockReturnValueOnce(counts[3])
+      .mockReturnValueOnce(counts[4])
+      .mockReturnValueOnce(counts[5]);
+
+    const todayIso = new Date().toISOString().split('T')[0];
+    await getScheduledVisitsPageData({ kpiFilter: 'today' });
+
+    expect(page.gte).toHaveBeenCalledWith('scheduled_start_at', `${todayIso}T00:00:00.000Z`);
+    expect(page.lt).toHaveBeenCalledWith('scheduled_start_at', `${todayIso}T23:59:59.999Z`);
+    expect(page.in.mock.calls.filter(([column]) => column === 'status')).toEqual([]);
+
+    const todayCount = counts[5];
+    expect(todayCount.gte).toHaveBeenCalledWith('scheduled_start_at', `${todayIso}T00:00:00.000Z`);
+    expect(todayCount.lt).toHaveBeenCalledWith('scheduled_start_at', `${todayIso}T23:59:59.999Z`);
+    expect(todayCount.in.mock.calls.filter(([column]) => column === 'status')).toEqual([]);
+    // The lifecycle status counts stay status-scoped, untouched by the Today KPI.
+    expect(counts[1].in).toHaveBeenCalledWith('status', ['upcoming']);
   });
 
   it('scopes organization detail reads to admitted facility IDs', async () => {

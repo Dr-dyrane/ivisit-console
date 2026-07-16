@@ -1,8 +1,10 @@
 import React from 'react';
 import {
+  Ambulance,
   Building2,
   ChevronRight,
   Clock,
+  CreditCard,
   Edit,
   Eye,
   Info,
@@ -101,6 +103,16 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
                   className={projection.onboardingMeta.tone}
                 />
               )}
+              {/* ADOPT-46: presence-only fleet chip; driver-type + non-null
+                  assignment only, unit name only when the read-only lookup
+                  resolved it. */}
+              {projection.fleetAssignment && (
+                <StatusPill
+                  label={projection.fleetAssignment.label}
+                  icon={Ambulance}
+                  className={projection.fleetAssignment.tone}
+                />
+              )}
             </div>
           </div>
           <Button
@@ -137,6 +149,12 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
           label="Verified"
           value={projection.verified ? 'Verified' : 'Unverified'}
         />
+        {/* ADOPT-45: presence-only payout readiness (brand + last4). Production
+            rows are mostly unpopulated -- null hides the line, never a
+            fabricated state, and raw Stripe identifiers never render. */}
+        {projection.payoutMethod && (
+          <DetailLine icon={CreditCard} label="Payout method" value={projection.payoutMethod} />
+        )}
         <DetailLine icon={Building2} label="Organization" value={projection.organization} />
         <DetailLine icon={Clock} label="Joined" value={formatJoinedDate(projection.joined)} />
         {projection.lastSignIn && (

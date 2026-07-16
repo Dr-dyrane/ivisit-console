@@ -46,6 +46,7 @@ describe('HospitalsPage admission audit contract', () => {
     'src/services/hospitals/payload.js',
     'src/services/hospitals/stats.js',
     'src/services/hospitals/queries.js',
+    'src/services/hospitals/organizationNames.js',
     'src/services/hospitals/pageQueries.js',
     'src/services/hospitals/commands.js',
     'src/services/hospitals/realtime.js',
@@ -889,6 +890,43 @@ describe('HospitalsPage admission audit contract', () => {
     // the phantom bed_category key never existed on this read path.
     expect(modal).toContain('reservation.bed_type &&');
     expect(modal).not.toContain('reservation.bed_category');
+  });
+
+  it('resolves the owning organization read-only after the page window and renders it with honest fallbacks (ADOPT-60)', () => {
+    const service = serviceSource();
+    const model = readSource('src/components/pages/hospitals/hospitalPageModel.js');
+    const rail = readSource('src/components/pages/hospitals/HospitalDetailRail.jsx');
+
+    // ONE batched read-only organizations lookup at the projection boundary
+    // (support donor pattern): deduplicated ids from the landed window, the
+    // narrow id/name projection, and abort-aware plumbing.
+    expect(service).toContain('async function resolveHospitalOrganizationNames(rows, abortSignal, quiet = false)');
+    expect(service).toContain("rows.map((row) => row?.organization_id).filter(Boolean)");
+    expect(service).toContain("supabase.from('organizations').select('id, name').in('id', organizationIds)");
+
+    // Non-fatal: resolution failure is swallowed (abort still rethrows) so an
+    // RLS-blocked organizations read can never kill the hospitals page read.
+    expect(service).toContain("console.error('Error resolving hospital organization names:', error);");
+    expect(service).toContain('const attachHospitalOrganizationNames = (rows, organizationNames)');
+    expect(service).toContain("? (organizationNames.get(row.organization_id) || null)");
+    expect(service).toContain('const enrichedRows = attachHospitalOrganizationNames(pageRows, organizationNames);');
+    expect(service).toContain('recent: enrichedRows.slice(0, 5)');
+
+    // The rail model carries id and name as separate honest-null truths.
+    expect(model).toContain("organizationId: hospital.organization_id || null");
+    expect(model).toContain("organizationName: String(hospital.organization_name || '').trim() || null");
+
+    // The rail line renders ONLY when the facility has an owning organization;
+    // an unresolved name renders the honest unknown label (support rail idiom).
+    expect(rail).toContain('{model.organizationId && (');
+    expect(rail).toContain('label="Organization"');
+    expect(rail).toContain("value={model.organizationName || 'Unknown organization'}");
+
+    // Read-surfacing only: the enrichment adds no write path and the guarded
+    // update still routes through the SECURITY DEFINER RPC untouched.
+    expect(service).not.toContain("from('organizations').insert");
+    expect(service).not.toContain("from('organizations').update");
+    expect(service).toContain("supabase.rpc('update_hospital_by_admin'");
   });
 
   it('names the required Hospitals repair before admission can start', () => {

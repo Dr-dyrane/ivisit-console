@@ -31,6 +31,28 @@ describe('visit page projection models', () => {
     expect(getDefaultVisitKpi({ scheduled: 0, inProgress: 0 })).toBe('all');
   });
 
+  // ADOPT-65: the Today chip prefers the service stat and its fallback uses
+  // the calendar-day predicate -- never a status === 'today' match (which is
+  // always zero) and never a fabricated count.
+  it('counts the Today chip from stats or the calendar-day fallback', () => {
+    const todayIso = new Date().toISOString().split('T')[0];
+    const dayScopedVisits = [
+      { id: 'v-today', status: 'completed', date: `${todayIso}T08:00:00Z` },
+      { id: 'v-old', status: 'scheduled', date: '2020-01-01T08:00:00Z' },
+    ];
+
+    expect(getVisitStateCount({ id: 'today', stats: { today: 7 }, visits: dayScopedVisits })).toBe(7);
+    expect(getVisitStateCount({ id: 'today', stats: null, visits: dayScopedVisits })).toBe(1);
+    expect(getVisitStateCount({ id: 'today', stats: null, visits: [] })).toBe(0);
+  });
+
+  it('carries an honest Today signal for both zero and populated counts', () => {
+    expect(getVisitSignal({ stats: { today: 0 }, visits: [], kpiFilter: 'today', loadError: null }))
+      .toEqual(expect.objectContaining({ tone: 'primary', label: 'Today', headline: 'No visits today' }));
+    expect(getVisitSignal({ stats: { today: 2 }, visits: [], kpiFilter: 'today', loadError: null }))
+      .toEqual(expect.objectContaining({ headline: '2 visits today' }));
+  });
+
   it('keeps failed-empty and normal visit signals distinct', () => {
     expect(getVisitSignal({ stats: null, visits: [], kpiFilter: 'all', loadError: 'failed' }))
       .toEqual(expect.objectContaining({ tone: 'danger', headline: 'Visits did not load' }));

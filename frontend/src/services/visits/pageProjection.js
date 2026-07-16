@@ -180,12 +180,19 @@ const getResolvedStatusFilters = (filters = {}) => (
 export const applyResolvedVisitFilters = (visits = [], filters = {}, kpiFilter = 'all') => {
   const statusFilters = getResolvedStatusFilters(filters);
   const kpiState = getVisitStateFromKpi(kpiFilter);
+  // ADOPT-65: the Today KPI scopes by calendar day via the same predicate the
+  // stats count uses; it never masquerades as a lifecycle state.
+  const todayScoped = kpiFilter === 'today';
+  const todayStart = todayScoped ? getTodayIsoDate() : null;
 
   return (visits || []).filter((visit) => {
     if (statusFilters.length > 0 && !statusFilters.some((status) => visitMatchesResolvedState(visit, status))) {
       return false;
     }
     if (kpiState && !visitMatchesResolvedState(visit, kpiState)) {
+      return false;
+    }
+    if (todayScoped && !visitOccursToday(visit, todayStart)) {
       return false;
     }
     return true;
@@ -196,14 +203,23 @@ const getVisitDateValue = (visit) => String(
   visit?.date || visit?.visit_date || visit?.created_at || ''
 );
 
+// ADOPT-65: 'today' is a calendar-day scope, not a lifecycle state. The Today
+// KPI count and the Today KPI filter share this exact predicate (the UTC day
+// prefix over the same date/created_at fallback the stats derivation always
+// used), so the chip number and the filtered list can never disagree.
+const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+
+export const visitOccursToday = (visit, todayStart = getTodayIsoDate()) => (
+  getVisitDateValue(visit).startsWith(todayStart)
+);
+
 export function getVisitPageStatsFromRows(visits = []) {
-  const today = new Date();
-  const todayStart = today.toISOString().split('T')[0];
+  const todayStart = getTodayIsoDate();
   const counts = countVisitsByResolvedStatus(visits);
 
   return {
     ...counts,
-    today: (visits || []).filter((visit) => getVisitDateValue(visit).startsWith(todayStart)).length,
+    today: (visits || []).filter((visit) => visitOccursToday(visit, todayStart)).length,
   };
 }
 

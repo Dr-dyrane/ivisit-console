@@ -260,6 +260,98 @@ describe('profilesService identity integrity', () => {
     expect(result.data[0].last_sign_in_at).toBeUndefined();
   });
 
+  it('resolves assigned fleet labels through one batched read-only ambulances lookup', async () => {
+    const listQuery = makeQuery({
+      data: [
+        {
+          id: 'user-1',
+          role: 'provider',
+          provider_type: 'driver',
+          assigned_ambulance_id: '11111111-1111-4111-8111-111111111111',
+        },
+        {
+          id: 'user-2',
+          role: 'provider',
+          provider_type: 'driver',
+          assigned_ambulance_id: 'legacy-not-a-uuid',
+        },
+      ],
+      count: 2,
+      error: null,
+    });
+    const ambulancesQuery = makeQuery({
+      data: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          call_sign: 'Alpha 1',
+          vehicle_number: 'V-1',
+          license_plate: 'LAG-123',
+        },
+      ],
+      error: null,
+    });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 2, error: null }));
+    const queries = [listQuery, ambulancesQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+    mockRpc.mockResolvedValue({ data: [], error: null });
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    // ONE batched read: only the UUID-shaped assignment reaches the query.
+    expect(mockFrom).toHaveBeenCalledWith('ambulances');
+    expect(ambulancesQuery.select).toHaveBeenCalledWith('id, call_sign, vehicle_number, license_plate');
+    expect(ambulancesQuery.in).toHaveBeenCalledWith('id', ['11111111-1111-4111-8111-111111111111']);
+    expect(result.data[0].assigned_ambulance_label).toBe('Alpha 1');
+    // Unmatched rows stay label-absent instead of inventing a unit name.
+    expect(result.data[1].assigned_ambulance_label).toBeUndefined();
+  });
+
+  it('keeps page rows label-absent when the ambulances lookup is refused', async () => {
+    const listQuery = makeQuery({
+      data: [
+        {
+          id: 'user-1',
+          role: 'provider',
+          provider_type: 'driver',
+          assigned_ambulance_id: '11111111-1111-4111-8111-111111111111',
+        },
+      ],
+      count: 1,
+      error: null,
+    });
+    const ambulancesQuery = makeQuery({ data: null, error: new Error('RLS refused') });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 1, error: null }));
+    const queries = [listQuery, ambulancesQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    // Non-fatal: the page read survives and presence truth stays intact.
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].assigned_ambulance_label).toBeUndefined();
+    expect(result.data[0].assigned_ambulance_id).toBe('11111111-1111-4111-8111-111111111111');
+    expect(result.count).toBe(1);
+  });
+
+  it('skips the ambulances lookup entirely when no UUID-shaped assignment exists', async () => {
+    const listQuery = makeQuery({
+      data: [
+        { id: 'user-1', role: 'provider', provider_type: 'driver', assigned_ambulance_id: 'legacy-text' },
+        { id: 'user-2', role: 'patient', assigned_ambulance_id: null },
+      ],
+      count: 2,
+      error: null,
+    });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 2, error: null }));
+    const queries = [listQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    expect(mockFrom).not.toHaveBeenCalledWith('ambulances');
+    expect(result.data[0].assigned_ambulance_label).toBeUndefined();
+  });
+
   it('keeps safe self-edits on the owner-scoped table receiver', async () => {
     const savedProfile = { id: 'user-1', phone: '555-0100' };
     const query = {

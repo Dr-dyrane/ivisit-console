@@ -3,6 +3,8 @@ import {
   buildAmbulanceQueryFilter,
   buildAmbulanceRouteContext,
   cycleAmbulanceSort,
+  getAmbulanceActiveCallModel,
+  getAmbulanceDriverModel,
   getAmbulanceRailModel,
   getAmbulanceRoleKind,
   getAmbulanceSignal,
@@ -227,6 +229,69 @@ describe('ambulance page model characterization', () => {
     expect(withDate.commissionedLabel).toContain('2024');
 
     expect(getAmbulanceRailModel({ ...rows[0], created_at: null }, null).commissionedLabel).toBe('Unknown');
+  });
+
+  it('projects driver identity with honest Unassigned/truncated-UUID states (ADOPT-22)', () => {
+    const DRIVER_ID = '44444444-4444-4444-8444-444444444444';
+
+    // No profile_id: truthfully Unassigned, no copy target, no phone.
+    expect(getAmbulanceDriverModel({ profile_id: null })).toEqual({
+      assigned: false,
+      label: 'Unassigned',
+      copyValue: null,
+      phone: null,
+    });
+
+    // Resolved: real name and phone, no UUID chip.
+    expect(getAmbulanceDriverModel({
+      profile_id: DRIVER_ID,
+      driver_name: 'Ada Obi',
+      driver_phone: '+2348012345678',
+    })).toEqual({
+      assigned: true,
+      label: 'Ada Obi',
+      copyValue: null,
+      phone: '+2348012345678',
+    });
+
+    // Unresolved (RLS-blocked read): the truncated UUID renders with the full
+    // id as copy target -- never a fabricated name.
+    expect(getAmbulanceDriverModel({ profile_id: DRIVER_ID, driver_name: null })).toEqual({
+      assigned: true,
+      label: '44444444',
+      copyValue: DRIVER_ID,
+      phone: null,
+    });
+
+    // The rail model carries the same projection.
+    expect(getAmbulanceRailModel({ ...rows[0], profile_id: null }, null).driver.label).toBe('Unassigned');
+  });
+
+  it('projects active-call context only when current_call exists (ADOPT-23)', () => {
+    const CALL_ID = '55555555-5555-4555-8555-555555555555';
+
+    // Idle unit: the linkage is ABSENT, never fabricated.
+    expect(getAmbulanceActiveCallModel({ current_call: null })).toBeNull();
+    expect(getAmbulanceRailModel(rows[0], null).activeCall).toBeNull();
+
+    // Resolved: emergency display id + humanized status, display id copyable.
+    expect(getAmbulanceActiveCallModel({
+      current_call: CALL_ID,
+      active_call_display_id: 'EMG-000123',
+      active_call_status: 'in_progress',
+    })).toEqual({
+      reference: 'EMG-000123',
+      statusLabel: 'In Progress',
+      copyValue: 'EMG-000123',
+    });
+
+    // Unresolved: truncated request UUID with the raw id as copy target and
+    // no invented status.
+    expect(getAmbulanceActiveCallModel({ current_call: CALL_ID })).toEqual({
+      reference: '55555555',
+      statusLabel: null,
+      copyValue: CALL_ID,
+    });
   });
 
   it('derives telemetry freshness from observed_at with received_at fallback and honest nulls', () => {

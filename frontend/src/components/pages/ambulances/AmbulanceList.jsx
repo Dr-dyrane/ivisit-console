@@ -70,6 +70,10 @@ export const AmbulanceRow = ({
   const callSign = ambulance.call_sign || 'Unknown unit';
   const station = getAmbulanceStation(ambulance);
   const vehicle = getAmbulanceVehicle(ambulance);
+  // Driver identity on the row subline (ADOPT-22): only a RESOLVED name joins
+  // the type -- an unassigned or unresolved driver renders nothing here (the
+  // rail carries the honest Unassigned/truncated-UUID state).
+  const unitSubline = `${ambulance.type || 'Standard'}${ambulance.driver_name ? ` \u00B7 ${ambulance.driver_name}` : ''}`;
   const viewOpening = activeActionFeedback === `view-${ambulance.id}`;
   const editOpening = activeActionFeedback === `edit-${ambulance.id}`;
 
@@ -101,8 +105,8 @@ export const AmbulanceRow = ({
           <span className="block truncate text-sm font-semibold text-foreground" title={callSign}>
             {callSign}
           </span>
-          <span className="block truncate text-xs text-muted-foreground">
-            {ambulance.type || 'Standard'}
+          <span className="block truncate text-xs text-muted-foreground" title={unitSubline}>
+            {unitSubline}
           </span>
         </span>
       </span>

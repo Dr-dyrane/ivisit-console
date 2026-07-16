@@ -90,6 +90,16 @@ export const getScheduledClinicalWindow = (visit) => {
   return `${startLabel} to ${compactEnd}`;
 };
 
+// ADOPT-65: record-level visits.updated_at (both lane selects already fetch
+// it) surfaces as a DISPLAY-ONLY relative line. The estate allows one sortable
+// Time header per page and Visits' header already sorts date /
+// scheduled_start_at, so last-updated renders without a second sort
+// affordance (donor: ADOPT-41 staffPageModel.getStaffLastUpdated).
+// Hide-when-null: missing or unparseable truth renders nothing.
+export const getVisitRecordUpdatedRelative = (visit) => (
+  getLifecycleUpdatedRelative(visit?.updated_at)
+);
+
 // Patient contact from the already-fetched profiles join (both lanes select
 // profiles.phone). The identity projection's 'No contact' sentinel means the
 // truth is missing, so it renders as absence here.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigation } from '../../../contexts/NavigationContext';
@@ -8,14 +8,18 @@ import { usePagination } from '../../../hooks/usePagination';
 import { useRowSelection } from '../../../hooks/useRowSelection';
 import { getConsoleModuleRailItems } from '../../../config/consoleModuleRail';
 import { useSupportTicketsQuery } from '../../../hooks/useSupportTicketsQuery';
+import { getSupportFAQs } from '../../../services/supportFaqsService';
 import { useWayfindingNav } from '../../console/WorkspaceStage';
 import { pruneSupportTicketIdsFromCache } from '../../mobile/support/mobileSupportModel';
 import {
   buildSupportAnalytics,
+  buildSupportFaqTile,
   buildSupportQueryFilter,
   hasActiveSupportFilters,
 } from './supportTicketsModel';
 import { useSupportTicketCommands } from './useSupportTicketCommands';
+
+const SUPPORT_FAQ_TILE_LIMIT = 5;
 
 export const useSupportTicketsPageController = ({
   locationPathname,
@@ -132,6 +136,21 @@ export const useSupportTicketsPageController = ({
     () => buildSupportAnalytics(supportStats, ticketRows),
     [supportStats, ticketRows]
   );
+
+  // ADOPT-61: read-only FAQ reference tile for the route-owned context panel.
+  // The enrichment read is NON-FATAL and isolated in its own query: an
+  // RLS-blocked or failed support_faqs read renders the tile's unavailable
+  // state and can never kill the ticket queue read above.
+  const supportFaqsQuery = useQuery({
+    queryKey: ['supportFaqs', 'reference', SUPPORT_FAQ_TILE_LIMIT],
+    queryFn: () => getSupportFAQs({ limit: SUPPORT_FAQ_TILE_LIMIT }),
+    staleTime: 60_000,
+  });
+  const supportFaqContext = useMemo(() => ({
+    ...buildSupportFaqTile(supportFaqsQuery.data),
+    loading: supportFaqsQuery.isLoading,
+    errorMessage: supportFaqsQuery.error ? 'FAQs could not load.' : null,
+  }), [supportFaqsQuery.data, supportFaqsQuery.error, supportFaqsQuery.isLoading]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -301,6 +320,7 @@ export const useSupportTicketsPageController = ({
     canCreate,
     canManage: canManageSupport,
     isProviderOnly,
+    faqs: supportFaqContext,
   }), [
     canCreate,
     canManageSupport,
@@ -310,6 +330,7 @@ export const useSupportTicketsPageController = ({
     loading,
     pagination.totalCount,
     supportError,
+    supportFaqContext,
     supportStats,
     ticketRows,
   ]);

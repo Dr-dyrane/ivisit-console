@@ -8,8 +8,11 @@ import {
   Eye,
   MapPin,
   Navigation,
+  Phone,
+  Siren,
   Tag,
   Truck,
+  UserRound,
   Wrench,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -120,6 +123,41 @@ export const AmbulanceDetailRail = ({
             label="Plate"
             value={ambulance.vehicle_number || ambulance.license_plate || 'Not set'}
           />
+          {/* Driver identity (ADOPT-22): resolved read-only from profile_id.
+              Unassigned stays honest text; an unresolved id renders the
+              truncated UUID with a CopyChip carrying the full value. */}
+          <DetailLine
+            icon={UserRound}
+            label="Driver"
+            value={model.driver.copyValue ? (
+              <span className="flex min-w-0 items-center gap-1">
+                <span className="truncate font-mono" title={model.driver.copyValue}>
+                  {model.driver.label}
+                </span>
+                <CopyChip value={model.driver.copyValue} label="Copy driver ID" />
+              </span>
+            ) : model.driver.label}
+          />
+          {model.driver.phone && (
+            <DetailLine icon={Phone} label="Driver phone" value={model.driver.phone} />
+          )}
+          {/* Active-call context (ADOPT-23): the emergency request behind
+              current_call, as display id + status. Absent when idle. */}
+          {model.activeCall && (
+            <DetailLine
+              icon={Siren}
+              label="Active call"
+              value={(
+                <span className="flex min-w-0 items-center gap-1">
+                  <span className="truncate" title={model.activeCall.reference}>
+                    {model.activeCall.reference}
+                    {model.activeCall.statusLabel ? ` \u00B7 ${model.activeCall.statusLabel}` : ''}
+                  </span>
+                  <CopyChip value={model.activeCall.copyValue} label="Copy call reference" />
+                </span>
+              )}
+            />
+          )}
           <DetailLine icon={Activity} label="Crew" value={model.crewLabel} />
           <DetailLine icon={Tag} label="Base price" value={model.basePriceLabel} />
           <DetailLine icon={Navigation} label="Position" value={model.positionLabel} />

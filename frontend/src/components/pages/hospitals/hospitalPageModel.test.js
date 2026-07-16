@@ -244,6 +244,43 @@ describe('hospital page model characterization', () => {
       .toMatchObject({ demo: false, kindKey: null, sourceKey: null });
   });
 
+  it('carries the resolved owning organization with honest nulls for absent or unresolved orgs (ADOPT-60)', () => {
+    expect(getHospitalRailModel({
+      id: 'h-owned',
+      organization_id: 'org-1',
+      organization_name: 'Mercy Health Network',
+    }, null)).toMatchObject({
+      organizationId: 'org-1',
+      organizationName: 'Mercy Health Network',
+    });
+
+    // RLS-blocked or failed resolution: the id stays, the name stays null.
+    expect(getHospitalRailModel({
+      id: 'h-unresolved',
+      organization_id: 'org-2',
+      organization_name: null,
+    }, null)).toMatchObject({
+      organizationId: 'org-2',
+      organizationName: null,
+    });
+
+    // Whitespace-only names never fabricate a label.
+    expect(getHospitalRailModel({
+      id: 'h-blank',
+      organization_id: 'org-3',
+      organization_name: '   ',
+    }, null)).toMatchObject({
+      organizationId: 'org-3',
+      organizationName: null,
+    });
+
+    // No owning organization: both stay null so the rail renders no line.
+    expect(getHospitalRailModel({ id: 'h-orphan' }, null)).toMatchObject({
+      organizationId: null,
+      organizationName: null,
+    });
+  });
+
   it('surfaces availability freshness and record recency through the shared relative formatter (ADOPT-36)', () => {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60000).toISOString();
     const twoHoursAgo = new Date(Date.now() - 2 * 3600000).toISOString();

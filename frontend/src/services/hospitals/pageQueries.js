@@ -3,6 +3,10 @@ import { withRetry } from '../supabaseHelpers';
 import { applyQueryAbortSignal, throwIfQueryAborted } from '../queryAbort';
 import { TABLE_NAME } from './constants';
 import { applyHospitalFilters } from './filters';
+import {
+  attachHospitalOrganizationNames,
+  resolveHospitalOrganizationNames,
+} from './organizationNames';
 import { getHospitals } from './queries';
 import { getHospitalVisibleStats } from './stats';
 
@@ -85,15 +89,21 @@ export async function getHospitalsPageData(options = {}) {
     const pageRows = pageResult?.data || [];
     const visibleStats = getHospitalVisibleStats(pageRows);
 
+    // ADOPT-60: enrichment is non-fatal; a failed organizations read returns an
+    // empty map and every organization_name stays honestly null.
+    const organizationNames = await resolveHospitalOrganizationNames(pageRows, abortSignal, quiet);
+    throwIfQueryAborted(abortSignal);
+    const enrichedRows = attachHospitalOrganizationNames(pageRows, organizationNames);
+
     return {
-      data: pageRows,
+      data: enrichedRows,
       count: pageResult?.count || 0,
       stats: {
         ...stats,
         visibleBeds: visibleStats.totalBeds,
         visibleAmbulances: visibleStats.totalAmbulances,
       },
-      recent: pageRows.slice(0, 5),
+      recent: enrichedRows.slice(0, 5),
     };
   } catch (error) {
     if (!quiet) {

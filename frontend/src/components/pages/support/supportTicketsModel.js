@@ -323,6 +323,25 @@ export const getSupportOpenAge = (ticket = {}, now = Date.now()) => {
   return days < 1 ? 'open <1d' : `open ${days}d`;
 };
 
+// Read-only FAQ reference tile (schema adoption ADOPT-61): projects the
+// previously dormant support_faqs read for the route-owned context panel.
+// Rows arrive rank-ordered from the service; rows without a usable question
+// are dropped and empty answer/category strings become honest nulls. Nothing
+// here writes -- FAQ authoring stays absent from every console surface.
+export const buildSupportFaqTile = (rows) => {
+  const validRows = (Array.isArray(rows) ? rows : [])
+    .filter((row) => row && typeof row.question === 'string' && row.question.trim());
+
+  const faqs = validRows.map((row) => ({
+    id: row.id,
+    question: row.question.trim(),
+    answer: typeof row.answer === 'string' && row.answer.trim() ? row.answer.trim() : null,
+    category: typeof row.category === 'string' && row.category.trim() ? row.category.trim() : null,
+  }));
+
+  return { faqs, count: faqs.length };
+};
+
 export function titleCase(value) {
   return String(value || '')
     .replace('_', ' ')

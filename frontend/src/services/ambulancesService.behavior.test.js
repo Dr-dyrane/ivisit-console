@@ -173,6 +173,19 @@ describe('ambulances service behavior boundaries', () => {
       return builder;
     });
 
+    // ADOPT-22/23: rows without profile_id/current_call carry honest null
+    // driver/call fields -- and trigger NO extra resolution reads.
+    const enrichedRow = {
+      ...row,
+      hospital: 'Central Station',
+      station_name: 'Central Station',
+      vehicle_label: 'IV-007',
+      driver_name: null,
+      driver_phone: null,
+      active_call_display_id: null,
+      active_call_status: null,
+    };
+
     await expect(getAmbulancesPageData({
       filters: {
         search: 'Unit,7',
@@ -186,12 +199,7 @@ describe('ambulances service behavior boundaries', () => {
       limit: 20,
       offset: 20,
     })).resolves.toEqual({
-      data: [{
-        ...row,
-        hospital: 'Central Station',
-        station_name: 'Central Station',
-        vehicle_label: 'IV-007',
-      }],
+      data: [enrichedRow],
       count: 42,
       stats: {
         total: 12,
@@ -205,12 +213,7 @@ describe('ambulances service behavior boundaries', () => {
         exactCounts: true,
         source: 'ambulances.status',
       },
-      recent: [{
-        ...row,
-        hospital: 'Central Station',
-        station_name: 'Central Station',
-        vehicle_label: 'IV-007',
-      }],
+      recent: [enrichedRow],
     });
 
     const [countBuilder, pageBuilder, ...statAndHospitalBuilders] = builders;
@@ -232,6 +235,103 @@ describe('ambulances service behavior boundaries', () => {
     statAndHospitalBuilders.slice(0, 8).forEach((builder) => {
       expect(builder.select).toHaveBeenCalledWith('*', { count: 'exact', head: true });
     });
+  });
+
+  it('resolves driver identity and active-call context with batched reads (ADOPT-22/23)', async () => {
+    const CALL_ID = '55555555-5555-4555-8555-555555555555';
+    const row = {
+      id: AMBULANCE_ID,
+      hospital_id: HOSPITAL_ID,
+      call_sign: 'UNIT-7',
+      profile_id: DRIVER_ID,
+      current_call: CALL_ID,
+    };
+    let ambulanceReads = 0;
+    let profilesBuilder = null;
+    let requestsBuilder = null;
+    supabase.from.mockImplementation((table) => {
+      if (table === 'hospitals') {
+        return createQueryBuilder({ data: [{ id: HOSPITAL_ID, name: 'Central Station' }], error: null });
+      }
+      if (table === 'profiles') {
+        profilesBuilder = createQueryBuilder({
+          data: [{ id: DRIVER_ID, full_name: 'Ada Obi', phone: '+2348012345678' }],
+          error: null,
+        });
+        return profilesBuilder;
+      }
+      if (table === 'emergency_requests') {
+        requestsBuilder = createQueryBuilder({
+          data: [{ id: CALL_ID, display_id: 'EMG-000123', status: 'accepted' }],
+          error: null,
+        });
+        return requestsBuilder;
+      }
+      ambulanceReads += 1;
+      if (ambulanceReads === 2) {
+        return createQueryBuilder({ data: [row], error: null, count: null });
+      }
+      return createQueryBuilder({ data: null, error: null, count: 1 });
+    });
+
+    const result = await getAmbulancesPageData();
+
+    expect(result.data[0]).toMatchObject({
+      driver_name: 'Ada Obi',
+      driver_phone: '+2348012345678',
+      active_call_display_id: 'EMG-000123',
+      active_call_status: 'accepted',
+    });
+    // ONE batched read per foreign table for the landed window.
+    expect(profilesBuilder.select).toHaveBeenCalledWith('id, full_name, first_name, last_name, email, phone');
+    expect(profilesBuilder.in).toHaveBeenCalledWith('id', [DRIVER_ID]);
+    expect(requestsBuilder.select).toHaveBeenCalledWith('id, display_id, status');
+    expect(requestsBuilder.in).toHaveBeenCalledWith('id', [CALL_ID]);
+  });
+
+  it('keeps driver/call resolution NON-FATAL: an RLS-blocked read leaves labels null (ADOPT-22/23)', async () => {
+    const CALL_ID = '55555555-5555-4555-8555-555555555555';
+    const row = {
+      id: AMBULANCE_ID,
+      hospital_id: HOSPITAL_ID,
+      call_sign: 'UNIT-7',
+      profile_id: DRIVER_ID,
+      current_call: CALL_ID,
+    };
+    let ambulanceReads = 0;
+    supabase.from.mockImplementation((table) => {
+      if (table === 'hospitals') {
+        return createQueryBuilder({ data: [{ id: HOSPITAL_ID, name: 'Central Station' }], error: null });
+      }
+      if (table === 'profiles') {
+        return createQueryBuilder({ data: null, error: { code: '42501', message: 'permission denied' } });
+      }
+      if (table === 'emergency_requests') {
+        return createQueryBuilder({ data: [{ id: CALL_ID, display_id: 'EMG-000123', status: 'accepted' }], error: null });
+      }
+      ambulanceReads += 1;
+      if (ambulanceReads === 2) {
+        return createQueryBuilder({ data: [row], error: null, count: null });
+      }
+      return createQueryBuilder({ data: null, error: null, count: 1 });
+    });
+
+    // The page read STILL RESOLVES; the row keeps its raw ids and honest nulls.
+    const result = await getAmbulancesPageData();
+
+    expect(result.data[0]).toMatchObject({
+      profile_id: DRIVER_ID,
+      current_call: CALL_ID,
+      driver_name: null,
+      driver_phone: null,
+      active_call_display_id: null,
+      active_call_status: null,
+      station_name: 'Central Station',
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      'Error resolving ambulance driver/call context:',
+      expect.objectContaining({ code: '42501' })
+    );
   });
 
   it('retains the update allowlist and direct operational write receivers', async () => {

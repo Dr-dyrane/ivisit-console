@@ -143,13 +143,23 @@ describe('hospital read and realtime boundaries', () => {
     const pageBuilder = createQueryBuilder({ data: rows, error: null, count: 42 });
     const countBuilders = [9, 4, 1, 2, 7]
       .map((count) => createQueryBuilder({ data: null, error: null, count }));
+    const organizationsBuilder = createQueryBuilder({
+      data: [{ id: ORGANIZATION_ID, name: ' Mercy Health Network ' }],
+      error: null,
+    });
     supabase.from
       .mockReturnValueOnce(pageBuilder)
       .mockReturnValueOnce(countBuilders[0])
       .mockReturnValueOnce(countBuilders[1])
       .mockReturnValueOnce(countBuilders[2])
       .mockReturnValueOnce(countBuilders[3])
-      .mockReturnValueOnce(countBuilders[4]);
+      .mockReturnValueOnce(countBuilders[4])
+      .mockReturnValueOnce(organizationsBuilder);
+
+    const enrichedRows = rows.map((row) => ({
+      ...row,
+      organization_name: 'Mercy Health Network',
+    }));
 
     await expect(getHospitalsPageData({
       filters: { verification_status: 'approved' },
@@ -157,7 +167,7 @@ describe('hospital read and realtime boundaries', () => {
       limit: 20,
       offset: 20,
     })).resolves.toEqual({
-      data: rows,
+      data: enrichedRows,
       count: 42,
       stats: {
         total: 9,
@@ -169,7 +179,7 @@ describe('hospital read and realtime boundaries', () => {
         visibleBeds: 10,
         visibleAmbulances: 6,
       },
-      recent: rows,
+      recent: enrichedRows,
     });
 
     expect(pageBuilder.range).toHaveBeenCalledWith(20, 39);
@@ -181,6 +191,61 @@ describe('hospital read and realtime boundaries', () => {
     expect(countBuilders[2].eq).toHaveBeenCalledWith('status', 'full');
     expect(countBuilders[3].eq).toHaveBeenCalledWith('status', 'busy');
     expect(countBuilders[4].eq).toHaveBeenCalledWith('verified', true);
+
+    // ADOPT-60: ONE batched organizations read for the landed window, with the
+    // shared organization id deduplicated and the name trimmed on the way in.
+    expect(supabase.from).toHaveBeenLastCalledWith('organizations');
+    expect(organizationsBuilder.select).toHaveBeenCalledWith('id, name');
+    expect(organizationsBuilder.in).toHaveBeenCalledWith('id', [ORGANIZATION_ID]);
+  });
+
+  it('skips the organizations read entirely when the window carries no organization ids (ADOPT-60)', async () => {
+    const rows = [{ id: HOSPITAL_ID, organization_id: null, available_beds: 1, ambulances_count: 0 }];
+    const pageBuilder = createQueryBuilder({ data: rows, error: null, count: 1 });
+    const countBuilders = [1, 1, 0, 0, 0]
+      .map((count) => createQueryBuilder({ data: null, error: null, count }));
+    supabase.from
+      .mockReturnValueOnce(pageBuilder)
+      .mockReturnValueOnce(countBuilders[0])
+      .mockReturnValueOnce(countBuilders[1])
+      .mockReturnValueOnce(countBuilders[2])
+      .mockReturnValueOnce(countBuilders[3])
+      .mockReturnValueOnce(countBuilders[4]);
+
+    const result = await getHospitalsPageData({ limit: 20, offset: 0 });
+
+    // 1 page read + 5 exact counts, and nothing else: no ids means no lookup.
+    expect(supabase.from).toHaveBeenCalledTimes(6);
+    expect(result.data[0]).toMatchObject({ organization_id: null, organization_name: null });
+  });
+
+  it('keeps the page read alive when organization resolution fails and leaves names honestly null (ADOPT-60)', async () => {
+    const rows = [{ id: HOSPITAL_ID, organization_id: ORGANIZATION_ID, available_beds: 2, ambulances_count: 1 }];
+    const pageBuilder = createQueryBuilder({ data: rows, error: null, count: 1 });
+    const countBuilders = [1, 1, 0, 0, 0]
+      .map((count) => createQueryBuilder({ data: null, error: null, count }));
+    const deniedBuilder = createQueryBuilder({
+      data: null,
+      error: { code: '42501', message: 'permission denied for table organizations' },
+    });
+    supabase.from
+      .mockReturnValueOnce(pageBuilder)
+      .mockReturnValueOnce(countBuilders[0])
+      .mockReturnValueOnce(countBuilders[1])
+      .mockReturnValueOnce(countBuilders[2])
+      .mockReturnValueOnce(countBuilders[3])
+      .mockReturnValueOnce(countBuilders[4])
+      .mockReturnValueOnce(deniedBuilder);
+
+    const result = await getHospitalsPageData({ limit: 20, offset: 0, quiet: true });
+
+    expect(result.count).toBe(1);
+    expect(result.data[0]).toMatchObject({
+      organization_id: ORGANIZATION_ID,
+      organization_name: null,
+    });
+    // quiet read: the non-fatal resolution failure does not log either.
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it('rethrows read errors unchanged and honors quiet logging', async () => {
