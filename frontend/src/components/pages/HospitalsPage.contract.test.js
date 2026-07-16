@@ -839,6 +839,58 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain("places_import: 'Imported");
   });
 
+  it('surfaces the already-running verified count as a KPI chip on the existing verified filter path (ADOPT-35)', () => {
+    const model = readSource('src/components/pages/hospitals/hospitalPageModel.js');
+    const presentation = readSource('src/components/pages/hospitals/hospitalPresentation.js');
+    const workspace = readSource('src/components/pages/hospitals/HospitalsDesktopWorkspace.jsx');
+    const service = serviceSource();
+
+    // Both service ends pre-existed the chip: the exact count already ran in
+    // getHospitalPageStats and applyHospitalFilters already keyed verified.
+    expect(service).toContain("getHospitalExactCount({ ...filters, verified: true }, quiet, abortSignal)");
+    expect(service).toContain("query = query.eq('verified', filter.verified)");
+
+    // The chip definition reaches the KpiStrip options binding and the query
+    // filter maps it to the boolean column, never a status value.
+    expect(model).toContain("{ id: 'verified', label: 'Verified', countKey: 'verified', tone: 'primary' }");
+    expect(model).toContain("...(kpiFilter === 'verified'");
+    expect(model).toContain('? { verified: true }');
+    expect(model).toContain("verified: 'No verified hospitals'");
+    expect(presentation).toContain("id: 'verified'");
+    expect(presentation).toContain('icon: BadgeCheck');
+    expect(presentation).toContain('verified: BadgeCheck');
+    expect(workspace).toContain('options={hospitalStateOptions}');
+    expect(workspace).toContain('getCount={(id) => getHospitalStateCount({ id, stats, hospitals })}');
+  });
+
+  it('renders record recency beside availability freshness on the detail rail (ADOPT-36)', () => {
+    const model = readSource('src/components/pages/hospitals/hospitalPageModel.js');
+    const rail = readSource('src/components/pages/hospitals/HospitalDetailRail.jsx');
+
+    // updated_at arrives on the select('*') read; both timestamps ride the
+    // SAME shared relative formatter the mobile lane pins above.
+    expect(model).toContain("import { formatRelativeTime } from '../../../utils/activityUtils';");
+    expect(model).toContain('availabilityUpdatedValue: hospital.last_availability_update');
+    expect(model).toContain('recordUpdatedValue: hospital.updated_at');
+    expect(rail).toContain('label="Availability" value={model.availabilityUpdatedValue}');
+    expect(rail).toContain('label="Record updated" value={model.recordUpdatedValue}');
+    expect(rail).not.toContain('new Date(hospital.last_availability_update).toLocaleString()');
+  });
+
+  it('renders fetched service_types as read-only chips and reads the real bed_type column (ADOPT-37)', () => {
+    const modal = modalSource();
+
+    // View-branch chips only; the save payload spread stays untouched.
+    expect(modal).toContain('export const ReadOnlyChips');
+    expect(modal).toContain('<ReadOnlyChips values={formData.service_types} />');
+    expect(modal).toContain('Service Types');
+
+    // Reservation rows are raw emergency_requests rows (bed_type column);
+    // the phantom bed_category key never existed on this read path.
+    expect(modal).toContain('reservation.bed_type &&');
+    expect(modal).not.toContain('reservation.bed_category');
+  });
+
   it('names the required Hospitals repair before admission can start', () => {
     const gate = gateSource();
 

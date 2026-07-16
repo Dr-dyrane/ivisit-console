@@ -24,6 +24,7 @@ import {
   hasActiveUserFilters,
   normalizeUsersStats,
   resolveUsersRoleFilter,
+  resolveUsersVerifiedFilter,
   USER_DELETE_UNAVAILABLE_MESSAGE,
   USERS_FILTER_SCHEMA,
 } from './users/usersPageModel';
@@ -66,11 +67,6 @@ export const UsersPage = () => {
 
   const queryFilter = useMemo(() => {
     const roleFilter = resolveUsersRoleFilter(filters);
-    const verified = filters.bvn_verified === 'verified'
-      ? true
-      : filters.bvn_verified === 'unverified'
-        ? false
-        : undefined;
     return {
       limit: pagination.itemsPerPage,
       offset: pagination.paginationRange.start,
@@ -78,7 +74,8 @@ export const UsersPage = () => {
       role: roleFilter.role,
       forceEmpty: roleFilter.forceEmpty,
       provider_type: filters.provider_type,
-      verified,
+      verified: resolveUsersVerifiedFilter(filters),
+      onboarding_status: filters.onboarding_status,
       search: filters.search || undefined,
       created_at: filters.created_at,
       sortKey: sortConfig.key,

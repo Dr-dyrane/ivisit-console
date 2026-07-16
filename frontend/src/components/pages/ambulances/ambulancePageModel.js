@@ -4,6 +4,7 @@ import {
   getAmbulanceStatusLabel,
 } from '../../../constants/ambulanceStatus';
 import { formatRelativeTime } from '../../../utils/activityUtils';
+import { formatDayTime } from '../../../utils/dayTime';
 
 export const AMBULANCE_PAGE_SIZE = 20;
 export const AMBULANCE_DEFAULT_SORT = { key: '', direction: 'asc' };
@@ -54,6 +55,26 @@ export const getFleetStateCount = ({ id, stats, ambulances }) => {
     return normalizeAmbulanceCount(
       stats?.maintenance,
       rows.filter((unit) => getFleetStatus(unit) === 'maintenance').length
+    );
+  }
+  // ADOPT-38: the dormant DB-domain states count exactly (stats first, visible
+  // rows as fallback) so their chips render honest numbers -- including 0.
+  if (id === 'returning') {
+    return normalizeAmbulanceCount(
+      stats?.returning,
+      rows.filter((unit) => getFleetStatus(unit) === 'returning').length
+    );
+  }
+  if (id === 'offline') {
+    return normalizeAmbulanceCount(
+      stats?.offline,
+      rows.filter((unit) => getFleetStatus(unit) === 'offline').length
+    );
+  }
+  if (id === 'pending_approval') {
+    return normalizeAmbulanceCount(
+      stats?.pendingApproval,
+      rows.filter((unit) => getFleetStatus(unit) === 'pending_approval').length
     );
   }
   return 0;
@@ -107,6 +128,47 @@ export const getAmbulanceSignal = ({ stats, ambulances, kpiFilter, loadError }) 
       label: 'Ready',
       headline: ready > 0 ? `${ready} unit${ready === 1 ? '' : 's'} ready` : 'No ready units',
       subhead: 'Ready units are available for review from the route-owned fleet list.',
+    };
+  }
+
+  // ADOPT-38: the dormant DB-domain filters speak with their own honest voice;
+  // an approval-core state that matches zero rows reads as an explicit zero.
+  if (kpiFilter === 'pending_approval') {
+    const pending = getFleetStateCount({ id: 'pending_approval', stats, ambulances: rows });
+    return {
+      iconKey: 'pending',
+      tone: 'attention',
+      label: 'Pending',
+      headline: pending > 0
+        ? `${pending} unit${pending === 1 ? '' : 's'} awaiting approval`
+        : 'No units awaiting approval',
+      subhead: 'Pending units stay read-only fleet evidence until approval flows are proved.',
+    };
+  }
+
+  if (kpiFilter === 'returning') {
+    const returning = getFleetStateCount({ id: 'returning', stats, ambulances: rows });
+    return {
+      iconKey: 'returning',
+      tone: 'muted',
+      label: 'Returning',
+      headline: returning > 0
+        ? `${returning} unit${returning === 1 ? '' : 's'} returning`
+        : 'No returning units',
+      subhead: 'Returning units are heading back from runs; dispatch changes stay in Requests.',
+    };
+  }
+
+  if (kpiFilter === 'offline') {
+    const offline = getFleetStateCount({ id: 'offline', stats, ambulances: rows });
+    return {
+      iconKey: 'offline',
+      tone: 'muted',
+      label: 'Offline',
+      headline: offline > 0
+        ? `${offline} unit${offline === 1 ? '' : 's'} offline`
+        : 'No offline units',
+      subhead: 'Offline units are out of rotation and stay visible as fleet evidence.',
     };
   }
 
@@ -204,11 +266,17 @@ export const buildAmbulanceFilterSchema = ({ hospitals = [], admin = false }) =>
     key: 'status',
     type: 'multiselect',
     label: 'Status',
+    // ADOPT-38: the full DB status domain (schema CHECK + VALID_AMBULANCE_STATUSES)
+    // is filterable -- returning/offline/pending_approval were dormant vocabulary
+    // the read path already accepted but the grammar never offered.
     options: [
       { value: 'available', label: 'Available' },
       { value: 'en_route', label: 'En Route' },
       { value: 'busy', label: 'Busy' },
+      { value: 'returning', label: 'Returning' },
       { value: 'maintenance', label: 'Maintenance' },
+      { value: 'offline', label: 'Offline' },
+      { value: 'pending_approval', label: 'Pending approval' },
     ],
   },
   {
@@ -285,6 +353,10 @@ export const getAmbulanceRailModel = (ambulance, activeActionFeedback) => {
     callSign: ambulance.call_sign || 'Unknown unit',
     crewLabel: crewCount > 0 ? `${crewCount} listed` : 'Not listed',
     positionLabel,
+    // Commissioned date (ADOPT-39): created_at already drives the Commission
+    // Date filter and the default sort, but the value itself rendered nowhere.
+    // Shared day-aware formatter; a missing value stays an honest 'Unknown'.
+    commissionedLabel: ambulance.created_at ? formatDayTime(ambulance.created_at) : 'Unknown',
     basePriceLabel: Number.isFinite(basePriceValue) && basePriceValue > 0
       ? basePriceValue.toLocaleString()
       : 'Not set',

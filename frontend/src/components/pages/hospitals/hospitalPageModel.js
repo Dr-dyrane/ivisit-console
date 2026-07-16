@@ -1,3 +1,5 @@
+import { formatRelativeTime } from '../../../utils/activityUtils';
+
 export const HOSPITAL_PAGE_SIZE = 20;
 
 export const HOSPITAL_DEFAULT_SORT = Object.freeze({
@@ -10,6 +12,9 @@ export const HOSPITAL_STATE_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'available', label: 'Available', countKey: 'available', tone: 'clear' }),
   Object.freeze({ id: 'full', label: 'Full', countKey: 'full', tone: 'warning' }),
   Object.freeze({ id: 'busy', label: 'Busy', countKey: 'busy', tone: 'info' }),
+  // ADOPT-35: the verified exact count already runs in getHospitalPageStats;
+  // this chip surfaces it and keys the existing filters.verified service path.
+  Object.freeze({ id: 'verified', label: 'Verified', countKey: 'verified', tone: 'primary' }),
 ]);
 
 export const HOSPITAL_KPI_IMPORTANCE = Object.freeze({
@@ -17,6 +22,7 @@ export const HOSPITAL_KPI_IMPORTANCE = Object.freeze({
   available: 1,
   full: 2,
   busy: 3,
+  verified: 4,
 });
 
 export const PINNED_HOSPITAL_STATE_IDS = Object.freeze(['full', 'busy']);
@@ -25,6 +31,7 @@ export const HOSPITAL_EMPTY_HEADINGS = Object.freeze({
   available: 'No available hospitals',
   full: 'No full hospitals',
   busy: 'No busy hospitals',
+  verified: 'No verified hospitals',
 });
 
 export const HOSPITAL_FILTER_SCHEMA = Object.freeze([
@@ -90,7 +97,13 @@ export const buildHospitalQueryFilter = ({
   return {
     filters: {
       ...serviceFilters,
-      ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
+      // ADOPT-35: the verified chip keys the boolean verified column through the
+      // existing applyHospitalFilters branch; every other chip stays a status.
+      ...(kpiFilter === 'verified'
+        ? { verified: true }
+        : kpiFilter !== 'all'
+          ? { status: kpiFilter }
+          : {}),
     },
     statsFilters: getHospitalStatsFilters(serviceFilters),
     limit: itemsPerPage,
@@ -110,7 +123,9 @@ export const getHospitalStateCount = ({ id, stats, hospitals }) => {
   const option = getHospitalStateDefinition(id);
   const fallback = option.id === 'all'
     ? sourceHospitals.length
-    : sourceHospitals.filter((hospital) => hospital.status === option.id).length;
+    : option.id === 'verified'
+      ? sourceHospitals.filter((hospital) => Boolean(hospital.verified)).length
+      : sourceHospitals.filter((hospital) => hospital.status === option.id).length;
 
   return normalizeHospitalCount(stats?.[option.countKey], fallback);
 };
@@ -157,6 +172,16 @@ export const getHospitalSignal = ({ stats, hospitals, kpiFilter, loadError }) =>
       label: 'Busy',
       headline: count > 0 ? `${count} busy hospital${count === 1 ? '' : 's'}` : 'No busy hospitals',
       subhead: count > 0 ? 'Check the facility record before routing more demand.' : 'Busy facilities will appear here.',
+    };
+  }
+
+  if (option.id === 'verified') {
+    return {
+      iconKey: 'verified',
+      tone: 'primary',
+      label: 'Verified',
+      headline: count > 0 ? `${count} verified hospital${count === 1 ? '' : 's'}` : 'No verified hospitals',
+      subhead: count > 0 ? 'These records passed platform verification review.' : 'Verified facilities will appear here.',
     };
   }
 
@@ -302,6 +327,15 @@ export const getHospitalRailModel = (hospital, activeActionFeedback) => {
     eligibility: eligibility || 'None',
     fleet: String(fleet),
     rating: Number.isFinite(Number(hospital.rating)) ? Number(hospital.rating).toFixed(1) : 'Not rated',
+    // ADOPT-36: availability freshness and the record's own updated_at are two
+    // different truths; both ride the shared relative-time formatter the mobile
+    // lane already uses, with honest Unknown for absent timestamps.
+    availabilityUpdatedValue: hospital.last_availability_update
+      ? formatRelativeTime(hospital.last_availability_update)
+      : 'Unknown',
+    recordUpdatedValue: hospital.updated_at
+      ? formatRelativeTime(hospital.updated_at)
+      : 'Unknown',
     hasCoordinates: Number.isFinite(latitude) && Number.isFinite(longitude),
     latitude,
     longitude,

@@ -229,9 +229,26 @@ describe('SupportTicketsPage canonical source contract', () => {
     const currentPage = pageEstateSource();
     const currentMobile = mobileEstateSource();
 
+    // Desktop read-surfacing additions (schema adoption 2026-07-16, ADOPT-24/48):
+    // the assignee subline under the status pill and the "open Nd" age subline
+    // under the Updated date. This allowlist keeps the pin fail-closed BOTH
+    // ways: any baseline drop still reds, and any UNlisted new literal
+    // attribute reds until it is reviewed here. Mobile stays byte-equal.
+    const DESKTOP_ADOPTION_ADDITIONS = {
+      className: [
+        'mt-1 truncate text-[11px] font-medium text-muted-foreground',
+        'text-[11px] font-medium text-muted-foreground/70',
+      ],
+      'data-testid': [],
+      'aria-label': [],
+    };
+
     ['className', 'data-testid', 'aria-label'].forEach((attribute) => {
       expect(literalAttributeValues(currentPage, attribute))
-        .toEqual(literalAttributeValues(oldPage, attribute));
+        .toEqual([
+          ...literalAttributeValues(oldPage, attribute),
+          ...DESKTOP_ADOPTION_ADDITIONS[attribute],
+        ].sort());
       expect(literalAttributeValues(currentMobile, attribute))
         .toEqual(literalAttributeValues(oldMobile, attribute));
     });
@@ -262,7 +279,13 @@ describe('SupportTicketsPage canonical source contract', () => {
     // list/stats/loading/error useState setters are gone, but every governance guard
     // below is preserved.
     expect(page).toContain('useSupportTicketsQuery(queryFilter)');
-    expect(page).toContain('statsFilter: getSupportStatsFilters(routeFilters)');
+    // Schema adoption 2026-07-16: statsFilter is built from the SHEET filters
+    // (pre-KPI). For status KPIs this is byte-equivalent to the old
+    // getSupportStatsFilters(routeFilters) (the KPI only injected status, which
+    // getSupportStatsFilters strips); for the new Urgent chip it keeps the
+    // KPI-injected priority OUT of the stats so every chip keeps its
+    // cross-scope count.
+    expect(page).toContain('statsFilter: getSupportStatsFilters(sheetFilters)');
     expect(page).toContain('stats: supportStats');
     expect(page).toContain('createTicketMutation.mutateAsync(args[0])');
     expect(page).toContain('updateTicketMutation.mutateAsync({ id: args[0], ...args[1] })');
@@ -441,6 +464,64 @@ describe('SupportTicketsPage canonical source contract', () => {
     expect(mobile).toContain('store.pages.set(normalizedPage');
     expect(mobile).toContain('store.deletedIds.has(id)');
     expect(mobile).toContain('confirmedDeletedTicketIds = EMPTY_TICKET_IDS');
+  });
+
+  it('surfaces resolved names, the urgent count, and open-age as READ-ONLY schema adoption (ADOPT-24/25/47/48)', () => {
+    const model = modelSource();
+    const controller = controllerSource();
+    const rail = detailRailSource();
+    const list = ticketListSource();
+    const service = serviceSource();
+
+    // ADOPT-24/25 projection boundary: the page read batches ONE profiles read
+    // and ONE organizations read for the landed window (organizations->wallets
+    // JS-map donor pattern) and maps names onto the normalized rows. Read-only:
+    // no write service function changed (asserted below by the untouched
+    // fail-closed pins).
+    expect(service).toContain("supabase.from('profiles').select('id, full_name, first_name, last_name, email').in('id', profileIds)");
+    expect(service).toContain("supabase.from('organizations').select('id, name').in('id', organizationIds)");
+    expect(service).toContain('attachSupportTicketNames(normalizedTickets, nameMaps)');
+    // Non-fatal resolution: unresolved names stay null, the page still loads.
+    expect(service).toContain('Error resolving support ticket names:');
+
+    // Honest labels: null resolution renders Unknown/Unassigned, never a
+    // fabricated name; the bindings reach both the rail and the list row.
+    expect(model).toContain("'Unassigned'");
+    expect(model).toContain("'Unknown assignee'");
+    expect(model).toContain("'Unknown requester'");
+    expect(rail).toContain('value={getSupportRequesterLabel(ticket)}');
+    expect(rail).toContain('value={getSupportAssigneeLabel(ticket)}');
+    expect(rail).toContain("value={ticket.organization_name || 'Unknown organization'}");
+    expect(list).toContain('getSupportAssigneeLabel(ticket)');
+    expect(list).toContain('{assigneeLabel}');
+
+    // ADOPT-24 read-only assignment scope: 'me' maps to the whitelisted
+    // assigned_to eq filter with the signed-in profile id; nothing writes.
+    expect(model).toContain("{ value: 'me', label: 'Assigned to me' }");
+    expect(model).toContain("assignedScope === 'me' && viewerId");
+    expect(controller).toContain('viewerId: profile?.id || null');
+
+    // ADOPT-47: the urgent count the stats projection ALREADY computed is
+    // surfaced through the KPI-chip grammar, and the chip scopes by
+    // priority=urgent -- never by an invented status enum (the status
+    // normalizer fails hard on unknown values).
+    expect(model).toContain("countKey: 'urgent'");
+    expect(model).toContain("kpiFilter === 'urgent'");
+    expect(model).toContain("{ priority: 'urgent' }");
+
+    // ADOPT-48: created age display ("open 6d") on the list row and the rail
+    // Created line. The page keeps its ONE sortable Time header (Updated) --
+    // the estate law forbids a second SortableColumnHeader, so created_at
+    // stays a display, not a second sort trigger.
+    expect(model).toContain('export const getSupportOpenAge');
+    expect(list).toContain('getSupportOpenAge(ticket)');
+    expect(list).toContain('{openAge}');
+    expect(rail).toContain('getSupportOpenAge(ticket)');
+    // The age must actually REACH the rail's Created render, not just be
+    // computed: createdValue appends it and the Created DetailLine binds it.
+    expect(rail).toContain("openAge ? ' \\u00b7 ' + openAge : ''");
+    expect(rail).toContain('value={createdValue}');
+    expect((list.match(/<SortableColumnHeader/g) || []).length).toBe(1);
   });
 
   it('labels Support analytics as a visible-page projection without fake high or timing values', () => {

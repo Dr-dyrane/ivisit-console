@@ -22,7 +22,7 @@ import {
   formatOrganizationDate,
   formatOrganizationWallet,
   getOrganizationStateCount,
-  getOrganizationStatusMeta,
+  getOrganizationVerificationMeta,
 } from './organizationPageModel';
 import {
   getOrganizationSignal,
@@ -54,7 +54,7 @@ const OrganizationsListHeader = ({
       />
     )}
     <span>Name</span>
-    <span>Status</span>
+    <span>Verification</span>
     <span>Wallet</span>
     <SortableColumnHeader
       label="Added"
@@ -77,7 +77,9 @@ const OrganizationRow = ({
   onView,
   activeActionFeedback,
 }) => {
-  const statusMeta = getOrganizationStatusMeta(!!organization.is_active);
+  // ADOPT-26: row status is the live organizations.verification_status gate
+  // (dispatch requires 'verified'), not the degenerate is_active flag.
+  const verificationMeta = getOrganizationVerificationMeta(organization);
   const name = organization.name || 'Unnamed organization';
 
   return (
@@ -103,7 +105,7 @@ const OrganizationRow = ({
       )}
 
       <div className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${statusMeta.tone}`}>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-icon ${verificationMeta.tone}`}>
           <Building2 className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -120,11 +122,11 @@ const OrganizationRow = ({
       </div>
 
       <div className="min-w-0">
-        <StatusPill label={statusMeta.label} className={statusMeta.tone} compact />
+        <StatusPill label={verificationMeta.label} className={verificationMeta.tone} compact />
       </div>
 
       <div className="text-sm font-medium text-muted-foreground">
-        {formatOrganizationWallet(organization.wallet_balance)}
+        {formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)}
       </div>
 
       <div className="text-sm font-medium text-muted-foreground">

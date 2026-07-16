@@ -86,7 +86,9 @@ describe('ambulance page query cancellation', () => {
     const result = await getAmbulancesPageData();
 
     expect(result.data[0]).toMatchObject({ hospital: 'Central', station_name: 'Central' });
-    expect(queryStates).toHaveLength(8);
+    // 11 = list + exact count + 8 status head-counts (ADOPT-38 added exact
+    // returning/offline/pending_approval counts) + hospitals enrichment.
+    expect(queryStates).toHaveLength(11);
     expect(queryStates.every((state) => state.signal instanceof AbortSignal)).toBe(true);
     expect(new Set(queryStates.map((state) => state.signal)).size).toBe(1);
   });
@@ -102,11 +104,13 @@ describe('ambulance page query cancellation', () => {
     });
     await flushMicrotasks();
 
-    expect(queryStates).toHaveLength(7);
+    // 10 = list + exact count + 8 status head-counts; enrichment never starts
+    // because the deadline aborts first, and no retry may add an 11th.
+    expect(queryStates).toHaveLength(10);
     jest.advanceTimersByTime(8000);
     await rejection;
 
-    expect(queryStates).toHaveLength(7);
+    expect(queryStates).toHaveLength(10);
     expect(queryStates.every((state) => state.signal?.aborted)).toBe(true);
   });
 });

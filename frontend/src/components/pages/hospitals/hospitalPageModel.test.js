@@ -54,6 +54,51 @@ describe('hospital page model characterization', () => {
     expect(getHospitalStateCount({ id: 'all', stats: null, hospitals: rows })).toBe(2);
   });
 
+  it('keys the verified KPI chip to the boolean verified filter, never a status (ADOPT-35)', () => {
+    const query = buildHospitalQueryFilter({
+      filters: { search: 'central' },
+      kpiFilter: 'verified',
+      itemsPerPage: 20,
+      offset: 0,
+      sortConfig: { key: 'created_at', direction: 'desc' },
+    });
+
+    expect(query.filters).toEqual({ search: 'central', verified: true });
+    expect(query.statsFilters).toEqual({ search: 'central' });
+  });
+
+  it('counts the verified state from the exact aggregate, with row truth as fallback (ADOPT-35)', () => {
+    const rows = [
+      { id: 'h1', status: 'available', verified: true },
+      { id: 'h2', status: 'full', verified: false },
+      { id: 'h3', status: 'busy' },
+    ];
+
+    expect(getHospitalStateCount({ id: 'verified', stats: { verified: 9 }, hospitals: rows })).toBe(9);
+    expect(getHospitalStateCount({ id: 'verified', stats: null, hospitals: rows })).toBe(1);
+  });
+
+  it('projects the verified hero signal with honest zero copy (ADOPT-35)', () => {
+    expect(getHospitalSignal({
+      stats: { verified: 3 },
+      hospitals: [],
+      kpiFilter: 'verified',
+      loadError: null,
+    })).toMatchObject({
+      iconKey: 'verified',
+      tone: 'primary',
+      label: 'Verified',
+      headline: '3 verified hospitals',
+    });
+
+    expect(getHospitalSignal({
+      stats: { verified: 0 },
+      hospitals: [],
+      kpiFilter: 'verified',
+      loadError: null,
+    })).toMatchObject({ headline: 'No verified hospitals' });
+  });
+
   it('does not turn a failed empty read into a reassuring zero signal', () => {
     expect(getHospitalSignal({
       stats: null,
@@ -197,6 +242,25 @@ describe('hospital page model characterization', () => {
 
     expect(getHospitalRailModel({ id: 'h-bare' }, null))
       .toMatchObject({ demo: false, kindKey: null, sourceKey: null });
+  });
+
+  it('surfaces availability freshness and record recency through the shared relative formatter (ADOPT-36)', () => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60000).toISOString();
+    const twoHoursAgo = new Date(Date.now() - 2 * 3600000).toISOString();
+
+    expect(getHospitalRailModel({
+      id: 'h-times',
+      last_availability_update: fiveMinutesAgo,
+      updated_at: twoHoursAgo,
+    }, null)).toMatchObject({
+      availabilityUpdatedValue: '5m ago',
+      recordUpdatedValue: '2h ago',
+    });
+
+    expect(getHospitalRailModel({ id: 'h-untimed' }, null)).toMatchObject({
+      availabilityUpdatedValue: 'Unknown',
+      recordUpdatedValue: 'Unknown',
+    });
   });
 
   it('keeps missing wait and filter state honest', () => {

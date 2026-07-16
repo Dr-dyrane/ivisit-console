@@ -6,6 +6,8 @@ import {
   Edit,
   Eye,
   Info,
+  ListChecks,
+  LogIn,
   Mail,
   Phone,
   Shield,
@@ -13,7 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
-import { CopyChip, DetailLine, Shimmer } from '../../console/primitives';
+import { CopyChip, DetailLine, Shimmer, StatusPill } from '../../console/primitives';
 import { Button } from '../../ui/button';
 import {
   formatJoinedDate,
@@ -90,9 +92,15 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
                 <CopyChip value={projection.displayId} label="Copy user ID" />
               </div>
             )}
-            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${projection.roleMeta.tone}`}>
-              <Shield className="h-3.5 w-3.5" />
-              {projection.roleMeta.label}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <StatusPill label={projection.roleMeta.label} icon={Shield} className={projection.roleMeta.tone} />
+              {projection.onboardingMeta && (
+                <StatusPill
+                  label={projection.onboardingMeta.label}
+                  icon={ListChecks}
+                  className={projection.onboardingMeta.tone}
+                />
+              )}
             </div>
           </div>
           <Button
@@ -131,6 +139,9 @@ export const UsersDetailRail = ({ user, loading, hasFilter, canManage, onView, o
         />
         <DetailLine icon={Building2} label="Organization" value={projection.organization} />
         <DetailLine icon={Clock} label="Joined" value={formatJoinedDate(projection.joined)} />
+        {projection.lastSignIn && (
+          <DetailLine icon={LogIn} label="Last sign-in" value={projection.lastSignIn} />
+        )}
       </div>
 
       <div className="mt-5 space-y-2.5">

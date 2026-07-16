@@ -1,4 +1,4 @@
-import { AlertCircle, Ambulance, Bed, Hospital, MapPin } from 'lucide-react';
+import { AlertCircle, Ambulance, BadgeCheck, Bed, Hospital, MapPin } from 'lucide-react';
 
 export const hospitalStateOptions = [
   {
@@ -37,6 +37,16 @@ export const hospitalStateOptions = [
     colorClass: 'text-cyan-600 dark:text-cyan-200',
     activeClass: 'bg-cyan-500/10 text-cyan-800 shadow-e2 dark:text-cyan-100',
   },
+  // ADOPT-35: sky mirrors the existing verified pill/badge grammar (BadgeCheck).
+  {
+    id: 'verified',
+    label: 'Verified',
+    icon: BadgeCheck,
+    countKey: 'verified',
+    tone: 'primary',
+    colorClass: 'text-sky-600 dark:text-sky-200',
+    activeClass: 'bg-sky-500/10 text-sky-800 shadow-e2 dark:text-sky-100',
+  },
 ];
 
 export const hospitalToneClass = {
@@ -72,6 +82,7 @@ export const hospitalSignalIcon = {
   available: MapPin,
   full: Bed,
   busy: Ambulance,
+  verified: BadgeCheck,
 };
 
 // Facility-kind labels: keys mirror the hospitals.provider_type CHECK domain

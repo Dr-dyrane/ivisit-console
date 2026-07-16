@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   AlertCircle,
+  Building2,
   ChevronRight,
   Clock,
   Edit,
@@ -12,6 +13,8 @@ import {
   Plus,
   Tag,
   Trash2,
+  User,
+  UserCheck,
   UserPlus,
 } from 'lucide-react';
 import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
@@ -19,7 +22,10 @@ import { CopyChip, DetailLine, Shimmer } from '../../console/primitives';
 import { Button } from '../../ui/button';
 import {
   formatSupportDate,
+  getSupportAssigneeLabel,
+  getSupportOpenAge,
   getSupportPriorityMeta,
+  getSupportRequesterLabel,
   getSupportStatusMeta,
   titleCase,
 } from './supportTicketsModel';
@@ -100,6 +106,8 @@ export const SupportDetailRail = ({
   const statusMeta = getSupportStatusMeta(ticket.status);
   const priorityMeta = getSupportPriorityMeta(ticket.priority);
   const displayId = ticket.display_id || (ticket.id ? `Request ${String(ticket.id).slice(0, 8)}` : null);
+  const openAge = getSupportOpenAge(ticket);
+  const createdValue = `${formatSupportDate(ticket.created_at)}${openAge ? ' \u00b7 ' + openAge : ''}`;
 
   return (
     <DetailRailShell embedded={embedded}>
@@ -139,7 +147,12 @@ export const SupportDetailRail = ({
         <DetailLine icon={AlertCircle} label="Status" value={statusMeta.label} />
         <DetailLine icon={Flag} label="Priority" value={priorityMeta.label} />
         <DetailLine icon={Tag} label="Category" value={titleCase(ticket.category || 'general')} />
-        <DetailLine icon={Clock} label="Created" value={formatSupportDate(ticket.created_at)} />
+        <DetailLine icon={User} label="Requester" value={getSupportRequesterLabel(ticket)} />
+        <DetailLine icon={UserCheck} label="Assigned to" value={getSupportAssigneeLabel(ticket)} />
+        {ticket.organization_id && (
+          <DetailLine icon={Building2} label="Organization" value={ticket.organization_name || 'Unknown organization'} />
+        )}
+        <DetailLine icon={Clock} label="Created" value={createdValue} />
         <DetailLine icon={Clock} label="Updated" value={formatSupportDate(ticket.updated_at || ticket.created_at)} />
       </div>
 

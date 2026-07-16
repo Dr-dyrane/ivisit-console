@@ -1,3 +1,11 @@
+import { HelpCircle } from 'lucide-react';
+import {
+  getApprovalIcon,
+  getApprovalLabel,
+  getApprovalStatusKey,
+  getApprovalToneClass,
+} from '../../../constants/verificationStatus';
+
 export const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';
 
 export const ORGANIZATION_PAGE_SIZE = 20;
@@ -113,13 +121,44 @@ export const formatOrganizationType = (value) => {
   return text.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 };
 
-export const formatOrganizationWallet = (value) => {
+// ADOPT-27: the read now carries organization_wallets.currency for each row, so the
+// amount renders in the row's own currency code. When the wallet row (or its currency)
+// is absent the legacy presentation is kept unchanged -- nothing false is added.
+export const formatOrganizationWallet = (value, currency) => {
   if (value == null || value === '') return 'Not available';
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 'Not available';
+  const code = typeof currency === 'string' ? currency.trim().toUpperCase() : '';
+  if (code) return `${code} ${numeric.toLocaleString()}`;
   return `$${numeric.toLocaleString()}`;
 };
 
 export const getOrganizationStatusMeta = (isActive) => (isActive
   ? { label: 'Active', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' }
   : { label: 'Inactive', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' });
+
+// ADOPT-26: organizations.verification_status is a real, live gate -- NOT NULL enum
+// (pending|verified|rejected, migration 20260219000200), populated by the onboarding
+// RPC ('pending' for self-service registrations, backfilled 'verified' for legacy rows)
+// and consumed by dispatch (org resolution requires verification_status = 'verified').
+// Reuse the single approvals vocabulary (constants/verificationStatus.js) so tone and
+// label cannot drift from the Approvals queues. Honest null: an absent value renders
+// Unknown instead of a fabricated Pending.
+export const getOrganizationVerificationMeta = (organization) => {
+  const raw = String(organization?.verification_status ?? '').trim();
+  if (!raw) {
+    return {
+      key: 'unknown',
+      label: 'Unknown',
+      tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+      icon: HelpCircle,
+    };
+  }
+  const key = getApprovalStatusKey(organization, 'organizations');
+  return {
+    key,
+    label: getApprovalLabel(key),
+    tone: getApprovalToneClass(key),
+    icon: getApprovalIcon(key),
+  };
+};

@@ -1,6 +1,7 @@
 import {
   AlertCircle,
   CheckCircle,
+  Flag,
   Headphones,
   Ticket,
 } from 'lucide-react';
@@ -44,15 +45,20 @@ export const SUPPORT_STATUSES = SUPPORT_TICKET_STATUSES.map((value) => ({
 
 export const SUPPORT_CATEGORIES = SUPPORT_TICKET_CATEGORIES;
 
+// 'urgent' is the PRIORITY axis surfaced through the same KPI-chip grammar: the
+// stats projection already computed this count on every page read and discarded
+// it (schema adoption ADOPT-47). Selecting the chip scopes the list by
+// priority=urgent (see buildSupportQueryFilter), never by an invented status.
 export const SUPPORT_KPI_OPTIONS = [
   { id: 'all', label: 'All', icon: Ticket, countKey: 'total', colorClass: 'text-foreground', activeClass: 'bg-foreground/[0.06] text-foreground shadow-e2 dark:bg-white/[0.06]' },
+  { id: 'urgent', label: 'Urgent', icon: Flag, countKey: 'urgent', colorClass: 'text-destructive', activeClass: 'bg-destructive/12 text-destructive shadow-e2' },
   { id: 'open', label: 'Open', icon: AlertCircle, countKey: 'open', colorClass: 'text-amber-700 dark:text-amber-200', activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200' },
   { id: 'in_progress', label: 'Active', icon: Headphones, countKey: 'active', colorClass: 'text-cyan-700 dark:text-cyan-200', activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-e2 dark:text-cyan-200' },
   { id: 'resolved', label: 'Resolved', icon: CheckCircle, countKey: 'resolved', colorClass: 'text-emerald-700 dark:text-emerald-200', activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-e2 dark:text-emerald-200' },
 ];
 
-export const SUPPORT_KPI_IMPORTANCE = { all: 0, open: 1, in_progress: 2, resolved: 3 };
-export const PINNED_SUPPORT_KPI_IDS = ['open', 'in_progress'];
+export const SUPPORT_KPI_IMPORTANCE = { all: 0, urgent: 1, open: 2, in_progress: 3, resolved: 4 };
+export const PINNED_SUPPORT_KPI_IDS = ['urgent', 'open', 'in_progress'];
 
 export const SUPPORT_TONE_CLASS = {
   danger: 'bg-destructive/12 text-destructive shadow-e2',
@@ -82,6 +88,7 @@ export const SUPPORT_GRID_COLS_SELECT = 'grid-cols-[28px_minmax(180px,1.7fr)_min
 
 export const SUPPORT_EMPTY_HEADINGS = {
   all: 'No support requests',
+  urgent: 'No urgent requests',
   open: 'No open requests',
   in_progress: 'Nothing active right now',
   resolved: 'No resolved requests',
@@ -92,6 +99,7 @@ export const EMPTY_SUPPORT_FILTERS = Object.freeze({
   status: [],
   priority: [],
   category: [],
+  assigned: 'all',
   kpiFilter: 'all',
 });
 
@@ -126,6 +134,17 @@ export const SUPPORT_FILTER_SCHEMA = [
       label: titleCase(category),
     })),
   },
+  // Read-only assignment scope (schema adoption ADOPT-24): 'me' maps to an
+  // assigned_to eq filter on the already-whitelisted read path. Nothing writes.
+  {
+    key: 'assigned',
+    type: 'select',
+    label: 'Assignment',
+    options: [
+      { value: 'all', label: 'Anyone' },
+      { value: 'me', label: 'Assigned to me' },
+    ],
+  },
 ];
 
 export const formatSupportDate = (value) => {
@@ -140,6 +159,7 @@ export const hasActiveSupportFilters = (filters = {}, kpiFilter = 'all') => Bool
   || (Array.isArray(filters.status) && filters.status.length > 0)
   || (Array.isArray(filters.priority) && filters.priority.length > 0)
   || (Array.isArray(filters.category) && filters.category.length > 0)
+  || (filters.assigned && filters.assigned !== 'all')
   || (kpiFilter && kpiFilter !== 'all')
 );
 
@@ -159,16 +179,33 @@ export const buildSupportQueryFilter = ({
   limit,
   offset,
   sortConfig,
+  viewerId = null,
 }) => {
-  const routeFilters = {
-    ...filters,
-    ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
-  };
-  delete routeFilters.kpiFilter;
+  const sheetFilters = { ...filters };
+  delete sheetFilters.kpiFilter;
+
+  // Read-only assignment scope: 'me' resolves to the signed-in profile id on
+  // the already-whitelisted assigned_to eq filter. Without a viewer id the
+  // scope is honestly a no-op (never a fabricated match).
+  const assignedScope = sheetFilters.assigned;
+  delete sheetFilters.assigned;
+  if (assignedScope === 'me' && viewerId) {
+    sheetFilters.assigned_to = viewerId;
+  }
+
+  // The KPI axis scopes status chips by status and the Urgent chip by
+  // priority=urgent -- 'urgent' is NOT a status enum and must never reach the
+  // status filter (the service normalizer fails hard on unknown statuses).
+  const kpiScope = kpiFilter === 'urgent'
+    ? { priority: 'urgent' }
+    : (kpiFilter && kpiFilter !== 'all' ? { status: kpiFilter } : {});
+  const routeFilters = { ...sheetFilters, ...kpiScope };
 
   return {
     ...routeFilters,
-    statsFilter: getSupportStatsFilters(routeFilters),
+    // Stats stay KPI-agnostic: sheet filters minus the status axis, and never
+    // the KPI-injected priority (each chip keeps its cross-scope count).
+    statsFilter: getSupportStatsFilters(sheetFilters),
     limit,
     offset,
     sortKey: sortConfig.key,
@@ -190,9 +227,14 @@ export const getSupportPriorityMeta = (priority) => {
 export const getSupportStateCount = ({ id, stats, tickets }) => {
   const rows = Array.isArray(tickets) ? tickets : [];
   const option = SUPPORT_KPI_OPTIONS.find((item) => item.id === id) || SUPPORT_KPI_OPTIONS[0];
-  const fallback = id === 'all'
-    ? rows.length
-    : rows.filter((ticket) => ticket.status === id || (id === 'in_progress' && ticket.status === 'open')).length;
+  let fallback;
+  if (id === 'all') {
+    fallback = rows.length;
+  } else if (id === 'urgent') {
+    fallback = rows.filter((ticket) => ticket.priority === 'urgent').length;
+  } else {
+    fallback = rows.filter((ticket) => ticket.status === id || (id === 'in_progress' && ticket.status === 'open')).length;
+  }
 
   return normalizeSupportCount(stats?.[option.countKey], fallback);
 };
@@ -205,6 +247,16 @@ export const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly, lo
   const option = SUPPORT_KPI_OPTIONS.find((item) => item.id === kpiFilter) || SUPPORT_KPI_OPTIONS[0];
   const count = getSupportStateCount({ id: option.id, stats, tickets });
   const noun = isProviderOnly ? 'support request' : 'ticket';
+
+  if (option.id === 'urgent') {
+    return {
+      icon: Flag,
+      tone: 'danger',
+      label: 'Urgent',
+      headline: count > 0 ? `${count} urgent ${noun}${count === 1 ? '' : 's'}` : 'No urgent requests',
+      subhead: count > 0 ? 'Urgent-priority requests across the current scope.' : 'Urgent-priority requests will appear here.',
+    };
+  }
 
   if (option.id === 'open') {
     return {
@@ -243,6 +295,32 @@ export const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly, lo
     headline: count > 0 ? `${count} support ${count === 1 ? 'request' : 'requests'}` : 'No support requests found',
     subhead: count > 0 ? 'Scan the queue, open one request, then use the proved action.' : 'Create a request or change filters to see support work.',
   };
+};
+
+// Honest label projections over the read-only name resolution (schema adoption
+// ADOPT-24/25). Null resolution renders 'Unknown ...' or the truthful
+// 'Unassigned' state -- never a placeholder that looks like a real name.
+export const getSupportAssigneeLabel = (ticket = {}) => {
+  if (!ticket.assigned_to) return 'Unassigned';
+  return ticket.assignee_name || 'Unknown assignee';
+};
+
+export const getSupportRequesterLabel = (ticket = {}) => (
+  ticket.customer_name || ticket.requester_name || 'Unknown requester'
+);
+
+// Created/age display (schema adoption ADOPT-48): "open 6d" for tickets still
+// in flight. Resolved/closed tickets are not "open", so the age is absent.
+export const getSupportOpenAge = (ticket = {}, now = Date.now()) => {
+  const status = String(ticket.status || '').toLowerCase();
+  if (status !== 'open' && status !== 'in_progress') return null;
+  if (!ticket.created_at) return null;
+  const createdAt = new Date(ticket.created_at).getTime();
+  if (!Number.isFinite(createdAt)) return null;
+  const elapsedMs = now - createdAt;
+  if (elapsedMs < 0) return null;
+  const days = Math.floor(elapsedMs / 86400000);
+  return days < 1 ? 'open <1d' : `open ${days}d`;
 };
 
 export function titleCase(value) {

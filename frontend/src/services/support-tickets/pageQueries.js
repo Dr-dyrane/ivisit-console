@@ -6,6 +6,101 @@ import { SUPPORT_TICKET_SORT_FIELDS, TABLE_NAME } from './constants';
 import { normalizeSupportTicketRow } from './normalization';
 import { applySupportTicketFilters, applySupportTicketScope } from './queryFilters';
 
+// --- Read-only name resolution at the projection boundary (schema adoption, 2026-07-16) ---
+// support_tickets stores bare UUIDs (assigned_to / user_id -> profiles,
+// organization_id -> organizations). Mirroring the organizations->wallets JS-map
+// join, the page projection batches ONE profiles read and ONE organizations read
+// for the landed page window and maps display names onto the normalized rows.
+// Resolution failure is non-fatal: unresolved names stay null and the surfaces
+// render their honest "Unknown ..." labels. No write path changes here.
+
+const toProfileDisplayName = (profile = {}) => {
+  const fullName = String(profile.full_name || '').trim();
+  if (fullName) return fullName;
+  const joinedName = [profile.first_name, profile.last_name]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ');
+  if (joinedName) return joinedName;
+  return String(profile.email || '').trim() || null;
+};
+
+async function resolveSupportTicketNameMaps(tickets, abortSignal, quiet = false) {
+  const profileIds = [...new Set(
+    tickets.flatMap((ticket) => [ticket.assigned_to, ticket.user_id]).filter(Boolean)
+  )];
+  const organizationIds = [...new Set(
+    tickets.map((ticket) => ticket.organization_id).filter(Boolean)
+  )];
+  const profileNames = new Map();
+  const organizationNames = new Map();
+
+  if (profileIds.length === 0 && organizationIds.length === 0) {
+    return { profileNames, organizationNames };
+  }
+
+  try {
+    const [profilesResult, organizationsResult] = await withRetry(async () => {
+      const results = await Promise.all([
+        profileIds.length > 0
+          ? applyQueryAbortSignal(
+            supabase.from('profiles').select('id, full_name, first_name, last_name, email').in('id', profileIds),
+            abortSignal
+          )
+          : Promise.resolve({ data: [], error: null }),
+        organizationIds.length > 0
+          ? applyQueryAbortSignal(
+            supabase.from('organizations').select('id, name').in('id', organizationIds),
+            abortSignal
+          )
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      throwIfQueryAborted(abortSignal);
+      const failed = results.find((result) => result?.error);
+      if (failed) throw failed.error;
+      return results;
+    });
+
+    (profilesResult.data || []).forEach((profile) => {
+      if (profile?.id) profileNames.set(profile.id, toProfileDisplayName(profile));
+    });
+    (organizationsResult.data || []).forEach((organization) => {
+      if (organization?.id) {
+        organizationNames.set(organization.id, String(organization.name || '').trim() || null);
+      }
+    });
+  } catch (error) {
+    throwIfQueryAborted(abortSignal);
+    if (!quiet) {
+      console.error('Error resolving support ticket names:', error);
+    }
+  }
+
+  return { profileNames, organizationNames };
+}
+
+const attachSupportTicketNames = (tickets, { profileNames, organizationNames }) => (
+  tickets.map((ticket) => {
+    const assigneeName = ticket.assigned_to
+      ? (profileNames.get(ticket.assigned_to) || null)
+      : null;
+    const requesterName = (ticket.user_id ? (profileNames.get(ticket.user_id) || null) : null)
+      || ticket.requester_name
+      || null;
+    const organizationName = ticket.organization_id
+      ? (organizationNames.get(ticket.organization_id) || null)
+      : null;
+
+    return {
+      ...ticket,
+      assignee_name: assigneeName,
+      requester_name: requesterName,
+      organization_name: organizationName,
+      customer_name: ticket.customer_name || requesterName,
+    };
+  })
+);
+
 async function getSupportTicketExactCount(filter = {}, quiet = false, scopedUser, abortSignal) {
   try {
     throwIfQueryAborted(abortSignal);
@@ -96,8 +191,16 @@ export async function getSupportTicketsPage(filter = {}) {
 
     if (error) throw error;
 
+    const normalizedTickets = (data || []).map(normalizeSupportTicketRow);
+    const nameMaps = await resolveSupportTicketNameMaps(
+      normalizedTickets,
+      abortSignal,
+      Boolean(filter?.quiet)
+    );
+    throwIfQueryAborted(abortSignal);
+
     return {
-      data: (data || []).map(normalizeSupportTicketRow),
+      data: attachSupportTicketNames(normalizedTickets, nameMaps),
       count: count || 0,
       stats,
     };

@@ -10,6 +10,7 @@ import {
   Edit,
   Eye,
   Globe,
+  History,
   Hospital,
   MapPin,
   Phone,
@@ -160,7 +161,10 @@ export const HospitalDetailRail = ({
           <DetailLine icon={Stethoscope} label="Kind" value={kindValue} />
           <DetailLine icon={Globe} label="Source" value={sourceValue} />
           <DetailLine icon={Tag} label="Price" value={hospital.price_range || 'Not set'} />
-          <DetailLine icon={Clock} label="Updated" value={hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'} />
+          {/* ADOPT-36: availability freshness and record recency are separate
+              truths; both ride the shared relative-time formatter. */}
+          <DetailLine icon={Clock} label="Availability" value={model.availabilityUpdatedValue} />
+          <DetailLine icon={History} label="Record updated" value={model.recordUpdatedValue} />
           <DetailLine
             icon={MapPin}
             label="Location"

@@ -5,6 +5,7 @@ import {
   formatOrganizationType,
   formatOrganizationWallet,
   getOrganizationStateCount,
+  getOrganizationVerificationMeta,
   hasActiveOrganizationFilters,
   isOrganizationFunded,
 } from './organizationPageModel';
@@ -88,6 +89,44 @@ describe('organization page model characterization', () => {
     expect(formatOrganizationType(null)).toBe('Unknown');
     expect(formatOrganizationType(undefined)).toBe('Unknown');
     expect(formatOrganizationType('   ')).toBe('Unknown');
+  });
+
+  // ADOPT-26: organizations.verification_status is the live tri-state gate the
+  // dispatch RPC consumes; the row/rail status binds to it through the shared
+  // approvals vocabulary. Honest null: an absent value reads Unknown, never a
+  // fabricated Pending.
+  it('maps the live verification_status enum through the approvals vocabulary with honest nulls', () => {
+    expect(getOrganizationVerificationMeta({ verification_status: 'verified' })).toMatchObject({
+      key: 'approved',
+      label: 'Approved',
+    });
+    expect(getOrganizationVerificationMeta({ verification_status: 'pending' })).toMatchObject({
+      key: 'pending',
+      label: 'Pending review',
+    });
+    expect(getOrganizationVerificationMeta({ verification_status: 'rejected' })).toMatchObject({
+      key: 'rejected',
+      label: 'Rejected',
+    });
+    expect(getOrganizationVerificationMeta({ verification_status: 'rejected' }).tone).toContain('destructive');
+    expect(getOrganizationVerificationMeta({})).toMatchObject({ key: 'unknown', label: 'Unknown' });
+    expect(getOrganizationVerificationMeta(null)).toMatchObject({ key: 'unknown', label: 'Unknown' });
+    expect(getOrganizationVerificationMeta({ verification_status: '   ' })).toMatchObject({
+      key: 'unknown',
+      label: 'Unknown',
+    });
+  });
+
+  // ADOPT-27: the read carries organization_wallets.currency; the amount renders in the
+  // row's own currency code. Null currency keeps the legacy presentation unchanged.
+  it('renders the wallet amount in the row currency and keeps the legacy fallback honest', () => {
+    expect(formatOrganizationWallet(1500, 'NGN')).toBe('NGN 1,500');
+    expect(formatOrganizationWallet('10', 'usd')).toBe('USD 10');
+    expect(formatOrganizationWallet('10', null)).toBe('$10');
+    expect(formatOrganizationWallet('10', '   ')).toBe('$10');
+    expect(formatOrganizationWallet(10)).toBe('$10');
+    expect(formatOrganizationWallet(null, 'NGN')).toBe('Not available');
+    expect(formatOrganizationWallet('not-a-number', 'NGN')).toBe('Not available');
   });
 
   it('keeps failed empty reads distinct from a reassuring zero registry', () => {

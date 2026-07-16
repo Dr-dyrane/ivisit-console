@@ -6,6 +6,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
+import { formatRelativeTime } from '../../../utils/activityUtils';
 
 export const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';
 
@@ -29,6 +30,35 @@ export const getRoleMeta = (role) => {
     label: titleCase(role) || 'Unknown',
     tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
   };
+};
+
+// ADOPT-44: profiles.onboarding_status vocabulary is pending/complete/skipped
+// (DB CHECK in 20260219000100_identity.sql). Null/empty resolves to null so the
+// surfaces render an honest absence; unknown values render as their raw
+// humanized key in a muted tone, never coerced to a known-looking state.
+const ONBOARDING_STATUS_META = {
+  pending: { label: 'Onboarding pending', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200' },
+  complete: { label: 'Onboarding complete', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' },
+  skipped: { label: 'Onboarding skipped', tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]' },
+};
+
+export const getOnboardingStatusMeta = (value) => {
+  const key = String(value || '').trim().toLowerCase();
+  if (!key) return null;
+  return ONBOARDING_STATUS_META[key] || {
+    label: `Onboarding ${key.replace(/_/g, ' ')}`,
+    tone: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+  };
+};
+
+// ADOPT-29: auth.users.last_sign_in_at arrives only when the admin-gated
+// get_all_auth_users read succeeds; unparseable or missing values resolve to
+// null so the rail and panel stay honestly absent instead of guessing.
+export const formatLastSignIn = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return formatRelativeTime(value);
 };
 
 export const getProviderTypeIcon = (providerType) => {
@@ -96,6 +126,17 @@ export const USERS_FILTER_SCHEMA = [
     ],
   },
   {
+    key: 'onboarding_status',
+    type: 'select',
+    label: 'Onboarding',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'complete', label: 'Complete' },
+      { value: 'skipped', label: 'Skipped' },
+    ],
+  },
+  {
     key: 'provider_type',
     type: 'multiselect',
     label: 'Provider type',
@@ -137,8 +178,16 @@ export const getUsersProjection = (user, organizationsMap = {}) => {
       : 'Independent'),
     displayId: user?.display_id || null,
     joined: user?.created_at,
+    onboardingMeta: getOnboardingStatusMeta(user?.onboarding_status),
+    lastSignIn: formatLastSignIn(user?.last_sign_in_at),
   };
 };
+
+export const resolveUsersVerifiedFilter = (filters = {}) => (
+  filters.bvn_verified === 'verified'
+    ? true
+    : (filters.bvn_verified === 'unverified' ? false : undefined)
+);
 
 export const resolveUsersRoleFilter = (filters = {}) => {
   const sheetRoles = Array.isArray(filters.role)
@@ -155,6 +204,7 @@ export const hasActiveUserFilters = (filters = {}) => Boolean(
   || (Array.isArray(filters.role) && filters.role.length > 0)
   || (Array.isArray(filters.provider_type) && filters.provider_type.length > 0)
   || (filters.bvn_verified && filters.bvn_verified !== 'all')
+  || (filters.onboarding_status && filters.onboarding_status !== 'all')
   || (filters.created_at && (filters.created_at.start || filters.created_at.end))
 );
 

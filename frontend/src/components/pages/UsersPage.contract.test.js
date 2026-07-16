@@ -189,6 +189,57 @@ describe('Users Page 14 identity contract', () => {
     expect(model).not.toContain('recentSignups');
   });
 
+  it('surfaces sign-in recency through the existing admin-gated read, honest-absent otherwise', () => {
+    const readSource = read('src/services/profiles/usersPageRead.js');
+    const detailRail = read('src/components/pages/users/UsersDetailRail.jsx');
+    const page = read('src/components/pages/UsersPage.jsx');
+    const panel = read('src/components/context/UsersPanel.jsx');
+
+    // ADOPT-29 wiring: the page read enriches rows from the EXISTING
+    // get_all_auth_users RPC (no new RPC), mirroring its role gate, and any
+    // failure leaves rows without the field instead of fabricating one.
+    expect(readSource).toContain("const AUTH_ENRICHED_ROLES = new Set(['admin', 'org_admin', 'dispatcher']);");
+    expect(readSource).toContain("supabase.rpc('get_all_auth_users', {");
+    expect(readSource).toContain('if (error || !Array.isArray(data)) return rows;');
+    expect(readSource).toContain("signIns.has(row.id) ? { ...row, last_sign_in_at: signIns.get(row.id) } : row");
+    expect(readSource).toContain('enriched = await attachLastSignIn(enriched, user);');
+
+    // The rail renders the projected relative time only when it resolved.
+    expect(detailRail).toContain('{projection.lastSignIn && (');
+    expect(detailRail).toContain('<DetailLine icon={LogIn} label="Last sign-in" value={projection.lastSignIn} />');
+
+    // The context panel dead-end is closed: the published route context feeds
+    // the existing last_sign_in_at renderer from the same enriched rows.
+    expect(page).toContain('recent: userRows.slice(0, 5)');
+    expect(panel).toContain('const signIn = formatSignIn(user?.last_sign_in_at);');
+  });
+
+  it('surfaces the onboarding_status vocabulary as pill and read filter without coercion', () => {
+    const model = read('src/components/pages/users/usersPageModel.js');
+    const detailRail = read('src/components/pages/users/UsersDetailRail.jsx');
+    const page = read('src/components/pages/UsersPage.jsx');
+    const readSource = read('src/services/profiles/usersPageRead.js');
+
+    // ADOPT-44: DB CHECK vocabulary only; unknown keys humanize, null absents.
+    for (const status of ['pending', 'complete', 'skipped']) {
+      expect(model).toContain(`{ value: '${status}', label: '${status[0].toUpperCase()}${status.slice(1)}' }`);
+    }
+    expect(model).toContain("key: 'onboarding_status',");
+    expect(model).toContain('label: `Onboarding ${key.replace(/_/g, \' \')}`');
+    expect(model).toContain("onboardingMeta: getOnboardingStatusMeta(user?.onboarding_status)");
+    expect(model).toContain("|| (filters.onboarding_status && filters.onboarding_status !== 'all')");
+
+    // Pill binding reaches the rail render and stays absent on null.
+    expect(detailRail).toContain('{projection.onboardingMeta && (');
+    expect(detailRail).toContain('label={projection.onboardingMeta.label}');
+    expect(detailRail).toContain('className={projection.onboardingMeta.tone}');
+
+    // The sheet filter reaches the server read, read-only.
+    expect(page).toContain('onboarding_status: filters.onboarding_status,');
+    expect(readSource).toContain("if (filter.onboarding_status && filter.onboarding_status !== 'all') {");
+    expect(readSource).toContain("query.eq('onboarding_status', filter.onboarding_status);");
+  });
+
   it('keeps data acquisition route-owned and deletion unavailable on both layouts', () => {
     const pageDataAccess = read('src/config/pageDataAccess.js');
     const page = pageSource();

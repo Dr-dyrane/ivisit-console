@@ -232,4 +232,51 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(model).toContain('export const formatOrganizationType');
     expect(model).toContain("if (!text) return 'Unknown';");
   });
+
+  // ADOPT-26: organizations.verification_status is a real, live gate (NOT NULL enum,
+  // migration 20260219000200: legacy rows backfilled 'verified', self-service inserts
+  // 'pending'; the dispatch RPC requires verification_status = 'verified'). The desktop
+  // row and rail status bind to it via the shared approvals vocabulary and drop the
+  // degenerate is_active pill. Honest null renders Unknown.
+  it('binds the desktop row and rail status to the live verification_status gate', () => {
+    const rail = read('src/components/pages/organizations/OrganizationDetailRail.jsx');
+    const workspace = read('src/components/pages/organizations/OrganizationsDesktopWorkspace.jsx');
+    const model = read('src/components/pages/organizations/organizationPageModel.js');
+
+    expect(model).toContain('export const getOrganizationVerificationMeta');
+    expect(model).toContain("getApprovalStatusKey(organization, 'organizations')");
+    expect(model).toContain("label: 'Unknown',");
+
+    expect(rail).toContain('const verificationMeta = getOrganizationVerificationMeta(organization);');
+    expect(rail).toContain('{verificationMeta.label}');
+    expect(rail).toContain('<DetailLine icon={ShieldCheck} label="Verification" value={verificationMeta.label} />');
+    expect(rail).toContain('formatOrganizationDate(organization.verified_at)');
+    expect(rail).toContain('{organization.rejection_reason && (');
+    expect(rail).toContain('<DetailLine icon={AlertCircle} label="Rejection reason" value={organization.rejection_reason} />');
+    expect(rail).not.toContain('organization.is_active');
+
+    expect(workspace).toContain('const verificationMeta = getOrganizationVerificationMeta(organization);');
+    expect(workspace).toContain('<StatusPill label={verificationMeta.label} className={verificationMeta.tone} compact />');
+    expect(workspace).toContain('<span>Verification</span>');
+    expect(workspace).not.toContain('organization.is_active');
+  });
+
+  // ADOPT-27: the wallet join used to drop everything but balance. The read now carries
+  // organization_wallets.currency and updated_at, the amount renders in the row's own
+  // currency (null currency keeps the legacy presentation), and the rail shows wallet
+  // freshness only when a wallet row exists.
+  it('carries wallet currency and freshness from the read through to the rendered rail and row', () => {
+    const service = read('src/services/organizationsService.js');
+    const rail = read('src/components/pages/organizations/OrganizationDetailRail.jsx');
+    const workspace = read('src/components/pages/organizations/OrganizationsDesktopWorkspace.jsx');
+
+    expect(service).toContain(".select('organization_id, balance, currency, updated_at', { count: 'exact' })");
+    expect(service).toContain('wallet_currency: walletMeta?.currency ?? null,');
+    expect(service).toContain('wallet_updated_at: walletMeta?.updated_at ?? null,');
+
+    expect(rail).toContain('formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)');
+    expect(rail).toContain('{organization.wallet_updated_at && (');
+    expect(rail).toContain('<DetailLine icon={History} label="Wallet updated" value={formatOrganizationDate(organization.wallet_updated_at)} />');
+    expect(workspace).toContain('formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)');
+  });
 });

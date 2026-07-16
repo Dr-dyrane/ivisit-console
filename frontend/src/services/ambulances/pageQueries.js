@@ -62,12 +62,28 @@ async function getAmbulancePageStats(user, filters = {}, abortSignal) {
     return applyQueryAbortSignal(query, abortSignal);
   };
 
-  const [total, available, onRoute, busy, maintenance] = await Promise.all([
+  // ADOPT-38 (read-only): returning/offline/pending_approval are in the DB
+  // status CHECK domain and VALID_AMBULANCE_STATUSES but had no exact counts,
+  // so their KPI chips could not render honest fleet-wide numbers. Same
+  // head-count read as the existing states; no write path is touched.
+  const [
+    total,
+    available,
+    onRoute,
+    busy,
+    maintenance,
+    returning,
+    offline,
+    pendingApproval,
+  ] = await Promise.all([
     readAmbulanceCount(createCountQuery(filters.status)),
     readAmbulanceCount(createCountQuery('available')),
     readAmbulanceCount(createCountQuery('en_route')),
     readAmbulanceCount(createCountQuery(ACTIVE_AMBULANCE_STATUSES)),
     readAmbulanceCount(createCountQuery('maintenance')),
+    readAmbulanceCount(createCountQuery('returning')),
+    readAmbulanceCount(createCountQuery('offline')),
+    readAmbulanceCount(createCountQuery('pending_approval')),
   ]);
 
   return {
@@ -76,6 +92,9 @@ async function getAmbulancePageStats(user, filters = {}, abortSignal) {
     onRoute,
     busy,
     maintenance,
+    returning,
+    offline,
+    pendingApproval,
     exactCounts: true,
     source: 'ambulances.status',
   };

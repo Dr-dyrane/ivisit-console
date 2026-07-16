@@ -225,7 +225,9 @@ export const HospitalCapacitySection = ({
                       </Badge>
                     </div>
                     <div className="space-y-1 text-xs text-muted-foreground">
-                      {reservation.bed_category && <div>Bed: {reservation.bed_category}</div>}
+                      {/* ADOPT-37: emergency_requests carries bed_type; the old
+                          bed_category key never exists on these raw rows. */}
+                      {reservation.bed_type && <div>Bed: {reservation.bed_type}</div>}
                       {reservation.bed_number && <div>Room: {reservation.bed_number}</div>}
                       <div>Reserved: {new Date(reservation.reserved_at).toLocaleString()}</div>
                     </div>

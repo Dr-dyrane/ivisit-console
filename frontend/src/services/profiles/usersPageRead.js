@@ -20,6 +20,9 @@ function applyUserListFilters(query, filter = {}) {
   if (filter.verified !== undefined) {
     query = query.eq('bvn_verified', filter.verified);
   }
+  if (filter.onboarding_status && filter.onboarding_status !== 'all') {
+    query = query.eq('onboarding_status', filter.onboarding_status);
+  }
   if (filter.search) {
     const search = String(filter.search).replace(/[%_,]/g, ' ').trim();
     if (search) {
@@ -36,6 +39,32 @@ function applyUserListFilters(query, filter = {}) {
     query = query.lte('created_at', new Date(`${range.end}T23:59:59.999Z`).toISOString());
   }
   return query;
+}
+
+// ADOPT-29: surface auth.users.last_sign_in_at on the page rows via the
+// EXISTING admin-gated get_all_auth_users read (the RPC raises for any role
+// outside admin/org_admin/dispatcher, so the attempt mirrors the same gate
+// getProfiles uses for includeAuthData). Enrichment is read-only and
+// fail-open to absence: any error, refusal, or non-array payload leaves the
+// rows without the field so the UI renders an honest absence, never a
+// fabricated sign-in time. Org actors keep their own organization scope.
+const AUTH_ENRICHED_ROLES = new Set(['admin', 'org_admin', 'dispatcher']);
+
+async function attachLastSignIn(rows, user) {
+  if (!Array.isArray(rows) || rows.length === 0) return rows;
+  if (!AUTH_ENRICHED_ROLES.has(user?.role)) return rows;
+  try {
+    const { data, error } = await supabase.rpc('get_all_auth_users', {
+      p_organization_id: user.role === 'admin' ? null : user.organization_id || null,
+    });
+    if (error || !Array.isArray(data)) return rows;
+    const signIns = new Map(data.map((entry) => [entry.id, entry.last_sign_in_at || null]));
+    return rows.map((row) => (
+      signIns.has(row.id) ? { ...row, last_sign_in_at: signIns.get(row.id) } : row
+    ));
+  } catch {
+    return rows;
+  }
 }
 
 async function getUserExactCount(baseFilter, user, extra) {
@@ -113,6 +142,8 @@ export async function getUsersPage(filter = {}) {
           null,
       }));
     }
+
+    enriched = await attachLastSignIn(enriched, user);
 
     const statsProjection = await getUserPageStats(filter, user, filter.quiet);
     return {

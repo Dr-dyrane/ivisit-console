@@ -153,6 +153,11 @@ describe('ambulances service behavior boundaries', () => {
       { data: null, error: null, count: 2 },
       { data: null, error: null, count: 6 },
       { data: null, error: null, count: 1 },
+      // ADOPT-38: exact counts for the previously dormant DB-domain states --
+      // a zero (pending_approval) stays an honest 0, never a fabricated presence.
+      { data: null, error: null, count: 3 },
+      { data: null, error: null, count: 4 },
+      { data: null, error: null, count: 0 },
       { data: [{ id: HOSPITAL_ID, name: 'Central Station' }], error: null, count: null },
     ];
     const builders = [];
@@ -194,6 +199,9 @@ describe('ambulances service behavior boundaries', () => {
         onRoute: 2,
         busy: 6,
         maintenance: 1,
+        returning: 3,
+        offline: 4,
+        pendingApproval: 0,
         exactCounts: true,
         source: 'ambulances.status',
       },
@@ -221,7 +229,7 @@ describe('ambulances service behavior boundaries', () => {
     expect(countBuilder.select).toHaveBeenCalledWith('*', { count: 'exact', head: true });
     expect(pageBuilder.order).toHaveBeenCalledWith('call_sign', { ascending: true });
     expect(pageBuilder.range).toHaveBeenCalledWith(20, 39);
-    statAndHospitalBuilders.slice(0, 5).forEach((builder) => {
+    statAndHospitalBuilders.slice(0, 8).forEach((builder) => {
       expect(builder.select).toHaveBeenCalledWith('*', { count: 'exact', head: true });
     });
   });

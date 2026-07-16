@@ -34,6 +34,7 @@ export const useSupportTicketsPageController = ({
     status: [],
     priority: [],
     category: [],
+    assigned: 'all',
     kpiFilter: 'all',
   });
   const [kpiFilter, setKpiFilter] = useState('all');
@@ -59,11 +60,13 @@ export const useSupportTicketsPageController = ({
     limit: pagination.itemsPerPage,
     offset: pagination.paginationRange.start,
     sortConfig,
+    viewerId: profile?.id || null,
   }), [
     filters,
     kpiFilter,
     pagination.itemsPerPage,
     pagination.paginationRange.start,
+    profile?.id,
     sortConfig,
   ]);
 
@@ -330,7 +333,7 @@ export const useSupportTicketsPageController = ({
 
   const handleClearFilters = useCallback(() => {
     handleKpiFilterChange('all');
-    handleApplyFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
+    handleApplyFilters({ search: '', status: [], priority: [], category: [], assigned: 'all', kpiFilter: 'all' });
   }, [handleApplyFilters, handleKpiFilterChange]);
 
   useEffect(() => {

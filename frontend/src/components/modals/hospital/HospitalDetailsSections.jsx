@@ -9,7 +9,7 @@ import {
   HOSPITAL_FIELD_CLASS,
   HOSPITAL_SELECT_CONTENT_CLASS,
 } from './hospitalModalModel';
-import { HospitalSection, ReadOnlyField } from './HospitalModalPrimitives';
+import { HospitalSection, ReadOnlyChips, ReadOnlyField } from './HospitalModalPrimitives';
 
 export const HospitalFacilityDetailsSection = ({
   formData,
@@ -131,6 +131,15 @@ export const HospitalFacilityDetailsSection = ({
         )}
       </div>
     </div>
+
+    {/* ADOPT-37: service_types is fetched (select *) but was never rendered.
+        Read-only chips in view mode; no edit surface, the write is untouched. */}
+    {isView && (
+      <div className="mt-4 space-y-2">
+        <Label className="px-1 text-xs font-semibold uppercase text-muted-foreground">Service Types</Label>
+        <ReadOnlyChips values={formData.service_types} />
+      </div>
+    )}
   </HospitalSection>
 );
 

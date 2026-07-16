@@ -5,9 +5,11 @@ import {
   ChevronRight,
   Clock,
   Edit,
+  GraduationCap,
   Hospital,
   Info,
   MapPin,
+  Phone,
   Plus,
   Siren,
   Stethoscope,
@@ -48,6 +50,12 @@ import {
   getVisitFacilityLabel,
   getVisitPatientLabel,
 } from '../../../utils/visitRowProjection';
+import {
+  getScheduledClinicalWindow,
+  getScheduledLifecycleChip,
+  getVisitCareTeamMeta,
+  getVisitPatientContact,
+} from './visitEvidencePresentation';
 import {
   PINNED_VISIT_STATE_IDS,
   VISIT_EMPTY_HEADINGS,
@@ -448,6 +456,12 @@ export const VisitsDetailRail = ({
     ? formatVisitInFacilityTimezone(visit)
     : formatDayTime(visit.date || visit.created_at);
   const careTeam = getVisitCareTeamDisplay(visit);
+  // ADOPT-33/34 read-surfacing: already-fetched lifecycle, window, and
+  // contact/specialty truth; each renders only when the join data arrived.
+  const lifecycleChip = getScheduledLifecycleChip(visit);
+  const clinicalWindow = getScheduledClinicalWindow(visit);
+  const patientContact = getVisitPatientContact(visit);
+  const careTeamMeta = getVisitCareTeamMeta(visit);
   const viewOpening = activeActionFeedback === `view-${visit.id}`;
   const editOpening = activeActionFeedback === `edit-${visit.id}`;
 
@@ -463,12 +477,21 @@ export const VisitsDetailRail = ({
                 <CopyChip value={displayId} label="Copy record ID" />
               </div>
             )}
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <StatusPill
                 icon={StatusIcon}
                 label={visitStatusLabel[statusKey] || statusKey}
                 className={visitStatusPillClass[statusKey] || visitStatusPillClass.scheduled}
               />
+              {lifecycleChip && (
+                <span data-testid="visit-lifecycle-chip">
+                  <StatusPill
+                    compact
+                    label={lifecycleChip.chipLabel}
+                    className={lifecycleChip.className}
+                  />
+                </span>
+              )}
             </div>
             <StageStrip
               order={VISIT_STAGE_ORDER}
@@ -506,9 +529,21 @@ export const VisitsDetailRail = ({
       <div className="space-y-3">
         <DetailLine icon={Calendar} label={visit.sourceKind === 'scheduled_visit' ? 'Care mode' : 'Type'} value={visit.sourceKind === 'scheduled_visit' ? visit.careModeLabel : formatVisitType(visit)} />
         <DetailLine icon={careTeam.kind === 'responder' ? Siren : Stethoscope} label={careTeam.detailLabel} value={careTeam.name} />
+        {careTeamMeta.specialty && (
+          <DetailLine icon={GraduationCap} label="Specialty" value={careTeamMeta.specialty} />
+        )}
+        {careTeamMeta.contact && (
+          <DetailLine icon={Phone} label="Responder contact" value={careTeamMeta.contact} />
+        )}
+        {patientContact && (
+          <DetailLine icon={Phone} label="Patient contact" value={patientContact} />
+        )}
         <DetailLine icon={Hospital} label="Facility" value={getVisitFacilityLabel(visit)} />
         <DetailLine icon={MapPin} label="Location" value={roomLabel} />
         <DetailLine icon={Clock} label="Scheduled" value={dateLabel} />
+        {clinicalWindow && (
+          <DetailLine icon={CalendarClock} label="Clinical window" value={clinicalWindow} />
+        )}
         {visit.asyncConsultAvailability && (
           <DetailLine icon={CalendarClock} label="Async consult" value={visit.asyncConsultAvailability} />
         )}

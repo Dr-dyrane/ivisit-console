@@ -1,6 +1,9 @@
 import {
   buildSupportAnalytics,
   buildSupportQueryFilter,
+  getSupportAssigneeLabel,
+  getSupportOpenAge,
+  getSupportRequesterLabel,
   getSupportSignal,
   getSupportStateCount,
   hasActiveSupportFilters,
@@ -56,6 +59,114 @@ describe('Support page projection model', () => {
     expect(projection.status).toEqual(['resolved', 'closed']);
     expect(projection.statsFilter).not.toHaveProperty('status');
     expect(projection).not.toHaveProperty('kpiFilter');
+  });
+
+  it('scopes the Urgent KPI by priority, never by an invented status enum (ADOPT-47)', () => {
+    const projection = buildSupportQueryFilter({
+      filters: {
+        search: '',
+        status: ['open'],
+        priority: [],
+        category: [],
+        kpiFilter: 'all',
+      },
+      kpiFilter: 'urgent',
+      limit: 20,
+      offset: 0,
+      sortConfig: { key: 'updated_at', direction: 'desc' },
+    });
+
+    // priority=urgent is the KPI scope; the sheet status filter is untouched
+    // and the status filter NEVER receives 'urgent' (the service normalizer
+    // fails hard on unknown status enums).
+    expect(projection.priority).toBe('urgent');
+    expect(projection.status).toEqual(['open']);
+    // Stats stay KPI-agnostic: no status axis, and the KPI-injected priority
+    // never reaches the stats scope (the sheet's own empty list rides through).
+    expect(projection.statsFilter).not.toHaveProperty('status');
+    expect(projection.statsFilter.priority).toEqual([]);
+  });
+
+  it('maps the read-only Assigned-to-me scope to assigned_to only with a viewer id (ADOPT-24)', () => {
+    const base = {
+      filters: { search: '', status: [], priority: [], category: [], assigned: 'me', kpiFilter: 'all' },
+      kpiFilter: 'all',
+      limit: 20,
+      offset: 0,
+      sortConfig: { key: 'updated_at', direction: 'desc' },
+    };
+
+    const scoped = buildSupportQueryFilter({ ...base, viewerId: 'viewer-1' });
+    expect(scoped.assigned_to).toBe('viewer-1');
+    expect(scoped).not.toHaveProperty('assigned');
+    // The assignment scope rides into stats like every other sheet filter.
+    expect(scoped.statsFilter.assigned_to).toBe('viewer-1');
+
+    // No viewer id -> honestly a no-op, never a fabricated match.
+    const unscoped = buildSupportQueryFilter(base);
+    expect(unscoped).not.toHaveProperty('assigned_to');
+    expect(unscoped).not.toHaveProperty('assigned');
+
+    const anyone = buildSupportQueryFilter({
+      ...base,
+      filters: { ...base.filters, assigned: 'all' },
+      viewerId: 'viewer-1',
+    });
+    expect(anyone).not.toHaveProperty('assigned_to');
+
+    expect(hasActiveSupportFilters({ assigned: 'me' }, 'all')).toBe(true);
+    expect(hasActiveSupportFilters({ assigned: 'all' }, 'all')).toBe(false);
+  });
+
+  it('counts and signals the urgent scope from the already-computed stats (ADOPT-47)', () => {
+    const tickets = [
+      { status: 'open', priority: 'urgent' },
+      { status: 'in_progress', priority: 'normal' },
+    ];
+    expect(getSupportStateCount({ id: 'urgent', stats: {}, tickets })).toBe(1);
+    expect(getSupportStateCount({ id: 'urgent', stats: { urgent: 4 }, tickets })).toBe(4);
+    // Honest zero renders 0, not a fabricated positive.
+    expect(getSupportStateCount({ id: 'urgent', stats: { urgent: 0 }, tickets: [] })).toBe(0);
+
+    expect(getSupportSignal({
+      stats: { urgent: 2 },
+      tickets: [],
+      kpiFilter: 'urgent',
+      isProviderOnly: false,
+      loadError: null,
+      hasAny: true,
+    })).toMatchObject({
+      tone: 'danger',
+      label: 'Urgent',
+      headline: '2 urgent tickets',
+    });
+
+    expect(getSupportSignal({
+      stats: { urgent: 0 },
+      tickets: [],
+      kpiFilter: 'urgent',
+      isProviderOnly: false,
+      loadError: null,
+      hasAny: false,
+    })).toMatchObject({ headline: 'No urgent requests' });
+  });
+
+  it('renders honest assignee/requester labels and an in-flight-only open age (ADOPT-24/25/48)', () => {
+    expect(getSupportAssigneeLabel({ assigned_to: null })).toBe('Unassigned');
+    expect(getSupportAssigneeLabel({ assigned_to: 'uuid-1', assignee_name: null })).toBe('Unknown assignee');
+    expect(getSupportAssigneeLabel({ assigned_to: 'uuid-1', assignee_name: 'Amina Bello' })).toBe('Amina Bello');
+
+    expect(getSupportRequesterLabel({})).toBe('Unknown requester');
+    expect(getSupportRequesterLabel({ customer_name: 'Tunde Okafor' })).toBe('Tunde Okafor');
+
+    const now = new Date('2026-07-16T12:00:00.000Z').getTime();
+    const sixDaysAgo = new Date(now - (6 * 86400000) - 3600000).toISOString();
+    expect(getSupportOpenAge({ status: 'open', created_at: sixDaysAgo }, now)).toBe('open 6d');
+    expect(getSupportOpenAge({ status: 'in_progress', created_at: new Date(now - 3600000).toISOString() }, now)).toBe('open <1d');
+    // Resolved/closed tickets are not "open"; missing/invalid dates stay absent.
+    expect(getSupportOpenAge({ status: 'resolved', created_at: sixDaysAgo }, now)).toBeNull();
+    expect(getSupportOpenAge({ status: 'open', created_at: null }, now)).toBeNull();
+    expect(getSupportOpenAge({ status: 'open', created_at: 'not-a-date' }, now)).toBeNull();
   });
 
   it('characterizes visible-page analytics without inventing timing or priority totals', () => {

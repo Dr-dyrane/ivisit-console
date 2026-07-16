@@ -42,6 +42,7 @@ const USER_UUID = '11111111-1111-4111-8111-111111111111';
 const ORG_UUID = '22222222-2222-4222-8222-222222222222';
 const TICKET_UUID = '33333333-3333-4333-8333-333333333333';
 const AGENT_UUID = '44444444-4444-4444-8444-444444444444';
+const SECOND_TICKET_UUID = '55555555-5555-4555-8555-555555555555';
 
 function installReceivers(results) {
   const builders = [];
@@ -184,6 +185,11 @@ describe('support ticket service behavior boundary', () => {
         customer_name: 'Legacy requester',
         created_at: null,
         updated_at: null,
+        // Read-only name resolution (ADOPT-24/25): no ids on the row means no
+        // enrichment reads run and the resolved names stay honestly null.
+        assignee_name: null,
+        requester_name: 'Legacy requester',
+        organization_name: null,
       }],
       count: 41,
       stats: {
@@ -197,6 +203,126 @@ describe('support ticket service behavior boundary', () => {
         exactCounts: true,
       },
     });
+    // No assigned_to/user_id/organization_id in the window -> the profiles and
+    // organizations lookups are skipped entirely (7 counts + 1 data read).
+    expect(builders).toHaveLength(8);
+  });
+
+  it('resolves assignee, requester, and organization names with batched reads after the window lands (ADOPT-24/25)', () => {
+    const rows = [
+      {
+        id: TICKET_UUID,
+        user_id: USER_UUID,
+        organization_id: ORG_UUID,
+        assigned_to: AGENT_UUID,
+        subject: 'Printer',
+        message: 'Queue stuck',
+        category: 'technical',
+        priority: 'urgent',
+        status: 'in_progress',
+        created_at: '2026-07-10T00:00:00.000Z',
+        updated_at: '2026-07-11T00:00:00.000Z',
+      },
+      {
+        id: SECOND_TICKET_UUID,
+        user_id: USER_UUID,
+        organization_id: null,
+        assigned_to: null,
+        subject: 'Login',
+        message: null,
+        category: null,
+        priority: null,
+        status: null,
+        created_at: null,
+        updated_at: null,
+      },
+    ];
+    const builders = installReceivers([
+      { count: 2, error: null },
+      { count: 2, error: null },
+      { count: 1, error: null },
+      { count: 1, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 1, error: null },
+      { data: rows, error: null },
+      {
+        data: [
+          { id: AGENT_UUID, full_name: 'Agent Smith', first_name: null, last_name: null, email: 'agent@ivisit.test' },
+          { id: USER_UUID, full_name: null, first_name: 'Ada', last_name: 'Lovelace', email: 'ada@ivisit.test' },
+        ],
+        error: null,
+      },
+      { data: [{ id: ORG_UUID, name: 'Mercy General' }], error: null },
+    ]);
+
+    return getSupportTicketsPage({ quiet: true }).then((result) => {
+      // ONE batched profiles read (unique assigned_to + user_id ids, in row
+      // order) and ONE batched organizations read for the landed window.
+      expect(builders).toHaveLength(10);
+      expect(builders[8].table).toBe('profiles');
+      expect(builders[8].select).toHaveBeenCalledWith('id, full_name, first_name, last_name, email');
+      expect(builders[8].in).toHaveBeenCalledWith('id', [AGENT_UUID, USER_UUID]);
+      expect(builders[9].table).toBe('organizations');
+      expect(builders[9].select).toHaveBeenCalledWith('id, name');
+      expect(builders[9].in).toHaveBeenCalledWith('id', [ORG_UUID]);
+
+      expect(result.data[0]).toMatchObject({
+        assigned_to: AGENT_UUID,
+        assignee_name: 'Agent Smith',
+        requester_name: 'Ada Lovelace',
+        customer_name: 'Ada Lovelace',
+        organization_name: 'Mercy General',
+      });
+      expect(result.data[1]).toMatchObject({
+        assigned_to: null,
+        assignee_name: null,
+        requester_name: 'Ada Lovelace',
+        customer_name: 'Ada Lovelace',
+        organization_id: null,
+        organization_name: null,
+      });
+    });
+  });
+
+  it('keeps the page read alive when name resolution fails and leaves names honestly null (ADOPT-24/25)', async () => {
+    const rows = [{
+      id: TICKET_UUID,
+      user_id: USER_UUID,
+      organization_id: ORG_UUID,
+      assigned_to: AGENT_UUID,
+      subject: 'Printer',
+      message: 'Queue stuck',
+      category: 'technical',
+      priority: 'normal',
+      status: 'open',
+      created_at: '2026-07-10T00:00:00.000Z',
+      updated_at: '2026-07-11T00:00:00.000Z',
+    }];
+    installReceivers([
+      { count: 1, error: null },
+      { count: 1, error: null },
+      { count: 1, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { data: rows, error: null },
+      { data: null, error: new Error('profiles read denied') },
+      { data: [{ id: ORG_UUID, name: 'Mercy General' }], error: null },
+    ]);
+
+    const result = await getSupportTicketsPage({ quiet: true });
+
+    expect(result.count).toBe(1);
+    expect(result.data[0]).toMatchObject({
+      assignee_name: null,
+      requester_name: null,
+      customer_name: null,
+      organization_name: null,
+    });
+    // quiet read: the non-fatal resolution failure does not log either.
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('rejects an already-aborted page read before auth and honors quiet logging', async () => {

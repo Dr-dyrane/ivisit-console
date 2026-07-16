@@ -2,8 +2,11 @@ import {
   Activity,
   AlertCircle,
   Ambulance,
+  Clock,
   MapPin,
+  PowerOff,
   Route,
+  Undo2,
   Wrench,
 } from 'lucide-react';
 
@@ -51,6 +54,30 @@ export const ambulanceStateOptions = [
     colorClass: 'text-amber-600 dark:text-amber-200',
     activeClass: 'bg-amber-500/10 text-amber-800 shadow-e2 dark:text-amber-100',
   },
+  // ADOPT-38: the dormant DB-domain states join the same selectPrimaryKpis
+  // selection (no new pins; they surface data-driven or while active). Tones
+  // mirror the shared status-pill vocabulary, which renders these muted.
+  {
+    id: 'returning',
+    label: 'Returning',
+    icon: Undo2,
+    colorClass: 'text-muted-foreground',
+    activeClass: 'bg-muted/40 text-foreground shadow-e2',
+  },
+  {
+    id: 'offline',
+    label: 'Offline',
+    icon: PowerOff,
+    colorClass: 'text-muted-foreground',
+    activeClass: 'bg-muted/40 text-foreground shadow-e2',
+  },
+  {
+    id: 'pending_approval',
+    label: 'Pending',
+    icon: Clock,
+    colorClass: 'text-muted-foreground',
+    activeClass: 'bg-muted/40 text-foreground shadow-e2',
+  },
 ];
 
 export const AMBULANCE_KPI_IMPORTANCE = {
@@ -59,6 +86,9 @@ export const AMBULANCE_KPI_IMPORTANCE = {
   on_route: 2,
   busy: 3,
   maintenance: 4,
+  pending_approval: 5,
+  returning: 6,
+  offline: 7,
 };
 
 export const PINNED_AMBULANCE_STATE_IDS = ['available', 'on_route'];
@@ -71,6 +101,9 @@ export const AMBULANCE_EMPTY_HEADINGS = {
   on_route: 'No en-route units',
   busy: 'No active units',
   maintenance: 'No units in service review',
+  returning: 'No returning units',
+  offline: 'No offline units',
+  pending_approval: 'No units pending approval',
 };
 
 const signalIcons = {
@@ -79,6 +112,9 @@ const signalIcons = {
   active: Activity,
   ready: MapPin,
   fleet: Ambulance,
+  pending: Clock,
+  returning: Undo2,
+  offline: PowerOff,
 };
 
 export const resolveAmbulanceSignal = (signal) => ({

@@ -1,13 +1,16 @@
 import React from 'react';
 import {
-  Activity,
+  AlertCircle,
   Building2,
+  CalendarCheck,
   ChevronRight,
   Clock,
   Eye,
   Globe,
+  History,
   Info,
   MapPin,
+  ShieldCheck,
   Wallet,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -17,7 +20,7 @@ import {
   formatOrganizationDate,
   formatOrganizationType,
   formatOrganizationWallet,
-  getOrganizationStatusMeta,
+  getOrganizationVerificationMeta,
 } from './organizationPageModel';
 
 export const OrganizationDetailRail = ({
@@ -67,9 +70,13 @@ export const OrganizationDetailRail = ({
     );
   }
 
-  const statusMeta = getOrganizationStatusMeta(!!organization.is_active);
+  // ADOPT-26: the rail status is the live organizations.verification_status gate
+  // (dispatch requires 'verified'), not the degenerate is_active flag.
+  const verificationMeta = getOrganizationVerificationMeta(organization);
+  const VerificationIcon = verificationMeta.icon;
   const typeValue = formatOrganizationType(organization.organization_type);
-  const walletValue = formatOrganizationWallet(organization.wallet_balance);
+  // ADOPT-27: amount renders in the wallet row's own currency when the read carries one.
+  const walletValue = formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency);
   const locationValue = organization.city || organization.address || 'Not set';
   const displayId = organization.display_id
     || (organization.id ? `Org ${String(organization.id).slice(0, 8)}` : null);
@@ -92,9 +99,9 @@ export const OrganizationDetailRail = ({
                 <CopyChip value={displayId} label="Copy organization ID" />
               </div>
             )}
-            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusMeta.tone}`}>
-              <Activity className="h-3.5 w-3.5" />
-              {statusMeta.label}
+            <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${verificationMeta.tone}`}>
+              <VerificationIcon className="h-3.5 w-3.5" />
+              {verificationMeta.label}
             </div>
           </div>
           <Button
@@ -124,8 +131,17 @@ export const OrganizationDetailRail = ({
       <div className="space-y-2">
         <DetailLine icon={Building2} label="Name" value={organization.name} />
         <DetailLine icon={Globe} label="Type" value={typeValue} />
-        <DetailLine icon={Activity} label="Status" value={statusMeta.label} />
+        <DetailLine icon={ShieldCheck} label="Verification" value={verificationMeta.label} />
+        {organization.verified_at && (
+          <DetailLine icon={CalendarCheck} label="Verified" value={formatOrganizationDate(organization.verified_at)} />
+        )}
+        {organization.rejection_reason && (
+          <DetailLine icon={AlertCircle} label="Rejection reason" value={organization.rejection_reason} />
+        )}
         <DetailLine icon={Wallet} label="Wallet" value={walletValue} />
+        {organization.wallet_updated_at && (
+          <DetailLine icon={History} label="Wallet updated" value={formatOrganizationDate(organization.wallet_updated_at)} />
+        )}
         <DetailLine icon={MapPin} label="Location" value={locationValue} />
         <DetailLine icon={Clock} label="Created" value={formatOrganizationDate(organization.created_at)} />
       </div>

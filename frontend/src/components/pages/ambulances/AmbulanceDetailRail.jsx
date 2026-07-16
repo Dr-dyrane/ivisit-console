@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Activity,
   Ambulance,
+  CalendarDays,
   Clock,
   Edit,
   Eye,
@@ -122,6 +123,7 @@ export const AmbulanceDetailRail = ({
           <DetailLine icon={Activity} label="Crew" value={model.crewLabel} />
           <DetailLine icon={Tag} label="Base price" value={model.basePriceLabel} />
           <DetailLine icon={Navigation} label="Position" value={model.positionLabel} />
+          <DetailLine icon={CalendarDays} label="Commissioned" value={model.commissionedLabel} />
           <DetailLine
             icon={Clock}
             label="Updated"

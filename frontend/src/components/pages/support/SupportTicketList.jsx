@@ -21,6 +21,8 @@ import {
   SUPPORT_GRID_COLS,
   SUPPORT_GRID_COLS_SELECT,
   formatSupportDate,
+  getSupportAssigneeLabel,
+  getSupportOpenAge,
   getSupportPriorityMeta,
   getSupportStatusMeta,
 } from './supportTicketsModel';
@@ -211,6 +213,8 @@ const SupportTicketRow = ({
   const statusMeta = getSupportStatusMeta(ticket.status);
   const priorityMeta = getSupportPriorityMeta(ticket.priority);
   const title = ticket.subject || 'Untitled request';
+  const assigneeLabel = getSupportAssigneeLabel(ticket);
+  const openAge = getSupportOpenAge(ticket);
 
   return (
     <ListRowShell
@@ -246,13 +250,23 @@ const SupportTicketRow = ({
 
       <div className="min-w-0">
         <StatusPill label={statusMeta.label} className={statusMeta.tone} compact />
+        {ticket.assigned_to && (
+          <div className="mt-1 truncate text-[11px] font-medium text-muted-foreground" title={`Assigned to ${assigneeLabel}`}>
+            {assigneeLabel}
+          </div>
+        )}
       </div>
 
       <div className="min-w-0">
         <StatusPill label={priorityMeta.label} icon={Flag} className={priorityMeta.tone} compact />
       </div>
 
-      <div className="text-sm font-medium text-muted-foreground">{formatSupportDate(ticket.updated_at || ticket.created_at)}</div>
+      <div className="text-sm font-medium text-muted-foreground">
+        {formatSupportDate(ticket.updated_at || ticket.created_at)}
+        {openAge && (
+          <div className="text-[11px] font-medium text-muted-foreground/70">{openAge}</div>
+        )}
+      </div>
 
       <div className="flex items-center justify-end gap-1.5">
         <Button

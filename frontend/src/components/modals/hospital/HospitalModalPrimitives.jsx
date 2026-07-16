@@ -26,6 +26,33 @@ export const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
   );
 };
 
+// ADOPT-37: read-only chip row for fetched text[] columns (service_types).
+// Same pill grammar as the console list markers; honest 'Not set' when empty.
+export const ReadOnlyChips = ({ values }) => {
+  const chips = Array.from(new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (chips.length === 0) {
+    return <p className="px-1 text-sm italic text-muted-foreground">Not set</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 px-1">
+      {chips.map((chip) => (
+        <span
+          key={chip}
+          className="inline-flex items-center rounded-pill bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground"
+        >
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 export const ReadOnlyStat = ({ value }) => (
   <div className="flex h-10 items-center rounded-inner bg-muted/30 pl-9 pr-3 text-sm font-semibold tabular-nums text-foreground">
     {value}

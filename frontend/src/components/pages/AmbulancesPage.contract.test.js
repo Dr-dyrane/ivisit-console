@@ -491,6 +491,52 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(page).toContain("'No recent telemetry'");
   });
 
+  it('adopts the dormant status vocabulary into the read-only filter grammar (ADOPT-38)', () => {
+    const page = pageSource();
+    const service = serviceSource();
+
+    // The DB status CHECK domain and VALID_AMBULANCE_STATUSES carry
+    // returning/offline/pending_approval; the read filter path already accepted
+    // them (normalizeAmbulanceStatusValues), so the gap was grammar-only.
+    expect(service).toContain("'returning',");
+    expect(service).toContain("'offline',");
+    expect(service).toContain("'pending_approval',");
+
+    // Filter-sheet grammar offers the full domain with honest labels.
+    expect(page).toContain("{ value: 'returning', label: 'Returning' }");
+    expect(page).toContain("{ value: 'offline', label: 'Offline' }");
+    expect(page).toContain("{ value: 'pending_approval', label: 'Pending approval' }");
+
+    // KPI chips join the existing selectPrimaryKpis idiom: new options and
+    // importance ranks, NO new pins (dispatch-critical pins stay untouched).
+    expect(page).toContain("id: 'returning',");
+    expect(page).toContain("id: 'offline',");
+    expect(page).toContain("id: 'pending_approval',");
+    expect(page).toContain("pending_approval: 5,");
+    expect(page).toContain("PINNED_AMBULANCE_STATE_IDS = ['available', 'on_route']");
+
+    // Counts are exact (read-only head counts) with visible-row fallback, so an
+    // approval-core state that filters to zero rows renders honestly as 0.
+    expect(service).toContain("readAmbulanceCount(createCountQuery('returning'))");
+    expect(service).toContain("readAmbulanceCount(createCountQuery('offline'))");
+    expect(service).toContain("readAmbulanceCount(createCountQuery('pending_approval'))");
+    expect(page).toContain('stats?.pendingApproval');
+    expect(page).toContain('stats?.returning');
+    expect(page).toContain('stats?.offline');
+    expect(page).toContain("'No units awaiting approval'");
+    expect(page).toContain("pending_approval: 'No units pending approval'");
+  });
+
+  it('surfaces the commissioned date on the detail rail with the shared formatter (ADOPT-39)', () => {
+    const page = pageSource();
+
+    // created_at was already fetched, filterable (Commission Date), and the
+    // default sort key -- but the value itself rendered nowhere. The rail now
+    // carries it through the rail model with the shared day-aware formatter.
+    expect(page).toContain("commissionedLabel: ambulance.created_at ? formatDayTime(ambulance.created_at) : 'Unknown'");
+    expect(page).toContain('<DetailLine icon={CalendarDays} label="Commissioned" value={model.commissionedLabel} />');
+  });
+
   it('puts active Ambulances visual-start and modal surfaces in the hardgate', () => {
     const hardgate = hardgateSource();
     const gate = gateSource();

@@ -9,6 +9,7 @@ import {
   getFleetStateCount,
   hasActiveAmbulanceFilters,
 } from './ambulancePageModel';
+import { formatDayTime } from '../../../utils/dayTime';
 
 describe('ambulance page model characterization', () => {
   const rows = [
@@ -149,6 +150,83 @@ describe('ambulance page model characterization', () => {
       viewOpening: true,
       editOpening: false,
     });
+  });
+
+  it('offers the full DB status domain in the read-only filter grammar (ADOPT-38)', () => {
+    const schema = buildAmbulanceFilterSchema({ hospitals: [], admin: false });
+    const statusOptions = schema.find((field) => field.key === 'status').options;
+
+    expect(statusOptions).toEqual([
+      { value: 'available', label: 'Available' },
+      { value: 'en_route', label: 'En Route' },
+      { value: 'busy', label: 'Busy' },
+      { value: 'returning', label: 'Returning' },
+      { value: 'maintenance', label: 'Maintenance' },
+      { value: 'offline', label: 'Offline' },
+      { value: 'pending_approval', label: 'Pending approval' },
+    ]);
+  });
+
+  it('counts approval-core and off-rotation states with exact stats and row fallback (ADOPT-38)', () => {
+    const fleet = [
+      { id: 'u1', status: 'pending_approval' },
+      { id: 'u2', status: 'offline' },
+      { id: 'u3', status: 'returning' },
+      { id: 'u4', status: 'available' },
+    ];
+
+    expect(getFleetStateCount({ id: 'pending_approval', stats: { pendingApproval: 3 }, ambulances: [] })).toBe(3);
+    expect(getFleetStateCount({ id: 'returning', stats: { returning: 2 }, ambulances: [] })).toBe(2);
+    expect(getFleetStateCount({ id: 'offline', stats: { offline: 5 }, ambulances: [] })).toBe(5);
+    expect(getFleetStateCount({ id: 'pending_approval', stats: null, ambulances: fleet })).toBe(1);
+    expect(getFleetStateCount({ id: 'returning', stats: null, ambulances: fleet })).toBe(1);
+    expect(getFleetStateCount({ id: 'offline', stats: null, ambulances: fleet })).toBe(1);
+    // An exact zero renders honestly as 0, never a fabricated presence.
+    expect(getFleetStateCount({ id: 'pending_approval', stats: { pendingApproval: 0 }, ambulances: [] })).toBe(0);
+  });
+
+  it('speaks an honest zero when the approval-core filter matches nothing (ADOPT-38)', () => {
+    expect(getAmbulanceSignal({
+      stats: { total: 9, pendingApproval: 0 },
+      ambulances: [],
+      kpiFilter: 'pending_approval',
+      loadError: null,
+    })).toMatchObject({
+      iconKey: 'pending',
+      tone: 'attention',
+      headline: 'No units awaiting approval',
+    });
+
+    expect(getAmbulanceSignal({
+      stats: { pendingApproval: 2 },
+      ambulances: [],
+      kpiFilter: 'pending_approval',
+      loadError: null,
+    }).headline).toBe('2 units awaiting approval');
+
+    expect(getAmbulanceSignal({
+      stats: { offline: 1 },
+      ambulances: [],
+      kpiFilter: 'offline',
+      loadError: null,
+    })).toMatchObject({ iconKey: 'offline', headline: '1 unit offline' });
+
+    expect(getAmbulanceSignal({
+      stats: { returning: 0 },
+      ambulances: [],
+      kpiFilter: 'returning',
+      loadError: null,
+    })).toMatchObject({ iconKey: 'returning', headline: 'No returning units' });
+  });
+
+  it('surfaces the commissioned date via the shared day formatter with an honest null (ADOPT-39)', () => {
+    const commissioned = '2024-03-05T12:00:00Z';
+    const withDate = getAmbulanceRailModel({ ...rows[0], created_at: commissioned }, null);
+
+    expect(withDate.commissionedLabel).toBe(formatDayTime(commissioned));
+    expect(withDate.commissionedLabel).toContain('2024');
+
+    expect(getAmbulanceRailModel({ ...rows[0], created_at: null }, null).commissionedLabel).toBe('Unknown');
   });
 
   it('derives telemetry freshness from observed_at with received_at fallback and honest nulls', () => {

@@ -196,6 +196,70 @@ describe('profilesService identity integrity', () => {
     });
   });
 
+  it('merges sign-in recency onto page rows via the existing admin-gated read', async () => {
+    const listQuery = makeQuery({
+      data: [{ id: 'user-1', role: 'provider', full_name: 'A User' }],
+      count: 1,
+      error: null,
+    });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 1, error: null }));
+    const queries = [listQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+    mockRpc.mockResolvedValue({
+      data: [{ id: 'user-1', last_sign_in_at: '2026-07-15T10:00:00.000Z' }],
+      error: null,
+    });
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    expect(mockRpc).toHaveBeenCalledWith('get_all_auth_users', { p_organization_id: null });
+    expect(result.data[0].last_sign_in_at).toBe('2026-07-15T10:00:00.000Z');
+  });
+
+  it('keeps page rows sign-in-absent when the privileged read refuses, inside the actor org scope', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: 'org-admin-1',
+      role: 'org_admin',
+      organization_id: 'org-1',
+    });
+    const listQuery = makeQuery({
+      data: [{ id: 'user-1', role: 'provider', full_name: 'A User' }],
+      count: 1,
+      error: null,
+    });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 1, error: null }));
+    const queries = [listQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+    mockRpc.mockResolvedValue({ data: null, error: new Error('Unauthorized: Access denied') });
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    expect(mockRpc).toHaveBeenCalledWith('get_all_auth_users', { p_organization_id: 'org-1' });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].last_sign_in_at).toBeUndefined();
+  });
+
+  it('never attempts the privileged sign-in read for non-privileged actors', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: 'viewer-1',
+      role: 'viewer',
+      organization_id: null,
+    });
+    const listQuery = makeQuery({
+      data: [{ id: 'user-1', role: 'viewer', full_name: 'A Viewer' }],
+      count: 1,
+      error: null,
+    });
+    const countQueries = Array.from({ length: 5 }, () => makeQuery({ count: 1, error: null }));
+    const queries = [listQuery, ...countQueries];
+    mockFrom.mockImplementation(() => queries.shift());
+
+    const result = await getUsersPage({ limit: 20, offset: 0, quiet: true });
+
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result.data[0].last_sign_in_at).toBeUndefined();
+  });
+
   it('keeps safe self-edits on the owner-scoped table receiver', async () => {
     const savedProfile = { id: 'user-1', phone: '555-0100' };
     const query = {

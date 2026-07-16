@@ -101,14 +101,21 @@ export async function getOrganizations(filter = {}) {
         });
 
         const walletsMap = (walletsRes.data || []).reduce((acc, w) => {
-            acc[w.organization_id] = w.balance;
+            acc[w.organization_id] = w;
             return acc;
         }, {});
 
-        return (orgsRes.data || []).map(org => ({
-            ...org,
-            wallet_balance: walletsMap[org.id] || 0
-        }));
+        // ADOPT-27: carry the wallet row's own currency and freshness alongside the
+        // balance; honest null when the organization has no wallet row.
+        return (orgsRes.data || []).map(org => {
+            const wallet = walletsMap[org.id] || null;
+            return {
+                ...org,
+                wallet_balance: wallet?.balance || 0,
+                wallet_currency: wallet?.currency ?? null,
+                wallet_updated_at: wallet?.updated_at ?? null,
+            };
+        });
     } catch (error) {
         if (!filter?.quiet) {
             console.error('Error fetching organizations:', error);
@@ -178,7 +185,7 @@ async function getOrganizationPayoutBuckets(quiet) {
             .limit(ORG_PAYOUT_RESOLUTION_ROW_LIMIT),
         supabase
             .from('organization_wallets')
-            .select('organization_id, balance', { count: 'exact' })
+            .select('organization_id, balance, currency, updated_at', { count: 'exact' })
             .limit(ORG_PAYOUT_RESOLUTION_ROW_LIMIT),
     ]);
 
@@ -205,17 +212,25 @@ async function getOrganizationPayoutBuckets(quiet) {
     }
 
     const balanceById = new Map();
+    const walletMetaById = new Map();
     walletRows.forEach((wallet) => {
         if (!wallet?.organization_id) return;
         const balance = Number(wallet.balance);
         balanceById.set(wallet.organization_id, Number.isFinite(balance) ? balance : 0);
+        // ADOPT-27: the wallet join used to drop everything but balance. Keep the
+        // wallet row's currency and freshness so the page renders the row's own
+        // currency (honest null when absent) and when the balance last moved.
+        walletMetaById.set(wallet.organization_id, {
+            currency: wallet.currency ?? null,
+            updated_at: wallet.updated_at ?? null,
+        });
     });
 
     const fundedIds = organizationIds.filter((id) => Number(balanceById.get(id) || 0) > 0);
     const fundedIdSet = new Set(fundedIds);
     const payoutGapIds = organizationIds.filter((id) => !fundedIdSet.has(id));
 
-    return { balanceById, fundedIds, payoutGapIds };
+    return { balanceById, walletMetaById, fundedIds, payoutGapIds };
 }
 
 function applyOrganizationPayoutFilter(query, kpiFilter, payoutBuckets) {
@@ -290,10 +305,15 @@ export async function getOrganizationsPage(filter = {}) {
             return result;
         });
 
-        const rows = (data || []).map((org) => ({
-            ...org,
-            wallet_balance: payoutBuckets.balanceById.get(org.id) || 0,
-        }));
+        const rows = (data || []).map((org) => {
+            const walletMeta = payoutBuckets.walletMetaById.get(org.id);
+            return {
+                ...org,
+                wallet_balance: payoutBuckets.balanceById.get(org.id) || 0,
+                wallet_currency: walletMeta?.currency ?? null,
+                wallet_updated_at: walletMeta?.updated_at ?? null,
+            };
+        });
         const stats = await getOrganizationPageStats(filter, filter.quiet, payoutBuckets);
         return { data: rows, count: count || 0, stats };
     } catch (error) {

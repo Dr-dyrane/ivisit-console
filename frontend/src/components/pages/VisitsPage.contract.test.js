@@ -9,6 +9,12 @@ import { APP_ROUTE_METADATA } from '../../app/appRouteMetadata';
 import { readPageDataImplementation, readSourceEstate } from '../../test/sourceEstates';
 import { GENERIC_VISIT_SELECT, GENERIC_VISIT_WITH_PATIENT_SELECT } from '../../services/visits/pageProjection';
 import { normalizeVisitForUI } from '../../services/visits/normalization';
+import {
+  getScheduledClinicalWindow,
+  getScheduledLifecycleChip,
+  getVisitCareTeamMeta,
+  getVisitPatientContact,
+} from './visits/visitEvidencePresentation';
 
 describe('VisitsPage admission contract', () => {
   const pageSource = () => [
@@ -579,6 +585,49 @@ describe('VisitsPage admission contract', () => {
     // field stays dead rather than rendering fabricated blanks.
     expect(modal).not.toContain('formData.reason');
     expect(modal).not.toContain('Reason for Visit');
+  });
+
+  it('surfaces adopted scheduled lifecycle, clinical window, and contact evidence on the rail', () => {
+    const page = pageSource();
+
+    // ADOPT-33: the scheduled projection already fetches the lifecycle and
+    // window columns; this pins the payload so the rail bindings below can
+    // never go dead silently.
+    const scheduledQueriesSource = fs.readFileSync('src/services/visits/scheduledQueries.js', 'utf8');
+    const selectMatch = scheduledQueriesSource.match(/export const SCHEDULED_VISIT_SELECT = `([^`]+)`/);
+    expect(selectMatch).not.toBeNull();
+    ['lifecycle_state', 'lifecycle_updated_at', 'scheduled_end_at'].forEach((column) => {
+      expect(selectMatch[1]).toMatch(new RegExp(`\\b${column}\\b`));
+    });
+
+    // The rail binds the fetched truth to the render (chip, window line, and
+    // ADOPT-34 contact/specialty lines). Render-level proof lives in
+    // visits/VisitsDetailRail.evidence.test.jsx.
+    expect(page).toContain("} from './visitEvidencePresentation';");
+    expect(page).toContain('const lifecycleChip = getScheduledLifecycleChip(visit);');
+    expect(page).toContain('data-testid="visit-lifecycle-chip"');
+    expect(page).toContain('label={lifecycleChip.chipLabel}');
+    expect(page).toContain('className={lifecycleChip.className}');
+    expect(page).toContain('const clinicalWindow = getScheduledClinicalWindow(visit);');
+    expect(page).toContain('label="Clinical window" value={clinicalWindow}');
+    expect(page).toContain('label="Patient contact" value={patientContact}');
+    expect(page).toContain('label="Specialty" value={careTeamMeta.specialty}');
+    expect(page).toContain('label="Responder contact" value={careTeamMeta.contact}');
+
+    // Honest nulls: missing truth projects to absence, never a fabricated
+    // default, so the conditional lines above stay unrendered.
+    expect(getScheduledLifecycleChip({ sourceKind: 'scheduled_visit' })).toBeNull();
+    expect(getScheduledClinicalWindow({
+      sourceKind: 'scheduled_visit',
+      scheduled_start_at: '2026-07-16T16:00:00.000Z',
+      scheduled_timezone: 'UTC',
+    })).toBeNull();
+    expect(getVisitPatientContact({ identity: { patient: { phone: 'No contact' } } })).toBeNull();
+    expect(getVisitCareTeamMeta({ id: 'visit-1' })).toEqual({
+      kind: 'doctor',
+      specialty: null,
+      contact: null,
+    });
   });
 
   it('keeps delete and bulk delete excluded from the active Visits UI until authority is proved', () => {
