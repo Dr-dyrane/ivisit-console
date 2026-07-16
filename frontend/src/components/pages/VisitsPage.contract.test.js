@@ -14,6 +14,8 @@ import {
   getScheduledLifecycleChip,
   getVisitCareTeamMeta,
   getVisitPatientContact,
+  getVisitRatingEvidence,
+  getVisitTipEvidence,
 } from './visits/visitEvidencePresentation';
 
 describe('VisitsPage admission contract', () => {
@@ -663,6 +665,89 @@ describe('VisitsPage admission contract', () => {
     expect(page).toContain('label="Updated" value={recordUpdated}');
     expect(page).not.toContain('sortKey="updated_at"');
     expect(page).not.toContain("sortKey === 'updated_at'");
+  });
+
+  it('surfaces post-completion rating and tip evidence under the hardened privacy contract (ADOPT-30)', () => {
+    const page = pageSource();
+
+    // USER-RATIFIED PRIVACY DECISION: numeric/financial outcome columns are
+    // operator-visible; patient-authored free text is NOT. Both lane
+    // projections adopt exactly these five columns and nothing else from the
+    // post-completion group.
+    const ADOPTED_OUTCOME_COLUMNS = ['rating', 'rated_at', 'tip_amount', 'tip_currency', 'tipped_at'];
+    ADOPTED_OUTCOME_COLUMNS.forEach((column) => {
+      expect(GENERIC_VISIT_SELECT).toMatch(new RegExp(`\\b${column}\\b`));
+      expect(GENERIC_VISIT_WITH_PATIENT_SELECT).toMatch(new RegExp(`\\b${column}\\b`));
+    });
+    const scheduledQueriesSource = fs.readFileSync('src/services/visits/scheduledQueries.js', 'utf8');
+    const scheduledSelectMatch = scheduledQueriesSource.match(/export const SCHEDULED_VISIT_SELECT = `([^`]+)`/);
+    expect(scheduledSelectMatch).not.toBeNull();
+    ADOPTED_OUTCOME_COLUMNS.forEach((column) => {
+      expect(scheduledSelectMatch[1]).toMatch(new RegExp(`\\b${column}\\b`));
+    });
+
+    // rating_comment (patient free text) and tip_payment_id (bare FK) stay
+    // un-adoptable in every visits lane; privacy.test.js additionally bans
+    // 'comment' at the regex level.
+    [GENERIC_VISIT_SELECT, GENERIC_VISIT_WITH_PATIENT_SELECT, scheduledSelectMatch[1]].forEach((select) => {
+      expect(select).not.toContain('rating_comment');
+      expect(select).not.toContain('tip_payment_id');
+    });
+
+    // Boundary normalization: the 1..5 range guard (including the
+    // Number('') === 0 trap), positive finite tips, trimmed uppercase
+    // currency, timestamps as strings; junk collapses to null, raw preserved
+    // nowhere; leaked forbidden fields are stripped.
+    const rated = normalizeVisitForUI({
+      id: 'visit-rated',
+      rating: 4,
+      rated_at: '2026-07-15T10:00:00.000Z',
+      tip_amount: 500,
+      tip_currency: ' ngn ',
+      tipped_at: '2026-07-15T11:00:00.000Z',
+      rating_comment: 'patient free text',
+      tip_payment_id: 'payment-1',
+    });
+    expect(rated).toMatchObject({
+      rating: 4,
+      rated_at: '2026-07-15T10:00:00.000Z',
+      tip_amount: 500,
+      tip_currency: 'NGN',
+      tipped_at: '2026-07-15T11:00:00.000Z',
+    });
+    expect(rated.rating_comment).toBeUndefined();
+    expect(rated.tip_payment_id).toBeUndefined();
+    expect(normalizeVisitForUI({ id: 'v', rating: '' }).rating).toBeNull();
+    expect(normalizeVisitForUI({ id: 'v', rating: 0 }).rating).toBeNull();
+    expect(normalizeVisitForUI({ id: 'v', rating: 6 }).rating).toBeNull();
+    expect(normalizeVisitForUI({ id: 'v', tip_amount: 0 }).tip_amount).toBeNull();
+    expect(normalizeVisitForUI({ id: 'v', tip_amount: -10 }).tip_amount).toBeNull();
+    const unrated = normalizeVisitForUI({ id: 'visit-unrated' });
+    ADOPTED_OUTCOME_COLUMNS.forEach((column) => {
+      expect(unrated[column]).toBeNull();
+    });
+
+    // Render bindings: the rail is the canonical focused-detail surface
+    // (batch-3 precedent; VisitModal stays untouched). These pins fail if
+    // either derivation or render line is deleted. DOM-level proof lives in
+    // visits/VisitsDetailRail.evidence.test.jsx.
+    expect(page).toContain('const ratingEvidence = getVisitRatingEvidence(visit);');
+    expect(page).toContain('label="Rating" value={ratingEvidence.lineValue}');
+    expect(page).toContain('const tipEvidence = getVisitTipEvidence(visit);');
+    expect(page).toContain('label="Tip" value={tipEvidence.lineValue}');
+    const modal = modalSource();
+    expect(modal).not.toContain('formData.rating');
+    expect(modal).not.toContain('rating_comment');
+    expect(modal).not.toContain('tip_amount');
+    expect(modal).not.toContain('tip_payment_id');
+
+    // Currency honesty (batch-2 law): amount + code render together only when
+    // BOTH are known; a tip amount without currency renders bare.
+    expect(getVisitTipEvidence({ tip_amount: 500, tip_currency: 'NGN' }).lineValue).toBe('NGN 500');
+    expect(getVisitTipEvidence({ tip_amount: 500 }).lineValue).toBe('500');
+    expect(getVisitRatingEvidence({ rating: 4 }).lineValue).toBe('4/5');
+    expect(getVisitRatingEvidence({})).toBeNull();
+    expect(getVisitTipEvidence({})).toBeNull();
   });
 
   it('keeps delete and bulk delete excluded from the active Visits UI until authority is proved', () => {

@@ -8,6 +8,9 @@ import { getVisitPatientLabel } from '../../utils/visitRowProjection';
 
 // Generic history reads deliberately omit clinical/consult content. Scheduled
 // care is projected through scheduledQueries.js and is excluded below.
+// ADOPT-30: post-completion outcomes adopt the numeric/financial columns ONLY.
+// Patient-authored free text (rating_comment) and the bare tip_payment_id FK
+// are contractually excluded -- privacy.test.js pins the ban.
 export const GENERIC_VISIT_SELECT = `
   id,
   display_id,
@@ -24,6 +27,7 @@ export const GENERIC_VISIT_SELECT = `
   estimated_duration,
   insurance_covered,
   preparation,
+  rating, rated_at, tip_amount, tip_currency, tipped_at,
   hospital_name,
   doctor_name,
   created_at,
@@ -50,9 +54,7 @@ export const GENERIC_VISIT_SOURCE_FILTER = [
   'care_mode.not.in.(in_person,telemedicine_async)',
 ].join(',');
 
-export const applyGenericVisitSourceScope = (query) => (
-  query.or(GENERIC_VISIT_SOURCE_FILTER)
-);
+export const applyGenericVisitSourceScope = (query) => query.or(GENERIC_VISIT_SOURCE_FILTER);
 
 const normalizeQueryScopeValue = (value) => {
   if (Array.isArray(value)) {
@@ -199,9 +201,7 @@ export const applyResolvedVisitFilters = (visits = [], filters = {}, kpiFilter =
   });
 };
 
-const getVisitDateValue = (visit) => String(
-  visit?.date || visit?.visit_date || visit?.created_at || ''
-);
+const getVisitDateValue = (visit) => String(visit?.date || visit?.visit_date || visit?.created_at || '');
 
 // ADOPT-65: 'today' is a calendar-day scope, not a lifecycle state. The Today
 // KPI count and the Today KPI filter share this exact predicate (the UTC day

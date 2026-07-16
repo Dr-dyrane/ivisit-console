@@ -4,9 +4,13 @@ import {
   getScheduledLifecycleChip,
   getVisitCareTeamMeta,
   getVisitPatientContact,
+  getVisitRatingEvidence,
+  getVisitTipEvidence,
   humanizeVisitLifecycleState,
 } from './visitEvidencePresentation';
 import { visitStatusPillClass } from './visitPageModel';
+
+const MIDDOT = String.fromCharCode(0xb7);
 
 const scheduledBase = {
   id: 'visit-sched-1',
@@ -133,6 +137,83 @@ describe('visit evidence presentation (ADOPT-33/34)', () => {
       })).toBeNull();
       expect(getVisitPatientContact({ patient: { full_name: 'Bea Patient' } })).toBeNull();
       expect(getVisitPatientContact(null)).toBeNull();
+    });
+  });
+
+  // ADOPT-30: post-completion outcome evidence. Only the numeric/financial
+  // columns are projected (rating, rated_at, tip_amount, tip_currency,
+  // tipped_at); rating_comment and tip_payment_id never reach these helpers
+  // (privacy.test.js pins the projection ban).
+  describe('post-completion rating evidence (ADOPT-30)', () => {
+    it('renders the score with the relative rated_at stamp', () => {
+      const ratedAt = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+      expect(getVisitRatingEvidence({ rating: 4, rated_at: ratedAt })).toEqual({
+        score: 4,
+        scoreLabel: '4/5',
+        ratedRelative: '2h ago',
+        lineValue: `4/5 ${MIDDOT} 2h ago`,
+      });
+    });
+
+    it('renders the score alone when rated_at is missing or unparseable', () => {
+      expect(getVisitRatingEvidence({ rating: 5 })).toMatchObject({
+        scoreLabel: '5/5',
+        ratedRelative: null,
+        lineValue: '5/5',
+      });
+      expect(getVisitRatingEvidence({ rating: 3, rated_at: 'not-a-timestamp' }))
+        .toMatchObject({ lineValue: '3/5', ratedRelative: null });
+    });
+
+    it('guards the 1..5 range and collapses junk to honest null', () => {
+      expect(getVisitRatingEvidence({ rating: 0 })).toBeNull();
+      expect(getVisitRatingEvidence({ rating: 6 })).toBeNull();
+      // Number('') === 0 must never read as a zero score.
+      expect(getVisitRatingEvidence({ rating: '' })).toBeNull();
+      expect(getVisitRatingEvidence({ rating: 'junk' })).toBeNull();
+      expect(getVisitRatingEvidence({ rating: true })).toBeNull();
+      expect(getVisitRatingEvidence({ rating: null })).toBeNull();
+      expect(getVisitRatingEvidence({})).toBeNull();
+      expect(getVisitRatingEvidence(null)).toBeNull();
+      // Numeric-string truth still reads as a score.
+      expect(getVisitRatingEvidence({ rating: '4' })).toMatchObject({ score: 4 });
+    });
+  });
+
+  describe('post-completion tip evidence (ADOPT-30)', () => {
+    it('renders amount with currency code only when BOTH are known', () => {
+      const tippedAt = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
+      expect(getVisitTipEvidence({
+        tip_amount: 500,
+        tip_currency: 'ngn',
+        tipped_at: tippedAt,
+      })).toEqual({
+        amount: 500,
+        currency: 'NGN',
+        amountLabel: 'NGN 500',
+        tippedRelative: '3h ago',
+        lineValue: `NGN 500 ${MIDDOT} 3h ago`,
+      });
+    });
+
+    it('renders the bare amount without an invented symbol when currency is unknown', () => {
+      const bare = getVisitTipEvidence({ tip_amount: 1500, tip_currency: null });
+      expect(bare).toMatchObject({ currency: null, amountLabel: '1,500', lineValue: '1,500' });
+      expect(bare.lineValue).not.toContain('$');
+      expect(getVisitTipEvidence({ tip_amount: 500, tip_currency: '   ' }))
+        .toMatchObject({ currency: null, amountLabel: '500' });
+    });
+
+    it('requires a finite positive amount and hides everything else', () => {
+      expect(getVisitTipEvidence({ tip_amount: 0 })).toBeNull();
+      expect(getVisitTipEvidence({ tip_amount: -50, tip_currency: 'NGN' })).toBeNull();
+      expect(getVisitTipEvidence({ tip_amount: '' })).toBeNull();
+      expect(getVisitTipEvidence({ tip_amount: 'junk' })).toBeNull();
+      // Currency truth alone never fabricates a tip line.
+      expect(getVisitTipEvidence({ tip_currency: 'NGN' })).toBeNull();
+      expect(getVisitTipEvidence({ tipped_at: '2026-07-15T10:00:00.000Z' })).toBeNull();
+      expect(getVisitTipEvidence({})).toBeNull();
+      expect(getVisitTipEvidence(null)).toBeNull();
     });
   });
 

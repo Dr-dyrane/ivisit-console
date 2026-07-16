@@ -8,6 +8,34 @@ const firstText = (...values) => {
   return value === undefined ? null : String(value).trim();
 };
 
+// ADOPT-30 boundary parsers for the adopted post-completion outcome columns.
+// Junk collapses to null and the raw value is preserved nowhere: Number('')
+// is 0 and must not read as a zero score, booleans/objects never coerce, and
+// out-of-range scores (outside 1..5) are dropped rather than clamped.
+const toFiniteNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
+};
+
+const normalizeVisitRating = (value) => {
+  const numeric = toFiniteNumber(value);
+  return numeric !== null && numeric >= 1 && numeric <= 5 ? numeric : null;
+};
+
+const normalizeVisitTipAmount = (value) => {
+  const numeric = toFiniteNumber(value);
+  return numeric !== null && numeric > 0 ? numeric : null;
+};
+
+const normalizeVisitTipCurrency = (value) => {
+  const text = firstText(value);
+  return text ? text.toUpperCase() : null;
+};
+
 export const isScheduledVisitSource = (visit) => Boolean(
   visit
   && !visit.request_id
@@ -86,6 +114,18 @@ export const normalizeVisitForUI = (visit) => {
     estimated_duration: firstText(visit.estimated_duration),
     insurance_covered: typeof visit.insurance_covered === 'boolean' ? visit.insurance_covered : null,
     preparation: preparationSteps.length > 0 ? preparationSteps : null,
+    // ADOPT-30: numeric/financial post-completion outcomes only. rating is a
+    // 1..5 finite score or null; tip_amount is a finite positive number or
+    // null; tip_currency is a trimmed uppercase code or null; timestamps stay
+    // strings or null. rating_comment (patient free text) and tip_payment_id
+    // (bare FK) are never projected -- stripped here even if a caller leaks them.
+    rating: normalizeVisitRating(visit.rating),
+    rated_at: firstText(visit.rated_at),
+    tip_amount: normalizeVisitTipAmount(visit.tip_amount),
+    tip_currency: normalizeVisitTipCurrency(visit.tip_currency),
+    tipped_at: firstText(visit.tipped_at),
+    rating_comment: undefined,
+    tip_payment_id: undefined,
     source_status: sourceStatus,
     status: status || sourceStatus,
     sourceKind,

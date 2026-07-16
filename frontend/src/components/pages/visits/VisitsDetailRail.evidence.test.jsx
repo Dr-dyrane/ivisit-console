@@ -126,6 +126,51 @@ describe('VisitsDetailRail adopted evidence bindings', () => {
     expect(container.textContent).not.toContain('Updated');
   });
 
+  // ADOPT-30: post-completion outcome evidence binds the adopted projection
+  // columns to the rail DOM; deleting either render line fails these pins.
+  it('renders the rating and tip evidence lines from the adopted columns', () => {
+    renderRail({
+      ...emergencyVisit,
+      status: 'completed',
+      rating: 4,
+      rated_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+      tip_amount: 500,
+      tip_currency: 'NGN',
+      tipped_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    });
+
+    expect(container.textContent).toContain('Rating');
+    expect(container.textContent).toContain('4/5');
+    expect(container.textContent).toContain('2h ago');
+    expect(container.textContent).toContain('Tip');
+    // Currency honesty: the code renders with the amount when both are known.
+    expect(container.textContent).toContain('NGN 500');
+  });
+
+  it('renders the score alone and the bare tip amount when pair truth is missing', () => {
+    renderRail({ ...emergencyVisit, rating: 5, tip_amount: 1500 });
+
+    expect(container.textContent).toContain('Rating');
+    expect(container.textContent).toContain('5/5');
+    expect(container.textContent).toContain('Tip');
+    expect(container.textContent).toContain('1,500');
+    // No invented currency symbol and no fabricated timestamp.
+    expect(container.textContent).not.toContain('$');
+    expect(container.textContent).not.toContain('NGN');
+    expect(container.textContent).not.toContain('2h ago');
+  });
+
+  it('renders no rating or tip lines for unrated visits', () => {
+    renderRail(emergencyVisit);
+    expect(container.textContent).not.toContain('Rating');
+    expect(container.textContent).not.toContain('Tip');
+
+    // Out-of-range junk collapses to absence, never a junk score.
+    renderRail({ ...emergencyVisit, rating: 0, tip_amount: 0 });
+    expect(container.textContent).not.toContain('Rating');
+    expect(container.textContent).not.toContain('Tip');
+  });
+
   it('renders honest absence when the adopted truth is missing', () => {
     renderRail({
       id: 'visit-scheduled-bare',

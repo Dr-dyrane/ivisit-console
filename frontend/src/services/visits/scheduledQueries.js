@@ -4,6 +4,10 @@ import { applyQueryAbortSignal, throwIfQueryAborted } from '../queryAbort';
 import { normalizeVisitForUI } from './normalization';
 
 export const SCHEDULED_VISIT_PAGE_SIZE = 20;
+// ADOPT-30: the scheduled lane feeds the same VisitsDetailRail as generic
+// history (lifecycle_state carries rating_pending/rated), so it adopts the
+// same numeric/financial outcome columns. Patient-authored rating_comment and
+// the bare tip_payment_id FK stay excluded (scheduledQueries.test.js pins it).
 export const SCHEDULED_VISIT_SELECT = `
   id,
   display_id,
@@ -18,6 +22,11 @@ export const SCHEDULED_VISIT_SELECT = `
   status,
   lifecycle_state,
   lifecycle_updated_at,
+  rating,
+  rated_at,
+  tip_amount,
+  tip_currency,
+  tipped_at,
   type,
   specialty,
   doctor_name,

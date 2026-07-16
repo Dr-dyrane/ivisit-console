@@ -159,7 +159,16 @@ describe('scheduled visit query contract', () => {
 
   it('keeps patient search and consult content outside the projection', () => {
     expect(sanitizeScheduledVisitSearch('  Ada,%  ')).toBe('Ada');
-    expect(SCHEDULED_VISIT_SELECT).not.toMatch(/message|attachment|media|consult_content|notes/i);
+    // ADOPT-30 hardening (strictly more protective): 'comment' joins the ban so
+    // rating_comment can never be adopted into the scheduled lane either.
+    expect(SCHEDULED_VISIT_SELECT).not.toMatch(/message|attachment|media|consult_content|notes|comment/i);
+    expect(SCHEDULED_VISIT_SELECT).not.toContain('rating_comment');
+    expect(SCHEDULED_VISIT_SELECT).not.toContain('tip_payment_id');
+    // The scheduled lane feeds the same rail evidence lines, so it carries the
+    // same numeric/financial outcome columns (and nothing else).
+    ['rating', 'rated_at', 'tip_amount', 'tip_currency', 'tipped_at'].forEach((column) => {
+      expect(SCHEDULED_VISIT_SELECT).toMatch(new RegExp(`\\b${column}\\b`));
+    });
     expect(SCHEDULED_VISIT_SELECT).toContain('patient:profiles!visits_user_id_fkey');
 
     const source = fs.readFileSync('src/services/visits/scheduledQueries.js', 'utf8');

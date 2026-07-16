@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import {
+  Banknote,
   Calendar,
   CalendarClock,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Phone,
   Plus,
   Siren,
+  Star,
   Stethoscope,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -56,7 +58,9 @@ import {
   getScheduledLifecycleChip,
   getVisitCareTeamMeta,
   getVisitPatientContact,
+  getVisitRatingEvidence,
   getVisitRecordUpdatedRelative,
+  getVisitTipEvidence,
 } from './visitEvidencePresentation';
 import {
   PINNED_VISIT_STATE_IDS,
@@ -464,6 +468,12 @@ export const VisitsDetailRail = ({
   const clinicalWindow = getScheduledClinicalWindow(visit);
   const patientContact = getVisitPatientContact(visit);
   const careTeamMeta = getVisitCareTeamMeta(visit);
+  // ADOPT-30: post-completion outcome evidence, read-only from the adopted
+  // numeric/financial columns; hide-when-null throughout (unrated visits show
+  // nothing, a rating without rated_at renders the score alone, and a tip
+  // amount without currency truth renders bare -- no invented symbols).
+  const ratingEvidence = getVisitRatingEvidence(visit);
+  const tipEvidence = getVisitTipEvidence(visit);
   // ADOPT-65: display-only last-updated line; the sortable Time header stays
   // date/scheduled_start_at (one sortable Time header per page, estate law).
   const recordUpdated = getVisitRecordUpdatedRelative(visit);
@@ -551,6 +561,12 @@ export const VisitsDetailRail = ({
         )}
         {visit.asyncConsultAvailability && (
           <DetailLine icon={CalendarClock} label="Async consult" value={visit.asyncConsultAvailability} />
+        )}
+        {ratingEvidence && (
+          <DetailLine icon={Star} label="Rating" value={ratingEvidence.lineValue} />
+        )}
+        {tipEvidence && (
+          <DetailLine icon={Banknote} label="Tip" value={tipEvidence.lineValue} />
         )}
         {recordUpdated && (
           <DetailLine icon={History} label="Updated" value={recordUpdated} />

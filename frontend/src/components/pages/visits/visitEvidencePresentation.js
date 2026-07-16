@@ -111,6 +111,58 @@ export const getVisitPatientContact = (visit) => {
   return null;
 };
 
+// ADOPT-30: post-completion rating and tip evidence, read-only. The visit
+// projections admit ONLY the numeric/financial outcome columns (rating,
+// rated_at, tip_amount, tip_currency, tipped_at); patient-authored free text
+// (rating_comment) and the bare tip_payment_id FK are contractually excluded
+// (privacy.test.js / scheduledQueries.test.js). Missing truth returns null so
+// the rail renders honest absence -- no fabricated defaults.
+const toFiniteEvidenceNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
+};
+
+// Rating line: '4/5' plus the relative rated_at stamp when that truth exists;
+// a rating without rated_at renders the score alone. The 1..5 guard mirrors
+// the normalization boundary so a raw row can never render a junk score.
+export const getVisitRatingEvidence = (visit) => {
+  const score = toFiniteEvidenceNumber(visit?.rating);
+  if (score === null || score < 1 || score > 5) return null;
+  const ratedRelative = getLifecycleUpdatedRelative(visit?.rated_at);
+  const scoreLabel = `${score}/5`;
+  return {
+    score,
+    scoreLabel,
+    ratedRelative,
+    lineValue: ratedRelative ? `${scoreLabel} \u00b7 ${ratedRelative}` : scoreLabel,
+  };
+};
+
+// Tip line under the currency-honesty law (donor: ADOPT-27
+// formatOrganizationWallet): amount + code render together only when BOTH are
+// known ('NGN 500'); an amount without currency truth renders bare -- never
+// behind an invented symbol. No amount, no line.
+export const getVisitTipEvidence = (visit) => {
+  const amount = toFiniteEvidenceNumber(visit?.tip_amount);
+  if (amount === null || amount <= 0) return null;
+  const currency = cleanText(visit?.tip_currency)?.toUpperCase() || null;
+  const amountLabel = currency
+    ? `${currency} ${amount.toLocaleString()}`
+    : amount.toLocaleString();
+  const tippedRelative = getLifecycleUpdatedRelative(visit?.tipped_at);
+  return {
+    amount,
+    currency,
+    amountLabel,
+    tippedRelative,
+    lineValue: tippedRelative ? `${amountLabel} \u00b7 ${tippedRelative}` : amountLabel,
+  };
+};
+
 // Care-team meta lines: doctor rows surface the fetched specialization
 // (doctor_record join or visit.specialty snapshot); responder rows surface the
 // fetched emergency_requests.responder_phone via the identity projection.
