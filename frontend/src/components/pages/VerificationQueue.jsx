@@ -84,6 +84,14 @@ export const VerificationQueue = () => {
     handleBulkAction: executeBulkAction,
   } = controller;
 
+  // ADOPT-20: the shared record modal is LANE-AWARE. Facility rows route modal
+  // Approve/Reject to the facility receiver (handleVerifyOrg -> verifyOrganization
+  // -> hospitals.verification_status, the same write the rail and bulk bar use).
+  // Before this, every lane handed the modal verifyProvider, which threw
+  // 'Provider not found' on every hospital id.
+  const isFacilityQueue = queueType === 'organizations';
+  const modalVerifyHandler = isFacilityQueue ? handleVerifyOrg : handleVerify;
+
   const roleKind = canApprove ? 'admin' : (isOrgAdmin() ? 'org_admin' : 'viewer');
   const visibleModuleRail = useMemo(() => getConsoleModuleRailItems(roleKind), [roleKind]);
   const { routingPath, handleRailNavigate } = useWayfindingNav();
@@ -114,6 +122,9 @@ export const VerificationQueue = () => {
     pagination.resetPagination();
     clearSelection();
     setFocused(null);
+    // Close the open record on queue switch so the modal's lane flag and verify
+    // handler can never go stale against the record it is showing.
+    setSelectedProvider(null);
   }, [queueType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -260,9 +271,10 @@ export const VerificationQueue = () => {
         <VerificationModal
           isOpen={Boolean(selectedProvider)}
           provider={selectedProvider}
+          isFacility={isFacilityQueue}
           mode="view"
           onClose={() => setSelectedProvider(null)}
-          onVerify={canApprove ? handleVerify : null}
+          onVerify={canApprove ? modalVerifyHandler : null}
         />
       </div>
     );
@@ -352,9 +364,10 @@ export const VerificationQueue = () => {
         <VerificationModal
           isOpen={Boolean(selectedProvider)}
           provider={selectedProvider}
+          isFacility={isFacilityQueue}
           mode="view"
           onClose={() => setSelectedProvider(null)}
-          onVerify={canApprove ? handleVerify : null}
+          onVerify={canApprove ? modalVerifyHandler : null}
         />
 
         <FilterSheet
@@ -455,9 +468,10 @@ export const VerificationQueue = () => {
       <VerificationModal
         isOpen={Boolean(selectedProvider)}
         provider={selectedProvider}
+        isFacility={isFacilityQueue}
         mode="view"
         onClose={() => setSelectedProvider(null)}
-        onVerify={canApprove ? handleVerify : null}
+        onVerify={canApprove ? modalVerifyHandler : null}
       />
 
       <FilterSheet

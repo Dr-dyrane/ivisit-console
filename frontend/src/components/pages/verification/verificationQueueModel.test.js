@@ -7,6 +7,7 @@ import {
   getApprovalProjection,
   getFacilityClaims,
   getFacilityProvenance,
+  getFacilityStatusPresentation,
   getVerificationRouteScope,
   isTransientVerificationRefreshError,
   normalizeActiveStats,
@@ -227,6 +228,24 @@ describe('verification queue model', () => {
     expect(getFacilityProvenance({ provider_source: 'verified_provider' })).toBe('Self-registered');
     expect(getFacilityProvenance({ provider_source: null, place_id: null })).toBeNull();
     expect(getFacilityProvenance({})).toBeNull();
+  });
+
+  it('binds the facility modal pill to RAW verification_status with honest labels (ADOPT-20)', () => {
+    expect(getFacilityStatusPresentation('pending')).toMatchObject({ key: 'pending', label: 'Pending review' });
+    expect(getFacilityStatusPresentation('verified')).toMatchObject({ key: 'verified', label: 'Verified' });
+    expect(getFacilityStatusPresentation('rejected')).toMatchObject({ key: 'rejected', label: 'Rejected' });
+    // Case/whitespace normalization of a KNOWN member is not coercion.
+    expect(getFacilityStatusPresentation(' VERIFIED ')).toMatchObject({ key: 'verified', label: 'Verified' });
+    // Unknown stored values render as humanized RAW text -- never coerced to
+    // pending/verified (and never actionable through the known-key vocabulary).
+    expect(getFacilityStatusPresentation('under_review')).toMatchObject({ key: 'unknown', label: 'under review' });
+    expect(getFacilityStatusPresentation('suspended')).toMatchObject({ key: 'unknown', label: 'suspended' });
+    // Null/empty is an honest absence: no pill, never a fabricated 'pending'.
+    expect(getFacilityStatusPresentation(null)).toBeNull();
+    expect(getFacilityStatusPresentation(undefined)).toBeNull();
+    expect(getFacilityStatusPresentation('')).toBeNull();
+    expect(getFacilityStatusPresentation('   ')).toBeNull();
+    expect(getFacilityStatusPresentation(7)).toBeNull();
   });
 
   it('humanizes onboarding status without inventing one', () => {

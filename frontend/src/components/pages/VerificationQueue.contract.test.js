@@ -53,7 +53,12 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).toContain("import { SEOHead } from '../common/SEOHead';");
     expect(source).toContain('<SEOHead title="Approvals" description="Review provider and facility approvals in iVisit Console." />');
     expect(source).not.toContain('aria-label="Filter verification queue"');
-    expect(source).toContain('onVerify={canApprove ? handleVerify : null}');
+    // PIN UPDATE (ADOPT-20, strictly more truthful): the old pin
+    // `onVerify={canApprove ? handleVerify : null}` asserted the modal ALWAYS got
+    // the provider receiver -- which was the defect (facility rows' Approve threw
+    // 'Provider not found'). The modal now takes the lane-aware handler; the
+    // admin gate (canApprove ? ... : null) survives unchanged.
+    expect(source).toContain('onVerify={canApprove ? modalVerifyHandler : null}');
     expect(source).toContain('canApprove={canApprove}');
     expect(source).toContain('Admin approval required');
     expect(source).toContain('Access restricted');
@@ -359,6 +364,70 @@ describe('VerificationQueue Approvals desktop contract', () => {
     // Facilities keep the REAL Approve + Reject (verification_status has rejected).
     expect(source).toContain('handleVerifyOrg(item.id, false)');
     expect(facilityService).toContain("status === 'approved' ? 'verified' : status");
+  });
+
+  // ADOPT-20: the record modal was provider-shaped while BOTH queues fed it --
+  // facility rows rendered 'Unknown Provider'/always-PENDING and the modal's
+  // Approve called verifyProvider(hospital.id), which always threw 'Provider
+  // not found'. These gates are lane-aware and were RED before the fix.
+  it('routes the record modal per lane: facilities bind the facility receiver, never verifyProvider (ADOPT-20)', () => {
+    const source = pageSource();
+    const modal = modalSource();
+
+    // ONE lane selector derived from the same queueType the list renders.
+    expect(source).toContain("const isFacilityQueue = queueType === 'organizations';");
+    expect(source).toContain('const modalVerifyHandler = isFacilityQueue ? handleVerifyOrg : handleVerify;');
+    // ALL THREE mounts (phone/tablet/desktop branches) pass the lane-aware pair --
+    // the defect existed on every lane, so every mount is pinned by count.
+    expect((source.match(/<VerificationModal/g) || []).length).toBe(3);
+    expect((source.match(/isFacility=\{isFacilityQueue\}/g) || []).length).toBe(3);
+    expect((source.match(/onVerify=\{canApprove \? modalVerifyHandler : null\}/g) || []).length).toBe(3);
+    // The page never hands the provider receiver straight to the modal again.
+    expect(source).not.toContain('onVerify={canApprove ? handleVerify : null}');
+    // Queue switch closes the open record so the lane flag cannot go stale.
+    expect(source).toContain('setSelectedProvider(null);');
+
+    // Modal: the facility branch carries a REAL Approve AND Reject through the
+    // lane handler; the provider action path still cannot reject (approve-only).
+    expect(modal).toContain('handleFacilityDecision(true)');
+    expect(modal).toContain('handleFacilityDecision(false)');
+    expect(modal).not.toContain('handleVerifyAction(false)');
+    // Facility write path keeps the submit spinner (interaction-completeness).
+    expect(modal).toContain('animate-spin');
+
+    // Facility truth renders through the SAME projections the rail uses: name
+    // (not username), the RAW tri-state pill, claims chips + provenance.
+    expect(modal).toContain("from '../pages/verification/verificationQueueModel'");
+    expect(modal).toContain('getFacilityStatusPresentation(provider?.verification_status)');
+    expect(modal).toContain('getFacilityClaims(provider)');
+    expect(modal).toContain('getFacilityProvenance(provider)');
+    expect(modal).toContain("provider?.name || 'Unnamed facility'");
+    // Honest raw status: unknown values are humanized, NEVER coerced to
+    // pending/verified; null hides the pill instead of fabricating 'pending'.
+    const model = fs.readFileSync('src/components/pages/verification/verificationQueueModel.js', 'utf8');
+    expect(model).toContain('export const getFacilityStatusPresentation = (value) => {');
+    expect(model).toContain('if (!raw) return null;');
+    expect(model).toContain("key: 'unknown'");
+    expect(model).toContain("label: raw.replace(/_/g, ' ')");
+
+    // Return-semantics alignment: BOTH lane receivers report success as a
+    // boolean so runVerificationAction can gate close/success on the result.
+    const facilityCommandStart = source.indexOf('const handleVerifyOrg = useCallback');
+    const facilityCommand = source.slice(
+      facilityCommandStart,
+      source.indexOf('const handleBulkAction = useCallback', facilityCommandStart),
+    );
+    expect(facilityCommand).toContain('return true;');
+    expect(facilityCommand).toContain('return false;');
+  });
+
+  it('bans the phantom verification_notes field from the whole approvals estate (ADOPT-20)', () => {
+    // No verification_notes column exists on profiles OR hospitals
+    // (types/database.ts): the textarea silently discarded operator input on
+    // every save since the modal shipped. Banned from both lanes of the modal
+    // and the page estate; no replacement notes persistence (schema decision).
+    expect(modalSource()).not.toContain('verification_notes');
+    expect(pageSource()).not.toContain('verification_notes');
   });
 
   it('lets an org_admin reviewer see the review panel (route is org_admin-reachable)', () => {

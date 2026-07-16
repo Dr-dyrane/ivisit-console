@@ -1,4 +1,8 @@
-import { getApprovalStatusKey } from '../../../constants/verificationStatus';
+import {
+  getApprovalLabel,
+  getApprovalStatusKey,
+  getApprovalToneClass,
+} from '../../../constants/verificationStatus';
 
 export const DEFAULT_PROVIDER_STATS = Object.freeze({
   pending: 0,
@@ -212,6 +216,30 @@ export const getFacilityProvenance = (item) => {
   if (!source && placeId) return 'Imported \u00b7 Places';
   if (source) return 'Self-registered';
   return null;
+};
+
+// ADOPT-20: the facility record modal binds hospitals.verification_status RAW.
+// Known enum members (pending|verified|rejected) get honest labels through the
+// single verificationStatus color source; any OTHER stored value renders as its
+// humanized raw text -- never coerced to pending/verified. Null/empty returns
+// null so the modal hides the pill instead of fabricating a status.
+export const getFacilityStatusPresentation = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return null;
+  const key = raw.toLowerCase();
+  if (key === 'pending' || key === 'verified' || key === 'rejected') {
+    const approvalKey = key === 'verified' ? 'approved' : key;
+    return {
+      key,
+      label: key === 'verified' ? 'Verified' : getApprovalLabel(approvalKey),
+      toneClass: getApprovalToneClass(approvalKey),
+    };
+  }
+  return {
+    key: 'unknown',
+    label: raw.replace(/_/g, ' '),
+    toneClass: 'bg-muted/30 text-muted-foreground',
+  };
 };
 
 export const getProviderPersonaKind = (providerType) => {

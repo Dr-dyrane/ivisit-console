@@ -229,10 +229,13 @@ export const useVerificationQueueController = ({
     }
   }, [canApprove, fetchVerificationData, onProviderVerified]);
 
+  // Returns a boolean like handleVerify so shared callers (the record modal's
+  // runVerificationAction) can gate success effects on the result. The write
+  // itself is unchanged: verifyOrganization -> hospitals.verification_status.
   const handleVerifyOrg = useCallback(async (hospitalId, approved) => {
     if (!canApprove) {
       toast.error('Admin approval required');
-      return;
+      return false;
     }
 
     setActionLoading(true);
@@ -240,8 +243,10 @@ export const useVerificationQueueController = ({
       await verifyOrganization(hospitalId, approved);
       toast.success(approved ? 'Facility approved' : 'Facility rejected');
       fetchOrgVerificationData();
+      return true;
     } catch (error) {
       handleApiError(error, 'update');
+      return false;
     } finally {
       setActionLoading(false);
     }
