@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ExternalLink, FileText, Newspaper } from 'lucide-react';
+import { Calendar, ExternalLink, FileText, Newspaper } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ModalShell } from '../ui/ModalShell';
 
@@ -9,6 +9,16 @@ const formatLabel = (value, fallback) => {
   const text = String(value || '').trim();
   if (!text) return fallback;
   return text.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+// ADOPT-50: health_news has no published_at column; created_at is the
+// projection's publish date. Invalid or missing dates return null so the
+// view can stay honest instead of fabricating a date.
+const formatNewsDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export const HealthNewsModal = ({ isOpen, onClose, news }) => {
@@ -45,6 +55,7 @@ const HealthNewsReadView = ({ news, onClose }) => {
   const source = String(news?.source || '').trim() || 'Unknown source';
   const description = String(news?.description || '').trim() || 'No short summary was provided.';
   const content = String(news?.content || '').trim() || 'Full article text is not available for this source.';
+  const publishedOn = formatNewsDate(news?.created_at);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -71,6 +82,10 @@ const HealthNewsReadView = ({ news, onClose }) => {
           <h3 className="mt-4 text-2xl font-semibold leading-tight tracking-normal text-foreground">
             {String(news?.title || '').trim() || 'Untitled health news'}
           </h3>
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            {publishedOn ? `Published ${publishedOn}` : 'Publish date unknown'}
+          </p>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {description}
           </p>

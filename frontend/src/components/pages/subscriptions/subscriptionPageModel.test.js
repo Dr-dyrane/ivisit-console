@@ -5,11 +5,14 @@ import {
   buildVisibleSubscriptionStats,
   createSubscriptionFilters,
   formatSubscriberEventDate,
+  getJoinedDateLabel,
   getSubscriberStatusTone,
+  getSubscriptionDateEvidenceLabel,
   getSubscriptionRoleKind,
   getUnsubscribedEvidenceLabel,
   getWelcomeEmailEvidenceLabel,
   hasActiveSubscriberFilters,
+  isNewSubscriber,
   SUBSCRIPTION_FILTER_SCHEMA,
 } from './subscriptionPageModel';
 
@@ -108,6 +111,63 @@ describe('subscriptionPageModel', () => {
       statsScope: 'admin_subscriber_projection',
       source: 'route',
     });
+  });
+
+  it('carries the computed new-user and welcome-sent aggregates into the route summary (ADOPT-55)', () => {
+    const context = buildSubscriptionsRouteContext({
+      subscribers: [],
+      focusedSubscriber: null,
+      subscriberCount: 10,
+      displayStats: {
+        active: 4,
+        pending: 1,
+        paid: 2,
+        free: 8,
+        newUsers: 3,
+        welcomeSent: 7,
+        scope: 'admin_subscriber_projection',
+      },
+      statsUnavailable: false,
+      loading: false,
+      error: null,
+    });
+
+    expect(context.summary.newUsers).toBe(3);
+    expect(context.summary.welcomeSent).toBe(7);
+    // An absent count reports zero from the projection shape, never NaN.
+    expect(buildSubscriptionsRouteContext({
+      subscribers: [],
+      focusedSubscriber: null,
+      subscriberCount: 0,
+      displayStats: {},
+      statsUnavailable: true,
+      loading: false,
+      error: null,
+    }).summary.welcomeSent).toBe(0);
+  });
+
+  it('renders the Joined cell from the sorted created_at column and keeps subscription_date as unsorted evidence (ADOPT-56)', () => {
+    expect(getJoinedDateLabel({ created_at: '2026-07-01T10:30:00Z', subscription_date: '2026-01-05' }))
+      .toBe(new Date('2026-07-01T10:30:00Z').toLocaleDateString());
+    expect(getJoinedDateLabel({ created_at: 'not-a-date' })).toBe('Unknown');
+    expect(getJoinedDateLabel({})).toBe('Unknown');
+
+    // Date-only subscription_date anchors to local noon (no UTC day shift).
+    expect(getSubscriptionDateEvidenceLabel({ subscription_date: '2026-01-05' }))
+      .toBe(new Date(2026, 0, 5).toLocaleDateString());
+    expect(getSubscriptionDateEvidenceLabel({ subscription_date: null })).toBeNull();
+    expect(getSubscriptionDateEvidenceLabel({})).toBeNull();
+  });
+
+  it('marks the New chip only for rows the database recorded as new_user (ADOPT-57)', () => {
+    expect(isNewSubscriber({ new_user: true })).toBe(true);
+    expect(isNewSubscriber({ new_user: false })).toBe(false);
+    expect(isNewSubscriber({ new_user: null })).toBe(false);
+    // Truthy non-boolean shapes never fabricate the chip.
+    expect(isNewSubscriber({ new_user: 'true' })).toBe(false);
+    expect(isNewSubscriber({ new_user: 1 })).toBe(false);
+    expect(isNewSubscriber({})).toBe(false);
+    expect(isNewSubscriber()).toBe(false);
   });
 
   it('formats date-only event values without the UTC midnight day shift', () => {

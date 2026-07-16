@@ -1,5 +1,6 @@
 import fs from 'fs';
-import { getStaffCaseload } from './doctors/staffPageModel';
+import { getStaffCaseload, getStaffLastUpdated, getStaffRating } from './doctors/staffPageModel';
+import { buildStaffPayload } from '../modals/doctor/doctorModalModel';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
@@ -364,6 +365,58 @@ describe('DoctorsPage Staff contract', () => {
     expect((modal.match(/value=\{formData\.consultation_fee\}/g) || []).length).toBe(2);
     expect(modal).not.toContain("updateField('consultation_fee'");
     expect(modal).not.toContain("onChange={(event) => updateField('consultation_fee'");
+  });
+
+  it('surfaces last-updated, rating evidence, and department read-only (ADOPT-41/42/43)', () => {
+    const page = pageSource();
+    const modal = modalSource();
+
+    // ADOPT-41: updated_at renders as a shared relative rail line ONLY. The
+    // estate allows one sortable Time header per page and this page's header
+    // already sorts created_at ("Added"), so updated_at gets no second sort
+    // affordance (recorded conflict, resolved in favor of the existing header).
+    expect(page).toContain("import { formatRelativeTime } from '../../../utils/activityUtils';");
+    expect(page).toContain('updatedAgo: getStaffLastUpdated(staff)');
+    expect((page.match(/\{projection\.updatedAgo && \(/g) || []).length).toBe(1);
+    expect(page).toContain('label="Updated" value={projection.updatedAgo}');
+    expect(page).toContain('sortKey="created_at"');
+    expect(page).not.toContain('sortKey="updated_at"');
+    expect((page.match(/<SortableColumnHeader/g) || []).length).toBe(1);
+    // Hide-when-null: missing or unparseable timestamps render nothing.
+    expect(getStaffLastUpdated({ updated_at: new Date().toISOString() })).toBe('Just now');
+    expect(getStaffLastUpdated({ updated_at: null })).toBeNull();
+    expect(getStaffLastUpdated({ updated_at: 'not-a-date' })).toBeNull();
+    expect(getStaffLastUpdated({})).toBeNull();
+
+    // ADOPT-42: per-record rating + reviews_count chip on row AND rail,
+    // hide-when-null/zero. The banned aggregate 'Avg Rating' KPI stays absent
+    // (pinned in the stale-copy test above); rating/reviews_count stay
+    // read-only workflow fields in the service (pinned in the CRUD test below).
+    expect(page).toContain('ratingChip: getStaffRating(staff)');
+    expect((page.match(/\{projection\.ratingChip && \(/g) || []).length).toBe(2);
+    expect(page).toContain('label="Rating" value={projection.ratingChip}');
+    expect(getStaffRating({ rating: 4.8, reviews_count: 12 })).toBe('4.8 (12 reviews)');
+    expect(getStaffRating({ rating: null, reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({ rating: 4.5, reviews_count: 0 })).toBeNull();
+    expect(getStaffRating({ rating: 0, reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({ rating: '', reviews_count: 12 })).toBeNull();
+
+    // ADOPT-43: department (service-writable, previously zero UI) reaches the
+    // render in view AND edit modes as a read-only item; no input exists, and
+    // the write payload provably omits it in both create and edit shapes.
+    expect((modal.match(/label="Department"/g) || []).length).toBe(2);
+    expect((modal.match(/value=\{formData\.department\}/g) || []).length).toBe(2);
+    expect(modal).not.toContain("updateField('department'");
+    expect(modal).not.toContain('department: cleanText');
+    const departmentForm = {
+      name: 'Ada', specialization: 'Emergency', phone: '', email: 'ada@example.com',
+      hospital_id: 'h-1', experience: '', license_number: '', about: '',
+      consultation_fee: '', department: 'Cardiology',
+    };
+    expect(buildStaffPayload(departmentForm, { isCreate: true, isProfileLinked: false }))
+      .not.toHaveProperty('department');
+    expect(buildStaffPayload(departmentForm, { isCreate: false, isProfileLinked: true }))
+      .not.toHaveProperty('department');
   });
 
   it('keeps the Staff modal inside proved directory CRUD boundaries', () => {

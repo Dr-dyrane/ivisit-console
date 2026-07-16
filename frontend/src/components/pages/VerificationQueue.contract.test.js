@@ -138,6 +138,24 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).toContain("return 'Demo seed';");
   });
 
+  it('surfaces payout readiness presence-only and never a raw Stripe identifier (ADOPT-40)', () => {
+    const source = pageSource();
+    // ADOPT-40: the provider rail binds profiles.payout_method_brand/_last4 --
+    // fetched by the queue's select('*') but invisible before this pass. The line
+    // is gated on the projection's honest null: production rows are mostly
+    // unpopulated, and both-null renders NOTHING (no fabricated unfunded state).
+    expect(source).toContain('export const formatPayoutMethod = (item) => {');
+    expect(source).toContain("typeof item?.payout_method_brand === 'string'");
+    expect(source).toContain("typeof item?.payout_method_last4 === 'string'");
+    expect(source).toContain('const payoutMethod = isProviders ? formatPayoutMethod(item) : null;');
+    expect(source).toContain('{payoutMethod && <DetailLine icon={CreditCard} label="Payout method" value={payoutMethod} />}');
+    // Presence-only Stripe semantics: the same profiles row carries raw
+    // payment-method/account/customer identifiers; none may enter this estate.
+    expect(source).not.toContain('payout_method_id');
+    expect(source).not.toContain('stripe_account_id');
+    expect(source).not.toContain('stripe_customer_id');
+  });
+
   it('gives BOTH lanes multi-select + bulk, routed per queue (providers approve-only, facilities tri-state)', () => {
     const source = pageSource();
     const bottomBarSource = [

@@ -14,8 +14,14 @@ import {
   ReceiptText,
   Shield,
 } from 'lucide-react';
-import { getInsuranceBillingOutcomes } from '../../services/insuranceService';
+import {
+  EMPTY_INSURANCE_BILLING_REFERENCES,
+  getInsuranceBillingOutcomes,
+  resolveInsuranceBillingReferences,
+} from '../../services/insuranceService';
 import { resolveVital } from '../../constants/vitalTracks';
+import { CopyChip } from '../console/primitives';
+import { formatInsuranceLinkedPayment } from '../pages/insurance/insurancePageModel';
 
 const formatText = (value, fallback = 'Not set') => {
   const text = String(value || '').trim();
@@ -47,6 +53,11 @@ const formatPercentage = (value) => {
   return Number.isFinite(numericValue) ? `${numericValue.toLocaleString()}%` : 'Not recorded';
 };
 
+const shortenUuid = (value) => {
+  const text = String(value || '').trim();
+  return text.length > 12 ? `${text.slice(0, 8)}...` : text;
+};
+
 export const InsuranceModal = ({
   isOpen,
   policy,
@@ -54,6 +65,9 @@ export const InsuranceModal = ({
   onClose,
 }) => {
   const [billingOutcomes, setBillingOutcomes] = useState([]);
+  const [billingReferences, setBillingReferences] = useState(
+    EMPTY_INSURANCE_BILLING_REFERENCES
+  );
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState(null);
   const isBlockedCommand = mode === 'create' || mode === 'edit';
@@ -64,14 +78,22 @@ export const InsuranceModal = ({
   const policyVital = resolveVital('insurance', policy?.status || 'unknown');
   const status = policyVital?.pill?.label || formatText(policy?.status || 'unknown', 'Unknown');
   const statusBadge = policy ? (
-    <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${policyVital?.pill?.className || 'bg-muted/30 text-muted-foreground'}`}>
-      {status}
+    <span className="inline-flex items-center gap-2">
+      <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${policyVital?.pill?.className || 'bg-muted/30 text-muted-foreground'}`}>
+        {status}
+      </span>
+      {policy.is_default === true && (
+        <span className="inline-flex items-center rounded-pill bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
+          Default policy
+        </span>
+      )}
     </span>
   ) : null;
 
   useEffect(() => {
     if (!isOpen || !policy?.id) {
       setBillingOutcomes([]);
+      setBillingReferences(EMPTY_INSURANCE_BILLING_REFERENCES);
       setBillingError(null);
       setBillingLoading(false);
       return undefined;
@@ -82,6 +104,7 @@ export const InsuranceModal = ({
       try {
         setBillingLoading(true);
         setBillingError(null);
+        setBillingReferences(EMPTY_INSURANCE_BILLING_REFERENCES);
         const page = await getInsuranceBillingOutcomes({
           policyId: policy.id,
           limit: 5,
@@ -101,7 +124,14 @@ export const InsuranceModal = ({
           return;
         }
 
-        setBillingOutcomes(page.data || []);
+        const outcomes = page.data || [];
+        setBillingOutcomes(outcomes);
+
+        // Read-only label resolution runs AFTER the billing window lands; an
+        // unresolved reference keeps the truncated UUID fallback below.
+        const references = await resolveInsuranceBillingReferences(outcomes);
+        if (!isActive) return;
+        setBillingReferences(references);
       } catch {
         if (!isActive) return;
         setBillingOutcomes([]);
@@ -157,6 +187,7 @@ export const InsuranceModal = ({
                 <Field label="Coverage percentage" value={formatPercentage(policy.coverage_percentage)} />
                 <Field label="Start date" value={formatDate(policy.start_date)} />
                 <Field label="End date" value={formatDate(policy.end_date)} />
+                <Field label="Linked payment" value={formatInsuranceLinkedPayment(policy.linked_payment_method)} />
               </Section>
 
               <Section icon={<CheckCircle />} title="Review state">
@@ -168,6 +199,7 @@ export const InsuranceModal = ({
 
               <BillingOutcomeSection
                 outcomes={billingOutcomes}
+                references={billingReferences}
                 loading={billingLoading}
                 error={billingError}
               />
@@ -216,7 +248,7 @@ const Section = ({ icon, title, children }) => (
   </section>
 );
 
-const BillingOutcomeSection = ({ outcomes, loading, error }) => (
+const BillingOutcomeSection = ({ outcomes, references, loading, error }) => (
   <Section icon={<ReceiptText />} title="Billing outcomes">
     <div className="md:col-span-2 space-y-3">
       {loading && (
@@ -260,8 +292,33 @@ const BillingOutcomeSection = ({ outcomes, loading, error }) => (
           </div>
 
           <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-            <Field label="Request ID" value={formatRaw(outcome.emergency_request_id)} mono />
-            <Field label="Hospital ID" value={formatRaw(outcome.hospital_id)} mono />
+            <Field label="Applied coverage" value={formatPercentage(outcome.coverage_percentage)} />
+            <Field label="Paid date" value={formatDate(outcome.paid_date)} />
+          </div>
+
+          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <ReferenceField
+              label="Member"
+              id={outcome.user_id}
+              resolvedLabel={references?.memberNamesById?.[outcome.user_id]}
+              missingText="Not recorded"
+              copyLabel="Copy member ID"
+            />
+            <ReferenceField
+              label="Request"
+              id={outcome.emergency_request_id}
+              resolvedLabel={references?.requestDisplayIdsById?.[outcome.emergency_request_id]}
+              missingText="Not linked"
+              copyLabel="Copy request ID"
+              mono
+            />
+            <ReferenceField
+              label="Hospital"
+              id={outcome.hospital_id}
+              resolvedLabel={references?.hospitalNamesById?.[outcome.hospital_id]}
+              missingText="Not linked"
+              copyLabel="Copy hospital ID"
+            />
           </div>
         </div>
       ))}
@@ -292,6 +349,28 @@ const Field = ({ label, value, mono = false }) => (
     </div>
   </div>
 );
+
+// Billing reference cell: resolved human label when the batched read-only
+// lookup found one, otherwise the truncated UUID with a copy affordance.
+// A missing reference renders honest absence -- never a fabricated name.
+const ReferenceField = ({ label, id, resolvedLabel, missingText, copyLabel, mono = false }) => {
+  if (!id) return <Field label={label} value={missingText} />;
+  if (resolvedLabel) return <Field label={label} value={resolvedLabel} mono={mono} />;
+
+  return (
+    <div className="rounded-inner bg-background/45 p-3">
+      <div className="text-xs font-semibold text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 flex items-center gap-1.5">
+        <span className="truncate font-mono text-sm font-medium text-foreground" title={String(id)}>
+          {shortenUuid(id)}
+        </span>
+        <CopyChip value={id} label={copyLabel} />
+      </div>
+    </div>
+  );
+};
 
 const CardImage = ({ label, src }) => {
   const hasImageReference = Boolean(String(src || '').trim());

@@ -7,6 +7,7 @@ import {
   Clock,
   FileText,
   IdCard,
+  Layers,
   Loader2,
   Mail,
   Phone,
@@ -99,6 +100,7 @@ export const DoctorModalView = ({
                 <ReadOnlyItem icon={Building2} label="Facility" value={facilityName} />
                 <ReadOnlyItem icon={CheckCircle2} label="Status" value={status.label} />
                 <ReadOnlyItem icon={IdCard} label="License" value={formData.license_number} />
+                <ReadOnlyItem icon={Layers} label="Department" value={formData.department} />
                 <ReadOnlyItem icon={Banknote} label="Consultation fee" value={formData.consultation_fee} />
                 <ReadOnlyItem icon={FileText} label="Notes" value={formData.about} wide />
               </div>
@@ -229,6 +231,16 @@ export const DoctorModalView = ({
                     className={fieldClassName}
                   />
                 </Field>
+
+                {/* Display-only (ADOPT-43): department is service-writable but has
+                    no console input; buildStaffPayload omits it entirely, so saves
+                    never touch the stored value. */}
+                <ReadOnlyItem
+                  icon={Layers}
+                  label="Department"
+                  value={formData.department}
+                  hint="Read-only in this form"
+                />
 
                 {/* Display-only: the stored fee round-trips through the payload
                     unchanged; an editable input here would be a new write surface. */}

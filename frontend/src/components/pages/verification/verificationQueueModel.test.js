@@ -3,6 +3,7 @@ import {
   createVerificationPanelContext,
   executeVerificationBulkAction,
   formatOnboardingStatus,
+  formatPayoutMethod,
   getApprovalProjection,
   getFacilityClaims,
   getFacilityProvenance,
@@ -234,5 +235,43 @@ describe('verification queue model', () => {
     expect(formatOnboardingStatus('')).toBeNull();
     expect(formatOnboardingStatus(null)).toBeNull();
     expect(formatOnboardingStatus(undefined)).toBeNull();
+  });
+
+  it('renders payout readiness presence-only: brand + last4, hidden when unpopulated', () => {
+    expect(formatPayoutMethod({ payout_method_brand: 'visa', payout_method_last4: '4242' }))
+      .toBe('Visa \u00b7\u00b7\u00b7\u00b7 4242');
+    expect(formatPayoutMethod({ payout_method_brand: 'Mastercard', payout_method_last4: '0005' }))
+      .toBe('Mastercard \u00b7\u00b7\u00b7\u00b7 0005');
+    // Partial presence renders only what exists -- nothing is fabricated.
+    expect(formatPayoutMethod({ payout_method_brand: 'visa', payout_method_last4: null })).toBe('Visa');
+    expect(formatPayoutMethod({ payout_method_brand: null, payout_method_last4: '4242' }))
+      .toBe('\u00b7\u00b7\u00b7\u00b7 4242');
+    // Production norm today: both columns null -> null, the rail hides the line.
+    expect(formatPayoutMethod({ payout_method_brand: null, payout_method_last4: null })).toBeNull();
+    expect(formatPayoutMethod({ payout_method_brand: '', payout_method_last4: '   ' })).toBeNull();
+    expect(formatPayoutMethod({})).toBeNull();
+    expect(formatPayoutMethod(null)).toBeNull();
+    expect(formatPayoutMethod(undefined)).toBeNull();
+  });
+
+  it('never leaks a raw Stripe identifier through the payout line', () => {
+    const row = {
+      payout_method_brand: 'visa',
+      payout_method_last4: '4242',
+      payout_method_id: 'pm_1RawSecret',
+      stripe_account_id: 'acct_1RawSecret',
+      stripe_customer_id: 'cus_RawSecret',
+    };
+    const line = formatPayoutMethod(row);
+    expect(line).toBe('Visa \u00b7\u00b7\u00b7\u00b7 4242');
+    expect(line).not.toContain(row.payout_method_id);
+    expect(line).not.toContain(row.stripe_account_id);
+    expect(line).not.toContain(row.stripe_customer_id);
+    // Raw ids alone can never resurrect the line -- only the display columns count.
+    expect(formatPayoutMethod({
+      payout_method_id: 'pm_1RawSecret',
+      stripe_account_id: 'acct_1RawSecret',
+      stripe_customer_id: 'cus_RawSecret',
+    })).toBeNull();
   });
 });

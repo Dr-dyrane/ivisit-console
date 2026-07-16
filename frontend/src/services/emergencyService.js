@@ -11,6 +11,7 @@ export {
 } from './emergency/listQueries';
 export {
   getEmergencyRequest,
+  getCurrentResponderAssignment,
   getLatestEmergencyPayment,
   getEmergencyDetailProjection,
   subscribeToEmergencyDetail,

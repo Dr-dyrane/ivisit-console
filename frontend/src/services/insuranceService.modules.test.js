@@ -6,6 +6,10 @@ import {
   getInsuranceBillingOutcomeStats,
 } from './insurance/billingProjection';
 import { normalizeInsuranceBillingOutcome } from './insurance/billingNormalization';
+import {
+  EMPTY_INSURANCE_BILLING_REFERENCES,
+  resolveInsuranceBillingReferences,
+} from './insurance/billingReferenceResolution';
 import { getInsurancePage, getInsurancePageStats } from './insurance/policyProjection';
 import { normalizeInsurancePolicy } from './insurance/policyNormalization';
 import {
@@ -32,6 +36,7 @@ const expectedFacade = {
   buildInsuranceWritePayload,
   createInsurancePolicy,
   deleteInsurancePolicy,
+  EMPTY_INSURANCE_BILLING_REFERENCES,
   getInsuranceAnalytics,
   getInsuranceBillingOutcomes,
   getInsuranceBillingOutcomeStats,
@@ -41,6 +46,7 @@ const expectedFacade = {
   getInsurancePolicy,
   normalizeInsuranceBillingOutcome,
   normalizeInsurancePolicy,
+  resolveInsuranceBillingReferences,
   subscribeToInsuranceBillingOutcomes,
   subscribeToInsurancePolicies,
   updateInsurancePolicy,

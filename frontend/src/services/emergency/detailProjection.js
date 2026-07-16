@@ -26,6 +26,27 @@ export async function getEmergencyRequest(requestId) {
   }
 }
 
+// ADOPT-21 read surfacing: the CURRENT assignment row behind
+// emergency_requests.current_responder_assignment_id. Read-only single-row
+// fetch after the request row lands; a null FK, missing row, or denied read
+// resolves null so the timeline stays absent -- never fabricated.
+export async function getCurrentResponderAssignment(request) {
+  const assignmentId = request?.current_responder_assignment_id;
+  if (!isValidUUID(assignmentId)) return null;
+
+  const { data, error } = await supabase
+    .from('emergency_responder_assignments')
+    .select('id,status,offered_at,offer_expires_at,accepted_at,arrived_at,completed_at,ended_at,decline_reason')
+    .eq('id', assignmentId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error fetching responder assignment ${assignmentId}:`, error);
+    return null;
+  }
+  return data || null;
+}
+
 export async function getLatestEmergencyPayment(requestId) {
   try {
     if (!isValidUUID(requestId)) {

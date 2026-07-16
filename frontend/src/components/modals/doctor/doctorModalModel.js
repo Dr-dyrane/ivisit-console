@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   license_number: '',
   about: '',
   consultation_fee: '',
+  department: '',
 };
 
 const statusMeta = {
@@ -70,6 +71,9 @@ export const normalizeForm = (doctor) => ({
   license_number: doctor?.license_number || '',
   about: doctor?.about || '',
   consultation_fee: doctor?.consultation_fee || '',
+  // ADOPT-43: read-path only. department renders read-only in the modal;
+  // buildStaffPayload never includes it, so saves cannot touch the stored value.
+  department: doctor?.department || '',
 });
 
 export const cleanText = (value) => {

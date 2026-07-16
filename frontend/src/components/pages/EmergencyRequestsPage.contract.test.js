@@ -232,6 +232,59 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     }
   });
 
+  it('surfaces assignment timeline, status distribution, bed count, and destination read-only (ADOPT-21/31/32)', () => {
+    const serviceSource = readEmergencyServiceSource();
+    const sectionsSource = fs.readFileSync('src/components/modals/EmergencyDetailsSections.jsx', 'utf8');
+    const mapperSource = fs.readFileSync('src/utils/emergencyRequestMapper.js', 'utf8');
+    const pageSource = readRequestsPageSource();
+    const analyticsModalSource = readAnalyticsModalImplementation();
+
+    // ADOPT-21: current_responder_assignment_id resolves through a read-only
+    // single-row fetch into emergency_responder_assignments. The timeline
+    // section renders only landed rows; the respond-by window only reads
+    // while the offer is still open (DriverAssignmentCard donor parity).
+    expect(serviceSource).toContain('export async function getCurrentResponderAssignment');
+    expect(serviceSource).toContain(".from('emergency_responder_assignments')");
+    expect(serviceSource).toContain("'id,status,offered_at,offer_expires_at,accepted_at,arrived_at,completed_at,ended_at,decline_reason'");
+    expect(sectionsSource).toContain('export const AssignmentTimelineSection = ({ request })');
+    expect(sectionsSource).toContain('if (!assignment) return null;');
+    expect(sectionsSource).toContain("assignment.status === 'offered'");
+    expect(sectionsSource).toContain('formatOfferExpiry(assignment.offer_expires_at)');
+    expect(sectionsSource).toContain('{assignment.accepted_at && <DetailRow label="Accepted"');
+    expect(sectionsSource).toContain('{assignment.arrived_at && <DetailRow label="Arrived"');
+    expect(sectionsSource).toContain('{assignment.decline_reason && <DetailRow label="Decline Reason"');
+    expect(sectionsSource).toContain('<AssignmentTimelineSection request={request} />');
+    // No new realtime channels: the section refetches only when the id changes.
+    expect(sectionsSource).not.toContain('.channel(');
+    expect(sectionsSource).not.toContain('postgres_changes');
+
+    // ADOPT-31: the AnalyticsModal Status phase reads analytics.byStatus
+    // (details-phase fallback chain); Requests feeds it from the SAME exact
+    // server counts the stats read already fetches. emergency_requests has no
+    // priority column, so no byPriority distribution is fabricated -- the
+    // Priority phase keeps its honest empty state.
+    expect(analyticsModalSource).toContain('analytics.byCategory || analytics.byStatus');
+    expect(serviceSource).toContain('byStatus: {');
+    expect(serviceSource).toContain('pending_approval: pending,');
+    expect(serviceSource).toContain('in_progress: inProgress,');
+    expect(serviceSource).not.toContain('byPriority');
+
+    // ADOPT-32: bed_count is raw text (empty stays absent -- never a
+    // fabricated zero) and the Destination line renders only recorded
+    // destination_location truth, never an echoed hospital name.
+    expect(mapperSource).toContain('destinationDisplay: buildDestinationDisplay(row)');
+    expect(mapperSource).toContain("bedCount: toCleanString(row?.bed_count) || null");
+    expect(pageSource).toContain('{destination.hasDestination && (');
+    expect(pageSource).toContain('label="Destination"');
+    expect(pageSource).toContain('{bedCount && <DetailLine icon={BedDouble} label="Bed count" value={bedCount} />}');
+
+    // Read-surfacing only: the write payload allowlists gained no new columns.
+    const payloadSource = fs.readFileSync('src/services/emergency/payloadNormalization.js', 'utf8');
+    for (const column of ['offer_expires_at', 'decline_reason', 'accepted_at', 'arrived_at', 'bed_count', 'current_responder_assignment_id']) {
+      expect(payloadSource).not.toContain(column);
+    }
+  });
+
   it('keeps legacy Requests density views out of the active route renderer', () => {
     const pageSource = readRequestsPageSource();
     const mobileSource = readRequestsMobileSource();

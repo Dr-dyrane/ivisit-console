@@ -7,6 +7,7 @@ import {
   CheckCircle,
   ChevronRight,
   Clock,
+  CreditCard,
   Eye,
   FileCheck,
   Info,
@@ -32,6 +33,7 @@ import {
 import {
   formatAppliedDate,
   formatOnboardingStatus,
+  formatPayoutMethod,
   getApprovalProjection,
   getFacilityClaims,
   getFacilityInitials,
@@ -131,6 +133,9 @@ export const ApprovalDetailRail = ({
   const canReject = queueType === 'organizations' && typeof onReject === 'function';
   const facilityClaims = isProviders ? null : getFacilityClaims(item);
   const provenance = isProviders ? null : getFacilityProvenance(item);
+  // ADOPT-40: presence-only payout readiness (brand + last4). Production rows
+  // are mostly unpopulated -- null hides the line, never a fabricated state.
+  const payoutMethod = isProviders ? formatPayoutMethod(item) : null;
 
   return (
     <DetailRailShell embedded={embedded}>
@@ -202,6 +207,7 @@ export const ApprovalDetailRail = ({
             <DetailLine icon={Mail} label="Contact" value={item.email} />
             {item.phone && <DetailLine icon={Phone} label="Phone" value={item.phone} />}
             <DetailLine icon={ListChecks} label="Onboarding" value={formatOnboardingStatus(item.onboarding_status)} />
+            {payoutMethod && <DetailLine icon={CreditCard} label="Payout method" value={payoutMethod} />}
             <DetailLine icon={Clock} label="Applied" value={formatAppliedDate(item.created_at)} />
           </>
         ) : (

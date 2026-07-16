@@ -43,6 +43,7 @@ describe('insurance service authority boundaries', () => {
       read('insurance/billingFilters.js'),
       read('insurance/billingNormalization.js'),
       read('insurance/billingProjection.js'),
+      read('insurance/billingReferenceResolution.js'),
     ].join('\n');
     const projectionSource = `${policySource}\n${billingSource}`;
     const unsupportedSource = read('insurance/unsupportedOperations.js');

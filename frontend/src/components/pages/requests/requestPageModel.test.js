@@ -142,6 +142,48 @@ describe('Requests page model', () => {
     expect(noTelemetry.responderDisplay.locationFreshness).toBeNull();
   });
 
+  it('surfaces bed count and transport destination only from recorded columns (ADOPT-32)', () => {
+    const withDestination = getRequestProjection({
+      id: 'req-adopt-32',
+      status: 'accepted',
+      service_type: 'ambulance',
+      bed_count: '4',
+      destination_location: { address: '12 Marina Rd, Lagos', lat: 6.45, lng: 3.39 },
+    });
+    expect(withDestination.serviceDisplay.bedCount).toBe('4');
+    expect(withDestination.destinationDisplay).toEqual({
+      label: '12 Marina Rd, Lagos',
+      coordinates: { lat: 6.45, lng: 3.39 },
+      hasDestination: true,
+    });
+
+    // Coordinates-only destination gets an honest coordinate label.
+    const coordsOnly = getRequestProjection({
+      id: 'req-coords',
+      status: 'accepted',
+      destination_location: { lat: 6.5244, lng: 3.3792 },
+    });
+    expect(coordsOnly.destinationDisplay).toEqual({
+      label: '6.5244, 3.3792',
+      coordinates: { lat: 6.5244, lng: 3.3792 },
+      hasDestination: true,
+    });
+
+    // Honest nulls: empty bed_count text and a null destination stay absent.
+    const bare = getRequestProjection({
+      id: 'req-bare',
+      status: 'pending_approval',
+      bed_count: '',
+      destination_location: null,
+    });
+    expect(bare.serviceDisplay.bedCount).toBeNull();
+    expect(bare.destinationDisplay).toEqual({
+      label: null,
+      coordinates: null,
+      hasDestination: false,
+    });
+  });
+
 });
 
 describe('Requests mobile model', () => {

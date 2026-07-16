@@ -5,12 +5,14 @@ import {
   Clock,
   Edit,
   Eye,
+  History,
   Hospital,
   IdCard,
   Info,
   Mail,
   Phone,
   Plus,
+  Star,
   Stethoscope,
   UserRound,
   Users,
@@ -310,7 +312,18 @@ const StaffRow = ({
         )}
       </div>
 
-      <div className="min-w-0 truncate text-sm font-medium capitalize" title={projection.specialization}>{projection.specialization}</div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium capitalize" title={projection.specialization}>{projection.specialization}</div>
+        {projection.ratingChip && (
+          <span
+            className="mt-1 inline-flex max-w-full items-center gap-1 rounded-pill bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-200"
+            title={`Rating ${projection.ratingChip}`}
+          >
+            <Star className="h-3 w-3 shrink-0" />
+            <span className="truncate">{projection.ratingChip}</span>
+          </span>
+        )}
+      </div>
       <div className="min-w-0 truncate text-sm text-muted-foreground" title={projection.facility}>{projection.facility}</div>
       <div className="text-sm font-medium text-muted-foreground">{formatJoinedDate(projection.joined)}</div>
 
@@ -452,7 +465,13 @@ export const StaffDetailRail = ({
         {projection.caseload && (
           <DetailLine icon={Users} label="Caseload" value={projection.caseload} />
         )}
+        {projection.ratingChip && (
+          <DetailLine icon={Star} label="Rating" value={projection.ratingChip} />
+        )}
         <DetailLine icon={Clock} label="Joined" value={formatJoinedDate(projection.joined)} />
+        {projection.updatedAgo && (
+          <DetailLine icon={History} label="Updated" value={projection.updatedAgo} />
+        )}
       </div>
 
       <div className="mt-5 space-y-2.5">

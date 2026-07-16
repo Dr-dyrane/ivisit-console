@@ -7,6 +7,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
+import { formatRelativeTime } from '../../../utils/activityUtils';
 
 export const STAFF_PAGE_SIZE = 20;
 export const STAFF_DEFAULT_SORT = { key: 'created_at', direction: 'desc' };
@@ -134,19 +135,45 @@ export const formatJoinedDate = (value) => {
 // Caseload population is unverified in production, so the ratio is hide-when-null:
 // it renders only when max_patients is a positive number and current_patients is a
 // real count. A null or empty side never becomes a fabricated 0 (Number('') is 0,
-// so blank values are rejected before coercion).
-const toCaseloadCount = (value) => {
+// so blank values are rejected before coercion). The same coercion guards the
+// rating evidence below.
+const toFiniteNumber = (value) => {
   if (value == null || String(value).trim() === '') return null;
   const count = Number(value);
   return Number.isFinite(count) ? count : null;
 };
 
 export const getStaffCaseload = (staff) => {
-  const max = toCaseloadCount(staff?.max_patients);
-  const current = toCaseloadCount(staff?.current_patients);
+  const max = toFiniteNumber(staff?.max_patients);
+  const current = toFiniteNumber(staff?.current_patients);
   if (max == null || max <= 0) return null;
   if (current == null || current < 0) return null;
   return `${current}/${max}`;
+};
+
+// ADOPT-41: updated_at surfaces as a relative rail line ONLY. The estate allows
+// one sortable Time header per page and this page's header already sorts
+// created_at ("Added"), so last-updated renders without a second sort
+// affordance. Hide-when-null: a missing or unparseable timestamp renders
+// nothing instead of "Unknown time".
+export const getStaffLastUpdated = (staff) => {
+  const value = staff?.updated_at;
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return formatRelativeTime(value);
+};
+
+// ADOPT-42: per-record rating evidence, hide-when-null/zero. A null rating, a
+// zero rating (unpopulated default), or zero/null reviews_count renders
+// nothing -- a score with no reviews behind it would be fabricated truth.
+// Blank strings are rejected before coercion (Number('') === 0).
+export const getStaffRating = (staff) => {
+  const rating = toFiniteNumber(staff?.rating);
+  const reviews = toFiniteNumber(staff?.reviews_count);
+  if (rating == null || rating <= 0) return null;
+  if (reviews == null || reviews <= 0) return null;
+  return `${rating.toFixed(1)} (${reviews} review${reviews === 1 ? '' : 's'})`;
 };
 
 export const getStaffIdentity = (staff) => ({
@@ -167,6 +194,8 @@ export const getStaffProjection = (staff) => ({
   experience: staff?.experience,
   caseload: getStaffCaseload(staff),
   joined: staff?.created_at,
+  updatedAgo: getStaffLastUpdated(staff),
+  ratingChip: getStaffRating(staff),
   statusMeta: getStaffStatusMeta(getEffectiveStaffStatus(staff)),
 });
 

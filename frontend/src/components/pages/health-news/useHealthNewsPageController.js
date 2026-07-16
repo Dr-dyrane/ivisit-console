@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getConsoleModuleRailItems } from '../../../config/consoleModuleRail';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useFocusedRecord } from '../../../contexts/FocusedRecordContext';
 import { useNavigation } from '../../../contexts/NavigationContext';
 import { useHealthNewsQuery } from '../../../hooks/useHealthNewsQuery';
 import { usePagination } from '../../../hooks/usePagination';
+import { getHealthNewsAnalytics } from '../../../services/healthNewsService';
+import { getTopTrendingTopics } from '../../../services/trendingTopicsService';
 import { useWayfindingNav } from '../../console/WorkspaceStage';
 import {
   buildHealthNewsAnalytics,
   buildHealthNewsPanelContext,
   buildHealthNewsQueryFilter,
+  buildTrendingTopicsTile,
   buildVisibleHealthNewsStats,
   getHealthNewsRoleKind,
   hasAppliedFilters,
   HEALTH_NEWS_EMPTY_STATS,
   mergeMobileNewsFeed,
 } from './healthNewsPageModel';
+
+const TRENDING_TOPICS_TILE_LIMIT = 5;
 
 export const useHealthNewsPageController = () => {
   const { isPhone, isMobile } = useNavigation();
@@ -87,11 +93,34 @@ export const useHealthNewsPageController = () => {
       ? buildVisibleHealthNewsStats(visibleStatsRows, projectionStats.reason)
       : projectionStats
   ), [projectionStats, statsUnavailable, visibleStatsRows]);
+  // ADOPT-62: the whole-table analytics read stays lazy -- it runs only once
+  // the analytics modal is opened. READ-ONLY: no mutation, no new write path.
+  const tableAnalyticsQuery = useQuery({
+    queryKey: ['healthNewsTableAnalytics'],
+    queryFn: getHealthNewsAnalytics,
+    enabled: analyticsModalOpen,
+    staleTime: 60_000,
+  });
+  const tableAnalytics = tableAnalyticsQuery.data ?? null;
+
   const newsAnalytics = useMemo(() => buildHealthNewsAnalytics({
     rows: newsRows,
     stats,
     statsUnavailable,
-  }), [newsRows, stats, statsUnavailable]);
+    tableAnalytics,
+  }), [newsRows, stats, statsUnavailable, tableAnalytics]);
+
+  // ADOPT-63: read-only trending topics tile for the route-owned context panel.
+  const trendingTopicsQuery = useQuery({
+    queryKey: ['trendingTopics', 'top', TRENDING_TOPICS_TILE_LIMIT],
+    queryFn: () => getTopTrendingTopics(TRENDING_TOPICS_TILE_LIMIT),
+    staleTime: 60_000,
+  });
+  const trendingTopicsContext = useMemo(() => ({
+    ...buildTrendingTopicsTile(trendingTopicsQuery.data),
+    loading: trendingTopicsQuery.isLoading,
+    errorMessage: trendingTopicsQuery.error ? 'Trending topics could not load.' : null,
+  }), [trendingTopicsQuery.data, trendingTopicsQuery.error, trendingTopicsQuery.isLoading]);
 
   const { focusedRecord, setFocused, isFocused } = useFocusedRecord('healthnews', newsRows);
   const focusedNews = focusedRecord;
@@ -204,6 +233,7 @@ export const useHealthNewsPageController = () => {
     loading,
     healthNewsError,
     statsUnavailable,
+    trendingTopics: trendingTopicsContext,
   }), [
     filters,
     focusedNews,
@@ -216,6 +246,7 @@ export const useHealthNewsPageController = () => {
     statsUnavailable,
     totalCount,
     totalPages,
+    trendingTopicsContext,
   ]);
 
   const publishHealthNewsRouteContext = useCallback(() => {

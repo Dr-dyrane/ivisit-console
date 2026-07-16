@@ -2,9 +2,11 @@ import {
   buildHealthNewsAnalytics,
   buildHealthNewsPanelContext,
   buildHealthNewsQueryFilter,
+  buildTrendingTopicsTile,
   buildVisibleHealthNewsStats,
   getNewsSignal,
   hasAppliedFilters,
+  isUsableHealthNewsTableAnalytics,
   mergeMobileNewsFeed,
 } from './healthNewsPageModel';
 
@@ -74,6 +76,89 @@ describe('healthNewsPageModel', () => {
       distributionLabel: 'Loaded rows (statistics unavailable)',
       visibleCount: 2,
     });
+  });
+
+  it('adopts whole-table analytics only when the read returned rows (ADOPT-62)', () => {
+    const tableAnalytics = {
+      total: 40,
+      published: 31,
+      recent: 6,
+      bySource: { WHO: 22, CDC: 18 },
+      byCategory: { medical: 25, policy: 15 },
+    };
+
+    expect(isUsableHealthNewsTableAnalytics(tableAnalytics)).toBe(true);
+    expect(buildHealthNewsAnalytics({
+      rows: [{ source: 'WHO', category: 'Medical' }],
+      stats: { total: 12 },
+      statsUnavailable: false,
+      tableAnalytics,
+    })).toMatchObject({
+      total: 40,
+      published: 31,
+      recent: 6,
+      bySource: { WHO: 22, CDC: 18 },
+      byCategory: { medical: 25, policy: 15 },
+      distributionScope: 'whole_table',
+      distributionLabel: 'All articles',
+    });
+
+    // The service swallows query errors into an all-zero shape; that shape must
+    // NOT masquerade as whole-table truth while the page clearly has rows.
+    const zeroShape = { total: 0, published: 0, bySource: {}, byCategory: {}, recent: 0 };
+    expect(isUsableHealthNewsTableAnalytics(zeroShape)).toBe(false);
+    expect(isUsableHealthNewsTableAnalytics(null)).toBe(false);
+    expect(buildHealthNewsAnalytics({
+      rows: [{ source: 'WHO', category: 'Medical' }],
+      stats: { total: 12 },
+      statsUnavailable: false,
+      tableAnalytics: zeroShape,
+    })).toMatchObject({
+      distributionScope: 'visible_page',
+      distributionLabel: 'Current page',
+      bySource: { WHO: 1 },
+    });
+  });
+
+  it('builds the trending topics tile from the data-owned timestamps (ADOPT-63)', () => {
+    expect(buildTrendingTopicsTile([
+      { id: 't1', query: ' flu shots ', category: 'wellness', rank: 1, created_at: '2026-07-01T00:00:00Z', updated_at: '2026-07-10T09:00:00Z' },
+      { id: 't2', query: 'heat safety', category: '', rank: '2', created_at: '2026-07-12T00:00:00Z' },
+      { id: 't3', query: '   ', category: 'noise', rank: 3, updated_at: '2026-07-14T00:00:00Z' },
+    ])).toEqual({
+      topics: [
+        { id: 't1', query: 'flu shots', category: 'wellness', rank: 1 },
+        { id: 't2', query: 'heat safety', category: null, rank: 2 },
+      ],
+      count: 2,
+      // Stamp comes from the rendered rows' own updated_at/created_at, never
+      // the fetch time; the filtered-out blank row cannot contribute its stamp.
+      updatedAt: '2026-07-12T00:00:00.000Z',
+    });
+
+    // Number('') === 0 must not fabricate a rank of zero.
+    expect(buildTrendingTopicsTile([
+      { id: 't4', query: 'allergy season', category: 'wellness', rank: '' },
+    ]).topics[0].rank).toBeNull();
+
+    expect(buildTrendingTopicsTile([])).toEqual({ topics: [], count: 0, updatedAt: null });
+    expect(buildTrendingTopicsTile(null)).toEqual({ topics: [], count: 0, updatedAt: null });
+  });
+
+  it('publishes the trending tile through the route context untouched (ADOPT-63)', () => {
+    const trendingTopics = { topics: [], count: 0, updatedAt: null, loading: false, errorMessage: null };
+    expect(buildHealthNewsPanelContext({
+      newsRows: [],
+      focusedNews: null,
+      stats: { total: 0 },
+      pagination: { totalCount: 0, currentPage: 1, totalPages: 1 },
+      filters: {},
+      kpiFilter: 'all',
+      loading: false,
+      healthNewsError: null,
+      statsUnavailable: false,
+      trendingTopics,
+    }).trendingTopics).toBe(trendingTopics);
   });
 
   it('replaces page one and appends later mobile windows without duplicate ids', () => {

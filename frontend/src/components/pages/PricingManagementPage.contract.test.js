@@ -581,6 +581,59 @@ describe('Pricing Page 18 intake contract', () => {
     expect(service).toContain("supabase.rpc('upsert_room_pricing'");
   });
 
+  it('surfaces unit truth, distinct provenance, and a pure-read resolved-price preview', () => {
+    const rail = read('src/components/pages/pricing/PricingDetailRail.jsx');
+    const model = read('src/components/pages/pricing/pricingPageModel.js');
+    const hook = read('src/components/pages/pricing/useResolvedPricePreview.js');
+    const resolvedRead = read('src/services/pricing/resolvedPrice.js');
+    const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
+
+    // ADOPT-58: the per-night suffix comes only from room_pricing.price_per_night
+    // table semantics (types/database.ts); service_pricing.base_price has no unit
+    // or duration column, so no service suffix is invented.
+    expect(model).toContain('export const getPricingUnitSuffix');
+    expect(model).toContain("if (family === 'room') return '/ night';");
+    expect(model).not.toContain("'/ unit'");
+    expect(model).not.toContain("'/ visit'");
+    expect(model).toContain('export const formatPricingAmountWithUnit');
+    expect(rail).toContain('{formatPricingAmountWithUnit(price)}');
+    expect(model).toContain('formatPricingAmountWithUnit(row),');
+
+    // ADOPT-59: distinct Created line with the shared relative formatter; the
+    // rail and the sorted Updated column stop conflating created_at into
+    // updated_at. Estate law: Updated stays the single sortable time header.
+    expect(model).toContain("import { formatRelativeTime } from '../../../utils/activityUtils';");
+    expect(model).toContain('export const formatPricingRelativeDate');
+    expect(rail).toContain('label="Created"');
+    expect(rail).toContain('value={formatPricingRelativeDate(price.created_at)}');
+    expect(rail).toContain('value={formatPricingRelativeDate(price.updated_at)}');
+    expect(rail).not.toContain('price.updated_at || price.created_at');
+    expect(workspace).toContain('{formatPricingDate(row.updated_at)}');
+    expect(workspace).not.toContain('row.updated_at || row.created_at');
+    expect(workspace.match(/<SortableColumnHeader/g)).toHaveLength(1);
+    expect(workspace).not.toContain('label="Created"');
+
+    // ADOPT-64: the preview calls only the verified pure-read resolver RPCs
+    // (supabase/migrations/20260219010000_core_rpcs.sql get_service_price and
+    // get_room_price: SELECT-only STABLE bodies, default EXECUTE grant intact)
+    // and renders honest loading/empty/error states without inventing $0.00.
+    expect(resolvedRead).toContain("service: 'get_service_price'");
+    expect(resolvedRead).toContain("room: 'get_room_price'");
+    expect(resolvedRead).toContain('supabase.rpc(');
+    expect(resolvedRead).not.toContain('upsert');
+    expect(resolvedRead).not.toContain('delete');
+    expect(resolvedRead).not.toContain('.from(');
+    expect(resolvedRead).toContain("price === null || price === undefined || price === ''");
+    expect(hook).toContain("import { getResolvedPricePreview } from '../../../services/pricing/resolvedPrice';");
+    expect(hook).not.toContain('saveServicePricing');
+    expect(hook).not.toContain('saveRoomPricing');
+    expect(rail).toContain('useResolvedPricePreview(price)');
+    expect(rail).toContain('label="Resolved price"');
+    expect(rail).toContain('value={formatResolvedPricePreview(resolvedPreview, price)}');
+    expect(model).toContain("'Preview unavailable'");
+    expect(model).toContain("'No resolved price'");
+  });
+
   it('surfaces the fetched price-resolution key and description as read-only projection fields', () => {
     const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
     const rail = read('src/components/pages/pricing/PricingDetailRail.jsx');

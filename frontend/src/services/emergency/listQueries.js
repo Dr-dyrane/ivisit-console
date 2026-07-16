@@ -166,6 +166,18 @@ export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = f
       completed,
       cancelled,
       mine,
+      // ADOPT-31: the AnalyticsModal Status phase reads analytics.byStatus.
+      // Same exact server counts as above -- no extra queries, no new keys
+      // invented. emergency_requests has no priority column, so no priority
+      // distribution is fabricated for the Priority phase.
+      byStatus: {
+        pending_approval: pending,
+        in_progress: inProgress,
+        accepted,
+        arrived,
+        completed,
+        cancelled,
+      },
     };
   } catch (error) {
     if (!quiet) {

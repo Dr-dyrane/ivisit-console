@@ -12,6 +12,7 @@ import {
   Info,
   Loader2,
   MapPin,
+  Navigation,
   RefreshCw,
   Send,
   Trash2,
@@ -122,6 +123,8 @@ export const RequestDetailRail = ({
   const railPhone = projection.patientDisplay.phone;
   const canCopyPhone = Boolean(railPhone) && !/^no\s/i.test(String(railPhone));
   const location = projection.locationDisplay;
+  const destination = projection.destinationDisplay;
+  const bedCount = projection.serviceDisplay.bedCount;
   const responder = projection.responderDisplay;
   const payment = projection.paymentDisplay;
   const paymentAmount = payment.amountLabel && payment.amountLabel !== 'Unavailable' ? payment.amountLabel : '';
@@ -238,8 +241,28 @@ export const RequestDetailRail = ({
             </a>
           ) : location.label}
         />
+        {/* ADOPT-32: transport destination renders only from recorded destination_location truth. */}
+        {destination.hasDestination && (
+          <DetailLine
+            icon={Navigation}
+            label="Destination"
+            value={destination.coordinates ? (
+              <a
+                href={`https://maps.google.com/?q=${destination.coordinates.lat},${destination.coordinates.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline-offset-2 hover:underline"
+                title={destination.label}
+              >
+                {destination.label}
+              </a>
+            ) : destination.label}
+          />
+        )}
         <DetailLine icon={ClipboardCheck} label="Service" value={getRequestServiceLabel(request)} />
         {bedDetail && <DetailLine icon={BedDouble} label="Bed" value={bedDetail} />}
+        {/* ADOPT-32: bed_count is raw text; an empty column stays absent. */}
+        {bedCount && <DetailLine icon={BedDouble} label="Bed count" value={bedCount} />}
         {responder.hasResponder && (
           <DetailLine
             icon={Ambulance}

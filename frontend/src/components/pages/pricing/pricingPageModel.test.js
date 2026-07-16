@@ -3,11 +3,15 @@ import {
   buildPricingPageQuery,
   buildPricingRouteContext,
   formatPricingAmount,
+  formatPricingAmountWithUnit,
+  formatPricingRelativeDate,
+  formatResolvedPricePreview,
   getPricingDescription,
   getPricingKpiCount,
   getPricingRoleKind,
   getPricingRowMetaLine,
   getPricingRuleType,
+  getPricingUnitSuffix,
   getPricingWorkspaceState,
   isGlobalPricingRule,
   normalizePricingProjection,
@@ -129,6 +133,51 @@ describe('pricingPageModel', () => {
     expect(getPricingDescription({ description: '   ' })).toBeNull();
     expect(getPricingDescription({ description: null })).toBeNull();
     expect(getPricingDescription({})).toBeNull();
+  });
+
+  it('renders unit suffixes only from room per-night truth (ADOPT-58)', () => {
+    expect(getPricingUnitSuffix({ family: 'room' })).toBe('/ night');
+    expect(getPricingUnitSuffix({ _pricingType: 'room' })).toBe('/ night');
+    expect(getPricingUnitSuffix({ price_per_night: 120 })).toBe('/ night');
+    expect(getPricingUnitSuffix({ family: 'service' })).toBeNull();
+    expect(getPricingUnitSuffix({ base_price: 50 })).toBeNull();
+    expect(getPricingUnitSuffix({})).toBeNull();
+
+    expect(formatPricingAmountWithUnit({ family: 'room', amount: 120, currency: 'USD' }))
+      .toBe('$120.00 / night');
+    expect(formatPricingAmountWithUnit({ family: 'service', amount: 40, currency: 'USD' }))
+      .toBe('$40.00');
+    expect(getPricingRowMetaLine({
+      family: 'room', amount: 120, currency: 'USD', type: 'general',
+    })).toBe('$120.00 / night \u00b7 general');
+  });
+
+  it('formats created/updated provenance with the shared relative formatter (ADOPT-59)', () => {
+    expect(formatPricingRelativeDate(null)).toBeNull();
+    expect(formatPricingRelativeDate(undefined)).toBeNull();
+    expect(formatPricingRelativeDate('not-a-date')).toBeNull();
+    expect(formatPricingRelativeDate(new Date(Date.now() - (5 * 60000)).toISOString()))
+      .toBe('5m ago');
+  });
+
+  it('keeps the resolved-price preview honest across states (ADOPT-64)', () => {
+    expect(formatResolvedPricePreview(null)).toBeNull();
+    expect(formatResolvedPricePreview({ status: 'idle', row: null })).toBeNull();
+    expect(formatResolvedPricePreview({ status: 'loading', row: null })).toBeNull();
+    expect(formatResolvedPricePreview({ status: 'error', row: null }))
+      .toBe('Preview unavailable');
+    expect(formatResolvedPricePreview({ status: 'unavailable', row: null }))
+      .toBe('No resolution key');
+    expect(formatResolvedPricePreview({ status: 'empty', row: null }))
+      .toBe('No resolved price');
+    expect(formatResolvedPricePreview(
+      { status: 'resolved', row: { name: 'General Ward', price: 120.5, currency: 'USD' } },
+      { family: 'room' },
+    )).toBe('$120.50 / night \u00b7 General Ward');
+    expect(formatResolvedPricePreview(
+      { status: 'resolved', row: { name: null, price: 40, currency: 'USD' } },
+      { family: 'service' },
+    )).toBe('$40.00');
   });
 
   it('keeps failure and empty signals honest', () => {

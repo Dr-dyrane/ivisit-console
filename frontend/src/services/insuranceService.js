@@ -16,6 +16,10 @@ export {
 } from './insurance/billingProjection';
 export { normalizeInsuranceBillingOutcome } from './insurance/billingNormalization';
 export {
+  EMPTY_INSURANCE_BILLING_REFERENCES,
+  resolveInsuranceBillingReferences,
+} from './insurance/billingReferenceResolution';
+export {
   buildInsuranceWritePayload,
   createInsurancePolicy,
   deleteInsurancePolicy,

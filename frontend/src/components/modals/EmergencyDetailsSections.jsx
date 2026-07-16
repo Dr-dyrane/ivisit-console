@@ -2,6 +2,10 @@ import React from 'react';
 import { Navigation, Phone } from 'lucide-react';
 import { Button } from '../ui/button';
 import { LocationCell } from '../ui/LocationCell';
+import { getCurrentResponderAssignment } from '../../services/emergencyService';
+import { formatOfferExpiry } from '../map/god-mode/driverAssignmentModel';
+import { formatRequestDayTime } from '../../utils/requestDisplay';
+import { formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
 
 export const PanelCard = ({ children, className = '' }) => (
   <div className={`rounded-card bg-foreground/[0.05] p-4 dark:bg-white/[0.07] ${className}`}>
@@ -36,6 +40,59 @@ export const CostBreakdownLines = ({ breakdown }) => {
         </div>
       ))}
     </div>
+  );
+};
+
+// ADOPT-21 read surfacing: the CURRENT responder assignment referenced by
+// emergency_requests.current_responder_assignment_id. One read-only fetch per
+// assignment id after the request row lands (the modal's existing realtime
+// refresh changes the id and re-triggers it -- no new channels). A missing or
+// unreadable row keeps the section absent.
+const useCurrentResponderAssignment = (request) => {
+  const assignmentId = request?.current_responder_assignment_id || null;
+  const [assignment, setAssignment] = React.useState(null);
+
+  React.useEffect(() => {
+    let active = true;
+    setAssignment(null);
+    if (!assignmentId) return undefined;
+
+    getCurrentResponderAssignment({ current_responder_assignment_id: assignmentId })
+      .then((row) => {
+        if (active) setAssignment(row);
+      })
+      .catch(() => {
+        if (active) setAssignment(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [assignmentId]);
+
+  return assignment;
+};
+
+export const AssignmentTimelineSection = ({ request }) => {
+  const assignment = useCurrentResponderAssignment(request);
+  if (!assignment) return null;
+
+  // Donor parity (DriverAssignmentCard): the respond-by window only reads
+  // while the offer is still open; landed timestamps render as day-aware times.
+  const offerExpiry = assignment.status === 'offered'
+    ? formatOfferExpiry(assignment.offer_expires_at)
+    : null;
+
+  return (
+    <SectionCard title="Responder Assignment" bodyClassName="grid grid-cols-2 gap-x-6 gap-y-4">
+      <DetailRow label="Assignment Status" value={formatEmergencyServiceToken(assignment.status, 'Unknown')} />
+      {assignment.offered_at && <DetailRow label="Offered" value={formatRequestDayTime(assignment.offered_at)} />}
+      {offerExpiry && <DetailRow label="Offer Window" value={offerExpiry} />}
+      {assignment.accepted_at && <DetailRow label="Accepted" value={formatRequestDayTime(assignment.accepted_at)} />}
+      {assignment.arrived_at && <DetailRow label="Arrived" value={formatRequestDayTime(assignment.arrived_at)} />}
+      {assignment.completed_at && <DetailRow label="Completed" value={formatRequestDayTime(assignment.completed_at)} />}
+      {assignment.decline_reason && <DetailRow label="Decline Reason" value={assignment.decline_reason} />}
+    </SectionCard>
   );
 };
 
@@ -129,6 +186,8 @@ export const EmergencyIdentitySections = ({ request, projection }) => {
           )}
         </SectionCard>
       )}
+
+      <AssignmentTimelineSection request={request} />
     </>
   );
 };

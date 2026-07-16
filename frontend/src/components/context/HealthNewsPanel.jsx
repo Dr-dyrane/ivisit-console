@@ -7,6 +7,7 @@ import {
   Tag,
   Filter,
   BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 
 const EMPTY_STATS = {
@@ -23,6 +24,12 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
   const error = healthNewsContext?.errorMessage || null;
   const totalCount = healthNewsContext?.count ?? stats.total ?? recentNews.length;
   const scopeLabel = healthNewsContext?.hasFilters ? 'Filtered feed' : 'Curated source links';
+  // ADOPT-63: route-owned trending topics tile. The route controller fetches;
+  // the panel only renders what arrives in the published context.
+  const trending = healthNewsContext?.trendingTopics || null;
+  const trendingStamp = trending?.updatedAt
+    ? new Date(trending.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
 
   const handleFilters = () => {
     window.dispatchEvent(new CustomEvent('openFilters'));
@@ -148,6 +155,47 @@ export const HealthNewsPanel = ({ healthNewsContext = null }) => {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Trending topics</h3>
+
+            {(!trending || trending.loading) ? (
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
+                <div className="h-10 animate-pulse rounded-inner bg-muted/40" />
+              </Card>
+            ) : trending.errorMessage ? (
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground">{trending.errorMessage}</p>
+              </Card>
+            ) : trending.count === 0 ? (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                No trending topics yet
+              </div>
+            ) : (
+              <Card className="bg-background/50 backdrop-blur-xs rounded-card p-3 shadow-sm">
+                <div className="space-y-2">
+                  {trending.topics.map((topic) => (
+                    <div key={topic.id || topic.query} className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-icon bg-sky-500/15 text-[11px] font-semibold text-sky-700 dark:text-sky-200">
+                          {topic.rank === null ? <TrendingUp className="h-3 w-3" /> : topic.rank}
+                        </span>
+                        <p className="truncate text-sm font-medium" title={topic.query}>{topic.query}</p>
+                      </div>
+                      {topic.category && (
+                        <span className="inline-flex shrink-0 items-center rounded-pill bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
+                          {topic.category}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {trendingStamp ? `Data updated ${trendingStamp}` : 'This data carries no update timestamp'}
+                </p>
+              </Card>
+            )}
           </div>
         </>
       )}

@@ -1,21 +1,34 @@
 import React from 'react';
-import { BadgeDollarSign, Building2, Clock, FileText, Globe, Tag } from 'lucide-react';
+import {
+  BadgeDollarSign,
+  Building2,
+  CalendarPlus,
+  Calculator,
+  Clock,
+  FileText,
+  Globe,
+  Tag,
+} from 'lucide-react';
 import {
   DetailRailShell,
   RailInsetHero,
 } from '../../console/WorkspaceStage';
 import { DetailLine, Shimmer } from '../../console/primitives';
 import {
-  formatPricingAmount,
-  formatPricingDate,
+  formatPricingAmountWithUnit,
+  formatPricingRelativeDate,
+  formatResolvedPricePreview,
   getPricingDescription,
   getPricingRuleName,
   getPricingRuleType,
   getPricingScopeTone,
   isGlobalPricingRule,
 } from './pricingPageModel';
+import { useResolvedPricePreview } from './useResolvedPricePreview';
 
 export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false }) => {
+  const resolvedPreview = useResolvedPricePreview(price);
+
   if (loading && !price) {
     return (
       <DetailRailShell embedded={embedded}>
@@ -59,7 +72,7 @@ export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false 
         <div className={`mt-4 inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${getPricingScopeTone(price)}`}>
           {globalRule ? 'Platform fallback' : 'Facility price'}
         </div>
-        <h3 className="mt-4 text-2xl font-semibold">{formatPricingAmount(price)}</h3>
+        <h3 className="mt-4 text-2xl font-semibold">{formatPricingAmountWithUnit(price)}</h3>
       </RailInsetHero>
       <div className="space-y-2">
         <DetailLine
@@ -88,10 +101,24 @@ export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false 
           value={getPricingDescription(price)}
         />
         <DetailLine
+          icon={CalendarPlus}
+          label="Created"
+          value={formatPricingRelativeDate(price.created_at)}
+        />
+        <DetailLine
           icon={Clock}
           label="Updated"
-          value={formatPricingDate(price.updated_at || price.created_at)}
+          value={formatPricingRelativeDate(price.updated_at)}
         />
+        {resolvedPreview.status === 'loading' ? (
+          <Shimmer className="h-[52px] rounded-inner" />
+        ) : (
+          <DetailLine
+            icon={Calculator}
+            label="Resolved price"
+            value={formatResolvedPricePreview(resolvedPreview, price)}
+          />
+        )}
       </div>
       <div
         role="note"

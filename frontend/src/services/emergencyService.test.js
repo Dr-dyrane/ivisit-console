@@ -278,6 +278,7 @@ describe('emergencyService compatibility facade', () => {
       'createEmergencyRequest',
       'declineCashPayment',
       'getActiveEmergencyRequests',
+      'getCurrentResponderAssignment',
       'getEmergencyCreateFacilityOptions',
       'getEmergencyDetailProjection',
       'getEmergencyRequest',

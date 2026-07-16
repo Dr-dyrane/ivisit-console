@@ -5,7 +5,9 @@ import {
   getEffectiveStaffStatus,
   getStaffCaseload,
   getStaffIdentity,
+  getStaffLastUpdated,
   getStaffProjection,
+  getStaffRating,
   getStaffSignal,
   getStaffStatusMeta,
   hasActiveStaffFilters,
@@ -165,6 +167,36 @@ describe('staff page model characterization', () => {
 
     expect(getStaffProjection({ current_patients: 3, max_patients: 10 }).caseload).toBe('3/10');
     expect(getStaffProjection({}).caseload).toBeNull();
+  });
+
+  it('renders last-updated as a relative line only when the timestamp is real (ADOPT-41)', () => {
+    expect(getStaffLastUpdated({ updated_at: new Date().toISOString() })).toBe('Just now');
+    expect(getStaffLastUpdated({ updated_at: new Date(Date.now() - 5 * 60000).toISOString() })).toBe('5m ago');
+    expect(getStaffLastUpdated({ updated_at: null })).toBeNull();
+    expect(getStaffLastUpdated({ updated_at: '' })).toBeNull();
+    expect(getStaffLastUpdated({ updated_at: 'not-a-date' })).toBeNull();
+    expect(getStaffLastUpdated({})).toBeNull();
+    expect(getStaffLastUpdated(null)).toBeNull();
+
+    expect(getStaffProjection({ updated_at: new Date().toISOString() }).updatedAgo).toBe('Just now');
+    expect(getStaffProjection({}).updatedAgo).toBeNull();
+  });
+
+  it('renders rating evidence only when both score and reviews are real (ADOPT-42)', () => {
+    expect(getStaffRating({ rating: 4.8, reviews_count: 12 })).toBe('4.8 (12 reviews)');
+    expect(getStaffRating({ rating: 5, reviews_count: 1 })).toBe('5.0 (1 review)');
+    expect(getStaffRating({ rating: '4.2', reviews_count: '7' })).toBe('4.2 (7 reviews)');
+    expect(getStaffRating({ rating: null, reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({ rating: 4.5, reviews_count: null })).toBeNull();
+    expect(getStaffRating({ rating: 4.5, reviews_count: 0 })).toBeNull();
+    expect(getStaffRating({ rating: 0, reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({ rating: '', reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({ rating: 'abc', reviews_count: 12 })).toBeNull();
+    expect(getStaffRating({})).toBeNull();
+    expect(getStaffRating(null)).toBeNull();
+
+    expect(getStaffProjection({ rating: 4.8, reviews_count: 12 }).ratingChip).toBe('4.8 (12 reviews)');
+    expect(getStaffProjection({}).ratingChip).toBeNull();
   });
 
   it('recognizes only committed filter axes', () => {

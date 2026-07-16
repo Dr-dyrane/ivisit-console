@@ -333,6 +333,52 @@ describe('Insurance revamp preservation and authority contract', () => {
     expect(desktop).toContain('formatInsuranceCoverage(policy)');
   });
 
+  it('resolves billing reference UUIDs read-only after the billing window lands', () => {
+    // ADOPT-28: batched .in() lookups against the three referenced truths,
+    // owned by a separate read module so the billing projection itself stays
+    // pinned to insurance_billing only.
+    expect(service).toContain("fetchReferenceRows('hospitals', 'id,name', hospitalIds)");
+    expect(service).toContain("fetchReferenceRows('emergency_requests', 'id,display_id', requestIds)");
+    expect(service).toContain("fetchReferenceRows('profiles', 'id,full_name', memberIds)");
+    expect(service).toContain(".in('id', ids)");
+    // The modal resolves AFTER the outcomes window lands and renders labels.
+    expect(modal).toContain('const references = await resolveInsuranceBillingReferences(outcomes);');
+    expect(modal).toContain('references?.memberNamesById?.[outcome.user_id]');
+    expect(modal).toContain('references?.requestDisplayIdsById?.[outcome.emergency_request_id]');
+    expect(modal).toContain('references?.hospitalNamesById?.[outcome.hospital_id]');
+    // Raw UUID walls are gone; an unresolved reference stays honest as a
+    // truncated UUID with a copy affordance, never a fabricated name.
+    expect(modal).not.toContain('value={formatRaw(outcome.emergency_request_id)}');
+    expect(modal).not.toContain('value={formatRaw(outcome.hospital_id)}');
+    expect(modal).toContain('if (!id) return <Field label={label} value={missingText} />;');
+    expect(modal).toContain('{shortenUuid(id)}');
+    expect(modal).toContain('<CopyChip value={id} label={copyLabel} />');
+  });
+
+  it('surfaces paid date and applied coverage on billing outcome cards', () => {
+    // ADOPT-53: settlement evidence renders from the projection's own columns.
+    expect(service).toContain("paid_date: record.paid_date || ''");
+    expect(service).toContain('record.coverage_percentage === null || record.coverage_percentage === undefined');
+    expect(modal).toContain('label="Applied coverage" value={formatPercentage(outcome.coverage_percentage)}');
+    expect(modal).toContain('label="Paid date" value={formatDate(outcome.paid_date)}');
+    // Honest nulls: unrecorded coverage renders Not recorded, unpaid renders Not set.
+    expect(modal).toContain("if (value === null || value === undefined || value === '') return 'Not recorded';");
+  });
+
+  it('renders the default-policy badge and dual-shape linked payment line', () => {
+    // ADOPT-54: strict-true gate so a null is_default never fabricates a badge.
+    expect(modal).toContain('policy.is_default === true');
+    expect(modal).toContain('Default policy');
+    expect(desktop).toContain('policy.is_default === true');
+    // Dual shape stays guarded at the projection boundary and rendered by ONE
+    // shared formatter (donor: ivisit-app renderLinkedPaymentSummary).
+    expect(service).toContain('parseLinkedPaymentSnapshot(details.linked_payment_method_snapshot)');
+    expect(page).toContain("if (!linkedPayment) return 'Not linked';");
+    expect(page).toContain("if (typeof linkedPayment === 'string') return 'Linked card';");
+    expect(page).toContain("linkedPayment.brand || linkedPayment.type || 'Card'");
+    expect(modal).toContain('label="Linked payment" value={formatInsuranceLinkedPayment(policy.linked_payment_method)}');
+  });
+
   it('distinguishes a recorded zero billing amount from a missing amount', () => {
     expect(modal).toContain("if (value === null || value === undefined || String(value).trim() === '') return 'Not set';");
     expect(modal).toContain('return Number.isFinite(number) ? `$${number.toLocaleString()}` : \'Not set\';');

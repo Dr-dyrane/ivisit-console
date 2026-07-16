@@ -274,8 +274,33 @@ export const buildHealthNewsQueryFilter = ({
   };
 };
 
-export const buildHealthNewsAnalytics = ({ rows, stats, statsUnavailable }) => {
+// ADOPT-62: the whole-table analytics read (getHealthNewsAnalytics) swallows
+// query errors into an all-zero shape, so a zero total is indistinguishable
+// from that failure. Adopt the whole-table result only when it actually has
+// rows; otherwise the modal keeps the honest visible-page projection.
+export const isUsableHealthNewsTableAnalytics = (tableAnalytics) => {
+  if (!tableAnalytics || typeof tableAnalytics !== 'object') return false;
+  const total = Number(tableAnalytics.total);
+  return Number.isFinite(total) && total > 0;
+};
+
+export const buildHealthNewsAnalytics = ({ rows, stats, statsUnavailable, tableAnalytics = null }) => {
   const visibleRows = Array.isArray(rows) ? rows : [];
+
+  if (isUsableHealthNewsTableAnalytics(tableAnalytics)) {
+    return {
+      total: normalizeCount(tableAnalytics.total),
+      published: normalizeCount(tableAnalytics.published),
+      recent: normalizeCount(tableAnalytics.recent),
+      bySource: tableAnalytics.bySource || {},
+      byCategory: tableAnalytics.byCategory || {},
+      distributionScope: 'whole_table',
+      distributionLabel: 'All articles',
+      scope: 'whole_table',
+      visibleCount: visibleRows.length,
+    };
+  }
+
   const bySource = {};
   const byCategory = {};
 
@@ -293,6 +318,40 @@ export const buildHealthNewsAnalytics = ({ rows, stats, statsUnavailable }) => {
     distributionScope: 'visible_page',
     distributionLabel: statsUnavailable ? 'Loaded rows (statistics unavailable)' : 'Current page',
     visibleCount: visibleRows.length,
+  };
+};
+
+// ADOPT-63: read-only trending topics tile projection. The staleness stamp is
+// the rows' own updated_at/created_at (data truth), never the fetch time.
+// Number('') === 0 would fabricate a rank, so blank ranks stay null.
+const toTrendingRank = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export const buildTrendingTopicsTile = (rows) => {
+  const validRows = (Array.isArray(rows) ? rows : [])
+    .filter((row) => row && typeof row.query === 'string' && row.query.trim());
+
+  const topics = validRows.map((row) => ({
+    id: row.id,
+    query: row.query.trim(),
+    category: typeof row.category === 'string' && row.category.trim() ? row.category.trim() : null,
+    rank: toTrendingRank(row.rank),
+  }));
+
+  const latestStamp = validRows.reduce((latest, row) => {
+    const raw = row?.updated_at || row?.created_at;
+    if (!raw) return latest;
+    const stamp = new Date(raw).getTime();
+    return Number.isFinite(stamp) && stamp > latest ? stamp : latest;
+  }, 0);
+
+  return {
+    topics,
+    count: topics.length,
+    updatedAt: latestStamp > 0 ? new Date(latestStamp).toISOString() : null,
   };
 };
 
@@ -316,6 +375,7 @@ export const buildHealthNewsPanelContext = ({
   loading,
   healthNewsError,
   statsUnavailable,
+  trendingTopics = null,
 }) => ({
   articles: newsRows,
   recentNews: newsRows.slice(0, 3),
@@ -331,4 +391,5 @@ export const buildHealthNewsPanelContext = ({
   authoringAvailable: false,
   statsAvailable: !statsUnavailable,
   scope: stats?.scope || 'published_feed',
+  trendingTopics,
 });

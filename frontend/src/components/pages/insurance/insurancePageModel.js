@@ -119,6 +119,19 @@ export const formatInsuranceCoverage = (policy) => {
   return Number.isFinite(value) ? `${value.toLocaleString()}%` : null;
 };
 
+// Dual-shape guard mirrored from the ivisit-app donor card
+// (renderLinkedPaymentSummary): the projection boundary already normalizes
+// linked_payment_method to snapshot object | scalar string | null, and this
+// formatter renders each shape honestly instead of inventing card details.
+export const formatInsuranceLinkedPayment = (linkedPayment) => {
+  if (!linkedPayment) return 'Not linked';
+  if (typeof linkedPayment === 'string') return 'Linked card';
+  const brand = String(linkedPayment.brand || linkedPayment.type || 'Card').trim() || 'Card';
+  const last4 = linkedPayment.last4 ? `**** ${linkedPayment.last4}` : '';
+  const expiry = linkedPayment.expiry ? `| ${linkedPayment.expiry}` : '';
+  return [brand, last4, expiry].filter(Boolean).join(' ');
+};
+
 export const formatInsuranceDate = (value, fallback = 'Not set') => {
   if (!value) return fallback;
   const parsed = new Date(value);

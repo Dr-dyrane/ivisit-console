@@ -124,6 +124,22 @@ export const formatOnboardingStatus = (value) => {
   return text ? text.replace(/_/g, ' ') : null;
 };
 
+// ADOPT-40: payout readiness is presence-only Stripe display metadata -- the
+// brand + last4 tokens ONLY ("Visa \u00b7\u00b7\u00b7\u00b7 4242"). The same profiles row also
+// carries a raw payment-method id and Stripe account/customer ids; those raw
+// identifiers must NEVER reach this surface, so this formatter reads exactly
+// the two display columns and nothing else. Production population is sparse:
+// both columns null is the norm today, which returns null so the rail hides
+// the line entirely instead of fabricating an unfunded state.
+export const formatPayoutMethod = (item) => {
+  const brand = typeof item?.payout_method_brand === 'string' ? item.payout_method_brand.trim() : '';
+  const last4 = typeof item?.payout_method_last4 === 'string' ? item.payout_method_last4.trim() : '';
+  const parts = [];
+  if (brand) parts.push(brand.charAt(0).toUpperCase() + brand.slice(1));
+  if (last4) parts.push(`\u00b7\u00b7\u00b7\u00b7 ${last4}`);
+  return parts.length > 0 ? parts.join(' ') : null;
+};
+
 // hospitals.specialties/service_types are string[] in the generated types but can
 // reach the client as JSON strings or Postgres array literals depending on the
 // driver path -- normalize at the projection boundary, never assume the shape.

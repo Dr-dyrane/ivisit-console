@@ -47,6 +47,7 @@ describe('pricing service module boundary', () => {
       'pageData.js',
       'projectionQueries.js',
       'reads.js',
+      'resolvedPrice.js',
     ]);
     moduleNames.forEach((moduleName) => {
       const source = fs.readFileSync(path.join(modulesDirectory, moduleName), 'utf8');

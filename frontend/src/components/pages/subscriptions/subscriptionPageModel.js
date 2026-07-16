@@ -137,6 +137,7 @@ export const buildSubscriptionsRouteContext = ({
       free: displayStats.free || 0,
       paid: displayStats.paid || 0,
       newUsers: displayStats.newUsers || 0,
+      welcomeSent: displayStats.welcomeSent || 0,
       statsAvailable: !statsUnavailable,
       statsScope: displayStats.scope,
       loading,
@@ -181,6 +182,27 @@ export const getUnsubscribedEvidenceLabel = (subscriber = {}) => {
   if (String(subscriber?.status || '').toLowerCase() !== 'unsubscribed') return null;
   return formatSubscriberEventDate(subscriber?.unsubscribed_at) || 'Unknown';
 };
+
+// ADOPT-56: the sortable Joined header sorts created_at on the server, so the
+// cell renders the same column. created_at is non-null in the schema; a row
+// that still fails to parse reports Unknown, never a fabricated date.
+export const getJoinedDateLabel = (subscriber = {}) => (
+  formatSubscriberEventDate(subscriber?.created_at) || 'Unknown'
+);
+
+// ADOPT-56: subscription_date is separate evidence (nullable, often date-only).
+// The estate allows ONE sortable Time header per page, so this surfaces on the
+// detail rail without a sort; an absent value renders nothing.
+export const getSubscriptionDateEvidenceLabel = (subscriber = {}) => (
+  formatSubscriberEventDate(subscriber?.subscription_date)
+);
+
+// ADOPT-57: the per-row New chip and the New subscribers KPI share one
+// predicate -- the recorded new_user flag. Git history (pre-revamp list/table
+// views at 9763c296) proves the old marker was gated on subscriber.new_user,
+// not a computed time window; the KPI count queries eq(new_user, true), so the
+// chip and the count provably agree. Null stays chipless.
+export const isNewSubscriber = (subscriber = {}) => subscriber?.new_user === true;
 
 export const SUBSCRIPTION_FILTER_SCHEMA = Object.freeze([
   {

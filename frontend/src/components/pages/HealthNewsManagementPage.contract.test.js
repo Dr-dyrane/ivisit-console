@@ -381,6 +381,76 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     });
   });
 
+  it('surfaces the literal source URL in the rail with the CopyChip idiom (ADOPT-49)', () => {
+    const rail = fs.readFileSync('src/components/pages/health-news/HealthNewsDetailRail.jsx', 'utf8');
+    const normalization = fs.readFileSync('src/services/health-news/normalization.js', 'utf8');
+
+    // Projection truth: only an http(s) URL survives normalization as `url`.
+    expect(normalization).toContain("url: allowed ? parsed.toString() : ''");
+    // Literal URL + copy affordance, gated on validity.
+    expect(rail).toContain('news.source_url_valid && news.url');
+    expect(rail).toContain('<span className="truncate" title={news.url}>{news.url}</span>');
+    expect(rail).toContain('<CopyChip value={news.url} label="Copy source URL" />');
+    // Honest null: invalid or absent URL never renders a fabricated link.
+    expect(rail).toContain("'No valid link'");
+  });
+
+  it('shows the published (created_at) date in the read-only details modal (ADOPT-50)', () => {
+    const modal = modalSource();
+
+    // health_news has no published_at column; created_at is the projection's
+    // publish date and reaches the read view.
+    expect(modal).toContain('const publishedOn = formatNewsDate(news?.created_at);');
+    expect(modal).toContain('Published ${publishedOn}');
+    // Honest null: a missing or invalid date says so instead of inventing one.
+    expect(modal).toContain('if (Number.isNaN(date.getTime())) return null;');
+    expect(modal).toContain('Publish date unknown');
+  });
+
+  it('wires the whole-table analytics read into the analytics modal, fail-safe (ADOPT-62)', () => {
+    const controller = fs.readFileSync('src/components/pages/health-news/useHealthNewsPageController.js', 'utf8');
+    const model = fs.readFileSync('src/components/pages/health-news/healthNewsPageModel.js', 'utf8');
+
+    // The previously orphaned whole-table read is now called -- lazily, only
+    // once the analytics modal opens. Read path only; no mutation appears.
+    expect(controller).toContain("import { getHealthNewsAnalytics } from '../../../services/healthNewsService';");
+    expect(controller).toContain('enabled: analyticsModalOpen');
+    expect(controller).toContain('tableAnalytics,');
+    expect(controller).not.toContain('useMutation');
+    // Whole-table scope is adopted only when the read returned rows; the
+    // service's swallowed-error zero shape falls back to the visible-page
+    // projection (fallback strings stay pinned by the visible-page gate above).
+    expect(model).toContain('export const isUsableHealthNewsTableAnalytics');
+    expect(model).toContain('return Number.isFinite(total) && total > 0;');
+    expect(model).toContain("distributionScope: 'whole_table'");
+    expect(model).toContain("distributionLabel: 'All articles'");
+    expect(model).toContain("distributionScope: 'visible_page'");
+  });
+
+  it('renders a route-owned trending topics tile with a data-truth staleness stamp (ADOPT-63)', () => {
+    const controller = fs.readFileSync('src/components/pages/health-news/useHealthNewsPageController.js', 'utf8');
+    const model = fs.readFileSync('src/components/pages/health-news/healthNewsPageModel.js', 'utf8');
+    const panel = panelSource();
+
+    // The route controller owns the read and publishes it through the context.
+    expect(controller).toContain("import { getTopTrendingTopics } from '../../../services/trendingTopicsService';");
+    expect(controller).toContain('buildTrendingTopicsTile');
+    expect(controller).toContain("errorMessage: trendingTopicsQuery.error ? 'Trending topics could not load.' : null");
+    expect(controller).toContain('trendingTopics: trendingTopicsContext');
+    // The stamp is the rows' own updated_at/created_at, never the fetch time.
+    expect(model).toContain('export const buildTrendingTopicsTile');
+    expect(model).toContain('row?.updated_at || row?.created_at');
+    // The panel renders the tile from context only -- no second fetch path.
+    expect(panel).toContain('healthNewsContext?.trendingTopics');
+    expect(panel).toContain('Trending topics');
+    expect(panel).toContain('No trending topics yet');
+    expect(panel).toContain('This data carries no update timestamp');
+    expect(panel).toContain('Data updated ${trendingStamp}');
+    expect(panel).not.toContain('getTopTrendingTopics');
+    expect(panel).not.toContain('trendingTopicsService');
+    expect(panel).not.toContain("supabase.from('trending_topics')");
+  });
+
   it('keeps mobile Health News read-focused without fake live metrics or destructive controls', () => {
     const mobile = mobileSource();
     const gate = gateSource();

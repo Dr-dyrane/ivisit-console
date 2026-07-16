@@ -6,6 +6,7 @@ import {
   Eye,
   Globe,
   Info,
+  Link2,
   Newspaper,
   Tag,
 } from 'lucide-react';
@@ -123,7 +124,18 @@ export const HealthNewsDetailRail = ({
         <DetailLine icon={Globe} label="Source" value={hostLabel} />
         <DetailLine icon={Tag} label="Category" value={news.category || 'General'} />
         <DetailLine icon={Clock} label="Published" value={formatHealthNewsDate(news.created_at)} />
-        <DetailLine icon={Eye} label="Link" value={news.source_url_valid ? 'Valid link' : 'No valid link'} />
+        {/* ADOPT-49: literal source URL with the CopyChip idiom; an invalid or
+            absent URL stays an honest 'No valid link', never a fabricated href. */}
+        <DetailLine
+          icon={Link2}
+          label="Link"
+          value={(news.source_url_valid && news.url) ? (
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <span className="truncate" title={news.url}>{news.url}</span>
+              <CopyChip value={news.url} label="Copy source URL" />
+            </span>
+          ) : 'No valid link'}
+        />
       </div>
 
       <div className="mt-5 space-y-2.5">

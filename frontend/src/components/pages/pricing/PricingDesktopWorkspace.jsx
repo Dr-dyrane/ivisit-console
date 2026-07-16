@@ -303,7 +303,7 @@ export const PricingDesktopWorkspace = ({
                   compact
                 />
                 <span className="text-sm text-muted-foreground">
-                  {formatPricingDate(row.updated_at || row.created_at)}
+                  {formatPricingDate(row.updated_at)}
                 </span>
                 <Button
                   variant="ghost"

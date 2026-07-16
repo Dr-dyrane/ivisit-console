@@ -240,6 +240,53 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(model).toContain('T12:00:00');
   });
 
+  it('surfaces the computed aggregates, the sorted Joined column, and the recorded New chip (ADOPT-55/56/57)', () => {
+    const model = read('src/components/pages/subscriptions/subscriptionPageModel.js');
+    const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
+    const panel = read('src/components/context/SubscriptionsPanel.jsx');
+
+    // ADOPT-55: the exact-count welcomeSent/newUsers aggregates were computed at every
+    // layer (service projection, visible-rows fallback, analytics payload) and dropped
+    // before render. They now ride the page-published route projection into the panel
+    // overview grid. The shared AnalyticsModal stays untouched: its subscription mapping
+    // reads only total/active/paid/pending + byType/byStatus, so no call-site key remap
+    // can carry these two counts (Users precedent inspected -- it remapped into keys the
+    // modal already renders, which do not exist here). A KPI chip was rejected as dead
+    // UI: KpiStrip caps at 3 chips, pins pending+new, and fills the last slot by count
+    // descending, which the all-subscribers total always wins.
+    expect(model).toContain('welcomeSent: displayStats.welcomeSent || 0');
+    expect(panel).toContain('label="New" value={number(summary.newUsers)}');
+    expect(panel).toContain('label="Welcome sent" value={number(summary.welcomeSent)}');
+
+    // ADOPT-56: the Joined header sorts created_at on the server (allowlisted sort key),
+    // so the cell and the rail Joined line render created_at through one model helper.
+    // The old mixed display (subscription_date falling back to created_at under a
+    // created_at sort) is gone. subscription_date stays surfaced as a separate rail
+    // evidence line WITHOUT a sort: the estate allows ONE sortable Time header per page,
+    // and a second sortable Subscribed column would violate it (conflict recorded here).
+    expect(desktop).toContain('<SortableColumnHeader label="Joined" sortKey="created_at"');
+    expect(desktop).toContain('{getJoinedDateLabel(subscriber)}');
+    expect(model).toContain("formatSubscriberEventDate(subscriber?.created_at) || 'Unknown'");
+    expect(desktop).not.toContain('subscriber.subscription_date || subscriber.created_at');
+    expect(desktop).toContain('label="Subscribed" value={getSubscriptionDateEvidenceLabel(subscriber)}');
+    expect(model).toContain('formatSubscriberEventDate(subscriber?.subscription_date)');
+    // Every subscriber date render reuses the local-noon anchored formatter; the naive
+    // new Date(...).toLocaleDateString() helpers are gone from workspace and panel.
+    expect(desktop).not.toContain('new Date(value).toLocaleDateString()');
+    expect(panel).not.toContain('new Date(value).toLocaleDateString()');
+    expect(panel).toContain("formatSubscriberEventDate(value) || 'No date'");
+
+    // ADOPT-57: the per-row New chip is restored with the donor Requests marker-chip
+    // anatomy (muted pill beside the status pill). Git history (list/table views at
+    // 9763c296) proves the old marker encoded the recorded new_user boolean, not a
+    // computed time window; the chip shares that predicate with the New subscribers
+    // KPI count (eq new_user true), so chip and KPI provably agree. new_user null or
+    // non-boolean never fabricates the chip.
+    expect(model).toContain('subscriber?.new_user === true');
+    expect(desktop).toContain('{isNewSubscriber(subscriber) && (');
+    expect(desktop).toContain('>New</span>');
+  });
+
   it('keeps Subscriptions in intake only and out of the default visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = readAppRouteEstate();

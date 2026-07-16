@@ -5,6 +5,7 @@ import {
   getInsurancePageStats,
   normalizeInsuranceBillingOutcome,
   normalizeInsurancePolicy,
+  resolveInsuranceBillingReferences,
 } from './insuranceService';
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
@@ -340,6 +341,60 @@ describe('insurance projection integrity', () => {
     expect(dataState.orders).toEqual([{ column: 'paid_date', options: { ascending: true } }]);
     expect(dataState.range).toEqual([10, 19]);
     expect(queryStates.every((state) => state.table === 'insurance_billing')).toBe(true);
+  });
+
+  it('resolves billing reference labels with deduped batched lookups and honest omissions', async () => {
+    projectionRows.hospitals = [
+      { id: 'hospital-1', name: ' General Hospital ' },
+      { id: 'hospital-2', name: null },
+    ];
+    projectionRows.emergency_requests = [{ id: 'request-1', display_id: 'ER-000123' }];
+    projectionRows.profiles = [{ id: 'member-1', full_name: 'Patient One' }];
+
+    const references = await resolveInsuranceBillingReferences([
+      { id: 'billing-1', hospital_id: 'hospital-1', emergency_request_id: 'request-1', user_id: 'member-1' },
+      { id: 'billing-2', hospital_id: 'hospital-1', emergency_request_id: null, user_id: 'member-1' },
+      { id: 'billing-3', hospital_id: 'hospital-2', emergency_request_id: undefined, user_id: '' },
+    ]);
+
+    // hospital-2 resolves to a null name and is OMITTED so the UI keeps the
+    // truncated-UUID fallback instead of a fabricated label.
+    expect(references).toEqual({
+      hospitalNamesById: { 'hospital-1': 'General Hospital' },
+      requestDisplayIdsById: { 'request-1': 'ER-000123' },
+      memberNamesById: { 'member-1': 'Patient One' },
+      failed: false,
+    });
+
+    const hospitalState = queryStates.find((state) => state.table === 'hospitals');
+    const requestState = queryStates.find((state) => state.table === 'emergency_requests');
+    const profileState = queryStates.find((state) => state.table === 'profiles');
+    expect(hospitalState.select).toBe('id,name');
+    expect(hospitalState.filters).toEqual([{ method: 'in', args: ['id', ['hospital-1', 'hospital-2']] }]);
+    expect(requestState.select).toBe('id,display_id');
+    expect(requestState.filters).toEqual([{ method: 'in', args: ['id', ['request-1']] }]);
+    expect(profileState.select).toBe('id,full_name');
+    expect(profileState.filters).toEqual([{ method: 'in', args: ['id', ['member-1']] }]);
+  });
+
+  it('skips empty reference windows and returns empty labels with failed flag on errors', async () => {
+    await expect(resolveInsuranceBillingReferences([])).resolves.toEqual({
+      hospitalNamesById: {},
+      requestDisplayIdsById: {},
+      memberNamesById: {},
+      failed: false,
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
+
+    projectionError = { code: '42501', message: 'permission denied by RLS' };
+    await expect(resolveInsuranceBillingReferences([
+      { id: 'billing-1', hospital_id: 'hospital-1', user_id: 'member-1' },
+    ])).resolves.toEqual({
+      hospitalNamesById: {},
+      requestDisplayIdsById: {},
+      memberNamesById: {},
+      failed: true,
+    });
   });
 
   it('keeps quiet projection failures silent and returns exact failed-page boundaries', async () => {

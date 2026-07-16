@@ -1,3 +1,5 @@
+import { formatRelativeTime } from '../../../utils/activityUtils';
+
 export const PRICING_MUTATION_COMMANDS_ENABLED = false;
 
 export const PRICING_SCOPE_UNAVAILABLE_MESSAGE =
@@ -167,6 +169,48 @@ export const formatPricingDate = (value) => (
     : 'Not set'
 );
 
+// ADOPT-59: created_at vs updated_at rendered distinctly (new rule vs
+// repriced) with the shared relative formatter. Null stays null so DetailLine
+// renders its honest absent state.
+export const formatPricingRelativeDate = (value) => (
+  value && !Number.isNaN(new Date(value).getTime())
+    ? formatRelativeTime(value)
+    : null
+);
+
+// ADOPT-58: room_pricing.price_per_night is the only unit truth on pricing
+// rows (types/database.ts room_pricing.Row); service_pricing.base_price has
+// no unit or duration column, so service rows render no suffix.
+export const getPricingUnitSuffix = (row = {}) => {
+  const family = row.family || row._pricingType;
+  if (family === 'room') return '/ night';
+  if (!family && Object.prototype.hasOwnProperty.call(row, 'price_per_night')) return '/ night';
+  return null;
+};
+
+export const formatPricingAmountWithUnit = (row = {}) => {
+  const suffix = getPricingUnitSuffix(row);
+  const amount = formatPricingAmount(row);
+  return suffix ? `${amount} ${suffix}` : amount;
+};
+
+// ADOPT-64: honest render states for the read-only resolved-price preview.
+// Loading/idle stay null (the rail shims those); every other state names
+// itself instead of inventing a price.
+export const formatResolvedPricePreview = (preview, row = {}) => {
+  if (!preview || preview.status === 'idle' || preview.status === 'loading') return null;
+  if (preview.status === 'error') return 'Preview unavailable';
+  if (preview.status === 'unavailable') return 'No resolution key';
+  if (preview.status !== 'resolved' || !preview.row) return 'No resolved price';
+  const amount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: preview.row.currency || 'USD',
+  }).format(preview.row.price);
+  const suffix = getPricingUnitSuffix(row);
+  const amountLabel = suffix ? `${amount} ${suffix}` : amount;
+  return preview.row.name ? [amountLabel, preview.row.name].join(' \u00b7 ') : amountLabel;
+};
+
 // service_type / room_type are the price-resolution keys: they say WHICH price
 // a rule resolves. Normalized rows carry them as `type`; raw rows keep the
 // family-specific column names.
@@ -182,7 +226,7 @@ export const getPricingDescription = (row = {}) => {
 };
 
 export const getPricingRowMetaLine = (row = {}) => [
-  formatPricingAmount(row),
+  formatPricingAmountWithUnit(row),
   getPricingRuleType(row),
 ].filter(Boolean).join(' \u00b7 ');
 

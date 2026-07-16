@@ -74,8 +74,15 @@ export const InsuranceDetailRail = ({ policy, denied, loading, hasFilter, onView
             <Info className="h-4 w-4" />
           </Button>
         </div>
-        <div className={`mt-4 inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${pill.className}`}>
-          {pill.label}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className={`inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${pill.className}`}>
+            {pill.label}
+          </div>
+          {policy.is_default === true && (
+            <div className="inline-flex rounded-pill bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
+              Default
+            </div>
+          )}
         </div>
         <h3 className="mt-4 truncate text-lg font-semibold">
           {policy.policy_holder_name || 'Unnamed holder'}

@@ -163,6 +163,27 @@ const buildResponderLocationFreshness = (row) => {
   };
 };
 
+// ADOPT-32 read surfacing: destination_location is the recorded transport
+// destination on emergency_requests. Only real destination truth renders --
+// an address string when the column carries one, otherwise decoded
+// coordinates. Facility identity already lives in facilityDisplay, so a null
+// destination stays absent instead of echoing the hospital name.
+const buildDestinationDisplay = (row) => {
+  const destination = row?.destination_location;
+  const address = destination && typeof destination === 'object' && !Array.isArray(destination)
+    ? toCleanString(destination.address) || null
+    : null;
+  const pair = destination ? extractCoordinatePair(destination) : null;
+  const coordinates = pair ? { lat: pair.lat, lng: pair.lng } : null;
+  const label = address
+    || (coordinates ? `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}` : null);
+  return {
+    label,
+    coordinates,
+    hasDestination: Boolean(label),
+  };
+};
+
 export const buildLatestPaymentMap = (paymentRows = []) => {
   const paymentByRequestId = new Map();
   for (const payment of paymentRows) {
@@ -250,6 +271,9 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       hasAmbulanceType: Boolean(row?.ambulance_type),
       bedCategoryLabel: formatEmergencyServiceToken(row?.bed_category || row?.bed_type, 'N/A'),
       specialtyLabel: formatEmergencyServiceToken(row?.specialty || row?.bed_category || row?.bed_type, 'N/A'),
+      // ADOPT-32: bed_count is a raw text column; an empty string stays
+      // absent (never Number('') === 0 fabrication).
+      bedCount: toCleanString(row?.bed_count) || null,
     },
     statusDisplay: {
       status: canonicalStatus,
@@ -262,6 +286,7 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       coordinateSource: coordinatePair?.source || 'unavailable',
       canOpenExternalMap: Boolean(coordinatePair),
     },
+    destinationDisplay: buildDestinationDisplay(row),
     facilityDisplay: {
       hospitalId: row?.hospital_id || null,
       organizationId: row?.organization_id || null,
