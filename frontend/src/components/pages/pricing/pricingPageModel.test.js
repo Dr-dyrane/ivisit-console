@@ -3,8 +3,11 @@ import {
   buildPricingPageQuery,
   buildPricingRouteContext,
   formatPricingAmount,
+  getPricingDescription,
   getPricingKpiCount,
   getPricingRoleKind,
+  getPricingRowMetaLine,
+  getPricingRuleType,
   getPricingWorkspaceState,
   isGlobalPricingRule,
   normalizePricingProjection,
@@ -107,6 +110,25 @@ describe('pricingPageModel', () => {
     expect(formatPricingAmount({ amount: 12.5, currency: 'USD' })).toBe('$12.50');
     expect(getPricingKpiCount({ totalCount: 20 }, 9, 'all')).toBe(20);
     expect(getPricingKpiCount({ facilityPriceCount: 7 }, 9, 'override')).toBe(7);
+  });
+
+  it('surfaces the price-resolution key and description with honest absence', () => {
+    // Normalized rows carry service_type/room_type as `type`; raw rows keep
+    // the family-specific column names.
+    expect(getPricingRuleType({ type: 'consultation' })).toBe('consultation');
+    expect(getPricingRuleType({ service_type: 'lab_test' })).toBe('lab_test');
+    expect(getPricingRuleType({ room_type: 'icu' })).toBe('icu');
+    expect(getPricingRuleType({ type: '   ' })).toBeNull();
+    expect(getPricingRuleType({})).toBeNull();
+
+    expect(getPricingRowMetaLine({ amount: 12.5, currency: 'USD', type: 'consultation' }))
+      .toBe('$12.50 \u00b7 consultation');
+    expect(getPricingRowMetaLine({ amount: 12.5, currency: 'USD' })).toBe('$12.50');
+
+    expect(getPricingDescription({ description: ' Ward day rate. ' })).toBe('Ward day rate.');
+    expect(getPricingDescription({ description: '   ' })).toBeNull();
+    expect(getPricingDescription({ description: null })).toBeNull();
+    expect(getPricingDescription({})).toBeNull();
   });
 
   it('keeps failure and empty signals honest', () => {

@@ -99,6 +99,17 @@ export const HealthNewsDetailRail = ({
           </Button>
         </div>
 
+        {news.image_url && (
+          <img
+            key={news.id}
+            src={news.image_url}
+            alt=""
+            loading="lazy"
+            className="mb-4 h-36 w-full rounded-inner object-cover"
+            onError={(event) => { event.currentTarget.style.display = 'none'; }}
+          />
+        )}
+
         <div className="min-w-0">
           <h3 className="truncate text-lg font-semibold" title={news.title || 'Untitled article'}>{news.title || 'Untitled article'}</h3>
           <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">

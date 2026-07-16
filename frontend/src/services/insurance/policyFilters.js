@@ -44,6 +44,17 @@ export function applyInsurancePageFilters(query, filter = {}) {
   if (kpiFilter === 'unverified') {
     query = query.eq('verified', false);
   }
+  if (kpiFilter === 'expiringSoon') {
+    // Mirrors getInsuranceExpiringSoonCount's active + 30-day expires_at
+    // window so the KPI chip's rows match its exact-count stat.
+    const now = new Date();
+    const horizon = new Date();
+    horizon.setDate(horizon.getDate() + 30);
+    query = query
+      .eq('status', 'active')
+      .gte('expires_at', now.toISOString())
+      .lte('expires_at', horizon.toISOString());
+  }
 
   const statusValues = normalizeFilterList(filter.status);
   if (statusValues.length === 1) {

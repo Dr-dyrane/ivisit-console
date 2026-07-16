@@ -4,8 +4,11 @@ import {
   buildSubscriptionsRouteContext,
   buildVisibleSubscriptionStats,
   createSubscriptionFilters,
+  formatSubscriberEventDate,
   getSubscriberStatusTone,
   getSubscriptionRoleKind,
+  getUnsubscribedEvidenceLabel,
+  getWelcomeEmailEvidenceLabel,
   hasActiveSubscriberFilters,
   SUBSCRIPTION_FILTER_SCHEMA,
 } from './subscriptionPageModel';
@@ -105,6 +108,33 @@ describe('subscriptionPageModel', () => {
       statsScope: 'admin_subscriber_projection',
       source: 'route',
     });
+  });
+
+  it('formats date-only event values without the UTC midnight day shift', () => {
+    // Both sides anchor to the local calendar day; a naive new Date('2026-07-01')
+    // render would show June 30 in negative offsets.
+    expect(formatSubscriberEventDate('2026-07-01')).toBe(new Date(2026, 6, 1).toLocaleDateString());
+    expect(formatSubscriberEventDate('2026-07-01T10:30:00Z')).toBe(new Date('2026-07-01T10:30:00Z').toLocaleDateString());
+    expect(formatSubscriberEventDate(null)).toBeNull();
+    expect(formatSubscriberEventDate('')).toBeNull();
+    expect(formatSubscriberEventDate('not-a-date')).toBeNull();
+  });
+
+  it('renders welcome evidence from the send timestamp with honest fallbacks', () => {
+    expect(getWelcomeEmailEvidenceLabel({ welcome_email_sent: true, welcome_email_sent_at: '2026-07-01T10:30:00Z' }))
+      .toBe(`Sent ${new Date('2026-07-01T10:30:00Z').toLocaleDateString()}`);
+    expect(getWelcomeEmailEvidenceLabel({ welcome_email_sent: true, welcome_email_sent_at: null })).toBe('Sent');
+    expect(getWelcomeEmailEvidenceLabel({ welcome_email_sent: false, welcome_email_sent_at: null })).toBe('Not sent');
+    expect(getWelcomeEmailEvidenceLabel({})).toBe('Not sent');
+  });
+
+  it('renders unsubscribe evidence only for unsubscribed rows and never fabricates it', () => {
+    expect(getUnsubscribedEvidenceLabel({ status: 'unsubscribed', unsubscribed_at: '2026-06-15T08:00:00Z' }))
+      .toBe(new Date('2026-06-15T08:00:00Z').toLocaleDateString());
+    expect(getUnsubscribedEvidenceLabel({ status: 'unsubscribed', unsubscribed_at: null })).toBe('Unknown');
+    expect(getUnsubscribedEvidenceLabel({ status: 'active', unsubscribed_at: '2026-06-15T08:00:00Z' })).toBeNull();
+    expect(getUnsubscribedEvidenceLabel({ status: 'bounced', unsubscribed_at: null })).toBeNull();
+    expect(getUnsubscribedEvidenceLabel({})).toBeNull();
   });
 
   it('preserves role, filter, schema, and rendered status semantics', () => {

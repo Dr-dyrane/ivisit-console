@@ -23,6 +23,22 @@ export const DetailRow = ({ label, value, valueClassName = '' }) => (
   </div>
 );
 
+// ADOPT-04: read-only cost component lines under the cash Fee Amount total.
+// The projection only emits non-null columns, so an empty breakdown renders nothing.
+export const CostBreakdownLines = ({ breakdown }) => {
+  if (!Array.isArray(breakdown) || breakdown.length === 0) return null;
+  return (
+    <div className="mt-3 space-y-1.5">
+      {breakdown.map((line) => (
+        <div key={line.key} className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-muted-foreground">{line.label}</span>
+          <span className="font-medium text-foreground">{line.amountLabel}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const EmergencyIdentitySections = ({ request, projection }) => {
   const patient = projection.patientDisplay;
   const doctor = projection.doctorDisplay;
@@ -105,6 +121,11 @@ export const EmergencyIdentitySections = ({ request, projection }) => {
           {responder.vehiclePlate && <DetailRow label="Vehicle Plate" value={responder.vehiclePlate} />}
           {responder.vehicleType && (
             <DetailRow label="Vehicle Type" value={responder.vehicleType} valueClassName="capitalize" />
+          )}
+          {/* ADOPT-05: telemetry freshness from responder_location_observed_at /
+              responder_location_accuracy_meters. Null telemetry stays absent. */}
+          {responder.hasResponder && responder.locationFreshness && (
+            <DetailRow label="Location Updated" value={responder.locationFreshness.label} />
           )}
         </SectionCard>
       )}

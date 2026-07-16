@@ -167,6 +167,25 @@ export const formatPricingDate = (value) => (
     : 'Not set'
 );
 
+// service_type / room_type are the price-resolution keys: they say WHICH price
+// a rule resolves. Normalized rows carry them as `type`; raw rows keep the
+// family-specific column names.
+export const getPricingRuleType = (row = {}) => {
+  const type = row.type || row.service_type || row.room_type;
+  const trimmed = typeof type === 'string' ? type.trim() : '';
+  return trimmed || null;
+};
+
+export const getPricingDescription = (row = {}) => {
+  const description = typeof row.description === 'string' ? row.description.trim() : '';
+  return description || null;
+};
+
+export const getPricingRowMetaLine = (row = {}) => [
+  formatPricingAmount(row),
+  getPricingRuleType(row),
+].filter(Boolean).join(' \u00b7 ');
+
 export const isGlobalPricingRule = (row = {}) => !row.hospital_id && !row.hospitalId;
 
 export const getPricingScopeTone = (row) => (

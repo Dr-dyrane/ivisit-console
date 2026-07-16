@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  CalendarClock,
   CheckCircle,
   Clock,
   Eye,
@@ -47,6 +48,18 @@ export const INSURANCE_STATE_OPTIONS = [
     activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
   },
   {
+    // 30-day renewal-risk window; count binds to the exact expiringSoon
+    // projection stat. Canonical position sits before 'unverified' because
+    // expiring-soon has no filter-sheet fallback, while verification stays
+    // reachable through the Verification filter.
+    id: 'expiringSoon',
+    label: 'Expiring soon',
+    icon: CalendarClock,
+    countKey: 'expiringSoon',
+    colorClass: 'text-amber-700 dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-e2 dark:text-amber-200',
+  },
+  {
     id: 'unverified',
     label: 'Unverified',
     icon: Eye,
@@ -59,9 +72,10 @@ export const INSURANCE_STATE_OPTIONS = [
 export const INSURANCE_STATE_IMPORTANCE = {
   all: 0,
   pending: 1,
-  unverified: 2,
-  active: 3,
-  expired: 4,
+  expiringSoon: 2,
+  unverified: 3,
+  active: 4,
+  expired: 5,
 };
 
 export const INSURANCE_GRID = 'grid-cols-[minmax(210px,1.8fr)_minmax(120px,1fr)_minmax(100px,auto)_minmax(105px,auto)_96px]';
@@ -82,12 +96,27 @@ export const getInsurancePolicyPill = (status) => (
   }
 );
 
+const EXPIRING_SOON_WINDOW_DAYS = 30;
+
+// Row-level mirror of the service's active + 30-day expires_at window,
+// used only as a visible-rows fallback when exact stats are absent.
+export const isInsurancePolicyExpiringSoon = (policy) => {
+  if (normalizeInsuranceStatus(policy?.status) !== 'active') return false;
+  const expiresAt = new Date(policy?.end_date || policy?.expires_at || '');
+  if (Number.isNaN(expiresAt.getTime())) return false;
+  const now = new Date();
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + EXPIRING_SOON_WINDOW_DAYS);
+  return expiresAt >= now && expiresAt <= horizon;
+};
+
 export const getInsuranceStateCount = (stats, rows, id) => {
   const key = INSURANCE_STATE_OPTIONS.find((option) => option.id === id)?.countKey || 'total';
   const value = getInsuranceMetric(stats?.[key], Number.NaN);
   if (Number.isFinite(value)) return value;
   if (id === 'all') return rows.length;
   if (id === 'unverified') return rows.filter((row) => !row.verified).length;
+  if (id === 'expiringSoon') return rows.filter(isInsurancePolicyExpiringSoon).length;
   return rows.filter((row) => normalizeInsuranceStatus(row.status) === id).length;
 };
 
@@ -135,7 +164,7 @@ export const buildInsuranceSignal = ({ active, activeCount, denied, failedEmpty 
     tone: activeCount
       ? active === 'active'
         ? 'clear'
-        : active === 'expired'
+        : active === 'expired' || active === 'expiringSoon'
           ? 'warning'
           : 'primary'
       : 'muted',

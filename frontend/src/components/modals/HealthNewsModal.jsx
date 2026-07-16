@@ -40,6 +40,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news }) => {
 
 const HealthNewsReadView = ({ news, onClose }) => {
   const hasUrl = Boolean(String(news?.url || '').trim());
+  const imageUrl = String(news?.image_url || '').trim();
   const category = formatLabel(news?.category, 'General');
   const source = String(news?.source || '').trim() || 'Unknown source';
   const description = String(news?.description || '').trim() || 'No short summary was provided.';
@@ -49,6 +50,16 @@ const HealthNewsReadView = ({ news, onClose }) => {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-4 no-scrollbar md:px-6 md:pb-6">
         <section className="rounded-card bg-foreground/[0.045] p-5 dark:bg-white/[0.06]">
+          {imageUrl && (
+            <img
+              key={news?.id}
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              className="mb-4 h-44 w-full rounded-inner object-cover"
+              onError={(event) => { event.currentTarget.style.display = 'none'; }}
+            />
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center rounded-pill bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
               {category}

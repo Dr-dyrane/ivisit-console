@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Award,
+  Banknote,
   Building2,
   CheckCircle2,
   Clock,
@@ -98,6 +99,7 @@ export const DoctorModalView = ({
                 <ReadOnlyItem icon={Building2} label="Facility" value={facilityName} />
                 <ReadOnlyItem icon={CheckCircle2} label="Status" value={status.label} />
                 <ReadOnlyItem icon={IdCard} label="License" value={formData.license_number} />
+                <ReadOnlyItem icon={Banknote} label="Consultation fee" value={formData.consultation_fee} />
                 <ReadOnlyItem icon={FileText} label="Notes" value={formData.about} wide />
               </div>
             ) : (
@@ -227,6 +229,15 @@ export const DoctorModalView = ({
                     className={fieldClassName}
                   />
                 </Field>
+
+                {/* Display-only: the stored fee round-trips through the payload
+                    unchanged; an editable input here would be a new write surface. */}
+                <ReadOnlyItem
+                  icon={Banknote}
+                  label="Consultation fee"
+                  value={formData.consultation_fee}
+                  hint="Read-only in this form"
+                />
 
                 <Field label="Notes" wide>
                   <textarea

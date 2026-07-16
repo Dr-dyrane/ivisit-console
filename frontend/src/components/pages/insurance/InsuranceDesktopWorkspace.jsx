@@ -107,7 +107,7 @@ export const InsuranceDesktopWorkspace = ({
           setKpiFilter={(id) => setFilters((previous) => ({ ...previous, kpiFilter: id }))}
           loading={loading}
           isFetching={isFetching}
-          pinnedIds={['pending', 'unverified']}
+          pinnedIds={['pending', 'expiringSoon']}
           importance={INSURANCE_STATE_IMPORTANCE}
           defaultId="all"
           dataAttr="data-insurance-state"

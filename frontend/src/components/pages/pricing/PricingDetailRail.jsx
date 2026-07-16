@@ -1,5 +1,5 @@
 import React from 'react';
-import { BadgeDollarSign, Building2, Clock, Globe } from 'lucide-react';
+import { BadgeDollarSign, Building2, Clock, FileText, Globe, Tag } from 'lucide-react';
 import {
   DetailRailShell,
   RailInsetHero,
@@ -8,7 +8,9 @@ import { DetailLine, Shimmer } from '../../console/primitives';
 import {
   formatPricingAmount,
   formatPricingDate,
+  getPricingDescription,
   getPricingRuleName,
+  getPricingRuleType,
   getPricingScopeTone,
   isGlobalPricingRule,
 } from './pricingPageModel';
@@ -19,7 +21,7 @@ export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false 
       <DetailRailShell embedded={embedded}>
         <Shimmer className="h-32 rounded-modal" />
         <div className="mt-4 space-y-2">
-          {[0, 1, 2, 3].map((index) => (
+          {[0, 1, 2, 3, 4, 5].map((index) => (
             <Shimmer key={index} className="h-[52px] rounded-inner" />
           ))}
         </div>
@@ -66,6 +68,11 @@ export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false 
           value={price.family || price._pricingType || 'service'}
         />
         <DetailLine
+          icon={Tag}
+          label="Type"
+          value={getPricingRuleType(price) || 'Unknown'}
+        />
+        <DetailLine
           icon={globalRule ? Globe : Building2}
           label="Applies to"
           value={globalRule ? 'Platform fallback' : price.facilityName || 'Facility price'}
@@ -74,6 +81,11 @@ export const PricingDetailRail = ({ price, loading, hasFilter, embedded = false 
           icon={Building2}
           label="Facility"
           value={price.facilityName || 'Not assigned'}
+        />
+        <DetailLine
+          icon={FileText}
+          label="Description"
+          value={getPricingDescription(price)}
         />
         <DetailLine
           icon={Clock}

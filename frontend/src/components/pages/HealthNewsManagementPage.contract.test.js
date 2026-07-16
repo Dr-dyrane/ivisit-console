@@ -358,6 +358,29 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(gate).toContain('List and table density views are read/details-only');
   });
 
+  it('surfaces the fetched image_url as an article thumbnail in the rail and read-only modal (ADOPT-19)', () => {
+    const page = pageSource();
+    const modal = modalSource();
+    const normalization = fs.readFileSync('src/services/health-news/normalization.js', 'utf8');
+
+    // Projection truth: the normalized row keeps the trimmed image_url column.
+    expect(normalization).toContain("image_url: typeof row.image_url === 'string' ? row.image_url.trim() : row.image_url || null,");
+
+    // Rail binding: the focused row's image_url reaches a conditional <img> src.
+    expect(page).toContain('{news.image_url && (');
+    expect(page).toContain('src={news.image_url}');
+
+    // Read-only modal binding: the same column reaches the read view's <img> src.
+    expect(modal).toContain("const imageUrl = String(news?.image_url || '').trim();");
+    expect(modal).toContain('{imageUrl && (');
+    expect(modal).toContain('src={imageUrl}');
+
+    // Honest null: broken or missing image is a clean omit, never a broken-image glyph.
+    [page, modal].forEach((source) => {
+      expect(source).toContain("onError={(event) => { event.currentTarget.style.display = 'none'; }}");
+    });
+  });
+
   it('keeps mobile Health News read-focused without fake live metrics or destructive controls', () => {
     const mobile = mobileSource();
     const gate = gateSource();

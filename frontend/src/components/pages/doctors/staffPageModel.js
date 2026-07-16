@@ -131,6 +131,24 @@ export const formatJoinedDate = (value) => {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// Caseload population is unverified in production, so the ratio is hide-when-null:
+// it renders only when max_patients is a positive number and current_patients is a
+// real count. A null or empty side never becomes a fabricated 0 (Number('') is 0,
+// so blank values are rejected before coercion).
+const toCaseloadCount = (value) => {
+  if (value == null || String(value).trim() === '') return null;
+  const count = Number(value);
+  return Number.isFinite(count) ? count : null;
+};
+
+export const getStaffCaseload = (staff) => {
+  const max = toCaseloadCount(staff?.max_patients);
+  const current = toCaseloadCount(staff?.current_patients);
+  if (max == null || max <= 0) return null;
+  if (current == null || current < 0) return null;
+  return `${current}/${max}`;
+};
+
 export const getStaffIdentity = (staff) => ({
   doctorId: staff?.id || null,
   profileId: staff?.profile_id || null,
@@ -147,6 +165,7 @@ export const getStaffProjection = (staff) => ({
   email: staff?.email || '',
   displayId: staff?.display_id || null,
   experience: staff?.experience,
+  caseload: getStaffCaseload(staff),
   joined: staff?.created_at,
   statusMeta: getStaffStatusMeta(getEffectiveStaffStatus(staff)),
 });

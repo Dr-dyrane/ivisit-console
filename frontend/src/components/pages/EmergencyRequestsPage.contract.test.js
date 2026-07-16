@@ -192,6 +192,46 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(serviceSource).not.toContain('initialRequest?.id === requestId');
   });
 
+  it('surfaces schema cost breakdown and responder telemetry freshness read-only (ADOPT-04/05)', () => {
+    const mapperSource = fs.readFileSync('src/utils/emergencyRequestMapper.js', 'utf8');
+    const detailsModalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
+    const sectionsSource = fs.readFileSync('src/components/modals/EmergencyDetailsSections.jsx', 'utf8');
+    const pageSource = readRequestsPageSource();
+
+    // ADOPT-04: base_cost/distance_surcharge/urgency_surcharge (emergency_requests)
+    // plus payments.ivisit_fee_amount normalize into paymentDisplay.breakdown, and
+    // the cash approval tile renders that projection field next to the untouched total.
+    expect(mapperSource).toContain("['base_cost', 'Base cost']");
+    expect(mapperSource).toContain("['distance_surcharge', 'Distance surcharge']");
+    expect(mapperSource).toContain("['urgency_surcharge', 'Urgency surcharge']");
+    expect(mapperSource).toContain('paymentRecord?.ivisit_fee_amount');
+    expect(mapperSource).toContain('breakdown: buildCostBreakdownLines(row, paymentRecord, currency)');
+    expect(detailsModalSource).toContain('{renderProjection.paymentDisplay.amountLabel}');
+    expect(detailsModalSource).toContain('<CostBreakdownLines breakdown={renderProjection.paymentDisplay.breakdown} />');
+    expect(sectionsSource).toContain('export const CostBreakdownLines = ({ breakdown }) =>');
+    expect(sectionsSource).toContain('if (!Array.isArray(breakdown) || breakdown.length === 0) return null;');
+    expect(sectionsSource).toContain('{line.label}');
+    expect(sectionsSource).toContain('{line.amountLabel}');
+
+    // ADOPT-05: responder_location_observed_at / responder_location_accuracy_meters
+    // bind through the normalized responderDisplay path onto the detail rail and the
+    // Assigned Care section. Null telemetry renders as absent -- never fake freshness.
+    expect(mapperSource).toContain("const observedAt = row?.responder_location_observed_at;");
+    expect(mapperSource).toContain('if (!observedAt) return null;');
+    expect(mapperSource).toContain('row?.responder_location_accuracy_meters');
+    expect(mapperSource).toContain('locationFreshness: buildResponderLocationFreshness(row)');
+    expect(pageSource).toContain('{responder.hasResponder && responder.locationFreshness && (');
+    expect(pageSource).toContain('label="Responder location" value={responder.locationFreshness.label}');
+    expect(sectionsSource).toContain('{responder.hasResponder && responder.locationFreshness && (');
+    expect(sectionsSource).toContain('label="Location Updated" value={responder.locationFreshness.label}');
+
+    // Read-surfacing only: the write payload allowlists gained no new columns.
+    const payloadSource = fs.readFileSync('src/services/emergency/payloadNormalization.js', 'utf8');
+    for (const column of ['base_cost', 'distance_surcharge', 'urgency_surcharge', 'ivisit_fee_amount', 'responder_location_observed_at', 'responder_location_accuracy_meters']) {
+      expect(payloadSource).not.toContain(column);
+    }
+  });
+
   it('keeps legacy Requests density views out of the active route renderer', () => {
     const pageSource = readRequestsPageSource();
     const mobileSource = readRequestsMobileSource();

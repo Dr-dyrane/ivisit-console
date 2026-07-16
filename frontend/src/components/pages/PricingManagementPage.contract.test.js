@@ -580,4 +580,36 @@ describe('Pricing Page 18 intake contract', () => {
     expect(service).toContain("supabase.rpc('upsert_service_pricing'");
     expect(service).toContain("supabase.rpc('upsert_room_pricing'");
   });
+
+  it('surfaces the fetched price-resolution key and description as read-only projection fields', () => {
+    const workspace = read('src/components/pages/pricing/PricingDesktopWorkspace.jsx');
+    const rail = read('src/components/pages/pricing/PricingDetailRail.jsx');
+    const model = read('src/components/pages/pricing/pricingPageModel.js');
+    const service = pricingServiceSource();
+
+    // Fetch truth: the projection selects whole rows and normalizes
+    // service_type/room_type to `type`, keeping `description` on the row.
+    expect(service).toContain("select: '*',");
+    expect(service).toContain('const type = isService ? row.service_type : row.room_type;');
+
+    // Model binds the resolution key and description with honest absence.
+    expect(model).toContain('export const getPricingRuleType');
+    expect(model).toContain('row.type || row.service_type || row.room_type');
+    expect(model).toContain('export const getPricingDescription');
+    expect(model).toContain('export const getPricingRowMetaLine');
+    expect(model).toContain('getPricingRuleType(row),');
+
+    // List row renders amount plus the resolution key on the secondary line.
+    // The regex pins BOTH the tooltip binding and the visible child render;
+    // a bare toContain('{metaLine}') would be satisfied by title={metaLine} alone.
+    expect(workspace).toContain('const metaLine = getPricingRowMetaLine(row);');
+    expect(workspace).toMatch(/title=\{metaLine\}>\s*\{metaLine\}/);
+
+    // Rail renders the resolution key and the server-searchable description,
+    // so description search hits are no longer invisible.
+    expect(rail).toContain('label="Type"');
+    expect(rail).toContain("value={getPricingRuleType(price) || 'Unknown'}");
+    expect(rail).toContain('label="Description"');
+    expect(rail).toContain('value={getPricingDescription(price)}');
+  });
 });

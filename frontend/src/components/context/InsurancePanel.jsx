@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   AlertCircle,
+  Banknote,
   BarChart3,
   CheckCircle,
   Clock,
@@ -11,6 +12,7 @@ import {
   Plus,
   ReceiptText,
   Shield,
+  XCircle,
 } from 'lucide-react';
 import { resolveVital } from '../../constants/vitalTracks';
 
@@ -92,6 +94,8 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
     || (billing.denied ? 'Billing outcomes are unavailable for this account.' : null)
     || (billing.failed ? 'Billing outcomes could not load.' : null);
   const billingUnavailable = Boolean((billing.denied || billing.failed) && billingRows.length === 0);
+  const billingStats = billing.stats || null;
+  const billingMetric = (value) => billingUnavailable ? 'Unavailable' : number(value);
   const focused = insuranceContext?.focusedPolicy || loadedPolicies[0] || null;
   const metric = (value) => policyUnavailable ? 'Unavailable' : number(value);
 
@@ -171,6 +175,15 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
                 : `${number(billing.count)} total`}
           </span>
         </div>
+
+        {billingStats && !(billingLoading && billingRows.length === 0) && (
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <Metric icon={Clock} label="Pending claims" value={billingMetric(billingStats.pending)} tone="bg-amber-500/10 text-amber-700 dark:text-amber-200" />
+            <Metric icon={CheckCircle} label="Approved" value={billingMetric(billingStats.approved)} tone="bg-sky-500/10 text-sky-700 dark:text-sky-200" />
+            <Metric icon={Banknote} label="Paid" value={billingMetric(billingStats.paid)} tone="bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" />
+            <Metric icon={XCircle} label="Rejected" value={billingMetric(billingStats.rejected)} tone="bg-destructive/10 text-destructive" />
+          </div>
+        )}
 
         <div className="space-y-2">
           {billingLoading && billingRows.length === 0 && [0, 1].map((item) => (

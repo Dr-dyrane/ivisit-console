@@ -13,6 +13,7 @@ import {
   Plus,
   Stethoscope,
   UserRound,
+  Users,
 } from 'lucide-react';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../../hooks/useListKeyboardNav';
 import {
@@ -302,6 +303,11 @@ const StaffRow = ({
 
       <div className="min-w-0">
         <StatusPill label={projection.statusMeta.label} icon={StatusIcon} className={projection.statusMeta.tone} compact />
+        {projection.caseload && (
+          <div className="mt-1 truncate text-xs text-muted-foreground" title={`Caseload ${projection.caseload}`}>
+            Caseload {projection.caseload}
+          </div>
+        )}
       </div>
 
       <div className="min-w-0 truncate text-sm font-medium capitalize" title={projection.specialization}>{projection.specialization}</div>
@@ -442,6 +448,9 @@ export const StaffDetailRail = ({
         <DetailLine icon={staff.phone ? Phone : Mail} label="Contact" value={projection.contact} />
         {projection.experience != null && (
           <DetailLine icon={IdCard} label="Experience" value={`${projection.experience} year${projection.experience === 1 ? '' : 's'}`} />
+        )}
+        {projection.caseload && (
+          <DetailLine icon={Users} label="Caseload" value={projection.caseload} />
         )}
         <DetailLine icon={Clock} label="Joined" value={formatJoinedDate(projection.joined)} />
       </div>

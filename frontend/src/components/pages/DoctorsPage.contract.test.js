@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { getStaffCaseload } from './doctors/staffPageModel';
 import { routeOwnsShellAction } from '../../config/routeActionOwnership';
 import { getAccessibleNav } from '../../config/navigation';
 import { getPageDataStartupDomainsForRole } from '../../config/pageDataAccess';
@@ -338,6 +339,31 @@ describe('DoctorsPage Staff contract', () => {
     expect(panel).not.toContain('ring');
     expect(panel).not.toContain('outline');
     expect(panel).not.toContain('divide');
+  });
+
+  it('surfaces adopted schema fields read-only with honest nulls (ADOPT-13/ADOPT-14)', () => {
+    const page = pageSource();
+    const modal = modalSource();
+
+    // ADOPT-14: the caseload ratio binds from the model into BOTH the row and the
+    // rail, and both renders are gated on the model returning a real ratio.
+    expect(page).toContain('caseload: getStaffCaseload(staff)');
+    expect((page.match(/\{projection\.caseload && \(/g) || []).length).toBe(2);
+    expect(page).toContain('Caseload {projection.caseload}');
+    expect(page).toContain('label="Caseload" value={projection.caseload}');
+    // Hide-when-null: production population is unverified, so a null side of the
+    // ratio suppresses the surface instead of fabricating a zero.
+    expect(getStaffCaseload({ current_patients: 3, max_patients: 10 })).toBe('3/10');
+    expect(getStaffCaseload({ current_patients: null, max_patients: 10 })).toBeNull();
+    expect(getStaffCaseload({ current_patients: 3, max_patients: null })).toBeNull();
+    expect(getStaffCaseload({ current_patients: 3, max_patients: 0 })).toBeNull();
+
+    // ADOPT-13: consultation_fee reaches the render in view AND edit modes as a
+    // read-only item; no editable input exists (that would be a new write surface).
+    expect((modal.match(/label="Consultation fee"/g) || []).length).toBe(2);
+    expect((modal.match(/value=\{formData\.consultation_fee\}/g) || []).length).toBe(2);
+    expect(modal).not.toContain("updateField('consultation_fee'");
+    expect(modal).not.toContain("onChange={(event) => updateField('consultation_fee'");
   });
 
   it('keeps the Staff modal inside proved directory CRUD boundaries', () => {

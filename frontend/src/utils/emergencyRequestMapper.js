@@ -1,3 +1,4 @@
+import { formatRelativeTime } from './activityUtils';
 import { canonicalizeEmergencyStatus } from './emergencyStatus';
 import { decodePostGISGeometry, formatEmergencyLocation } from './locationUtils';
 import { getPatientInitials } from './patientUtils';
@@ -108,6 +109,58 @@ export const formatEmergencyServiceToken = (value, fallback = 'Standard') => {
   return trimmedValue
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+// ADOPT-04 read surfacing: cost components live on emergency_requests
+// (base_cost / distance_surcharge / urgency_surcharge) and payments
+// (ivisit_fee_amount). Null columns stay absent -- no fabricated zeros.
+const COST_BREAKDOWN_COMPONENTS = [
+  ['base_cost', 'Base cost'],
+  ['distance_surcharge', 'Distance surcharge'],
+  ['urgency_surcharge', 'Urgency surcharge'],
+];
+
+const buildCostBreakdownLines = (row, paymentRecord, currency) => {
+  const lines = [];
+  for (const [key, label] of COST_BREAKDOWN_COMPONENTS) {
+    const value = row?.[key];
+    if (value === null || value === undefined) continue;
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) continue;
+    lines.push({ key, label, amountLabel: formatMoneyLabel(amount, currency) });
+  }
+  const feeAmount = Number(paymentRecord?.ivisit_fee_amount ?? null);
+  if (paymentRecord?.ivisit_fee_amount !== null
+    && paymentRecord?.ivisit_fee_amount !== undefined
+    && Number.isFinite(feeAmount)) {
+    lines.push({
+      key: 'ivisit_fee_amount',
+      label: 'iVisit fee',
+      amountLabel: formatMoneyLabel(feeAmount, currency),
+    });
+  }
+  return lines;
+};
+
+// ADOPT-05 read surfacing: responder_location_observed_at /
+// responder_location_accuracy_meters are backend telemetry truth.
+// Missing or unparseable telemetry returns null -- never fake freshness.
+const buildResponderLocationFreshness = (row) => {
+  const observedAt = row?.responder_location_observed_at;
+  if (!observedAt) return null;
+  const observed = new Date(observedAt);
+  if (Number.isNaN(observed.getTime())) return null;
+  const accuracyMeters = Number(row?.responder_location_accuracy_meters);
+  const accuracyLabel = Number.isFinite(accuracyMeters) && accuracyMeters > 0
+    ? `\u00b1${Math.round(accuracyMeters)} m`
+    : null;
+  const agoLabel = formatRelativeTime(observedAt);
+  return {
+    observedAt,
+    agoLabel,
+    accuracyLabel,
+    label: accuracyLabel ? `${agoLabel} \u00b7 ${accuracyLabel}` : agoLabel,
+  };
 };
 
 export const buildLatestPaymentMap = (paymentRows = []) => {
@@ -221,6 +274,7 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       methodLabel: paymentMethod ? paymentMethod.toUpperCase() : 'UNSET',
       status: paymentStatus || null,
       amountLabel: formatMoneyLabel(amount, currency),
+      breakdown: buildCostBreakdownLines(row, paymentRecord, currency),
       visibilityState: options.paymentVisibilityState || (paymentRecord ? 'visible' : 'not_created'),
     },
     doctorDisplay: {
@@ -241,6 +295,7 @@ export const buildEmergencyRenderProjection = (row, options = {}) => {
       vehicleType: identityProjection.responder.vehicleType,
       vehiclePlate: identityProjection.responder.vehiclePlate,
       etaLabel: pickFirstNonEmpty(row?.eta_display, row?.eta, row?.estimated_arrival) || 'ETA pending',
+      locationFreshness: buildResponderLocationFreshness(row),
       hasResponder: identityProjection.responder.hasResponder,
     },
     clinicalOutcome: {

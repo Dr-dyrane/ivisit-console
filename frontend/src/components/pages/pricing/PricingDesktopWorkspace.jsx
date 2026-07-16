@@ -29,9 +29,9 @@ import {
 } from '../../../hooks/useListKeyboardNav';
 import { PricingDetailRail } from './PricingDetailRail';
 import {
-  formatPricingAmount,
   formatPricingDate,
   getPricingKpiCount,
+  getPricingRowMetaLine,
   getPricingRuleName,
   getPricingScopeTone,
   getPricingWorkspaceState,
@@ -257,6 +257,7 @@ export const PricingDesktopWorkspace = ({
             const checked = selectedIds.includes(row.id);
             const ruleName = getPricingRuleName(row);
             const globalRule = isGlobalPricingRule(row);
+            const metaLine = getPricingRowMetaLine(row);
 
             return (
               <ListRowShell
@@ -288,8 +289,8 @@ export const PricingDesktopWorkspace = ({
                   </span>
                   <div className="min-w-0">
                     <div className="truncate text-[15px] font-semibold">{ruleName}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {formatPricingAmount(row)}
+                    <div className="mt-1 truncate text-xs text-muted-foreground" title={metaLine}>
+                      {metaLine}
                     </div>
                   </div>
                 </div>

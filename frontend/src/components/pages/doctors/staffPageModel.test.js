@@ -3,6 +3,7 @@ import {
   buildStaffQueryFilter,
   buildStaffStats,
   getEffectiveStaffStatus,
+  getStaffCaseload,
   getStaffIdentity,
   getStaffProjection,
   getStaffSignal,
@@ -146,6 +147,24 @@ describe('staff page model characterization', () => {
     expect(context.recent).toEqual(rows.slice(0, 4));
     expect(context.focusedStaff).toBe(rows[2]);
     expect(context.canManage).toBe(true);
+  });
+
+  it('renders caseload only when both sides of the ratio are real (hide-when-null)', () => {
+    expect(getStaffCaseload({ current_patients: 3, max_patients: 10 })).toBe('3/10');
+    expect(getStaffCaseload({ current_patients: 0, max_patients: 10 })).toBe('0/10');
+    expect(getStaffCaseload({ current_patients: '3', max_patients: '10' })).toBe('3/10');
+    expect(getStaffCaseload({ current_patients: 3, max_patients: 0 })).toBeNull();
+    expect(getStaffCaseload({ current_patients: 3, max_patients: null })).toBeNull();
+    expect(getStaffCaseload({ current_patients: null, max_patients: 10 })).toBeNull();
+    expect(getStaffCaseload({ current_patients: -1, max_patients: 10 })).toBeNull();
+    expect(getStaffCaseload({ current_patients: '', max_patients: 10 })).toBeNull();
+    expect(getStaffCaseload({ current_patients: 3, max_patients: ' ' })).toBeNull();
+    expect(getStaffCaseload({ current_patients: 'abc', max_patients: 10 })).toBeNull();
+    expect(getStaffCaseload({})).toBeNull();
+    expect(getStaffCaseload(null)).toBeNull();
+
+    expect(getStaffProjection({ current_patients: 3, max_patients: 10 }).caseload).toBe('3/10');
+    expect(getStaffProjection({}).caseload).toBeNull();
   });
 
   it('recognizes only committed filter axes', () => {

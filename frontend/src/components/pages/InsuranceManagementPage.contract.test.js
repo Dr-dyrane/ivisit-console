@@ -145,10 +145,42 @@ describe('Insurance revamp preservation and authority contract', () => {
 
   it('keeps one shared max-three KPI strip and one activity sheet', () => {
     expect(desktop.match(/<KpiStrip/g)).toHaveLength(1);
-    expect(desktop).toContain("pinnedIds={['pending', 'unverified']}");
+    // Two pins maximum: a third pin overflows selectPrimaryKpis' chosen set in
+    // the selected state, dropping the 'All' chip and shuffling chip positions.
+    expect(desktop).toContain("pinnedIds={['pending', 'expiringSoon']}");
     expect(desktop).toContain('importance={INSURANCE_STATE_IMPORTANCE}');
     expect(desktop).not.toMatch(/<KpiStrip[^>]*\bmax=/);
     expect(desktop.match(/<ActivitySheet/g)).toHaveLength(1);
+  });
+
+  it('surfaces the exact 30-day expiring-soon count as a truthful KPI chip', () => {
+    // The chip binds the projection's exact expiringSoon stat, not row math.
+    expect(desktop).toContain("id: 'expiringSoon'");
+    expect(desktop).toContain("countKey: 'expiringSoon'");
+    expect(desktop).toContain('getCount={(id) => getInsuranceStateCount(stats, rows, id)}');
+    expect(desktop).toContain("const key = INSURANCE_STATE_OPTIONS.find((option) => option.id === id)?.countKey || 'total';");
+    expect(page).toContain('expiringSoon: stats.expiringSoon');
+    // Selecting the chip filters rows through the same active + 30-day
+    // expires_at window the count query proves, so count and rows agree.
+    expect(service).toContain("if (kpiFilter === 'expiringSoon')");
+    expect(service).toContain(".gte('expires_at', now.toISOString())");
+    expect(service).toContain("status: 'active',");
+    // Visible-rows fallback mirrors the same window instead of inventing one.
+    expect(desktop).toContain("if (id === 'expiringSoon') return rows.filter(isInsurancePolicyExpiringSoon).length;");
+    expect(desktop).toContain("if (normalizeInsuranceStatus(policy?.status) !== 'active') return false;");
+  });
+
+  it('renders the claims-pipeline breakdown from exact billing outcome stats', () => {
+    // Exact counts flow projection -> route context -> panel tiles.
+    expect(service).toContain('getInsuranceBillingOutcomeStats(statsFilter, user, true)');
+    expect(page).toContain('...(billingResult.stats || {})');
+    expect(panel).toContain('const billingStats = billing.stats || null;');
+    expect(panel).toContain('billingMetric(billingStats.pending)');
+    expect(panel).toContain('billingMetric(billingStats.approved)');
+    expect(panel).toContain('billingMetric(billingStats.paid)');
+    expect(panel).toContain('billingMetric(billingStats.rejected)');
+    // Honest values: real zeros render 0; denied/failed renders Unavailable.
+    expect(panel).toContain("const billingMetric = (value) => billingUnavailable ? 'Unavailable' : number(value);");
   });
 
   it('keeps exactly one meaningful sortable time column and filter state', () => {

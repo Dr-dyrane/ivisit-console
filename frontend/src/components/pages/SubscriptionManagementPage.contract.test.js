@@ -215,6 +215,31 @@ describe('Subscriptions Page 17 intake contract', () => {
     expect(panel).toContain('Subscriber email tools are not available yet.');
   });
 
+  it('surfaces welcome and unsubscribe evidence timestamps on the desktop read surfaces', () => {
+    const model = read('src/components/pages/subscriptions/subscriptionPageModel.js');
+    const desktop = read('src/components/pages/subscriptions/SubscriptionsDesktopWorkspace.jsx');
+
+    // ADOPT-15: fetched welcome_email_sent_at evidence reaches the row subtitle and the
+    // detail rail through one model helper; an absent timestamp falls back to the bare
+    // boolean and renders the honest Not sent, never a fabricated Pending state.
+    expect(model).toContain('formatSubscriberEventDate(subscriber?.welcome_email_sent_at)');
+    expect(model).toContain("return subscriber?.welcome_email_sent === true ? 'Sent' : 'Not sent';");
+    expect(desktop).toContain('{`Welcome ${getWelcomeEmailEvidenceLabel(subscriber).toLowerCase()}`}');
+    expect(desktop).toContain('label="Welcome email" value={getWelcomeEmailEvidenceLabel(subscriber)}');
+    expect(desktop).not.toContain("'Welcome sent' : 'Welcome pending'");
+    expect(desktop).not.toContain("welcome_email_sent ? 'Sent' : 'Pending'");
+
+    // ADOPT-16: unsubscribed_at renders on the detail rail for status=unsubscribed rows
+    // only; a terminal row missing the timestamp reports Unknown, never a made-up date.
+    expect(model).toContain("if (String(subscriber?.status || '').toLowerCase() !== 'unsubscribed') return null;");
+    expect(model).toContain("return formatSubscriberEventDate(subscriber?.unsubscribed_at) || 'Unknown';");
+    expect(desktop).toContain('{getUnsubscribedEvidenceLabel(subscriber) && <DetailLine icon={MailX} label="Unsubscribed" value={getUnsubscribedEvidenceLabel(subscriber)} />}');
+
+    // Evidence dates go through the date-only-safe formatter (local-noon anchor) so a
+    // date-only value cannot shift a calendar day in negative UTC offsets.
+    expect(model).toContain('T12:00:00');
+  });
+
   it('keeps Subscriptions in intake only and out of the default visual hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = readAppRouteEstate();

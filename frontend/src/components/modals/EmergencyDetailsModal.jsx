@@ -33,6 +33,7 @@ import { canApplyEmergencyDetailProjection } from '../../utils/emergencyDetailRe
 import { fetchRequestVisitIdentity } from '../../utils/visitContextUtils';
 import { resolveVital } from '../../constants/vitalTracks';
 import {
+  CostBreakdownLines,
   EmergencyIdentitySections,
   PanelCard,
   SectionCard,
@@ -330,6 +331,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                 <p className="mt-1 text-xl font-bold text-foreground">
                   {renderProjection.paymentDisplay.amountLabel}
                 </p>
+                <CostBreakdownLines breakdown={renderProjection.paymentDisplay.breakdown} />
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row">

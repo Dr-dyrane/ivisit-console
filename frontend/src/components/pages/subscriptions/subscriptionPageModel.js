@@ -156,6 +156,32 @@ export const getSubscriberStatusTone = (status) => {
   return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
 };
 
+// Date-only values parse as UTC midnight and shift a calendar day in negative
+// offsets; anchor them to local noon so the stored day always renders.
+const DATE_ONLY_VALUE = /^\d{4}-\d{2}-\d{2}$/;
+
+export const formatSubscriberEventDate = (value) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const parsed = new Date(DATE_ONLY_VALUE.test(raw) ? `${raw}T12:00:00` : raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
+};
+
+// Welcome evidence is the recorded send timestamp; the bare boolean is the
+// fallback for legacy rows and an absent timestamp renders as not sent.
+export const getWelcomeEmailEvidenceLabel = (subscriber = {}) => {
+  const sentAt = formatSubscriberEventDate(subscriber?.welcome_email_sent_at);
+  if (sentAt) return `Sent ${sentAt}`;
+  return subscriber?.welcome_email_sent === true ? 'Sent' : 'Not sent';
+};
+
+// Terminal evidence renders only on unsubscribed rows; a missing timestamp on
+// such a row is reported as Unknown, never fabricated.
+export const getUnsubscribedEvidenceLabel = (subscriber = {}) => {
+  if (String(subscriber?.status || '').toLowerCase() !== 'unsubscribed') return null;
+  return formatSubscriberEventDate(subscriber?.unsubscribed_at) || 'Unknown';
+};
+
 export const SUBSCRIPTION_FILTER_SCHEMA = Object.freeze([
   {
     key: 'search',

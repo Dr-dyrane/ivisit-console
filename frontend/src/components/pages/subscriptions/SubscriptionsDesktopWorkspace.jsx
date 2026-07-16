@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { AlertTriangle, Clock, Crown, Eye, Info, Mail, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, Clock, Crown, Eye, Info, Mail, MailX, UserPlus, Users } from 'lucide-react';
 import { WorkspaceStage, DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { SignalPanel } from '../../console/SignalPanel';
 import { KpiStrip } from '../../console/KpiStrip';
@@ -8,7 +8,7 @@ import { DetailLine, EmptyState, LoadErrorState, Shimmer, StatusPill } from '../
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import { useListKeyboardNav, useScrollResetOnPage } from '../../../hooks/useListKeyboardNav';
-import { getSubscriberStatusTone } from './subscriptionPageModel';
+import { getSubscriberStatusTone, getUnsubscribedEvidenceLabel, getWelcomeEmailEvidenceLabel } from './subscriptionPageModel';
 
 const OPTIONS = [
   { id: 'all', label: 'Subscribers', icon: Users, countKey: 'total', colorClass: 'text-sky-700 dark:text-sky-200', activeClass: 'bg-sky-500/10 text-sky-700 shadow-e2 dark:text-sky-200' },
@@ -121,7 +121,7 @@ const SubscriberRow = ({ subscriber, focused, onFocus, onView, selectable, check
         </span>
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold">{email}</div>
-          <div className="mt-1 text-xs text-muted-foreground">{subscriber.welcome_email_sent ? 'Welcome sent' : 'Welcome pending'}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{`Welcome ${getWelcomeEmailEvidenceLabel(subscriber).toLowerCase()}`}</div>
         </div>
       </div>
       <span className="text-sm capitalize text-muted-foreground">{subscriber.type || 'free'}</span>
@@ -147,5 +147,5 @@ export const SubscriberDetailRail = ({ subscriber, denied, loading, hasFilter, o
   if (loading && !subscriber) return <DetailRailShell embedded={embedded}><Shimmer className="h-32 rounded-modal" /><div className="mt-4 space-y-2">{[0, 1, 2, 3].map((i) => <Shimmer key={i} className="h-[52px] rounded-inner" />)}</div></DetailRailShell>;
   if (denied) return <DetailRailShell embedded={embedded}><div className="flex min-h-[360px] flex-col items-center justify-center text-center"><Users className="mb-4 h-10 w-10 text-muted-foreground/60" /><h2 className="text-xl font-semibold">Subscriber access unavailable</h2><p className="mt-2 max-w-[260px] text-sm text-muted-foreground">This account does not have access to subscriber records.</p></div></DetailRailShell>;
   if (!subscriber) return <DetailRailShell embedded={embedded}><div className="flex min-h-[360px] flex-col items-center justify-center text-center"><Users className="mb-4 h-10 w-10 text-muted-foreground/60" /><h2 className="text-xl font-semibold">No subscriber selected</h2><p className="mt-2 max-w-[260px] text-sm text-muted-foreground">{hasFilter ? 'Subscribers matching the current filters will appear here.' : 'Select a subscriber to view details.'}</p></div></DetailRailShell>;
-  return <DetailRailShell embedded={embedded}><RailInsetHero><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-xl font-semibold">Subscriber details</h2><p className="mt-1 truncate text-xs text-muted-foreground">{subscriber.email || 'Unknown subscriber'}</p></div><Button variant="ghost" size="icon" onClick={() => onView(subscriber)} className="h-9 w-9 rounded-pill bg-muted/30" aria-label="Open subscriber details"><Info className="h-4 w-4" /></Button></div><div className={`mt-4 inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${getSubscriberStatusTone(subscriber.status)}`}>{subscriber.status || 'pending'}</div></RailInsetHero><div className="space-y-2"><DetailLine icon={Mail} label="Email" value={subscriber.email || 'Not set'} /><DetailLine icon={Crown} label="Plan" value={subscriber.type || 'free'} /><DetailLine icon={Clock} label="Joined" value={date(subscriber.subscription_date || subscriber.created_at)} /><DetailLine icon={Mail} label="Welcome email" value={subscriber.welcome_email_sent ? 'Sent' : 'Pending'} /></div><Button onClick={() => onView(subscriber)} className="mt-5 h-12 w-full rounded-button bg-foreground text-background hover:bg-foreground/90"><Eye className="mr-2 h-4 w-4" />View details</Button><div role="note" className="mt-3 rounded-inner bg-muted/25 px-4 py-3 text-sm text-muted-foreground">You can view subscriber details here. Subscriber and email changes are currently unavailable.</div></DetailRailShell>;
+  return <DetailRailShell embedded={embedded}><RailInsetHero><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-xl font-semibold">Subscriber details</h2><p className="mt-1 truncate text-xs text-muted-foreground">{subscriber.email || 'Unknown subscriber'}</p></div><Button variant="ghost" size="icon" onClick={() => onView(subscriber)} className="h-9 w-9 rounded-pill bg-muted/30" aria-label="Open subscriber details"><Info className="h-4 w-4" /></Button></div><div className={`mt-4 inline-flex rounded-pill px-3 py-1 text-xs font-semibold ${getSubscriberStatusTone(subscriber.status)}`}>{subscriber.status || 'pending'}</div></RailInsetHero><div className="space-y-2"><DetailLine icon={Mail} label="Email" value={subscriber.email || 'Not set'} /><DetailLine icon={Crown} label="Plan" value={subscriber.type || 'free'} /><DetailLine icon={Clock} label="Joined" value={date(subscriber.subscription_date || subscriber.created_at)} /><DetailLine icon={Mail} label="Welcome email" value={getWelcomeEmailEvidenceLabel(subscriber)} />{getUnsubscribedEvidenceLabel(subscriber) && <DetailLine icon={MailX} label="Unsubscribed" value={getUnsubscribedEvidenceLabel(subscriber)} />}</div><Button onClick={() => onView(subscriber)} className="mt-5 h-12 w-full rounded-button bg-foreground text-background hover:bg-foreground/90"><Eye className="mr-2 h-4 w-4" />View details</Button><div role="note" className="mt-3 rounded-inner bg-muted/25 px-4 py-3 text-sm text-muted-foreground">You can view subscriber details here. Subscriber and email changes are currently unavailable.</div></DetailRailShell>;
 };

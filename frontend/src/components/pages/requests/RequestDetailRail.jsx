@@ -247,6 +247,10 @@ export const RequestDetailRail = ({
             value={`${responder.label}${responder.etaLabel ? ` \u00b7 ${responder.etaLabel}` : ''}`}
           />
         )}
+        {/* ADOPT-05: freshness renders only from real telemetry; null stays absent. */}
+        {responder.hasResponder && responder.locationFreshness && (
+          <DetailLine icon={MapPin} label="Responder location" value={responder.locationFreshness.label} />
+        )}
         {arrivalConfirmation && (
           <DetailLine icon={CheckCheck} label="Patient arrival" value={arrivalConfirmation} />
         )}
