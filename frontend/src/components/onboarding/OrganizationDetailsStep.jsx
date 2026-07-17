@@ -20,7 +20,8 @@ export const OrganizationDetailsStep = () => {
   const { formData, updateFormData, setStepValid } = useOnboarding();
 
   const isValid = (
-    formData.address.trim().length >= 4
+    formData.organizationName.trim().length >= 2
+    && formData.address.trim().length >= 4
     && formData.city.trim().length >= 2
     && formData.state.trim().length >= 2
     && emailPattern.test(formData.contactEmail.trim())
@@ -32,6 +33,26 @@ export const OrganizationDetailsStep = () => {
 
   return (
     <div className="space-y-4">
+      {formData.organizationMode === 'existing' && (
+        <>
+          <div className="rounded-inner bg-sky-500/10 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase text-sky-800 dark:text-sky-200">Facility claim</p>
+            <p className="mt-1 text-sm font-semibold">{formData.existingFacilityName}</p>
+            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{formData.existingFacilityAddress}</p>
+          </div>
+          <Field
+            id="organization-legal-name"
+            icon={Building2}
+            label="Organization legal name"
+            type="text"
+            value={formData.organizationName}
+            onChange={(event) => updateFormData({ organizationName: event.target.value })}
+            placeholder="Organization legal name"
+            autoComplete="organization"
+          />
+        </>
+      )}
+
       <Field
         id="registration-number"
         icon={Hash}
@@ -98,6 +119,20 @@ export const OrganizationDetailsStep = () => {
           autoComplete="address-level1"
         />
       </div>
+
+      {formData.organizationMode === 'existing' && (
+        <label htmlFor="facility-claim-note" className="block">
+          <span className="sr-only">Ownership context</span>
+          <textarea
+            id="facility-claim-note"
+            value={formData.claimNote}
+            onChange={(event) => updateFormData({ claimNote: event.target.value.slice(0, 1000) })}
+            placeholder="Your relationship to this facility (optional)"
+            rows={3}
+            className="w-full resize-none rounded-inner bg-foreground/[0.045] px-4 py-3 text-sm placeholder:text-muted-foreground/60 focus:bg-foreground/[0.07] dark:bg-white/[0.06]"
+          />
+        </label>
+      )}
     </div>
   );
 };

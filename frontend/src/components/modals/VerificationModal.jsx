@@ -66,6 +66,9 @@ export const VerificationModal = ({
   mode,
   onClose,
   onVerify,
+  onReviewEvidence,
+  onReviewClaim,
+  onReviewOrganization,
 }) => {
   const isView = mode === 'view';
 
@@ -78,6 +81,7 @@ export const VerificationModal = ({
     created_at: ''
   });
   const [loading, setLoading] = useState(false);
+  const [reviewNote, setReviewNote] = useState('');
 
   useEffect(() => {
     if (provider && !isFacility && (mode === 'edit' || mode === 'view')) {
@@ -91,6 +95,10 @@ export const VerificationModal = ({
       });
     }
   }, [provider, isFacility, mode]);
+
+  useEffect(() => {
+    if (isOpen) setReviewNote('');
+  }, [isOpen, provider?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -147,6 +155,10 @@ export const VerificationModal = ({
   // Facility lane action: real Approve AND Reject against the tri-state
   // hospitals.verification_status receiver the page binds as onVerify.
   const handleFacilityDecision = async (approved) => {
+    if (approved && !canApproveFacility) {
+      toast.error('Approve evidence, ownership, and organization first.');
+      return;
+    }
     setLoading(true);
     try {
       await runVerificationAction({
@@ -155,6 +167,18 @@ export const VerificationModal = ({
         value: approved,
         onSuccess: () => onClose(),
       });
+    } catch (error) {
+      handleApiError(error, 'update');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runOnboardingReview = async (command, ...args) => {
+    setLoading(true);
+    try {
+      const result = await command?.(...args);
+      if (result !== false) onClose();
     } catch (error) {
       handleApiError(error, 'update');
     } finally {
@@ -180,6 +204,17 @@ export const VerificationModal = ({
   // status (no verification_status recorded yet). Verified/rejected/unknown
   // stored states get no write affordance here.
   const facilityActionable = !facilityStatus || facilityStatus.key === 'pending';
+  const onboardingOrganization = isFacility ? provider?.onboarding_organization : null;
+  const facilityClaim = isFacility ? provider?.facility_claim : null;
+  const verificationDocuments = isFacility && Array.isArray(provider?.verification_documents)
+    ? provider.verification_documents
+    : [];
+  const acceptedEvidence = verificationDocuments.some((document) => document.review_status === 'accepted');
+  const claimApproved = !facilityClaim || facilityClaim.status === 'approved';
+  const organizationVerified = onboardingOrganization?.verification_status === 'verified';
+  const canApproveClaim = acceptedEvidence && facilityClaim?.status !== 'approved';
+  const canApproveOrganization = acceptedEvidence && claimApproved && !organizationVerified;
+  const canApproveFacility = organizationVerified && claimApproved;
 
   return (
     <ModalShell
@@ -276,6 +311,188 @@ export const VerificationModal = ({
                     )}
                   </GlassCard>
 
+                  {onboardingOrganization && (
+                    <GlassCard icon={<Shield className="text-sky-700 dark:text-sky-200" />} title="Organization Review">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FacilityFact icon={Building2} label="Organization" value={onboardingOrganization.name} />
+                        <FacilityFact icon={BadgeCheck} label="Status" value={onboardingOrganization.verification_status} />
+                        <FacilityFact icon={FileText} label="Registration" value={onboardingOrganization.registration_number} />
+                        <FacilityFact icon={Phone} label="Contact" value={onboardingOrganization.contact_phone || onboardingOrganization.contact_email} />
+                      </div>
+                      {onReviewOrganization && onboardingOrganization.verification_status !== 'verified' && (
+                        <div className="mt-4 flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(
+                              onReviewOrganization,
+                              onboardingOrganization.id,
+                              'request_changes',
+                              reviewNote,
+                            )}
+                            disabled={loading || !reviewNote.trim()}
+                            className="rounded-button bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 dark:text-amber-100"
+                          >
+                            Request changes
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(
+                              onReviewOrganization,
+                              onboardingOrganization.id,
+                              'reject',
+                              reviewNote,
+                            )}
+                            disabled={loading || !reviewNote.trim()}
+                            className="rounded-button bg-destructive/15 text-destructive hover:bg-destructive/25"
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(
+                              onReviewOrganization,
+                              onboardingOrganization.id,
+                              'approve',
+                              '',
+                            )}
+                            disabled={loading || !canApproveOrganization}
+                            className="rounded-button bg-emerald-500/90 text-white hover:bg-emerald-400"
+                          >
+                            Approve organization
+                          </Button>
+                        </div>
+                      )}
+                    </GlassCard>
+                  )}
+
+                  <GlassCard icon={<FileText className="text-sky-700 dark:text-sky-200" />} title="Verification Evidence">
+                    {verificationDocuments.length ? (
+                      <div className="space-y-3">
+                        {verificationDocuments.map((document) => {
+                          const reviewable = ['pending', 'changes_requested'].includes(document.review_status);
+                          return (
+                            <div key={document.id} className="rounded-inner bg-background/45 p-3">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold">{document.original_name}</p>
+                                  <p className="mt-1 text-xs capitalize text-muted-foreground">
+                                    {document.document_type} · {document.review_status.replace(/_/g, ' ')}
+                                  </p>
+                                </div>
+                                {reviewable && onReviewEvidence && (
+                                  <div className="flex flex-wrap justify-end gap-2">
+                                    <Button
+                                      type="button"
+                                      onClick={() => runOnboardingReview(onReviewEvidence, document.id, 'accept', '')}
+                                      disabled={loading}
+                                      className="h-9 rounded-button bg-emerald-500/90 px-3 text-xs text-white hover:bg-emerald-400"
+                                    >
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      onClick={() => runOnboardingReview(
+                                        onReviewEvidence,
+                                        document.id,
+                                        'request_changes',
+                                        reviewNote,
+                                      )}
+                                      disabled={loading || !reviewNote.trim()}
+                                      className="h-9 rounded-button bg-amber-500/15 px-3 text-xs text-amber-900 hover:bg-amber-500/25 dark:text-amber-100"
+                                    >
+                                      Changes
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      onClick={() => runOnboardingReview(
+                                        onReviewEvidence,
+                                        document.id,
+                                        'reject',
+                                        reviewNote,
+                                      )}
+                                      disabled={loading || !reviewNote.trim()}
+                                      className="h-9 rounded-button bg-destructive/15 px-3 text-xs text-destructive hover:bg-destructive/25"
+                                    >
+                                      Reject
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              {document.rejection_reason && (
+                                <p className="mt-2 text-xs text-destructive">{document.rejection_reason}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No verification evidence is linked.</p>
+                    )}
+                  </GlassCard>
+
+                  {facilityClaim && (
+                    <GlassCard icon={<Building2 className="text-sky-700 dark:text-sky-200" />} title="Ownership Claim">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FacilityFact icon={BadgeCheck} label="Claim status" value={facilityClaim.status} />
+                        <FacilityFact icon={FileText} label="Applicant context" value={facilityClaim.claim_note} />
+                      </div>
+                      {onReviewClaim && facilityClaim.status !== 'approved' && (
+                        <div className="mt-4 flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(
+                              onReviewClaim,
+                              facilityClaim.id,
+                              'request_changes',
+                              reviewNote,
+                            )}
+                            disabled={loading || !reviewNote.trim()}
+                            className="rounded-button bg-amber-500/15 text-amber-900 hover:bg-amber-500/25 dark:text-amber-100"
+                          >
+                            Request changes
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(
+                              onReviewClaim,
+                              facilityClaim.id,
+                              'reject',
+                              reviewNote,
+                            )}
+                            disabled={loading || !reviewNote.trim()}
+                            className="rounded-button bg-destructive/15 text-destructive hover:bg-destructive/25"
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => runOnboardingReview(onReviewClaim, facilityClaim.id, 'approve', '')}
+                            disabled={loading || !canApproveClaim}
+                            className="rounded-button bg-emerald-500/90 text-white hover:bg-emerald-400"
+                          >
+                            Approve ownership
+                          </Button>
+                        </div>
+                      )}
+                    </GlassCard>
+                  )}
+
+                  {(onReviewEvidence || onReviewClaim || onReviewOrganization) && (
+                    <label htmlFor="onboarding-review-note" className="block">
+                      <span className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                        Review note for rejection or requested changes
+                      </span>
+                      <textarea
+                        id="onboarding-review-note"
+                        value={reviewNote}
+                        onChange={(event) => setReviewNote(event.target.value.slice(0, 1000))}
+                        rows={3}
+                        placeholder="Explain what needs attention"
+                        className="w-full resize-none rounded-inner bg-muted/30 px-4 py-3 text-sm"
+                      />
+                    </label>
+                  )}
+
                   {/* Review note */}
                   <div className="p-4 rounded-card bg-muted/30 shadow-[inset_0_0_36px_rgba(255,255,255,0.02)]">
                     <div className="flex gap-3">
@@ -283,7 +500,7 @@ export const VerificationModal = ({
                       <div className="text-sm text-foreground/80">
                         <p className="font-semibold mb-1">Review note</p>
                         <p className="text-xs leading-relaxed opacity-90">
-                          Facility decisions update dispatch and booking visibility. Only admins can approve or reject.
+                          Review evidence first, then ownership, organization, and facility. Each approval is separate and backend enforced.
                         </p>
                       </div>
                     </div>
@@ -312,7 +529,7 @@ export const VerificationModal = ({
                         <Button
                           type="button"
                           onClick={() => handleFacilityDecision(true)}
-                          disabled={loading}
+                          disabled={loading || !canApproveFacility}
                           className="rounded-button bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
                         >
                           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}

@@ -20,6 +20,72 @@ import { getDisplayIds } from './displayIdService';
 
 const TABLE_NAME = 'hospitals';
 
+const enrichOnboardingReview = async (facilities = []) => {
+    if (!facilities.length) return facilities;
+
+    const facilityIds = facilities.map((facility) => facility.id);
+    const { data: claims, error: claimsError } = await supabase
+        .from('organization_facility_claims')
+        .select('*')
+        .in('facility_id', facilityIds)
+        .order('created_at', { ascending: false });
+    if (claimsError) throw claimsError;
+
+    const claimByFacility = new Map();
+    (claims || []).forEach((claim) => {
+        if (!claimByFacility.has(claim.facility_id)) claimByFacility.set(claim.facility_id, claim);
+    });
+
+    const organizationIds = [...new Set(facilities
+        .map((facility) => (
+            facility.organization_id || claimByFacility.get(facility.id)?.organization_id
+        ))
+        .filter(Boolean))];
+
+    if (!organizationIds.length) {
+        return facilities.map((facility) => ({
+            ...facility,
+            onboarding_organization: null,
+            facility_claim: claimByFacility.get(facility.id) || null,
+            verification_documents: [],
+        }));
+    }
+
+    const [{ data: organizations, error: organizationsError }, { data: evidence, error: evidenceError }] =
+        await Promise.all([
+            supabase
+                .from('organizations')
+                .select('id, display_id, name, organization_type, registration_number, contact_email, contact_phone, address, city, state, verification_status, rejection_reason, verified_at, verified_by, created_at')
+                .in('id', organizationIds),
+            supabase
+                .from('organization_verification_documents')
+                .select('id, organization_id, facility_id, facility_claim_id, document_type, original_name, mime_type, size_bytes, review_status, reviewed_at, reviewed_by, rejection_reason, created_at')
+                .in('organization_id', organizationIds)
+                .order('created_at', { ascending: true }),
+        ]);
+
+    if (organizationsError) throw organizationsError;
+    if (evidenceError) throw evidenceError;
+
+    const organizationById = new Map((organizations || []).map((organization) => [organization.id, organization]));
+    return facilities.map((facility) => {
+        const claim = claimByFacility.get(facility.id) || null;
+        const organizationId = facility.organization_id || claim?.organization_id || null;
+        return {
+            ...facility,
+            onboarding_organization: organizationById.get(organizationId) || null,
+            facility_claim: claim,
+            verification_documents: (evidence || []).filter((document) => (
+                document.organization_id === organizationId
+                && (
+                    document.facility_id === facility.id
+                    || document.facility_claim_id === claim?.id
+                )
+            )),
+        };
+    });
+};
+
 /**
  * Get facility verification queue
  * @param {Object} filters - status, search, page, limit
@@ -75,7 +141,7 @@ export async function getOrgVerificationQueue(filters = {}) {
         if (error) throw error;
 
         // Enrich with display IDs (ORG-XXXXXX)
-        let enrichedData = data || [];
+        let enrichedData = await enrichOnboardingReview(data || []);
         if (enrichedData.length > 0) {
             const orgIds = enrichedData.map(org => org.id);
             const displayIds = await getDisplayIds(orgIds, { quiet: filters.quiet });
@@ -188,6 +254,39 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
     } catch (error) {
         return handleServiceError(error, 'org_verification', 'verify');
     }
+}
+
+export async function reviewOrganizationEvidence(documentId, decision, note = '') {
+    const { data, error } = await supabase.rpc('review_organization_verification_document', {
+        p_document_id: documentId,
+        p_decision: decision,
+        p_note: note || null,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error('Evidence review was not reflected.');
+    return data;
+}
+
+export async function reviewFacilityClaim(claimId, decision, note = '') {
+    const { data, error } = await supabase.rpc('review_console_facility_claim', {
+        p_claim_id: claimId,
+        p_decision: decision,
+        p_note: note || null,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error('Facility claim review was not reflected.');
+    return data;
+}
+
+export async function reviewOnboardingOrganization(organizationId, decision, note = '') {
+    const { data, error } = await supabase.rpc('review_console_organization', {
+        p_organization_id: organizationId,
+        p_decision: decision,
+        p_note: note || null,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error('Organization review was not reflected.');
+    return data;
 }
 
 /**

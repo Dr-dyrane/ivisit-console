@@ -6,6 +6,9 @@ import {
 } from '../../../services/verificationService';
 import {
   getOrgVerificationQueue,
+  reviewFacilityClaim,
+  reviewOnboardingOrganization,
+  reviewOrganizationEvidence,
   subscribeToOrgVerificationQueue,
   verifyOrganization,
 } from '../../../services/orgVerificationService';
@@ -252,6 +255,50 @@ export const useVerificationQueueController = ({
     }
   }, [canApprove, fetchOrgVerificationData]);
 
+  const runOnboardingReviewCommand = useCallback(async (command, successMessage) => {
+    if (!canApprove) {
+      toast.error('Admin approval required');
+      return false;
+    }
+
+    setActionLoading(true);
+    try {
+      await command();
+      toast.success(successMessage);
+      await fetchOrgVerificationData();
+      return true;
+    } catch (error) {
+      handleApiError(error, 'update');
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  }, [canApprove, fetchOrgVerificationData]);
+
+  const handleReviewEvidence = useCallback(
+    (documentId, decision, note = '') => runOnboardingReviewCommand(
+      () => reviewOrganizationEvidence(documentId, decision, note),
+      decision === 'accept' ? 'Evidence accepted' : 'Evidence review updated',
+    ),
+    [runOnboardingReviewCommand],
+  );
+
+  const handleReviewClaim = useCallback(
+    (claimId, decision, note = '') => runOnboardingReviewCommand(
+      () => reviewFacilityClaim(claimId, decision, note),
+      decision === 'approve' ? 'Facility ownership linked' : 'Facility claim updated',
+    ),
+    [runOnboardingReviewCommand],
+  );
+
+  const handleReviewOnboardingOrganization = useCallback(
+    (organizationId, decision, note = '') => runOnboardingReviewCommand(
+      () => reviewOnboardingOrganization(organizationId, decision, note),
+      decision === 'approve' ? 'Organization approved' : 'Organization review updated',
+    ),
+    [runOnboardingReviewCommand],
+  );
+
   const handleBulkAction = useCallback(async (ids, approved, clearSelection) => {
     if (!canApprove) {
       toast.error('Admin approval required');
@@ -304,6 +351,9 @@ export const useVerificationQueueController = ({
     handleSort,
     handleVerify,
     handleVerifyOrg,
+    handleReviewEvidence,
+    handleReviewClaim,
+    handleReviewOnboardingOrganization,
     handleBulkAction,
   };
 };
