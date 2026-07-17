@@ -21,6 +21,56 @@ This subplan covers organization registry, onboarding, profile/admin identity, p
 - A separate browser E2E used a disposable confirmed account and completed Account, Organization, Essentials, Review, reflected success, Console entry, and sign-out. It proved organization/facility display IDs, one ready wallet, pending verification, no fabricated dispatch eligibility, the empty new-organization Today state, direct `/set-password` and `/onboarding-success` recovery, no relevant console warnings/errors, and no horizontal overflow at mobile and desktop sizes. The disposable Auth user and all database rows were removed with zero residue.
 - Public routes no longer inherit authenticated-shell desktop or safe-area padding. Login, Set Password, Onboarding, and Onboarding Success own their responsive spacing and render without the shell-created 16/80px empty scroll.
 
+### 2026-07-17 Field Onboarding Readiness Gate
+
+Hospital field onboarding is the next six-month operational priority, but the current proof does
+not yet authorize field agents to claim existing facilities or approve provider/facility
+verification. The admitted public flow can provision a new organization and optional facility;
+existing-facility ownership remains support/admin review only, and verification commands remain a
+separate gated lane.
+
+Before sending field agents, execute one controlled, zero-residue test program covering:
+
+1. create a new organization with a new hospital;
+2. search for an existing hospital and prove duplicate prevention;
+3. submit an existing-facility claim through a canonical review receiver, once implemented;
+4. upload and privately review organization/facility verification evidence;
+5. approve, reject, request changes, retry, and recover an interrupted application;
+6. prove organization, facility, profile, wallet, provider-detail, verification, booking, and
+   emergency/dispatch readiness remain distinct reflected outcomes;
+7. confirm organization-asserted provider services, specialties, insurance, hours, appointment
+   requirements, turnaround, age range, and crisis contacts never come from category templates;
+8. verify the patient App sees the hospital only in the modes supported by its independently
+   proved booking and emergency eligibility.
+
+Use disposable non-production organizations/facilities first. A production pilot may create or
+claim real hospitals only with named organization representatives, explicit test authorization,
+deterministic cleanup/retention rules, and an operator rollback path. The field-agent launch gate
+is not “form submitted”; it is successful reflected truth across Console, Supabase, and the App.
+
+#### 2026-07-17 Receiver Audit And Go/No-Go Matrix
+
+This audit distinguishes the current visible Approvals UI from the complete onboarding authority
+needed by a field team. It is based on the mounted Console services, maintained RPCs, RLS/Storage
+policies, the July 12 rollback/live/browser E2E, and a July 17 source-to-receiver recheck.
+
+| Operational lane | Current proof | Decision |
+|---|---|---|
+| New organization plus optional new facility | `provision_console_organization(JSONB)` atomically reflects distinct organization, facility, profile, wallet, evidence, and pending-verification outcomes. Rollback, live linked-project, and browser E2E passed with cleanup. | Admitted for controlled disposable tests. |
+| Duplicate prevention | `search_onboarding_facilities(TEXT)` is read-only and the provisioning receiver rejects duplicate organization/facility attempts. Live E2E passed duplicate rejection. | Admitted. Existing matches remain guidance only. |
+| Existing-facility claim or ownership transfer | No maintained claim/link RPC, Edge Function, table command, or mounted UI receiver consumes an existing facility id. Public onboarding cannot advance an existing match. | Blocked. Do not represent support review as a completed claim. |
+| Private evidence upload and linkage | The onboarding path validates file count, MIME, size, actor-owned private path, Storage object existence, and RPC linkage into `organization_verification_documents`. | Admitted for submission. |
+| Evidence review | The evidence table has `review_status`, `reviewed_at`, `reviewed_by`, and `rejection_reason`, but no maintained command updates them and the mounted facility Approvals lane does not load or adjudicate these records. | Blocked for accept, reject, request-changes, and retry decisions. |
+| Facility approve/reject | `orgVerificationService.verifyOrganization()` is platform-admin-only and calls `update_hospital_by_admin(UUID, JSONB)`. The `SECURITY DEFINER` RPC blocks organization admins from changing `verified` or `verification_status`, preserves omitted fields, and refreshes the hospital projection. | Admitted as facility verification only. It is not organization ownership approval or evidence review. |
+| Organization verification | Provisioning creates `organizations.verification_status = pending`, but no mounted organization-verification command was found in the current source/RPC set. | Blocked. A facility approval must not silently stand in for organization approval. |
+| Provider verification | `verifyProvider()` is platform-admin-only and uses `update_profile_by_admin(UUID, JSONB)` to set `profiles.bvn_verified`. The schema has no rejected provider state. | Approve-only. Reject and request-changes remain unavailable until a real lifecycle exists. |
+| Reflected App eligibility | New facilities correctly remain pending and non-dispatch-eligible after provisioning. App booking/discovery and emergency eligibility must be tested independently after the correct organization, evidence, and facility decisions exist. | Pending; do not force eligibility for testing. |
+
+Field-agent launch decision: **No-Go** for existing-facility claiming and end-to-end verification.
+The controlled new-organization registration path is ready for continued QA, but field operations
+must wait for explicit claim, evidence-review, organization-review, request-changes, and retry
+receivers plus one App-visible eligibility test using authorized disposable data.
+
 ## Source Evidence
 
 Console files inspected:
