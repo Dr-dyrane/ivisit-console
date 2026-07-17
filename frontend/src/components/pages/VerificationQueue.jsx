@@ -81,6 +81,9 @@ export const VerificationQueue = () => {
     handleSort,
     handleVerify,
     handleVerifyOrg,
+    handleReviewEvidence,
+    handleReviewClaim,
+    handleReviewOnboardingOrganization,
     handleBulkAction: executeBulkAction,
   } = controller;
 
@@ -275,6 +278,9 @@ export const VerificationQueue = () => {
           mode="view"
           onClose={() => setSelectedProvider(null)}
           onVerify={canApprove ? modalVerifyHandler : null}
+          onReviewEvidence={canApprove ? handleReviewEvidence : null}
+          onReviewClaim={canApprove ? handleReviewClaim : null}
+          onReviewOrganization={canApprove ? handleReviewOnboardingOrganization : null}
         />
       </div>
     );
@@ -368,6 +374,9 @@ export const VerificationQueue = () => {
           mode="view"
           onClose={() => setSelectedProvider(null)}
           onVerify={canApprove ? modalVerifyHandler : null}
+          onReviewEvidence={canApprove ? handleReviewEvidence : null}
+          onReviewClaim={canApprove ? handleReviewClaim : null}
+          onReviewOrganization={canApprove ? handleReviewOnboardingOrganization : null}
         />
 
         <FilterSheet
@@ -472,6 +481,9 @@ export const VerificationQueue = () => {
         mode="view"
         onClose={() => setSelectedProvider(null)}
         onVerify={canApprove ? modalVerifyHandler : null}
+        onReviewEvidence={canApprove ? handleReviewEvidence : null}
+        onReviewClaim={canApprove ? handleReviewClaim : null}
+        onReviewOrganization={canApprove ? handleReviewOnboardingOrganization : null}
       />
 
       <FilterSheet

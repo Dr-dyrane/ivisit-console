@@ -18,7 +18,7 @@ export const VerificationStep = () => {
   const inputRef = useRef(null);
   const [documentError, setDocumentError] = useState('');
 
-  const documentsValid = formData.documents.every(({ file }) => (
+  const documentsValid = formData.documents.length > 0 && formData.documents.every(({ file }) => (
     ONBOARDING_DOCUMENT_RULES.acceptedTypes.includes(file?.type)
     && file.size > 0
     && file.size <= ONBOARDING_DOCUMENT_RULES.maxDocumentSize
@@ -87,7 +87,9 @@ export const VerificationStep = () => {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 id="verification-documents-title" className="text-sm font-semibold">Verification documents</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Optional, up to 3 files.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Required for review. Add registration, license, or identity evidence (up to 3 files).
+            </p>
           </div>
           <button
             type="button"
@@ -139,6 +141,11 @@ export const VerificationStep = () => {
           </div>
         )}
         {documentError && <p role="alert" className="mt-2 text-xs font-medium text-destructive">{documentError}</p>}
+        {!formData.documents.length && (
+          <p className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-200">
+            Add at least one document before submitting.
+          </p>
+        )}
       </section>
 
       <label className="flex cursor-pointer items-start gap-3 rounded-inner bg-foreground/[0.035] p-4 dark:bg-white/[0.05]">

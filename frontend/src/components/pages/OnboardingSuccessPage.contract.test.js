@@ -33,7 +33,9 @@ describe('Onboarding Success Page 22 receiver contract', () => {
     expect(page).toContain('result?.provisioningVerified === true');
     expect(page).toContain("organization?.walletState === 'ready'");
     expect(page).toContain('Submitted for review');
-    expect(page).toContain('is ready in Console');
+    expect(page).toContain('is ready for review');
+    expect(page).toContain('Facility ownership claim');
+    expect(page).toContain('Ownership and verification remain unchanged until approval.');
     expect(page).toContain('Your organization and wallet are prepared. Verification remains pending until review is complete.');
     expect(page).toContain('Review evidence');
     expect(page).toContain('Complete in Console');

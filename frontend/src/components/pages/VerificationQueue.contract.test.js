@@ -430,6 +430,26 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(pageSource()).not.toContain('verification_notes');
   });
 
+  it('keeps the hospital claim review chain on the canonical evidence, claim, and organization receivers', () => {
+    const service = facilityServiceSource();
+    const modal = modalSource();
+
+    expect(service).toContain(".from('organization_facility_claims')");
+    expect(service).toContain(".from('organization_verification_documents')");
+    expect(service).toContain("supabase.rpc('review_organization_verification_document'");
+    expect(service).toContain("supabase.rpc('review_console_facility_claim'");
+    expect(service).toContain("supabase.rpc('review_console_organization'");
+
+    expect(modal).toContain("const acceptedEvidence = verificationDocuments.some((document) => document.review_status === 'accepted');");
+    expect(modal).toContain("const claimApproved = !facilityClaim || facilityClaim.status === 'approved';");
+    expect(modal).toContain('const canApproveFacility = organizationVerified && claimApproved;');
+    expect(modal).toContain('const canApproveClaim = acceptedEvidence && facilityClaim?.status !== \'approved\';');
+    expect(modal).toContain('const canApproveOrganization = acceptedEvidence && claimApproved && !organizationVerified;');
+    expect(modal).toContain('disabled={loading || !canApproveClaim}');
+    expect(modal).toContain('disabled={loading || !canApproveOrganization}');
+    expect(modal).toContain('disabled={loading || !canApproveFacility}');
+  });
+
   it('lets an org_admin reviewer see the review panel (route is org_admin-reachable)', () => {
     // The panel is READ-ONLY review context; the page/route is org_admin-reachable, so
     // an org_admin reviewer must get it. Approval COMMANDS stay admin-gated (canApprove).

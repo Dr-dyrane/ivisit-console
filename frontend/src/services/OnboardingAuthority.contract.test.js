@@ -29,6 +29,11 @@ describe('Console onboarding and invitation authority', () => {
     expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.get_console_identity_projection()');
     expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.search_onboarding_facilities(p_query TEXT)');
     expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.provision_console_organization(p_payload JSONB)');
+    expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.review_organization_verification_document');
+    expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.review_console_facility_claim');
+    expect(rpcs).toContain('CREATE OR REPLACE FUNCTION public.review_console_organization');
+    expect(rpcs).toContain('ACCEPTED_CLAIM_EVIDENCE_REQUIRED');
+    expect(rpcs).toContain('ORGANIZATION_VERIFICATION_REQUIRED');
     expect(rpcs).toContain('INSERT INTO public.organization_verification_documents');
     expect(rpcs).toContain('GRANT EXECUTE ON FUNCTION public.provision_console_organization(JSONB) TO authenticated, service_role;');
     expect(security).toContain('Users upload own onboarding evidence');

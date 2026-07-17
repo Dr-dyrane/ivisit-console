@@ -18,6 +18,11 @@ const ERROR_COPY = {
   DOCUMENT_NOT_FOUND: 'One of the selected documents did not finish uploading.',
   DOCUMENTS_INVALID: `Choose no more than ${MAX_DOCUMENTS} documents.`,
   FACILITY_ALREADY_EXISTS: 'This facility is already listed. Ask its administrator or contact support.',
+  FACILITY_ALREADY_OWNED: 'This facility already belongs to an organization. Ask its administrator to invite you.',
+  FACILITY_CLAIM_ALREADY_ACTIVE: 'This facility already has an ownership review in progress.',
+  FACILITY_SELECTION_CONFLICT: 'The selected facility changed. Search and select it again.',
+  FACILITY_SELECTION_INVALID: 'Select a valid facility from the search results.',
+  FACILITY_SELECTION_NOT_FOUND: 'That facility is no longer available to claim.',
   LOCATION_INCOMPLETE: 'Choose a complete location or remove it.',
   ORGANIZATION_ADDRESS_INVALID: 'Enter the organization address, city, and state.',
   ORGANIZATION_NAME_INVALID: 'Enter the organization name.',
@@ -188,6 +193,12 @@ export const onboardingService = {
       state: String(formData.state || '').trim(),
       latitude: formData.location?.lat ?? null,
       longitude: formData.location?.lng ?? null,
+      existingFacilityId: formData.organizationMode === 'existing'
+        ? formData.existingFacilityId
+        : null,
+      claimNote: formData.organizationMode === 'existing'
+        ? String(formData.claimNote || '').trim() || null
+        : null,
       termsAccepted: formData.termsAccepted === true,
       documents: uploadedDocuments,
     };

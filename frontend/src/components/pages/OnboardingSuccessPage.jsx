@@ -18,6 +18,7 @@ export const OnboardingSuccessPage = () => {
   const result = location.state?.result;
   const organization = result?.organization;
   const facility = result?.facility;
+  const claim = result?.claim;
   const hasSubmissionResult = Boolean(
     result?.success
     && result?.provisioningVerified === true
@@ -67,7 +68,7 @@ export const OnboardingSuccessPage = () => {
                     <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
                   </span>
                   <p className="mt-5 text-xs font-semibold text-muted-foreground">Submitted for review</p>
-                  <h1 className="mt-2 text-2xl font-semibold">{organization.name} is ready in Console</h1>
+                  <h1 className="mt-2 text-2xl font-semibold">{organization.name} is ready for review</h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                     Your organization and wallet are prepared. Verification remains pending until review is complete.
                   </p>
@@ -100,6 +101,19 @@ export const OnboardingSuccessPage = () => {
                   </div>
                   {facility?.display_id && (
                     <div className="px-4 pt-1 text-xs text-muted-foreground">Facility ID: <span className="font-mono font-semibold text-foreground">{facility.display_id}</span></div>
+                  )}
+                  {claim?.id && (
+                    <div className="flex items-center gap-3 rounded-inner bg-sky-500/10 px-4 py-3">
+                      <Building2 className="h-4 w-4 text-sky-800 dark:text-sky-200" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold uppercase text-sky-800 dark:text-sky-200">Facility ownership claim</p>
+                        <p className="mt-0.5 text-sm font-semibold">Submitted for administrator review</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Ownership and verification remain unchanged until approval.</p>
+                      </div>
+                      <span className="rounded-pill bg-sky-500/10 px-2 py-1 text-[10px] font-semibold text-sky-800 dark:text-sky-200">
+                        {claim.status || 'pending'}
+                      </span>
+                    </div>
                   )}
                 </div>
 

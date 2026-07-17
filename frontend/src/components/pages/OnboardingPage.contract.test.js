@@ -75,9 +75,11 @@ describe('Onboarding Page 21 receiver contract', () => {
     expect(service).not.toContain(".from('profiles')");
     expect(service).not.toContain('.insert(');
 
-    expect(organizationStep).toContain("const isValid = !isExistingMode");
+    expect(organizationStep).toContain('Boolean(formData.existingFacilityId)');
+    expect(organizationStep).toContain('facility.claimable === true');
+    expect(organizationStep).toContain('Selection does not transfer or verify this facility.');
     expect(organizationStep).toContain('Existing access needs review');
-    expect(organizationStep).toContain('Ask the current administrator to invite you');
+    expect(organizationStep).toContain('Managed facilities require an invitation');
   });
 
   it('provides structural loading and immediate submit feedback on calm geometry', () => {

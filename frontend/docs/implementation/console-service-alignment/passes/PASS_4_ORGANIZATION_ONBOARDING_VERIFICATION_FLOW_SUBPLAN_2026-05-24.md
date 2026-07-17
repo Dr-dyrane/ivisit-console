@@ -71,6 +71,28 @@ The controlled new-organization registration path is ready for continued QA, but
 must wait for explicit claim, evidence-review, organization-review, request-changes, and retry
 receivers plus one App-visible eligibility test using authorized disposable data.
 
+#### 2026-07-17 SCC-060 Source Implementation Checkpoint
+
+The missing authority chain is now implemented in the App-owned eleven-pillar source and mirrored
+into Console without changing the patient eligibility contract:
+
+| Lane | Source result | Verification |
+|---|---|---|
+| Existing unowned-facility claim | `provision_console_organization` consumes `existingFacilityId`, creates one `organization_facility_claims` row, links private evidence, and does not insert or relink the hospital. Owned or actively claimed facilities fail closed. | Exact-source rollback matrix passed. |
+| Evidence decision | `review_organization_verification_document` is platform-admin-only and supports accept, reject, and request-changes with reviewer metadata and required notes for adverse decisions. | Exact-source role and reflection assertions passed. |
+| Claim decision | `review_console_facility_claim` is platform-admin-only. Approval requires accepted claim evidence and links only an unowned facility; it does not verify either organization or facility. | Ownership and premature App-eligibility assertions passed. |
+| Organization decision | `review_console_organization` is platform-admin-only. Approval requires accepted evidence plus facility linkage for hospital/clinic organizations. | Decision and prerequisite assertions passed. |
+| Retry | New evidence submitted after request-changes requeues the same organization and claim; replaying an already linked object does not create evidence or requeue state. | Same-identity retry assertion passed. |
+| Facility decision | `update_hospital_by_admin` now rejects a verified facility decision until its active organization is verified. | Ordered-decision assertion passed. |
+| App consequence | `nearby_hospitals` remains unchanged and requires both a verified organization and dispatch-eligible facility. Claim approval and organization approval alone remain invisible; final facility approval admits the disposable row. | Ordered nearby-hospital rollback assertion passed. |
+| Console UX | Existing-mode search selects only `claimable=true` rows. The facility review modal now presents linked organization, claim, and evidence records with separately gated commands and immediate pending feedback. | Targeted Jest contract pack and optimized production build passed. |
+
+This checkpoint is **source-ready, deployment-pending**. Field-agent launch remains **No-Go** until
+the exact pillar delta is deployed through the maintained temporary-forward/absorb/repair workflow,
+the disposable live Auth/Storage/database/browser matrix passes with cleanup, and the resulting
+Console deployment is verified on desktop and mobile. No EAS update is required because patient
+discovery and eligibility behavior did not change.
+
 ## Source Evidence
 
 Console files inspected:
