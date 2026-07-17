@@ -21,6 +21,33 @@ This subplan covers organization registry, onboarding, profile/admin identity, p
 - A separate browser E2E used a disposable confirmed account and completed Account, Organization, Essentials, Review, reflected success, Console entry, and sign-out. It proved organization/facility display IDs, one ready wallet, pending verification, no fabricated dispatch eligibility, the empty new-organization Today state, direct `/set-password` and `/onboarding-success` recovery, no relevant console warnings/errors, and no horizontal overflow at mobile and desktop sizes. The disposable Auth user and all database rows were removed with zero residue.
 - Public routes no longer inherit authenticated-shell desktop or safe-area padding. Login, Set Password, Onboarding, and Onboarding Success own their responsive spacing and render without the shell-created 16/80px empty scroll.
 
+### 2026-07-17 Field Onboarding Readiness Gate
+
+Hospital field onboarding is the next six-month operational priority, but the current proof does
+not yet authorize field agents to claim existing facilities or approve provider/facility
+verification. The admitted public flow can provision a new organization and optional facility;
+existing-facility ownership remains support/admin review only, and verification commands remain a
+separate gated lane.
+
+Before sending field agents, execute one controlled, zero-residue test program covering:
+
+1. create a new organization with a new hospital;
+2. search for an existing hospital and prove duplicate prevention;
+3. submit an existing-facility claim through a canonical review receiver, once implemented;
+4. upload and privately review organization/facility verification evidence;
+5. approve, reject, request changes, retry, and recover an interrupted application;
+6. prove organization, facility, profile, wallet, provider-detail, verification, booking, and
+   emergency/dispatch readiness remain distinct reflected outcomes;
+7. confirm organization-asserted provider services, specialties, insurance, hours, appointment
+   requirements, turnaround, age range, and crisis contacts never come from category templates;
+8. verify the patient App sees the hospital only in the modes supported by its independently
+   proved booking and emergency eligibility.
+
+Use disposable non-production organizations/facilities first. A production pilot may create or
+claim real hospitals only with named organization representatives, explicit test authorization,
+deterministic cleanup/retention rules, and an operator rollback path. The field-agent launch gate
+is not “form submitted”; it is successful reflected truth across Console, Supabase, and the App.
+
 ## Source Evidence
 
 Console files inspected:

@@ -41,7 +41,7 @@ Legend — **Guard**: `svc?` = service_role JWT short-circuit present; `mgr` = `
 | Fn (`core:line`) | Args | Returns | SECDEF / vol | Guard | Mutates | Idempotency |
 |---|---|---|---|---|---|---|
 | `nearby_hospitals` `11` | lat, lng, radius=15 | TABLE(15 cols) | Y / STABLE | none | — (read) | n/a |
-| `nearby_providers` `61` | lat, lng, type=NULL, radius=15, limit=20 | TABLE(29 cols) | Y / STABLE | none | — (read) | n/a |
+| `nearby_providers` `61` | lat, lng, type=NULL, radius=15, limit=20 | TABLE(20 cols) | N / STABLE | RLS/invoker | — (read) | n/a |
 | `nearby_ambulances` `135` | lat, lng, radius=50 | TABLE(7) | Y / STABLE | none | — (read) | n/a |
 | `get_all_auth_users` `167` | p_organization_id=NULL | TABLE(15) | Y | inline `role IN (admin,org_admin,dispatcher)` `188-193` | — (reads auth.users) | n/a |
 | `update_hospital_by_admin` `222` | target_hospital_id, payload JSONB | JSONB | Y | `p_is_admin() OR org owns hospital` `230-235` | `hospitals` cols + arrays | **not idempotent-safe**: arrays hard-set (see §5a bug) |
