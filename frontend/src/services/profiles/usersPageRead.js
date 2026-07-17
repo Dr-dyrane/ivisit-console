@@ -54,8 +54,9 @@ async function attachLastSignIn(rows, user) {
   if (!Array.isArray(rows) || rows.length === 0) return rows;
   if (!AUTH_ENRICHED_ROLES.has(user?.role)) return rows;
   try {
+    const organizationId = user.role === 'admin' ? null : user.organization_id || null;
     const { data, error } = await supabase.rpc('get_all_auth_users', {
-      p_organization_id: user.role === 'admin' ? null : user.organization_id || null,
+      p_organization_id: organizationId,
     });
     if (error || !Array.isArray(data)) return rows;
     const signIns = new Map(data.map((entry) => [entry.id, entry.last_sign_in_at || null]));
