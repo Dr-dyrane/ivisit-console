@@ -87,11 +87,30 @@ into Console without changing the patient eligibility contract:
 | App consequence | `nearby_hospitals` remains unchanged and requires both a verified organization and dispatch-eligible facility. Claim approval and organization approval alone remain invisible; final facility approval admits the disposable row. | Ordered nearby-hospital rollback assertion passed. |
 | Console UX | Existing-mode search selects only `claimable=true` rows. The facility review modal now presents linked organization, claim, and evidence records with separately gated commands and immediate pending feedback. | Targeted Jest contract pack and optimized production build passed. |
 
-This checkpoint is **source-ready, deployment-pending**. Field-agent launch remains **No-Go** until
-the exact pillar delta is deployed through the maintained temporary-forward/absorb/repair workflow,
-the disposable live Auth/Storage/database/browser matrix passes with cleanup, and the resulting
-Console deployment is verified on desktop and mobile. No EAS update is required because patient
-discovery and eligibility behavior did not change.
+#### 2026-07-17 Production Proof
+
+The backend contract is now **validated**:
+
+- App/backend PR `#6` merged as `dda2aa49`; Console PR `#3` merged as
+  `22f10ff3`.
+- Exact-source deployment `20260717234000` was applied to project
+  `dlwtcmhdzoklveihuhjf`, verified live, removed locally, and repaired as
+  reverted. Local and remote history again contain only the eleven pillars.
+- Cross-repository drift is zero: no missing tables, columns, RPCs, or stale
+  signatures.
+- Live run `1784331764953-555d656a` passed Auth, Storage, new-organization
+  provisioning, existing-facility claim, evidence request-changes and retry,
+  ownership approval, organization approval, facility approval, App eligibility
+  ordering, invitation, reflected scope, and deterministic cleanup.
+- The cleanup guard reports zero planned side effects.
+- The deployed `/onboarding` entry rendered without browser console errors at
+  desktop and 390 x 844 mobile viewports.
+
+The backend and deployed entry surface are **Go**. Field-agent rollout remains a
+controlled-pilot gate until one authenticated operator rehearsal submits the
+claim wizard and completes the Approvals click path in the deployed Console.
+No EAS update is required because patient discovery and eligibility behavior
+did not change.
 
 ## Source Evidence
 
