@@ -7,9 +7,10 @@ import { normalizeAuthProfile } from './normalization';
 
 async function getProfilesWithAuthData(filter) {
   try {
+    const organizationId = filter?.organization_id || null;
     const { data, error } = await withRetry(async () => {
       const result = await supabase.rpc('get_all_auth_users', {
-        p_organization_id: filter?.organization_id || null,
+        p_organization_id: organizationId,
       });
       if (result.error) throw result.error;
       return result;
