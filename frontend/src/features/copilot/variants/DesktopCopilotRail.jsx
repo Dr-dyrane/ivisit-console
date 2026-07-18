@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquareText, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { ProposalSummary } from '../components/ProposalSummary';
 
@@ -20,18 +20,18 @@ export const DesktopCopilotRail = ({ isOpen, onClose, proposal, isPreparing, err
       <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 flex items-center justify-between gap-3 bg-background/95 px-4 pb-3 pt-4 backdrop-blur-xl dark:bg-background/92">
         <div className="flex min-w-0 items-center gap-2">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-muted">
-            <MessageSquareText className="h-4 w-4 text-muted-foreground" />
+            <Sparkles className="h-4 w-4 text-primary" />
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">Copilot</p>
-            <p className="truncate text-xs text-muted-foreground">Read-only guidance</p>
+            <p className="truncate text-xs text-muted-foreground">Quick insights</p>
           </div>
         </div>
         <Button
           type="button"
           variant="ghost"
           onClick={onClose}
-          className="h-8 w-8 shrink-0 rounded-pill p-0"
+          className="h-8 w-8 shrink-0 rounded-pill p-0 text-muted-foreground hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:bg-foreground/15"
           aria-label="Close Copilot"
         >
           <X className="h-4 w-4" />

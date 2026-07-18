@@ -157,6 +157,28 @@ describe('Console Copilot independent harness', () => {
     expect(mobileOrganization).toContain('onBeforeOpen={onClose}');
   });
 
+  it('uses the AI mark, concise product copy, and complete interaction contrast states', () => {
+    const actionButton = read('./components/CopilotActionButton.jsx');
+    const summary = read('./components/ProposalSummary.jsx');
+    const proposalService = read('./services/consoleCopilotProposalService.js');
+    const desktopRail = read('./variants/DesktopCopilotRail.jsx');
+    const mobileSheet = read('./variants/MobileCopilotSheet.jsx');
+    const tabletOverlay = read('./variants/TabletCopilotOverlay.jsx');
+
+    [actionButton, desktopRail, mobileSheet, tabletOverlay].forEach((source) => {
+      expect(source).toContain('Sparkles');
+      expect(source).not.toContain('MessageSquareText');
+    });
+    expect(actionButton).toContain('hover:text-foreground');
+    expect(actionButton).toContain('focus-visible:text-foreground');
+    expect(actionButton).toContain('active:bg-foreground/15');
+    expect(desktopRail).toContain('Quick insights');
+    expect(mobileSheet).toContain('subtitle="Quick insights"');
+    expect(tabletOverlay).toContain('subtitle="Quick insights"');
+    expect(summary).not.toContain('{proposal.guardrail}');
+    expect(proposalService).not.toMatch(/This response explains only|evidence passed from the current screen/i);
+  });
+
   it('does not add Copilot to existing routes, navigation, FAB, dock, or route-owned Context Panel content', () => {
     [
       '../../app/AppRoutes.jsx',

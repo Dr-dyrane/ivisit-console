@@ -278,7 +278,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('HOSPITAL_GRID_COLS_SELECT');
     expect(page).toContain("checked={someSelected ? 'indeterminate' : allSelected}");
     expect(page).toContain('<BulkActionBar selectedCount={selection.selectedIds.length} onClear={selection.clearSelection}>');
-    expect(page).toContain('title="Facility deletion is locked until backend authority is proved"');
+    expect(page).toContain('title="Facility deletion is not available"');
     expect(page).not.toContain('onSchedule={');
     expect(routeOwnsShellAction('/hospitals')).toBe(true);
     // Dead-affordance hygiene (SHELL_PARITY_AUDIT 1.5, 2026-07-09): the FAB is
@@ -415,7 +415,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('hospital.organization_id === orgId');
     expect(page).toContain("toast.info('Edit is limited to facilities in your organization')");
     expect(page).toContain('canEditFocused={state.focusedHospital ? role.canEditHospital(state.focusedHospital) : false}');
-    expect(page).toContain('Use Requests for reservation changes.');
+    expect(page).toContain('Use Requests to manage reservations.');
     expect(page).not.toContain("import { Card } from '../ui/card'");
     expect(page).not.toContain('<Card');
     expect(page).not.toContain('</Card>');

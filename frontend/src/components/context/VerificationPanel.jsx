@@ -40,7 +40,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
   };
 
   const handleExportUnavailable = () => {
-    setPanelNotice('Export is unavailable until approval report authority is proved.');
+    setPanelNotice('Export is not available yet.');
   };
 
   // Canonical panel card vocabulary (matches EmergencyPanel/Requests): rounded-card big,
@@ -178,7 +178,7 @@ export const VerificationPanel = ({ verificationContext, verificationData, loadi
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleExportUnavailable}
-                className={`${actionBase} bg-muted/20 hover:bg-muted/30 text-muted-foreground`}
+                className={`${actionBase} bg-muted/20 text-muted-foreground hover:bg-foreground/10 focus-visible:bg-foreground/10`}
                 aria-disabled="true"
                 data-state="unavailable"
                 title="Export approvals unavailable"

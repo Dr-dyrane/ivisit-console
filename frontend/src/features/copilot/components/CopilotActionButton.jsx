@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, MessageSquareText } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useConsoleCopilot } from '../ConsoleCopilotContext';
 
@@ -16,7 +16,7 @@ export const CopilotActionButton = ({
     <Button
       type="button"
       variant="ghost"
-      className={`${compact ? 'h-10 text-sm' : 'h-11 text-sm'} w-full rounded-button bg-muted/25 font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground active:scale-[0.99] ${className}`}
+      className={`${compact ? 'h-10 text-sm' : 'h-11 text-sm'} w-full rounded-button bg-muted/25 font-semibold text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-[0.99] active:bg-foreground/15 ${className}`}
       onClick={() => {
         onBeforeOpen?.();
         openCopilot(request);
@@ -29,9 +29,9 @@ export const CopilotActionButton = ({
       {isPreparing ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
-        <MessageSquareText className="mr-2 h-4 w-4" />
+        <Sparkles className="mr-2 h-4 w-4" />
       )}
-      {isPreparing ? 'Preparing explanation' : label}
+      {isPreparing ? 'Preparing' : label}
     </Button>
   );
 };

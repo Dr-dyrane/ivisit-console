@@ -198,7 +198,7 @@ export const HospitalDetailRail = ({
         <div className="mt-5 rounded-inner bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
           <p className="text-sm font-semibold">Capacity changes need review</p>
           <p className="mt-1 text-xs leading-5 opacity-80">
-            Use Requests for reservation changes. This panel is read-only evidence until an approved action opens.
+            Use Requests to manage reservations. Capacity changes are not available here.
           </p>
         </div>
 

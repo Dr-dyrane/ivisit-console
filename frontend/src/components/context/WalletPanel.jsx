@@ -150,7 +150,7 @@ export const WalletPanel = ({ walletContext }) => {
                 <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={handleStats}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 text-muted-foreground transition-all hover:bg-muted/38 active:scale-[0.96]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-[0.96] active:bg-foreground/15"
                 >
                     <BarChart3 className="h-5 w-5 transition-transform" />
                     <span className="text-sm font-semibold">Stats</span>
@@ -158,9 +158,9 @@ export const WalletPanel = ({ walletContext }) => {
                 <button
                     onClick={handleExport}
                     disabled={!ledger.length}
-                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.96]"
+                    className="flex h-14 items-center justify-center gap-2 rounded-inner bg-muted/28 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-[0.96] active:bg-foreground/15"
                 >
-                    <Download className="h-5 w-5 text-muted-foreground transition-transform" />
+                    <Download className="h-5 w-5 transition-transform" />
                     <span className="text-sm font-semibold">Export shown</span>
                 </button>
                 </div>

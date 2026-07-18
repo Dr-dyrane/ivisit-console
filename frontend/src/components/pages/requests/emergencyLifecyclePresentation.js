@@ -119,15 +119,15 @@ const getDispatchReason = ({
   service,
   status,
 }) => {
-  if (!receiverAvailable) return 'Dispatch receiver is unavailable.';
+  if (!receiverAvailable) return 'Dispatch is not available from this request.';
   if (!canManage) return 'Your role cannot dispatch this request.';
   if (!hasValue(request?.id)) return 'Request identity is unavailable.';
-  if (!service.dispatchReceiver) return 'This service has no supported dispatch receiver.';
+  if (!service.dispatchReceiver) return 'This service cannot be dispatched here.';
   if (status !== 'in_progress') return 'This request is not awaiting dispatch.';
   if (assignment.hasAny) return 'A responder assignment is already active or unresolved.';
-  if (!payment.ready) return 'Backend payment confirmation is not visible.';
+  if (!payment.ready) return 'Waiting for payment confirmation.';
   if (service.isBed && !hasValue(request?.hospital_id)) return 'A facility is required before accepting this bed request.';
-  if (!actionState.canDispatch) return 'The canonical lifecycle does not allow dispatch.';
+  if (!actionState.canDispatch) return 'This request is not ready for dispatch.';
   return null;
 };
 
@@ -140,16 +140,16 @@ const getCompleteReason = ({
   service,
   status,
 }) => {
-  if (!receiverAvailable) return 'Completion receiver is unavailable.';
+  if (!receiverAvailable) return 'Completion is not available from this request.';
   if (!hasValue(request?.id)) return 'Request identity is unavailable.';
-  if (!service.completeReceiver) return 'This service has no supported completion receiver.';
+  if (!service.completeReceiver) return 'This service cannot be completed here.';
   if (!canComplete) return 'Your role or assignment cannot complete this request.';
   if (service.isAmbulance && status !== 'arrived') return 'The assigned responder must arrive before completion.';
-  if (service.isAmbulance && !assignment.hasAccepted) return 'Current responder assignment evidence is incomplete.';
+  if (service.isAmbulance && !assignment.hasAccepted) return 'Responder assignment is not confirmed yet.';
   if (service.isBed && status !== 'accepted' && status !== 'arrived') {
     return 'The bed request must be accepted before completion.';
   }
-  if (!actionState.canComplete) return 'The canonical lifecycle does not allow completion.';
+  if (!actionState.canComplete) return 'This request is not ready to complete.';
   return null;
 };
 
@@ -234,7 +234,7 @@ export const buildEmergencyLifecyclePresentation = (request = {}, {
     label: 'Details',
     available: receivers.details === true,
     receiver: 'request_detail',
-    reason: 'Request detail receiver is unavailable.',
+    reason: 'Request details are unavailable.',
   });
   const review = makeAction({
     kind: 'review',
@@ -264,7 +264,7 @@ export const buildEmergencyLifecyclePresentation = (request = {}, {
     label: 'Retry payment',
     available: false,
     receiver: null,
-    reason: 'Payment retry has no supported Console receiver.',
+    reason: 'Payment retry is not available here.',
   });
   const cancel = makeAction({
     kind: 'cancel',

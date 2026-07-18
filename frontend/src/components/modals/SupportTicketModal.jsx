@@ -223,7 +223,7 @@ export const SupportTicketModal = ({
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Workflow status</h3>
                   <p className="text-xs text-muted-foreground">
-                    {statusLabel}. Assignment and status changes need support receiver proof before editing here.
+                    {statusLabel}. Assignment and status changes are not available here.
                   </p>
                 </div>
               </div>
@@ -233,7 +233,7 @@ export const SupportTicketModal = ({
 
         <div className="flex shrink-0 flex-col gap-3 bg-background/95 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
           <p className="text-xs text-muted-foreground">
-            Support replies and workflow changes stay tied to backend ticket truth.
+            Use the available actions to update this request.
           </p>
           <div className="flex gap-2">
             <Button

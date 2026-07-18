@@ -65,8 +65,8 @@ export const ProposalSummary = ({ proposal, isPreparing, error }) => {
   if (error) {
     return (
       <div className="space-y-2" role="alert">
-        <p className="text-sm font-medium text-foreground">Copilot could not prepare this explanation.</p>
-        <p className="text-sm leading-relaxed text-muted-foreground">Use the existing page controls while the screen context is refreshed.</p>
+        <p className="text-sm font-medium text-foreground">Copilot is unavailable right now.</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">Try again shortly.</p>
       </div>
     );
   }
@@ -88,9 +88,6 @@ export const ProposalSummary = ({ proposal, isPreparing, error }) => {
         </dl>
       )}
 
-      <p className="rounded-inner bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
-        {proposal.guardrail}
-      </p>
     </div>
   );
 };

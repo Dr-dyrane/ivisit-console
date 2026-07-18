@@ -33,7 +33,7 @@ describe('local Console Copilot proposals', () => {
 
     expect(proposal.availability).toBe('unavailable');
     expect(proposal.evidence).toEqual([]);
-    expect(proposal.summary).toMatch(/no current lifecycle evidence/i);
+    expect(proposal.summary).toBe('No request details are available yet.');
   });
 
   it('keeps every registered P0 action proposal-only', () => {

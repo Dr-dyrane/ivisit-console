@@ -54,4 +54,13 @@ describe('ProposalSummary constrained evidence layout', () => {
     expect(markup).not.toContain('>ready</span>');
     expect(markup).not.toContain('>neutral</span>');
   });
+
+  it('does not render internal capability guardrails as user-facing copy', () => {
+    const markup = renderToStaticMarkup(
+      <ProposalSummary proposal={proposal} isPreparing={false} error={null} />,
+    );
+
+    expect(markup).not.toContain(proposal.guardrail);
+    expect(markup).not.toMatch(/backend|receiver|proposal-only|current screen/i);
+  });
 });

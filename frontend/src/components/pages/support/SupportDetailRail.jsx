@@ -199,7 +199,7 @@ export const SupportDetailRail = ({
           className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground"
         >
           <Info className="h-4 w-4 shrink-0" />
-          Status transitions stay backend-owned; the actions above are the proved support commands.
+          Use the available actions above to update this request.
         </div>
       </div>
     </DetailRailShell>

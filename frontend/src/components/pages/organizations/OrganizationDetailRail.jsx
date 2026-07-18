@@ -118,7 +118,7 @@ export const OrganizationDetailRail = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-95 active:bg-foreground/15"
             onClick={() => onView(organization)}
             aria-label="Open full organization details"
           >

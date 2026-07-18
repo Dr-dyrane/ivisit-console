@@ -154,7 +154,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     if (!activeRequest) return;
     if (!paymentData) {
       console.warn('[EmergencyDetailsModal] Cannot approve: payment record unavailable');
-      toast.error('Payment record unavailable for this request. Refreshing backend detail.');
+      toast.error('Payment details are unavailable. Refreshing the request.');
       await refreshProjection();
       return;
     }
@@ -179,7 +179,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     if (!activeRequest) return;
     if (!paymentData) {
       console.warn('[EmergencyDetailsModal] Cannot decline: payment record unavailable');
-      toast.error('Payment record unavailable for this request. Refreshing backend detail.');
+      toast.error('Payment details are unavailable. Refreshing the request.');
       await refreshProjection();
       return;
     }
@@ -355,10 +355,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
               {!paymentData && (
                 <p className="text-xs text-muted-foreground">
                   {detailLoading
-                    ? 'Refreshing payment detail from backend truth...'
+                    ? 'Refreshing payment details...'
                     : paymentVisibilityState === 'failed'
-                      ? 'Payment row lookup failed. Refresh the request or check payment visibility.'
-                      : 'No payment row is visible yet for this pending approval request.'}
+                      ? 'Payment details could not be loaded. Refresh the request.'
+                      : 'Payment details are not available yet.'}
                 </p>
               )}
             </PanelCard>

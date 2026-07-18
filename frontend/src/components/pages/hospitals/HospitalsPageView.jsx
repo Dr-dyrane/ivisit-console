@@ -145,8 +145,8 @@ export const HospitalsPageView = ({ controller }) => {
             size="icon"
             disabled
             className="h-10 w-10 rounded-pill bg-destructive/15 text-destructive disabled:opacity-40"
-            title="Facility deletion is locked until backend authority is proved"
-            aria-label="Facility deletion is locked until backend authority is proved"
+            title="Facility deletion is not available"
+            aria-label="Facility deletion is not available"
           >
             <Trash2 className="h-5 w-5" />
           </Button>

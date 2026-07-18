@@ -198,7 +198,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenFilters}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:bg-foreground/15"
           >
             <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Filter</span>
@@ -209,7 +209,7 @@ export const EmergencyPanel = ({ requestContext }) => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenAnalytics}
-            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground"
+            className="group flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-button surface-card px-3 text-muted-foreground shadow-[0_4px_12px_rgb(0_0_0/0.07)] transition-[background,box-shadow,transform] duration-200 hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:bg-foreground/15"
           >
             <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>

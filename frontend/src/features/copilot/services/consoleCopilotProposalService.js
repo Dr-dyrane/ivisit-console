@@ -7,28 +7,27 @@ import { getCopilotAction } from '../registry/copilotActionRegistry';
 
 const COPY = Object.freeze({
   [COPILOT_ACTION_IDS.DASHBOARD_EXPLAIN]: {
-    title: 'Dashboard explanation',
-    empty: 'This dashboard has no current signals available to explain.',
-    guardrail: 'This response explains only the evidence passed from the current screen. It cannot change dashboard data or perform an action.',
+    title: 'Dashboard overview',
+    empty: 'No dashboard details are available yet.',
+    guardrail: 'Review the details before acting.',
   },
   [COPILOT_ACTION_IDS.ORGANIZATION_EXPLAIN_READINESS]: {
-    title: 'Readiness explanation',
-    empty: 'This organization has no current readiness evidence available to explain.',
-    guardrail: 'This response explains only the current readiness evidence. It cannot change organization eligibility, status, or verification.',
+    title: 'Readiness overview',
+    empty: 'No readiness details are available yet.',
+    guardrail: 'Review the details before acting.',
   },
   [COPILOT_ACTION_IDS.EMERGENCY_EXPLAIN_NEXT_ACTION]: {
-    title: 'Emergency next-action explanation',
-    empty: 'This emergency has no current lifecycle evidence available to explain.',
-    guardrail: 'This response explains only the current emergency evidence. It cannot dispatch, cancel, complete, or otherwise change the emergency lifecycle.',
+    title: 'Next action',
+    empty: 'No request details are available yet.',
+    guardrail: 'Confirm the request status before acting.',
   },
 });
 
 const getEvidenceContext = (request, action) => request.context[action.contextKey];
 
-const getSummary = ({ heading, evidence, empty }) => {
+const getSummary = ({ evidence, empty }) => {
   if (evidence.length === 0) return empty;
-  const subject = heading ? `${heading} has` : 'This screen has';
-  return `${subject} ${evidence.length} current signal${evidence.length === 1 ? '' : 's'} available for review.`;
+  return `${evidence.length} detail${evidence.length === 1 ? '' : 's'} to review.`;
 };
 
 /**
@@ -50,7 +49,7 @@ export const createLocalCopilotProposal = (request) => {
     kind: 'explanation',
     availability: evidence.length > 0 ? 'available' : 'unavailable',
     title: context.heading || copy.title,
-    summary: getSummary({ heading: context.heading, evidence, empty: copy.empty }),
+    summary: getSummary({ evidence, empty: copy.empty }),
     evidence,
     guardrail: copy.guardrail,
     suggestedActions: [],
