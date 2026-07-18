@@ -6,6 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dia
 import { getAccessibleNav } from '../../config/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import {
+  CopilotActionButton,
+  createQuickSearchAskRequest,
+} from '../../features/copilot';
+import {
   filterSearchResultsByNavigation,
   isSearchDestinationAccessible,
   searchService,
@@ -38,6 +42,10 @@ export const QuickSearch = ({ isOpen, onClose }) => {
     () => filterSearchResultsByNavigation(results, accessibleNav),
     [accessibleNav, results]
   );
+  const visibleResultsCopilotRequest = useMemo(() => createQuickSearchAskRequest({
+    query,
+    resultGroups: visibleResults,
+  }), [query, visibleResults]);
 
   const loadRecentsAndTrending = useCallback(async () => {
     const [recents, trending] = await Promise.all([
@@ -224,6 +232,17 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                   exit={{ opacity: 0 }}
                   className="px-4 py-4 space-y-6"
                 >
+                  <div className="px-2">
+                    <CopilotActionButton
+                      label="Ask Copilot about these results"
+                      compact
+                      request={visibleResultsCopilotRequest}
+                      onBeforeOpen={onClose}
+                    />
+                    <p className="mt-2 px-1 text-xs leading-5 text-muted-foreground">
+                      Uses only the results currently visible here.
+                    </p>
+                  </div>
                   {visibleResults.map((category) => (
                     <div key={category.category}>
                       <div className="flex items-center gap-2 mb-3 px-2">

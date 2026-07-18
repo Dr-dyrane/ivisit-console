@@ -8,6 +8,11 @@ import {
 } from './model/copilotContracts';
 import { COPILOT_ACTION_REGISTRY, getCopilotAction } from './registry/copilotActionRegistry';
 import { createLocalCopilotProposal } from './services/consoleCopilotProposalService';
+import {
+  createHealthNewsGuidanceRequest,
+  createQuickSearchAskRequest,
+  createSupportTicketGuidanceRequest,
+} from './routeRequests';
 
 const COPILOT_ROOT = path.resolve(__dirname);
 
@@ -33,6 +38,9 @@ describe('Console Copilot independent harness', () => {
       'dashboard.explain',
       'organization.explain_readiness',
       'emergency.explain_next_action',
+      'support.explain_ticket',
+      'search.ask_visible_results',
+      'health_news.explain_entry',
     ];
 
     expect(Object.values(COPILOT_ACTION_IDS)).toEqual(expectedActionIds);
@@ -191,5 +199,85 @@ describe('Console Copilot independent harness', () => {
       const source = fs.readFileSync(path.resolve(COPILOT_ROOT, relativePath), 'utf8');
       expect(source).not.toMatch(/copilot/i);
     });
+  });
+
+  it('keeps Support, visible Search, and Health News guidance evidence-only with no send, publish, or navigation command', () => {
+    const requests = [
+      createSupportTicketGuidanceRequest({
+        ticket: {
+          subject: 'Coverage help',
+          message: 'I need help updating coverage.',
+          status: 'open',
+          priority: 'normal',
+          category: 'billing',
+        },
+        faqs: [{ question: 'How do I add coverage?', category: 'Billing' }],
+      }),
+      createQuickSearchAskRequest({
+        query: 'ambulance',
+        resultGroups: [{ category: 'Requests', items: [{ id: 'req-1', title: 'REQ-1' }] }],
+      }),
+      createHealthNewsGuidanceRequest({
+        article: {
+          id: 'news-1',
+          title: 'Heat safety',
+          category: 'Wellness',
+          published: true,
+          source: 'Public Health',
+          source_url_valid: false,
+        },
+      }),
+    ];
+
+    requests.forEach((request) => {
+      const proposal = createLocalCopilotProposal(request);
+      expect(proposal).toMatchObject({
+        proposalOnly: true,
+        kind: 'explanation',
+        suggestedActions: [],
+      });
+      expect(proposal).not.toHaveProperty('execution');
+      expect(proposal.evidence).toEqual(expect.arrayContaining([
+        expect.objectContaining({ label: 'Suggested next step' }),
+      ]));
+    });
+
+    const supportProposal = createLocalCopilotProposal(requests[0]);
+    const draft = supportProposal.evidence.find((item) => item.label === 'Local reply draft');
+    expect(draft).toEqual(expect.objectContaining({
+      copyText: expect.stringContaining('Coverage help'),
+      description: expect.stringMatching(/not sent or saved/i),
+    }));
+
+    expect(() => validateCopilotRequest({
+      ...requests[0],
+      context: {
+        supportTicket: {
+          ...requests[0].context.supportTicket,
+          suggestedActions: [{
+            id: 'unsafe.navigate',
+            label: 'Open hidden route',
+            availability: 'available',
+            stages: ['prepare', 'confirm', 'execute'],
+            requiresConfirmation: true,
+            command: { id: 'workflow.open_requests' },
+          }],
+        },
+      },
+    })).toThrow(CopilotContractError);
+  });
+
+  it('takes evidence only from the mounted Support, visible Search, and News projections', () => {
+    const supportRail = fs.readFileSync(path.resolve(COPILOT_ROOT, '../../components/pages/support/SupportDetailRail.jsx'), 'utf8');
+    const quickSearch = fs.readFileSync(path.resolve(COPILOT_ROOT, '../../components/navigation/QuickSearch.jsx'), 'utf8');
+    const healthNewsRail = fs.readFileSync(path.resolve(COPILOT_ROOT, '../../components/pages/health-news/HealthNewsDetailRail.jsx'), 'utf8');
+    const proposalService = read('./services/consoleCopilotProposalService.js');
+
+    expect(supportRail).toContain('createSupportTicketGuidanceRequest({ ticket, faqs })');
+    expect(quickSearch).toContain('resultGroups: visibleResults');
+    expect(quickSearch).toContain('onBeforeOpen={onClose}');
+    expect(healthNewsRail).toContain('createHealthNewsGuidanceRequest');
+    expect(proposalService).toContain('This guidance only reflects the results currently visible in search.');
+    expect(proposalService).toContain('does not create, edit, publish, or validate editorial content.');
   });
 });

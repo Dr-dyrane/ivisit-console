@@ -103,6 +103,7 @@ export const HealthNewsPageView = ({ controller }) => {
               hasFilter={controller.hasFilter}
               onView={controller.handleView}
               activeActionFeedback={controller.activeActionFeedback}
+              relatedEntries={controller.newsRows}
               embedded
             />
           )}

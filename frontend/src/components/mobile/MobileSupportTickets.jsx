@@ -65,6 +65,7 @@ export const MobileSupportTickets = ({
   onLoadMore,
   currentPage = 1,
   confirmedDeletedTicketIds = EMPTY_TICKET_IDS,
+  faqs = [],
 }) => {
   const {
     activeKpi,
@@ -200,6 +201,7 @@ export const MobileSupportTickets = ({
           onEdit={onEdit}
           onView={onView}
           setActiveTicket={setActiveTicket}
+          faqs={faqs}
         />
       </MobilePageShell>
     </PullToRefresh>

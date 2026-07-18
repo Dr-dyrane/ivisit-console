@@ -26,6 +26,9 @@ export {
 export {
   createDashboardExplainRequest,
   createEmergencyNextActionRequest,
+  createHealthNewsGuidanceRequest,
   createOrganizationReadinessRequest,
+  createQuickSearchAskRequest,
+  createSupportTicketGuidanceRequest,
   formatPaymentEvidence,
 } from './routeRequests';

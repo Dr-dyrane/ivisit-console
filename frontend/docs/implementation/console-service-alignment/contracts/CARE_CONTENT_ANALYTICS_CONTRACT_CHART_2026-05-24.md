@@ -178,6 +178,21 @@ Insurance card images are more sensitive than hospital/provider presentation med
 
 Source inspection found existing mojibake signatures in rendered/search-related JavaScript, including separators and a star marker in `frontend/src/services/searchService.js` and status-log characters in `frontend/src/services/analyticsAutomationService.js`. The newly authoritative `ivisit-app` doctrine/Supabase documentation also renders corrupted punctuation and diagrams during this review, so SQL and code evidence, not corrupted glyphs, was used for contract conclusions. This is not repaired during the audit-only phase, but belongs in a dedicated source-health/encoding repair and the existing encoding gate.
 
+## 2026-07-18 Copilot Evidence-Only Presentation Note
+
+The Console Copilot extension remains a local deterministic presentation
+adapter; it does not change the service, RLS, RPC, Edge, Storage, telemetry, or
+write ownership recorded above.
+
+| Surface | Proof chain | Disposition |
+| --- | --- | --- |
+| Support ticket detail | Existing ticket query and route-owned FAQ reference query -> `useSupportTicketsPageController` -> desktop/tablet/mobile ticket detail -> `createSupportTicketGuidanceRequest` -> local proposal/copy control. | Reads only existing rendered evidence. The reply draft is clipboard-only and has no support-response/send receiver; the `admin_response` gap remains blocked. |
+| QuickSearch | `searchService.searchAll` -> navigation-authorized `visibleResults` -> `QuickSearch` Ask Copilot entry -> `createQuickSearchAskRequest` -> local proposal. | The adapter receives only visible filtered result groups; it opens no category, performs no extra search, and adds no telemetry owner. |
+| Health News detail | Existing paged published-feed projection -> selected article/current visible list -> desktop/tablet/mobile detail -> `createHealthNewsGuidanceRequest` -> local proposal. | Metadata/link-shape/related-entry guidance only. It does not enable CMS, import, publish, edit, delete, or source-quality certification. |
+
+The three evidence-only action schemas reject suggested workflow actions, even
+when a command is otherwise allowlisted by the existing capability ladder.
+
 ## Ordered Pass Inputs
 
 1. Repair patient support receipt and console support authorization together, because an unseen ticket is an operational failure.

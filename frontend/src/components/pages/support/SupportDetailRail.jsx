@@ -21,6 +21,10 @@ import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { CopyChip, DetailLine, Shimmer } from '../../console/primitives';
 import { Button } from '../../ui/button';
 import {
+  CopilotActionButton,
+  createSupportTicketGuidanceRequest,
+} from '../../../features/copilot';
+import {
   formatSupportDate,
   getSupportAssigneeLabel,
   getSupportOpenAge,
@@ -57,6 +61,7 @@ export const SupportDetailRail = ({
   onDelete,
   onAssign,
   onCreate,
+  faqs = [],
   embedded = false,
 }) => {
   if (loading && !ticket) {
@@ -165,6 +170,12 @@ export const SupportDetailRail = ({
           View details
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
+
+        <CopilotActionButton
+          label="Review with Copilot"
+          compact
+          request={createSupportTicketGuidanceRequest({ ticket, faqs })}
+        />
 
         {(canEdit || canAssign) && (
           <div className={`grid gap-3 ${canEdit && canAssign ? 'grid-cols-2' : 'grid-cols-1'}`}>

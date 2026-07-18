@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 
 const STATUS_META = {
@@ -24,6 +24,22 @@ const STATUS_META = {
 
 const EvidenceCard = ({ item }) => {
   const status = STATUS_META[item.status] || STATUS_META.neutral;
+  const [copyState, setCopyState] = useState('idle');
+
+  const copyLocalDraft = async () => {
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
+    if (!clipboard?.writeText || !item.copyText) {
+      setCopyState('unavailable');
+      return;
+    }
+
+    try {
+      await clipboard.writeText(item.copyText);
+      setCopyState('copied');
+    } catch {
+      setCopyState('unavailable');
+    }
+  };
 
   return (
     <div className="min-w-0 rounded-inner bg-muted/35 p-3.5">
@@ -47,6 +63,23 @@ const EvidenceCard = ({ item }) => {
       {item.description && (
         <dd className="mt-1.5 min-w-0 text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
           {item.description}
+        </dd>
+      )}
+      {item.copyText && (
+        <dd className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={copyLocalDraft}
+            className="h-9 rounded-button bg-background/70 px-3 text-xs font-semibold text-foreground transition-all hover:bg-foreground/10 focus-visible:bg-foreground/10 active:scale-[0.98]"
+            aria-live="polite"
+          >
+            {copyState === 'copied' ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+            {copyState === 'copied' ? 'Copied locally' : 'Copy draft'}
+          </Button>
+          {copyState === 'unavailable' && (
+            <span className="text-xs text-destructive" role="status">Copy is unavailable in this browser.</span>
+          )}
         </dd>
       )}
     </div>

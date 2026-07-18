@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { MobileListRow } from '../canon';
 import { MobileDetailSheet } from '../MobileDetailSheet';
+import {
+  CopilotActionButton,
+  createSupportTicketGuidanceRequest,
+} from '../../../features/copilot';
 import { resolveVital } from '../../../constants/vitalTracks';
 import { formatRelativeTime } from '../../../utils/activityUtils';
 import {
@@ -136,6 +140,7 @@ export const MobileSupportTicketDetailSheet = ({
   onEdit,
   onView,
   setActiveTicket,
+  faqs = [],
 }) => {
   if (!activeTicket) return null;
 
@@ -171,6 +176,12 @@ export const MobileSupportTicketDetailSheet = ({
           {ticket.message}
         </div>
       )}
+      <CopilotActionButton
+        label="Review with Copilot"
+        compact
+        request={createSupportTicketGuidanceRequest({ ticket, faqs })}
+        onBeforeOpen={() => setActiveTicket(null)}
+      />
       {(canAssign || canManage) && (
         <div className="flex gap-2 pt-1">
           {canAssign && (
