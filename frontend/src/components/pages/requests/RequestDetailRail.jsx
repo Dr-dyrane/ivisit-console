@@ -26,6 +26,10 @@ import { formatEmergencyServiceToken } from '../../../utils/emergencyRequestMapp
 import { formatRequestDayTime } from '../../../utils/requestDisplay';
 import { buildEmergencyLifecyclePresentation } from './emergencyLifecyclePresentation';
 import {
+  CopilotActionButton,
+  createEmergencyNextActionRequest,
+} from '../../../features/copilot';
+import {
   formatRequestTime,
   getRequestAvatarClass,
   getRequestInitials,
@@ -162,6 +166,18 @@ export const RequestDetailRail = ({
     (primaryAction.kind === 'dispatch' && dispatchPending) ||
     (primaryAction.kind === 'complete' && completePending)
   );
+  const responderValue = responder.hasResponder
+    ? `${responder.label}${responder.etaLabel ? ` \u00b7 ${responder.etaLabel}` : ''}`
+    : null;
+  const copilotRequest = createEmergencyNextActionRequest({
+    heading: displayId ? `Request ${displayId}` : 'Emergency request',
+    statusLabel: status.label,
+    primaryAction,
+    arrivalConfirmation,
+    paymentValue: hasPaymentInfo ? paymentValue : null,
+    responderValue,
+    destinationValue: destination.hasDestination ? destination.label : null,
+  });
 
   return (
     <RequestRailShell embedded={embedded} scroll>
@@ -303,6 +319,11 @@ export const RequestDetailRail = ({
           {primaryAction.label}
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
+
+        <CopilotActionButton
+          label="Explain next action"
+          request={copilotRequest}
+        />
 
         <div className="grid grid-cols-2 gap-3">
           {lifecycle.actions.secondary.map((action) => {

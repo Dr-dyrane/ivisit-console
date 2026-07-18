@@ -13,6 +13,7 @@ import {
 import { ConsoleModuleRail } from '../../common/ConsoleModuleRail';
 import { SEOHead } from '../../common/SEOHead';
 import { GlanceTile } from '../../console/GlanceTile';
+import { CopilotActionButton } from '../../../features/copilot';
 
 const statusClass = {
   danger: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
@@ -170,7 +171,16 @@ const DetailRow = ({ row, expanded, onToggle, onAction, routingPath }) => {
   );
 };
 
-const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAction, routingPath }) => (
+const TodaySheet = ({
+  today,
+  rows,
+  expandedRow,
+  onToggleRow,
+  onPrimary,
+  onRowAction,
+  routingPath,
+  copilotRequest,
+}) => (
   // No entrance motion (MOTION canon section 3): the delayed y+scale pop made the sheet
   // arrive on a second clock after the hero - the banned stage-reveal/skew.
   <aside
@@ -202,6 +212,12 @@ const TodaySheet = ({ today, rows, expandedRow, onToggleRow, onPrimary, onRowAct
         {routingPath === today.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
         {routingPath === today.path ? 'Opening...' : today.primaryAction}
       </button>
+      <CopilotActionButton
+        label="Explain today"
+        request={copilotRequest}
+        className="mt-2"
+        compact
+      />
     </div>
 
     <div className="mt-2 max-h-[112px] space-y-2 overflow-y-auto no-scrollbar sm:max-h-[148px] md:mt-3 md:max-h-none md:overflow-visible">
@@ -233,6 +249,7 @@ export const TodayDesktopView = ({
   onPrimary,
   onAction,
   routingPath,
+  copilotRequest,
 }) => (
     <div className="min-h-[calc(100dvh-3rem)]">
       <SEOHead title="Today" description="Role-scoped home for iVisit Console." />
@@ -264,6 +281,7 @@ export const TodayDesktopView = ({
             onPrimary={onPrimary}
             onRowAction={onAction}
             routingPath={routingPath}
+            copilotRequest={copilotRequest}
           />
         </div>
       </section>

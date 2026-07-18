@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { TabletPageShell } from './TabletPageShell';
 import { TABLET_FOCUS_RING } from './TabletCollectionPage';
+import { CopilotActionButton } from '../../features/copilot';
 
 const toneClass = {
   danger: 'bg-destructive/14 text-destructive',
@@ -106,6 +107,7 @@ export const TabletToday = ({
   routingPath = null,
   onAction,
   onRefresh,
+  copilotRequest,
 }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const activeExpandedRow = useMemo(
@@ -175,6 +177,12 @@ export const TabletToday = ({
             {primaryOpening ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             {primaryOpening ? 'Opening...' : today.primaryAction}
           </button>
+          <CopilotActionButton
+            label="Explain today"
+            request={copilotRequest}
+            className="mt-2"
+            compact
+          />
           <div className="mt-3">
             {rows.map((row, index) => (
               <React.Fragment key={row.id}>
