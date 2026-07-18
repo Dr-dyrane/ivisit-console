@@ -16,6 +16,23 @@ const evidenceItem = (label, value, status = 'neutral', description) => ({
   status,
 });
 
+const titleCaseToken = (value) => String(value)
+  .toLowerCase()
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, (character) => character.toUpperCase());
+
+export const formatPaymentEvidence = (value) => String(value)
+  .split(/\s+\u00b7\s+/)
+  .map((part) => {
+    const token = part.trim();
+    if (/^[A-Z][A-Z_]+$/.test(token)) return titleCaseToken(token);
+    if (/^(completed|pending|failed|cancelled|canceled|refunded)$/i.test(token)) {
+      return titleCaseToken(token);
+    }
+    return token;
+  })
+  .join(' \u00b7 ');
+
 export const createDashboardExplainRequest = ({ today, live, glanceItems = [] }) => ({
   actionId: COPILOT_ACTION_IDS.DASHBOARD_EXPLAIN,
   context: {
@@ -73,26 +90,32 @@ export const createEmergencyNextActionRequest = ({
   paymentValue,
   responderValue,
   destinationValue,
-}) => ({
-  actionId: COPILOT_ACTION_IDS.EMERGENCY_EXPLAIN_NEXT_ACTION,
-  context: {
-    emergency: {
-      heading: heading || 'Emergency request',
-      evidence: [
-        evidenceItem('Lifecycle status', statusLabel || 'Unavailable'),
-        evidenceItem(
-          'Next available action',
-          primaryAction?.label || 'Unavailable',
-          primaryAction?.available ? 'attention' : 'blocked',
-          primaryAction?.available ? undefined : primaryAction?.reason,
-        ),
-        ...(arrivalConfirmation
-          ? [evidenceItem('Patient arrival', arrivalConfirmation, arrivalConfirmation.startsWith('Confirmed') ? 'ready' : 'attention')]
-          : []),
-        ...(paymentValue ? [evidenceItem('Payment', paymentValue)] : []),
-        ...(responderValue ? [evidenceItem('Responder', responderValue)] : []),
-        ...(destinationValue ? [evidenceItem('Destination', destinationValue)] : []),
-      ],
+}) => {
+  const nextActionStatus = !primaryAction?.available
+    ? 'blocked'
+    : primaryAction?.kind === 'details' ? 'neutral' : 'attention';
+
+  return {
+    actionId: COPILOT_ACTION_IDS.EMERGENCY_EXPLAIN_NEXT_ACTION,
+    context: {
+      emergency: {
+        heading: heading || 'Emergency request',
+        evidence: [
+          evidenceItem('Lifecycle status', statusLabel || 'Unavailable'),
+          evidenceItem(
+            'Next available action',
+            primaryAction?.label || 'Unavailable',
+            nextActionStatus,
+            primaryAction?.available ? undefined : primaryAction?.reason,
+          ),
+          ...(arrivalConfirmation
+            ? [evidenceItem('Patient arrival', arrivalConfirmation, arrivalConfirmation.startsWith('Confirmed') ? 'ready' : 'attention')]
+            : []),
+          ...(paymentValue ? [evidenceItem('Payment', formatPaymentEvidence(paymentValue))] : []),
+          ...(responderValue ? [evidenceItem('Responder', responderValue)] : []),
+          ...(destinationValue ? [evidenceItem('Destination', destinationValue)] : []),
+        ],
+      },
     },
-  },
-});
+  };
+};

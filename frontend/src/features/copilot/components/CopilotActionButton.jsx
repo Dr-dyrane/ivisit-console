@@ -8,6 +8,7 @@ export const CopilotActionButton = ({
   request,
   className = '',
   compact = false,
+  onBeforeOpen,
 }) => {
   const { available, openCopilot, isPreparing } = useConsoleCopilot();
 
@@ -16,7 +17,10 @@ export const CopilotActionButton = ({
       type="button"
       variant="ghost"
       className={`${compact ? 'h-10 text-sm' : 'h-11 text-sm'} w-full rounded-button bg-muted/25 font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground active:scale-[0.99] ${className}`}
-      onClick={() => openCopilot(request)}
+      onClick={() => {
+        onBeforeOpen?.();
+        openCopilot(request);
+      }}
       disabled={!available}
       aria-busy={isPreparing}
       title={available ? undefined : 'Copilot is unavailable on this surface.'}

@@ -21,4 +21,5 @@ export {
   createDashboardExplainRequest,
   createEmergencyNextActionRequest,
   createOrganizationReadinessRequest,
+  formatPaymentEvidence,
 } from './routeRequests';

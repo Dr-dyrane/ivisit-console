@@ -135,6 +135,8 @@ describe('Console Copilot independent harness', () => {
       '../../components/pages/today/TodayDesktopView.jsx',
       '../../components/mobile/MobileToday.jsx',
       '../../components/tablet/TabletToday.jsx',
+      '../../components/mobile/MobileEmergency.jsx',
+      '../../components/mobile/organizations/MobileOrganizationDetailSheet.jsx',
       '../../components/pages/organizations/OrganizationDetailRail.jsx',
       '../../components/pages/requests/RequestDetailRail.jsx',
     ].forEach((relativePath) => {
@@ -142,6 +144,17 @@ describe('Console Copilot independent harness', () => {
       expect(source).toContain('<CopilotActionButton');
       expect(source).toContain('request={copilotRequest}');
     });
+
+    const mobileEmergency = fs.readFileSync(
+      path.resolve(COPILOT_ROOT, '../../components/mobile/MobileEmergency.jsx'),
+      'utf8',
+    );
+    expect(mobileEmergency).toContain('onBeforeOpen={() => setActiveRequestId(null)}');
+    const mobileOrganization = fs.readFileSync(
+      path.resolve(COPILOT_ROOT, '../../components/mobile/organizations/MobileOrganizationDetailSheet.jsx'),
+      'utf8',
+    );
+    expect(mobileOrganization).toContain('onBeforeOpen={onClose}');
   });
 
   it('does not add Copilot to existing routes, navigation, FAB, dock, or route-owned Context Panel content', () => {
