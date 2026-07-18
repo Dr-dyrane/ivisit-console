@@ -18,6 +18,10 @@ import {
 } from '../../console/primitives';
 import { Button } from '../../ui/button';
 import {
+  CopilotActionButton,
+  createHealthNewsGuidanceRequest,
+} from '../../../features/copilot';
+import {
   formatHealthNewsDate,
   getStatusMeta,
 } from './healthNewsPageModel';
@@ -28,6 +32,7 @@ export const HealthNewsDetailRail = ({
   hasFilter,
   onView,
   activeActionFeedback,
+  relatedEntries = [],
   embedded = false,
 }) => {
   if (loading && !news) {
@@ -149,6 +154,12 @@ export const HealthNewsDetailRail = ({
           {viewOpening ? 'Opening' : 'View details'}
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
+
+        <CopilotActionButton
+          label="Review with Copilot"
+          compact
+          request={createHealthNewsGuidanceRequest({ article: news, relatedEntries })}
+        />
 
         <div
           role="note"

@@ -1,7 +1,7 @@
 ---
 status: complete
 owner: product-and-engineering
-last_updated: 2026-07-17
+last_updated: 2026-07-18
 ---
 
 # Sprint 6 - Console Copilot Capability Ladder
@@ -33,6 +33,22 @@ workflow but must not invent those writes. Schedule creation, verification
 decisions, emergency lifecycle changes, payment changes, and capacity changes
 remain owned by their existing forms and command hooks.
 
+## Evidence-Only Route Adapters
+
+The capability ladder also supports bounded read-only guidance where the route
+already owns the projection. These adapters do not add a query, service,
+telemetry event, command, or receiver:
+
+| Surface | Allowed context | Local outcome | Explicit boundary |
+| --- | --- | --- | --- |
+| Support ticket detail | Selected route-owned ticket plus already-loaded FAQ references. | Deterministic summary, local FAQ keyword matches, next-step guidance, and a copyable local reply draft. | Copying does not send or save a response; `admin_response` remains contract-blocked. |
+| QuickSearch | Only navigation-filtered result groups currently visible in the dialog. | Deterministic group/count review and a route-owned next step. | It never expands search categories, bypasses navigation filtering, or writes separate telemetry. |
+| Health News detail | Selected published-feed metadata plus related entries from the current visible list. | Link-shape/source-review guidance and related-entry context. | It cannot create, edit, import, publish, delete, or certify editorial/source quality. |
+
+These action schemas reject `suggestedActions`, including otherwise allowlisted
+workflow navigation commands. They remain local deterministic proposals and
+cannot become a second command shell.
+
 ## Command admission contract
 
 Every executable Copilot command must prove:
@@ -63,3 +79,6 @@ Every executable Copilot command must prove:
 - 2026-07-17: Capability ladder completed. Desktop and phone browser journeys
   verified prepare, confirm, and open-workflow behavior. Production build and
   all 239 suites / 1,747 tests passed.
+- 2026-07-18: Added evidence-only Support, QuickSearch, and Health News route
+  adapters within the existing provider and responsive variants. No data or
+  command owner changed; support copy remains local-only.

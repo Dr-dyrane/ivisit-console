@@ -11,6 +11,10 @@ import {
 import { resolveVital } from '../../../constants/vitalTracks';
 import { MobileDetailSheet } from '../MobileDetailSheet';
 import {
+  CopilotActionButton,
+  createHealthNewsGuidanceRequest,
+} from '../../../features/copilot';
+import {
   categoryLabel,
   isArticlePublished,
   mobileHealthNewsDateLabel,
@@ -20,6 +24,7 @@ export const MobileHealthNewsDetailSheet = ({
   article,
   onClose,
   onView,
+  relatedEntries = [],
 }) => {
   if (!article) return null;
 
@@ -54,6 +59,13 @@ export const MobileHealthNewsDetailSheet = ({
           onView?.(article);
         },
       }}
-    />
+    >
+      <CopilotActionButton
+        label="Review with Copilot"
+        compact
+        request={createHealthNewsGuidanceRequest({ article, relatedEntries })}
+        onBeforeOpen={onClose}
+      />
+    </MobileDetailSheet>
   );
 };

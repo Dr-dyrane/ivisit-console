@@ -54,6 +54,7 @@ export const SupportDesktopWorkspace = ({
   onDelete,
   onAssign,
   onCreate,
+  faqs,
   activeActionFeedback,
   moduleRailItems,
   routingPath,
@@ -85,6 +86,7 @@ export const SupportDesktopWorkspace = ({
           onDelete={onDelete}
           onAssign={onAssign}
           onCreate={onCreate}
+          faqs={faqs}
         />
       )}
     >

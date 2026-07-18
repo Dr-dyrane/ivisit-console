@@ -11,10 +11,25 @@ const toneToStatus = (tone) => ({
 
 const evidenceItem = (label, value, status = 'neutral', description) => ({
   label,
-  ...(value !== null && value !== undefined && value !== '' ? { value: String(value) } : {}),
-  ...(description ? { description } : {}),
+  ...(value !== null && value !== undefined && value !== '' ? { value: String(value).trim().slice(0, 280) } : {}),
+  ...(description ? { description: String(description).trim().slice(0, 600) } : {}),
   status,
 });
+
+const copyableEvidenceItem = (label, value, copyText, status = 'neutral', description) => ({
+  ...evidenceItem(label, value, status, description),
+  copyText: String(copyText).trim().slice(0, 1200),
+});
+
+const titleCase = (value) => String(value || '')
+  .trim()
+  .replace(/[_-]+/g, ' ')
+  .replace(/\b\w/g, (character) => character.toUpperCase()) || 'Unavailable';
+
+const safeText = (value, fallback = 'Unavailable') => {
+  const textValue = String(value || '').trim();
+  return textValue || fallback;
+};
 
 const workflowAction = (id, label, description, commandId) => ({
   id,
@@ -178,6 +193,126 @@ export const createEmergencyNextActionRequest = ({
           ...(canOpenFinance
             ? [workflowAction('emergency.finance', 'Open Finance', 'Review payment records and available finance actions.', COPILOT_COMMAND_IDS.OPEN_FINANCE)]
             : []),
+        ],
+      },
+    },
+  };
+};
+
+const getMatchingFaqs = (ticket, faqs) => {
+  const ticketText = `${ticket?.subject || ''} ${ticket?.message || ''} ${ticket?.category || ''}`.toLowerCase();
+  const keywords = new Set(ticketText.match(/[a-z0-9]{4,}/g) || []);
+
+  return (Array.isArray(faqs) ? faqs : [])
+    .filter((faq) => faq?.question)
+    .filter((faq) => {
+      const faqText = `${faq.question || ''} ${faq.category || ''}`.toLowerCase();
+      return [...keywords].some((keyword) => faqText.includes(keyword));
+    })
+    .slice(0, 2);
+};
+
+export const createSupportTicketGuidanceRequest = ({ ticket, faqs = [] } = {}) => {
+  const subject = safeText(ticket?.subject, 'Support request');
+  const status = titleCase(ticket?.status || 'open');
+  const priority = titleCase(ticket?.priority || 'normal');
+  const category = titleCase(ticket?.category || 'general');
+  const matchingFaqs = getMatchingFaqs(ticket, faqs);
+  const nextStep = /^(resolved|closed)$/i.test(ticket?.status || '')
+    ? 'Confirm the resolution matches the request before replying.'
+    : /^(urgent|high)$/i.test(ticket?.priority || '')
+      ? 'Review the request promptly before preparing a response.'
+      : 'Review the request details and any matching FAQ before responding.';
+  const replyDraft = `Hello,\n\nThank you for contacting iVisit about "${subject}". Your request is currently marked ${status}. We are reviewing the details provided and will share any update through the approved support channel.\n\n— iVisit Support`;
+
+  return {
+    actionId: COPILOT_ACTION_IDS.SUPPORT_TICKET_GUIDANCE,
+    context: {
+      supportTicket: {
+        heading: subject,
+        evidence: [
+          evidenceItem('Request summary', subject, 'neutral', safeText(ticket?.message, 'No message was provided.')),
+          evidenceItem('Current status', status),
+          evidenceItem('Priority', priority, /^(urgent|high)$/i.test(ticket?.priority || '') ? 'attention' : 'neutral'),
+          evidenceItem('Category', category),
+          evidenceItem(
+            'FAQ matches',
+            matchingFaqs.length ? matchingFaqs.map((faq) => faq.question).join(' · ') : 'No matching FAQ in the current references',
+            matchingFaqs.length ? 'ready' : 'neutral',
+            matchingFaqs.length ? 'Matches are based only on the FAQ references already visible on this route.' : 'No additional FAQ search was run.',
+          ),
+          evidenceItem('Suggested next step', nextStep, /^(urgent|high)$/i.test(ticket?.priority || '') ? 'attention' : 'neutral'),
+          copyableEvidenceItem(
+            'Local reply draft',
+            replyDraft,
+            replyDraft,
+            'neutral',
+            'Copy this draft to an approved support channel after review. It is not sent or saved here.',
+          ),
+        ],
+      },
+    },
+  };
+};
+
+export const createQuickSearchAskRequest = ({ query, resultGroups = [] } = {}) => {
+  const visibleGroups = (Array.isArray(resultGroups) ? resultGroups : [])
+    .filter((group) => group?.category && Array.isArray(group.items) && group.items.length > 0)
+    .slice(0, 8);
+  const total = visibleGroups.reduce((sum, group) => sum + group.items.length, 0);
+
+  return {
+    actionId: COPILOT_ACTION_IDS.QUICK_SEARCH_ASK,
+    context: {
+      quickSearch: {
+        heading: `Search: ${safeText(query, 'Current results')}`.slice(0, 160),
+        evidence: [
+          evidenceItem('Visible results', `${total} result${total === 1 ? '' : 's'} across ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'}`),
+          ...visibleGroups.map((group) => evidenceItem(
+            group.category,
+            `${group.items.length} visible result${group.items.length === 1 ? '' : 's'}`,
+            'neutral',
+            group.items.slice(0, 3).map((item) => safeText(item?.title, 'Untitled')).join(' · '),
+          )),
+          evidenceItem('Suggested next step', 'Open a visible result to review its route-owned details.'),
+        ],
+      },
+    },
+  };
+};
+
+export const createHealthNewsGuidanceRequest = ({ article, relatedEntries = [] } = {}) => {
+  const title = safeText(article?.title, 'Health update');
+  const category = safeText(article?.category, 'General');
+  const source = safeText(article?.source_host || article?.source, 'Unknown source');
+  const validSourceUrl = Boolean(article?.source_url_valid && article?.url);
+  const related = (Array.isArray(relatedEntries) ? relatedEntries : [])
+    .filter((entry) => entry?.id && entry.id !== article?.id)
+    .filter((entry) => String(entry?.category || '').trim().toLowerCase() === category.toLowerCase())
+    .slice(0, 3);
+
+  return {
+    actionId: COPILOT_ACTION_IDS.HEALTH_NEWS_GUIDANCE,
+    context: {
+      healthNews: {
+        heading: title,
+        evidence: [
+          evidenceItem('Publication', article?.published === false ? 'Not published' : 'Published', article?.published === false ? 'attention' : 'ready'),
+          evidenceItem('Source', source),
+          evidenceItem(
+            'Source link check',
+            validSourceUrl ? 'Valid http(s) link' : 'No valid source link',
+            validSourceUrl ? 'ready' : 'blocked',
+            validSourceUrl ? 'The URL format is valid; publisher authority still needs review.' : 'No source-quality conclusion can be made without a valid link.',
+          ),
+          evidenceItem('Category', category),
+          evidenceItem(
+            'Related entries in this list',
+            related.length ? related.map((entry) => safeText(entry.title, 'Untitled article')).join(' · ') : 'No related entries in the current list',
+            'neutral',
+            'Related entries use only the currently visible list and matching category.',
+          ),
+          evidenceItem('Suggested next step', 'Review the source, link, and related entries before relying on this article.', 'attention'),
         ],
       },
     },

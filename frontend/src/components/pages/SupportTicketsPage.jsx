@@ -83,6 +83,7 @@ export const SupportTicketsPage = () => {
     someSelected,
     sortConfig,
     supportError,
+    supportFaqContext,
     supportStats,
     ticketRows,
     visibleModuleRail,
@@ -173,6 +174,7 @@ export const SupportTicketsPage = () => {
           canEditTicket={canEditTicket}
           onRefresh={fetchSupportTickets}
           canManage={canManageSupport}
+          faqs={supportFaqContext.faqs}
           loading={loading}
           isFetching={isFetching}
           errorMessage={supportError}
@@ -239,6 +241,7 @@ export const SupportTicketsPage = () => {
               onDelete={handleDelete}
               onAssign={handleAssign}
               onCreate={handleCreate}
+              faqs={supportFaqContext.faqs}
               embedded
             />
           )}
@@ -301,6 +304,7 @@ export const SupportTicketsPage = () => {
         onDelete={handleDelete}
         onAssign={handleAssign}
         onCreate={handleCreate}
+        faqs={supportFaqContext.faqs}
         activeActionFeedback={activeActionFeedback}
         moduleRailItems={visibleModuleRail}
         routingPath={routingPath}

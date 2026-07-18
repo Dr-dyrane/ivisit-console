@@ -89,6 +89,7 @@ export const HealthNewsDesktopWorkspace = ({
           hasFilter={hasFilter}
           onView={onView}
           activeActionFeedback={activeActionFeedback}
+          relatedEntries={items}
         />
       )}
     >

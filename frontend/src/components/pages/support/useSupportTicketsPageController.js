@@ -430,6 +430,7 @@ export const useSupportTicketsPageController = ({
     someSelected,
     sortConfig,
     supportError,
+    supportFaqContext,
     supportStats,
     ticketRows,
     visibleModuleRail,

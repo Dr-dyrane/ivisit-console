@@ -21,6 +21,21 @@ const COPY = Object.freeze({
     empty: 'No request details are available yet.',
     guardrail: 'Confirm the request status before acting.',
   },
+  [COPILOT_ACTION_IDS.SUPPORT_TICKET_GUIDANCE]: {
+    title: 'Support request review',
+    empty: 'No request details are available yet.',
+    guardrail: 'Any reply remains local until you send it through an approved support workflow.',
+  },
+  [COPILOT_ACTION_IDS.QUICK_SEARCH_ASK]: {
+    title: 'Visible search results',
+    empty: 'No visible search results are available yet.',
+    guardrail: 'This guidance only reflects the results currently visible in search.',
+  },
+  [COPILOT_ACTION_IDS.HEALTH_NEWS_GUIDANCE]: {
+    title: 'Article metadata review',
+    empty: 'No article details are available yet.',
+    guardrail: 'This guidance does not create, edit, publish, or validate editorial content.',
+  },
 });
 
 const getEvidenceContext = (request, action) => request.context[action.contextKey];

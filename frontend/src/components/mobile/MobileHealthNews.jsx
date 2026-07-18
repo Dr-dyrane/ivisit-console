@@ -73,6 +73,7 @@ export const MobileHealthNews = ({
           article={controller.activeArticle}
           onClose={() => controller.setActiveArticle(null)}
           onView={onView}
+          relatedEntries={articles}
         />
       </MobilePageShell>
     </PullToRefresh>
