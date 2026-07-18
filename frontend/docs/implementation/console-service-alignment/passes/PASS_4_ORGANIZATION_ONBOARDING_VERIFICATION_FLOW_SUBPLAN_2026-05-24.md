@@ -815,3 +815,14 @@ First isolation run `1784334104297-7b38c565` exposed that `demo:*` is an
 eligibility-bearing production encoding, then cleaned twice with zero residue.
 Corrected run `1784334199571-2d9f6608` used `e2e:*`, passed the complete live
 contract, cleaned twice, and passed an additional manifest-driven no-op cleanup.
+
+The App-owned emergency matrix then adopted the same manifest contract for the
+downstream consequence graph. Final runs
+`flow-matrix-1784335771609-67916700`,
+`flow-matrix-1784335859230-7e2301a5`, and
+`flow-matrix-1784335909079-03becf97` passed consecutively across card, cash,
+bed, responder, telemetry, arrival acknowledgement, completion, visit, tip,
+transition, and rating lanes. Each captured 21 non-empty dependency classes,
+removed every class on the first exact cleanup, and planned zero actions on the
+second. Rating replay preserved the first submitted rating. Global residue and
+cross-repository contract drift remained zero.
