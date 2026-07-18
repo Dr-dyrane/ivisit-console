@@ -105,10 +105,20 @@ The backend contract is now **validated**:
 - The cleanup guard reports zero planned side effects.
 - The deployed `/onboarding` entry rendered without browser console errors at
   desktop and 390 x 844 mobile viewports.
+- Authenticated deployed-Console run `1784332419231-847df363` passed claimant
+  sign-in, unowned-facility search/selection, separate organization details,
+  evidence upload, reflected pending success, and the visible admin Approvals
+  sequence: evidence, ownership, organization, then facility.
+- The final facility action remained disabled until its prerequisites were
+  reflected. Approval moved the row out of Needs review, incremented Approved,
+  and admitted the facility through `nearby_hospitals`.
+- Browser errors were zero. All tagged Auth, profile, organization, wallet,
+  facility, claim, evidence, and Storage artifacts were removed, and both
+  cleanup and drift guards passed afterward.
 
-The backend and deployed entry surface are **Go**. Field-agent rollout remains a
-controlled-pilot gate until one authenticated operator rehearsal submits the
-claim wizard and completes the Approvals click path in the deployed Console.
+The backend, deployed UI, and authenticated operator path are **Go** for
+controlled field onboarding of new registrations and unowned-facility claims.
+Existing owned-facility transfer remains a separate manual/legal boundary.
 No EAS update is required because patient discovery and eligibility behavior
 did not change.
 
