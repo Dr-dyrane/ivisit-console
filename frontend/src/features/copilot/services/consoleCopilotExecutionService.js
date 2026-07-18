@@ -37,6 +37,9 @@ export const executeCopilotCommand = async (command, {
   if (!registered || registered.authority !== 'route-navigation' || registered.idempotent !== true) {
     throw new Error('This Copilot action is not available.');
   }
+  if (typeof actionId !== 'string' || !registered.actionIds.includes(actionId)) {
+    throw new Error('This Copilot action does not match the confirmed workflow.');
+  }
   if (typeof navigate !== 'function') {
     throw new Error('Navigation is unavailable.');
   }
@@ -44,8 +47,6 @@ export const executeCopilotCommand = async (command, {
   const receipt = {
     actionId,
     commandId: registered.id,
-    destination: registered.destination,
-    idempotencyKey: `copilot-navigation:${registered.id}`,
     completedAt: now().toISOString(),
   };
 

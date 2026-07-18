@@ -30,8 +30,6 @@ describe('Console Copilot limited executor', () => {
     expect(receipt).toEqual({
       actionId: 'prepare.schedules',
       commandId: COPILOT_COMMAND_IDS.OPEN_SCHEDULES,
-      destination: '/doctors?copilot=schedule',
-      idempotencyKey: `copilot-navigation:${COPILOT_COMMAND_IDS.OPEN_SCHEDULES}`,
       completedAt: '2026-07-17T12:00:00.000Z',
     });
     expect(getCopilotAuditReceipts(storage)).toEqual([receipt]);
@@ -46,6 +44,15 @@ describe('Console Copilot limited executor', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('rejects an allowlisted command when it does not match the confirmed action', async () => {
+    const navigate = jest.fn();
+    await expect(executeCopilotCommand(
+      { id: COPILOT_COMMAND_IDS.OPEN_FINANCE },
+      { actionId: 'prepare.schedules', navigate },
+    )).rejects.toThrow('does not match the confirmed workflow');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('does not report a successful navigation as failed when browser storage is unavailable', async () => {
     const navigate = jest.fn();
     const storage = {
@@ -57,10 +64,10 @@ describe('Console Copilot limited executor', () => {
 
     await expect(executeCopilotCommand(
       { id: COPILOT_COMMAND_IDS.OPEN_REQUESTS },
-      { actionId: 'open.requests', navigate, storage },
+      { actionId: 'review.requests', navigate, storage },
     )).resolves.toMatchObject({
+      actionId: 'review.requests',
       commandId: COPILOT_COMMAND_IDS.OPEN_REQUESTS,
-      destination: '/emergencies',
     });
     expect(navigate).toHaveBeenCalledWith('/emergencies');
   });

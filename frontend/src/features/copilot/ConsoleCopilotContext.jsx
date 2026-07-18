@@ -67,7 +67,7 @@ export const ConsoleCopilotProvider = ({ children }) => {
 
   useEffect(() => {
     close();
-  }, [close, location.pathname]);
+  }, [close, location.hash, location.pathname, location.search]);
 
   const value = useMemo(() => ({
     available: true,
