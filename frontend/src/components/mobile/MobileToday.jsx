@@ -31,6 +31,7 @@ import { useSkeletonWarmup, UpdatingPill } from './canon/Loading';
 import { Hairline } from './canon/GroupedList';
 import { TapButton } from './canon/Tap';
 import { MobileGlanceTile } from './canon/MobileGlanceTile';
+import { CopilotActionButton } from '../../features/copilot';
 
 /**
  * MobileToday — the mobile-canon presentation of the Today home (a DASHBOARD, not a
@@ -246,6 +247,7 @@ export const MobileToday = ({
     routingPath = null,
     onAction,
     onRefresh,
+    copilotRequest,
 }) => {
     // Forced skeleton on every mount (canon useSkeletonWarmup): guarantees a
     // skeleton-first load on cached bottom-nav navigation, not just on refresh.
@@ -381,6 +383,12 @@ export const MobileToday = ({
                                         {primaryOpening ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                                         {primaryOpening ? 'Opening...' : hero.primaryAction}
                                     </TapButton>
+                                    <CopilotActionButton
+                                        label="Explain today"
+                                        request={copilotRequest}
+                                        className="mt-2"
+                                        compact
+                                    />
 
                                     <div className="mt-3">
                                         {rows.map((row, index) => (

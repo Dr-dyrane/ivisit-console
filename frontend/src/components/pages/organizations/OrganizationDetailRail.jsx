@@ -17,6 +17,10 @@ import { Button } from '../../ui/button';
 import { DetailRailShell, RailInsetHero } from '../../console/WorkspaceStage';
 import { CopyChip, DetailLine, Shimmer } from '../../console/primitives';
 import {
+  CopilotActionButton,
+  createOrganizationReadinessRequest,
+} from '../../../features/copilot';
+import {
   formatOrganizationDate,
   formatOrganizationType,
   formatOrganizationWallet,
@@ -81,6 +85,13 @@ export const OrganizationDetailRail = ({
   const displayId = organization.display_id
     || (organization.id ? `Org ${String(organization.id).slice(0, 8)}` : null);
   const viewOpening = activeActionFeedback === `view-${organization.id}`;
+  const copilotRequest = createOrganizationReadinessRequest({
+    organization,
+    verificationLabel: verificationMeta.label,
+    typeValue,
+    walletValue,
+    locationValue,
+  });
 
   return (
     <DetailRailShell embedded={embedded}>
@@ -107,7 +118,7 @@ export const OrganizationDetailRail = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-95 active:bg-foreground/15"
             onClick={() => onView(organization)}
             aria-label="Open full organization details"
           >
@@ -157,6 +168,11 @@ export const OrganizationDetailRail = ({
           {viewOpening ? 'Opening' : 'View details'}
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
+
+        <CopilotActionButton
+          label="Check readiness"
+          request={copilotRequest}
+        />
 
         <div
           role="note"

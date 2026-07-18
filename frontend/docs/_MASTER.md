@@ -169,6 +169,7 @@ If you are a Claude agent arriving at this codebase:
 - [execution/SPRINT_3_PAGE_POLISH.md](./execution/SPRINT_3_PAGE_POLISH.md) — Emergency, Settings, Support, HealthNews
 - [execution/SPRINT_4_DESIGN_TOKENS.md](./execution/SPRINT_4_DESIGN_TOKENS.md) — ModalShell, Tailwind tokens, component unification
 - [execution/SPRINT_5_DATA_GATED.md](./execution/SPRINT_5_DATA_GATED.md) — Analytics, BentoHome, Wallet (after data layer passes)
+- [execution/SPRINT_6_COPILOT_CAPABILITY_LADDER.md](./execution/SPRINT_6_COPILOT_CAPABILITY_LADDER.md) - P1 preparation, P2 confirmation, and allowlisted P3 workflow execution
 
 ### Testing & Release
 - [testing/QA_PROTOCOL.md](./testing/QA_PROTOCOL.md) — Test strategy per change type

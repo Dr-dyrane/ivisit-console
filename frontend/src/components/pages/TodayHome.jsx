@@ -6,6 +6,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { usePageActions } from '../../contexts/PageActionsContext';
 import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
+import { createDashboardExplainRequest } from '../../features/copilot';
 import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
 import { routeFeedbackMs } from '../console/WorkspaceStage';
 import { MobileToday } from '../mobile/MobileToday';
@@ -231,6 +232,13 @@ export const TodayHome = ({ role }) => {
     handleAction(today.path);
   }, [handleAction, today.path]);
 
+  const copilotRequest = useMemo(() => createDashboardExplainRequest({
+    today,
+    live,
+    glanceItems,
+    roleKind,
+  }), [glanceItems, live, roleKind, today]);
+
   const todayPanelContext = useMemo(() => ({
     page: 'today',
     roleKind,
@@ -317,6 +325,7 @@ export const TodayHome = ({ role }) => {
         routingPath={routingPath}
         onAction={handleAction}
         onRefresh={handleRefresh}
+        copilotRequest={copilotRequest}
       />
     );
   }
@@ -334,6 +343,7 @@ export const TodayHome = ({ role }) => {
         routingPath={routingPath}
         onAction={handleAction}
         onRefresh={handleRefresh}
+        copilotRequest={copilotRequest}
       />
     );
   }
@@ -352,6 +362,7 @@ export const TodayHome = ({ role }) => {
       onPrimary={handlePrimary}
       onAction={handleAction}
       routingPath={routingPath}
+      copilotRequest={copilotRequest}
     />
   );
 };

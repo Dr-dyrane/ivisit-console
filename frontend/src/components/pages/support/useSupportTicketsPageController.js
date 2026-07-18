@@ -97,7 +97,7 @@ export const useSupportTicketsPageController = ({
       : String(deletedTicket.id);
 
     if (!requestedKey || confirmedKey !== requestedKey) {
-      throw new Error('Support ticket deletion was not confirmed by the receiver.');
+      throw new Error('Support request deletion could not be confirmed.');
     }
 
     setConfirmedDeletedTicketIds((current) => (

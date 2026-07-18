@@ -43,7 +43,7 @@ const ContextPanelHeader = ({ useMockData }) => (
         )}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('closeContextPanel'))}
-          className="hidden h-9 w-9 items-center justify-center rounded-pill surface-card text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 md:flex"
+          className="hidden h-9 w-9 items-center justify-center rounded-pill surface-card text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-95 active:bg-foreground/15 md:flex"
           type="button"
           aria-label="Close panel"
         >

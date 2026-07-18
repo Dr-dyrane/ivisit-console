@@ -853,7 +853,7 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('walletService.checkCashEligibility');
     expect(pageSource).not.toContain('request.organization_id || request.hospital_id');
     expect(pageSource).toContain("toast.info('Cash settlement is not ready here yet'");
-    expect(pageSource).toContain('The finance receiver pass still owns this action.');
+    expect(pageSource).toContain('Open Finance to manage this payment.');
     expect(pageSource).toContain('const handleRetryPaymentUnavailable = useCallback(() => {');
     expect(pageSource).toContain("toast.info('Payment retry unavailable'");
     expect(pageSource).not.toContain('title="Select payment method"');

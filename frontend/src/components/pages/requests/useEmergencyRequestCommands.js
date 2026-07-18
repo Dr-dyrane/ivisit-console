@@ -244,7 +244,7 @@ export const useEmergencyRequestCommands = ({
 
   const handleProcessCash = useCallback(() => {
     toast.info('Cash settlement is not ready here yet', {
-      description: 'The finance receiver pass still owns this action.',
+      description: 'Open Finance to manage this payment.',
     });
   }, []);
 

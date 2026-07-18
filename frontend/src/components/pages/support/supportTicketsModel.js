@@ -284,7 +284,7 @@ export const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly, lo
       tone: 'clear',
       label: 'Resolved',
       headline: count > 0 ? `${count} resolved ${noun}${count === 1 ? '' : 's'}` : 'No resolved requests in view',
-      subhead: count > 0 ? 'Resolved support stays visible as backend evidence.' : 'Resolved items will appear after support closes the loop.',
+      subhead: count > 0 ? 'Resolved requests stay available for reference.' : 'Resolved items will appear after support closes the loop.',
     };
   }
 
@@ -293,7 +293,7 @@ export const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly, lo
     tone: 'primary',
     label: isProviderOnly ? 'My support' : 'Support',
     headline: count > 0 ? `${count} support ${count === 1 ? 'request' : 'requests'}` : 'No support requests found',
-    subhead: count > 0 ? 'Scan the queue, open one request, then use the proved action.' : 'Create a request or change filters to see support work.',
+    subhead: count > 0 ? 'Scan the queue, then open a request to continue.' : 'Create a request or change filters to see support work.',
   };
 };
 

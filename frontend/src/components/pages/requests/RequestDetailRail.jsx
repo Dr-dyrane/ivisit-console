@@ -26,6 +26,10 @@ import { formatEmergencyServiceToken } from '../../../utils/emergencyRequestMapp
 import { formatRequestDayTime } from '../../../utils/requestDisplay';
 import { buildEmergencyLifecyclePresentation } from './emergencyLifecyclePresentation';
 import {
+  CopilotActionButton,
+  createEmergencyNextActionRequest,
+} from '../../../features/copilot';
+import {
   formatRequestTime,
   getRequestAvatarClass,
   getRequestInitials,
@@ -162,6 +166,19 @@ export const RequestDetailRail = ({
     (primaryAction.kind === 'dispatch' && dispatchPending) ||
     (primaryAction.kind === 'complete' && completePending)
   );
+  const responderValue = responder.hasResponder
+    ? `${responder.label}${responder.etaLabel ? ` \u00b7 ${responder.etaLabel}` : ''}`
+    : null;
+  const copilotRequest = createEmergencyNextActionRequest({
+    heading: displayId ? `Request ${displayId}` : 'Emergency request',
+    statusLabel: status.label,
+    primaryAction,
+    arrivalConfirmation,
+    paymentValue: hasPaymentInfo ? paymentValue : null,
+    responderValue,
+    destinationValue: destination.hasDestination ? destination.label : null,
+    canOpenFinance: currentUser.isAdmin() || currentUser.isOrgAdmin(),
+  });
 
   return (
     <RequestRailShell embedded={embedded} scroll>
@@ -189,7 +206,7 @@ export const RequestDetailRail = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+            className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-95 active:bg-foreground/15"
             onClick={() => onView?.(request)}
             disabled={!lifecycle.actions.details.available}
             title={lifecycle.actions.details.available ? undefined : lifecycle.actions.details.reason}
@@ -304,6 +321,11 @@ export const RequestDetailRail = ({
           <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
 
+        <CopilotActionButton
+          label="Explain next action"
+          request={copilotRequest}
+        />
+
         <div className="grid grid-cols-2 gap-3">
           {lifecycle.actions.secondary.map((action) => {
             const SecondaryIcon = REQUEST_ACTION_ICON[action.kind] || Info;
@@ -327,7 +349,7 @@ export const RequestDetailRail = ({
         {actionState.canProcessCash && typeof onProcessCash === 'function' && (
           <Button
             variant="ghost"
-            className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.99]"
+            className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-[0.99] active:bg-foreground/15"
             onClick={() => onProcessCash(request)}
           >
             Cash settlement handled in Finance
@@ -383,7 +405,7 @@ const RequestDetailRailSkeleton = ({ embedded = false }) => (
 const RailActionButton = ({ icon: Icon, label, onClick, pending = false }) => (
   <Button
     variant="ghost"
-    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98] disabled:opacity-50"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:scale-[0.98] active:bg-foreground/15 disabled:opacity-50"
     onClick={onClick}
     disabled={pending}
   >

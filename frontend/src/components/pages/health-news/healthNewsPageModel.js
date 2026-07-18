@@ -236,7 +236,7 @@ export const getNewsSignal = ({ stats, news, kpiFilter, loadError, hasAny }) => 
     tone: 'primary',
     label: 'Health News',
     headline: count > 0 ? `${count} published source${count === 1 ? '' : 's'}` : 'No published sources',
-    subhead: count > 0 ? 'Review the feed, open one item, and keep writing actions unavailable until the receiver is proved.' : 'Published health news will appear here when available.',
+    subhead: count > 0 ? 'Review the feed and open an item for details.' : 'Published health news will appear here when available.',
   };
 };
 

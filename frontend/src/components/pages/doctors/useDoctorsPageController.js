@@ -167,12 +167,17 @@ export const useDoctorsPageController = () => {
     const params = new URLSearchParams(location.search);
     if (params.has('schedule')) {
       params.delete('schedule');
-      navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
     }
+    if (params.has('copilot')) params.delete('copilot');
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
   }, [location.pathname, location.search, navigate]);
 
   const scheduleId = useMemo(
     () => new URLSearchParams(location.search).get('schedule'),
+    [location.search],
+  );
+  const copilotScheduleRequested = useMemo(
+    () => new URLSearchParams(location.search).get('copilot') === 'schedule',
     [location.search],
   );
 
@@ -181,6 +186,12 @@ export const useDoctorsPageController = () => {
     setScheduleInitialDoctor(null);
     setScheduleModalOpen(true);
   }, [canManageSchedules, scheduleId]);
+
+  useEffect(() => {
+    if (!copilotScheduleRequested || !canManageSchedules) return;
+    setScheduleInitialDoctor(null);
+    setScheduleModalOpen(true);
+  }, [canManageSchedules, copilotScheduleRequested]);
 
   const handleSort = useCallback((key) => {
     setSortConfig((current) => ({

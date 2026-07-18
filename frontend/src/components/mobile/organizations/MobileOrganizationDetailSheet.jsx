@@ -10,6 +10,15 @@ import {
 } from 'lucide-react';
 import { MobileDetailSheet } from '../MobileDetailSheet';
 import {
+  CopilotActionButton,
+  createOrganizationReadinessRequest,
+} from '../../../features/copilot';
+import {
+  formatOrganizationType,
+  formatOrganizationWallet,
+  getOrganizationVerificationMeta,
+} from '../../pages/organizations/organizationPageModel';
+import {
   formatMobileOrganizationDate,
   formatMobileOrganizationWallet,
   getMobileOrganizationPill,
@@ -26,6 +35,17 @@ export const MobileOrganizationDetailSheet = ({
 
   const funded = isFundedOrganization(organization);
   const organizationId = organization.display_id || organization.id || 'Not available';
+  const verificationMeta = getOrganizationVerificationMeta(organization);
+  const copilotRequest = createOrganizationReadinessRequest({
+    organization,
+    verificationLabel: verificationMeta.label,
+    typeValue: formatOrganizationType(organization.organization_type),
+    walletValue: formatOrganizationWallet(
+      organization.wallet_balance,
+      organization.wallet_currency,
+    ),
+    locationValue: organization.city || organization.address || 'Not set',
+  });
 
   return (
     <MobileDetailSheet
@@ -73,6 +93,12 @@ export const MobileOrganizationDetailSheet = ({
           onView?.(organization);
         },
       }}
-    />
+    >
+      <CopilotActionButton
+        label="Check readiness"
+        request={copilotRequest}
+        onBeforeOpen={onClose}
+      />
+    </MobileDetailSheet>
   );
 };

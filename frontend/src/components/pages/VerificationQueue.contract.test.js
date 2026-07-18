@@ -220,7 +220,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(panel).toContain('role="status"');
     expect(panel).toContain('aria-live="polite"');
     expect(panel).toContain('data-state="unavailable"');
-    expect(panel).toContain('Export is unavailable until approval report authority is proved.');
+    expect(panel).toContain('Export is not available yet.');
     expect(panel).toContain('Filter the list or open a pending row to review details.');
     expect(panel).toContain('title="Filter approvals"');
     expect(panel).toContain('title="View approval trends"');

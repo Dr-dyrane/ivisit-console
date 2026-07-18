@@ -90,7 +90,7 @@ export const useEmergencyRequestModalController = ({
   const modalSubtitle = isCreate
     ? 'Create a request and send it to the care queue.'
     : isEdit
-      ? 'Update request details from the approved receiver.'
+      ? 'Update request details.'
       : 'Review request details.';
   const submitLabel = loading ? 'Saving...' : isCreate ? 'Create request' : 'Save changes';
   const facilityRequired = isCreate && isOrgAdmin();

@@ -155,7 +155,7 @@ export const HealthNewsDetailRail = ({
           className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground"
         >
           <Info className="h-4 w-4 shrink-0" />
-          Writing, publish changes, imports, and deletion stay locked until the content receiver is proved.
+          Editing, publishing, importing, and deletion are not available yet.
         </div>
       </div>
     </DetailRailShell>

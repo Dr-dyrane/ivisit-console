@@ -500,7 +500,7 @@ export const VerificationModal = ({
                       <div className="text-sm text-foreground/80">
                         <p className="font-semibold mb-1">Review note</p>
                         <p className="text-xs leading-relaxed opacity-90">
-                          Review evidence first, then ownership, organization, and facility. Each approval is separate and backend enforced.
+                          Review the claim, organization, and facility in order. Each approval is handled separately.
                         </p>
                       </div>
                     </div>

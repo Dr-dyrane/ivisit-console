@@ -247,7 +247,7 @@ describe('emergency lifecycle presentation', () => {
 
     expect(lifecycle.actions.dispatch).toMatchObject({
       available: false,
-      reason: 'Dispatch receiver is unavailable.',
+      reason: 'Dispatch is not available from this request.',
     });
     expect(lifecycle.actions.primary.kind).toBe('details');
   });
@@ -268,7 +268,7 @@ describe('emergency lifecycle presentation', () => {
       label: 'Retry payment',
       available: false,
       receiver: null,
-      reason: 'Payment retry has no supported Console receiver.',
+      reason: 'Payment retry is not available here.',
     });
     expect(lifecycle.actions.primary.kind).toBe('details');
   });

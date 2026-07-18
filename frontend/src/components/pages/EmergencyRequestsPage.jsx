@@ -140,6 +140,7 @@ export const EmergencyRequestsPage = () => {
           onRefresh={fetchRequests}
           onViewAnalytics={handleOpenAnalytics}
           canManageRequests={currentUser.canOperateDispatch()}
+          canOpenFinance={currentUser.isAdmin() || currentUser.isOrgAdmin()}
           canCompleteRequest={currentUser.canCompleteRequest}
           onOpenFilters={() => setFilterSheetOpen(true)}
           filterSheetOpen={filterSheetOpen}

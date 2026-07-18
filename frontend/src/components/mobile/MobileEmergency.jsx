@@ -38,6 +38,10 @@ import {
   getMobileRequestTypeIcon,
 } from './requests/mobileEmergencyModel';
 import { useMobileEmergencyController } from './requests/useMobileEmergencyController';
+import {
+  CopilotActionButton,
+  createEmergencyNextActionRequest,
+} from '../../features/copilot';
 
 const MOBILE_ACTION_META = {
   review: { icon: ClipboardCheck, tone: 'hsl(var(--destructive))' },
@@ -85,6 +89,7 @@ const LifecycleRequestRow = ({
 const LifecycleRequestDetailSheet = ({
   controller,
   canManageRequests,
+  canOpenFinance,
   canCompleteRequest,
   onView,
   onDispatch,
@@ -152,6 +157,21 @@ const LifecycleRequestDetailSheet = ({
   };
   const primaryAction = toMobileAction(lifecycle.actions.primary);
   const secondaryAction = toMobileAction(lifecycle.actions.secondary[0]);
+  const arrivalConfirmation = lifecycle.arrival.acknowledged
+    ? `Confirmed ${formatRequestDayTime(lifecycle.arrival.patientAcknowledgedAt)}`
+    : lifecycle.status.key === 'arrived' ? 'Awaiting patient confirmation' : null;
+  const copilotRequest = createEmergencyNextActionRequest({
+    heading: displayId ? `Request ${displayId}` : 'Emergency request',
+    statusLabel: lifecycle.status.label,
+    primaryAction: lifecycle.actions.primary,
+    arrivalConfirmation,
+    paymentValue: hasPayment ? paymentParts.join(' \u00b7 ') : null,
+    responderValue: responder,
+    destinationValue: projection.destinationDisplay.hasDestination
+      ? projection.destinationDisplay.label
+      : null,
+    canOpenFinance,
+  });
 
   return (
     <MobileDetailSheet
@@ -237,6 +257,11 @@ const LifecycleRequestDetailSheet = ({
       primary={primaryAction}
       secondary={secondaryAction}
     >
+      <CopilotActionButton
+        label="Explain next action"
+        request={copilotRequest}
+        onBeforeOpen={() => setActiveRequestId(null)}
+      />
       {lifecycle.actionState.canProcessCash && typeof onProcessCash === 'function' && (
         <button
           type="button"
@@ -280,6 +305,7 @@ export const MobileEmergency = ({
   onRefresh,
   onViewAnalytics,
   canManageRequests,
+  canOpenFinance = false,
   canCompleteRequest,
   onOpenFilters,
   filterSheetOpen = false,
@@ -385,6 +411,7 @@ export const MobileEmergency = ({
         <LifecycleRequestDetailSheet
           controller={controller}
           canManageRequests={canManageRequests}
+          canOpenFinance={canOpenFinance}
           canCompleteRequest={canCompleteRequest}
           onView={onView}
           onDispatch={onDispatch}
