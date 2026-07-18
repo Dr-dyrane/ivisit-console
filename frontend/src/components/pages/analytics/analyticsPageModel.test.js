@@ -201,6 +201,12 @@ describe('analytics page projection model', () => {
       facilityCount: 1,
       population: 'demo',
     }));
+    expect(getHospitalCapacitySummary([
+      { provider_type: 'hospital', place_id: 'e2e:run-1:facility:1', total_beds: 7, available_beds: 3, icu_beds_available: 1 },
+    ], { complete: true })).toEqual(expect.objectContaining({
+      total: 7,
+      population: 'demo',
+    }));
   });
 
   it('marks each source ready only when its own proof is complete', () => {

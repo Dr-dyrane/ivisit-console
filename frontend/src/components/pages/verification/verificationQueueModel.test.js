@@ -224,6 +224,8 @@ describe('verification queue model', () => {
     expect(getFacilityProvenance({ provider_source: null, place_id: 'ChIJabc123' })).toBe('Imported \u00b7 Places');
     expect(getFacilityProvenance({ provider_source: 'demo_bootstrap' })).toBe('Demo seed');
     expect(getFacilityProvenance({ provider_source: null, place_id: 'demo:lagos-1' })).toBe('Demo seed');
+    expect(getFacilityProvenance({ provider_source: 'manual_seed', place_id: 'e2e:run-1:facility:1' })).toBe('E2E fixture');
+    expect(getFacilityProvenance({ features: ['demo_scope:run-1'] })).toBe('E2E fixture');
     expect(getFacilityProvenance({ provider_source: 'manual_seed' })).toBe('Self-registered');
     expect(getFacilityProvenance({ provider_source: 'verified_provider' })).toBe('Self-registered');
     expect(getFacilityProvenance({ provider_source: null, place_id: null })).toBeNull();
