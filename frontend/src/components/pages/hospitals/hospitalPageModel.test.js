@@ -204,6 +204,8 @@ describe('hospital page model characterization', () => {
   it('classifies provenance from the database-derived demo and import encodings', () => {
     expect(isDemoHospitalRow({ provider_source: 'demo_bootstrap' })).toBe(true);
     expect(isDemoHospitalRow({ place_id: 'demo:hospital-1' })).toBe(true);
+    expect(isDemoHospitalRow({ place_id: 'e2e:run-1:facility:1' })).toBe(true);
+    expect(isDemoHospitalRow({ features: ['demo_scope:run-1'] })).toBe(true);
     expect(isDemoHospitalRow({ place_id: 'ChIJ123', provider_source: 'google_places' })).toBe(false);
     expect(isDemoHospitalRow({})).toBe(false);
 

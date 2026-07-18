@@ -211,6 +211,10 @@ export const getFacilityClaims = (item) => {
 export const getFacilityProvenance = (item) => {
   const source = typeof item?.provider_source === 'string' ? item.provider_source.trim().toLowerCase() : '';
   const placeId = typeof item?.place_id === 'string' ? item.place_id.trim() : '';
+  const hasDemoScope = Array.isArray(item?.features) && item.features.some(
+    (feature) => String(feature || '').startsWith('demo_scope:')
+  );
+  if (placeId.startsWith('e2e:') || hasDemoScope) return 'E2E fixture';
   if (source === 'demo_bootstrap' || placeId.startsWith('demo:')) return 'Demo seed';
   if (source === 'google_places' || source === 'mapbox_places') return 'Imported \u00b7 Places';
   if (!source && placeId) return 'Imported \u00b7 Places';

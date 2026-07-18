@@ -800,12 +800,13 @@ describe('HospitalsPage admission audit contract', () => {
     // provider_source, and place_id arrive without a new query shape.
     expect(serviceSource()).toContain("supabase.from(TABLE_NAME).select('*')");
 
-    // One database-derived demo rule (org_structure.sql backfill), pinned in
-    // BOTH lanes that consume it so neither drifts alone.
-    expect(model).toContain("String(hospital?.place_id || '').startsWith('demo:')");
+    // Stable preview and ephemeral E2E provenance stay pinned in both lanes.
+    expect(model).toContain("['demo:', 'e2e:']");
     expect(model).toContain("hospital?.provider_source === 'demo_bootstrap'");
-    expect(analyticsModel).toContain("String(hospital?.place_id || '').startsWith('demo:')");
+    expect(model).toContain("startsWith('demo_scope:')");
+    expect(analyticsModel).toContain("['demo:', 'e2e:']");
     expect(analyticsModel).toContain("hospital?.provider_source === 'demo_bootstrap'");
+    expect(analyticsModel).toContain("startsWith('demo_scope:')");
 
     // The model binds the fetched columns into provenance keys.
     expect(model).toContain('String(hospital.provider_type).trim().toLowerCase()');

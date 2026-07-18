@@ -790,3 +790,28 @@ Stop conditions:
 - Do not continue if organization id versus hospital id ownership is ambiguous.
 - Do not approve verification semantics that grant dispatch readiness from the wrong field.
 - Do not create or mutate Auth users outside an approved non-production test.
+
+### One-week repeatability and cleanup gate (July 17)
+
+The App-owned live runner now assigns every mutating rehearsal an exact ignored
+manifest. Console must preserve the distinction it exposes:
+
+- `createdFacilityIds` are disposable;
+- imported/discovered facilities are protected claim-catalog records and are
+  never deleted by organization ownership;
+- stable preview coverage may use `demo:*`/`demo_bootstrap`;
+- ephemeral onboarding fixtures use `[DEMO <short-run-id>]`,
+  `e2e:<run-id>`, and `demo_scope:<run-id>` so they remain visibly test data
+  without inheriting the stable-demo dispatch eligibility bypass.
+
+Console hospital, verification, and analytics projections label/exclude both
+stable demo and ephemeral E2E provenance. The week gate requires onboarding,
+review ordering, App eligibility, emergency lifecycle, multi-tab/reconnect,
+three fresh runs, repeat cleanup, zero global residue, contract drift zero, and
+the eleven-pillar migration baseline. A cleanup pass is not accepted unless its
+second application is a zero-action no-op.
+
+First isolation run `1784334104297-7b38c565` exposed that `demo:*` is an
+eligibility-bearing production encoding, then cleaned twice with zero residue.
+Corrected run `1784334199571-2d9f6608` used `e2e:*`, passed the complete live
+contract, cleaned twice, and passed an additional manifest-driven no-op cleanup.

@@ -210,13 +210,17 @@ export const formatHospitalWait = (minutes) => {
   return Number.isFinite(numericMinutes) ? `${numericMinutes}m` : 'Unknown';
 };
 
-// Demo encoding is database-derived (org_structure.sql provider_source
-// backfill): place_id 'demo:%' or provider_source 'demo_bootstrap'. The same
-// predicate splits the analytics capacity population; the page contract pins
-// both lanes to this one rule so neither drifts alone.
+// Stable preview coverage uses demo:/demo_bootstrap. Ephemeral live-readiness
+// fixtures use e2e:/demo_scope so they remain visibly non-production without
+// inheriting the database's stable-demo dispatch eligibility bypass.
 export const isDemoHospitalRow = (hospital) => (
-  String(hospital?.place_id || '').startsWith('demo:')
+  ['demo:', 'e2e:'].some((prefix) => (
+    String(hospital?.place_id || '').startsWith(prefix)
+  ))
   || hospital?.provider_source === 'demo_bootstrap'
+  || (Array.isArray(hospital?.features) && hospital.features.some(
+    (feature) => String(feature || '').startsWith('demo_scope:')
+  ))
 );
 
 const IMPORTED_HOSPITAL_SOURCES = new Set(['google_places', 'mapbox_places', 'places_import']);

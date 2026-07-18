@@ -107,8 +107,13 @@ const isHospitalCapacityRow = (hospital) => (
 );
 
 export const isDemoHospitalCapacityRow = (hospital) => (
-  String(hospital?.place_id || '').startsWith('demo:')
+  ['demo:', 'e2e:'].some((prefix) => (
+    String(hospital?.place_id || '').startsWith(prefix)
+  ))
   || hospital?.provider_source === 'demo_bootstrap'
+  || (Array.isArray(hospital?.features) && hospital.features.some(
+    (feature) => String(feature || '').startsWith('demo_scope:')
+  ))
 );
 
 export const getHospitalCapacitySummary = (hospitals = [], hospitalSample = {}) => {
