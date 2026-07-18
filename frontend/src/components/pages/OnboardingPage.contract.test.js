@@ -64,7 +64,7 @@ describe('Onboarding Page 21 receiver contract', () => {
     expect(service).toContain('supabase.auth.signUp({');
     expect(service).toContain('data: { full_name: fullName }');
     expect(service).not.toContain('data: { role:');
-    expect(service).toContain("supabase.rpc('search_onboarding_facilities'");
+    expect(service).toContain("supabase.functions.invoke('search-onboarding-facilities'");
     expect(service).toContain("supabase.rpc('get_console_identity_projection')");
     expect(service).toContain("supabase.rpc('provision_console_organization'");
     expect(service).toContain('data?.provisioningVerified !== true');

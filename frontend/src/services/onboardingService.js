@@ -156,15 +156,15 @@ export const onboardingService = {
     const normalized = String(query || '').trim();
     if (normalized.length < 3) return [];
 
-    const { data, error } = await supabase.rpc('search_onboarding_facilities', {
-      p_query: normalized.slice(0, 80),
+    const { data, error } = await supabase.functions.invoke('search-onboarding-facilities', {
+      body: { query: normalized.slice(0, 80) },
     });
 
     if (error) {
       throw createOnboardingError('FACILITY_SEARCH_FAILED', 'We could not search facilities. Try again.');
     }
 
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data?.data) ? data.data : [];
   },
 
   async getIdentityProjection() {

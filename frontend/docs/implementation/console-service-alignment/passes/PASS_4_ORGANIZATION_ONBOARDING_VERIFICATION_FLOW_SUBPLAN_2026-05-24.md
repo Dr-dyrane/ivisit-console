@@ -826,3 +826,28 @@ transition, and rating lanes. Each captured 21 non-empty dependency classes,
 removed every class on the first exact cleanup, and planned zero actions on the
 second. Rating replay preserved the first submitted rating. Global residue and
 cross-repository contract drift remained zero.
+
+### Demo provenance exclusion at facility search (July 18)
+
+`search_onboarding_facilities(TEXT)` remains the canonical search, eligibility,
+and claimability authority. The browser now calls the authenticated
+`search-onboarding-facilities` Edge adapter, which invokes that RPC with the
+caller's JWT and uses service authority only to read provenance for the exact
+returned facility UUIDs. It excludes stable demo and disposable E2E records
+from onboarding selection and fails closed when provenance is incomplete; it
+does not reinterpret ownership, verification, or claimability.
+
+The exclusion recognizes `demo:`/`e2e:` place ids, `demo_bootstrap` provider
+source, demo verification states, and the maintained demo feature markers,
+including `demo_owner:`, `demo_scope:`, and `demo_expires_at:`. Real imported
+and discovered hospitals remain eligible according to the RPC and are not
+removed or hidden merely because they are unowned.
+
+Two exact live runs, `onboarding-search-mrqyig5j` and
+`onboarding-search-mrqyiyag`, proved that the canonical RPC could see each
+disposable E2E fixture while the Edge result excluded it. Both runs preserved
+the same real discovered facility
+`4c07047f-c570-4308-9012-7b008349e705`, then removed only their exact hospital,
+profile, and Auth fixtures with zero asserted residue. The contract test also
+proves missing provenance fails closed. This adapter required no schema or
+migration change.
