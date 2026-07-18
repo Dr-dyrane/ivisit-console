@@ -1,4 +1,6 @@
 import React from 'react';
+import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 
 const STATUS_META = {
   neutral: { label: null, className: '' },
@@ -51,7 +53,102 @@ const EvidenceCard = ({ item }) => {
   );
 };
 
-export const ProposalSummary = ({ proposal, isPreparing, error }) => {
+const WorkflowActions = ({
+  actions,
+  pendingAction,
+  isExecuting,
+  executionError,
+  onPrepareAction,
+  onCancelAction,
+  onConfirmAction,
+}) => {
+  if (!actions?.length) return null;
+
+  if (pendingAction) {
+    return (
+      <section className="rounded-card bg-primary/8 p-4" aria-label="Confirm Copilot action">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-primary/12 text-primary">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{pendingAction.label}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Copilot will open this workflow. You will review any changes there.
+            </p>
+          </div>
+        </div>
+        {executionError && (
+          <p className="mt-3 rounded-inner bg-destructive/10 px-3 py-2 text-xs text-destructive" role="alert">
+            This workflow could not be opened. Try again.
+          </p>
+        )}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancelAction}
+            disabled={isExecuting}
+            className="h-10 rounded-button bg-muted/35 text-sm font-semibold text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            onClick={onConfirmAction}
+            disabled={isExecuting}
+            aria-busy={isExecuting}
+            className="h-10 rounded-button text-sm font-semibold"
+          >
+            {isExecuting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isExecuting ? 'Opening' : 'Open workflow'}
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-2" aria-label="Prepared actions">
+      <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Next steps
+      </p>
+      {actions.map((action) => (
+        <button
+          key={action.id}
+          type="button"
+          onClick={() => onPrepareAction?.(action)}
+          disabled={action.availability !== 'available'}
+          title={action.availability === 'available' ? undefined : action.reason}
+          className="group flex w-full items-center gap-3 rounded-inner bg-muted/28 p-3 text-left text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 focus-visible:text-foreground active:bg-foreground/15 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/70 text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">{action.label}</span>
+            {action.description && (
+              <span className="mt-0.5 block text-xs leading-5">{action.description}</span>
+            )}
+          </span>
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </button>
+      ))}
+    </section>
+  );
+};
+
+export const ProposalSummary = ({
+  proposal,
+  isPreparing,
+  error,
+  pendingAction,
+  isExecuting = false,
+  executionError,
+  onPrepareAction,
+  onCancelAction,
+  onConfirmAction,
+}) => {
   if (isPreparing) {
     return (
       <div className="space-y-3" aria-live="polite" aria-busy="true">
@@ -87,6 +184,16 @@ export const ProposalSummary = ({ proposal, isPreparing, error }) => {
           ))}
         </dl>
       )}
+
+      <WorkflowActions
+        actions={proposal.suggestedActions}
+        pendingAction={pendingAction}
+        isExecuting={isExecuting}
+        executionError={executionError}
+        onPrepareAction={onPrepareAction}
+        onCancelAction={onCancelAction}
+        onConfirmAction={onConfirmAction}
+      />
 
     </div>
   );

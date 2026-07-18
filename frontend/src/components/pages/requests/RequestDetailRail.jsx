@@ -177,6 +177,7 @@ export const RequestDetailRail = ({
     paymentValue: hasPaymentInfo ? paymentValue : null,
     responderValue,
     destinationValue: destination.hasDestination ? destination.label : null,
+    canOpenFinance: currentUser.isAdmin() || currentUser.isOrgAdmin(),
   });
 
   return (

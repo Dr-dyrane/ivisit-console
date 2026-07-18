@@ -7,7 +7,20 @@ import { ProposalSummary } from '../components/ProposalSummary';
  * Context-panel compatible content. It owns no fixed geometry so the global
  * ContextPanel shell can mount it without creating a competing desktop rail.
  */
-export const DesktopCopilotRail = ({ isOpen, onClose, proposal, isPreparing, error, className = '' }) => {
+export const DesktopCopilotRail = ({
+  isOpen,
+  onClose,
+  proposal,
+  isPreparing,
+  error,
+  pendingAction,
+  isExecuting,
+  executionError,
+  onPrepareAction,
+  onCancelAction,
+  onConfirmAction,
+  className = '',
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -37,7 +50,17 @@ export const DesktopCopilotRail = ({ isOpen, onClose, proposal, isPreparing, err
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <ProposalSummary proposal={proposal} isPreparing={isPreparing} error={error} />
+      <ProposalSummary
+        proposal={proposal}
+        isPreparing={isPreparing}
+        error={error}
+        pendingAction={pendingAction}
+        isExecuting={isExecuting}
+        executionError={executionError}
+        onPrepareAction={onPrepareAction}
+        onCancelAction={onCancelAction}
+        onConfirmAction={onConfirmAction}
+      />
     </section>
   );
 };

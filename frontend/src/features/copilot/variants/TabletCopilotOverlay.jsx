@@ -4,7 +4,14 @@ import { ModalShell } from '../../../components/ui/ModalShell';
 import { ProposalSummary } from '../components/ProposalSummary';
 
 /** A bounded overlay so tablet master-detail geometry remains route-owned. */
-export const TabletCopilotOverlay = ({ isOpen, onClose, proposal, isPreparing, error }) => (
+export const TabletCopilotOverlay = ({
+  isOpen,
+  onClose,
+  proposal,
+  isPreparing,
+  error,
+  ...workflowProps
+}) => (
   <ModalShell
     isOpen={isOpen}
     onClose={onClose}
@@ -14,7 +21,7 @@ export const TabletCopilotOverlay = ({ isOpen, onClose, proposal, isPreparing, e
     size="md"
   >
     <div className="px-5 pb-6 md:px-6">
-      <ProposalSummary proposal={proposal} isPreparing={isPreparing} error={error} />
+      <ProposalSummary proposal={proposal} isPreparing={isPreparing} error={error} {...workflowProps} />
     </div>
   </ModalShell>
 );

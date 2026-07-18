@@ -6,7 +6,7 @@ export const COPILOT_ACTION_REGISTRY = Object.freeze({
     title: 'Explain this dashboard',
     contextKey: 'dashboard',
     kind: 'explanation',
-    mode: 'proposal-only',
+    mode: 'capability-ladder',
     authority: 'scoped-read-projection',
   }),
   [COPILOT_ACTION_IDS.ORGANIZATION_EXPLAIN_READINESS]: Object.freeze({
@@ -14,7 +14,7 @@ export const COPILOT_ACTION_REGISTRY = Object.freeze({
     title: 'Explain readiness',
     contextKey: 'organization',
     kind: 'explanation',
-    mode: 'proposal-only',
+    mode: 'capability-ladder',
     authority: 'scoped-read-projection',
   }),
   [COPILOT_ACTION_IDS.EMERGENCY_EXPLAIN_NEXT_ACTION]: Object.freeze({
@@ -22,7 +22,7 @@ export const COPILOT_ACTION_REGISTRY = Object.freeze({
     title: 'Explain next action',
     contextKey: 'emergency',
     kind: 'explanation',
-    mode: 'proposal-only',
+    mode: 'capability-ladder',
     authority: 'backend-derived-read-only-evidence',
   }),
 });

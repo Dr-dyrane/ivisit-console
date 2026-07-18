@@ -16,6 +16,12 @@ export const ConsoleCopilotOrchestrator = ({ controller }) => {
     proposal: controller.proposal,
     isPreparing: controller.isPreparing,
     error: controller.error,
+    pendingAction: controller.pendingAction,
+    isExecuting: controller.isExecuting,
+    executionError: controller.executionError,
+    onPrepareAction: controller.prepareAction,
+    onCancelAction: controller.cancelAction,
+    onConfirmAction: controller.confirmAction,
   };
 
   if (isPhone) return <MobileCopilotSheet {...sharedProps} />;

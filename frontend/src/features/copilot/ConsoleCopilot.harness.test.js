@@ -28,7 +28,7 @@ const dashboardRequest = () => ({
 });
 
 describe('Console Copilot independent harness', () => {
-  it('keeps the P0 proposal allowlist exact and rejects arbitrary table, RPC, and SQL input', () => {
+  it('keeps the action allowlist exact and rejects arbitrary table, RPC, and SQL input', () => {
     const expectedActionIds = [
       'dashboard.explain',
       'organization.explain_readiness',
@@ -41,7 +41,7 @@ describe('Console Copilot independent harness', () => {
       expect(getCopilotAction(actionId)).toEqual(expect.objectContaining({
         id: actionId,
         kind: 'explanation',
-        mode: 'proposal-only',
+        mode: 'capability-ladder',
       }));
     });
 

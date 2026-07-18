@@ -1,4 +1,4 @@
-import { COPILOT_ACTION_IDS } from './model/copilotContracts';
+import { COPILOT_ACTION_IDS, COPILOT_COMMAND_IDS } from './model/copilotContracts';
 
 const toneToStatus = (tone) => ({
   success: 'ready',
@@ -15,6 +15,55 @@ const evidenceItem = (label, value, status = 'neutral', description) => ({
   ...(description ? { description } : {}),
   status,
 });
+
+const workflowAction = (id, label, description, commandId) => ({
+  id,
+  label,
+  description,
+  availability: 'available',
+  stages: ['prepare', 'confirm', 'execute'],
+  requiresConfirmation: true,
+  command: { id: commandId },
+});
+
+const dashboardWorkflowActions = (roleKind) => {
+  const role = String(roleKind || '').toLowerCase();
+  const actions = [];
+
+  if (['admin', 'org_admin', 'provider', 'dispatcher'].includes(role)) {
+    actions.push(workflowAction(
+      'review.requests',
+      'Review requests',
+      'Open the active request workspace.',
+      COPILOT_COMMAND_IDS.OPEN_REQUESTS,
+    ));
+  }
+  if (['admin', 'org_admin'].includes(role)) {
+    actions.push(
+      workflowAction('review.approvals', 'Review approvals', 'Open the onboarding approval queue.', COPILOT_COMMAND_IDS.OPEN_APPROVALS),
+      workflowAction('manage.facilities', 'Review facilities', 'Open facility readiness and capacity records.', COPILOT_COMMAND_IDS.OPEN_FACILITIES),
+      workflowAction('manage.providers', 'Manage providers', 'Open the provider directory.', COPILOT_COMMAND_IDS.OPEN_PROVIDERS),
+      workflowAction('prepare.schedules', 'Prepare schedules', 'Open staff scheduling.', COPILOT_COMMAND_IDS.OPEN_SCHEDULES),
+    );
+  }
+  if (role === 'admin') {
+    actions.splice(2, 0, workflowAction(
+      'manage.organizations',
+      'Review organizations',
+      'Open organization onboarding and readiness.',
+      COPILOT_COMMAND_IDS.OPEN_ORGANIZATIONS,
+    ));
+  }
+  if (['provider', 'dispatcher'].includes(role)) {
+    actions.push(workflowAction(
+      'track.live',
+      'Open live map',
+      'Open live request and responder tracking.',
+      COPILOT_COMMAND_IDS.OPEN_LIVE_MAP,
+    ));
+  }
+  return actions.slice(0, 6);
+};
 
 const titleCaseToken = (value) => String(value)
   .toLowerCase()
@@ -33,7 +82,7 @@ export const formatPaymentEvidence = (value) => String(value)
   })
   .join(' \u00b7 ');
 
-export const createDashboardExplainRequest = ({ today, live, glanceItems = [] }) => ({
+export const createDashboardExplainRequest = ({ today, live, glanceItems = [], roleKind }) => ({
   actionId: COPILOT_ACTION_IDS.DASHBOARD_EXPLAIN,
   context: {
     dashboard: {
@@ -45,6 +94,7 @@ export const createDashboardExplainRequest = ({ today, live, glanceItems = [] })
           evidenceItem(item.label, item.value, toneToStatus(item.tone))
         )),
       ],
+      suggestedActions: dashboardWorkflowActions(roleKind),
     },
   },
 });
@@ -77,6 +127,12 @@ export const createOrganizationReadinessRequest = ({
             ? [evidenceItem('Rejection reason', organization.rejection_reason, 'blocked')]
             : []),
         ],
+        suggestedActions: [
+          workflowAction('organization.approvals', 'Review verification', 'Open organization and facility approvals.', COPILOT_COMMAND_IDS.OPEN_APPROVALS),
+          workflowAction('organization.facilities', 'Review facilities', 'Open facilities linked to onboarding operations.', COPILOT_COMMAND_IDS.OPEN_FACILITIES),
+          workflowAction('organization.providers', 'Manage providers', 'Open provider onboarding and access.', COPILOT_COMMAND_IDS.OPEN_PROVIDERS),
+          workflowAction('organization.schedules', 'Prepare schedules', 'Open staff scheduling and rosters.', COPILOT_COMMAND_IDS.OPEN_SCHEDULES),
+        ],
       },
     },
   };
@@ -90,6 +146,7 @@ export const createEmergencyNextActionRequest = ({
   paymentValue,
   responderValue,
   destinationValue,
+  canOpenFinance = false,
 }) => {
   const nextActionStatus = !primaryAction?.available
     ? 'blocked'
@@ -114,6 +171,13 @@ export const createEmergencyNextActionRequest = ({
           ...(paymentValue ? [evidenceItem('Payment', formatPaymentEvidence(paymentValue))] : []),
           ...(responderValue ? [evidenceItem('Responder', responderValue)] : []),
           ...(destinationValue ? [evidenceItem('Destination', destinationValue)] : []),
+        ],
+        suggestedActions: [
+          workflowAction('emergency.requests', 'Open request workspace', 'Review the request in its canonical workspace.', COPILOT_COMMAND_IDS.OPEN_REQUESTS),
+          workflowAction('emergency.map', 'Open live map', 'Review responder and route tracking.', COPILOT_COMMAND_IDS.OPEN_LIVE_MAP),
+          ...(canOpenFinance
+            ? [workflowAction('emergency.finance', 'Open Finance', 'Review payment records and available finance actions.', COPILOT_COMMAND_IDS.OPEN_FINANCE)]
+            : []),
         ],
       },
     },

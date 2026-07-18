@@ -236,7 +236,8 @@ export const TodayHome = ({ role }) => {
     today,
     live,
     glanceItems,
-  }), [glanceItems, live, today]);
+    roleKind,
+  }), [glanceItems, live, roleKind, today]);
 
   const todayPanelContext = useMemo(() => ({
     page: 'today',

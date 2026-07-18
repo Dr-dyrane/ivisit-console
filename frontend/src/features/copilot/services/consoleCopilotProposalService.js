@@ -41,18 +41,19 @@ export const createLocalCopilotProposal = (request) => {
   const copy = COPY[parsedRequest.actionId];
   const context = getEvidenceContext(parsedRequest, action);
   const evidence = context.evidence;
+  const suggestedActions = context.suggestedActions || [];
 
   return validateCopilotProposal({
-    version: 1,
-    proposalOnly: true,
+    version: 2,
+    proposalOnly: suggestedActions.length === 0,
     actionId: action.id,
-    kind: 'explanation',
+    kind: suggestedActions.length > 0 ? 'guidance' : 'explanation',
     availability: evidence.length > 0 ? 'available' : 'unavailable',
     title: context.heading || copy.title,
     summary: getSummary({ evidence, empty: copy.empty }),
     evidence,
     guardrail: copy.guardrail,
-    suggestedActions: [],
+    suggestedActions,
     source: 'local-deterministic',
   });
 };

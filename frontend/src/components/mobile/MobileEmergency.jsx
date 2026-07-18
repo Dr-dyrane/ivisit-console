@@ -89,6 +89,7 @@ const LifecycleRequestRow = ({
 const LifecycleRequestDetailSheet = ({
   controller,
   canManageRequests,
+  canOpenFinance,
   canCompleteRequest,
   onView,
   onDispatch,
@@ -169,6 +170,7 @@ const LifecycleRequestDetailSheet = ({
     destinationValue: projection.destinationDisplay.hasDestination
       ? projection.destinationDisplay.label
       : null,
+    canOpenFinance,
   });
 
   return (
@@ -303,6 +305,7 @@ export const MobileEmergency = ({
   onRefresh,
   onViewAnalytics,
   canManageRequests,
+  canOpenFinance = false,
   canCompleteRequest,
   onOpenFilters,
   filterSheetOpen = false,
@@ -408,6 +411,7 @@ export const MobileEmergency = ({
         <LifecycleRequestDetailSheet
           controller={controller}
           canManageRequests={canManageRequests}
+          canOpenFinance={canOpenFinance}
           canCompleteRequest={canCompleteRequest}
           onView={onView}
           onDispatch={onDispatch}

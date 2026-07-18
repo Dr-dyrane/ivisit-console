@@ -3,7 +3,14 @@ import { Sparkles } from 'lucide-react';
 import { ModalShell } from '../../../components/ui/ModalShell';
 import { ProposalSummary } from '../components/ProposalSummary';
 
-export const MobileCopilotSheet = ({ isOpen, onClose, proposal, isPreparing, error }) => (
+export const MobileCopilotSheet = ({
+  isOpen,
+  onClose,
+  proposal,
+  isPreparing,
+  error,
+  ...workflowProps
+}) => (
   <ModalShell
     isOpen={isOpen}
     onClose={onClose}
@@ -13,7 +20,7 @@ export const MobileCopilotSheet = ({ isOpen, onClose, proposal, isPreparing, err
     size="lg"
   >
     <div className="px-4 pb-5 md:px-6">
-      <ProposalSummary proposal={proposal} isPreparing={isPreparing} error={error} />
+      <ProposalSummary proposal={proposal} isPreparing={isPreparing} error={error} {...workflowProps} />
     </div>
   </ModalShell>
 );

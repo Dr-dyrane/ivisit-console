@@ -63,4 +63,36 @@ describe('ProposalSummary constrained evidence layout', () => {
     expect(markup).not.toContain(proposal.guardrail);
     expect(markup).not.toMatch(/backend|receiver|proposal-only|current screen/i);
   });
+
+  it('renders prepared workflow cards and a concise confirmation state', () => {
+    const action = {
+      id: 'prepare.schedules',
+      label: 'Prepare schedules',
+      description: 'Open staff scheduling.',
+      availability: 'available',
+      stages: ['prepare', 'confirm', 'execute'],
+      requiresConfirmation: true,
+      command: { id: 'workflow.open_schedules' },
+    };
+    const actionMarkup = renderToStaticMarkup(
+      <ProposalSummary
+        proposal={{ ...proposal, suggestedActions: [action] }}
+        isPreparing={false}
+        error={null}
+      />,
+    );
+    const confirmationMarkup = renderToStaticMarkup(
+      <ProposalSummary
+        proposal={{ ...proposal, suggestedActions: [action] }}
+        pendingAction={action}
+        isPreparing={false}
+        error={null}
+      />,
+    );
+
+    expect(actionMarkup).toContain('Prepare schedules');
+    expect(actionMarkup).toContain('Open staff scheduling.');
+    expect(confirmationMarkup).toContain('Open workflow');
+    expect(confirmationMarkup).toContain('You will review any changes there.');
+  });
 });

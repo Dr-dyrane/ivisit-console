@@ -155,9 +155,15 @@ export const ContextPanelShell = () => {
                     isOpen={copilot.isOpen}
                     onClose={copilot.closeCopilot}
                     proposal={copilot.proposal}
-                    isPreparing={copilot.isPreparing}
-                    error={copilot.error}
-                    className="p-4"
+                      isPreparing={copilot.isPreparing}
+                      error={copilot.error}
+                      pendingAction={copilot.pendingAction}
+                      isExecuting={copilot.isExecuting}
+                      executionError={copilot.executionError}
+                      onPrepareAction={copilot.prepareCopilotAction}
+                      onCancelAction={copilot.cancelCopilotAction}
+                      onConfirmAction={copilot.confirmCopilotAction}
+                      className="p-4"
                   />
                 ) : (
                   <ContextPanel />
