@@ -29,6 +29,7 @@ describe('Set Password Page 20 admission contract', () => {
 
     expect(page).toContain('const RECOVERY_CHECK_TIMEOUT_MS = 5000;');
     expect(page).toContain("const PASSWORD_LINK_MARKER = 'ivisit_verified_password_link';");
+    expect(page).toContain("session?.user?.user_metadata?.invitation_surface === 'console'");
     expect(page).toContain('const hasPasswordLinkIntent = () => {');
     expect(page).toContain("query.has('code')");
     expect(page).toContain("['recovery', 'invite'].includes(linkType)");
@@ -41,7 +42,8 @@ describe('Set Password Page 20 admission contract', () => {
     expect(page).toContain("setRecoveryStatus('error')");
     expect(page).toContain("setRecoveryStatus('success')");
     expect(page).toContain('supabase.auth.onAuthStateChange((event, session) => {');
-    expect(page).toContain("event !== 'PASSWORD_RECOVERY'");
+    expect(page).toContain("const recoverySession = event === 'PASSWORD_RECOVERY';");
+    expect(page).toContain("event === 'SIGNED_IN' || event === 'INITIAL_SESSION'");
     expect(page).toContain('Checking your link');
     expect(page).toContain('Link unavailable');
     expect(page).toContain('Could not check this link');
@@ -64,7 +66,8 @@ describe('Set Password Page 20 admission contract', () => {
     expect(gate).toContain('Password update receiver: admitted.');
     expect(page).toContain("{recoveryStatus === 'ready' && (");
     expect(page).toContain("if (submitLockRef.current || recoveryStatus !== 'ready') return;");
-    expect(page).toContain('supabase.auth.updateUser({ password })');
+    expect(page).toContain("? { password, data: { invitation_surface: null } }");
+    expect(page).toContain('supabase.auth.updateUser(updatePayload)');
     expect(page).toContain("setFormError('Passwords do not match')");
     expect(page).toContain("setRecoveryStatus('success')");
     expect(page).toContain("window.history.replaceState({}, '', '/set-password')");

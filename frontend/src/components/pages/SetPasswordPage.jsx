@@ -9,6 +9,10 @@ const passwordSchema = z.string().min(8, 'Use at least 8 characters');
 const RECOVERY_CHECK_TIMEOUT_MS = 5000;
 const PASSWORD_LINK_MARKER = 'ivisit_verified_password_link';
 
+const isConsoleInviteSession = (session) => (
+  session?.user?.user_metadata?.invitation_surface === 'console'
+);
+
 const hasPasswordLinkIntent = () => {
   const query = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -52,6 +56,7 @@ export const SetPasswordPage = () => {
   const submitLockRef = useRef(false);
   const redirectTimerRef = useRef(null);
   const checkSequenceRef = useRef(0);
+  const consoleInviteSessionRef = useRef(false);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -67,14 +72,13 @@ export const SetPasswordPage = () => {
     setFormError('');
 
     try {
-      if (!hasPasswordLinkIntent()) {
-        if (mountedRef.current && sequence === checkSequenceRef.current) setRecoveryStatus('missing');
-        return;
-      }
+      const hasLinkIntent = hasPasswordLinkIntent();
       const { data, error } = await getRecoverySession();
       if (error) throw error;
       if (!mountedRef.current || sequence !== checkSequenceRef.current) return;
-      if (data?.session) {
+      const consoleInviteSession = isConsoleInviteSession(data?.session);
+      if (data?.session && (hasLinkIntent || consoleInviteSession)) {
+        consoleInviteSessionRef.current = consoleInviteSession;
         try {
           sessionStorage.setItem(PASSWORD_LINK_MARKER, 'true');
         } catch {
@@ -101,7 +105,13 @@ export const SetPasswordPage = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== 'PASSWORD_RECOVERY' || !session || !mountedRef.current) return;
+      const recoverySession = event === 'PASSWORD_RECOVERY';
+      const consoleInviteSession = (
+        (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
+        && isConsoleInviteSession(session)
+      );
+      if ((!recoverySession && !consoleInviteSession) || !session || !mountedRef.current) return;
+      consoleInviteSessionRef.current = consoleInviteSession;
       try {
         sessionStorage.setItem(PASSWORD_LINK_MARKER, 'true');
       } catch {
@@ -124,10 +134,14 @@ export const SetPasswordPage = () => {
       passwordSchema.parse(password);
       if (password !== confirmPassword) throw new Error('PASSWORD_MISMATCH');
 
-      const { error } = await supabase.auth.updateUser({ password });
+      const updatePayload = consoleInviteSessionRef.current
+        ? { password, data: { invitation_surface: null } }
+        : { password };
+      const { error } = await supabase.auth.updateUser(updatePayload);
       if (error) throw error;
       if (!mountedRef.current) return;
 
+      consoleInviteSessionRef.current = false;
       try {
         sessionStorage.removeItem(PASSWORD_LINK_MARKER);
       } catch {

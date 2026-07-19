@@ -47,7 +47,14 @@ describe('Console onboarding and invitation authority', () => {
     expect(rpcs).toContain('REVOKE ALL ON FUNCTION public.complete_console_user_invitation(UUID, UUID, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;');
     expect(rpcs).toContain('GRANT EXECUTE ON FUNCTION public.complete_console_user_invitation(UUID, UUID, UUID, TEXT, TEXT) TO service_role;');
     expect(inviteUser).toContain("admin.auth.admin.inviteUserByEmail(email");
-    expect(inviteUser).toContain("data: { invited_by: userData.user.id }");
+    expect(inviteUser).toContain("const CONSOLE_INVITE_PATH = '/set-password'");
+    expect(inviteUser).toContain("Deno.env.get('CONSOLE_URL')");
+    expect(inviteUser).toContain('redirectTo: consoleInviteUrl');
+    expect(inviteUser).toContain("invitation_surface: 'console'");
+    expect(inviteUser).toContain('redirectTarget: consoleInviteUrl');
+    expect(inviteUser).toContain("return respond({ error: 'Invitation delivery is not configured.' }, 503)");
+    expect(inviteUser).not.toContain("|| 'https://console.ivisit.ng'");
+    expect(inviteUser).not.toContain("ivisit://auth/callback");
     expect(inviteUser).toContain("admin.rpc('complete_console_user_invitation'");
     expect(inviteUser).toContain("!['admin', 'org_admin'].includes(actor.role)");
     expect(inviteUser).toContain("actor.role === 'org_admin'");
