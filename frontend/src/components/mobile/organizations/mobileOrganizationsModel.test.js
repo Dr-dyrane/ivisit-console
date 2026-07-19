@@ -1,6 +1,7 @@
 import {
   buildMobileOrganizationKpis,
   formatMobileOrganizationWallet,
+  formatMobileOrganizationWalletForRow,
   getMobileOrganizationPill,
   getMobileOrganizationScopeCount,
   hasActiveMobileOrganizationFilters,
@@ -37,6 +38,22 @@ describe('mobile organizations model characterization', () => {
     expect(isFundedOrganization(rows[1])).toBe(false);
     expect(getMobileOrganizationPill(rows[0])).toMatchObject({ label: 'Active', dataStatus: 'active' });
     expect(getMobileOrganizationPill(rows[1])).toMatchObject({ label: 'Inactive', dataStatus: 'inactive' });
+  });
+
+  it('keeps demo coverage visible without presenting synthetic finance', () => {
+    const demoOrganization = {
+      name: 'iVisit Coverage Network RUN123',
+      contact_email: 'demo+coverage-run123@ivisit-demo.local',
+      wallet_balance: 25000,
+      is_active: true,
+    };
+
+    expect(isFundedOrganization(demoOrganization)).toBe(false);
+    expect(formatMobileOrganizationWalletForRow(demoOrganization)).toBe('Simulated');
+    expect(getMobileOrganizationPill(demoOrganization)).toMatchObject({
+      label: 'Demo',
+      dataStatus: 'demo',
+    });
   });
 
   it('preserves mobile wallet formatting and filter semantics', () => {

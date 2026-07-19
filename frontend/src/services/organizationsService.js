@@ -7,6 +7,10 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 import { withRetry, withAudit } from './supabaseHelpers';
+import {
+    getOrganizationDataClass,
+    isDemoOrganization,
+} from '../utils/demoProvenance';
 
 const TABLE_NAME = 'organizations';
 const ORGANIZATION_CREATE_FIELDS = [
@@ -43,6 +47,12 @@ const toFiniteOrNull = (value) => {
 
 const pruneUndefined = (payload = {}) =>
     Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+
+const withOrganizationProvenance = (organization) => ({
+    ...organization,
+    is_demo: isDemoOrganization(organization),
+    data_classification: getOrganizationDataClass(organization),
+});
 
 function buildOrganizationPayload(org = {}, { isUpdate = false } = {}) {
     const name = toTrimmedOrNull(org.name);
@@ -109,12 +119,12 @@ export async function getOrganizations(filter = {}) {
         // balance; honest null when the organization has no wallet row.
         return (orgsRes.data || []).map(org => {
             const wallet = walletsMap[org.id] || null;
-            return {
+            return withOrganizationProvenance({
                 ...org,
                 wallet_balance: wallet?.balance || 0,
                 wallet_currency: wallet?.currency ?? null,
                 wallet_updated_at: wallet?.updated_at ?? null,
-            };
+            });
         });
     } catch (error) {
         if (!filter?.quiet) {
@@ -181,7 +191,7 @@ async function getOrganizationPayoutBuckets(quiet) {
     const [organizationsResult, walletsResult] = await Promise.all([
         supabase
             .from(TABLE_NAME)
-            .select('id', { count: 'exact' })
+            .select('id, name, contact_email', { count: 'exact' })
             .limit(ORG_PAYOUT_RESOLUTION_ROW_LIMIT),
         supabase
             .from('organization_wallets')
@@ -198,7 +208,11 @@ async function getOrganizationPayoutBuckets(quiet) {
         throw walletsResult.error;
     }
 
-    const organizationIds = (organizationsResult.data || []).map((row) => row.id).filter(Boolean);
+    const organizationRows = organizationsResult.data || [];
+    const organizationIds = organizationRows.map((row) => row.id).filter(Boolean);
+    const demoIds = organizationRows.filter(isDemoOrganization).map((row) => row.id).filter(Boolean);
+    const demoIdSet = new Set(demoIds);
+    const operationalIds = organizationIds.filter((id) => !demoIdSet.has(id));
     const walletRows = walletsResult.data || [];
     const organizationCount = Number.isFinite(organizationsResult.count)
         ? organizationsResult.count
@@ -226,11 +240,18 @@ async function getOrganizationPayoutBuckets(quiet) {
         });
     });
 
-    const fundedIds = organizationIds.filter((id) => Number(balanceById.get(id) || 0) > 0);
+    const fundedIds = operationalIds.filter((id) => Number(balanceById.get(id) || 0) > 0);
     const fundedIdSet = new Set(fundedIds);
-    const payoutGapIds = organizationIds.filter((id) => !fundedIdSet.has(id));
+    const payoutGapIds = operationalIds.filter((id) => !fundedIdSet.has(id));
 
-    return { balanceById, walletMetaById, fundedIds, payoutGapIds };
+    return {
+        balanceById,
+        walletMetaById,
+        fundedIds,
+        payoutGapIds,
+        demoIds,
+        operationalIds,
+    };
 }
 
 function applyOrganizationPayoutFilter(query, kpiFilter, payoutBuckets) {
@@ -251,15 +272,32 @@ async function getOrganizationPageStats(filter, quiet, payoutBuckets) {
     let fundedQuery = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
     fundedQuery = applyOrganizationListFilters(fundedQuery, filter);
     fundedQuery = applyOrganizationPayoutFilter(fundedQuery, 'funded', payoutBuckets);
+    let demoQuery = payoutBuckets.demoIds.length > 0
+        ? supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true })
+        : null;
+    if (demoQuery) {
+        demoQuery = applyOrganizationListFilters(demoQuery, filter);
+        demoQuery = demoQuery.in('id', payoutBuckets.demoIds);
+    }
 
-    const [total, funded] = await Promise.all([
+    const [total, funded, demo] = await Promise.all([
         getOrganizationExactCount(totalQuery, quiet, 'organization total count'),
         fundedQuery
             ? getOrganizationExactCount(fundedQuery, quiet, 'funded organization count')
             : Promise.resolve(0),
+        demoQuery
+            ? getOrganizationExactCount(demoQuery, quiet, 'demo organization count')
+            : Promise.resolve(0),
     ]);
 
-    return { total, funded, payoutGap: Math.max(total - funded, 0) };
+    const operationalTotal = Math.max(total - demo, 0);
+    return {
+        total,
+        operationalTotal,
+        demo,
+        funded,
+        payoutGap: Math.max(operationalTotal - funded, 0),
+    };
 }
 
 /**
@@ -307,12 +345,12 @@ export async function getOrganizationsPage(filter = {}) {
 
         const rows = (data || []).map((org) => {
             const walletMeta = payoutBuckets.walletMetaById.get(org.id);
-            return {
+            return withOrganizationProvenance({
                 ...org,
                 wallet_balance: payoutBuckets.balanceById.get(org.id) || 0,
                 wallet_currency: walletMeta?.currency ?? null,
                 wallet_updated_at: walletMeta?.updated_at ?? null,
-            };
+            });
         });
         const stats = await getOrganizationPageStats(filter, filter.quiet, payoutBuckets);
         return { data: rows, count: count || 0, stats };

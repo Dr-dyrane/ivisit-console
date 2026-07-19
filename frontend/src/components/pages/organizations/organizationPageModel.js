@@ -5,6 +5,7 @@ import {
   getApprovalStatusKey,
   getApprovalToneClass,
 } from '../../../constants/verificationStatus';
+import { isDemoOrganization } from '../../../utils/demoProvenance';
 
 export const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not available from this page.';
 
@@ -38,7 +39,8 @@ export const normalizeOrganizationCount = (value, fallback = 0) => {
 };
 
 export const isOrganizationFunded = (organization) => (
-  Number(organization?.wallet_balance || 0) > 0
+  !isDemoOrganization(organization)
+  && Number(organization?.wallet_balance || 0) > 0
 );
 
 export const hasActiveOrganizationFilters = (filters = {}, kpiFilter = 'all') => Boolean(
@@ -52,7 +54,9 @@ export const getOrganizationStateCount = ({ id, stats, organizations }) => {
     ? rows.length
     : stateId === 'funded'
       ? rows.filter(isOrganizationFunded).length
-      : rows.filter((organization) => !isOrganizationFunded(organization)).length;
+      : rows.filter((organization) => (
+          !isDemoOrganization(organization) && !isOrganizationFunded(organization)
+        )).length;
 
   return normalizeOrganizationCount(stats?.[ORGANIZATION_COUNT_KEYS[stateId]], fallback);
 };
@@ -132,6 +136,31 @@ export const formatOrganizationWallet = (value, currency) => {
   if (code) return `${code} ${numeric.toLocaleString()}`;
   return `$${numeric.toLocaleString()}`;
 };
+
+export const formatOrganizationWalletForRow = (organization) => (
+  isDemoOrganization(organization)
+    ? 'Simulated'
+    : formatOrganizationWallet(
+        organization?.wallet_balance,
+        organization?.wallet_currency,
+      )
+);
+
+export const getOrganizationProvenanceMeta = (organization) => (
+  isDemoOrganization(organization)
+    ? {
+        demo: true,
+        label: 'Demo coverage',
+        shortLabel: 'Demo',
+        tone: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+      }
+    : {
+        demo: false,
+        label: 'Operational',
+        shortLabel: 'Live',
+        tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+      }
+);
 
 export const getOrganizationStatusMeta = (isActive) => (isActive
   ? { label: 'Active', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200' }

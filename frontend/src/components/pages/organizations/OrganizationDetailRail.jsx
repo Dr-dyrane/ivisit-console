@@ -23,7 +23,8 @@ import {
 import {
   formatOrganizationDate,
   formatOrganizationType,
-  formatOrganizationWallet,
+  formatOrganizationWalletForRow,
+  getOrganizationProvenanceMeta,
   getOrganizationVerificationMeta,
 } from './organizationPageModel';
 
@@ -80,7 +81,8 @@ export const OrganizationDetailRail = ({
   const VerificationIcon = verificationMeta.icon;
   const typeValue = formatOrganizationType(organization.organization_type);
   // ADOPT-27: amount renders in the wallet row's own currency when the read carries one.
-  const walletValue = formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency);
+  const walletValue = formatOrganizationWalletForRow(organization);
+  const provenanceMeta = getOrganizationProvenanceMeta(organization);
   const locationValue = organization.city || organization.address || 'Not set';
   const displayId = organization.display_id
     || (organization.id ? `Org ${String(organization.id).slice(0, 8)}` : null);
@@ -114,6 +116,11 @@ export const OrganizationDetailRail = ({
               <VerificationIcon className="h-3.5 w-3.5" />
               {verificationMeta.label}
             </div>
+            {provenanceMeta.demo && (
+              <div className={`ml-2 mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${provenanceMeta.tone}`}>
+                {provenanceMeta.label}
+              </div>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -143,6 +150,7 @@ export const OrganizationDetailRail = ({
         <DetailLine icon={Building2} label="Name" value={organization.name} />
         <DetailLine icon={Globe} label="Type" value={typeValue} />
         <DetailLine icon={ShieldCheck} label="Verification" value={verificationMeta.label} />
+        <DetailLine icon={Info} label="Data" value={provenanceMeta.label} />
         {organization.verified_at && (
           <DetailLine icon={CalendarCheck} label="Verified" value={formatOrganizationDate(organization.verified_at)} />
         )}

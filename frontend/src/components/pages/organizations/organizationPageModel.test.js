@@ -4,6 +4,8 @@ import {
   buildOrganizationsPanelContext,
   formatOrganizationType,
   formatOrganizationWallet,
+  formatOrganizationWalletForRow,
+  getOrganizationProvenanceMeta,
   getOrganizationStateCount,
   getOrganizationVerificationMeta,
   hasActiveOrganizationFilters,
@@ -59,6 +61,27 @@ describe('organization page model characterization', () => {
     expect(formatOrganizationWallet(undefined)).toBe('Not available');
     expect(organization.id).toBe('organization-uuid');
     expect(organization.id).not.toBe(organization.hospital_id);
+  });
+
+  it('separates proven demo coverage from operational payout readiness', () => {
+    const demoOrganization = {
+      name: 'iVisit Coverage Network RUN123',
+      contact_email: 'demo+coverage-run123@ivisit-demo.local',
+      wallet_balance: 25000,
+      wallet_currency: 'USD',
+    };
+
+    expect(isOrganizationFunded(demoOrganization)).toBe(false);
+    expect(formatOrganizationWalletForRow(demoOrganization)).toBe('Simulated');
+    expect(getOrganizationProvenanceMeta(demoOrganization)).toMatchObject({
+      demo: true,
+      label: 'Demo coverage',
+    });
+    expect(getOrganizationStateCount({
+      id: 'payout_gap',
+      stats: null,
+      organizations: [demoOrganization],
+    })).toBe(0);
   });
 
   it('publishes the route-owned panel window without granting organization commands', () => {

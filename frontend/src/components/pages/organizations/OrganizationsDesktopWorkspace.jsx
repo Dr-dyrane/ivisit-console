@@ -20,7 +20,8 @@ import {
 } from '../../console/primitives';
 import {
   formatOrganizationDate,
-  formatOrganizationWallet,
+  formatOrganizationWalletForRow,
+  getOrganizationProvenanceMeta,
   getOrganizationStateCount,
   getOrganizationVerificationMeta,
 } from './organizationPageModel';
@@ -80,6 +81,7 @@ const OrganizationRow = ({
   // ADOPT-26: row status is the live organizations.verification_status gate
   // (dispatch requires 'verified'), not the degenerate is_active flag.
   const verificationMeta = getOrganizationVerificationMeta(organization);
+  const provenanceMeta = getOrganizationProvenanceMeta(organization);
   const name = organization.name || 'Unnamed organization';
 
   return (
@@ -112,6 +114,13 @@ const OrganizationRow = ({
           <div className="truncate text-[15px] font-semibold text-foreground" title={name}>
             {name}
           </div>
+          {provenanceMeta.demo && (
+            <StatusPill
+              label={provenanceMeta.shortLabel}
+              className={provenanceMeta.tone}
+              compact
+            />
+          )}
           <div
             className="mt-1 truncate text-xs text-muted-foreground"
             title={organization.contact_email || undefined}
@@ -126,7 +135,7 @@ const OrganizationRow = ({
       </div>
 
       <div className="text-sm font-medium text-muted-foreground">
-        {formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)}
+        {formatOrganizationWalletForRow(organization)}
       </div>
 
       <div className="text-sm font-medium text-muted-foreground">

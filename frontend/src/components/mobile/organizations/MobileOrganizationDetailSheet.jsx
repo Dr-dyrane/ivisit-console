@@ -20,10 +20,11 @@ import {
 } from '../../pages/organizations/organizationPageModel';
 import {
   formatMobileOrganizationDate,
-  formatMobileOrganizationWallet,
+  formatMobileOrganizationWalletForRow,
   getMobileOrganizationPill,
   isFundedOrganization,
 } from './mobileOrganizationsModel';
+import { isDemoOrganization } from '../../../utils/demoProvenance';
 
 export const MobileOrganizationDetailSheet = ({
   organization,
@@ -34,16 +35,19 @@ export const MobileOrganizationDetailSheet = ({
   if (!organization) return null;
 
   const funded = isFundedOrganization(organization);
+  const demo = isDemoOrganization(organization);
   const organizationId = organization.display_id || organization.id || 'Not available';
   const verificationMeta = getOrganizationVerificationMeta(organization);
   const copilotRequest = createOrganizationReadinessRequest({
     organization,
     verificationLabel: verificationMeta.label,
     typeValue: formatOrganizationType(organization.organization_type),
-    walletValue: formatOrganizationWallet(
-      organization.wallet_balance,
-      organization.wallet_currency,
-    ),
+    walletValue: demo
+      ? 'Simulated'
+      : formatOrganizationWallet(
+          organization.wallet_balance,
+          organization.wallet_currency,
+        ),
     locationValue: organization.city || organization.address || 'Not set',
   });
 
@@ -52,8 +56,8 @@ export const MobileOrganizationDetailSheet = ({
       isOpen
       onClose={onClose}
       icon={Building2}
-      iconTone={funded ? 'hsl(162 94% 24%)' : 'hsl(38 92% 50%)'}
-      eyebrow={funded ? 'Funded organization' : 'Payout gap'}
+      iconTone={demo ? 'hsl(204 94% 38%)' : funded ? 'hsl(162 94% 24%)' : 'hsl(38 92% 50%)'}
+      eyebrow={demo ? 'Demo coverage' : funded ? 'Funded organization' : 'Payout gap'}
       title={organization.name || 'Unnamed organization'}
       statusPill={getMobileOrganizationPill(organization)}
       islands={[
@@ -66,7 +70,7 @@ export const MobileOrganizationDetailSheet = ({
         {
           icon: Wallet,
           label: 'Wallet',
-          value: formatMobileOrganizationWallet(organization.wallet_balance),
+          value: formatMobileOrganizationWalletForRow(organization),
         },
         {
           icon: CreditCard,

@@ -4,7 +4,8 @@ import {
   getOrganizationStateCount,
   getOrganizationStatusMeta,
   hasActiveOrganizationFilters,
-  formatOrganizationWallet,
+  formatOrganizationWalletForRow,
+  getOrganizationProvenanceMeta,
 } from '../pages/organizations/organizationPageModel';
 import {
   ORGANIZATION_KPI_IMPORTANCE,
@@ -28,17 +29,18 @@ export const TabletOrganizations = ({
   })), [organizations, stats]);
   const records = useMemo(() => organizations.map((organization) => {
     const status = getOrganizationStatusMeta(Boolean(organization.is_active));
+    const provenance = getOrganizationProvenanceMeta(organization);
     return {
       id: organization.id,
       source: organization,
       title: organization.name || 'Unnamed organization',
       subtitle: organization.email || organization.contact_email || 'No contact email',
-      meta: formatOrganizationWallet(organization.wallet_balance),
+      meta: formatOrganizationWalletForRow(organization),
       trailing: formatTabletDateTime(organization.created_at),
-      statusLabel: status.label,
-      statusClass: status.tone,
+      statusLabel: provenance.demo ? provenance.shortLabel : status.label,
+      statusClass: provenance.demo ? provenance.tone : status.tone,
       icon: Building2,
-      iconClass: status.tone,
+      iconClass: provenance.demo ? provenance.tone : status.tone,
     };
   }), [organizations]);
 

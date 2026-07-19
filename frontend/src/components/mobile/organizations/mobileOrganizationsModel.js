@@ -1,10 +1,13 @@
+import { isDemoOrganization } from '../../../utils/demoProvenance';
+
 export const metricValue = (value, fallback = 0) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
 export const isFundedOrganization = (organization) => (
-  Number(organization?.wallet_balance || 0) > 0
+  !isDemoOrganization(organization)
+  && Number(organization?.wallet_balance || 0) > 0
 );
 
 export const formatMobileOrganizationWallet = (value) => {
@@ -13,6 +16,12 @@ export const formatMobileOrganizationWallet = (value) => {
   return `$${numeric.toLocaleString()}`;
 };
 
+export const formatMobileOrganizationWalletForRow = (organization) => (
+  isDemoOrganization(organization)
+    ? 'Simulated'
+    : formatMobileOrganizationWallet(organization?.wallet_balance)
+);
+
 export const formatMobileOrganizationDate = (value) => {
   if (!value) return 'Not available';
   const date = new Date(value);
@@ -20,17 +29,27 @@ export const formatMobileOrganizationDate = (value) => {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export const getMobileOrganizationPill = (organization) => (organization?.is_active
-  ? {
+export const getMobileOrganizationPill = (organization) => {
+  if (isDemoOrganization(organization)) {
+    return {
+      label: 'Demo',
+      className: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+      dataStatus: 'demo',
+    };
+  }
+
+  return organization?.is_active
+    ? {
       label: 'Active',
       className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
       dataStatus: 'active',
     }
-  : {
+    : {
       label: 'Inactive',
       className: 'bg-muted/40 text-muted-foreground',
       dataStatus: 'inactive',
-    });
+    };
+};
 
 export const getOrganizationReadinessLabel = (key) => (
   key === 'funded' ? 'Funded' : 'Payout gap'

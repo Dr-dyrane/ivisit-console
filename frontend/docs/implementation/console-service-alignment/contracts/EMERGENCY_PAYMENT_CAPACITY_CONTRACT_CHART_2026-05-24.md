@@ -290,6 +290,21 @@ Implementation should not begin until these ownership decisions are recorded:
 
 ## Read-Only Live Follow-Up
 
+### Demo Organization Trust Boundary (2026-07-19)
+
+- Stable coverage-demo organizations remain visible to operators because they
+  support patient fallback and QA. Their canonical ownership markers are the
+  `@ivisit-demo.local` contact domain and `iVisit Coverage Network` name prefix;
+  no schema field or migration is introduced.
+- Console organization projections classify those rows as `simulated` at the
+  service boundary. Demo organizations remain in the full registry count, but
+  are excluded from funded and payout-gap totals so synthetic readiness cannot
+  become operational finance truth.
+- Desktop, tablet, mobile, detail, and Copilot organization contexts render
+  demo provenance explicitly and show the wallet as `Simulated`, while ordinary
+  organizations continue to render their receiver-owned wallet currency and
+  balance.
+
 Aggregate live confirmation is recorded in `READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md` and `../../../database/console-app-alignment/READ_ONLY_AUDIT_EVIDENCE_2026-05-24.md`. It observes one terminal cash-linked request without completed payment, seven cash payment/request-hospital organization mismatches, zero non-empty hospital `bed_availability` values across 1,278 hospital rows, and zero populated ER-wait values.
 
 A SELECT-only finance follow-up found 28 completed cash payments with positive stored fees and referenced ledger pairs. Only 6 pairs use ordinary cash-payment labels; 22 pairs are explicitly labelled `runtime_data_integrity_repair` backfill output. These reads confirm an already-repaired cash settlement population and multiple writer lanes; they do not attribute any specific payment to the current console button path.
