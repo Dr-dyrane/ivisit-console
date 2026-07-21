@@ -82,3 +82,9 @@ Every executable Copilot command must prove:
 - 2026-07-18: Added evidence-only Support, QuickSearch, and Health News route
   adapters within the existing provider and responsive variants. No data or
   command owner changed; support copy remains local-only.
+- 2026-07-19: Hardened the Support/Search/Health News guidance lane without
+  changing its read-only boundary. QuickSearch now retains successful
+  route-authorized groups when another category fails and distinguishes failed
+  suggestions from an empty history; Copilot preparation has an explicit local
+  retry state and prevents duplicate preparation taps. No new query, mutation,
+  command, schema, or receiver was added.

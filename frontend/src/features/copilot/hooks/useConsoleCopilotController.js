@@ -28,8 +28,10 @@ export const useConsoleCopilotController = ({ executeCommand } = {}) => {
   const [state, setState] = useState(INITIAL_STATE);
   const requestSequenceRef = useRef(0);
   const executionLockRef = useRef(false);
+  const lastRequestRef = useRef(null);
 
   const open = useCallback(async (request) => {
+    lastRequestRef.current = request;
     const requestSequence = requestSequenceRef.current + 1;
     requestSequenceRef.current = requestSequence;
     setState({
@@ -80,8 +82,14 @@ export const useConsoleCopilotController = ({ executeCommand } = {}) => {
   const close = useCallback(() => {
     requestSequenceRef.current += 1;
     executionLockRef.current = false;
+    lastRequestRef.current = null;
     setState(INITIAL_STATE);
   }, []);
+
+  const retry = useCallback(() => {
+    if (!lastRequestRef.current) return null;
+    return open(lastRequestRef.current);
+  }, [open]);
 
   const prepareAction = useCallback((action) => {
     if (action?.availability !== 'available' || !action.command) return;
@@ -141,6 +149,7 @@ export const useConsoleCopilotController = ({ executeCommand } = {}) => {
     ...state,
     open,
     close,
+    retry,
     prepareAction,
     cancelAction,
     confirmAction,

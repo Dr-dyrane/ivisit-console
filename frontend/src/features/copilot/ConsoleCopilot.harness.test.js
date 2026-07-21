@@ -180,6 +180,9 @@ describe('Console Copilot independent harness', () => {
     expect(actionButton).toContain('hover:text-foreground');
     expect(actionButton).toContain('focus-visible:text-foreground');
     expect(actionButton).toContain('active:bg-foreground/15');
+    expect(actionButton).toContain('disabled={!available || isPreparing}');
+    expect(summary).toContain('onRetry');
+    expect(summary).toContain('Try again');
     expect(desktopRail).toContain('Quick insights');
     expect(mobileSheet).toContain('subtitle="Quick insights"');
     expect(tabletOverlay).toContain('subtitle="Quick insights"');

@@ -68,6 +68,26 @@ describe('useConsoleCopilotController', () => {
     expect(latest).toMatchObject({ phase: 'idle', isOpen: false, proposal: null, error: null });
   });
 
+  it('retries the same bounded request after a preparation error', async () => {
+    const invalidRequest = { actionId: 'unsupported.action', context: {} };
+    let opening;
+    act(() => { opening = latest.open(invalidRequest); });
+    await act(async () => {
+      frame();
+      await opening;
+    });
+    expect(latest).toMatchObject({ phase: 'error', isOpen: true, proposal: null });
+
+    let retrying;
+    act(() => { retrying = latest.retry(); });
+    expect(latest).toMatchObject({ phase: 'preparing', isOpen: true, isPreparing: true });
+    await act(async () => {
+      frame();
+      await retrying;
+    });
+    expect(latest).toMatchObject({ phase: 'error', isOpen: true, proposal: null });
+  });
+
   it('requires preparation and prevents duplicate execution while confirmation is pending', async () => {
     const guidedRequest = createDashboardExplainRequest({
       today: { headline: 'Today', status: 'Ready' },

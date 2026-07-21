@@ -21,7 +21,7 @@ export const CopilotActionButton = ({
         onBeforeOpen?.();
         openCopilot(request);
       }}
-      disabled={!available}
+      disabled={!available || isPreparing}
       aria-busy={isPreparing}
       title={available ? undefined : 'Copilot is unavailable on this surface.'}
       data-copilot-trigger="true"

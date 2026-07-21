@@ -95,4 +95,14 @@ describe('ProposalSummary constrained evidence layout', () => {
     expect(confirmationMarkup).toContain('Open workflow');
     expect(confirmationMarkup).toContain('You will review any changes there.');
   });
+
+  it('provides a product-language retry action for a preparation error', () => {
+    const markup = renderToStaticMarkup(
+      <ProposalSummary proposal={null} isPreparing={false} error={new Error('invalid request')} onRetry={() => {}} />,
+    );
+
+    expect(markup).toContain('Copilot is unavailable right now.');
+    expect(markup).toContain('Try again');
+    expect(markup).not.toContain('invalid request');
+  });
 });

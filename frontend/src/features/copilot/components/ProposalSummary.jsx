@@ -178,6 +178,7 @@ export const ProposalSummary = ({
   pendingAction,
   isExecuting = false,
   executionError,
+  onRetry,
   onPrepareAction,
   onCancelAction,
   onConfirmAction,
@@ -197,6 +198,16 @@ export const ProposalSummary = ({
       <div className="space-y-2" role="alert">
         <p className="text-sm font-medium text-foreground">Copilot is unavailable right now.</p>
         <p className="text-sm leading-relaxed text-muted-foreground">Try again shortly.</p>
+        {onRetry && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onRetry}
+            className="h-10 rounded-button bg-muted/35 px-4 text-sm font-semibold text-foreground transition-all hover:bg-foreground/10 focus-visible:bg-foreground/10 active:scale-[0.98]"
+          >
+            Try again
+          </Button>
+        )}
       </div>
     );
   }

@@ -17,6 +17,7 @@ const UNAVAILABLE_COPILOT = Object.freeze({
   pendingAction: null,
   isExecuting: false,
   executionError: null,
+  retryCopilot: () => null,
   openCopilot: async () => null,
   closeCopilot: () => {},
   prepareCopilotAction: () => {},
@@ -51,6 +52,7 @@ export const ConsoleCopilotProvider = ({ children }) => {
     prepareAction,
     cancelAction,
     confirmAction,
+    retry,
   } = controller;
   const { isDesktop } = useBreakpoint();
   const { isContextPanelOpen, closeContextPanel } = useLayout();
@@ -79,6 +81,7 @@ export const ConsoleCopilotProvider = ({ children }) => {
     pendingAction,
     isExecuting,
     executionError,
+    retryCopilot: retry,
     openCopilot,
     closeCopilot: close,
     prepareCopilotAction: prepareAction,
@@ -98,6 +101,7 @@ export const ConsoleCopilotProvider = ({ children }) => {
     phase,
     prepareAction,
     proposal,
+    retry,
   ]);
 
   return (

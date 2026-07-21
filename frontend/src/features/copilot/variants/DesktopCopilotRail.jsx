@@ -16,6 +16,7 @@ export const DesktopCopilotRail = ({
   pendingAction,
   isExecuting,
   executionError,
+  onRetry,
   onPrepareAction,
   onCancelAction,
   onConfirmAction,
@@ -54,6 +55,7 @@ export const DesktopCopilotRail = ({
         proposal={proposal}
         isPreparing={isPreparing}
         error={error}
+        onRetry={onRetry}
         pendingAction={pendingAction}
         isExecuting={isExecuting}
         executionError={executionError}

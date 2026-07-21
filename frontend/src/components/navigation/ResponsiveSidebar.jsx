@@ -157,6 +157,7 @@ export const ContextPanelShell = () => {
                     proposal={copilot.proposal}
                       isPreparing={copilot.isPreparing}
                       error={copilot.error}
+                      onRetry={copilot.retryCopilot}
                       pendingAction={copilot.pendingAction}
                       isExecuting={copilot.isExecuting}
                       executionError={copilot.executionError}

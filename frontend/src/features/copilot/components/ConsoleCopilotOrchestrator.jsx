@@ -16,6 +16,7 @@ export const ConsoleCopilotOrchestrator = ({ controller }) => {
     proposal: controller.proposal,
     isPreparing: controller.isPreparing,
     error: controller.error,
+    onRetry: controller.retry,
     pendingAction: controller.pendingAction,
     isExecuting: controller.isExecuting,
     executionError: controller.executionError,
