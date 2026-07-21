@@ -35,12 +35,19 @@ export const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading, signOut } = useAuth();
   const [leaving, setLeaving] = useState(false);
+  const correctionRequested =
+    profile?.organization_scope?.verificationStatus === 'changes_requested';
 
   useEffect(() => {
-    if (!authLoading && user && profile?.onboarding_status === 'complete') {
+    if (
+      !authLoading
+      && user
+      && profile?.onboarding_status === 'complete'
+      && !correctionRequested
+    ) {
       navigate('/', { replace: true });
     }
-  }, [authLoading, navigate, profile?.onboarding_status, user]);
+  }, [authLoading, correctionRequested, navigate, profile?.onboarding_status, user]);
 
   const handleSignOut = async () => {
     if (leaving) return;
@@ -50,7 +57,7 @@ export const OnboardingPage = () => {
   };
 
   if (authLoading) return <OnboardingLoadingState />;
-  if (user && profile?.onboarding_status === 'complete') return null;
+  if (user && profile?.onboarding_status === 'complete' && !correctionRequested) return null;
 
   return (
     <>
@@ -88,7 +95,7 @@ export const OnboardingPage = () => {
         </header>
 
         <main className="mx-auto w-full max-w-5xl px-5 pb-14 pt-6 sm:px-8 sm:pt-10">
-          <OnboardingProvider>
+          <OnboardingProvider correctionMode={correctionRequested}>
             <OnboardingWizard />
           </OnboardingProvider>
         </main>

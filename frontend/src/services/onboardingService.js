@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getOnboardingCorrectionDraft } from './orgVerificationService';
 
 const DOCUMENT_BUCKET = 'documents';
 const MAX_DOCUMENTS = 3;
@@ -12,6 +13,8 @@ const ALLOWED_DOCUMENT_TYPES = new Map([
 const ERROR_COPY = {
   ACCOUNT_ALREADY_SCOPED: 'This account already belongs to an organization.',
   CONTACT_EMAIL_INVALID: 'Enter a valid organization email.',
+  CORRECTION_LOAD_FAILED: 'We could not load the requested changes. Try again.',
+  CORRECTION_NOT_AVAILABLE: 'No registration changes are currently requested.',
   DOCUMENT_FILE_INVALID: 'Use PDF, JPG, or PNG files up to 10 MB each.',
   DOCUMENT_CLEANUP_FAILED: 'Registration did not finish, and uploaded documents could not be removed. Contact support before trying again.',
   DOCUMENT_METADATA_INVALID: 'One of the selected documents could not be prepared.',
@@ -43,6 +46,12 @@ const createOnboardingError = (code, fallback) => {
 const getErrorCode = (error) => {
   const message = String(error?.message || '');
   return Object.keys(ERROR_COPY).find((code) => message.includes(code)) || error?.code || 'ONBOARDING_FAILED';
+};
+
+const loadIdentityProjection = async () => {
+  const { data, error } = await supabase.rpc('get_console_identity_projection');
+  if (error) throw createOnboardingError('IDENTITY_REFRESH_FAILED', 'We could not refresh your access yet.');
+  return data;
 };
 
 const safeFileName = (file, userId) => {
@@ -168,9 +177,46 @@ export const onboardingService = {
   },
 
   async getIdentityProjection() {
-    const { data, error } = await supabase.rpc('get_console_identity_projection');
-    if (error) throw createOnboardingError('IDENTITY_REFRESH_FAILED', 'We could not refresh your access yet.');
-    return data;
+    return loadIdentityProjection();
+  },
+
+  async getCorrectionDraft() {
+    const projection = await loadIdentityProjection();
+    const organizationId = projection?.organizationScope?.organizationId;
+    if (
+      !organizationId
+      || projection?.organizationScope?.verificationStatus !== 'changes_requested'
+    ) {
+      throw createOnboardingError('CORRECTION_NOT_AVAILABLE');
+    }
+
+    let correction;
+    try {
+      correction = await getOnboardingCorrectionDraft(organizationId);
+    } catch {
+      throw createOnboardingError('CORRECTION_LOAD_FAILED');
+    }
+    const { organization, claim } = correction;
+
+    return {
+      organizationMode: claim ? 'existing' : 'new',
+      organizationType: organization.organization_type,
+      organizationName: organization.name,
+      facilitySearch: '',
+      existingFacilityId: claim?.facility_id || null,
+      existingFacilityName: '',
+      existingFacilityAddress: '',
+      claimNote: claim?.claim_note || '',
+      registrationNumber: organization.registration_number || '',
+      contactEmail: organization.contact_email || projection.profile?.email || '',
+      phone: organization.contact_phone || '',
+      address: organization.address || '',
+      city: organization.city || '',
+      state: organization.state || '',
+      location: null,
+      documents: [],
+      termsAccepted: false,
+    };
   },
 
   async submitOnboarding(formData) {

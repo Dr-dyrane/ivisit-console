@@ -38,6 +38,7 @@ import {
   getFacilityClaims,
   getFacilityInitials,
   getFacilityProvenance,
+  getFacilityReviewGates,
 } from './verificationQueueModel';
 import { getProviderTypeIcon } from './approvalPresentation';
 
@@ -133,6 +134,8 @@ export const ApprovalDetailRail = ({
   const canReject = queueType === 'organizations' && typeof onReject === 'function';
   const facilityClaims = isProviders ? null : getFacilityClaims(item);
   const provenance = isProviders ? null : getFacilityProvenance(item);
+  const facilityReviewGates = isProviders ? null : getFacilityReviewGates(item);
+  const facilityApprovalReady = isProviders || facilityReviewGates.canApproveFacility;
   // ADOPT-40: presence-only payout readiness (brand + last4). Production rows
   // are mostly unpopulated -- null hides the line, never a fabricated state.
   const payoutMethod = isProviders ? formatPayoutMethod(item) : null;
@@ -252,13 +255,22 @@ export const ApprovalDetailRail = ({
               </Button>
             )}
             <Button
-              disabled={actionLoading}
+              disabled={actionLoading || !facilityApprovalReady}
               className="h-11 w-full rounded-button bg-emerald-500/90 text-sm font-bold text-white transition-all hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60"
               onClick={() => onApprove(item)}
             >
               {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
               Approve
             </Button>
+          </div>
+        )}
+
+        {canApprove && isPending && !facilityApprovalReady && (
+          <div
+            role="note"
+            className="rounded-button bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-900 dark:text-amber-100"
+          >
+            Review evidence, ownership, and organization before approving this facility.
           </div>
         )}
 

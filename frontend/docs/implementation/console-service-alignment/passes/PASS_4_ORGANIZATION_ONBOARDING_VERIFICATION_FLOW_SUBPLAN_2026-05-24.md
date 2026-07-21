@@ -851,3 +851,85 @@ the same real discovered facility
 profile, and Auth fixtures with zero asserted residue. The contract test also
 proves missing provenance fails closed. This adapter required no schema or
 migration change.
+
+## Lane 4 live-readiness closure - 2026-07-18
+
+Lane 4 exercised the deployed contract and mounted Console through discovery,
+claim submission, evidence review, requested changes, claimant recovery,
+replacement evidence, review gating, and exact cleanup. The retained browser
+fixture was owned by manifest `1784436286166-16f3e5db`. It selected the real
+discovered San Gorgonio Memorial Hospital only as a protected claim-catalog
+record. The rehearsal never approved its ownership, organization, or facility
+status.
+
+The mounted browser proof found and closed four defects:
+
+1. Onboarding draft state was stored without an account owner, so a second
+   authenticated account could inherit the previous account's organization
+   email and form values. Drafts now use an owner-bound envelope, legacy
+   unowned state is discarded, signed-out users cannot read authenticated
+   drafts, and sign-out clears both maintained onboarding keys.
+2. Facility queue statistics were derived from a capped row projection. The
+   mounted queue showed 993 facilities while the canonical total was 1429.
+   Exact head counts now own total, pending, verified, rejected, and recent
+   statistics. The FIFO instruction now honestly says `Start with the oldest
+   application`.
+3. The facility detail rail advertised an enabled approval while the full
+   review modal correctly enforced evidence, claim, and organization gates.
+   Both surfaces now consume one review-gate model; the rail remains disabled
+   with a recovery explanation until the same prerequisites are satisfied.
+4. A claimant whose review requested changes was redirected away from the
+   correction path, and the first correction projection attempted an
+   unauthorized read of the still-unowned facility. The authenticated identity
+   projection now detects `changes_requested`, reloads only the claimant's
+   organization and claim through the verification projection owner, restores
+   the same organization and claim identifiers, and requests replacement
+   evidence without creating a duplicate.
+
+The reviewer requested evidence, organization, and ownership corrections. The
+claimant retry reused the original organization and claim identifiers and added
+one replacement document. The reviewer accepted only that replacement
+evidence. Mounted desktop and mobile proof then showed `Approve ownership`
+available while final facility approval remained disabled. No browser warnings,
+errors, or horizontal page overflow were present.
+
+Fresh live run `1784437997983-38b129e0` passed Auth, Storage, provisioning,
+claim correction, ownership, organization approval, facility eligibility, App
+reflection, and double cleanup on a disposable hidden facility. Focused Console
+verification passed 67 tests, targeted ESLint passed without errors, and the
+optimized production build passed encoding, mojibake, data-contract,
+UI-surface, mobile-grammar, and compilation gates.
+
+Exact cleanup of browser manifest `1784436286166-16f3e5db` removed two Auth
+users, their profiles and mappings, one organization, one claim, two evidence
+records, two Storage objects, and owned wallet evidence. Applying cleanup a
+second time and then previewing it both reported zero residue. The protected
+discovered hospital snapshot remained unchanged.
+
+## Day 5 deployed repeat and correction-path regression - 2026-07-21
+
+- Live contract run `1784656636220-d40cb757` repeated Auth, Storage,
+  provisioning, invitation redirect, claim, review, App eligibility, recovery,
+  and double cleanup successfully.
+- Deployed browser run `1784656693733-3bda49c3` repeated evidence acceptance,
+  ownership changes requested, same-identity replacement evidence, ownership
+  approval, organization approval, facility approval, queue-count reflection,
+  and final `nearby_hospitals` visibility on protected discovered facility
+  `8bc06c7d-a47e-489a-8ec8-a0e0cdac60b6`.
+- The backend requeued the same organization and claim, but the deployed
+  claimant remained in the authenticated shell and direct `/onboarding`
+  redirected to Today. The July 18 correction UI and owner-bound draft changes
+  remain present in the local worktree but are absent from the deployed bundle.
+  `useAuthCapabilities.isOnboarding()` also needed to recognize
+  `organization_scope.verificationStatus === 'changes_requested'` so protected
+  routes cannot strand the claimant.
+- The exact cleanup guard refused to guess after final facility approval had
+  changed the protected row. The current row was matched against the exact
+  rehearsal outcome, restored to its captured unowned/pending/non-eligible
+  snapshot, and then cleaned by manifest. The second preview was all zero and
+  the discovered facility remained preserved.
+
+Next gate: validate, commit, push, and deploy only the preserved correction and
+exact-count pack plus the protected-route guard, then repeat the deployed
+changes-requested redirect. This remains a Console-only delivery; no database
+schema, migration, patient contract, or EAS update is required.

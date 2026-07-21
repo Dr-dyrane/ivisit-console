@@ -17,7 +17,7 @@ const STEP_ICONS = {
 };
 
 const StepContent = () => {
-  const { currentStep, currentStepConfig, direction } = useOnboarding();
+  const { currentStepConfig, direction } = useOnboarding();
   const components = {
     account: AdminAccountStep,
     organization: OrganizationTypeStep,
@@ -43,8 +43,8 @@ const StepContent = () => {
 };
 
 const ProgressRail = () => {
-  const { currentStep, steps, goToStep, user } = useOnboarding();
-  const minimumStep = user ? 1 : 0;
+  const { correctionMode, currentStep, steps, goToStep, user } = useOnboarding();
+  const minimumStep = correctionMode ? 3 : user ? 1 : 0;
 
   return (
     <ol className="space-y-1">
@@ -89,8 +89,9 @@ const Navigation = () => {
     submitOnboarding,
     goNext,
     user,
+    correctionMode,
   } = useOnboarding();
-  const minimumStep = user ? 1 : 0;
+  const minimumStep = correctionMode ? 3 : user ? 1 : 0;
   const canGoBack = currentStep > minimumStep;
 
   const handleContinue = () => {
@@ -125,7 +126,25 @@ const Navigation = () => {
 };
 
 export const OnboardingWizard = () => {
-  const { currentStep, currentStepConfig, flowError, progressPercent, steps } = useOnboarding();
+  const {
+    correctionMode,
+    currentStep,
+    currentStepConfig,
+    flowError,
+    isPreparingCorrection,
+    progressPercent,
+    steps,
+  } = useOnboarding();
+
+  if (isPreparingCorrection) {
+    return (
+      <div className="mx-auto flex min-h-[360px] max-w-[560px] flex-col items-center justify-center text-center" role="status">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <h1 className="mt-4 text-xl font-semibold">Preparing requested changes</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Loading your existing registration safely.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid w-full gap-8 lg:grid-cols-[260px_minmax(0,560px)] lg:justify-center lg:gap-14">
@@ -153,13 +172,15 @@ export const OnboardingWizard = () => {
             {currentStepConfig.id === 'account' && 'Create your administrator account'}
             {currentStepConfig.id === 'organization' && 'Tell us who you represent'}
             {currentStepConfig.id === 'essentials' && 'Add the review essentials'}
-            {currentStepConfig.id === 'review' && 'Review your registration'}
+            {currentStepConfig.id === 'review' && (correctionMode ? 'Submit requested changes' : 'Review your registration')}
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {currentStepConfig.id === 'account' && 'Use email and password, or continue with Google.'}
             {currentStepConfig.id === 'organization' && 'Register a new organization or check whether a facility is already listed.'}
             {currentStepConfig.id === 'essentials' && 'Only the details needed to identify and contact your organization.'}
-            {currentStepConfig.id === 'review' && 'Confirm the details before they enter the review queue.'}
+            {currentStepConfig.id === 'review' && (correctionMode
+              ? 'Add the requested replacement evidence without creating another organization or claim.'
+              : 'Confirm the details before they enter the review queue.')}
           </p>
         </header>
 

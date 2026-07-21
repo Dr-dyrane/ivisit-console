@@ -38,9 +38,12 @@ describe('Onboarding Page 21 receiver contract', () => {
     const context = read('src/contexts/OnboardingContext.jsx');
     const wizard = read('src/components/onboarding/OnboardingWizard.jsx');
 
-    expect(page).toContain('<OnboardingProvider>');
+    expect(page).toContain('<OnboardingProvider correctionMode={correctionRequested}>');
     expect(page).toContain('<OnboardingWizard />');
     expect(page).toContain("profile?.onboarding_status === 'complete'");
+    expect(read('src/contexts/auth/useAuthCapabilities.js')).toContain(
+      "profile?.organization_scope?.verificationStatus === 'changes_requested'",
+    );
     expect(context).toContain("{ id: 'account', title: 'Account'");
     expect(context).toContain("{ id: 'organization', title: 'Organization'");
     expect(context).toContain("{ id: 'essentials', title: 'Essentials'");

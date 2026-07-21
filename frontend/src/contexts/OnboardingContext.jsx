@@ -5,6 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { onboardingService } from '../services/onboardingService';
 import { useAuth } from './AuthContext';
+import {
+  clearOnboardingDraftStorage,
+  ONBOARDING_STEP_KEY,
+  ONBOARDING_STORAGE_KEY,
+} from './onboardingDraftStorage';
 
 export const ONBOARDING_STEPS = [
   { id: 'account', title: 'Account', description: 'Secure your administrator access' },
@@ -36,9 +41,6 @@ const INITIAL_FORM_DATA = {
   termsAccepted: false,
 };
 
-const STORAGE_KEY = 'ivisit_onboarding_data_v2';
-const STEP_KEY = 'ivisit_onboarding_step_v2';
-
 const OnboardingContext = createContext(null);
 
 export const useOnboarding = () => {
@@ -47,31 +49,72 @@ export const useOnboarding = () => {
   return context;
 };
 
-const readStoredData = () => {
+const parseStoredDraft = (stored) => {
+  if (!stored) return { ownerId: null, data: null, legacy: false };
+  const parsed = JSON.parse(stored);
+  if (parsed?.data && typeof parsed.data === 'object') {
+    return {
+      ownerId: typeof parsed.ownerId === 'string' ? parsed.ownerId : null,
+      data: parsed.data,
+      legacy: false,
+    };
+  }
+  return { ownerId: null, data: parsed, legacy: true };
+};
+
+export const resolveStoredOnboardingDraft = (stored, user = null) => {
+  const { ownerId, data, legacy } = parseStoredDraft(stored);
+  const userId = user?.id || null;
+  const userEmail = String(user?.email || '');
+
+  if (legacy || (userId && ownerId !== userId) || (!userId && ownerId)) {
+    return {
+      ...INITIAL_FORM_DATA,
+      adminEmail: userEmail,
+      contactEmail: userEmail,
+    };
+  }
+
+  return data
+    ? { ...INITIAL_FORM_DATA, ...data, adminPassword: '', documents: [] }
+    : {
+      ...INITIAL_FORM_DATA,
+      adminEmail: userEmail,
+      contactEmail: userEmail,
+    };
+};
+
+const readStoredData = (user) => {
   try {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    return stored ? { ...INITIAL_FORM_DATA, ...JSON.parse(stored), documents: [] } : INITIAL_FORM_DATA;
+    const stored = sessionStorage.getItem(ONBOARDING_STORAGE_KEY);
+    return resolveStoredOnboardingDraft(stored, user);
   } catch {
-    return INITIAL_FORM_DATA;
+    return resolveStoredOnboardingDraft(null, user);
   }
 };
 
-const readStoredStep = () => {
+const readStoredStep = (user) => {
   try {
-    const stored = Number.parseInt(sessionStorage.getItem(STEP_KEY), 10);
+    const { ownerId, legacy } = parseStoredDraft(sessionStorage.getItem(ONBOARDING_STORAGE_KEY));
+    const userId = user?.id || null;
+    if (legacy || (userId && ownerId !== userId) || (!userId && ownerId)) {
+      return userId ? 1 : 0;
+    }
+    const stored = Number.parseInt(sessionStorage.getItem(ONBOARDING_STEP_KEY), 10);
     return Number.isInteger(stored) && stored >= 0 && stored < ONBOARDING_STEPS.length ? stored : 0;
   } catch {
-    return 0;
+    return user ? 1 : 0;
   }
 };
 
-export const OnboardingProvider = ({ children }) => {
+export const OnboardingProvider = ({ children, correctionMode = false }) => {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const submittingRef = useRef(false);
+  const correctionLoadedRef = useRef(false);
 
-  const [currentStep, setCurrentStep] = useState(readStoredStep);
-  const [formData, setFormData] = useState(readStoredData);
+  const [currentStep, setCurrentStep] = useState(() => readStoredStep(user));
+  const [formData, setFormData] = useState(() => readStoredData(user));
   const [stepValidity, setStepValidity] = useState({
     account: Boolean(user),
     organization: false,
@@ -82,6 +125,40 @@ export const OnboardingProvider = ({ children }) => {
   const [direction, setDirection] = useState(0);
   const [confirmationRequired, setConfirmationRequired] = useState(false);
   const [flowError, setFlowError] = useState('');
+  const [isPreparingCorrection, setIsPreparingCorrection] = useState(correctionMode);
+
+  useEffect(() => {
+    if (!correctionMode || !user || correctionLoadedRef.current) return;
+    correctionLoadedRef.current = true;
+    setIsPreparingCorrection(true);
+    setFlowError('');
+
+    onboardingService.getCorrectionDraft()
+      .then((draft) => {
+        setFormData({
+          ...INITIAL_FORM_DATA,
+          ...draft,
+          adminEmail: user.email || '',
+          adminFullName: profile?.full_name || profile?.username || '',
+          documents: [],
+          termsAccepted: false,
+        });
+        setStepValidity({
+          account: true,
+          organization: true,
+          essentials: true,
+          review: false,
+        });
+        setDirection(1);
+        setCurrentStep(3);
+      })
+      .catch((error) => {
+        setFlowError(error.message);
+      })
+      .finally(() => {
+        setIsPreparingCorrection(false);
+      });
+  }, [correctionMode, profile?.full_name, profile?.username, user]);
 
   useEffect(() => {
     if (user) {
@@ -100,15 +177,18 @@ export const OnboardingProvider = ({ children }) => {
   useEffect(() => {
     try {
       const persisted = { ...formData, adminPassword: '', documents: [] };
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+      sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({
+        ownerId: user?.id || null,
+        data: persisted,
+      }));
     } catch {
       // Registration remains usable when browser storage is unavailable.
     }
-  }, [formData]);
+  }, [formData, user?.id]);
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(STEP_KEY, String(currentStep));
+      sessionStorage.setItem(ONBOARDING_STEP_KEY, String(currentStep));
     } catch {
       // Registration remains usable when browser storage is unavailable.
     }
@@ -136,18 +216,18 @@ export const OnboardingProvider = ({ children }) => {
   }, [currentStep]);
 
   const goPrev = useCallback(() => {
-    const minimumStep = user ? 1 : 0;
+    const minimumStep = correctionMode ? 3 : user ? 1 : 0;
     if (currentStep <= minimumStep) return;
     setDirection(-1);
     setCurrentStep((step) => step - 1);
-  }, [currentStep, user]);
+  }, [correctionMode, currentStep, user]);
 
   const goToStep = useCallback((stepIndex) => {
-    const minimumStep = user ? 1 : 0;
+    const minimumStep = correctionMode ? 3 : user ? 1 : 0;
     if (stepIndex < minimumStep || stepIndex >= currentStep) return;
     setDirection(-1);
     setCurrentStep(stepIndex);
-  }, [currentStep, user]);
+  }, [correctionMode, currentStep, user]);
 
   const beginSubmitting = useCallback(() => {
     if (submittingRef.current) return false;
@@ -197,8 +277,7 @@ export const OnboardingProvider = ({ children }) => {
     try {
       const result = await onboardingService.submitOnboarding(formData);
       try {
-        sessionStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem(STEP_KEY);
+        clearOnboardingDraftStorage();
       } catch {
         // The backend result remains canonical when local cleanup is unavailable.
       }
@@ -223,6 +302,8 @@ export const OnboardingProvider = ({ children }) => {
     direction,
     confirmationRequired,
     flowError,
+    correctionMode,
+    isPreparingCorrection,
     isFirstStep,
     isLastStep,
     isCurrentStepValid,
@@ -240,6 +321,7 @@ export const OnboardingProvider = ({ children }) => {
     submitOnboarding,
   }), [
     confirmationRequired,
+    correctionMode,
     createAdminAccount,
     currentStep,
     currentStepConfig,
@@ -253,6 +335,7 @@ export const OnboardingProvider = ({ children }) => {
     isFirstStep,
     isLastStep,
     isSubmitting,
+    isPreparingCorrection,
     profile,
     progressPercent,
     signInWithGoogle,

@@ -7,6 +7,7 @@ import {
   getApprovalProjection,
   getFacilityClaims,
   getFacilityProvenance,
+  getFacilityReviewGates,
   getFacilityStatusPresentation,
   getVerificationRouteScope,
   isTransientVerificationRefreshError,
@@ -41,6 +42,30 @@ describe('verification queue model', () => {
     });
     expect(toVerificationServiceStatus('organizations', 'approved')).toBe('verified');
     expect(toVerificationServiceStatus('providers', 'approved')).toBe('approved');
+  });
+
+  it('keeps final facility approval locked until evidence, ownership, and organization are approved', () => {
+    const pending = getFacilityReviewGates({
+      onboarding_organization: { verification_status: 'pending' },
+      facility_claim: { status: 'pending' },
+      verification_documents: [{ review_status: 'pending' }],
+    });
+    expect(pending).toMatchObject({
+      canApproveClaim: false,
+      canApproveOrganization: false,
+      canApproveFacility: false,
+    });
+
+    const ready = getFacilityReviewGates({
+      onboarding_organization: { verification_status: 'verified' },
+      facility_claim: { status: 'approved' },
+      verification_documents: [{ review_status: 'accepted' }],
+    });
+    expect(ready).toMatchObject({
+      canApproveClaim: false,
+      canApproveOrganization: false,
+      canApproveFacility: true,
+    });
   });
 
   it('sorts the visible page by applied time without mutating service rows', () => {

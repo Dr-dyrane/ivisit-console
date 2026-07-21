@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { clearPrincipalScopedQueryCache } from '../../lib/queryClient';
 import { clearCurrentUserCache } from '../../services/authService';
+import { clearOnboardingDraftStorage } from '../onboardingDraftStorage';
 import {
   ASSURANCE_STATUS,
   createAssuranceState,
@@ -203,6 +204,7 @@ export const useAuthSession = ({
       setLoading(false);
       setInitializing(false);
       localStorage.removeItem('supabase.auth.token');
+      clearOnboardingDraftStorage();
     }
   }, [
     assuranceRequestRef,

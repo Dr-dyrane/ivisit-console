@@ -30,6 +30,7 @@ import {
   getFacilityClaims,
   getFacilityInitials,
   getFacilityProvenance,
+  getFacilityReviewGates,
   getFacilityStatusPresentation,
 } from '../pages/verification/verificationQueueModel';
 
@@ -204,17 +205,14 @@ export const VerificationModal = ({
   // status (no verification_status recorded yet). Verified/rejected/unknown
   // stored states get no write affordance here.
   const facilityActionable = !facilityStatus || facilityStatus.key === 'pending';
-  const onboardingOrganization = isFacility ? provider?.onboarding_organization : null;
-  const facilityClaim = isFacility ? provider?.facility_claim : null;
-  const verificationDocuments = isFacility && Array.isArray(provider?.verification_documents)
-    ? provider.verification_documents
-    : [];
-  const acceptedEvidence = verificationDocuments.some((document) => document.review_status === 'accepted');
-  const claimApproved = !facilityClaim || facilityClaim.status === 'approved';
-  const organizationVerified = onboardingOrganization?.verification_status === 'verified';
-  const canApproveClaim = acceptedEvidence && facilityClaim?.status !== 'approved';
-  const canApproveOrganization = acceptedEvidence && claimApproved && !organizationVerified;
-  const canApproveFacility = organizationVerified && claimApproved;
+  const {
+    onboardingOrganization,
+    facilityClaim,
+    verificationDocuments,
+    canApproveClaim,
+    canApproveOrganization,
+    canApproveFacility,
+  } = isFacility ? getFacilityReviewGates(provider) : {};
 
   return (
     <ModalShell

@@ -222,6 +222,28 @@ export const getFacilityProvenance = (item) => {
   return null;
 };
 
+export const getFacilityReviewGates = (item) => {
+  const onboardingOrganization = item?.onboarding_organization || null;
+  const facilityClaim = item?.facility_claim || null;
+  const verificationDocuments = Array.isArray(item?.verification_documents)
+    ? item.verification_documents
+    : [];
+  const acceptedEvidence = verificationDocuments.some(
+    (document) => document.review_status === 'accepted',
+  );
+  const claimApproved = !facilityClaim || facilityClaim.status === 'approved';
+  const organizationVerified = onboardingOrganization?.verification_status === 'verified';
+
+  return {
+    onboardingOrganization,
+    facilityClaim,
+    verificationDocuments,
+    canApproveClaim: acceptedEvidence && facilityClaim?.status !== 'approved',
+    canApproveOrganization: acceptedEvidence && claimApproved && !organizationVerified,
+    canApproveFacility: organizationVerified && claimApproved,
+  };
+};
+
 // ADOPT-20: the facility record modal binds hospitals.verification_status RAW.
 // Known enum members (pending|verified|rejected) get honest labels through the
 // single verificationStatus color source; any OTHER stored value renders as its

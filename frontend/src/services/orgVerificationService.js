@@ -20,6 +20,61 @@ import { getDisplayIds } from './displayIdService';
 
 const TABLE_NAME = 'hospitals';
 
+export async function getOnboardingCorrectionDraft(organizationId) {
+    const [{ data: organization, error: organizationError }, { data: claims, error: claimsError }] =
+        await Promise.all([
+            supabase
+                .from('organizations')
+                .select('id,name,organization_type,registration_number,contact_email,contact_phone,address,city,state')
+                .eq('id', organizationId)
+                .single(),
+            supabase
+                .from('organization_facility_claims')
+                .select('id,facility_id,status,claim_note,created_at')
+                .eq('organization_id', organizationId)
+                .order('created_at', { ascending: false })
+                .limit(1),
+        ]);
+    if (organizationError) throw organizationError;
+    if (claimsError) throw claimsError;
+
+    return {
+        organization,
+        claim: claims?.[0] || null,
+    };
+}
+
+const readFacilityVerificationStats = async ({ recentPendingSince = null } = {}) => {
+    const queries = [
+        supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true }),
+        supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+        supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true }).eq('verification_status', 'verified'),
+        supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true }).eq('verification_status', 'rejected'),
+    ];
+    if (recentPendingSince) {
+        queries.push(
+            supabase
+                .from(TABLE_NAME)
+                .select('id', { count: 'exact', head: true })
+                .eq('verification_status', 'pending')
+                .gte('created_at', recentPendingSince)
+        );
+    }
+
+    const results = await Promise.all(queries);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) throw failed.error;
+
+    return {
+        total: results[0].count || 0,
+        pending: results[1].count || 0,
+        verified: results[2].count || 0,
+        approved: results[2].count || 0,
+        rejected: results[3].count || 0,
+        ...(recentPendingSince ? { recentPending: results[4].count || 0 } : {}),
+    };
+};
+
 const enrichOnboardingReview = async (facilities = []) => {
     if (!facilities.length) return facilities;
 
@@ -151,19 +206,7 @@ export async function getOrgVerificationQueue(filters = {}) {
             }));
         }
 
-        // Get stats
-        const { data: allOrgs, error: statsError } = await supabase
-            .from(TABLE_NAME)
-            .select('verification_status');
-
-        if (statsError) throw statsError;
-
-        const stats = {
-            pending: allOrgs?.filter(o => o.verification_status === 'pending').length || 0,
-            verified: allOrgs?.filter(o => o.verification_status === 'verified').length || 0,
-            rejected: allOrgs?.filter(o => o.verification_status === 'rejected').length || 0,
-            total: allOrgs?.length || 0
-        };
+        const stats = await readFacilityVerificationStats();
 
         logAuthorizationEvent('org_verification', 'getQueue', null, true);
 
@@ -304,25 +347,11 @@ export async function getOrgVerificationStats() {
             );
         }
 
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('verification_status, created_at');
-
-        if (error) throw error;
-
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-
-        const stats = {
-            pending: data?.filter(o => o.verification_status === 'pending').length || 0,
-            verified: data?.filter(o => o.verification_status === 'verified').length || 0,
-            rejected: data?.filter(o => o.verification_status === 'rejected').length || 0,
-            total: data?.length || 0,
-            recentPending: data?.filter(o => {
-                return o.verification_status === 'pending' &&
-                    new Date(o.created_at) > weekAgo;
-            }).length || 0
-        };
+        const stats = await readFacilityVerificationStats({
+            recentPendingSince: weekAgo.toISOString(),
+        });
 
         logAuthorizationEvent('org_verification', 'getStats', null, true);
         return stats;

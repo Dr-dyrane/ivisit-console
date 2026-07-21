@@ -38,7 +38,10 @@ export const useAuthCapabilities = (profile) => {
     [isAdmin, isOrgAdmin, isDispatcher],
   );
   const isOnboarding = useCallback(
-    () => profile?.onboarding_status === 'pending',
+    () => (
+      profile?.onboarding_status === 'pending'
+      || profile?.organization_scope?.verificationStatus === 'changes_requested'
+    ),
     [profile],
   );
   const isSkippedOnboarding = useCallback(

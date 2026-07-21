@@ -125,7 +125,7 @@ export const getApprovalSignal = ({ queueType, activeStats, activeId, loadError,
     headline: pending > 0
       ? `${pending} ${pending === 1 ? noun : nounPlural} to review`
       : `No ${nounPlural} need review`,
-    subhead: pending > 0 ? 'Start with the newest application.' : 'Keep Approvals open for new applications.',
+    subhead: pending > 0 ? 'Start with the oldest application.' : 'Keep Approvals open for new applications.',
   };
 };
 

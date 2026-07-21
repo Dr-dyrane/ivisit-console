@@ -66,6 +66,14 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(source).not.toContain('canVerifyProviders');
   });
 
+  it('uses exact server counts for facility queue statistics', () => {
+    const source = facilityServiceSource();
+
+    expect(source).toContain("select('id', { count: 'exact', head: true })");
+    expect(source).toContain("readFacilityVerificationStats()");
+    expect(source).not.toContain(".select('verification_status');");
+  });
+
   it('is composed on the console design system, not the retired ViewToggle/bento shell', () => {
     const source = pageSource();
     // COMPOSITION: the dual-queue page is ONE canonical render on the shared DS.
@@ -433,6 +441,7 @@ describe('VerificationQueue Approvals desktop contract', () => {
   it('keeps the hospital claim review chain on the canonical evidence, claim, and organization receivers', () => {
     const service = facilityServiceSource();
     const modal = modalSource();
+    const page = pageSource();
 
     expect(service).toContain(".from('organization_facility_claims')");
     expect(service).toContain(".from('organization_verification_documents')");
@@ -440,11 +449,11 @@ describe('VerificationQueue Approvals desktop contract', () => {
     expect(service).toContain("supabase.rpc('review_console_facility_claim'");
     expect(service).toContain("supabase.rpc('review_console_organization'");
 
-    expect(modal).toContain("const acceptedEvidence = verificationDocuments.some((document) => document.review_status === 'accepted');");
-    expect(modal).toContain("const claimApproved = !facilityClaim || facilityClaim.status === 'approved';");
-    expect(modal).toContain('const canApproveFacility = organizationVerified && claimApproved;');
-    expect(modal).toContain('const canApproveClaim = acceptedEvidence && facilityClaim?.status !== \'approved\';');
-    expect(modal).toContain('const canApproveOrganization = acceptedEvidence && claimApproved && !organizationVerified;');
+    expect(page).toContain('getFacilityReviewGates(item)');
+    expect(page).toContain('canApproveFacility: organizationVerified && claimApproved');
+    expect(page).toContain('disabled={actionLoading || !facilityApprovalReady}');
+    expect(page).toContain('Review evidence, ownership, and organization before approving this facility.');
+    expect(modal).toContain('getFacilityReviewGates(provider)');
     expect(modal).toContain('disabled={loading || !canApproveClaim}');
     expect(modal).toContain('disabled={loading || !canApproveOrganization}');
     expect(modal).toContain('disabled={loading || !canApproveFacility}');
