@@ -23,6 +23,53 @@ describe('driverAssignmentModel', () => {
     expect(getDriverNextAction('completed')).toBeNull();
   });
 
+  it('guards acceptance until live telemetry is proven', () => {
+    expect(getDriverNextAction('offered', { guarded: true })).toEqual(expect.objectContaining({
+      action: null,
+      disabled: true,
+      label: 'Checking location',
+    }));
+    expect(getDriverNextAction('offered', {
+      guarded: true,
+      telemetryState: 'lost',
+    })).toEqual(expect.objectContaining({
+      action: 'restore_location',
+      label: 'Restore location',
+    }));
+    expect(getDriverNextAction('offered', {
+      guarded: true,
+      telemetryState: 'live',
+    })).toEqual(expect.objectContaining({
+      action: 'accept',
+      label: 'Accept call',
+    }));
+  });
+
+  it('guards completion until patient acknowledgement is confirmed', () => {
+    expect(getDriverNextAction('arrived', {
+      guarded: true,
+      patientAcknowledgementState: 'pending',
+    })).toEqual(expect.objectContaining({
+      action: null,
+      disabled: true,
+      label: 'Waiting for patient',
+    }));
+    expect(getDriverNextAction('arrived', {
+      guarded: true,
+      patientAcknowledgementState: 'unavailable',
+    })).toEqual(expect.objectContaining({
+      action: null,
+      label: 'Confirmation unavailable',
+    }));
+    expect(getDriverNextAction('arrived', {
+      guarded: true,
+      patientAcknowledgementState: 'confirmed',
+    })).toEqual(expect.objectContaining({
+      action: 'complete',
+      requiresConfirmation: true,
+    }));
+  });
+
   it('routes to pickup before arrival and to the assigned hospital after arrival', () => {
     const emergency = {
       id: 'request-1',

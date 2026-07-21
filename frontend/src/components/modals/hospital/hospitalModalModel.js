@@ -74,6 +74,20 @@ export const buildInitialHospitalForm = (hospital) => {
 
 export const buildHospitalSavePayload = (formData, canManageVerification) => {
   const payload = { ...formData };
+  // Availability and operational status have a separate, workflow-owned
+  // receiver. The admin metadata RPC must never receive a stale form snapshot
+  // for these fields.
+  [
+    'available_beds',
+    'icu_beds_available',
+    'total_beds',
+    'ambulances_count',
+    'emergency_wait_time_minutes',
+    'wait_time',
+    'status',
+    'last_availability_update',
+    'image',
+  ].forEach((field) => delete payload[field]);
   if (!canManageVerification) {
     delete payload.verified;
     delete payload.verification_status;

@@ -45,12 +45,26 @@ export function DriverAssignmentCard({
 }) {
   const [completionArmed, setCompletionArmed] = useState(false);
   const [declineArmed, setDeclineArmed] = useState(false);
-  const nextAction = getDriverNextAction(driverAssignment?.assignment_status);
+  const nextAction = getDriverNextAction(driverAssignment?.assignment_status, {
+    guarded: true,
+    locationActive: driverTracking.isActive,
+    locationStatus: driverTracking.status,
+    patientAcknowledgementState: driverAssignment?.patient_acknowledgement_state,
+    telemetryState: driverTracking.telemetryState?.state,
+  });
   const destination = getDriverDestination({ emergency: driverAssignment, hospitals });
   const directionsUrl = buildDriverDirectionsUrl(destination?.coordinates);
   const unitLabel = getDriverUnitLabel({ ambulance: assignedAmbulance, emergency: driverAssignment });
   const offerCopy = formatOfferExpiry(driverAssignment?.offer_expires_at);
   const isOffer = driverAssignment?.assignment_status === 'offered';
+  const isExpiredOffer = driverAssignment?.assignment_status === 'expired';
+  const primaryPending = Boolean(
+    nextAction?.action
+    && (
+      driverAction === nextAction.action
+      || (nextAction.action === 'restore_location' && driverTracking.status === 'starting')
+    )
+  );
 
   useEffect(() => {
     setCompletionArmed(false);
@@ -67,6 +81,11 @@ export function DriverAssignmentCard({
 
   const handlePrimaryAction = () => {
     if (!nextAction) return;
+    if (nextAction.action === 'restore_location') {
+      driverTracking.start();
+      return;
+    }
+    if (!nextAction.action || nextAction.disabled) return;
     if (nextAction.requiresConfirmation && !completionArmed) {
       setCompletionArmed(true);
       return;
@@ -111,7 +130,7 @@ export function DriverAssignmentCard({
       <div className="mb-3 flex items-center justify-between">
         <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
           <Radio className="h-3.5 w-3.5" />
-          {isOffer ? 'New offer' : 'Driver status'}
+          {isOffer ? 'New offer' : isExpiredOffer ? 'Offer closed' : 'Driver status'}
         </div>
         <div className="text-[11px] font-medium text-muted-foreground">{unitLabel || 'Unit unavailable'}</div>
       </div>
@@ -131,11 +150,14 @@ export function DriverAssignmentCard({
         <>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="truncate text-base font-semibold">Emergency request</h2>
+              <h2 className="truncate text-base font-semibold">
+                {isExpiredOffer ? 'Offer expired' : 'Emergency request'}
+              </h2>
               <p className="text-xs text-muted-foreground">
                 #{driverAssignment.display_id || driverAssignment.request_id?.slice(-6)} - {statusLabel(driverAssignment.assignment_status, 'Assigned')}
               </p>
               {isOffer && offerCopy && <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-200">{offerCopy}</p>}
+              {isExpiredOffer && <p className="mt-1 text-[11px] text-muted-foreground">This offer has closed. Wait for the next assignment.</p>}
             </div>
             <Button type="button" variant="ghost" onClick={handleNavigate} className="h-9 w-9 rounded-button bg-muted/35 p-0" aria-label="Open driving directions">
               <Navigation className="h-4 w-4" />
@@ -155,18 +177,21 @@ export function DriverAssignmentCard({
 
           {trackingControl}
           {nextAction && (
-            <div className={`mt-2 grid gap-2 ${isOffer ? 'grid-cols-[0.8fr_1.2fr]' : 'grid-cols-1'}`}>
+            <>
+              {nextAction.supportCopy && <p className="mt-2 text-[11px] text-muted-foreground">{nextAction.supportCopy}</p>}
+              <div className={`mt-2 grid gap-2 ${isOffer ? 'grid-cols-[0.8fr_1.2fr]' : 'grid-cols-1'}`}>
               {isOffer && (
                 <Button type="button" variant="ghost" onClick={handleDecline} disabled={driverAction !== null} className="h-11 rounded-button bg-muted/35" aria-busy={driverAction === 'decline'}>
                   {driverAction === 'decline' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
                   {declineArmed ? 'Confirm' : 'Decline'}
                 </Button>
               )}
-              <Button type="button" onClick={handlePrimaryAction} disabled={driverAction !== null} className="h-11 rounded-button bg-foreground font-semibold text-background hover:bg-foreground/90" aria-busy={driverAction === nextAction.action}>
-                {driverAction === nextAction.action ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : nextAction.action === 'complete' ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Navigation className="mr-2 h-4 w-4" />}
-                {driverAction === nextAction.action ? nextAction.busyLabel : completionArmed ? 'Confirm complete' : nextAction.label}
+              <Button type="button" onClick={handlePrimaryAction} disabled={driverAction !== null || nextAction.disabled} className="h-11 rounded-button bg-foreground font-semibold text-background hover:bg-foreground/90" aria-busy={primaryPending}>
+                {primaryPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : nextAction.action === 'complete' ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Navigation className="mr-2 h-4 w-4" />}
+                {primaryPending ? nextAction.busyLabel : completionArmed ? 'Confirm complete' : nextAction.label}
               </Button>
-            </div>
+              </div>
+            </>
           )}
         </>
       ) : assignedAmbulance ? (

@@ -182,8 +182,8 @@ export const AnalyticsEvidenceSections = ({
         <EvidenceSection title="Subscribers" detail="Subscriber information available to platform admins." testId="analytics-subscribers-section">
           <EvidenceItem label="Subscribers" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.total) : SOURCE_UNAVAILABLE} />
           <EvidenceItem label="Active" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.active) : SOURCE_UNAVAILABLE} />
-          <EvidenceItem label="Paid" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} />
-          <EvidenceItem label="Paid conversion" value={sourceReadiness?.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} />
+          <EvidenceItem label="Paid tier" value={sourceReadiness?.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} />
+          <EvidenceItem label="Paid-tier share" value={sourceReadiness?.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} />
         </EvidenceSection>
       ) : (
         <section className="mt-5" data-testid="analytics-subscribers-section">

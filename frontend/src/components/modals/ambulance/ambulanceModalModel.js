@@ -37,16 +37,62 @@ export const TYPE_OPTIONS = [
 
 export const formId = 'ambulance-modal-form';
 
-// Crew is a Json list column. Keep the text conversion at the form boundary so
-// the service payload always receives the array shape consumed by the fleet rail.
-export const crewToText = (value) => (
-  Array.isArray(value) ? value.filter(Boolean).join(', ') : (value || '')
-);
+const crewMemberToText = (value) => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value).trim();
+  }
+  if (!value || typeof value !== 'object') return '';
+  return String(
+    value.full_name
+    || value.name
+    || value.display_name
+    || value.label
+    || value.role
+    || ''
+  ).trim();
+};
+
+// Crew is a legacy JSON column: rows can contain a string list, a members
+// envelope, or an empty object. Normalize at the form boundary and never let
+// object coercion leak "[object Object]" into an input.
+export const crewToText = (value) => {
+  const values = Array.isArray(value)
+    ? value
+    : Array.isArray(value?.members)
+      ? value.members
+      : typeof value === 'string'
+        ? [value]
+        : [];
+  return values.map(crewMemberToText).filter(Boolean).join(', ');
+};
 
 export const crewToArray = (text) => String(text || '')
   .split(',')
   .map((entry) => entry.trim())
   .filter(Boolean);
+
+export const etaToInputValue = (value) => {
+  if (!value || value === 'N/A') return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+export const etaToPayloadValue = (value) => {
+  if (!String(value || '').trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+export const getAmbulanceCurrentCallLabel = (formData = {}) => {
+  if (!formData.current_call) return 'No active call';
+  const reference = formData.active_call_display_id || 'Linked request';
+  const statusLabel = formData.active_call_status
+    ? formatAmbulanceLabel(formData.active_call_status)
+    : null;
+  return statusLabel ? `${reference} \u00B7 ${statusLabel}` : reference;
+};
 
 export const normalizeAmbulanceForm = (ambulance, orgId, isCreate, isOrgAdmin) => {
   const base = {
@@ -62,7 +108,7 @@ export const normalizeAmbulanceForm = (ambulance, orgId, isCreate, isOrgAdmin) =
     vehicle_number: base.vehicle_number || base.vehicle_label || '',
     license_plate: base.license_plate || '',
     hospital_id: base.hospital_id || '',
-    eta: base.eta && base.eta !== 'N/A' ? base.eta : '',
+    eta: etaToInputValue(base.eta),
     crew: crewToText(base.crew),
     current_call: base.current_call || '',
     base_price: base.base_price ?? '',
@@ -106,7 +152,7 @@ export const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId })
     vehicle_number: formData.vehicle_number?.trim(),
     license_plate: formData.license_plate?.trim(),
     hospital_id: formData.hospital_id || '',
-    eta: formData.eta?.trim(),
+    eta: etaToPayloadValue(formData.eta),
     crew: crewToArray(formData.crew),
     // Dispatch owns current_call, so ordinary fleet metadata never writes it.
     base_price: formData.base_price === '' ? undefined : Number(formData.base_price),

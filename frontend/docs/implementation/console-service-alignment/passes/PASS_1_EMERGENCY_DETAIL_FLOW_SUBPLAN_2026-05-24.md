@@ -821,3 +821,50 @@ This ledger is the next executable audit checklist. It converts the broad Pass 1
 | Create request modal | `EmergencyRequestModal` submits service/status/payment/location fields through atomic or fallback create paths. | Operator-created request can remain only with explicit receiver mode. | Atomic app-aligned create, console fallback create, status edit and incident category must be separate contracts. | Disable generic lifecycle status editing and service-type/category conflation until receiver decision is closed. | First slice chooses atomic create, fallback create, or unavailable with visible consequences. |
 
 Pass 1A stop condition: if a surface cannot consume the shared projection yet, it must be marked unavailable or left untouched. Do not patch that surface locally with another parser, fallback chain, direct table read, prompt, or custom event.
+
+## Lane 5 Requests active-state UX continuation - 2026-07-18
+
+Two manifest-owned `offered` browser fixtures exercised the mounted Requests
+route after completed cash payment:
+
+- `flow-matrix-1784438401234-ed972a24`
+- `flow-matrix-1784438756170-1bd1917f`
+
+The first observation appeared to show a stale Console state because the
+fixture handoff initially contained an offered responder while the route later
+rendered `Ready to dispatch`. The full proof chain showed that this was correct:
+the 90-second offer had expired, the backend released the assignment, and the
+request row atomically cleared `ambulance_id`, `responder_id`, and
+`current_responder_assignment_id`. Console rendered the current row rather than
+the historical handoff.
+
+Mounted desktop and mobile proof then confirmed:
+
+- a fresh payment-complete offer renders `Awaiting responder` in the list,
+  detail rail, mobile card, and mobile sheet;
+- offer expiry reflects as `Ready to dispatch` without a hard refresh;
+- dispatch immediately disables the action and renders `Sending responder
+  offer...`;
+- stale telemetry returns a bounded no-eligible-responder message; and
+- a previously released responder is not falsely reported as dispatched when
+  the receiver refuses to re-offer that responder.
+
+The released-responder recovery remains a dispatch/failover contract boundary.
+Console cannot prove another eligible responder from the request projection
+alone, so this pass did not add a client replay, migration change, or optimistic
+success state.
+
+One mounted mobile defect was closed. The patient projection honestly uses `No
+contact` when no phone exists, but the sheet converted that display fallback
+into the invalid action `tel:Nocontact`. The mobile request model now exposes a
+phone handoff only when the value contains at least seven digits. Missing
+contact copy remains visible as plain text. The compatibility detail component
+consumes the same model field, so it cannot reintroduce the invalid action if
+mounted later.
+
+Focused Requests verification passed 46 tests, targeted ESLint passed, and the
+optimized production build passed encoding, mojibake, data-contract,
+UI-surface, mobile-grammar, and compilation gates. Both exact fixtures were
+removed twice; each final preview reported zero residue across requests,
+assignments, transitions, payment, visit, wallet, staffing, fleet, facility,
+organization, profile, Auth, notification, and audit resources.

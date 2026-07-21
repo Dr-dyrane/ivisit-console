@@ -327,8 +327,8 @@ export const getAmbulanceRoleKind = ({ admin, orgAdmin }) => {
   return 'viewer';
 };
 
-// Truncated-reference idiom (mobile detail sheet donor): a bare UUID renders
-// as its first 8 characters uppercased, never as a fake human label.
+// Truncated-reference idiom for operational object references such as calls.
+// Person-facing identity must not fall back to a raw internal UUID.
 export const truncateAmbulanceReference = (value) => (
   String(value).slice(0, 8).toUpperCase()
 );
@@ -339,8 +339,8 @@ const humanizeCallStatus = (status) => String(status)
 
 // Driver identity (ADOPT-22): profile_id resolved read-only at the projection
 // boundary. Honest states -- no profile_id is 'Unassigned'; an unresolved id
-// (RLS-blocked read) is the truncated UUID with the full value as copyValue
-// for a CopyChip; phone only exists when resolution produced one.
+// (for example an RLS-blocked profile read) stays product-facing and does not
+// expose an internal UUID; phone only exists when resolution produced one.
 export const getAmbulanceDriverModel = (ambulance = {}) => {
   const profileId = ambulance.profile_id || null;
   if (!profileId) {
@@ -349,8 +349,8 @@ export const getAmbulanceDriverModel = (ambulance = {}) => {
   const resolvedName = ambulance.driver_name || null;
   return {
     assigned: true,
-    label: resolvedName || truncateAmbulanceReference(profileId),
-    copyValue: resolvedName ? null : profileId,
+    label: resolvedName || 'Driver details unavailable',
+    copyValue: null,
     phone: ambulance.driver_phone || null,
   };
 };

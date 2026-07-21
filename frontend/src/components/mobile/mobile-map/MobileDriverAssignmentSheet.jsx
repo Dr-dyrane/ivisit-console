@@ -40,7 +40,13 @@ export function MobileDriverAssignmentSheet({
 }) {
   const [completionArmed, setCompletionArmed] = useState(false);
   const [declineArmed, setDeclineArmed] = useState(false);
-  const nextAction = getDriverNextAction(driverAssignment?.assignment_status);
+  const nextAction = getDriverNextAction(driverAssignment?.assignment_status, {
+    guarded: true,
+    locationActive: driverTracking.isActive,
+    locationStatus: driverTracking.status,
+    patientAcknowledgementState: driverAssignment?.patient_acknowledgement_state,
+    telemetryState: driverTracking.telemetryState?.state,
+  });
   const destination = getDriverDestination({ emergency: driverAssignment, hospitals });
   const directionsUrl = buildDriverDirectionsUrl(destination?.coordinates);
   const pickupLabel = driverAssignment
@@ -51,6 +57,14 @@ export function MobileDriverAssignmentSheet({
     || 'Current';
   const unitLabel = getDriverUnitLabel({ ambulance: assignedAmbulance, emergency: driverAssignment });
   const isOffer = driverAssignment?.assignment_status === 'offered';
+  const isExpiredOffer = driverAssignment?.assignment_status === 'expired';
+  const primaryPending = Boolean(
+    nextAction?.action
+    && (
+      driverAction === nextAction.action
+      || (nextAction.action === 'restore_location' && driverTracking.status === 'starting')
+    )
+  );
   const offerCopy = formatOfferExpiry(driverAssignment?.offer_expires_at);
 
   useEffect(() => {
@@ -68,6 +82,11 @@ export function MobileDriverAssignmentSheet({
 
   const handlePrimaryAction = () => {
     if (!nextAction) return;
+    if (nextAction.action === 'restore_location') {
+      driverTracking.start();
+      return;
+    }
+    if (!nextAction.action || nextAction.disabled) return;
     if (nextAction.requiresConfirmation && !completionArmed) {
       setCompletionArmed(true);
       return;
@@ -158,10 +177,11 @@ export function MobileDriverAssignmentSheet({
           <div className="px-4 pb-4 pt-3">
             <header className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-destructive"><Radio className="h-3.5 w-3.5" />{isOffer ? 'New offer' : 'Active call'}</div>
-                <h2 className="truncate text-lg font-semibold">Emergency request</h2>
+                <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-destructive"><Radio className="h-3.5 w-3.5" />{isOffer ? 'New offer' : isExpiredOffer ? 'Offer closed' : 'Active call'}</div>
+                <h2 className="truncate text-lg font-semibold">{isExpiredOffer ? 'Offer expired' : 'Emergency request'}</h2>
                 <p className="text-xs font-medium text-muted-foreground">#{requestLabel} - {statusLabel(driverAssignment.assignment_status, 'Assigned')}</p>
                 {isOffer && offerCopy && <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-200">{offerCopy}</p>}
+                {isExpiredOffer && <p className="mt-1 text-[11px] text-muted-foreground">This offer has closed. Wait for the next assignment.</p>}
               </div>
               <div className="rounded-inner bg-foreground/[0.06] px-3 py-2 text-right"><p className="text-[10px] font-medium text-muted-foreground">Unit</p><p className="max-w-28 truncate text-xs font-semibold">{unitLabel || 'Unavailable'}</p></div>
             </header>
@@ -176,17 +196,20 @@ export function MobileDriverAssignmentSheet({
 
             {trackingControl}
             {nextAction && (
-              <div className={`mt-2 grid gap-2 ${isOffer ? 'grid-cols-[0.8fr_1.2fr]' : 'grid-cols-1'}`}>
+              <>
+                {nextAction.supportCopy && <p className="mt-2 text-[11px] text-muted-foreground">{nextAction.supportCopy}</p>}
+                <div className={`mt-2 grid gap-2 ${isOffer ? 'grid-cols-[0.8fr_1.2fr]' : 'grid-cols-1'}`}>
                 {isOffer && (
                   <Button type="button" variant="ghost" onClick={handleDecline} disabled={driverAction !== null} aria-busy={driverAction === 'decline'} className="h-12 rounded-button bg-muted/35 font-semibold">
                     {driverAction === 'decline' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}{declineArmed ? 'Confirm' : 'Decline'}
                   </Button>
                 )}
-                <Button type="button" onClick={handlePrimaryAction} disabled={driverAction !== null} aria-busy={driverAction === nextAction.action} className="h-12 rounded-button bg-foreground font-semibold text-background hover:bg-foreground/90">
-                  {driverAction === nextAction.action ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : nextAction.action === 'complete' ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Navigation className="mr-2 h-4 w-4" />}
-                  {driverAction === nextAction.action ? nextAction.busyLabel : completionArmed ? 'Confirm complete' : nextAction.label}
+                <Button type="button" onClick={handlePrimaryAction} disabled={driverAction !== null || nextAction.disabled} aria-busy={primaryPending} className="h-12 rounded-button bg-foreground font-semibold text-background hover:bg-foreground/90">
+                  {primaryPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : nextAction.action === 'complete' ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Navigation className="mr-2 h-4 w-4" />}
+                  {primaryPending ? nextAction.busyLabel : completionArmed ? 'Confirm complete' : nextAction.label}
                 </Button>
-              </div>
+                </div>
+              </>
             )}
           </div>
         ) : assignedAmbulance ? (

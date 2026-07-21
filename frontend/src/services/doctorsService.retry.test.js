@@ -25,13 +25,17 @@ jest.mock('./authService', () => ({
 }));
 
 const BUILDER_METHODS = ['select', 'eq', 'in', 'or', 'gte', 'lte', 'order', 'range'];
+let queryCalls;
 
 // Build a chainable, thenable mock query builder. Each await consumes one
 // response from the shared FIFO queue.
 function makeBuilder(responses) {
   const builder = {};
   BUILDER_METHODS.forEach((method) => {
-    builder[method] = () => builder;
+    builder[method] = jest.fn((...args) => {
+      queryCalls.push({ method, args });
+      return builder;
+    });
   });
   builder.then = (onFulfilled, onRejected) => {
     const response = responses.length
@@ -45,6 +49,7 @@ function makeBuilder(responses) {
 describe('doctorsService.getDoctors withRetry hardening', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    queryCalls = [];
     getCurrentUser.mockResolvedValue({ id: 'user-1', role: 'admin' });
     applyAuthFilter.mockImplementation((query) => query);
   });
@@ -74,6 +79,10 @@ describe('doctorsService.getDoctors withRetry hardening', () => {
     expect(result.count).toBe(1);
     // Primary read consumed at least two from() calls (fail + retry).
     expect(supabase.from.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(queryCalls).toContainEqual({
+      method: 'or',
+      args: ['is_available.is.null,is_available.eq.true'],
+    });
   });
 
   it('does not retry a non-retryable RLS error and rejects on the first attempt', async () => {

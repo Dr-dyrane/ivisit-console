@@ -113,6 +113,11 @@ export const buildMobileRequestDetailModel = (request) => {
     projection.serviceDisplay.specialtyLabel !== 'N/A' ? projection.serviceDisplay.specialtyLabel : null,
     request?.bed_number ? `Bed ${request.bed_number}` : null,
   ].filter(Boolean);
+  const phone = projection.patientDisplay.phone;
+  const phoneDigits = String(phone || '').replace(/\D/g, '');
+  const phoneHref = phoneDigits.length >= 7
+    ? `tel:${String(phone).replace(/[^\d+]/g, '')}`
+    : null;
 
   return {
     projection,
@@ -121,7 +126,8 @@ export const buildMobileRequestDetailModel = (request) => {
     location: projection.locationDisplay.label,
     responder: projection.responderDisplay.label,
     terminal: projection.statusDisplay.terminal,
-    phone: projection.patientDisplay.phone,
+    phone,
+    phoneHref,
     patientEmail: projection.patientDisplay.email && projection.patientDisplay.email !== 'No email'
       ? projection.patientDisplay.email
       : null,

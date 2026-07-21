@@ -223,6 +223,7 @@ describe('Requests mobile model', () => {
 
     expect(detail).toMatchObject({
       name: 'Ada Lovelace',
+      phoneHref: 'tel:+15550104',
       patientEmail: 'ada@example.com',
       facility: 'General Hospital',
       responder: 'Unit 12',
@@ -233,5 +234,17 @@ describe('Requests mobile model', () => {
     });
     expect(detail.paymentParts).toEqual(['Cash owed', '120.00 USD', 'Pending']);
     expect(detail.vehicleParts).toEqual(['LAG-104', 'Advanced Life Support']);
+  });
+
+  it('renders missing contact copy without creating an invalid phone action', () => {
+    const detail = buildMobileRequestDetailModel({
+      id: 'request-without-contact',
+      status: 'in_progress',
+      service_type: 'ambulance',
+      patient_name: 'No Contact Patient',
+    });
+
+    expect(detail.phone).toBe('No contact');
+    expect(detail.phoneHref).toBeNull();
   });
 });

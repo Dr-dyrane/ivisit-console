@@ -51,6 +51,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const [visitContext, setVisitContext] = useState(null);
   const [emergencyContext, setEmergencyContext] = useState(null);
   const [loadingContext, setLoadingContext] = useState(false);
+  const [emergencyContextUnavailable, setEmergencyContextUnavailable] = useState(false);
   const isTerminalStatus = isTerminalVisitStatus(formData.status);
   const visitContextIdentity = visitContext?.identity?.keys?.visitId === (formData.id || visit?.id)
     ? visitContext.identity
@@ -138,12 +139,15 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
 
       if (isEmergencyVisit(visit)) {
         setLoadingContext(true);
-        fetchEmergencyContext(visit.request_id || visit.id)
+        setEmergencyContextUnavailable(false);
+        fetchEmergencyContext(visit.request_id)
           .then(context => {
-            if (active) setEmergencyContext(context);
+            if (!active) return;
+            setEmergencyContext(context);
+            setEmergencyContextUnavailable(!context);
           })
-          .catch(error => {
-            console.error('Error fetching emergency context:', error);
+          .catch(() => {
+            if (active) setEmergencyContextUnavailable(true);
           })
           .finally(() => {
             if (active) setLoadingContext(false);
@@ -169,8 +173,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!onSave) {
-      console.error('VisitModal: onSave prop is required but was not provided');
-      toast.error('Configuration error: cannot save. Please reload the page.');
+      toast.error('Visit changes are unavailable here.');
       return;
     }
     setLoading(true);
@@ -194,8 +197,8 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       // every notification (V-16). The modal only closes on success and
       // stays open on failure so edits are not lost.
       onClose(true);
-    } catch (error) {
-      console.error('Error saving visit:', error);
+    } catch {
+      // The authoritative command owner presents its own failure feedback.
     } finally {
       setLoading(false);
     }
@@ -445,6 +448,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 <VisitIncidentContextCard
                   emergencyContext={emergencyContext}
                   loadingContext={loadingContext}
+                  unavailable={emergencyContextUnavailable}
                   onClose={onClose}
                 />
 

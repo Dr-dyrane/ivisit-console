@@ -502,6 +502,31 @@ This ledger is the next executable audit checklist for facilities, capacity and 
 
 Pass 3A stop condition: if a facility/pricing surface cannot consume the shared projection yet, it must be marked unavailable or left untouched. Do not patch that surface with another unbounded query, earliest-hospital fallback, raw discovery fetch, public-URL upload, local capacity reducer or unreceived custom event.
 
+### 2026-07-19 Rich-State Closure Checkpoint
+
+Verified mounted facility behavior now follows the ledger as follows:
+
+- The `/hospitals` read owner returns bounded pages and `exactCounts` status statistics; mobile KPI counts render only from that exact aggregate and do not fall back to the loaded page window.
+- The facility editor retains metadata and authorized verification edits only. Capacity, operational status, ER wait, fleet and media are read-only, and the metadata save payload strips their stale form values before the administrative receiver is called.
+- Facility detail retains read-only reservation evidence with Requests as the management handoff. Mobile capacity and fleet render `Not reported` rather than fabricating zero when the source field is absent.
+
+Still blocked, intentionally unavailable:
+
+- The app-visible operational capacity workflow through `update_hospital_availability`, including patient consequence and lifecycle action authority.
+- Facility media mutation until Storage policy and `hospital_media` provenance are proved.
+- Discovery/import persistence and provider eligibility/catalog ownership until their receivers and audit evidence are named.
+
+Cross-repository guard note:
+
+- `ivisit-app`'s `hardening:hospitals-surface-field-guard` still inspects the
+  compatibility facade at `frontend/src/services/hospitalsService.js` for
+  `payload.total_beds` and `payload.place_id`. The canonical payload builder
+  moved to `frontend/src/services/hospitals/payload.js`, where both fields are
+  normalized and persisted. The current guard failure is therefore a harness
+  path mismatch, not permission to restore capacity editing or duplicate the
+  payload owner in the facade. Repoint that app-side guard in a separate
+  cross-repository harness change.
+
 Suggested verification once code changes begin:
 
 ```powershell

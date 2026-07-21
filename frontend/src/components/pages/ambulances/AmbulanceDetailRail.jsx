@@ -25,6 +25,7 @@ import {
 } from '../../../constants/ambulanceStatus';
 import { getAmbulanceRailModel } from './ambulancePageModel';
 import { AmbulanceAvatar } from './AmbulanceList';
+import { formatDayTime } from '../../../utils/dayTime';
 
 export const AmbulanceDetailRail = ({
   ambulance,
@@ -116,7 +117,11 @@ export const AmbulanceDetailRail = ({
 
         <div className="space-y-3">
           <DetailLine icon={Truck} label="Vehicle" value={model.vehicle} />
-          <DetailLine icon={Clock} label="ETA" value={ambulance.eta || 'Not set'} />
+          <DetailLine
+            icon={Clock}
+            label="ETA"
+            value={ambulance.eta ? formatDayTime(ambulance.eta) : 'Not set'}
+          />
           <DetailLine icon={Wrench} label="Type" value={ambulance.type || 'Standard'} />
           <DetailLine
             icon={Ambulance}
@@ -124,19 +129,12 @@ export const AmbulanceDetailRail = ({
             value={ambulance.vehicle_number || ambulance.license_plate || 'Not set'}
           />
           {/* Driver identity (ADOPT-22): resolved read-only from profile_id.
-              Unassigned stays honest text; an unresolved id renders the
-              truncated UUID with a CopyChip carrying the full value. */}
+              Unassigned and unavailable resolution remain honest product copy;
+              internal person UUIDs are never exposed. */}
           <DetailLine
             icon={UserRound}
             label="Driver"
-            value={model.driver.copyValue ? (
-              <span className="flex min-w-0 items-center gap-1">
-                <span className="truncate font-mono" title={model.driver.copyValue}>
-                  {model.driver.label}
-                </span>
-                <CopyChip value={model.driver.copyValue} label="Copy driver ID" />
-              </span>
-            ) : model.driver.label}
+            value={model.driver.label}
           />
           {model.driver.phone && (
             <DetailLine icon={Phone} label="Driver phone" value={model.driver.phone} />

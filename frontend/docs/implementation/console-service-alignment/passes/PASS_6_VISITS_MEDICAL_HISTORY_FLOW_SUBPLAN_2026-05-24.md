@@ -319,6 +319,18 @@ This ledger is the continuation map for clinical-history alignment. It is intent
 | Delete and bulk delete | `VisitsPage` exposes single and bulk destructive paths over selected loaded ids. | Keep unavailable for emergency-derived or ambiguous rows until audited destructive receiver and patient-history consequence exist. | No hard delete of patient-history evidence through ordinary UI. |
 | Financial/insurance fields | Modal and service expose cost and insurance-related fields while Pass 2/7 own payment and insurance outcomes. | Render joined display-only outcome fields until finance/insurance command authority exists. | No visit edit substitutes for payment release, cash approval, or insurance claim truth. |
 
+### 2026-07-19 closure checkpoint
+
+- `VisitModal` now loads emergency context only when the selected row has an
+  explicit `request_id`; it no longer substitutes the visit UUID for an absent
+  request identity.
+- A failed or unavailable linked-request read is an explicit local detail state,
+  not a blank card or an inferred incident. The visit record remains readable.
+- Visit-context helpers and modal failure paths no longer write raw visit,
+  clinical, request, or receiver errors to the browser console.
+- The existing request-derived mutation/delete, payment, insurance, and medical
+  profile boundaries remain unchanged and fail closed.
+
 ## Implementation Packages
 
 ### 1. Visit Read Model

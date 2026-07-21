@@ -31,9 +31,29 @@ export const driverManagementService = {
       {},
       'Driver assignments could not be loaded',
     );
-    return (Array.isArray(result.items) ? result.items : [])
+    const items = (Array.isArray(result.items) ? result.items : [])
       .map(normalizeDriverDispatchItem)
       .filter(Boolean);
+    return Promise.all(items.map(async (item) => {
+      if (item.assignment_status !== 'arrived') return item;
+      try {
+        const { data, error } = await supabase.rpc('get_current_emergency_responder', {
+          p_request_id: item.request_id,
+        });
+        if (error || !data?.success || !data?.available) {
+          return { ...item, patient_acknowledgement_state: 'unavailable' };
+        }
+        return {
+          ...item,
+          patient_acknowledged_arrival_at: data.patient_acknowledged_arrival_at || null,
+          patient_acknowledgement_state: data.patient_acknowledged_arrival_at
+            ? 'confirmed'
+            : 'pending',
+        };
+      } catch {
+        return { ...item, patient_acknowledgement_state: 'unavailable' };
+      }
+    }));
   },
 
   subscribeToDispatchFeed(responderId, callback) {
@@ -46,6 +66,16 @@ export const driverManagementService = {
           event: '*',
           schema: 'public',
           table: 'emergency_responder_assignments',
+          filter: `responder_id=eq.${responderId}`,
+        },
+        callback,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'emergency_requests',
           filter: `responder_id=eq.${responderId}`,
         },
         callback,

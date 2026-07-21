@@ -56,6 +56,12 @@ describe('DoctorModal module boundary', () => {
   });
 
   it('preserves status, identity, and facility display projections', () => {
+    const view = fs.readFileSync('src/components/modals/doctor/DoctorModalView.jsx', 'utf8');
+
+    expect(view).toContain('<Label htmlFor={htmlFor}');
+    expect(view).toContain('htmlFor="doctor-specialty"');
+    expect(view).toContain('htmlFor="doctor-email"');
+    expect(view).toContain('htmlFor="doctor-notes"');
     expect(getStaffStatusMeta('available', false).label).toBe('Unavailable for assignment');
     expect(getStaffStatusMeta('future_lifecycle', true).label).toBe('Future Lifecycle');
     expect(getFacilityName(

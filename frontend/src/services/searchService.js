@@ -54,7 +54,7 @@ export const searchService = {
     const results = [];
 
     try {
-      const [doctors, hospitals, ambulances, visits, emergencies, users] = await Promise.all([
+      const projections = await Promise.allSettled([
         this.searchDoctors(searchTerm, limit),
         this.searchHospitals(searchTerm, limit),
         this.searchAmbulances(searchTerm, limit),
@@ -63,16 +63,32 @@ export const searchService = {
         this.searchUsers(searchTerm, limit),
       ]);
 
-      if (doctors.length) results.push({ category: 'Doctors', items: doctors, icon: 'Stethoscope', color: '#8B5CF6' });
-      if (hospitals.length) results.push({ category: 'Hospitals', items: hospitals, icon: 'Building2', color: '#3B82F6' });
-      if (ambulances.length) results.push({ category: 'Ambulances', items: ambulances, icon: 'Ambulance', color: '#EF4444' });
-      if (visits.length) results.push({ category: 'Visits', items: visits, icon: 'Calendar', color: '#10B981' });
-      if (emergencies.length) results.push({ category: 'Requests', items: emergencies, icon: 'AlertTriangle', color: '#F59E0B' });
-      if (users.length) results.push({ category: 'Users', items: users, icon: 'Users', color: '#06B6D4' });
+      const categories = [
+        { category: 'Doctors', path: '/doctors', icon: 'Stethoscope', color: '#8B5CF6' },
+        { category: 'Hospitals', path: '/hospitals', icon: 'Building2', color: '#3B82F6' },
+        { category: 'Ambulances', path: '/ambulances', icon: 'Ambulance', color: '#EF4444' },
+        { category: 'Visits', path: '/visits', icon: 'Calendar', color: '#10B981' },
+        { category: 'Requests', path: '/emergencies', icon: 'AlertTriangle', color: '#F59E0B' },
+        { category: 'Users', path: '/users', icon: 'Users', color: '#06B6D4' },
+      ];
+      const errors = [];
+
+      projections.forEach((projection, index) => {
+        const category = categories[index];
+        if (projection.status === 'fulfilled') {
+          if (projection.value.length) results.push({ ...category, items: projection.value });
+          return;
+        }
+        errors.push({ category: category.category, path: category.path });
+      });
 
       await this.trackSearch(query, results.reduce((sum, cat) => sum + cat.items.length, 0));
 
-      return { results, total: results.reduce((sum, cat) => sum + cat.items.length, 0) };
+      return {
+        results,
+        errors,
+        total: results.reduce((sum, cat) => sum + cat.items.length, 0),
+      };
     } catch (error) {
       console.error('Search error:', error);
       throw error;
@@ -240,47 +256,39 @@ export const searchService = {
   },
 
   async getRecentSearches(limit = 8) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-      const { data } = await supabase
-        .from(SEARCH_HISTORY_TABLE)
-        .select('query, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+    const { data, error } = await supabase
+      .from(SEARCH_HISTORY_TABLE)
+      .select('query, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-      return (data || []).map(item => ({
-        query: item.query,
-        timestamp: new Date(item.created_at),
-        icon: 'Clock'
-      }));
-    } catch (error) {
-      console.error('Error fetching recent searches:', error);
-      return [];
-    }
+    if (error) throw error;
+    return (data || []).map(item => ({
+      query: item.query,
+      timestamp: new Date(item.created_at),
+      icon: 'Clock'
+    }));
   },
 
   async getTrendingSearches(limit = 8, days = 7) {
-    try {
-      const { data } = await supabase
-        .rpc('get_trending_searches', {
-          days_back: days,
-          limit_count: limit
-        });
+    const { data, error } = await supabase
+      .rpc('get_trending_searches', {
+        days_back: days,
+        limit_count: limit
+      });
 
-      return (data || []).map((item, idx) => ({
-        query: item.query,
-        count: item.count,
-        rank: idx + 1,
-        icon: 'TrendingUp',
-        color: ['#EF4444', '#F97316', '#F59E0B', '#FBBF24'][idx % 4]
-      }));
-    } catch (error) {
-      console.log('Trending RPC not yet available, returning empty');
-      return [];
-    }
+    if (error) throw error;
+    return (data || []).map((item, idx) => ({
+      query: item.query,
+      count: item.count,
+      rank: idx + 1,
+      icon: 'TrendingUp',
+      color: ['#EF4444', '#F97316', '#F59E0B', '#FBBF24'][idx % 4]
+    }));
   },
 
   async recordSelection(query, resultType, resultId) {
@@ -318,4 +326,3 @@ export const searchService = {
     }
   }
 };
-

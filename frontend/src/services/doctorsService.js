@@ -10,7 +10,6 @@ import { withRetry } from './supabaseHelpers';
 import { applyQueryAbortSignal, throwIfQueryAborted } from './queryAbort';
 
 const TABLE_NAME = 'doctors';
-const STAFF_STATUSES = ['available', 'on_call', 'busy', 'off_duty'];
 const DOCTOR_SORT_FIELDS = new Set([
   'created_at',
   'updated_at',
@@ -139,6 +138,9 @@ function applyDoctorFilters(query, user, filter = {}) {
   } else if (statusValues.length > 1) {
     query = query.in('status', statusValues);
   }
+  if (filter.requireAssignable) {
+    query = query.or('is_available.is.null,is_available.eq.true');
+  }
 
   const search = sanitizeSearchTerm(filter.search);
   if (search) {
@@ -170,9 +172,18 @@ async function getDoctorExactCount(filter = {}, user, quiet = false, abortSignal
 const withStatusForCount = (filter = {}, status) => {
   const statusValues = normalizeFilterList(filter.status);
   if (statusValues.length > 0 && !statusValues.includes(status)) {
-    return { ...filter, status, forceEmpty: true };
+    return {
+      ...filter,
+      status,
+      forceEmpty: true,
+      requireAssignable: status === 'available',
+    };
   }
-  return { ...filter, status };
+  return {
+    ...filter,
+    status,
+    requireAssignable: status === 'available',
+  };
 };
 
 async function getDoctorPageStats(filter = {}, user, quiet = false, abortSignal) {
@@ -358,7 +369,7 @@ export async function updateDoctor(doctorId, input) {
       }
     }
 
-    // Preserve existing empty-string → null normalization for the remaining columns
+    // Preserve existing empty-string -> null normalization for the remaining columns.
     const sanitized = sanitizeInput(payload);
     if (Object.keys(sanitized).length === 0) {
       const error = new Error('No supported staff directory changes were provided.');

@@ -13,41 +13,9 @@ jest.mock('../lib/supabase', () => ({
   },
 }));
 
-let hospitalResponse;
-let hospitalQueryState;
-
-const makeHospitalBuilder = () => {
-  hospitalQueryState = { select: null, filters: [], orders: [], limit: null };
-  const builder = {};
-  builder.select = (select) => {
-    hospitalQueryState.select = select;
-    return builder;
-  };
-  builder.eq = (...args) => {
-    hospitalQueryState.filters.push({ method: 'eq', args });
-    return builder;
-  };
-  builder.order = (column, options) => {
-    hospitalQueryState.orders.push({ column, options });
-    return builder;
-  };
-  builder.limit = (limit) => {
-    hospitalQueryState.limit = limit;
-    return builder;
-  };
-  builder.maybeSingle = () => Promise.resolve(hospitalResponse);
-  return builder;
-};
-
 describe('pricing compatibility commands', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    hospitalQueryState = null;
-    hospitalResponse = { data: { id: 'first-hospital-uuid' }, error: null };
-    supabase.from.mockImplementation((table) => {
-      expect(table).toBe('hospitals');
-      return makeHospitalBuilder();
-    });
     supabase.rpc.mockResolvedValue({ data: { success: true }, error: null });
   });
 
@@ -77,31 +45,16 @@ describe('pricing compatibility commands', () => {
     });
   });
 
-  it('preserves the legacy earliest-facility organization resolution for room upserts', async () => {
-    await saveRoomPricing({
+  it('rejects organization-only room changes before choosing a facility', async () => {
+    await expect(saveRoomPricing({
       organization_id: 'organization-uuid',
       room_name: 'Private room',
       room_type: 'private',
       price_per_night: '275.00',
       description: '',
-    });
-
-    expect(hospitalQueryState).toEqual({
-      select: 'id',
-      filters: [{ method: 'eq', args: ['organization_id', 'organization-uuid'] }],
-      orders: [{ column: 'created_at', options: { ascending: true } }],
-      limit: 1,
-    });
-    expect(supabase.rpc).toHaveBeenCalledWith('upsert_room_pricing', {
-      payload: {
-        id: null,
-        hospital_id: 'first-hospital-uuid',
-        room_name: 'Private room',
-        room_type: 'private',
-        price_per_night: '275.00',
-        description: null,
-      },
-    });
+    })).rejects.toThrow('Select a facility before changing organization pricing.');
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
   it('keeps global service pricing represented by a null facility UUID', async () => {
@@ -124,17 +77,14 @@ describe('pricing compatibility commands', () => {
     });
   });
 
-  it('fails before mutation when organization resolution has no facility', async () => {
-    hospitalResponse = { data: null, error: null };
-
-    await expect(saveRoomPricing({
+  it('rejects organization-only service changes before mutation', async () => {
+    await expect(saveServicePricing({
       organization_id: 'organization-uuid',
-      room_name: 'Ward',
-      room_type: 'general',
-      price_per_night: 80,
-    })).rejects.toThrow(
-      'No hospital found for the selected organization. Create a hospital first to manage organization pricing.'
-    );
+      service_name: 'Assessment',
+      service_type: 'assessment',
+      base_price: 80,
+    })).rejects.toThrow('Select a facility before changing organization pricing.');
+    expect(supabase.from).not.toHaveBeenCalled();
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
 

@@ -114,8 +114,9 @@ export const DoctorModalView = ({
                     hint="Synced from the linked account"
                   />
                 ) : (
-                  <Field label="Full name">
+                  <Field label="Full name" htmlFor="doctor-full-name">
                     <input
+                      id="doctor-full-name"
                       value={formData.name}
                       onChange={(event) => updateField('name', event.target.value)}
                       required
@@ -125,8 +126,9 @@ export const DoctorModalView = ({
                   </Field>
                 )}
 
-                <Field label="Specialty">
+                <Field label="Specialty" htmlFor="doctor-specialty">
                   <input
+                    id="doctor-specialty"
                     value={formData.specialization}
                     onChange={(event) => updateField('specialization', event.target.value)}
                     required
@@ -143,8 +145,9 @@ export const DoctorModalView = ({
                     hint="Synced from the linked account"
                   />
                 ) : (
-                  <Field label="Email">
+                  <Field label="Email" htmlFor="doctor-email">
                     <input
+                      id="doctor-email"
                       type="email"
                       value={formData.email}
                       onChange={(event) => updateField('email', event.target.value)}
@@ -163,8 +166,9 @@ export const DoctorModalView = ({
                     hint="Synced from the linked account"
                   />
                 ) : (
-                  <Field label="Phone">
+                  <Field label="Phone" htmlFor="doctor-phone">
                     <input
+                      id="doctor-phone"
                       value={formData.phone}
                       onChange={(event) => updateField('phone', event.target.value)}
                       placeholder="Phone"
@@ -173,8 +177,9 @@ export const DoctorModalView = ({
                   </Field>
                 )}
 
-                <Field label="Facility">
+                <Field label="Facility" htmlFor="doctor-facility">
                   <select
+                    id="doctor-facility"
                     value={selectedFacilityIsInScope ? formData.hospital_id : ''}
                     onChange={(event) => updateField('hospital_id', event.target.value)}
                     disabled={loadingFacilities}
@@ -212,8 +217,9 @@ export const DoctorModalView = ({
                     : 'Managed by the authorized availability workflow'}
                 />
 
-                <Field label="License">
+                <Field label="License" htmlFor="doctor-license">
                   <input
+                    id="doctor-license"
                     value={formData.license_number}
                     onChange={(event) => updateField('license_number', event.target.value)}
                     placeholder="License"
@@ -221,8 +227,9 @@ export const DoctorModalView = ({
                   />
                 </Field>
 
-                <Field label="Experience">
+                <Field label="Experience" htmlFor="doctor-experience">
                   <input
+                    id="doctor-experience"
                     type="number"
                     min="0"
                     value={formData.experience}
@@ -251,8 +258,9 @@ export const DoctorModalView = ({
                   hint="Read-only in this form"
                 />
 
-                <Field label="Notes" wide>
+                <Field label="Notes" htmlFor="doctor-notes" wide>
                   <textarea
+                    id="doctor-notes"
                     value={formData.about}
                     onChange={(event) => updateField('about', event.target.value)}
                     placeholder="Short note"
@@ -291,9 +299,9 @@ export const DoctorModalView = ({
   </ModalShell>
 );
 
-const Field = ({ label, children, wide = false }) => (
+const Field = ({ label, htmlFor, children, wide = false }) => (
   <div className={`space-y-2 ${wide ? 'sm:col-span-2' : ''}`}>
-    <Label className="ml-1 text-[11px] font-semibold text-muted-foreground">
+    <Label htmlFor={htmlFor} className="ml-1 text-[11px] font-semibold text-muted-foreground">
       {label}
     </Label>
     {children}

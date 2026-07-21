@@ -157,7 +157,7 @@ export const VisitNotesCard = ({ formData, handleChange, isView }) => (
   </GlassCard>
 );
 
-export const VisitIncidentContextCard = ({ emergencyContext, loadingContext, onClose }) => {
+export const VisitIncidentContextCard = ({ emergencyContext, loadingContext, unavailable, onClose }) => {
   if (loadingContext) {
     return (
       <GlassCard icon={<Siren className="text-red-500" />} title="Loading Incident Context">
@@ -167,13 +167,22 @@ export const VisitIncidentContextCard = ({ emergencyContext, loadingContext, onC
       </GlassCard>
     );
   }
+  if (unavailable) {
+    return (
+      <GlassCard icon={<Siren className="text-muted-foreground" />} title="Linked request">
+        <p className="text-sm leading-relaxed text-muted-foreground" role="status">
+          Request details are unavailable right now. You can still review this visit record.
+        </p>
+      </GlassCard>
+    );
+  }
   if (!emergencyContext) return null;
 
   return (
     <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
       <div className="space-y-4">
         <div className="rounded-inner bg-red-500/5 p-4">
-          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Original Situation Report</p>
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Request details</p>
           <p className="text-sm leading-relaxed italic">&quot;{emergencyContext.emergency?.description || 'No description provided'}&quot;</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -208,7 +217,7 @@ export const VisitIncidentContextCard = ({ emergencyContext, loadingContext, onC
             onClose(false);
           }}
         >
-          View Full Incident Log
+          View request details
         </Button>
       </div>
     </GlassCard>

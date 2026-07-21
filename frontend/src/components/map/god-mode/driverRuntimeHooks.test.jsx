@@ -1,7 +1,10 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useDriverDispatchFeed } from './useDriverDispatchFeed';
-import { useDriverLocationTracking } from './useDriverLocationTracking';
+import {
+  getLocationErrorCopy,
+  useDriverLocationTracking,
+} from './useDriverLocationTracking';
 
 const mockGetDispatchFeed = jest.fn();
 const mockSubscribeToDispatchFeed = jest.fn();
@@ -52,6 +55,7 @@ describe('driver runtime hooks', () => {
   let container;
   let root;
   let latestTracking;
+  let latestFeed;
   let visibilityState;
   let watchSuccess;
   let freshPositionRequests;
@@ -59,7 +63,7 @@ describe('driver runtime hooks', () => {
   let originalVisibilityState;
 
   const FeedHarness = () => {
-    useDriverDispatchFeed({ enabled: true, responderId: 'driver-1' });
+    latestFeed = useDriverDispatchFeed({ enabled: true, responderId: 'driver-1' });
     return null;
   };
 
@@ -273,5 +277,50 @@ describe('driver runtime hooks', () => {
       await flushPromises();
     });
     expect(mockGetDispatchFeed).toHaveBeenCalledTimes(3);
+  });
+
+  it('preserves an explicit expired offer after the canonical feed removes it', async () => {
+    mockGetDispatchFeed
+      .mockResolvedValueOnce([{
+        assignment_id: 'offer-1',
+        request_id: 'request-1',
+        ambulance_id: 'ambulance-1',
+        assignment_status: 'offered',
+        offer_expires_at: '2026-07-14T12:00:05.000Z',
+      }])
+      .mockResolvedValueOnce([]);
+
+    await act(async () => {
+      root.render(<FeedHarness />);
+      await flushPromises();
+    });
+    expect(latestFeed.currentAssignment?.assignment_id).toBe('offer-1');
+
+    await act(async () => {
+      jest.advanceTimersByTime(5050);
+      await flushPromises();
+    });
+
+    expect(mockGetDispatchFeed).toHaveBeenCalledTimes(2);
+    expect(latestFeed.currentAssignment).toBeNull();
+    expect(latestFeed.expiredAssignment).toEqual(expect.objectContaining({
+      assignment_id: 'offer-1',
+      assignment_status: 'expired',
+    }));
+
+    await act(async () => {
+      jest.advanceTimersByTime(30000);
+      await flushPromises();
+    });
+    expect(latestFeed.expiredAssignment).toBeNull();
+  });
+
+  it('maps browser geolocation failures to app-owned recovery copy', () => {
+    expect(getLocationErrorCopy({ code: 1, message: 'User denied Geolocation' }))
+      .toBe('Location access is off. Allow it to share your live position.');
+    expect(getLocationErrorCopy({ code: 2 }))
+      .toBe('We cannot get your location yet. Move to an open area and try again.');
+    expect(getLocationErrorCopy({ code: 3 }))
+      .toBe('Location took too long. Try again.');
   });
 });

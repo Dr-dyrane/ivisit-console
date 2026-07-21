@@ -1,28 +1,20 @@
 import { supabase } from '../../lib/supabase';
 
-const resolveHospitalIdForPricing = async (item) => {
+const resolveHospitalIdForPricing = (item = {}) => {
   if (item.hospital_id) return item.hospital_id;
 
-  if (!item.organization_id) return null; // global pricing
-
-  const { data, error } = await supabase
-    .from('hospitals')
-    .select('id')
-    .eq('organization_id', item.organization_id)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data?.id) {
-    throw new Error('No hospital found for the selected organization. Create a hospital first to manage organization pricing.');
+  // Pricing rows are keyed by hospital_id. Picking an arbitrary hospital for
+  // an organization would change one facility while describing the result as
+  // an organization-wide rule, so dormant command callers must select one.
+  if (item.organization_id) {
+    throw new Error('Select a facility before changing organization pricing.');
   }
 
-  return data.id;
+  return null; // explicit platform fallback
 };
 
 export const saveServicePricing = async (item) => {
-  const hospitalId = await resolveHospitalIdForPricing(item);
+  const hospitalId = resolveHospitalIdForPricing(item);
   const payload = {
     id: item.id || null,
     hospital_id: hospitalId,
@@ -52,7 +44,7 @@ export const deleteServicePricing = async (id) => {
 };
 
 export const saveRoomPricing = async (item) => {
-  const hospitalId = await resolveHospitalIdForPricing(item);
+  const hospitalId = resolveHospitalIdForPricing(item);
   const payload = {
     id: item.id || null,
     hospital_id: hospitalId,

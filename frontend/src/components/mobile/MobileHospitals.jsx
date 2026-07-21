@@ -78,6 +78,7 @@ export const MobileHospitals = ({
             title="Hospitals"
             noun="hospital"
             count={controller.scopeCount}
+            summary={controller.scopeCount === null ? 'Facility status totals unavailable for this view' : null}
             showSkeleton={controller.showTopSectionLoading}
             failedEmpty={Boolean(errorMessage) && controller.displayHospitals.length === 0}
           />

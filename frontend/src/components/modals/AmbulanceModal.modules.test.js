@@ -5,6 +5,9 @@ import { AmbulanceModal, buildAmbulancePayload } from './AmbulanceModal';
 import {
   buildAmbulancePayload as buildAmbulancePayloadFromModel,
   crewToArray,
+  crewToText,
+  etaToPayloadValue,
+  getAmbulanceCurrentCallLabel,
   getAmbulanceStationName,
   getAmbulanceStatusTone,
   normalizeAmbulanceForm,
@@ -76,6 +79,7 @@ describe('AmbulanceModal module boundary', () => {
     expect(view).toContain('aria-busy={loading}');
     expect(sections).toContain('Trip status changes stay in Requests.');
     expect(sections).toContain('Driver assignment needs provider and station proof.');
+    expect(sections).toContain("value={selectedStationIsInScope ? (formData.hospital_id || '') : ''}");
   });
 
   it('preserves form normalization, crew encoding, status tone, and station fallbacks', () => {
@@ -89,6 +93,20 @@ describe('AmbulanceModal module boundary', () => {
       crew: 'Ada, Bola',
     }));
     expect(crewToArray(' Ada, , Bola ')).toEqual(['Ada', 'Bola']);
+    expect(crewToText({})).toBe('');
+    expect(crewToText({
+      members: [{ full_name: 'Ada Obi' }, { role: 'Paramedic' }],
+    })).toBe('Ada Obi, Paramedic');
+    expect(etaToPayloadValue('2026-07-19T03:58'))
+      .toBe(new Date('2026-07-19T03:58').toISOString());
+    expect(getAmbulanceCurrentCallLabel({
+      current_call: 'internal-request-id',
+      active_call_display_id: 'REQ-123456',
+      active_call_status: 'accepted',
+    })).toBe('REQ-123456 \u00B7 Accepted');
+    expect(getAmbulanceCurrentCallLabel({
+      current_call: 'internal-request-id',
+    })).toBe('Linked request');
     expect(getAmbulanceStatusTone('en_route')).toContain('cyan');
     expect(getAmbulanceStationName(
       { station_name: 'Legacy station' },

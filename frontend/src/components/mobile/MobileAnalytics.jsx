@@ -397,8 +397,8 @@ export const MobileAnalytics = ({
                 <div className="grid grid-cols-2 gap-3">
                   <CompactStatTile icon={Users} label="Subscribers" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.total) : SOURCE_UNAVAILABLE} tone="violet" />
                   <CompactStatTile icon={Activity} label="Active" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.active) : SOURCE_UNAVAILABLE} tone="emerald" />
-                  <CompactStatTile icon={Crown} label="Paid" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} tone="amber" />
-                  <CompactStatTile icon={TrendingUp} label="Paid conversion" value={sourceReadiness.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} tone="sky" />
+                  <CompactStatTile icon={Crown} label="Paid tier" value={sourceReadiness.subscriptions ? formatMetricNumber(subscriptionStats?.paid) : SOURCE_UNAVAILABLE} tone="amber" />
+                  <CompactStatTile icon={TrendingUp} label="Paid-tier share" value={sourceReadiness.subscriptions ? `${Number(subscriptionStats?.paidConversionRate || 0).toFixed(1)}%` : SOURCE_UNAVAILABLE} tone="sky" />
                 </div>
               </section>
             )}

@@ -54,6 +54,7 @@ describe('staff page model characterization', () => {
       offset: 40,
       quiet: true,
       status: 'busy',
+      requireAssignable: false,
       forceEmpty: false,
       statsStatus: ['busy'],
       sortKey: 'created_at',
@@ -76,6 +77,20 @@ describe('staff page model characterization', () => {
 
     expect(query.limit).toBe(60);
     expect(query.offset).toBe(0);
+  });
+
+  it('keeps the available lane limited to staff who remain assignable', () => {
+    const query = buildStaffQueryFilter({
+      filters: { kpiFilter: 'available', status: ['available'] },
+      isMobile: false,
+      currentPage: 1,
+      itemsPerPage: 20,
+      offset: 0,
+      sortConfig: { key: 'created_at', direction: 'desc' },
+    });
+
+    expect(query.status).toBe('available');
+    expect(query.requireAssignable).toBe(true);
   });
 
   it('preserves exact server totals and the mobile onCall alias', () => {

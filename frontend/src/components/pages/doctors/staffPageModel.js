@@ -271,6 +271,14 @@ export const buildStaffQueryFilter = ({
     offset: isMobile ? 0 : offset,
     quiet: true,
     status: statusFilter.status,
+    requireAssignable: (
+      statusFilter.status === 'available'
+      || (
+        Array.isArray(statusFilter.status)
+        && statusFilter.status.length === 1
+        && statusFilter.status[0] === 'available'
+      )
+    ),
     forceEmpty: statusFilter.forceEmpty,
     statsStatus: statusFilter.statsStatus,
     sortKey: sortConfig.key,

@@ -406,7 +406,10 @@ describe('Pricing Page 18 intake contract', () => {
     expect(list).toContain('Source-labelled pricing row.');
     expect(list).toContain('sourceLabel');
 
-    for (const source of [oldService, service]) {
+    // The archived page/service preserve the old organization-to-earliest-
+    // facility behavior as intake evidence only. The active command boundary
+    // now rejects that ambiguous scope before it can reach an RPC.
+    for (const source of [oldService]) {
       expect(source).toContain("const table = type === 'services' ? 'service_pricing' : 'room_pricing';");
       expect(source).toContain("supabase.from('hospitals').select('id, organization_id')");
       expect(source).toContain("supabase.from(table).select('*').order('updated_at', { ascending: false })");
@@ -422,6 +425,16 @@ describe('Pricing Page 18 intake contract', () => {
       expect(source).toContain("supabase.rpc('delete_service_pricing'");
       expect(source).toContain("supabase.rpc('delete_room_pricing'");
     }
+
+    expect(service).toContain('const resolveHospitalIdForPricing = (item = {}) => {');
+    expect(service).toContain("throw new Error('Select a facility before changing organization pricing.')");
+    expect(service).not.toContain(".eq('organization_id', item.organization_id)");
+    expect(service).not.toContain(".order('created_at', { ascending: true })");
+    expect(service).not.toContain('.limit(1)');
+    expect(service).toContain("supabase.rpc('upsert_service_pricing'");
+    expect(service).toContain("supabase.rpc('upsert_room_pricing'");
+    expect(service).toContain("supabase.rpc('delete_service_pricing'");
+    expect(service).toContain("supabase.rpc('delete_room_pricing'");
 
     expect(service).toContain('export const getPricingPageData');
     expect(service).toContain('sourceLabel');
@@ -575,8 +588,9 @@ describe('Pricing Page 18 intake contract', () => {
 
     expect(page).not.toContain("This will create a local override for your organization.");
     expect(service).toContain("supabase.from('hospitals').select('id, organization_id')");
-    expect(service).toContain(".eq('organization_id', item.organization_id)");
-    expect(service).toContain('.limit(1)');
+    expect(service).toContain("throw new Error('Select a facility before changing organization pricing.')");
+    expect(service).not.toContain(".eq('organization_id', item.organization_id)");
+    expect(service).not.toContain('.limit(1)');
     expect(service).toContain("supabase.rpc('upsert_service_pricing'");
     expect(service).toContain("supabase.rpc('upsert_room_pricing'");
   });

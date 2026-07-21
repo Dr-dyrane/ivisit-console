@@ -529,7 +529,7 @@ describe('VisitsPage admission contract', () => {
     expect(modal).toContain("const isView = mode === 'view';");
     expect(modal).toContain("const isCreate = mode === 'create';");
     expect(modal).toContain("isCreate ? 'Schedule Visit' : 'Save Changes'");
-    expect(modal).toContain('View Full Incident Log');
+    expect(modal).toContain('View request details');
 
     expect(modalShell).toContain('role="dialog"');
     expect(modalShell).toContain('aria-modal="true"');

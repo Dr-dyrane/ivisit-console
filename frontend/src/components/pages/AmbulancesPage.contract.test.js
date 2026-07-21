@@ -310,8 +310,8 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(bottomBar).toContain("pathname.startsWith('/doctors') && canReach('/doctors')");
     expect(mobile).not.toContain('Fleet signals');
     expect(mobile).toContain("label: 'En route'");
-    expect(mobile).toContain("return 'Ready';");
-    expect(mobile).toContain("return 'En route';");
+    expect(mobile).toContain('getAmbulanceStatusLabel');
+    expect(mobile).toContain('return getAmbulanceStatusLabel(status)');
     // Canon kit (Wave-2 rebuild, 2026-07-09): the trigger aria-labels are now baked
     // by SearchRow from its props; entityLabel="fleet" renders "Filter fleet";
     // statsLabel carries "Open fleet statistics" verbatim. Same labels, new recipe.
@@ -556,12 +556,15 @@ describe('AmbulancesPage visual-start repair contract', () => {
     expect(service).toContain('active_call_display_id: activeCall?.display_id || null');
     expect(service).toContain('active_call_status: activeCall?.status || null');
 
-    // ADOPT-22 honest states reach the rail render: Unassigned when no
-    // profile_id, resolved name + phone, or the truncated UUID with a CopyChip
-    // carrying the full id (mobile detail-sheet truncation idiom).
+    // ADOPT-22 honest states reach the rail render without exposing an
+    // unresolved internal person UUID.
     expect(page).toContain("label: 'Unassigned'");
+    expect(page).toContain("label: resolvedName || 'Driver details unavailable'");
     expect(page).toContain('label="Driver"');
-    expect(page).toContain('CopyChip value={model.driver.copyValue} label="Copy driver ID"');
+    expect(page).not.toContain('CopyChip value={model.driver.copyValue} label="Copy driver ID"');
+    expect(page).toContain("'Driver details unavailable'");
+    expect(page).toContain("import { formatDayTime } from '../../../utils/dayTime'");
+    expect(page).toContain("ambulance.eta ? formatDayTime(ambulance.eta) : 'Not set'");
     expect(page).toContain('label="Driver phone"');
     expect(page).toContain('truncateAmbulanceReference');
     // Row subline carries ONLY a resolved name -- no UUID leakage in the list.

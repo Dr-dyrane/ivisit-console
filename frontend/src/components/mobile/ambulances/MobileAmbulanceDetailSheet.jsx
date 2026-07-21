@@ -38,12 +38,12 @@ export const MobileAmbulanceDetailSheet = ({
       statusPill={statusPill(model.status, model.availabilityLabel)}
       islands={[
         { icon: MapPin, label: 'Station', value: model.station },
-        model.activeRun && { icon: Clock, label: 'ETA', value: ambulance.eta || 'Unknown' },
+        model.activeRun && { icon: Clock, label: 'ETA', value: model.etaLabel },
         model.vehicleLabel && { icon: Car, label: 'Vehicle', value: model.vehicleLabel },
-        ambulance.current_call && {
+        model.currentCallLabel && {
           icon: Radio,
           label: 'Active call',
-          value: `Request ${String(ambulance.current_call).slice(0, 8).toUpperCase()}`,
+          value: model.currentCallLabel,
         },
         { icon: Activity, label: 'Status', value: model.availabilityLabel },
         {

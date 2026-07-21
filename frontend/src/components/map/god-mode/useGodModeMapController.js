@@ -102,7 +102,7 @@ export function useGodModeMapController() {
     enabled: isDriverMode,
     responderId: user?.id || null,
   });
-  const driverAssignment = driverFeed.currentAssignment;
+  const driverAssignment = driverFeed.currentAssignment || driverFeed.expiredAssignment;
   const assignedAmbulance = useMemo(() => {
     if (!isDriverMode || !user?.id) return null;
     const assignmentAmbulance = driverAssignment?.ambulance_id

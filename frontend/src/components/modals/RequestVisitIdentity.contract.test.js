@@ -28,6 +28,20 @@ describe('request and visit detail identity contract', () => {
     expect(source).not.toContain('getHospitals');
   });
 
+  it('opens emergency context only through the explicit visit request key and shows an honest unavailable state', () => {
+    const context = contextSource();
+    const visitModal = visitModalSource();
+
+    expect(context).toContain('return Boolean(visit?.request_id);');
+    expect(visitModal).toContain('fetchEmergencyContext(visit.request_id)');
+    expect(visitModal).not.toContain('fetchEmergencyContext(visit.request_id || visit.id)');
+    expect(visitModal).toContain('unavailable={emergencyContextUnavailable}');
+    expect(visitModal).toContain('Request details are unavailable right now.');
+    expect(visitModal).not.toContain('Original Situation Report');
+    expect(visitModal).not.toContain('console.error');
+    expect(context).not.toContain('console.error');
+  });
+
   it('keeps patient, doctor, responder profile, and ambulance UUID lanes explicit', () => {
     const projection = projectionSource();
     const mapper = mapperSource();

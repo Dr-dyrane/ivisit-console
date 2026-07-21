@@ -58,7 +58,7 @@ describe('QuickSearch shell dialog contract', () => {
     expect(searchService).not.toContain("'Unknown Emergency'");
   });
 
-  it('renders search failures and ignores stale out-of-order responses', () => {
+  it('renders search failures, preserves successful categories, and ignores stale out-of-order responses', () => {
     const quickSearch = source();
     const searchService = searchServiceSource();
     const projectionMethods = searchService.slice(
@@ -77,6 +77,16 @@ describe('QuickSearch shell dialog contract', () => {
     expect(quickSearch).toContain('onClick={() => handleSearch(query)}');
     expect(quickSearch).toContain('!loading && !searchError && visibleResults.length === 0');
     expect(quickSearch).toContain('!loading && !searchError && visibleResults.length > 0');
+    expect(quickSearch).toContain('const [searchIssues, setSearchIssues] = useState([])');
+    expect(quickSearch).toContain('const visibleSearchIssues = useMemo(');
+    expect(quickSearch).toContain('Some result groups could not be loaded. The results shown are still available.');
+    expect(quickSearch).toContain('const [suggestionsError, setSuggestionsError] = useState(null)');
+    expect(quickSearch).toContain('Promise.allSettled([');
+    expect(quickSearch).toContain('Search suggestions are unavailable right now. You can still search.');
+    expect(quickSearch).toContain('Search the Console');
+    expect(searchService).toContain('const projections = await Promise.allSettled([');
+    expect(searchService).toContain("errors.push({ category: category.category, path: category.path });");
+    expect(searchService).toContain('results,\n        errors,');
     expect(searchService).not.toContain('return { results: [], total: 0, error };');
     expect((projectionMethods.match(/if \(error\) throw error;/g) || [])).toHaveLength(6);
   });

@@ -28,11 +28,15 @@ export const QuickSearch = ({ isOpen, onClose }) => {
   const { profile, can } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [searchIssues, setSearchIssues] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [trendingSearches, setTrendingSearches] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const requestSeqRef = useRef(0);
+  const suggestionsSeqRef = useRef(0);
   const navigate = useNavigate();
   const accessibleNav = useMemo(
     () => profile ? getAccessibleNav(profile, can) : null,
@@ -42,18 +46,32 @@ export const QuickSearch = ({ isOpen, onClose }) => {
     () => filterSearchResultsByNavigation(results, accessibleNav),
     [accessibleNav, results]
   );
+  const visibleSearchIssues = useMemo(
+    () => searchIssues.filter((issue) => isSearchDestinationAccessible(issue?.path, accessibleNav)),
+    [accessibleNav, searchIssues]
+  );
   const visibleResultsCopilotRequest = useMemo(() => createQuickSearchAskRequest({
     query,
     resultGroups: visibleResults,
   }), [query, visibleResults]);
 
   const loadRecentsAndTrending = useCallback(async () => {
-    const [recents, trending] = await Promise.all([
+    const requestSeq = suggestionsSeqRef.current + 1;
+    suggestionsSeqRef.current = requestSeq;
+    setSuggestionsLoading(true);
+    setSuggestionsError(null);
+    const [recents, trending] = await Promise.allSettled([
       searchService.getRecentSearches(8),
       searchService.getTrendingSearches(8)
     ]);
-    setRecentSearches(recents);
-    setTrendingSearches(trending);
+    if (requestSeq !== suggestionsSeqRef.current) return;
+
+    setRecentSearches(recents.status === 'fulfilled' ? recents.value : []);
+    setTrendingSearches(trending.status === 'fulfilled' ? trending.value : []);
+    if (recents.status === 'rejected' || trending.status === 'rejected') {
+      setSuggestionsError('Search suggestions are unavailable right now. You can still search.');
+    }
+    setSuggestionsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -76,14 +94,16 @@ export const QuickSearch = ({ isOpen, onClose }) => {
 
     setLoading(true);
     try {
-      const { results: searchResults } = await searchService.searchAll(q);
+      const { results: searchResults, errors: projectionErrors = [] } = await searchService.searchAll(q);
       if (requestSeq !== requestSeqRef.current) return;
 
       setResults(searchResults);
+      setSearchIssues(projectionErrors);
     } catch {
       if (requestSeq !== requestSeqRef.current) return;
 
       setResults([]);
+      setSearchIssues([]);
       setSearchError('Search is temporarily unavailable. Try again.');
     } finally {
       if (requestSeq === requestSeqRef.current) {
@@ -99,6 +119,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
     setLoading(false);
     setSearchError(null);
     setResults([]);
+    setSearchIssues([]);
     searchService.recordSelection(query, result.type, result.id);
     navigate(result.path);
     onClose();
@@ -114,12 +135,14 @@ export const QuickSearch = ({ isOpen, onClose }) => {
   }, [handleSearch]);
 
   const showResults = query.trim().length >= 2;
-  const showPlaceholder = !showResults && recentSearches.length > 0;
+  const showPlaceholder = !showResults;
 
   useEffect(() => {
     if (!isOpen) {
       requestSeqRef.current += 1;
+      suggestionsSeqRef.current += 1;
       setLoading(false);
+      setSuggestionsLoading(false);
     }
   }, [isOpen]);
 
@@ -224,6 +247,15 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                 </motion.div>
               )}
 
+              {showResults && !loading && !searchError && visibleSearchIssues.length > 0 && (
+                <div
+                  role="status"
+                  className="mx-6 mb-2 rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
+                >
+                  Some result groups could not be loaded. The results shown are still available.
+                </div>
+              )}
+
               {showResults && !loading && !searchError && visibleResults.length > 0 && (
                 <motion.div
                   key="results"
@@ -316,6 +348,33 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                   exit={{ opacity: 0 }}
                   className="px-4 py-4 space-y-6"
                 >
+                  {suggestionsLoading && (
+                    <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground" role="status">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading search suggestions...
+                    </div>
+                  )}
+
+                  {suggestionsError && !suggestionsLoading && (
+                    <div className="rounded-inner bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100" role="status">
+                      <p>{suggestionsError}</p>
+                      <button
+                        type="button"
+                        onClick={loadRecentsAndTrending}
+                        className="mt-2 rounded-button bg-amber-500/10 px-3 py-2 text-xs font-semibold transition-colors hover:bg-amber-500/15 focus-visible:bg-amber-500/15 active:scale-[0.98]"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  )}
+
+                  {!suggestionsLoading && !suggestionsError && recentSearches.length === 0 && trendingSearches.length === 0 && (
+                    <div className="px-2 py-8 text-center">
+                      <Search className="mx-auto mb-2 h-7 w-7 text-muted-foreground/45" />
+                      <p className="text-sm font-medium text-foreground">Search the Console</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">Type at least two characters to find an available record.</p>
+                    </div>
+                  )}
                   {/* Recent Searches */}
                   {recentSearches.length > 0 && (
                     <div>

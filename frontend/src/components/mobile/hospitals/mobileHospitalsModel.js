@@ -41,22 +41,15 @@ export const metricValue = (value, fallback = 0) => {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
 
-export const getMobileHospitalTotals = (statistics, sourceHospitals = []) => {
-  const hospitals = Array.isArray(sourceHospitals) ? sourceHospitals : [];
+export const getMobileHospitalTotals = (statistics) => {
+  if (!statistics?.exactCounts) {
+    return { total: null, available: null, full: null, busy: null };
+  }
   return {
-    total: metricValue(statistics?.total, hospitals.length),
-    available: metricValue(
-      statistics?.available,
-      hospitals.filter((hospital) => getHospitalStatus(hospital) === 'available').length
-    ),
-    full: metricValue(
-      statistics?.full,
-      hospitals.filter((hospital) => getHospitalStatus(hospital) === 'full').length
-    ),
-    busy: metricValue(
-      statistics?.busy,
-      hospitals.filter((hospital) => getHospitalStatus(hospital) === 'busy').length
-    ),
+    total: metricValue(statistics.total, null),
+    available: metricValue(statistics.available, null),
+    full: metricValue(statistics.full, null),
+    busy: metricValue(statistics.busy, null),
   };
 };
 
@@ -163,16 +156,22 @@ export const orbClassFor = (status) => (
         : 'bg-muted/40 text-muted-foreground'
 );
 
+const toReportedNonNegativeNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+};
+
 export const getMobileHospitalRowModel = (hospital) => {
   const status = getHospitalStatus(hospital);
-  const beds = Number(hospital?.available_beds) || 0;
-  const totalBeds = Number(hospital?.total_beds) || 0;
-  const fleet = Number(hospital?.ambulances_count) || 0;
+  const beds = toReportedNonNegativeNumber(hospital?.available_beds);
+  const totalBeds = toReportedNonNegativeNumber(hospital?.total_beds);
+  const fleet = toReportedNonNegativeNumber(hospital?.ambulances_count);
   const capacityText = totalBeds > 0
-    ? `${beds} of ${totalBeds} beds`
-    : beds > 0
+    ? `${beds ?? 'Unknown'} of ${totalBeds} beds`
+    : beds !== null
       ? `${beds} beds`
-      : fleet > 0
+      : fleet !== null
         ? `${fleet} unit${fleet === 1 ? '' : 's'}`
         : null;
   const address = hospital?.address || 'No address provided';
@@ -189,9 +188,9 @@ export const getMobileHospitalRowModel = (hospital) => {
 
 export const getMobileHospitalDetailModel = (hospital) => {
   const status = getHospitalStatus(hospital);
-  const fleet = Number(hospital?.ambulances_count) || 0;
-  const beds = Number(hospital?.available_beds) || 0;
-  const totalBeds = Number(hospital?.total_beds) || 0;
+  const fleet = toReportedNonNegativeNumber(hospital?.ambulances_count);
+  const beds = toReportedNonNegativeNumber(hospital?.available_beds);
+  const totalBeds = toReportedNonNegativeNumber(hospital?.total_beds);
   const rating = Number(hospital?.rating) || 0;
   const icuBeds = hospital?.icu_beds_available != null
     ? Number(hospital.icu_beds_available)

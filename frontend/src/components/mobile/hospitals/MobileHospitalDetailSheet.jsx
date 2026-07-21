@@ -66,7 +66,9 @@ export const MobileHospitalDetailSheet = ({
         {
           icon: Bed,
           label: 'Beds',
-          value: model.totalBeds > 0
+          value: model.beds === null
+            ? 'Not reported'
+            : model.totalBeds > 0
             ? `${model.beds} of ${model.totalBeds} available`
             : `${model.beds} available`,
         },
@@ -78,7 +80,9 @@ export const MobileHospitalDetailSheet = ({
         {
           icon: Ambulance,
           label: 'Fleet',
-          value: `${model.fleet} ambulance${model.fleet === 1 ? '' : 's'}`,
+          value: model.fleet === null
+            ? 'Not reported'
+            : `${model.fleet} ambulance${model.fleet === 1 ? '' : 's'}`,
         },
         model.waitValue && {
           icon: Clock,

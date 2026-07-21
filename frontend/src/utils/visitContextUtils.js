@@ -149,8 +149,7 @@ export const fetchVisitContext = async (visit) => {
         hospital: errorFromResult(hospitalResult),
       },
     };
-  } catch (error) {
-    console.error('Error fetching visit context:', error);
+  } catch {
     return null;
   }
 };
@@ -199,8 +198,7 @@ export const fetchEmergencyContext = async (requestId) => {
         hospital: errorFromResult(hospitalResult),
       },
     };
-  } catch (error) {
-    console.error('Error fetching emergency context:', error);
+  } catch {
     return null;
   }
 };
@@ -236,15 +234,7 @@ export const formatVisitDateTime = (visit) => {
  * @returns {boolean} True if visit is emergency-related
  */
 export const isEmergencyVisit = (visit) => {
-  if (!visit) return false;
-  
-  return (
-    visit.request_id ||
-    visit.type === 'Ambulance Ride' ||
-    visit.type === 'Bed Booking' ||
-    visit.visit_type === 'Ambulance Ride' ||
-    visit.visit_type === 'Bed Booking'
-  );
+  return Boolean(visit?.request_id);
 };
 
 /**

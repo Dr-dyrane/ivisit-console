@@ -100,6 +100,13 @@ export const MobileDoctorsView = ({
     armed,
     requestLoad,
   } = controller;
+  const awaitingKnownRows = (
+    !errorMessage
+    && !loading
+    && displayDoctors.length === 0
+    && scopeCount > 0
+  );
+  const showDirectoryLoading = showTopSectionLoading || awaitingKnownRows;
 
   const renderDoctorRow = (doctor) => {
     const status = getStatus(doctor);
@@ -194,7 +201,7 @@ export const MobileDoctorsView = ({
                 </div>
               )}
 
-              {showTopSectionLoading ? (
+              {showDirectoryLoading ? (
                 <SkeletonGroupPanel rows={6} />
               ) : (
                 <div className="space-y-[18px]">
@@ -223,7 +230,7 @@ export const MobileDoctorsView = ({
                 )}
               </div>
 
-              {displayDoctors.length === 0 && !loading && !showTopSectionLoading && (
+              {displayDoctors.length === 0 && !loading && !showDirectoryLoading && (
                 <MobileListEmpty
                   icon={Stethoscope}
                   label={errorMessage ? 'Staff did not load' : 'No staff found'}

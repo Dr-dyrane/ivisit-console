@@ -201,6 +201,8 @@ describe('DoctorsPage Staff contract', () => {
     expect(page).toContain("staff?.is_available === false ? 'unavailable' : status");
     expect(mobile).toContain("doctor?.is_available === false ? 'unavailable' : status");
     expect(mobile).toContain("statusPill('off_duty', 'Unavailable for assignment')");
+    expect(mobile).toContain('const awaitingKnownRows = (');
+    expect(mobile).toContain('const showDirectoryLoading = showTopSectionLoading || awaitingKnownRows');
 
     expect(page).toContain('const canManageSchedules = canManageStaff && scheduledCareRelease.scheduleReads;');
     expect(page).toContain('<StaffSchedulingModal');

@@ -16,6 +16,16 @@ const FRESH_GEOLOCATION_OPTIONS = {
   maximumAge: 0,
 };
 
+export const getLocationErrorCopy = (error) => {
+  const code = Number(error?.code);
+  if (code === 1 || /denied|permission/i.test(String(error?.message || ''))) {
+    return 'Location access is off. Allow it to share your live position.';
+  }
+  if (code === 2) return 'We cannot get your location yet. Move to an open area and try again.';
+  if (code === 3) return 'Location took too long. Try again.';
+  return 'Location could not be shared. Try again.';
+};
+
 const distanceInMeters = (left, right) => {
   if (!left || !right) return Number.POSITIVE_INFINITY;
   const radians = (degrees) => (degrees * Math.PI) / 180;
@@ -221,18 +231,20 @@ export function useDriverLocationTracking({ assignment, ambulance, enabled }) {
         },
         (locationError) => {
           stop({ quiet: true });
+          const errorCopy = getLocationErrorCopy(locationError);
           setStatus('error');
-          setError(locationError?.message || 'Location permission is required');
-          toast.error(locationError?.message || 'Location permission is required');
+          setError(errorCopy);
+          toast.error(errorCopy);
         },
         GEOLOCATION_OPTIONS,
       );
       startHeartbeat();
       setWatching(true);
     } catch (locationError) {
+      const errorCopy = getLocationErrorCopy(locationError);
       setStatus('error');
-      setError(locationError?.message || 'Location permission is required');
-      toast.error(locationError?.message || 'Location permission is required');
+      setError(errorCopy);
+      toast.error(errorCopy);
     }
   }, [ambulanceId, enabled, startHeartbeat, stop]);
 

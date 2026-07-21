@@ -125,6 +125,7 @@ const LifecycleRequestDetailSheet = ({
     location,
     responder,
     phone,
+    phoneHref,
     patientEmail,
     coordinates,
     displayId,
@@ -187,7 +188,7 @@ const LifecycleRequestDetailSheet = ({
       vital={{ ...lifecycle.progress, label: 'Request status' }}
       islands={[
         { icon: User, label: 'Patient', value: name },
-        phone && { icon: Phone, label: 'Phone', value: phone, href: `tel:${String(phone).replace(/[\s-]/g, '')}` },
+        phone && { icon: Phone, label: 'Phone', value: phone, href: phoneHref || undefined },
         patientEmail && { icon: Mail, label: 'Email', value: patientEmail, href: `mailto:${patientEmail}` },
         { icon: ClipboardCheck, label: 'Service type', value: getMobileRequestServiceLabel(activeRequest) },
         { icon: Hospital, label: 'Facility', value: facility },

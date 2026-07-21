@@ -21,6 +21,7 @@ import {
 import {
   formatAmbulanceDateTime,
   formatAmbulanceLabel,
+  getAmbulanceCurrentCallLabel,
   TYPE_OPTIONS,
   UNIT_STATUS_OPTIONS,
 } from './ambulanceModalModel';
@@ -139,7 +140,7 @@ export const AmbulanceStationSection = ({
           />
         ) : (
           <Select
-            value={selectedStationIsInScope ? (formData.hospital_id || undefined) : undefined}
+            value={selectedStationIsInScope ? (formData.hospital_id || '') : ''}
             onValueChange={(value) => updateField('hospital_id', value)}
           >
             <SelectTrigger className={`${modalFieldClassName} h-12`}>
@@ -171,13 +172,14 @@ export const AmbulanceStationSection = ({
       <AmbulanceFieldGroup label="ETA" htmlFor="ambulance-eta">
         {isView ? (
           <AmbulanceReadOnlyField
-            value={formData.eta || 'Unknown'}
+            value={formatAmbulanceDateTime(formData.eta)}
             icon={<Calendar className="h-4 w-4" />}
           />
         ) : (
           <Input
             id="ambulance-eta"
             name="eta"
+            type="datetime-local"
             value={formData.eta}
             onChange={handleChange}
             className={`${modalFieldClassName} h-12`}
@@ -245,7 +247,7 @@ export const AmbulanceStatusSection = ({
 
       <AmbulanceFieldGroup label="Current call">
         <AmbulanceReadOnlyField
-          value={formData.current_call || 'No active call'}
+          value={getAmbulanceCurrentCallLabel(formData)}
           subtext={isView ? '' : 'Set by dispatch in Requests.'}
           icon={<Activity className="h-4 w-4" />}
         />

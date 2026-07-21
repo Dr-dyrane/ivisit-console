@@ -1,9 +1,8 @@
 import { Activity, Ambulance, Bed, Clock, RefreshCw, User } from 'lucide-react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
-import { formatHospitalDateTime, HOSPITAL_FIELD_CLASS } from './hospitalModalModel';
+import { formatHospitalDateTime } from './hospitalModalModel';
 import { HospitalSection, ReadOnlyStat } from './HospitalModalPrimitives';
 
 export const HospitalCapacitySection = ({
@@ -11,7 +10,6 @@ export const HospitalCapacitySection = ({
   availableBeds,
   bedUtilizationPercent,
   formData,
-  handleChange,
   isView,
   loadBedData,
   loadingReservations,
@@ -19,120 +17,52 @@ export const HospitalCapacitySection = ({
   reservedBedsDisplay,
 }) => (
   <HospitalSection icon={<Activity />} title="Live Capacity">
+    {!isView && (
+      <p className="mb-4 rounded-inner bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        Capacity and operational status are read-only here. They update through the live operations workflow.
+      </p>
+    )}
     <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
       <div className="space-y-1">
-        <Label htmlFor="total_beds" className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Total Beds</Label>
+        <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Total Beds</Label>
         <div className="relative">
           <Bed className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
-          {isView ? (
-            <ReadOnlyStat value={formData.total_beds || 0} />
-          ) : (
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              id="total_beds"
-              name="total_beds"
-              value={formData.total_beds || 0}
-              onChange={handleChange}
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={formData.total_beds || 0} />
         </div>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="available_beds" className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Available</Label>
+        <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Available</Label>
         <div className="relative">
           <Bed className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
-          {isView ? (
-            <ReadOnlyStat value={formData.available_beds} />
-          ) : (
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              id="available_beds"
-              name="available_beds"
-              value={formData.available_beds}
-              onChange={handleChange}
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={formData.available_beds} />
         </div>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="icu_beds_available" className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">ICU Beds</Label>
+        <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">ICU Beds</Label>
         <div className="relative">
           <Bed className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-500" />
-          {isView ? (
-            <ReadOnlyStat value={formData.icu_beds_available || 0} />
-          ) : (
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              id="icu_beds_available"
-              name="icu_beds_available"
-              value={formData.icu_beds_available || 0}
-              onChange={handleChange}
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={formData.icu_beds_available || 0} />
         </div>
       </div>
       <div className="space-y-1">
         <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Reserved</Label>
         <div className="relative">
           <Bed className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-500" />
-          {isView ? (
-            <ReadOnlyStat value={reservedBedsDisplay} />
-          ) : (
-            <Input
-              type="number"
-              value={reservedBedsDisplay}
-              disabled
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={reservedBedsDisplay} />
         </div>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="ambulances_count" className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Ambulances</Label>
+        <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">Ambulances</Label>
         <div className="relative">
           <Ambulance className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          {isView ? (
-            <ReadOnlyStat value={formData.ambulances_count} />
-          ) : (
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              id="ambulances_count"
-              name="ambulances_count"
-              value={formData.ambulances_count}
-              onChange={handleChange}
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={formData.ambulances_count} />
         </div>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="emergency_wait_time_minutes" className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">ER Wait (min)</Label>
+        <Label className="px-1 text-[10px] font-semibold uppercase text-muted-foreground">ER Wait (min)</Label>
         <div className="relative">
           <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-yellow-500" />
-          {isView ? (
-            <ReadOnlyStat value={formData.emergency_wait_time_minutes || 0} />
-          ) : (
-            <Input
-              type="number"
-              id="emergency_wait_time_minutes"
-              name="emergency_wait_time_minutes"
-              value={formData.emergency_wait_time_minutes || 0}
-              disabled
-              title="Operational insight -- updates from live activity, not editable here"
-              className={`${HOSPITAL_FIELD_CLASS} h-10 pl-9 font-semibold`}
-            />
-          )}
+          <ReadOnlyStat value={formData.emergency_wait_time_minutes || 0} />
         </div>
       </div>
     </div>

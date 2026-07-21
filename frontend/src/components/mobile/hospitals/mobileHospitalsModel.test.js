@@ -20,17 +20,17 @@ describe('mobile hospitals model characterization', () => {
     expect(facilityTypeLabel({ provider_type: 'specialty_clinic' })).toBe('Specialty clinic');
   });
 
-  it('uses scoped statistics when available and visible rows as an honest fallback', () => {
+  it('uses only exact scoped statistics and withholds counts otherwise', () => {
     const rows = [
       { id: 'h1', status: 'available' },
       { id: 'h2', status: 'busy' },
       { id: 'h3', status: 'full' },
     ];
 
-    expect(getMobileHospitalTotals({ total: 10, available: 7, busy: 2, full: 1 }, rows))
+    expect(getMobileHospitalTotals({ exactCounts: true, total: 10, available: 7, busy: 2, full: 1 }, rows))
       .toEqual({ total: 10, available: 7, busy: 2, full: 1 });
     expect(getMobileHospitalTotals(null, rows))
-      .toEqual({ total: 3, available: 1, busy: 1, full: 1 });
+      .toEqual({ total: null, available: null, busy: null, full: null });
   });
 
   it('accumulates bounded pages and resets after a real response for a new scope', () => {

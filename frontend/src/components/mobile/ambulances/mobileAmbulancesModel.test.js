@@ -68,6 +68,21 @@ describe('mobile ambulances model characterization', () => {
       vehicleLabel: 'L-2',
       activeRun: true,
     });
-    expect(getMobileAmbulanceAvailabilityLabel('maintenance')).toBe('Offline');
+    expect(getMobileAmbulanceAvailabilityLabel('maintenance')).toBe('Maintenance');
+  });
+
+  it('normalizes mobile type, ETA, and active-call labels without technical leakage', () => {
+    const model = getMobileAmbulanceDetailModel({
+      ...rows[2],
+      type: 'patient_transport',
+      eta: '2026-07-19T03:58:00.000Z',
+      current_call: '5d1d10d8-52f2-4e45-a108-b59ac70d2123',
+      active_call_display_id: 'REQ-123456',
+      active_call_status: 'accepted',
+    });
+
+    expect(model.typeLabel).toBe('Patient transport');
+    expect(model.etaLabel).not.toContain('T03:58');
+    expect(model.currentCallLabel).toBe('REQ-123456 \u00b7 Accepted');
   });
 });

@@ -722,6 +722,166 @@ maintains a 20-second foreground heartbeat, restores a fresh position on resume,
 states honestly. Unattended background dispatch remains `NO-GO` until a new native binary adds and proves
 background location plus APNs/FCM push. EAS OTA alone cannot add those native capabilities.
 
+## Lane 1 Active-State UX Baseline - 2026-07-18
+
+The first seven-lane Console maturity pass reused the App-owned exact-run manifest and cleanup contract rather
+than adding a second fixture format. The browser fixture builder can now retain either a staffed `ready` state
+or a canonical payment-complete `offered` request. The retained offered graph is created through
+`create_emergency_v4`, `approve_cash_payment`, dispatch automation, `staff_ambulance_responder`, and
+`report_responder_telemetry`; later states use only the responder and patient lifecycle RPCs.
+
+Three exact runs were used to observe expiry, an offered card, rejected stale-readiness acceptance, successful
+acceptance, foreground geolocation denial, arrival, patient-acknowledgement gating, completion, and return to
+ready:
+
+- `flow-matrix-1784426983644-0043cfe6`
+- `flow-matrix-1784427142967-3af77d92`
+- `flow-matrix-1784427288494-0864a515`
+
+Each manifest cleanup removed only its recorded Auth, profile, organization, facility, doctor, ambulance,
+staffing, request, assignment, payment, visit, wallet, notification, audit, transition, and mapping graph.
+Every second cleanup planned zero actions in every resource class.
+
+Confirmed current strengths:
+
+- the mounted desktop driver card renders the exact offer deadline, request label, pickup, destination, unit,
+  location state, decline, and one primary accept action;
+- accept, arrive, and complete immediately replace the action label with a disabled pending state and publish
+  bounded feedback;
+- canonical receiver reflection changes `Offered -> Accepted -> Arrived`, and successful completion removes
+  the assignment and returns to `Ready for offers` without a hard refresh;
+- completion is backend-gated until `patient_acknowledge_responder_arrival` succeeds.
+
+Confirmed maturity defects:
+
+1. An offer remains visibly actionable after the responder telemetry lease is no longer dispatch-ready. The
+   backend correctly rejects acceptance, but the card does not preflight readiness or guide the responder to
+   restore location before tapping `Accept call`.
+2. The arrived card immediately advertises `Complete trip` even while patient acknowledgement is absent. The
+   backend rejects the command with correct copy, but the primary surface should instead show a bounded
+   `Waiting for patient confirmation` state and enable completion only after refreshed acknowledgement truth.
+3. Geolocation denial is rendered as the raw browser message `User denied Geolocation`. The state is honest,
+   but the copy should be app-owned and recovery-oriented.
+4. An expired assignment can remain referenced by the request while the responder feed hides it. Canonical
+   re-offer correctly refused the previously released responder, so recovery belongs to dispatch/failover
+   rather than client replay; the driver surface needs an honest expired/reassignment state when that evidence
+   is available.
+
+This is a desktop mounted baseline, not final Lane 1 admission. Tablet and 390 px mobile offered/accepted/
+arrived/waiting/completed visual captures, notification permission states, loading/error states, keyboard and
+touch-target checks, and foreground reconnect proof remain required before visual implementation is admitted.
+
+### Lane 1 Defect Closure - 2026-07-18
+
+The four baseline defects were closed without schema or migration changes:
+
+- offered assignments now gate acceptance on the existing responder telemetry projection; unknown state
+  renders `Checking location`, stale/lost state renders `Restore location`, and `Accept call` appears only
+  after a live signal is proven;
+- arrived assignments are enriched through `get_current_emergency_responder`; completion remains disabled as
+  `Waiting for patient` until `patient_acknowledged_arrival_at` is present, while a failed enrichment renders
+  a safe unavailable state;
+- the responder feed now refreshes on scoped `emergency_requests` updates as well as assignment updates, so
+  patient acknowledgement enables completion without a hard refresh;
+- browser geolocation failures are normalized to app-owned recovery copy; and
+- an offer removed by the canonical feed at its deadline is retained for a bounded 30-second `Offer expired`
+  explanation before returning to the ready state. The client does not attempt to re-offer or mutate dispatch.
+
+Focused verification passed `17/17`; the optimized production build passed data-contract, UI-surface, mobile
+grammar, mojibake, database-type encoding, and compilation gates. Mounted exact-run proof used:
+
+- `flow-matrix-1784429125155-893bcadd`: stale telemetry rendered `Restore location`; deadline removal rendered
+  `Offer expired` without a hard refresh.
+- `flow-matrix-1784429288038-631d631f`: arrived state rendered disabled `Waiting for patient`; canonical
+  patient acknowledgement changed it to `Complete trip` by realtime refresh; two-step completion returned the
+  driver to `Ready for offers`.
+
+Both exact-run graphs were removed by their own manifests. The second cleanup dry run reported zero residue
+for every tracked resource class. Discovered or claimable hospitals were not touched.
+
+## Lane 2 Fleet Operations UX Closure - 2026-07-18
+
+Lane 2 used the App-owned exact-run harness with the new `fleet-rich` profile rather than creating Console-only
+seed truth. Run `flow-matrix-1784433009032-e7097c7b` created one organization, one facility, one staffed
+accepted emergency, and six manifest-owned ambulances spanning `available`, `on_trip`, `returning`,
+`maintenance`, `offline`, and `pending_approval`. The accepted request was reached through canonical staffing,
+telemetry, offer, and responder acceptance actions. No schema or migration changed.
+
+Mounted desktop and 390 px mobile proof confirmed:
+
+- the route count and KPI projection agreed on six fleet units, one ready unit, one active unit, and one unit
+  in service review;
+- the active KPI gave immediate pending feedback and settled to exactly one active row;
+- trip-owned status remained read-only and continued to direct lifecycle work to Requests;
+- desktop rail, desktop modal, mobile list, and mobile detail sheet rendered the same active request display
+  reference and status without exposing the internal request UUID; and
+- the mobile composition retained all six states without horizontal overflow or a second data owner.
+
+The rich-state pass found and closed the following presentation and field-shape defects:
+
+1. An unresolved driver leaked an internal profile UUID. The rail now renders `Driver details unavailable`
+   and retains no copy action for the unresolved identifier.
+2. Legacy JSON crew value `{}` coerced to `[object Object]` in the edit form. Crew normalization now accepts
+   arrays, member envelopes, scalar strings, named objects, and empty objects at the form boundary.
+3. ETA was treated as free text even though the receiver column is `timestamptz`. Editing now uses a
+   controlled `datetime-local` field, converts valid local values to ISO payloads, and renders human time.
+4. The first ETA render exposed a missing formatter import and crashed the route. Mounted rich-state proof
+   caught the failure; the import and source contract assertion now prevent recurrence.
+5. The station picker changed between controlled and uncontrolled values while authorized hospitals loaded.
+   It now remains controlled for the modal lifetime; a fresh verification tab produced no warning or error.
+6. Mobile mislabeled `maintenance` as `Offline`, leaked `patient_transport`, and built a request label from a
+   sliced UUID. Mobile now consumes the canonical fleet status label, normalizes type copy, formats ETA, and
+   uses the projected request display reference plus status.
+
+Focused verification passed `40/40`. Targeted ESLint passed, the harness passed `node --check`, and the
+optimized production build passed database-type encoding, mojibake, data-contract, UI-surface, mobile-grammar,
+and compilation gates. Exact cleanup removed 6 ambulances, 1 request, its responder assignment and transitions,
+payment/visit/wallet evidence, the created facility and organization, 4 profiles, and 4 Auth users. The
+second cleanup dry run reported zero residue in every tracked class. Discovered or claimable hospitals were
+not touched.
+
+## Lane 3 Staff Directory And Scheduling UX Closure - 2026-07-18
+
+Lane 3 extended the App-owned fixture profile with `provider-rich`. Exact run
+`flow-matrix-1784434273406-781f37d5` mounted six staff records across assignable available, on-call, busy,
+away, and `status=available` plus `is_available=false` states. Four initial schedule rows covered day,
+evening, and night shifts with bookable and unavailable evidence. All rows belonged to one manifest-created
+organization and facility; no schema or migration changed.
+
+Mounted desktop and 390 px mobile proof confirmed:
+
+- exact staff totals and directory rows rendered the same six people, facility, specialty, contact, caseload,
+  rating, and effective status evidence;
+- a previously unconfirmed facility timezone kept schedule creation disabled with a clear recovery path;
+- confirming `America/Los_Angeles` used the existing timezone receiver, immediately published pending and
+  success feedback, and re-rendered the 14-day schedule in facility-local time;
+- adding a shift produced one new row, while repeating the same date/time command returned
+  `This time overlaps another shift` and created no duplicate;
+- status and availability remained workflow-owned, while ordinary directory edits stayed limited to the
+  existing metadata allowlist; and
+- a fresh browser log scan after desktop, scheduling, modal, and mobile operations reported no warnings or
+  errors.
+
+Three maturity defects were closed:
+
+1. Exact `Available` counts and filters used only `status='available'`, while the row projection correctly
+   rendered `is_available=false` as `Unavailable for assignment`. Server counts and the single-status
+   available lane now also require `is_available` to be true or unset. Mounted proof changed the KPI from the
+   incorrect 3 to 2 and the filtered result settled to exactly two assignable rows.
+2. Staff edit fields rendered visible labels but did not associate those labels with their controls, so the
+   accessibility tree exposed placeholders such as `Primary care` and `Short note`. Full name, specialty,
+   email, phone, facility, license, experience, and notes now have stable `id`/`htmlFor` pairs.
+3. Mobile could briefly render `No staff found` after the positive exact count arrived but before row
+   projection stabilization. A positive scoped count with zero rendered rows now keeps the structural
+   skeleton until rows arrive, while true zero and failed states remain distinct.
+
+Focused verification passed `46/46`; targeted ESLint passed without warnings. The optimized production build
+passed database-type encoding, mojibake, data-contract, UI-surface, mobile-grammar, and compilation gates.
+Cleanup explicitly counted and removed 5 doctor schedule rows (the four fixture shifts plus the idempotency
+test shift), 6 doctor rows, 1 ambulance, the created facility and organization, wallet and audit evidence,
+4 profiles, and 4 Auth users. The second cleanup dry run reported zero residue in every tracked class,
+including `doctorScheduleIds`. Discovered or claimable hospitals were not touched.
+
 ## Verification Plan
 
 Static:

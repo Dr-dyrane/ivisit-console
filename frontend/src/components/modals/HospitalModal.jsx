@@ -155,7 +155,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
             availableBeds={availableBeds}
             bedUtilizationPercent={bedUtilizationPercent}
             formData={formData}
-            handleChange={handleChange}
             isView={isView}
             loadBedData={loadBedData}
             loadingReservations={loadingReservations}
@@ -166,7 +165,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
             formData={formData}
             handleChange={handleChange}
             isView={isView}
-            setFormData={setFormData}
           />
           <HospitalSystemSection
             canManageVerification={canManageVerification}

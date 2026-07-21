@@ -14,10 +14,21 @@ describe('HospitalModal verification authority', () => {
     name: 'Test Hospital',
     verified: true,
     verification_status: 'approved',
+    available_beds: 4,
+    total_beds: 12,
+    ambulances_count: 2,
+    emergency_wait_time_minutes: 15,
+    status: 'available',
+    image: 'https://legacy.example/facility.jpg',
   };
 
-  it('preserves verification fields for platform admins', () => {
-    expect(buildHospitalSavePayload(formData, true)).toEqual(formData);
+  it('preserves verification fields for platform admins but strips live operational fields', () => {
+    expect(buildHospitalSavePayload(formData, true)).toEqual({
+      id: 'hospital-1',
+      name: 'Test Hospital',
+      verified: true,
+      verification_status: 'approved',
+    });
   });
 
   it('strips verification fields for organization admins', () => {

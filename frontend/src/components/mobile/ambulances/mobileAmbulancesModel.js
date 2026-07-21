@@ -1,5 +1,9 @@
-import { ACTIVE_FLEET_STATUSES } from '../../../constants/ambulanceStatus';
+import {
+  ACTIVE_FLEET_STATUSES,
+  getAmbulanceStatusLabel,
+} from '../../../constants/ambulanceStatus';
 import { formatRelativeTime } from '../../../utils/activityUtils';
+import { formatDayTime } from '../../../utils/dayTime';
 
 export const metricValue = (value, fallback = 0) => {
   const numericValue = Number(value);
@@ -91,20 +95,28 @@ export const getMobileAmbulanceOrbClass = (status) => {
 };
 
 export const getMobileAmbulanceAvailabilityLabel = (status) => {
-  if (status === 'available') return 'Ready';
-  if (status === 'dispatched') return 'Dispatched';
-  if (status === 'on_route' || status === 'en_route') return 'En route';
-  if (status === 'on_trip') return 'On trip';
-  if (status === 'on_scene') return 'On scene';
-  if (status === 'returning') return 'Returning';
-  if (status === 'maintenance') return 'Offline';
-  if (status === 'pending_approval') return 'Pending';
-  return String(status || 'Unknown').replace(/_/g, ' ');
+  return getAmbulanceStatusLabel(status);
+};
+
+const formatMobileLabel = (value, fallback = 'Unknown') => {
+  const label = String(value || fallback).replace(/_/g, ' ').trim();
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : fallback;
+};
+
+export const formatMobileAmbulanceType = (value) => {
+  const label = String(value || 'Standard').replace(/_/g, ' ').trim();
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : 'Standard';
+};
+
+export const formatMobileAmbulanceEta = (value) => {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : formatDayTime(value);
 };
 
 export const getMobileAmbulanceRowModel = (ambulance) => {
   const status = getMobileAmbulanceStatus(ambulance);
-  const typeLabel = String(ambulance.type || 'Standard');
+  const typeLabel = formatMobileAmbulanceType(ambulance.type);
   const activeRun = ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route';
   const vehicle = ambulance.vehicle_label
     || ambulance.license_plate
@@ -114,9 +126,9 @@ export const getMobileAmbulanceRowModel = (ambulance) => {
   return {
     status,
     title: ambulance.call_sign || 'Unknown Unit',
-    meta: `${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} \u00b7 ${vehicle}`,
+    meta: `${typeLabel} \u00b7 ${vehicle}`,
     time: activeRun
-      ? (ambulance.eta ? String(ambulance.eta) : 'En route')
+      ? (ambulance.eta ? formatMobileAmbulanceEta(ambulance.eta) : 'En route')
       : formatRelativeTime(ambulance.updated_at),
     availabilityLabel: getMobileAmbulanceAvailabilityLabel(status),
     orbClass: getMobileAmbulanceOrbClass(status),
@@ -127,14 +139,14 @@ export const getMobileAmbulanceDetailModel = (ambulance) => {
   if (!ambulance) return null;
 
   const status = getMobileAmbulanceStatus(ambulance);
-  const typeLabel = String(ambulance.type || 'Standard');
+  const typeLabel = formatMobileAmbulanceType(ambulance.type);
   const activeRun = ACTIVE_FLEET_STATUSES.has(status) || status === 'on_route';
 
   return {
     status,
     color: getMobileAmbulanceStatusColor(status),
     station: getMobileAmbulanceStation(ambulance) || 'No station',
-    typeLabel: typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1),
+    typeLabel,
     activeRun,
     unitId: ambulance.display_id
       || `#${String(ambulance.id || '').slice(0, 12).toUpperCase()}`,
@@ -143,5 +155,14 @@ export const getMobileAmbulanceDetailModel = (ambulance) => {
       || ambulance.vehicle_number
       || null,
     availabilityLabel: getMobileAmbulanceAvailabilityLabel(status),
+    etaLabel: ambulance.eta ? formatMobileAmbulanceEta(ambulance.eta) : 'Unknown',
+    currentCallLabel: ambulance.current_call
+      ? [
+          ambulance.active_call_display_id || 'Linked request',
+          ambulance.active_call_status
+            ? formatMobileLabel(ambulance.active_call_status)
+            : null,
+        ].filter(Boolean).join(' \u00b7 ')
+      : null,
   };
 };

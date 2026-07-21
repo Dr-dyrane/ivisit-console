@@ -1,16 +1,58 @@
 import { resolveMapEntityLocation, toMapPoint } from '../mapViewModel';
 import { decodePostGISGeometry } from '../../../utils/locationUtils';
 
-export const getDriverNextAction = (assignmentStatus) => {
+export const getDriverNextAction = (assignmentStatus, options = {}) => {
   const normalizedStatus = String(assignmentStatus || '').toLowerCase();
+  const {
+    guarded = false,
+    locationActive = false,
+    locationStatus = 'idle',
+    patientAcknowledgementState = null,
+    telemetryState = null,
+  } = options;
 
   if (normalizedStatus === 'offered') {
+    if (guarded && !telemetryState) {
+      return {
+        action: null,
+        label: 'Checking location',
+        disabled: true,
+        supportCopy: 'Confirming your live signal before this offer can be accepted.',
+      };
+    }
+    if (guarded && telemetryState !== 'live') {
+      if (locationActive || locationStatus === 'starting') {
+        return {
+          action: null,
+          label: 'Restoring location',
+          disabled: true,
+          supportCopy: 'Waiting for a fresh live signal.',
+        };
+      }
+      return {
+        action: 'restore_location',
+        label: 'Restore location',
+        busyLabel: 'Restoring',
+        supportCopy: 'Share a fresh location before accepting.',
+      };
+    }
     return { action: 'accept', label: 'Accept call', busyLabel: 'Accepting' };
   }
   if (normalizedStatus === 'accepted') {
     return { action: 'arrive', label: 'Mark arrived', busyLabel: 'Confirming' };
   }
   if (normalizedStatus === 'arrived') {
+    if (guarded && patientAcknowledgementState !== 'confirmed') {
+      const unavailable = patientAcknowledgementState === 'unavailable';
+      return {
+        action: null,
+        label: unavailable ? 'Confirmation unavailable' : 'Waiting for patient',
+        disabled: true,
+        supportCopy: unavailable
+          ? 'Patient confirmation could not be checked. We will retry automatically.'
+          : 'Complete the trip after the patient confirms your arrival.',
+      };
+    }
     return { action: 'complete', label: 'Complete trip', busyLabel: 'Closing', requiresConfirmation: true };
   }
 

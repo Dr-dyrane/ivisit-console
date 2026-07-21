@@ -231,7 +231,7 @@ describe('ambulance page model characterization', () => {
     expect(getAmbulanceRailModel({ ...rows[0], created_at: null }, null).commissionedLabel).toBe('Unknown');
   });
 
-  it('projects driver identity with honest Unassigned/truncated-UUID states (ADOPT-22)', () => {
+  it('projects driver identity without leaking unresolved person UUIDs (ADOPT-22)', () => {
     const DRIVER_ID = '44444444-4444-4444-8444-444444444444';
 
     // No profile_id: truthfully Unassigned, no copy target, no phone.
@@ -254,12 +254,12 @@ describe('ambulance page model characterization', () => {
       phone: '+2348012345678',
     });
 
-    // Unresolved (RLS-blocked read): the truncated UUID renders with the full
-    // id as copy target -- never a fabricated name.
+    // Unresolved (for example an RLS-blocked read): keep the assigned state
+    // honest without exposing an internal person identifier.
     expect(getAmbulanceDriverModel({ profile_id: DRIVER_ID, driver_name: null })).toEqual({
       assigned: true,
-      label: '44444444',
-      copyValue: DRIVER_ID,
+      label: 'Driver details unavailable',
+      copyValue: null,
       phone: null,
     });
 

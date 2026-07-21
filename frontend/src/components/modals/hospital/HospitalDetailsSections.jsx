@@ -143,7 +143,7 @@ export const HospitalFacilityDetailsSection = ({
   </HospitalSection>
 );
 
-export const HospitalLocationSection = ({ formData, handleChange, isView, setFormData }) => (
+export const HospitalLocationSection = ({ formData, handleChange, isView }) => (
   <HospitalSection icon={<MapPin />} title="Location & Contact">
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div className="col-span-1 space-y-2 md:col-span-2">
@@ -181,24 +181,11 @@ export const HospitalLocationSection = ({ formData, handleChange, isView, setFor
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="status" className="px-1 text-xs font-semibold uppercase text-muted-foreground">Operational Status</Label>
-        {isView ? (
-          <ReadOnlyField value={formData.status} />
-        ) : (
-          <Select
-            value={formData.status}
-            onValueChange={(value) => setFormData((current) => ({ ...current, status: value }))}
-          >
-            <SelectTrigger id="status" className={`${HOSPITAL_FIELD_CLASS} h-12 font-normal`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className={HOSPITAL_SELECT_CONTENT_CLASS}>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="busy">Busy</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+        <Label className="px-1 text-xs font-semibold uppercase text-muted-foreground">Operational Status</Label>
+        <ReadOnlyField
+          value={formData.status}
+          subtext={!isView ? 'Live operations workflow manages this status' : undefined}
+        />
       </div>
     </div>
   </HospitalSection>
@@ -278,19 +265,10 @@ export const HospitalSystemSection = ({
           )}
         </AnimatePresence>
 
-        {!isView ? (
-          <div className="flex gap-2">
-            <Input
-              id="image"
-              name="image"
-              value={formData.image || ''}
-              onChange={handleChange}
-              className={`${HOSPITAL_FIELD_CLASS} flex-1 font-normal`}
-              placeholder="https://..."
-            />
-          </div>
+        {formData.image ? (
+          !isView && <p className="px-1 text-xs text-muted-foreground">Media is managed by the facility media workflow.</p>
         ) : (
-          !formData.image && <p className="px-1 text-sm italic text-muted-foreground">No image available</p>
+          <p className="px-1 text-sm italic text-muted-foreground">No image available</p>
         )}
       </div>
     </div>
