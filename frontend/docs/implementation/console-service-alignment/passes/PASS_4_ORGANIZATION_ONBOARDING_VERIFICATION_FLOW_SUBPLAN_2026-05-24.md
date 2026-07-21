@@ -933,3 +933,31 @@ Next gate: validate, commit, push, and deploy only the preserved correction and
 exact-count pack plus the protected-route guard, then repeat the deployed
 changes-requested redirect. This remains a Console-only delivery; no database
 schema, migration, patient contract, or EAS update is required.
+
+## Day 5 deployed correction closure - 2026-07-21
+
+Commit `cca63dc1` adopted the correction recovery, owner-bound draft, exact
+queue-count, and shared review-gate pack on `main`; the repository-linked Vercel
+deployment completed successfully. Seventeen focused onboarding tests, 40
+focused verification tests, and the full production build passed.
+
+The final deployed rehearsal used exact manifest
+`1784658135711-4ae9a5b1`. It clarified the two adverse-decision contracts:
+claim-level `changes_requested` requeues ownership evidence without changing the
+organization's onboarding scope, while organization-level `changes_requested`
+is the canonical signal that routes the account back into onboarding. After the
+organization reviewer requested changes, the already-authenticated claimant
+reloaded at `/onboarding` into `Submit requested changes`, with the same
+organization and claim identifiers restored and replacement evidence required.
+No duplicate organization or claim was created.
+
+The protected discovered hospital was restored to its exact captured snapshot
+before cleanup. Exact cleanup removed the two disposable users, profiles,
+organization, claim, two evidence objects, wallet evidence, mappings, and
+Storage objects. The second cleanup preview reported zero resources in every
+owned class while preserving the discovered hospital for future claiming.
+
+This pass is closed for the Day 5 live-readiness gate. The remaining
+short-lived telemetry lease in the App's pre-created `ready` browser fixture is
+a separate harness improvement, not a Console contract or deployed lifecycle
+regression. No schema, migration, patient contract, or EAS update was required.
