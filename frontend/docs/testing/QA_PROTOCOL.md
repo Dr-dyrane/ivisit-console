@@ -26,6 +26,28 @@ Every sprint change goes through all applicable layers before gate sign-off. Lay
 
 ---
 
+## Strategic Completeness Matrix
+
+For onboarding, marketplace, emergency, payment, dispatch, identity, or any
+App/Console/shared-backend lifecycle, page-level walkthroughs are necessary but
+not sufficient. The test brief must name the business initiator and prove every
+applicable row below:
+
+| State | Required proof |
+|---|---|
+| Cold start | The initiating actor can begin with zero domain rows and without another actor bootstrapping the record. |
+| Warm/mature | Existing, owned, duplicated, cached, and historical records do not change authority or truth. |
+| Partial | Incomplete prerequisites recover without duplicate identity or misleading success. |
+| Degraded | Provider, permission, network, realtime, and downstream failure are visible and recoverable. |
+| Retry/replay | Refresh, reconnect, double submit, and repeated commands remain idempotent. |
+| Cross-surface | Canonical backend truth reflects into every authorized producer and consumer. |
+| Negative gate | Verification, ownership, payment, dispatch, and eligibility remain false until approved. |
+| Residue/rollback | Exact owned fixtures clean or retire without deleting real, discovered, or claimable truth. |
+
+A warm fixture cannot substitute for the cold-start row. QA sign-off must report
+`implementation result` and `business-outcome result` separately, with untested
+rows visible.
+
 ## Manual Walkthrough Protocol
 
 For every sprint, QA walks through the affected pages with each role that uses them.

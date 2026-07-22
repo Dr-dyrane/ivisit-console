@@ -61,6 +61,36 @@ A service is not implementation-ready until the pass names:
 - pagination/count/search/export scope
 - app consequence and verification path
 
+## Strategic Outcome Gate
+
+A technically working flow is not automatically a complete business outcome.
+For material onboarding, marketplace, emergency, payment, dispatch, identity,
+or cross-surface work, establish these items before implementation:
+
+- Founder/CEO intent and the executable product invariant.
+- The actor who must initiate the lifecycle.
+- What must work with zero domain records and no prior activity by another actor.
+- The lifecycle ownership map:
+  `business initiator -> entry surface -> canonical writer -> reviewer/approver -> activation rule -> consuming surface -> recovery owner -> suspension/rollback`.
+- Existing records, fixtures, caches, or manual repairs that could make a broken
+  cold start appear healthy.
+- The states that must remain false until their canonical approval owner acts.
+
+Every applicable audit must cover cold-start, warm/mature, partial, degraded,
+retry/replay, cross-surface, negative-gate, and residue/rollback states. Existing
+data proves only the warm path. It cannot prove that the correct actor can start
+the business lifecycle.
+
+Final reports must state two conclusions separately:
+
+1. whether the bounded implementation works; and
+2. whether the requested business outcome is complete.
+
+If cold-start or cross-surface evidence is missing, the second conclusion is
+`Not yet proved`. Do not use `complete`, `ready`, or `end to end` for the wider
+outcome. When available, use the canonical company protocol at
+`../ivisit-ceo/operating/STRATEGIC_REASONING_GATE.md`.
+
 ## Console Safety Rules
 
 Visible CRUD is not authority. A button, modal, or table row proves only that the UI advertises an action. The audit must prove the backend receiver and role authority before the action remains enabled.

@@ -988,6 +988,33 @@ This permits provider-first onboarding before any patient lookup while
 preserving patient safety. It changes Edge delivery in both repositories but
 does not require a schema migration, native build, or EAS update.
 
+### Deployed provider-first cold-start proof - 2026-07-22
+
+The deployed path was tested from a genuinely absent catalog state, not an
+existing warm fixture. Before the run, `Cedar Group Hospital` returned zero
+database rows. Exact manifest `provider-first-cold-1784746917832-610b87`
+created one eligible disposable claimant and invoked the deployed Console Edge
+adapter twice. The first call captured protected real facility
+`c8b7cca5-2e5a-4681-a2ef-591b83b52466`; the second returned the same UUID.
+
+Canonical truth after capture was unowned, `verified=false`,
+`verification_status=pending`, and `dispatch_eligible=false`, with Google Place
+identity preserved. The result was claimable, but no organization claim was
+created. The disposable claimant and profile were cleaned twice with zero
+residue. The real discovered hospital remains protected for future claiming.
+
+Mounted deployed Console proof then used exact manifest
+`provider-first-ui-1784746978954-a71d75`. A fresh eligible claimant signed in at
+`console.ivisit.ng`, selected Hospital -> Already listed, searched `Cedar Group
+Hospital`, received the protected Festac facility as `Available for review`,
+selected it, and saw `Ownership review selected` with Continue enabled. The
+run stopped before claim submission, signed out, and removed the exact claimant
+twice with zero residue.
+
+This closes the provider-first business invariant: Console can establish the
+claim-catalog record before patient activity, while ownership, verification,
+and dispatch eligibility remain separately gated.
+
 ## Festac Real Organization Pilot Planning - 2026-07-22
 
 The next organization onboarding is deliberately separated from disposable readiness fixtures. The
