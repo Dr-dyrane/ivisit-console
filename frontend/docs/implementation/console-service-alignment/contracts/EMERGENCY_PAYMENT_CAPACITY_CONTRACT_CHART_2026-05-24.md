@@ -4,6 +4,19 @@
 
 Exact source contract pass completed for the highest-risk operational paths. No database mutation or runtime write flow was executed.
 
+### 2026-07-18 Patient Cash-Preflight Addendum
+
+The maintained App and Console `emergency_logic` and `core_rpcs` pillars now
+define the same `check_patient_cash_eligibility` receiver. It is deliberately
+separate from Console `check_cash_eligibility`: the Console projection remains
+role-scoped finance evidence, while the patient receiver accepts hospital and
+pricing context, recomputes `resolve_emergency_pricing`, evaluates wallet
+sufficiency inside a security-definer boundary, and returns only `BOOLEAN`.
+It does not expose balance, fee percentage, or required fee, and it does not
+change `organization_wallets` RLS. Final debit and lifecycle release remain
+owned by `approve_cash_payment`. This addendum is source-complete only; the App
+client must not be released until the shared RPC is deployed and live-verified.
+
 ## Evidence Scope
 
 Console UI and services:

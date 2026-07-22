@@ -28,6 +28,10 @@ export const topUpWallet = async (amount, description, organizationId = null) =>
                 amount: Number(amount),
                 organization_id: organizationId,
                 currency: 'usd',
+                // The shared receiver only classifies this as wallet funding
+                // from the top-level discriminator. The nested metadata remains
+                // useful context, but cannot stand in for receiver intent.
+                is_top_up: true,
                 metadata: {
                     type: 'wallet_topup',
                     description: description

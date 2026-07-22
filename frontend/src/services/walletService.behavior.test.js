@@ -264,6 +264,7 @@ describe('wallet service preserved behavior', () => {
         amount: 25,
         organization_id: ORGANIZATION_ID,
         currency: 'usd',
+        is_top_up: true,
         metadata: { type: 'wallet_topup', description: 'Wallet reserve' },
       },
     });
