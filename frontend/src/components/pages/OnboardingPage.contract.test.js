@@ -83,6 +83,12 @@ describe('Onboarding Page 21 receiver contract', () => {
     expect(organizationStep).toContain('Selection does not transfer or verify this facility.');
     expect(organizationStep).toContain('Existing access needs review');
     expect(organizationStep).toContain('Managed facilities require an invitation');
+
+    const facilitySearchEdge = read('supabase/functions/search-onboarding-facilities/index.ts');
+    expect(facilitySearchEdge).toContain("action: 'directory_search'");
+    expect(facilitySearchEdge).toContain("/functions/v1/discover-hospitals");
+    expect(facilitySearchEdge).toContain("searchCatalog()");
+    expect(facilitySearchEdge).not.toContain(".from('hospitals').insert");
   });
 
   it('provides structural loading and immediate submit feedback on calm geometry', () => {

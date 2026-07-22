@@ -961,3 +961,42 @@ This pass is closed for the Day 5 live-readiness gate. The remaining
 short-lived telemetry lease in the App's pre-created `ready` browser fixture is
 a separate harness improvement, not a Console contract or deployed lifecycle
 regression. No schema, migration, patient contract, or EAS update was required.
+
+## Provider-first claim catalog recovery - 2026-07-22
+
+The deployed claim search historically queried only hospitals already captured
+in Supabase. That made the App's location-driven discovery an accidental
+prerequisite for Console onboarding: a real provider absent from the catalog
+could not select itself until a patient happened to search nearby.
+
+The corrected ownership chain is:
+
+`Console authenticated name/address search -> search_onboarding_facilities ->
+App-owned discover-hospitals directory_search on an empty catalog result ->
+unverified, non-dispatchable hospital persistence ->
+search_onboarding_facilities again -> claim evidence and review`
+
+Console does not insert or update `hospitals` directly and does not reproduce
+Google normalization, deduplication, image provenance, or persistence rules.
+The shared App Edge function remains the only external provider discovery
+writer. Directory capture creates claim-catalog truth only: `verified=false`,
+no organization owner, pending verification, and no dispatch eligibility.
+Ownership, organization verification, operational capability, and patient
+eligibility remain separate reviewer-controlled gates.
+
+This permits provider-first onboarding before any patient lookup while
+preserving patient safety. It changes Edge delivery in both repositories but
+does not require a schema migration, native build, or EAS update.
+
+## Festac Real Organization Pilot Planning - 2026-07-22
+
+The next organization onboarding is deliberately separated from disposable readiness fixtures. The
+planning-only execution path is maintained in
+`../../../execution/SPRINT_7_FESTAC_REAL_ORGANIZATION_PILOT.md`.
+
+The provisional primary candidate is Emel Hospital, 21 Road, Z Close, Festac Town. No claim is authorized
+until an in-person representative confirms the legal entity, exact discovered facility identity, address,
+and authority to claim. Real pilot rows must not use demo/E2E provenance or expiry. The plan preserves the
+deployed evidence -> ownership -> organization -> facility review order, scopes all staff and fleet to the
+reflected organization/facility identities, and treats bounded organization credit as a separate App-owned
+finance-pillar decision rather than an unrestricted negative-balance toggle.

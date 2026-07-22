@@ -49,16 +49,46 @@ serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: candidates, error: searchError } = await userClient.rpc(
+  const searchCatalog = () => userClient.rpc(
     'search_onboarding_facilities',
     { p_query: query },
   );
+
+  let { data: candidates, error: searchError } = await searchCatalog();
 
   if (searchError) {
     return jsonResponse({ error: 'Facility search is unavailable.' }, 403);
   }
 
-  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  let safeCandidates = Array.isArray(candidates) ? candidates : [];
+  if (safeCandidates.length === 0) {
+    const directoryResponse = await fetch(`${supabaseUrl}/functions/v1/discover-hospitals`, {
+      method: 'POST',
+      headers: {
+        Authorization: authorization,
+        apikey: anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'directory_search',
+        query,
+        providerCategory: 'hospital',
+        countryCode: 'NG',
+        limit: 8,
+      }),
+    });
+
+    if (!directoryResponse.ok) {
+      return jsonResponse({ error: 'Provider directory search is unavailable.' }, 503);
+    }
+
+    ({ data: candidates, error: searchError } = await searchCatalog());
+    if (searchError) {
+      return jsonResponse({ error: 'Facility search is unavailable.' }, 503);
+    }
+    safeCandidates = Array.isArray(candidates) ? candidates : [];
+  }
+
   if (safeCandidates.length === 0) return jsonResponse({ data: [] });
 
   const candidateIds = [...new Set(

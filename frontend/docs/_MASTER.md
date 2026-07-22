@@ -170,6 +170,7 @@ If you are a Claude agent arriving at this codebase:
 - [execution/SPRINT_4_DESIGN_TOKENS.md](./execution/SPRINT_4_DESIGN_TOKENS.md) — ModalShell, Tailwind tokens, component unification
 - [execution/SPRINT_5_DATA_GATED.md](./execution/SPRINT_5_DATA_GATED.md) — Analytics, BentoHome, Wallet (after data layer passes)
 - [execution/SPRINT_6_COPILOT_CAPABILITY_LADDER.md](./execution/SPRINT_6_COPILOT_CAPABILITY_LADDER.md) - P1 preparation, P2 confirmation, and allowlisted P3 workflow execution
+- [execution/SPRINT_7_FESTAC_REAL_ORGANIZATION_PILOT.md](./execution/SPRINT_7_FESTAC_REAL_ORGANIZATION_PILOT.md) - Planning-only path for one real Festac hospital, staff, fleet, schedules, cash, and bounded credit
 
 ### Testing & Release
 - [testing/QA_PROTOCOL.md](./testing/QA_PROTOCOL.md) — Test strategy per change type
