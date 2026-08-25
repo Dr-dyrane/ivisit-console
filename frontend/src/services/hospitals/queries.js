@@ -69,7 +69,7 @@ export async function getHospitalOptions() {
 /**
  * Resolve a facility by canonical UUID or its display ID label.
  */
-export async function getHospital(hospitalId, { abortSignal } = {}) {
+export async function getHospital(hospitalId, { abortSignal, organizationId } = {}) {
   try {
     throwIfQueryAborted(abortSignal);
     const { data, error } = await withRetry(async () => {
@@ -79,6 +79,9 @@ export async function getHospital(hospitalId, { abortSignal } = {}) {
         query = query.eq('id', hospitalId);
       } else {
         query = query.eq('display_id', hospitalId);
+      }
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
       }
       query = applyQueryAbortSignal(query, abortSignal);
 

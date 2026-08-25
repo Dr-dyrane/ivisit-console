@@ -70,6 +70,7 @@ describe('hospital read and realtime boundaries', () => {
 
     await expect(getHospitals({
       id: HOSPITAL_ID,
+      organization_id: ORGANIZATION_ID,
       status: ['available', 'busy'],
       verified: false,
       verification_status: 'pending',
@@ -88,6 +89,7 @@ describe('hospital read and realtime boundaries', () => {
     expect(supabase.from).toHaveBeenCalledWith('hospitals');
     expect(builder.select).toHaveBeenCalledWith('*', { count: 'exact' });
     expect(builder.eq).toHaveBeenCalledWith('id', HOSPITAL_ID);
+    expect(builder.eq).toHaveBeenCalledWith('organization_id', ORGANIZATION_ID);
     expect(builder.in).toHaveBeenCalledWith('status', ['available', 'busy']);
     expect(builder.eq).toHaveBeenCalledWith('verified', false);
     expect(builder.eq).toHaveBeenCalledWith('verification_status', 'pending');
@@ -128,10 +130,11 @@ describe('hospital read and realtime boundaries', () => {
       .mockReturnValueOnce(uuidBuilder)
       .mockReturnValueOnce(displayBuilder);
 
-    await expect(getHospital(HOSPITAL_ID)).resolves.toEqual(uuidRow);
+    await expect(getHospital(HOSPITAL_ID, { organizationId: ORGANIZATION_ID })).resolves.toEqual(uuidRow);
     await expect(getHospital('HSP-ABC123')).resolves.toEqual(displayRow);
 
     expect(uuidBuilder.eq).toHaveBeenCalledWith('id', HOSPITAL_ID);
+    expect(uuidBuilder.eq).toHaveBeenCalledWith('organization_id', ORGANIZATION_ID);
     expect(displayBuilder.eq).toHaveBeenCalledWith('display_id', 'HSP-ABC123');
   });
 

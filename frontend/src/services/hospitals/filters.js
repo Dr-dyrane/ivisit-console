@@ -16,6 +16,10 @@ export function applyHospitalFilters(query, filter = {}) {
     query = query.eq('id', filter.id);
   }
 
+  if (filter?.organization_id) {
+    query = query.eq('organization_id', filter.organization_id);
+  }
+
   const statusValues = normalizeFilterList(filter?.status);
   if (statusValues.length === 1) {
     query = query.eq('status', statusValues[0]);

@@ -421,3 +421,33 @@ The separate full lifecycle matrix passed card ambulance, tracking, completion, 
 bed reservation, tip flow, and transition audit. Its first cleanup reached zero residue and its second pass
 planned no mutations. The retained rich fixture also passed cleanup, zero preview, second cleanup, and final
 zero preview. This proves disposable rehearsal idempotency without relying on or mutating any real hospital.
+
+### Hospital-side cold-start route audit
+
+Run `flow-matrix-1787685744615-2bd0a7ce` then exercised the hospital-admin Console against one exact
+manifest-owned facility, six providers, four future schedules, and six fleet units. Desktop, mobile, and
+tablet browser passes covered Today, Hospitals, Staff, Schedules, Ambulances, Payments, Visits, Map, and the
+disabled no-patient request entry. The test account and every created row were removed by exact manifest;
+the first cleanup reported zero residue, the second apply remained at zero, and the final preview remained
+zero. No retained discovered hospital was selected.
+
+The audit found and repaired two operational projection defects without schema, migration, RPC, Edge, or
+App changes:
+
+1. The Hospitals route omitted organization scope from its bounded rows, exact KPI counts, direct-link
+   lookup, and realtime subscription. Hospital admins could therefore see platform-wide facilities and
+   totals. Non-platform actors now carry their canonical organization UUID through all four read paths;
+   facility approval review remains a platform-admin action, while hospital admins receive a read-only
+   hospital-statistics action on compact layouts.
+2. Hospital admins were initially placed on the platform ledger source, desktop called an unavailable
+   ledger empty, mobile offered a retry for a capability the role does not have, and the desktop/tablet tab
+   URL synchronizer could undo a click. Hospital users now start on patient payments, unavailable activity
+   is labeled honestly across all layouts, and tab state/query-string changes have one stable synchronization
+   direction.
+
+Verification passed the focused hospital/payment convergence pack at 74/74 and the optimized production
+build, including database-contract, encoding, UI-hardgate, and mobile-grammar checks. The full Console suite
+passed 1,782 of 1,788 tests; the remaining six assertions in five unrelated suites are current-main contract
+drift in God Mode Map size/action expectations, Health News copy-boundary matching, and Organization payout
+presentation expectations. They do not touch the repaired Hospitals or Payments paths and remain separate
+cleanup work rather than being hidden inside this surgical patch.

@@ -29,7 +29,9 @@ describe('route-owned query convergence contract', () => {
     });
 
     expect(page).toContain('const controller = new AbortController();');
-    expect(page).toContain('getHospital(hospitalId, { abortSignal: controller.signal })');
+    expect(page).toContain('getHospital(hospitalId, {');
+    expect(page).toContain('abortSignal: controller.signal');
+    expect(page).toContain('organizationId: organizationScopeId');
     expect(page).toContain('controller.abort();');
     expect(page).toContain('isQueryAbortError(error)');
   });

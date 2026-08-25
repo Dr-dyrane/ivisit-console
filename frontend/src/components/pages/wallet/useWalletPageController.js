@@ -21,7 +21,7 @@ export const useWalletPageController = ({ profile, isAdmin, isOrgAdmin, isMobile
   const [isFetching, setIsFetching] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [activeTab, setActiveTab] = useState('ledger');
+  const [activeTab, setActiveTab] = useState(() => (isAdmin ? 'ledger' : 'payments'));
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [search, setSearch] = useState('');

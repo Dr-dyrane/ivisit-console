@@ -64,7 +64,9 @@ export const useMobileWalletController = ({
   const selectionMode = selectedIds.length > 0;
   const activityGroups = useMemo(() => buildMonthGroups(items), [items]);
   const activeReadState = readState?.[activeTab] || 'unavailable';
-  const activeUnavailable = activeReadState !== 'ready';
+  const activeFailed = activeReadState === 'failed';
+  const activeUnavailable = activeReadState === 'unavailable';
+  const activityBlocked = !['ready', 'stale'].includes(activeReadState);
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({
     hasMore,
     loading: loading || isFetching || isLoadingMore,
@@ -116,7 +118,9 @@ export const useMobileWalletController = ({
 
   return {
     activeEntry,
+    activeFailed,
     activeUnavailable,
+    activityBlocked,
     activityGroups,
     armed,
     compactBalance,

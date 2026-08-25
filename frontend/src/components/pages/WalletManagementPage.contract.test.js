@@ -477,11 +477,17 @@ describe('WalletManagementPage Payments contract', () => {
     // Narrowing and source changes do not replace the canonical tab/id deep link contract.
     expect(page).toContain("searchParams.get('tab')");
     expect(page).toContain("searchParams.get('id')");
+    expect(page).toContain('[searchParams, setActiveTab]');
     expect(page).toContain("nextParams.set('tab', activeTab)");
     expect(page).toContain("nextParams.set('id', id)");
     expect(page).toContain("key: 'created_at'");
     expect(page).toContain('<SortableColumnHeader label="Time"');
     expect(page).toContain('onOpenReceipt={onPaymentOpen}');
+    expect(page).toContain("useState(() => (isAdmin ? 'ledger' : 'payments'))");
+    expect(page).toContain("const activeReadState = readState?.[activeTab] || 'unavailable'");
+    expect(page).toContain("const activeUnavailable = !['ready', 'stale'].includes(activeReadState)");
+    expect(page).toContain('Transaction history unavailable');
+    expect(page).toContain('This payment activity is not available for the current account.');
   });
 
   it('keeps internal implementation language out of desktop Payments copy', () => {
@@ -548,6 +554,10 @@ describe('WalletManagementPage Payments contract', () => {
     expect(mobile).toContain('[activeTab, clearSelection, filters, normalizedSearch]');
     expect(mobile).toContain('role="tablist"');
     expect(mobile).toContain('<WalletActivityTabButtons activeTab={activeTab} setActiveTab={controller.handleTabChange} />');
+    expect(mobile).toContain("const activeUnavailable = activeReadState === 'unavailable'");
+    expect(mobile).toContain("const activeFailed = activeReadState === 'failed'");
+    expect(mobile).toContain("const activityBlocked = !['ready', 'stale'].includes(activeReadState)");
+    expect(mobile).toContain('This payment activity is not available for the current account.');
     expect(mobile).toMatch(/<MobileSelectionBar[\s\S]*?<button[\s\S]*?disabled[\s\S]*?title="Bulk payment actions are unavailable"/);
     expect(mobile).not.toContain('handleBulkPayment');
     expect(mobile).not.toContain('handleBulkTransaction');

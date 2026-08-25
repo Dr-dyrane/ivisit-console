@@ -117,6 +117,7 @@ export const TabletWallet = ({ controller }) => {
     setActiveTab: controller.setActiveTab,
     ledger: controller.ledger,
     payments: controller.payments,
+    readState: controller.readState,
     loadError: controller.loadError,
     search: controller.search,
     filters: controller.activeFilters,
@@ -229,10 +230,14 @@ export const TabletWallet = ({ controller }) => {
         onSelectAll={workspace.handleSelectAll}
         allSelected={workspace.allSelected}
         someSelected={workspace.someSelected}
-        emptyTitle={workspace.isNarrowed
+        emptyTitle={workspace.activeUnavailable
+          ? controller.activeTab === 'ledger' ? 'Transaction history unavailable' : 'Patient payments unavailable'
+          : workspace.isNarrowed
           ? `No matching ${workspace.itemNoun}`
           : `No ${workspace.itemNoun} available`}
-        emptyBody={workspace.isNarrowed
+        emptyBody={workspace.activeUnavailable
+          ? 'This payment activity is not available for the current account.'
+          : workspace.isNarrowed
           ? 'Change your search or filters.'
           : 'Payment activity for this account will appear here.'}
         countLabel={`${workspace.activeItems.length} ${workspace.itemNoun}`}

@@ -59,6 +59,7 @@ export const PaymentsDesktopWorkspace = ({
     setActiveTab,
     ledger,
     payments,
+    readState,
     loadError,
     search,
     filters,
@@ -156,10 +157,14 @@ export const PaymentsDesktopWorkspace = ({
                 {workspace.activeItems.length === 0 && (
                   <EmptyState
                     icon={History}
-                    heading={workspace.isNarrowed
+                    heading={workspace.activeUnavailable
+                      ? activeTab === 'ledger' ? 'Transaction history unavailable' : 'Patient payments unavailable'
+                      : workspace.isNarrowed
                       ? `No matching ${activeTab === 'ledger' ? 'transactions' : 'patient payments'}`
                       : activeTab === 'ledger' ? 'No transactions available' : 'No patient payments available'}
-                    body={workspace.isNarrowed
+                    body={workspace.activeUnavailable
+                      ? 'This payment activity is not available for the current account.'
+                      : workspace.isNarrowed
                       ? 'Change your search or filters.'
                       : 'No records are available in this tab for the current account.'}
                   />

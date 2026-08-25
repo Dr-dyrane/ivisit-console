@@ -26,7 +26,7 @@ export const useHospitalsPageChrome = (controller) => {
   ), [actions.handleOpenFilters, state.filterSheetOpen, state.filters]);
 
   const headerActions = useMemo(() => {
-    if (!role.canEditHospitals) return null;
+    if (!role.canReviewFacilityApprovals) return null;
 
     const opening = state.activeActionFeedback === 'facility-approvals';
     return (
@@ -42,7 +42,7 @@ export const useHospitalsPageChrome = (controller) => {
         Facility approvals
       </Button>
     );
-  }, [actions.handleFacilityApprovals, role.canEditHospitals, state.activeActionFeedback]);
+  }, [actions.handleFacilityApprovals, role.canReviewFacilityApprovals, state.activeActionFeedback]);
 
   usePageHeader('Hospitals', headerActions, null, filterButtonComponent);
   usePageFooter(null, 'status', false);

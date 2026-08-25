@@ -137,12 +137,21 @@ export const getRouteOwnedMobileAction = (
     };
   }
 
-  if (pathname.startsWith('/hospitals') && canReach('/verification')) {
+  if (pathname.startsWith('/hospitals') && canReach('/hospitals')) {
+    if (userRole === 'admin' && canReach('/verification')) {
+      return {
+        icon: FileCheck,
+        label: 'Facility approvals',
+        color: 'staff',
+        to: '/verification?queue=organizations',
+      };
+    }
+
     return {
-      icon: FileCheck,
-      label: 'Facility approvals',
-      color: 'staff',
-      to: '/verification?queue=organizations',
+      icon: BarChart3,
+      label: 'Hospital stats',
+      color: 'utility',
+      action: dispatchWindowEvent('openAnalyticsModal'),
     };
   }
 

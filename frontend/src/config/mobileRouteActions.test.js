@@ -65,6 +65,11 @@ describe('mobile route actions', () => {
     dispatch.mockRestore();
   });
 
+  it('keeps platform facility review separate from hospital operations', () => {
+    expect(getRouteOwnedMobileAction('/hospitals', 'admin')?.label).toBe('Facility approvals');
+    expect(getRouteOwnedMobileAction('/hospitals', 'org_admin')?.label).toBe('Hospital stats');
+  });
+
   it('keeps responder providers out of the clinician Visits action', () => {
     const driver = { role: 'provider', provider_type: 'driver' };
     expect(canReachRoute(driver, '/visits')).toBe(false);

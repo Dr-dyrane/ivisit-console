@@ -26,6 +26,8 @@ import {
   HOSPITAL_PAGE_SIZE,
 } from './hospitalPageModel';
 
+const EMPTY_ORGANIZATION_SCOPE = '00000000-0000-0000-0000-000000000000';
+
 export const useHospitalsPageController = () => {
   const { isAdmin, isOrgAdmin, isProvider, isDriver, orgId } = useAuth();
   const location = useLocation();
@@ -39,6 +41,7 @@ export const useHospitalsPageController = () => {
   const provider = isProvider();
   const driver = isDriver();
   const canEditHospitals = admin || orgAdmin;
+  const organizationScopeId = admin ? null : (orgId || EMPTY_ORGANIZATION_SCOPE);
 
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [modalMode, setModalMode] = useState(null);
@@ -73,15 +76,27 @@ export const useHospitalsPageController = () => {
     [roleKind]
   );
 
-  const queryFilter = useMemo(() => buildHospitalQueryFilter({
+  const queryFilter = useMemo(() => {
+    const nextFilter = buildHospitalQueryFilter({
+      filters,
+      kpiFilter,
+      itemsPerPage: pagination.itemsPerPage,
+      offset: pagination.paginationRange.start,
+      sortConfig,
+    });
+
+    if (admin) return nextFilter;
+
+    return {
+      ...nextFilter,
+      filters: { ...nextFilter.filters, organization_id: organizationScopeId },
+      statsFilters: { ...nextFilter.statsFilters, organization_id: organizationScopeId },
+    };
+  }, [
+    admin,
     filters,
     kpiFilter,
-    itemsPerPage: pagination.itemsPerPage,
-    offset: pagination.paginationRange.start,
-    sortConfig,
-  }), [
-    filters,
-    kpiFilter,
+    organizationScopeId,
     pagination.itemsPerPage,
     pagination.paginationRange.start,
     sortConfig,
@@ -166,14 +181,27 @@ export const useHospitalsPageController = () => {
   useEffect(() => {
     let active = true;
 
+    const realtimeScope = !admin
+      ? { filter: `organization_id=eq.${organizationScopeId}` }
+      : {};
     const channel = supabase
       .channel('hospitals_page_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hospitals' }, () => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'hospitals',
+        ...realtimeScope,
+      }, () => {
         if (active && isMountedRef.current) {
           queryClient.invalidateQueries({ queryKey: ['hospitals'] });
         }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hospitals' }, (payload) => {
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'hospitals',
+        ...realtimeScope,
+      }, (payload) => {
         if (!active || !isMountedRef.current || payload?.eventType !== 'INSERT') return;
         const now = Date.now();
         if (now - lastInsertToastAtRef.current < 10000) return;
@@ -186,7 +214,7 @@ export const useHospitalsPageController = () => {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [admin, organizationScopeId, queryClient]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -195,7 +223,10 @@ export const useHospitalsPageController = () => {
 
     let active = true;
     const controller = new AbortController();
-    getHospital(hospitalId, { abortSignal: controller.signal })
+    getHospital(hospitalId, {
+      abortSignal: controller.signal,
+      organizationId: organizationScopeId,
+    })
       .then((specificHospital) => {
         if (!active || !isMountedRef.current || !specificHospital) return;
         setFocused(specificHospital.id);
@@ -211,7 +242,7 @@ export const useHospitalsPageController = () => {
       active = false;
       controller.abort();
     };
-  }, [location.search, setFocused]);
+  }, [location.search, organizationScopeId, setFocused]);
 
   const handleFacilityApprovals = useCallback(() => {
     markActionFeedback('facility-approvals');
@@ -369,6 +400,7 @@ export const useHospitalsPageController = () => {
       admin,
       orgAdmin,
       canEditHospitals,
+      canReviewFacilityApprovals: admin,
       canEditHospital,
     },
     data: {

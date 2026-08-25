@@ -196,7 +196,7 @@ export const MobileWalletActivity = ({
     {!loading && controller.items.length === 0 && (
       <MobileListEmpty
         icon={activeTab === 'ledger' ? History : ShieldCheck}
-        label={controller.activeUnavailable
+        label={controller.activityBlocked
           ? `${activeTab === 'ledger' ? 'Transactions' : 'Patient payments'} unavailable`
           : controller.normalizedSearch
             ? `No matching ${activeTab === 'ledger' ? 'transactions' : 'patient payments'}`
@@ -205,7 +205,7 @@ export const MobileWalletActivity = ({
               : activeTab === 'ledger'
                 ? 'No transactions yet'
                 : 'No patient payments yet'}
-        reason={controller.activeUnavailable
+        reason={controller.activityBlocked
           ? 'error'
           : controller.normalizedSearch
             ? 'search'
@@ -213,20 +213,22 @@ export const MobileWalletActivity = ({
               ? 'filtered'
               : 'empty'}
         hint={controller.activeUnavailable
-          ? 'Retry to load this payment activity.'
+          ? 'This payment activity is not available for the current account.'
+          : controller.activeFailed
+            ? 'Retry to load this payment activity.'
           : controller.normalizedSearch
             ? `No loaded activity matches "${search}".`
             : controller.hasFilter
               ? 'Clear filters to view the loaded activity.'
               : 'Payment activity will appear here after it is recorded.'}
-        onRecover={controller.activeUnavailable
+        onRecover={controller.activeFailed
           ? onRefresh
           : controller.normalizedSearch
             ? () => onSearchCommit('')
             : controller.hasFilter
               ? onClearFilters
               : undefined}
-        recoverLabel={controller.activeUnavailable
+        recoverLabel={controller.activeFailed
           ? 'Try Again'
           : controller.normalizedSearch
             ? 'Clear Search'

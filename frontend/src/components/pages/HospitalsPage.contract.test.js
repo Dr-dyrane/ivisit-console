@@ -253,6 +253,13 @@ describe('HospitalsPage admission audit contract', () => {
     expect(page).toContain('handleFacilityApprovals');
     expect(page).toContain("navigate('/verification?queue=organizations')");
     expect(page).toContain('Facility approvals');
+    expect(page).toContain('canReviewFacilityApprovals: admin');
+    expect(page).toContain('role.canReviewFacilityApprovals');
+    expect(page).toContain("const EMPTY_ORGANIZATION_SCOPE = '00000000-0000-0000-0000-000000000000'");
+    expect(page).toContain('const organizationScopeId = admin ? null : (orgId || EMPTY_ORGANIZATION_SCOPE)');
+    expect(page).toContain("filters: { ...nextFilter.filters, organization_id: organizationScopeId }");
+    expect(page).toContain("statsFilters: { ...nextFilter.statsFilters, organization_id: organizationScopeId }");
+    expect(page).toContain('filter: `organization_id=eq.${organizationScopeId}`');
     expect(page).not.toContain("data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'unavailable'}");
     expect(page).not.toContain('aria-disabled="true"');
     expect(page).not.toContain('ADD HOSPITAL');
@@ -297,11 +304,13 @@ describe('HospitalsPage admission audit contract', () => {
       fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8'),
       fs.readFileSync('src/config/mobileRouteActions.js', 'utf8'),
     ].join('\n');
-    // RBAC (2026-07-10 audit): the FAB gate is DERIVED from the destination route via
-    // canReachRoute (same truth the route guard uses), not a hand-kept role list.
-    expect(bottomBar).toContain("pathname.startsWith('/hospitals') && canReach('/verification')");
+    // RBAC: organization admins keep an organization-scoped read action while
+    // the platform-owned facility review queue stays admin-only.
+    expect(bottomBar).toContain("pathname.startsWith('/hospitals') && canReach('/hospitals')");
+    expect(bottomBar).toContain("userRole === 'admin' && canReach('/verification')");
     expect(bottomBar).toContain("label: 'Facility approvals'");
     expect(bottomBar).toContain("to: '/verification?queue=organizations'");
+    expect(bottomBar).toContain("label: 'Hospital stats'");
     expect(bottomBar).toContain("justify-between' : 'justify-center'");
     expect(page).toContain("usePageFooter(null, 'status', false)");
     expect(page).not.toContain("usePageFooter(footerContent, 'pagination'");
@@ -645,7 +654,7 @@ describe('HospitalsPage admission audit contract', () => {
     expect(queryHookSource()).toContain('getHospitalsPageData({ ...filter, abortSignal: signal })');
     expect(queryHookSource()).toContain("queryKey: ['hospitals', filter]");
     expect(mutationsHookSource()).toContain('applyOptimisticUpsert');
-    expect(page).toContain('getHospital(hospitalId, { abortSignal: controller.signal })');
+    expect(page).toContain('organizationId: organizationScopeId');
     expect(page).not.toContain('createHospital(formData)');
     expect(page).toContain('updateHospital(selectedHospital.id, formData)');
     expect(page).toContain('<HospitalModal');
@@ -771,7 +780,8 @@ describe('HospitalsPage admission audit contract', () => {
     expect(service).toContain('display_id.ilike');
     expect(service).toContain('phone.ilike');
     expect(service).not.toContain('displayIdService');
-    expect(service).toContain('export async function getHospital(hospitalId, { abortSignal } = {})');
+    expect(service).toContain('export async function getHospital(hospitalId, { abortSignal, organizationId } = {})');
+    expect(service).toContain("query = query.eq('organization_id', organizationId)");
     expect(service).toContain('export async function createHospital(input)');
     expect(service).toContain('export async function updateHospital(hospitalId, input)');
     expect(service).toContain("supabase.rpc('update_hospital_by_admin'");

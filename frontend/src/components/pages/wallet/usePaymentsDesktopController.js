@@ -9,6 +9,7 @@ export const usePaymentsDesktopController = ({
   setActiveTab,
   ledger,
   payments,
+  readState,
   loadError,
   search,
   filters,
@@ -30,7 +31,9 @@ export const usePaymentsDesktopController = ({
     sortDirection: sortConfig.direction,
   }), [activeTab, filters, normalizedSearch, rawItems, sortConfig.direction]);
   const focusedEntry = activeItems.find((item) => item.id === focusedId) || null;
-  const failedEmpty = Boolean(loadError) && rawItems.length === 0;
+  const activeReadState = readState?.[activeTab] || 'unavailable';
+  const activeUnavailable = !['ready', 'stale'].includes(activeReadState);
+  const failedEmpty = activeReadState === 'failed' && Boolean(loadError) && rawItems.length === 0;
   const itemNoun = activeTab === 'ledger' ? 'transactions' : 'patient payments';
   const pagination = useMemo(() => ({
     currentPage: 1,
@@ -58,10 +61,10 @@ export const usePaymentsDesktopController = ({
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    if ((requestedTab === 'ledger' || requestedTab === 'payments') && requestedTab !== activeTab) {
+    if (requestedTab === 'ledger' || requestedTab === 'payments') {
       setActiveTab(requestedTab);
     }
-  }, [activeTab, searchParams, setActiveTab]);
+  }, [searchParams, setActiveTab]);
 
   useEffect(() => {
     const requestedId = searchParams.get('id');
@@ -116,6 +119,7 @@ export const usePaymentsDesktopController = ({
 
   return {
     activeItems,
+    activeUnavailable,
     allSelected,
     clearSelection,
     failedEmpty,
