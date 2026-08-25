@@ -1,7 +1,7 @@
 ---
 status: planning_only
 owner: product_and_operations
-last_updated: 2026-07-22
+last_updated: 2026-08-25
 authority: execution plan; does not authorize production mutation
 ---
 
@@ -351,3 +351,61 @@ The sprint may move from planning to execution only when all are true:
 - changing migrations, schema, RPCs, RLS, Edge Functions, or payment behavior;
 - deploying Console, publishing EAS OTA, or changing patient discovery;
 - creating real or simulated payments.
+
+## Disposable Pre-Live Rehearsal Checkpoint - 2026-08-25
+
+This checkpoint exercised Phase 7 with a manifest-owned disposable organization near Festac. It did not
+claim, verify, edit, invite into, or otherwise represent Emel Hospital. The retained discovered Emel record
+`578bdc07-8fd8-4e1e-b3ea-83be2c0a6c9a` remained unowned, unverified, pending review, and dispatch-ineligible.
+Every cleanup preview and apply asserted its protected snapshot before proceeding.
+
+### Exact rehearsal boundary
+
+- run: `flow-matrix-1787682882557-0a1e9830`;
+- fixture: `[DEMO 0a1e9830] Festac Care Operations Rehearsal`;
+- ownership: one exact-run manifest with `hard_delete_exact_run` disposition and a seven-day expiry;
+- rich state: six providers, four future doctor schedules, six ambulances across ready, pending, offline,
+  maintenance, and returning states;
+- production contract changes: none;
+- schema, migration, Edge Function, Console deployment, native build, and EAS changes: none.
+
+### Browser and canonical-data results
+
+1. Scheduled care passed from patient facility discovery to an `Africa/Lagos` slot, canonical scheduled
+   Visit, Console scheduled projection, Console cancellation, and patient-side cancelled reflection.
+2. Cash emergency passed payment creation, organization approval, dispatch, responder acceptance, realtime
+   ETA, responder arrival, patient Confirm Arrival, responder completion, and exactly one five-star rating.
+3. A clean-cache replay proved the mounted patient App moved from `Waiting for approval` to
+   `Assigning driver` with `Payment received. Dispatching now.` about five seconds after Console approval,
+   without a browser refresh. This validates the real-cash watcher at the payment-to-tracking handoff.
+4. Stale pre-dispatch telemetry failed safely when request and assignment identity were incomplete; the
+   harness now sends those identities only as a pair. Assignment-coupled telemetry then recovered normally.
+5. The canonical onboarding live E2E passed claim, evidence correction, ownership, organization, facility,
+   invite callback, App eligibility, reflection, and cleanup twice using a separate disposable run.
+6. Focused App contracts passed 18/18 and the production web export passed.
+
+### Fixture defects corrected
+
+- The operations-rich facility now declares booking eligibility, `Emergency Medicine` and
+  `Internal Medicine`, and a confirmed `Africa/Lagos` timezone.
+- Rehearsal doctor schedules are generated for the next day. A same-day UTC date could already be outside
+  the Lagos booking window and falsely present a healthy schedule contract as empty.
+- Real cash approval now continues watching canonical payment/request truth after the initial pending result
+  and clears the approval overlay when settlement arrives. Demo auto-approval remains isolated.
+- Sign-in contact-country initialization no longer requests foreground location or waits for GPS. It starts
+  with a usable fallback and may refine only from an already-authorized cached global location.
+
+### Cleanup and idempotency proof
+
+The first exact cleanup removed the operational graph but timed out while removing four disposable
+profiles. A preview showed only those four profiles and Auth users. Replaying the same manifest-owned
+cleanup removed them, a zero-residue preview passed, a second apply remained at zero, and the final preview
+again reported zero across every tracked resource class. No record was selected by a name, email pattern,
+organization-wide sweep, or other broad match.
+
+### Gate conclusion
+
+- Bounded implementation: **proved for the disposable browser rehearsal and canonical onboarding harness**.
+- Real business outcome: **not yet proved**. Emel still requires an authorized representative, private
+  evidence, legal/operational verification, real staff and fleet facts, currency/cash agreement, and the
+  controlled physical-device field run in Phase 8.
