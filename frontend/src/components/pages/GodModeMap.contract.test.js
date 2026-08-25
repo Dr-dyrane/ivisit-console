@@ -292,7 +292,7 @@ describe('GodModeMap Live Map contract', () => {
     expect(page).toContain('await driverManagementService.completeAssignment');
     expect(page).toContain('toast.success(copy.success');
     expect(page.indexOf('await driverManagementService.acceptOffer')).toBeLessThan(page.indexOf('toast.success(copy.success'));
-    expect(page).toContain('aria-busy={driverAction === nextAction.action}');
+    expect(page).toContain('aria-busy={primaryPending}');
     expect(page).toContain("'Confirm complete'");
     expect(page).toContain("toast.loading('Requesting location...'");
     expect(page).toContain("toast.info('Using the operational area'");

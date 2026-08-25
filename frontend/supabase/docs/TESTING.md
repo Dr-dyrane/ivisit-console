@@ -197,6 +197,95 @@ node supabase/tests/scripts/run_console_onboarding_live_e2e.js --project-ref=<ex
 
 It verifies public-signup role safety, private Storage, canonical organization/profile/wallet/evidence provisioning, idempotency and duplicate rejection, complete facility identity reflection, organization-scoped user statistics, no-auth and role-scope invitation denial, successful Auth invitation, service-only profile assignment, and cleanup. The runner must remove every temporary Auth identity, row, and Storage object in its final cleanup path.
 
+Each live run now writes an ignored recovery manifest under
+`supabase/tests/artifacts/demo-runs/<run-id>.json`. The manifest records exact
+Auth, organization, disposable facility, claim, evidence, and Storage
+identities. It also records a seven-day `expiresAt`, explicit `owner`, and
+cleanup `disposition` without adding database columns. Test-created facilities
+carry matching `demo_owner:*` and `demo_expires_at:<epoch-ms>` feature tags so
+expired fixtures disappear from Edge discovery sufficiency and App projections
+before asynchronous cleanup. Test-created facilities and protected discovered facilities are
+mutually exclusive: cleanup may delete only `createdFacilityIds`, never every
+hospital currently linked to a test organization.
+
+New ephemeral live fixtures use a visible `[DEMO <short-run-id>]` label plus
+`place_id=e2e:<run-id>:...` and `demo_scope:<run-id>`. They deliberately do
+not use `demo:*`, `demo_bootstrap`, or a `demo*` verification status because
+those values authorize stable preview coverage to bypass ordinary dispatch
+eligibility gates. Real imported/discovered hospitals remain claim-catalog
+truth and must not be renamed or deleted by cleanup.
+
+Hospital queries and deprecated route/intake screens are read-only. They must
+never call `bootstrap-demo-ecosystem`. Preview coverage has two canonical
+owners: the explicit coverage-mode command and the coverage-aware `/map`
+orchestrator after live discovery has settled below its comfort threshold.
+This preserves sparse-region recovery without allowing ordinary query
+refetches or legacy routes to multiply demo organizations, hospitals, drivers,
+doctors, or ambulances. A canonical bootstrap refreshes the pack expiry.
+
+If an onboarding or emergency-flow run is interrupted, preview its exact
+cleanup plan before applying it:
+
+```bash
+node supabase/tests/scripts/cleanup_demo_run.js \
+  --manifest=supabase/tests/artifacts/demo-runs/<run-id>.json \
+  --project-ref=<expected-project-ref>
+
+node supabase/tests/scripts/cleanup_demo_run.js \
+  --manifest=supabase/tests/artifacts/demo-runs/<run-id>.json \
+  --project-ref=<expected-project-ref> \
+  --apply
+```
+
+Run the apply command a second time. The second plan must contain zero
+resources and must succeed without changing any protected facility. The
+cleanup receiver deletes `user_activity` by the manifest's exact Auth UUIDs
+inside a bounded service-only SQL operation; it does not depend on a broad or
+potentially timing-out activity-table lookup. The operation asserts that no
+activity remains for those captured identities before profile/Auth deletion.
+The manifest contract itself is checked with:
+
+```bash
+npm run hardening:demo-run-manifest-contract
+```
+
+`run_e2e_flow_matrix.js` uses the same manifest for Auth, organization,
+facility, doctor, ambulance, staffing, request, responder assignment, payment,
+wallet, visit, activity, audit, notification, billing, transition, and display
+mapping cleanup. Wallet-ledger credits are reversed before their exact ledger
+rows are removed, and append-only emergency history triggers are disabled only
+inside the validated UUID-scoped cleanup transaction. Its first cleanup must
+capture a non-empty live graph; its second cleanup must plan zero actions.
+
+For a rendered browser lifecycle, prepare the same foundation without running
+or cleaning the lifecycle:
+
+```bash
+npm run hardening:browser-emergency-fixture:prepare
+```
+
+The command prints a disposable patient, responder, and organization-admin
+handoff and writes its exact recovery manifest before returning. It does not
+store the shared test password in the manifest. During the browser journey,
+register and advance only the newest request owned by that manifest:
+
+```bash
+node supabase/tests/scripts/browser_emergency_fixture.js \
+  --manifest=supabase/tests/artifacts/demo-runs/<run-id>.json \
+  --action=status
+```
+
+Allowed coordinator actions are `status`, `approve-cash`, `dispatch`, `accept`,
+`telemetry`, `arrive`, and `complete`. `dispatch` refreshes the disposable
+responder telemetry lease before calling the canonical Console dispatch RPC,
+so a deliberately delayed browser rehearsal can recover without a direct
+lifecycle write. Mutation actions call only their
+canonical RPC owners; the coordinator performs no direct table writes.
+`complete` fails closed until the patient has confirmed arrival through the
+rendered App. After exactly one rendered rating, apply the manifest cleanup
+twice and require a final zero-resource preview. Never use an existing browser
+session or its visits as lifecycle test data.
+
 ### **Preferences Surface Field Guard**
 ```bash
 # Detect preferences app/console type parity + relationship parity and
@@ -810,3 +899,24 @@ Do not ship test-generated side effects to shared environments.
 ---
 
 **Remember**: 100% test success rate is mandatory for all schema changes.
+# Strategic Completeness Matrix
+
+For onboarding, marketplace, emergency, payment, dispatch, identity, or any
+App/Console/shared-backend lifecycle, receiver tests are necessary but not
+sufficient. The test plan must name the business initiator and prove every
+applicable row:
+
+| State | Required proof |
+| --- | --- |
+| Cold start | The initiating actor can begin with zero domain rows and without another actor bootstrapping the record. |
+| Warm/mature | Existing, owned, duplicated, cached, and historical records do not change authority or truth. |
+| Partial | Incomplete prerequisites recover without duplicate identity or misleading success. |
+| Degraded | Provider, permission, network, realtime, and downstream failure are visible and recoverable. |
+| Retry/replay | Refresh, reconnect, double submit, and repeated commands remain idempotent. |
+| Cross-surface | Canonical backend truth reflects into every authorized producer and consumer. |
+| Negative gate | Verification, ownership, payment, dispatch, and eligibility remain false until approved. |
+| Residue/rollback | Exact owned fixtures clean or retire without deleting real, discovered, or claimable truth. |
+
+A warm fixture cannot substitute for cold-start proof. Test reports must state
+the bounded implementation result and the business-outcome result separately,
+with untested rows visible.

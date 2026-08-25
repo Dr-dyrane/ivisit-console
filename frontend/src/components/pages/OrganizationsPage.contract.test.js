@@ -122,7 +122,7 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(service).toContain('async function getOrganizationPayoutBuckets');
     expect(service).toContain('function applyOrganizationPayoutFilter');
     expect(service).toContain("query = applyOrganizationPayoutFilter(query, filter.kpiFilter, payoutBuckets);");
-    expect(service).toContain('payoutGap: Math.max(total - funded, 0)');
+    expect(service).toContain('payoutGap: Math.max(operationalTotal - funded, 0)');
     expect(service).toContain('backend organization payout projection required.');
     expect(service).toContain('throw error;');
     expect(hook).toContain("queryKey: ['organizations', filter]");
@@ -274,10 +274,10 @@ describe('Organizations Page 15 revamp contract', () => {
     expect(service).toContain('wallet_currency: walletMeta?.currency ?? null,');
     expect(service).toContain('wallet_updated_at: walletMeta?.updated_at ?? null,');
 
-    expect(rail).toContain('formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)');
+    expect(rail).toContain('const walletValue = formatOrganizationWalletForRow(organization);');
     expect(rail).toContain('{organization.wallet_updated_at && (');
     expect(rail).toContain('<DetailLine icon={History} label="Wallet updated" value={formatOrganizationDate(organization.wallet_updated_at)} />');
-    expect(workspace).toContain('formatOrganizationWallet(organization.wallet_balance, organization.wallet_currency)');
+    expect(workspace).toContain('formatOrganizationWalletForRow(organization)');
   });
 
   // ADOPT-51: contact_phone and the raw stripe_account_id (types/database.ts,

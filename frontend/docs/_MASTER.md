@@ -1,7 +1,7 @@
 ---
 status: living
 owner: product
-last_updated: 2026-06-18
+last_updated: 2026-08-25
 authority: highest — this document governs all other docs in this repo
 ---
 
@@ -79,20 +79,24 @@ Everything in this repo flows from four source-of-truth documents. Read them in 
 
 ---
 
-## Current State — Sprint Readiness
+## Current State — Live-Readiness Reconciliation
 
-| Sprint | Name | Status | Gate |
-|---|---|---|---|
-| Sprint 1 | Trust & Correctness | ✅ Ready to start | Critical bugs fixed, zero fabricated metrics |
-| Sprint 2 | Home & Navigation | 🔒 After Sprint 1 | Role-fixed nav ships, doctor home state live |
-| Sprint 3 | High-Traffic Page Polish | 🔒 After Pass D2 | Emergency + Settings + Support done |
-| Sprint 4 | Design Token Enforcement | 🔒 After ModalShell ships | All modals unified, tokens in Tailwind config |
-| Sprint 5 | Data-Gated Pages | 🔒 After domain passes | Analytics, BentoHome, Wallet revamped cleanly |
+The original Sprint 1–5 plan remains historical sequencing context. The implemented Console has moved beyond
+that starting state:
 
-**Architecture pass status (from Audit 3):**
-- Pass 1A/1B (emergency render): ✅ Complete
-- TanStack Query installed: ✅ Complete (zero hooks written yet)
-- All other passes (E2, D2, H1, Zustand, Jotai): ⬜ Not started
+| Lane | Current evidence | Remaining gate |
+|---|---|---|
+| Shared shell and responsive UI | Desktop, tablet, and mobile compositions are implemented across the operational routes. | Keep the full contract suite green and verify responsive browser journeys after material UI changes. |
+| Data ownership | Route-owned services and TanStack Query projections are established across the active passes. | Do not reintroduce page-level duplicate Supabase owners or partial client counts as complete truth. |
+| Emergency and driver operations | Dispatch, responder telemetry, patient-arrival acknowledgement, and completion guards are represented in Console. | Real facility authority and real responder telemetry remain a separate business-outcome proof. |
+| Hospital onboarding | Provider-first discovery, claim correction, review, and verification recovery are implemented and rehearsed with neutral fixtures. | A real organization representative must still claim and complete onboarding before the Festac pilot is signed off. |
+| Shared database contract | App is canonical; Console carries a synchronized mirror of migrations, generated types, docs, and shared Edge receivers. | `npm run hardening:console-supabase-mirror` must remain green after every App database change. |
+
+Current execution references:
+
+- [Sprint 7 Festac real-organization pilot](./execution/SPRINT_7_FESTAC_REAL_ORGANIZATION_PILOT.md)
+- [Console service alignment index](./implementation/console-service-alignment/README.md)
+- [Grand refactor plan](./architecture/CONSOLE_GRAND_REFACTOR_PLAN.md) — use its current reconciliation section; older audits are historical evidence.
 
 ---
 

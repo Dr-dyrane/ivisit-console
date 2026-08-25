@@ -978,6 +978,8 @@ WITH CHECK (auth.uid() = user_id OR public.p_is_admin());
 -- END CONSOLE_SUPPORT_TICKET_RLS
 
 -- BEGIN DATA_ROOM_ACCESS_RLS
+-- Metadata may be read only by authenticated eligible users. The content
+-- column is deliberately excluded from authenticated column grants below.
 DROP POLICY IF EXISTS "Public read public documents" ON public.documents;
 DROP POLICY IF EXISTS "Anyone can view document metadata" ON public.documents;
 DROP POLICY IF EXISTS "Users can view eligible document metadata" ON public.documents;

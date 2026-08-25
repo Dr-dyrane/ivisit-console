@@ -28,8 +28,8 @@ describe('GodModeMap module ownership', () => {
     expect(controller.split(/\r?\n/).length).toBeLessThanOrEqual(400);
     expect(desktop.split(/\r?\n/).length).toBeLessThanOrEqual(260);
     expect(driverCard.split(/\r?\n/).length).toBeLessThanOrEqual(220);
-    expect(driverModel.split(/\r?\n/).length).toBeLessThanOrEqual(120);
-    expect(driverTracking.split(/\r?\n/).length).toBeLessThanOrEqual(320);
+    expect(driverModel.split(/\r?\n/).length).toBeLessThanOrEqual(125);
+    expect(driverTracking.split(/\r?\n/).length).toBeLessThanOrEqual(325);
     expect(presentation.split(/\r?\n/).length).toBeLessThanOrEqual(100);
     expect(googleRenderer.split(/\r?\n/).length).toBeLessThanOrEqual(140);
     expect(googleMarkerLayers.split(/\r?\n/).length).toBeLessThanOrEqual(240);

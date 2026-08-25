@@ -3551,6 +3551,10 @@ export type Database = {
         Args: { p_payment_id: string; p_request_id: string }
         Returns: Json
       }
+      approve_demo_cash_payment: {
+        Args: { p_payment_id: string; p_request_id: string }
+        Returns: Json
+      }
       assign_ambulance_to_emergency: {
         Args: {
           p_ambulance_id: string
@@ -3625,10 +3629,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      claim_document_invite: {
-        Args: { p_token: string }
-        Returns: Json
-      }
+      claim_document_invite: { Args: { p_token: string }; Returns: Json }
       claim_stripe_webhook_event: {
         Args: {
           p_event_type: string
@@ -4265,6 +4266,7 @@ export type Database = {
         Args: { p_doctor_id: string }
         Returns: boolean
       }
+      p_can_read_visit: { Args: { p_visit_id: string }; Returns: boolean }
       p_get_current_org_id: { Args: never; Returns: string }
       p_is_admin: { Args: never; Returns: boolean }
       p_is_async_consult_participant: {
@@ -4393,28 +4395,8 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
-      review_console_facility_claim: {
-        Args: { p_claim_id: string; p_decision: string; p_note?: string }
-        Returns: Json
-      }
-      review_console_organization: {
-        Args: {
-          p_decision: string
-          p_note?: string
-          p_organization_id: string
-        }
-        Returns: Json
-      }
-      review_organization_verification_document: {
-        Args: { p_decision: string; p_document_id: string; p_note?: string }
-        Returns: Json
-      }
       rate_visit: {
         Args: { p_comment?: string; p_rating: number; p_visit_id: string }
-        Returns: Json
-      }
-      skip_visit_rating: {
-        Args: { p_visit_id: string }
         Returns: Json
       }
       record_visit_cash_tip: {
@@ -4436,6 +4418,15 @@ export type Database = {
       resolve_currency_for_country: {
         Args: { p_country_code: string }
         Returns: string
+      }
+      resolve_emergency_pricing: {
+        Args: {
+          p_ambulance_type?: string
+          p_distance_km?: number
+          p_hospital_id?: string
+          p_service_type: string
+        }
+        Returns: Json
       }
       responder_accept_emergency: {
         Args: { p_request_id: string }
@@ -4461,6 +4452,18 @@ export type Database = {
         }
         Returns: Json
       }
+      review_console_facility_claim: {
+        Args: { p_claim_id: string; p_decision: string; p_note?: string }
+        Returns: Json
+      }
+      review_console_organization: {
+        Args: { p_decision: string; p_note?: string; p_organization_id: string }
+        Returns: Json
+      }
+      review_organization_verification_document: {
+        Args: { p_decision: string; p_document_id: string; p_note?: string }
+        Returns: Json
+      }
       search_auth_users: {
         Args: { search_term: string }
         Returns: {
@@ -4476,7 +4479,7 @@ export type Database = {
         Args: { p_query: string }
         Returns: {
           address: string
-          claim_status: string | null
+          claim_status: string
           claimable: boolean
           id: string
           name: string
@@ -4521,6 +4524,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      skip_visit_rating: { Args: { p_visit_id: string }; Returns: Json }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown

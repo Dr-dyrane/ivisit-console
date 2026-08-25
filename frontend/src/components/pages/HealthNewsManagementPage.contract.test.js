@@ -165,7 +165,7 @@ describe('HealthNewsManagementPage intake audit contract', () => {
     expect(page).not.toContain('applyAuthFilter');
     expect(page).not.toContain('getCurrentUser');
     expect(page).not.toContain('createNotification');
-    expect(page).not.toContain('createHealthNews');
+    expect(page).not.toMatch(/\bcreateHealthNews\s*\(/);
     expect(page).not.toContain('updateHealthNews');
     expect(page).not.toContain('deleteHealthNews');
     expect(page).not.toContain('toggleHealthNewsPublish');

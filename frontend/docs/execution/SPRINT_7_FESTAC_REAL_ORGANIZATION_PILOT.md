@@ -451,3 +451,19 @@ passed 1,782 of 1,788 tests; the remaining six assertions in five unrelated suit
 drift in God Mode Map size/action expectations, Health News copy-boundary matching, and Organization payout
 presentation expectations. They do not touch the repaired Hospitals or Payments paths and remain separate
 cleanup work rather than being hidden inside this surgical patch.
+
+### 2026-08-25 forensic database and regression closure
+
+A multi-round App/Console/live-contract audit reconstructed the migration history before making changes.
+It confirmed that App remains the canonical Supabase source and that the July 19 isolated demo-cash receiver
+had not been copied into Console's migration mirror. The live database already contained the receiver; no
+schema deployment or production data mutation was required. Canonical migrations, Supabase documentation,
+generated public-schema types, and the shared auth/invite receivers are synchronized again. A new
+`hardening:console-supabase-mirror` guard compares 62 canonical files and is now part of the App contract-drift
+gate so a cross-repository closure pass fails visibly if this omission recurs.
+
+The previously recorded stale Console assertions were repaired against the intentional current owners rather
+than by reverting product behavior. Final verification passed 246/246 suites and 1,788/1,788 tests, the
+optimized Console build, the App web export, the live contract matrix, five demo-finance isolation tests, and
+all seven emergency continuity contracts. This closes the repository baseline. It does not change the wider
+business conclusion: real Festac organization authority and real responder telemetry remain not yet proved.

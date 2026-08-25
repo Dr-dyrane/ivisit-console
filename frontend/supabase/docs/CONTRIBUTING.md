@@ -77,9 +77,10 @@ Deployment SQL may be emitted temporarily to apply an already-reviewed pillar de
 └──────────────────────┬──────────────────────────┘
                        │
         ┌──────────────┴──────────────┐
-   ivisit-app (Expo)          ivisit-console (Vite)
-   Alert.alert()              toast.error()
-   Redux + AsyncStorage       React local state
+   ivisit-app                 ivisit-console
+   Expo Router / RN           CRA / CRACO
+   Query + Zustand +          Query + route-owned
+   XState + Jotai             controllers/services
    Expo deep link             Browser redirect
 ```
 
@@ -342,6 +343,7 @@ node supabase/tests/scripts/test_runner.js [task_name]
 |---|---|---|---|
 | `process_wallet_payment()` | Finance | Process wallet payments | paymentService.js |
 | `process_cash_payment_v2()` | Emergency Logic | Process manual cash payments | paymentService.js |
+| `check_patient_cash_eligibility()` | Emergency Logic | Patient-safe boolean cash preflight using canonical pricing | paymentService.js |
 | `approve_cash_payment()` | Emergency Logic | Approve cash payments | paymentService.js |
 | `decline_cash_payment()` | Emergency Logic | Decline cash payments | paymentService.js |
 | `nearby_hospitals()` | Core RPCs | Find nearby hospitals | discoveryService.js |
