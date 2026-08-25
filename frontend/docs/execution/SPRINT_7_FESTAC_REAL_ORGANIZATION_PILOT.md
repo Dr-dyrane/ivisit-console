@@ -409,3 +409,15 @@ organization-wide sweep, or other broad match.
 - Real business outcome: **not yet proved**. Emel still requires an authorized representative, private
   evidence, legal/operational verification, real staff and fleet facts, currency/cash agreement, and the
   controlled physical-device field run in Phase 8.
+
+### Neutral hospital idempotency replay
+
+A subsequent test intentionally removed Emel from the rehearsal boundary. The exact manifest created
+`[DEMO 6ef51e23] iVisit Hospital Festac Rehearsal` at D Close, 6th Avenue with six providers, four schedules,
+and six fleet units. Repeated status reads created no request, payment, Visit, provider, schedule, or fleet
+duplicates, and two independent cleanup previews were identical.
+
+The separate full lifecycle matrix passed card ambulance, tracking, completion, rating, cash ambulance,
+bed reservation, tip flow, and transition audit. Its first cleanup reached zero residue and its second pass
+planned no mutations. The retained rich fixture also passed cleanup, zero preview, second cleanup, and final
+zero preview. This proves disposable rehearsal idempotency without relying on or mutating any real hospital.
